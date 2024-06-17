@@ -14,11 +14,17 @@ In case you are the maintainer of a new SAP open source project, these are the s
 
 ***
 
-# Our new open source project
+# Heureka
 
-## About this project
+## Overview
 
-*Insert a short description of your project here...*
+Heureka is a Security Posture Management Tool.
+
+Heureka is commited to empower service owners with a central platform for proactive security management.
+It seamlessly integrates key components such as advanced patch management, intelligent SIEM analysis, and automated policy enforcement.
+
+It is also designed to address the critical compliance aspect as it is equipped with capabilities to track the end-to-end remediation process, thereby providing tangible compliance evidence.
+This approach to security posture management ensures a comprehensive and professional approach to maintaining robust security standards.
 
 ## Requirements and Setup
 
