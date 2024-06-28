@@ -26,7 +26,7 @@ start: stop
 
 # Start all container. This expects the heureka bin to be amd64 because the image in the docker-compose is amd64
 start-all-%: stop
-	docker-compose --profile db --profile heureka up
+	docker-compose --profile db --profile heureka up  --build --force-recreate
 
 stop:
 	@rm -rf ./.db/data
