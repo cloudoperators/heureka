@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type Mutation {
+    createUser(input: UserInput!): User!
+    updateUser(id: ID!, input: UserInput!): User!
+    deleteUser(id: ID!): String!
+
+    createSupportGroup(input: SupportGroupInput!): SupportGroup!
+    updateSupportGroup(id: ID!, input: SupportGroupInput!): SupportGroup!
+    deleteSupportGroup(id: ID!): String!
+
+    createComponent(input: ComponentInput!): Component!
+    updateComponent(id: ID!, input: ComponentInput!): Component!
+    deleteComponent(id: ID!): String!
+
+    createComponentInstance(input: ComponentInstanceInput!): ComponentInstance!
+    updateComponentInstance(id: ID!, input: ComponentInstanceInput!): ComponentInstance!
+    deleteComponentInstance(id: ID!): String!
+
+    createComponentVersion(input: ComponentVersionInput!): ComponentVersion!
+    updateComponentVersion(id: ID!, input: ComponentVersionInput!): ComponentVersion!
+    deleteComponentVersion(id: ID!): String!
+
+    createService(input: ServiceInput!): Service!
+    updateService(id: ID!, input: ServiceInput!): Service!
+    deleteService(id: ID!): String!
+
+    createIssueRepository(input: IssueRepositoryInput!): IssueRepository!
+    updateIssueRepository(id: ID!, input: IssueRepositoryInput!): IssueRepository!
+    deleteIssueRepository(id: ID!): String!
+
+    createIssueVariant(input: IssueVariantInput!): IssueVariant!
+    updateIssueVariant(id: ID!, input: IssueVariantInput!): IssueVariant!
+    deleteIssueVariant(id: ID!): String!
+
+    createEvidence(input: EvidenceInput!): Evidence!
+    updateEvidence(id: ID!, input: EvidenceInput!): Evidence!
+    deleteEvidence(id: ID!): String!
+
+    createIssueMatch(input: IssueMatchInput!): IssueMatch!
+    updateIssueMatch(id: ID!, input: IssueMatchInput!): IssueMatch!
+    deleteIssueMatch(id: ID!): String!
+
+    createActivity(input: ActivityInput!): Activity!
+    updateActivity(id: ID!, input: ActivityInput!): Activity!
+    deleteActivity(id: ID!): String!
+}

@@ -1,0 +1,20 @@
+query ($filter: ActivityFilter, $first: Int, $after: String) {
+    Activities (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges {
+            node {
+                id
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            nextPageAfter
+        }
+    }
+}

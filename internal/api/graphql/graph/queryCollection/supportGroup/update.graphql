@@ -1,0 +1,10 @@
+mutation ($id: ID!, $input: SupportGroupInput!) {
+    updateSupportGroup (
+        id: $id,
+        input: $input
+    ) {
+        __typename
+        id
+        name
+    }
+}

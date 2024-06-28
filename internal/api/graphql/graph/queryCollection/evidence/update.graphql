@@ -1,0 +1,14 @@
+mutation ($id: ID!, $input: EvidenceInput!) {
+    updateEvidence (
+        id: $id,
+        input: $input
+    ) {
+        id
+        description
+        raaEnd
+        type
+        vector
+        authorId
+        activityId
+    }
+}

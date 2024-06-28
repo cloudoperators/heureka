@@ -1,0 +1,260 @@
+query ($filter: ActivityFilter, $first: Int, $after: String) {
+    Activities (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges {
+            node {
+                id
+                services {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            name
+                            owners {
+                                totalCount
+                                edges {
+                                    node {
+                                        id
+                                        sapID
+                                        name
+                                    }
+                                    cursor
+                                }
+                                pageInfo {
+                                    hasNextPage
+                                    nextPageAfter
+                                }
+                            }
+                            supportGroups {
+                                totalCount
+                                edges {
+                                    node {
+                                        id
+                                        name
+                                    }
+                                    cursor
+                                }
+                                pageInfo {
+                                    hasNextPage
+                                    nextPageAfter
+                                }
+                            }
+                            activities {
+                                totalCount
+                                edges {
+                                    node {
+                                        id
+                                        services {
+                                            totalCount
+                                        }
+                                        issues {
+                                            totalCount
+                                        }
+                                        evidences {
+                                            totalCount
+                                        }
+                                    }
+                                    cursor
+                                }
+                                pageInfo {
+                                    hasNextPage
+                                    nextPageAfter
+                                }
+                            }
+                        }
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                issues {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            lastModified
+                            issueVariants {
+                                totalCount
+                                edges {
+                                    node {
+                                        id
+                                        name
+                                        description
+                                        severity {
+                                            value
+                                            score
+                                        }
+                                        issues {
+                                            id
+                                            lastModified
+                                        }
+                                        created_at
+                                        updated_at
+                                    }
+                                    cursor
+                                    created_at
+                                    updated_at
+                                }
+                                pageInfo {
+                                    hasNextPage
+                                    nextPageAfter
+                                }
+                            }
+                            issueMatches {
+                                totalCount
+                                edges {
+                                    node {
+                                        id
+                                        status
+                                        remediationDate
+                                        discoveryDate
+                                        targetRemediationDate
+                                        evidences {
+                                            totalCount
+                                        }
+                                        issue {
+                                            id
+                                            lastModified
+                                        }
+                                        componentInstance {
+                                            id
+                                            ccrn
+                                            count
+                                            createdAt
+                                            updatedAt
+                                        }
+                                    }
+                                    cursor
+                                }
+                                pageInfo {
+                                    hasNextPage
+                                    nextPageAfter
+                                }
+                            }
+                            metadata {
+                                serviceCount
+                                activityCount
+                                issueMatchCount
+                                componentInstanceCount
+                                earliestDiscoveryDate
+                                earliestTargetRemediationDate
+                            }
+                        }
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                evidences {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            description
+                            author {
+                                id
+                                sapID
+                                name
+                            }
+                            activity {
+                                id
+                                services {
+                                    totalCount
+                                    edges {
+                                        node {
+                                            id
+                                            name
+                                        }
+                                        cursor
+                                    }
+                                    pageInfo {
+                                        hasNextPage
+                                        nextPageAfter
+                                    }
+                                }
+                                issues {
+                                    totalCount
+                                    edges {
+                                        node {
+                                            id
+                                            lastModified
+                                        }
+                                        cursor
+                                    }
+                                    pageInfo {
+                                        hasNextPage
+                                        nextPageAfter
+                                    }
+                                }
+                                evidences {
+                                    totalCount
+                                    edges {
+                                        node {
+                                            id
+                                            description
+                                        }
+                                        cursor
+                                    }
+                                    pageInfo {
+                                        hasNextPage
+                                        nextPageAfter
+                                    }
+                                }
+                            }
+                            issueMatches {
+                                totalCount
+                                edges {
+                                    node {
+                                        id
+                                        status
+                                        remediationDate
+                                        discoveryDate
+                                        targetRemediationDate
+                                        evidences {
+                                            totalCount
+                                        }
+                                        issue {
+                                            id
+                                            lastModified
+                                        }
+                                        componentInstance {
+                                            id
+                                            ccrn
+                                            count
+                                            createdAt
+                                            updatedAt
+                                        }
+                                    }
+                                    cursor
+                                }
+                                pageInfo {
+                                    hasNextPage
+                                    nextPageAfter
+                                }
+                            }
+                        }
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            nextPageAfter
+        }
+    }
+}

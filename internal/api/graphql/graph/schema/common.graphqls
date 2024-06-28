@@ -1,0 +1,101 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+scalar DateTime @specifiedBy(url: "https://scalars.graphql.org/andimarek/date-time")
+
+interface Node {
+    id: ID!
+}
+
+interface Connection {
+    totalCount: Int!
+    pageInfo: PageInfo
+}
+
+interface Edge {
+    node: Node!
+    cursor: String
+}
+
+type Page {
+    after: String
+    isCurrent: Boolean
+    pageNumber: Int
+    pageCount: Int
+}
+
+type PageInfo {
+    hasNextPage: Boolean
+    hasPreviousPage: Boolean
+    isValidPage: Boolean
+    pageNumber: Int
+    nextPageAfter: String
+    pages: [Page]
+}
+
+enum SeverityValues {
+    None,
+    Low,
+    Medium,
+    High,
+    Critical
+}
+
+input DateTimeFilter {
+    after: DateTime,
+    before: DateTime,
+}
+
+type CVSSParameter {
+    name: String
+    value: String
+}
+
+type CVSSBase {
+    score: Float
+    attackVector: String
+    attackComplexity: String
+    privilegesRequired: String
+    userInteraction: String
+    scope: String
+    confidentialityImpact: String
+    integrityImpact: String
+    availabilityImpact: String
+}
+type CVSSTemporal {
+    score: Float
+    exploitCodeMaturity: String
+    remediationLevel: String
+    reportConfidence: String
+}
+type CVSSEnvironmental {
+    score: Float
+    modifiedAttackVector: String
+    modifiedAttackComplexity: String
+    modifiedPrivilegesRequired: String
+    modifiedUserInteraction: String
+    modifiedScope: String
+    modifiedConfidentialityImpact: String
+    modifiedIntegrityImpact: String
+    modifiedAvailabilityImpact: String
+    confidentialityRequirement: String
+    availabilityRequirement: String
+    integrityRequirement: String
+}
+
+type CVSS {
+    vector: String
+    base: CVSSBase
+    temporal: CVSSTemporal
+    environmental: CVSSEnvironmental
+}
+
+type Severity {
+    value: SeverityValues
+    score: Float
+    cvss: CVSS
+}
+
+input SeverityInput {
+    vector: String
+}

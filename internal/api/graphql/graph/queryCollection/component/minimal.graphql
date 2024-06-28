@@ -1,0 +1,18 @@
+
+query ($filter: ComponentFilter, $first: Int, $after: String) {
+    Components (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+                name
+                type
+            }
+            cursor
+        }
+    }
+}

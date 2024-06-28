@@ -1,0 +1,57 @@
+query ($filter: ComponentInstanceFilter, $first: Int, $after: String) {
+    ComponentInstances (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges { 
+            node { 
+                id
+                ccrn
+                count
+                componentVersionId
+                componentVersion { 
+                    id
+                    version
+                    componentId
+                }
+                serviceId
+                service { 
+                    id
+                    name
+                }
+                createdAt
+                updatedAt
+                issueMatches {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            status
+                            remediationDate
+                            discoveryDate
+                            targetRemediationDate
+                        }
+                        cursor
+                    }
+                }
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

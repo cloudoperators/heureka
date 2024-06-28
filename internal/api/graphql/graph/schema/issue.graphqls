@@ -1,0 +1,65 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+
+
+type Issue implements Node {
+    id: ID!
+    type: IssueTypes
+    primaryName: String
+    lastModified: DateTime
+    issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
+    activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
+    issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
+    componentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
+    metadata: IssueMetadata
+}
+
+type IssueMetadata {
+    serviceCount: Int!
+    activityCount: Int!
+    issueMatchCount: Int!
+    componentInstanceCount: Int!
+    componentVersionCount: Int!
+    earliestDiscoveryDate: DateTime!
+    earliestTargetRemediationDate: DateTime!
+}
+
+type IssueConnection implements Connection {
+    totalCount: Int!
+    edges: [IssueEdge]!
+    pageInfo: PageInfo
+}
+
+type IssueEdge implements Edge {
+    node: Issue!
+    cursor: String
+}
+
+enum IssueStatusValues {
+        unaffected, 
+        open, 
+        remediated,
+        overdue
+}
+
+input IssueFilter {
+    affectedService: [String],
+    primaryName: [String],
+    issueMatchStatus: [IssueMatchStatusValues],
+    issueType: [IssueTypes],
+
+    componentVersionId: [String],
+
+    # leave away for MVP
+    # cveDescription: [String]
+    # fromAdvisory: ID,
+    # vulnerabilityMatchDiscoveryDate: DateTimeFilter
+    # vulnerabilityMatchTargetRemediationDate: DateTimeFilter
+}
+
+enum IssueTypes {
+    Vulnerability,
+    PolicyViolation,
+    SecurityEvent
+}

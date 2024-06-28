@@ -1,0 +1,11 @@
+mutation ($id: ID!, $input: IssueRepositoryInput!) {
+    updateIssueRepository (
+        id: $id,
+        input: $input
+    ) {
+        __typename
+        id
+        name
+        url
+    }
+}

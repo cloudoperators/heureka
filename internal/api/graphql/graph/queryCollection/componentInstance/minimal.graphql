@@ -1,0 +1,17 @@
+
+query ($filter: ComponentInstanceFilter, $first: Int, $after: String) {
+    ComponentInstances (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+                ccrn
+            }
+            cursor
+        }
+    }
+}

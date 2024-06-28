@@ -1,0 +1,16 @@
+query ($filter: IssueFilter, $first: Int, $after: String) {
+    Issues (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+                lastModified
+            }
+            cursor
+        }
+    }
+}

@@ -1,0 +1,17 @@
+
+query ($filter: ComponentVersionFilter, $first: Int, $after: String) {
+    ComponentVersions (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+                version
+            }
+            cursor
+        }
+    }
+}

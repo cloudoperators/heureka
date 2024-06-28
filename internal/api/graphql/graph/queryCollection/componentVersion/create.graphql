@@ -1,0 +1,9 @@
+mutation ($input: ComponentVersionInput!) {
+    createComponentVersion (
+        input: $input
+    ) {
+        id
+        version
+        componentId
+    }
+}

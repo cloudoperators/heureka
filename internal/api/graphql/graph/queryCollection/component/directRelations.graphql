@@ -1,0 +1,46 @@
+query ($filter: ComponentFilter, $first: Int, $after: String) {
+    Components (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges { 
+            node { 
+                id
+                name
+                type
+                componentVersions { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            version
+                            componentId
+                        }
+                        cursor
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

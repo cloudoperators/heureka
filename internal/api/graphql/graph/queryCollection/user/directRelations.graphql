@@ -1,0 +1,59 @@
+query ($filter: UserFilter, $first: Int, $after: String) {
+    Users (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges { 
+            node { 
+                id
+                sapID
+                name
+                supportGroups { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            name
+                        }
+                        cursor
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                services { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            name
+                        }
+                        cursor
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

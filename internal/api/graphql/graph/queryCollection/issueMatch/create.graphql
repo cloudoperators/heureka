@@ -1,0 +1,21 @@
+mutation ($input: IssueMatchInput!) {
+    createIssueMatch (
+        input: $input
+    ) {
+        id
+        status
+        remediationDate
+        discoveryDate
+        targetRemediationDate
+        componentInstanceId 
+        issueId
+        userId
+        severity {
+            value
+            score
+            cvss {
+                vector
+            }
+        }
+    }
+}

@@ -1,0 +1,10 @@
+mutation ($id: ID!, $input: ServiceInput!) {
+    updateService (
+        id: $id,
+        input: $input
+    ) {
+        __typename
+        id
+        name
+    }
+}

@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type Evidence implements Node {
+    id: ID!
+    description: String
+    type: String
+    vector: String
+    raaEnd: DateTime
+    #TODO Severity
+    authorId: String
+    author: User
+    activityId: String
+    activity: Activity
+    issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
+}
+
+input EvidenceInput {
+    description: String
+    type: String
+    raaEnd: DateTime
+    authorId: String
+    activityId: String
+    severity: SeverityInput
+}
+
+type EvidenceConnection implements Connection {
+    totalCount: Int!
+    edges: [EvidenceEdge]
+    pageInfo: PageInfo
+}
+
+type EvidenceEdge implements Edge {
+    node: Evidence!
+    cursor: String
+}
+
+input EvidenceFilter {
+    placeholder: [Boolean]
+}

@@ -1,0 +1,44 @@
+query ($filter: IssueMatchChangeFilter, $first: Int, $after: String) {
+    IssueMatchChanges (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges { 
+            node { 
+                id
+                action
+                issueMatchId
+                issueMatch { 
+                    id
+                    status
+                    remediationDate
+                    discoveryDate
+                    targetRemediationDate
+                    issueId
+                    componentInstanceId
+                }
+                activityId
+                activity { 
+                    id
+                }
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

@@ -1,0 +1,15 @@
+query ($filter: IssueMatchFilter, $first: Int, $after: String) {
+    IssueMatches (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+            }
+            cursor
+        }
+    }
+}

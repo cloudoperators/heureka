@@ -1,0 +1,20 @@
+mutation ($id: ID!, $input: IssueVariantInput!) {
+    updateIssueVariant (
+        id: $id,
+        input: $input
+    ) {
+        __typename
+        id
+        secondaryName
+        description
+        severity {
+            value
+            score
+            cvss {
+                vector
+            }
+        }
+        issueRepositoryId
+        issueId
+    }
+}

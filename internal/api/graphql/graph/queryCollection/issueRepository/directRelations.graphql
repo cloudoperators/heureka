@@ -1,0 +1,71 @@
+query ($filter: IssueRepositoryFilter, $first: Int, $after: String) {
+    IssueRepositories (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges { 
+            node { 
+                id
+                name
+                url
+                issueVariants { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            secondaryName
+                            description
+                            issueRepositoryId
+                            issueId
+                            created_at
+                            updated_at
+                        }
+                        cursor
+                        created_at
+                        updated_at
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                services { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            name
+                        }
+                        cursor
+                        priority
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                created_at
+                updated_at
+            }
+            cursor
+            created_at
+            updated_at
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

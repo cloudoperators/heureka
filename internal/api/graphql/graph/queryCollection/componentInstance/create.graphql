@@ -1,0 +1,11 @@
+mutation ($input: ComponentInstanceInput!) {
+    createComponentInstance (
+        input: $input
+    ) {
+        id
+        ccrn
+        count
+        componentVersionId
+        serviceId
+    }
+}

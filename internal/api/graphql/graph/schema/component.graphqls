@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type Component implements Node {
+    id: ID!
+    name: String
+    type: ComponentTypeValues
+    componentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
+}
+
+input ComponentInput {
+    name: String
+    type: ComponentTypeValues
+}
+
+enum ComponentTypeValues {
+    containerImage,
+    virtualMachineImage,
+    repository
+}
+
+input ComponentFilter {
+    componentName: [String]
+}
+
+type ComponentConnection implements Connection {
+    totalCount: Int!
+    edges: [ComponentEdge]
+    pageInfo: PageInfo
+}
+
+type ComponentEdge implements Edge {
+    node: Component!
+    cursor: String
+}

@@ -1,0 +1,52 @@
+query ($filter: IssueVariantFilter, $first: Int, $after: String) {
+    IssueVariants (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges { 
+            node { 
+                id
+                secondaryName
+                description
+                severity { 
+                    value
+                    score
+                }
+                issueRepositoryId
+                issueRepository { 
+                    id
+                    name
+                    url
+                    created_at
+                    updated_at
+                }
+                issueId
+                issue { 
+                    id
+                    lastModified
+                }
+                created_at
+                updated_at
+            }
+            cursor
+            created_at
+            updated_at
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

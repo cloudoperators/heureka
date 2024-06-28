@@ -1,0 +1,102 @@
+query ($filter: ServiceFilter, $first: Int, $after: String) {
+    Services (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges { 
+            node { 
+                id
+                name
+                owners { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            sapID
+                            name
+                        }
+                        cursor
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                supportGroups { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            name
+                        }
+                        cursor
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                activities { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                        }
+                        cursor
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                issueRepositories { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            name
+                            url
+                            created_at
+                            updated_at
+                        }
+                        cursor
+                        priority
+                        created_at
+                        updated_at
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                componentInstances {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            ccrn
+                            count
+                        }
+                    }
+                }
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

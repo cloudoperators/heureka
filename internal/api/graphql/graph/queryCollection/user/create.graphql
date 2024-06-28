@@ -1,0 +1,9 @@
+mutation ($input: UserInput!) {
+    createUser (
+        input: $input
+    ) {
+        id
+        sapID
+        name
+    }
+}

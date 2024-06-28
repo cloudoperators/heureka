@@ -1,0 +1,17 @@
+
+query ($filter: IssueRepositoryFilter, $first: Int, $after: String) {
+    IssueRepositories (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+                name
+            }
+            cursor
+        }
+    }
+}

@@ -1,0 +1,61 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type IssueMatch implements Node {
+    id: ID!
+    status: IssueMatchStatusValues
+    remediationDate: DateTime
+    discoveryDate: DateTime
+    targetRemediationDate: DateTime
+    severity: Severity
+    effectiveIssueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
+    evidences(filter: EvidenceFilter, first: Int, after: String): EvidenceConnection
+    issueId: String
+    issue: Issue!
+    userId: String
+    user: User
+    componentInstanceId: String
+    componentInstance: ComponentInstance!
+    issueMatchChanges(filter: IssueMatchChangeFilter, first: Int, after: String): IssueMatchChangeConnection
+}
+
+input IssueMatchInput {
+    status: IssueMatchStatusValues
+    remediationDate: DateTime
+    discoveryDate: DateTime
+    targetRemediationDate: DateTime
+    issueId: String
+    componentInstanceId: String
+    userId: String
+}
+
+input IssueMatchFilter {
+    status: [IssueMatchStatusValues]
+    severity: [SeverityValues]
+    affectedService: [String]
+    SupportGroupName: [String]
+}
+
+#type CCloudSeverity {
+#    id:ID!
+#    rating:SeverityValues!
+#    comment:String!
+#}
+
+type IssueMatchConnection implements Connection {
+    totalCount: Int!
+    edges: [IssueMatchEdge]
+    pageInfo: PageInfo
+}
+
+type IssueMatchEdge implements Edge {
+    node: IssueMatch!
+    cursor: String
+}
+
+enum IssueMatchStatusValues {
+    new,
+    risk_accepted
+    false_positive
+    mitigated
+}

@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type IssueVariant implements Node {
+    id: ID!
+    secondaryName: String
+    description: String
+    severity: Severity
+    issueRepositoryId: String
+    issueRepository: IssueRepository
+    issueId: String
+    issue: Issue
+    created_at: DateTime
+    updated_at: DateTime
+}
+
+input IssueVariantInput {
+    secondaryName: String
+    description: String
+    issueRepositoryId: String
+    issueId: String
+    severity: SeverityInput
+}
+
+type IssueVariantConnection implements Connection {
+    totalCount: Int!
+    edges: [IssueVariantEdge]
+    pageInfo: PageInfo
+}
+
+type IssueVariantEdge implements Edge {
+    node: IssueVariant!
+    cursor: String
+    created_at: DateTime
+    updated_at: DateTime
+}
+
+input IssueVariantFilter {
+    secondaryName: [String]
+}

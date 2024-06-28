@@ -1,0 +1,16 @@
+
+query ($filter: EvidenceFilter, $first: Int, $after: String) {
+    Evidences (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+            }
+            cursor
+        }
+    }
+}

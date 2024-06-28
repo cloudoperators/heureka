@@ -1,0 +1,22 @@
+mutation ($id: ID!, $input: IssueMatchInput!) {
+    updateIssueMatch (
+        id: $id,
+        input: $input
+    ) {
+        id
+        status
+        remediationDate
+        discoveryDate
+        targetRemediationDate
+        severity {
+            value
+            score
+            cvss {
+                vector
+            }
+        }
+        componentInstanceId 
+        issueId
+        userId
+    }
+}

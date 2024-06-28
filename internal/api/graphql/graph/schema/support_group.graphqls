@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type SupportGroup implements Node {
+    id: ID!
+    name: String
+    users(filter: UserFilter, first: Int, after: String): UserConnection
+    services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
+}
+
+input SupportGroupInput {
+    name: String
+}
+
+type SupportGroupConnection implements Connection {
+    totalCount: Int!
+    edges: [SupportGroupEdge]
+    pageInfo: PageInfo
+}
+
+type SupportGroupEdge implements Edge {
+    node: SupportGroup!
+    cursor: String
+}
+
+input SupportGroupFilter {
+    supportGroupName: [String],
+    userIds: [String],
+}

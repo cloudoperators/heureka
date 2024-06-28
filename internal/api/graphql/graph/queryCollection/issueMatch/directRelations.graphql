@@ -1,0 +1,87 @@
+query ($filter: IssueMatchFilter, $first: Int, $after: String) {
+    IssueMatches (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        __typename
+        totalCount
+        edges { 
+            node { 
+                id
+                status
+                remediationDate
+                discoveryDate
+                targetRemediationDate
+                severity {
+                    value
+                    score
+                }
+                effectiveIssueVariants {
+                    edges {
+                        node {
+                            id
+                            secondaryName
+                            description
+                        }
+                    }
+                }
+                evidences { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            description
+                        }
+                        cursor
+                    }
+                    pageInfo { 
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+                issueId
+                issue { 
+                    id
+                    lastModified
+                }
+                componentInstanceId
+                componentInstance { 
+                    id
+                    ccrn
+                    count
+                }
+                issueMatchChanges {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            action
+                            issueMatchId
+                            activityId
+                        }
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
+                        nextPageAfter
+                    }
+                }
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

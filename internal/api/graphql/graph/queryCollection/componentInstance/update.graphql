@@ -1,0 +1,13 @@
+mutation ($id: ID!, $input: ComponentInstanceInput!) {
+    updateComponentInstance (
+        id: $id,
+        input: $input
+    ) {
+        __typename
+        id
+        ccrn
+        count
+        componentVersionId
+        serviceId
+    }
+}

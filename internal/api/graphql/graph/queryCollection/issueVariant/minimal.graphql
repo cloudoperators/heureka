@@ -1,0 +1,17 @@
+
+query ($filter: IssueVariantFilter, $first: Int, $after: String) {
+    IssueVariants (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+                secondaryName
+            }
+            cursor
+        }
+    }
+}

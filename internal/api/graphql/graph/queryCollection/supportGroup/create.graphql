@@ -1,0 +1,8 @@
+mutation ($input: SupportGroupInput!) {
+    createSupportGroup (
+        input: $input
+    ) {
+        id
+        name
+    }
+}

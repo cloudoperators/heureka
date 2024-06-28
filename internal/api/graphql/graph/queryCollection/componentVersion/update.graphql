@@ -1,0 +1,11 @@
+mutation ($id: ID!, $input: ComponentVersionInput!) {
+    updateComponentVersion (
+        id: $id,
+        input: $input
+    ) {
+        __typename
+        id
+        version
+        componentId
+    }
+}

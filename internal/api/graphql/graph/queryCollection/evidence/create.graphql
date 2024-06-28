@@ -1,0 +1,13 @@
+mutation ($input: EvidenceInput!) {
+    createEvidence (
+        input: $input
+    ) {
+        id
+        description
+        raaEnd
+        type
+        vector
+        authorId
+        activityId
+    }
+}

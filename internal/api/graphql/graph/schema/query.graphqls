@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type Query {
+    Issues(filter: IssueFilter, first: Int, after: String): IssueConnection
+    IssueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
+    IssueMatchChanges(filter: IssueMatchChangeFilter, first: Int, after: String): IssueMatchChangeConnection
+    Services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
+    Components(filter: ComponentFilter, first: Int, after: String): ComponentConnection
+    ComponentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
+    ComponentInstances(filter: ComponentInstanceFilter, first: Int, after: String): ComponentInstanceConnection
+    Activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
+    IssueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
+    IssueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
+    Evidences(filter: EvidenceFilter, first: Int, after: String): EvidenceConnection
+    SupportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
+    Users(filter: UserFilter, first: Int, after: String): UserConnection
+}

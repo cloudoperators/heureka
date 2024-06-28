@@ -1,0 +1,18 @@
+mutation ($input: IssueVariantInput!) {
+    createIssueVariant (
+        input: $input
+    ) {
+        id
+        secondaryName
+        description
+        severity {
+            value
+            score
+            cvss {
+                vector
+            }
+        }
+        issueRepositoryId
+        issueId
+    }
+}

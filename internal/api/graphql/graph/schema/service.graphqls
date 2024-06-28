@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type Service implements Node {
+    id: ID!
+    name: String
+    owners(filter: UserFilter, first: Int, after: String): UserConnection
+    supportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
+    activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
+    issueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
+    componentInstances(filter: ComponentInstanceFilter, first: Int, after: String): ComponentInstanceConnection
+}
+
+input ServiceInput {
+    name: String
+}
+
+type ServiceConnection implements Connection {
+    totalCount: Int!
+    edges: [ServiceEdge]
+    pageInfo: PageInfo
+}
+
+type ServiceEdge implements Edge {
+    node: Service!
+    cursor: String
+    priority: Int
+}
+
+input ServiceFilter {
+    serviceName: [String]
+    userSapID: [String]
+    userName: [String]
+    supportGroupName: [String]
+}

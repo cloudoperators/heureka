@@ -1,0 +1,9 @@
+mutation ($input: IssueRepositoryInput!) {
+    createIssueRepository (
+        input: $input
+    ) {
+        id
+        name
+        url
+    }
+}
