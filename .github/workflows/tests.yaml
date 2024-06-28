@@ -3,7 +3,7 @@ on: [pull_request]
 
 jobs:
   tests:
-    runs-on: [ self-hosted ]
+    runs-on: [ default ]
     services:
       mariadb:
         image: mariadb:latest
