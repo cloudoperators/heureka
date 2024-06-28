@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# Redirect output to stderr.
+exec 1>&2
+
+# Check if gofmt is installed
+if ! command -v gofmt >/dev/null 2>&1; then
+  echo "Error: gofmt not found. Please install it to use this pre-commit hook."
+  exit 1
+fi
+
+# Check if golangci-lint is installed
+# if ! command -v golangci-lint >/dev/null 2>&1; then
+#   echo "Error: golangci-lint not found. Please install it to use this pre-commit hook."
+#   exit 1
+# fi
+
+# Format Go code
+echo "Running gofmt..."
+gofmt -w -s $(find . -type f -name '*.go' -not -path "./vendor/*")
+
+# Lint Go code
+# echo "Running golangci-lint..."
+# golangci-lint run --timeout 5m
+
+# Check if linting passed
+# if [ $? -ne 0 ]; then
+#   echo "Error: golangci-lint failed. Please fix the issues and try again."
+#   exit 1
+# fi
+
+echo "All checks passed. Proceeding with commit."
+exit 

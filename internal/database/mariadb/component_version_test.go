@@ -1,0 +1,411 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package mariadb_test
+
+import (
+	"math/rand"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/samber/lo"
+	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
+	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb/test"
+	"github.wdf.sap.corp/cc/heureka/internal/entity"
+)
+
+var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func() {
+
+	var db *mariadb.SqlDatabase
+	var seeder *test.DatabaseSeeder
+	BeforeEach(func() {
+		var err error
+		db = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+	})
+
+	When("Getting All ComponentVersion IDs", Label("GetAllComponentVersionIds"), func() {
+		Context("and the database is empty", func() {
+			It("can perform the query", func() {
+				res, err := db.GetAllComponentVersionIds(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning an empty list", func() {
+					Expect(res).To(BeEmpty())
+				})
+			})
+		})
+		Context("and we have 20 ComponentVersions in the database", func() {
+			var seedCollection *test.SeedCollection
+			var ids []int64
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+
+				for _, cv := range seedCollection.ComponentVersionRows {
+					ids = append(ids, cv.Id.Int64)
+				}
+			})
+			Context("and using no filter", func() {
+				It("can fetch the items correctly", func() {
+					res, err := db.GetAllComponentVersionIds(nil)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentVersionRows)))
+					})
+
+					By("returning the correct order", func() {
+						var prev int64 = 0
+						for _, r := range res {
+							Expect(r > prev).Should(BeTrue())
+							prev = r
+						}
+					})
+
+					By("returning the correct fields", func() {
+						for _, r := range res {
+							Expect(lo.Contains(ids, r)).To(BeTrue())
+						}
+					})
+				})
+			})
+			Context("and using a filter", func() {
+				It("can filter by a single componentVersion id that does exist", func() {
+					cvId := ids[rand.Intn(len(ids))]
+					filter := &entity.ComponentVersionFilter{
+						Id: []*int64{&cvId},
+					}
+
+					entries, err := db.GetAllComponentVersionIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(BeEquivalentTo(1))
+					})
+
+					By("returning expected elements", func() {
+						Expect(entries[0]).To(BeEquivalentTo(cvId))
+					})
+				})
+			})
+		})
+	})
+
+	When("Getting ComponentVersions", Label("GetComponentVersions"), func() {
+		Context("and the database is empty", func() {
+			It("can perform the list query", func() {
+				res, err := db.GetComponentVersions(nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning an empty list", func() {
+					Expect(res).To(BeEmpty())
+				})
+			})
+		})
+		Context("and we have 10 component versions in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+
+			Context("and using no filter", func() {
+				It("can fetch the items correctly", func() {
+					res, err := db.GetComponentVersions(nil)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentVersionRows)))
+					})
+
+					By("returning the correct order", func() {
+						var prev int64 = 0
+						for _, r := range res {
+
+							Expect(r.Id > prev).Should(BeTrue())
+							prev = r.Id
+
+						}
+					})
+
+					By("returning the correct fields", func() {
+						for _, r := range res {
+							for _, row := range seedCollection.ComponentVersionRows {
+								if r.Id == row.Id.Int64 {
+									Expect(r.Version).Should(BeEquivalentTo(row.Version.String), "Name should match")
+									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
+									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
+								}
+							}
+						}
+					})
+				})
+			})
+			Context("and using a filter", func() {
+				It("can filter by a single component version id that does exist", func() {
+					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					filter := &entity.ComponentVersionFilter{
+						Id: []*int64{&cv.Id.Int64},
+					}
+
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(BeEquivalentTo(1))
+					})
+
+					By("returning expected elements", func() {
+						Expect(entries[0].Id).To(BeEquivalentTo(cv.Id.Int64))
+					})
+				})
+				It("can filter by an issue id", func() {
+					issueRow := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
+
+					// collect all component version ids that belong to the issues
+					componentVersionIds := []int64{}
+					for _, cvvRow := range seedCollection.ComponentVersionIssueRows {
+						if cvvRow.IssueId.Int64 == issueRow.Id.Int64 {
+							componentVersionIds = append(componentVersionIds, cvvRow.ComponentVersionId.Int64)
+						}
+					}
+
+					filter := &entity.ComponentVersionFilter{IssueId: []*int64{&issueRow.Id.Int64}}
+
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(componentVersionIds).To(ContainElement(entry.Id))
+						}
+					})
+				})
+				It("can filter by a component id", func() {
+					// select a component
+					componentRow := seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
+
+					// collect all activity ids that belong to the component
+					componentVersionIds := []int64{}
+					for _, cvRow := range seedCollection.ComponentVersionRows {
+						if cvRow.ComponentId.Int64 == componentRow.Id.Int64 {
+							componentVersionIds = append(componentVersionIds, cvRow.Id.Int64)
+						}
+					}
+
+					filter := &entity.ComponentVersionFilter{ComponentId: []*int64{&componentRow.Id.Int64}}
+
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(componentVersionIds).To(ContainElement(entry.Id))
+						}
+					})
+				})
+			})
+			Context("and using pagination", func() {
+				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
+					test.TestPaginationOfList(
+						db.GetComponentVersions,
+						func(first *int, after *int64) *entity.ComponentVersionFilter {
+							return &entity.ComponentVersionFilter{
+								Paginated: entity.Paginated{First: first, After: after},
+							}
+						},
+						func(entries []entity.ComponentVersion) *int64 { return &entries[len(entries)-1].Id },
+						len(seedCollection.ComponentVersionRows),
+						pageSize,
+					)
+				},
+					Entry("when pageSize is 1", 1),
+					Entry("when pageSize is 3", 3),
+					Entry("when pageSize is 5", 5),
+					Entry("when pageSize is 11", 11),
+					Entry("when pageSize is 100", 100),
+				)
+			})
+		})
+	})
+	When("Counting ComponentVersions", Label("CountComponentVersions"), func() {
+		Context("and the database is empty", func() {
+			It("can count correctly", func() {
+				c, err := db.CountComponentVersions(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning the correct count", func() {
+					Expect(c).To(BeEquivalentTo(0))
+				})
+			})
+		})
+		Context("and the database has 100 entries", func() {
+			var seedCollection *test.SeedCollection
+			var cvRows []mariadb.ComponentVersionRow
+			var count int
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(100)
+				cvRows = seedCollection.ComponentVersionRows
+				count = len(cvRows)
+
+			})
+			Context("and using no filter", func() {
+				It("can count", func() {
+					c, err := db.CountComponentVersions(nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("returning the correct count", func() {
+						Expect(c).To(BeEquivalentTo(count))
+					})
+				})
+			})
+			Context("and using pagination", func() {
+				It("can count", func() {
+					f := 10
+					filter := &entity.ComponentVersionFilter{
+						Paginated: entity.Paginated{
+							First: &f,
+							After: nil,
+						},
+					}
+					c, err := db.CountComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("returning the correct count", func() {
+						Expect(c).To(BeEquivalentTo(count))
+					})
+				})
+			})
+		})
+		When("Insert ComponentVersion", Label("InsertComponentVersion"), func() {
+			Context("and we have 10 ComponentVersions in the database", func() {
+				var newComponentVersionRow mariadb.ComponentVersionRow
+				var newComponentVersion entity.ComponentVersion
+				var seedCollection *test.SeedCollection
+				BeforeEach(func() {
+					seeder.SeedDbWithNFakeData(10)
+					seedCollection = seeder.SeedDbWithNFakeData(10)
+					newComponentVersionRow = test.NewFakeComponentVersion()
+					newComponentVersionRow.ComponentId = seedCollection.ComponentRows[0].Id
+					newComponentVersion = newComponentVersionRow.AsComponentVersion()
+				})
+				It("can insert correctly", func() {
+					componentVersion, err := db.CreateComponentVersion(&newComponentVersion)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("sets componentVersion id", func() {
+						Expect(componentVersion).NotTo(BeEquivalentTo(0))
+					})
+
+					componentVersionFilter := &entity.ComponentVersionFilter{
+						Id: []*int64{&componentVersion.Id},
+					}
+
+					cv, err := db.GetComponentVersions(componentVersionFilter)
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("returning componentVersion", func() {
+						Expect(len(cv)).To(BeEquivalentTo(1))
+					})
+					By("setting fields", func() {
+						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
+						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
+					})
+				})
+			})
+		})
+		When("Update ComponentVersion", Label("UpdateComponentVersion"), func() {
+			Context("and we have 10 ComponentVersions in the database", func() {
+				var seedCollection *test.SeedCollection
+				BeforeEach(func() {
+					seedCollection = seeder.SeedDbWithNFakeData(10)
+				})
+				It("can update version correctly", func() {
+					componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
+
+					componentVersion.Version = "1.3.3.7"
+					err := db.UpdateComponentVersion(&componentVersion)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					componentVersionFilter := &entity.ComponentVersionFilter{
+						Id: []*int64{&componentVersion.Id},
+					}
+
+					cv, err := db.GetComponentVersions(componentVersionFilter)
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("returning componentVersions", func() {
+						Expect(len(cv)).To(BeEquivalentTo(1))
+					})
+					By("setting fields", func() {
+						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
+						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
+						Expect(cv[0].ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+					})
+				})
+				It("can update componentId correctly", func() {
+					componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
+
+					componentVersion.ComponentId = seedCollection.ComponentRows[1].Id.Int64
+					err := db.UpdateComponentVersion(&componentVersion)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					componentVersionFilter := &entity.ComponentVersionFilter{
+						Id: []*int64{&componentVersion.Id},
+					}
+
+					cv, err := db.GetComponentVersions(componentVersionFilter)
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("returning componentVersion", func() {
+						Expect(len(cv)).To(BeEquivalentTo(1))
+					})
+					By("setting fields", func() {
+						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
+						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
+						Expect(cv[0].ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+					})
+				})
+			})
+		})
+
+	})
+})

@@ -1,0 +1,275 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package mariadb
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
+	"github.wdf.sap.corp/cc/heureka/internal/entity"
+)
+
+func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
+	var first int = 1000
+	var after int64 = 0
+	if f == nil {
+		return &entity.ComponentInstanceFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+			IssueMatchId: nil,
+			Id:           nil,
+			ServiceId:    nil,
+		}
+	}
+	if f.First == nil {
+		f.First = &first
+	}
+	if f.After == nil {
+		f.After = &after
+	}
+	return f
+}
+
+func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
+	var fl []string
+	fl = append(fl, buildFilterQuery(filter.Id, "CI.componentinstance_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
+	fl = append(fl, "CI.componentinstance_deleted_at IS NULL")
+
+	filterStr := combineFilterQueries(fl, OP_AND)
+	return filterStr
+}
+
+func (s *SqlDatabase) getComponentInstanceJoins(filter *entity.ComponentInstanceFilter) string {
+	joins := ""
+	if len(filter.IssueMatchId) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, "INNER JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id")
+	}
+	return joins
+}
+
+func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity.ComponentInstance) string {
+	fl := []string{}
+	if componentInstance.CCRN != "" {
+		fl = append(fl, "componentinstance_ccrn = :componentinstance_ccrn")
+	}
+	if componentInstance.Count != 0 {
+		fl = append(fl, "componentinstance_count = :componentinstance_count")
+	}
+	if componentInstance.ComponentVersionId != 0 {
+		fl = append(fl, "componentinstance_component_version_id = :componentinstance_component_version_id")
+	}
+	if componentInstance.ServiceId != 0 {
+		fl = append(fl, "componentinstance_service_id = :componentinstance_service_id")
+	}
+	return strings.Join(fl, ", ")
+}
+
+func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *entity.ComponentInstanceFilter, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+	var query string
+	filter = s.ensureComponentInstanceFilter(filter)
+	l.WithFields(logrus.Fields{"filter": filter})
+
+	filterStr := s.getComponentInstanceFilterString(filter)
+	joins := s.getComponentInstanceJoins(filter)
+	cursor := getCursor(filter.Paginated, filterStr, "CI.componentinstance_id > ?")
+
+	whereClause := ""
+	if filterStr != "" || withCursor {
+		whereClause = fmt.Sprintf("WHERE %s", filterStr)
+	}
+
+	// construct final query
+	if withCursor {
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement)
+	} else {
+		query = fmt.Sprintf(baseQuery, joins, whereClause)
+	}
+
+	//construct prepared statement and if where clause does exist add parameters
+	var stmt *sqlx.Stmt
+	var err error
+
+	stmt, err = s.db.Preparex(query)
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+				"stmt":  stmt,
+			}).Error(msg)
+		return nil, nil, fmt.Errorf("%s", msg)
+	}
+
+	//adding parameters
+	var filterParameters []interface{}
+	filterParameters = buildQueryParameters(filterParameters, filter.Id)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
+	if withCursor {
+		filterParameters = append(filterParameters, cursor.Value)
+		filterParameters = append(filterParameters, cursor.Limit)
+	}
+
+	return stmt, filterParameters, nil
+}
+
+func (s *SqlDatabase) GetAllComponentInstanceIds(filter *entity.ComponentInstanceFilter) ([]int64, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.GetComponentInstanceIds",
+	})
+
+	baseQuery := `
+		SELECT CI.componentinstance_id FROM ComponentInstance CI 
+		%s
+	 	%s GROUP BY CI.componentinstance_id ORDER BY CI.componentinstance_id
+    `
+
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	return performIdScan(stmt, filterParameters, l)
+}
+
+func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.GetComponentInstances",
+	})
+	baseQuery := `
+			SELECT CI.* FROM ComponentInstance CI
+			%s
+			%s
+			%s GROUP BY CI.componentinstance_id ORDER BY CI.componentinstance_id LIMIT ? 
+		`
+
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, true, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	return performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []entity.ComponentInstance, e ComponentInstanceRow) []entity.ComponentInstance {
+			return append(l, e.AsComponentInstance())
+		},
+	)
+}
+
+func (s *SqlDatabase) CountComponentInstances(filter *entity.ComponentInstanceFilter) (int64, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.CountComponentInstances",
+	})
+
+	// Building the Base Query
+	baseQuery := `
+		SELECT count(distinct CI.componentinstance_id) FROM ComponentInstance CI
+		%s
+		%s 
+	`
+
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, l)
+
+	if err != nil {
+		return -1, err
+	}
+
+	defer stmt.Close()
+
+	return performCountScan(stmt, filterParameters, l)
+}
+
+func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"componentInstance": componentInstance,
+		"event":             "database.CreateComponentInstance",
+	})
+
+	query := `
+		INSERT INTO ComponentInstance (
+			componentinstance_ccrn,
+			componentinstance_count,
+			componentinstance_component_version_id,
+			componentinstance_service_id
+		) VALUES (
+			:componentinstance_ccrn,
+			:componentinstance_count,
+			:componentinstance_component_version_id,
+			:componentinstance_service_id
+		)
+	`
+
+	componentInstanceRow := ComponentInstanceRow{}
+	componentInstanceRow.FromComponentInstance(componentInstance)
+
+	id, err := performInsert(s, query, componentInstanceRow, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	componentInstance.Id = id
+
+	return componentInstance, nil
+}
+
+func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.ComponentInstance) error {
+	l := logrus.WithFields(logrus.Fields{
+		"componentInstance": componentInstance,
+		"event":             "database.UpdateComponentInstance",
+	})
+
+	baseQuery := `
+		UPDATE ComponentInstance SET
+		%s
+		WHERE componentinstance_id = :componentinstance_id
+	`
+
+	updateFields := s.getComponentInstanceUpdateFields(componentInstance)
+
+	query := fmt.Sprintf(baseQuery, updateFields)
+
+	componentInstanceRow := ComponentInstanceRow{}
+	componentInstanceRow.FromComponentInstance(componentInstance)
+
+	_, err := performExec(s, query, componentInstanceRow, l)
+
+	return err
+}
+
+func (s *SqlDatabase) DeleteComponentInstance(id int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"id":    id,
+		"event": "database.DeleteComponentInstance",
+	})
+
+	query := `
+		UPDATE ComponentInstance SET
+		componentinstance_deleted_at = NOW()
+		WHERE componentinstance_id = :id
+	`
+
+	args := map[string]interface{}{
+		"id": id,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}

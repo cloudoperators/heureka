@@ -1,0 +1,36 @@
+---
+version: 2
+updates:
+  # Dependabot for go
+  - package-ecosystem: go
+    directory: "/"
+    schedule:
+      # If you'd like a different schedule feel free to increase the frequency
+      # or remove the "schedule" section altogether.
+      interval: "weekly"
+      # Dependabot runs sometime on Thursdays, so results are available on
+      # Fridays, regardless of timezone. We _could_ run at a specific early
+      # Friday time, but then everyone would run at the same time.
+      day: "thursday"
+  # Dependabot for docker
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      # If you'd like a different schedule feel free to increase the frequency
+      # or remove the "schedule" section altogether.
+      interval: "weekly"
+      # Dependabot runs sometime on Thursdays, so results are available on
+      # Fridays, regardless of timezone. We _could_ run at a specific early
+      # Friday time, but then everyone would run at the same time.
+      day: "thursday"
+  # Dependabot for actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      # If you'd like a different schedule feel free to increase the frequency
+      # or remove the "schedule" section altogether.
+      interval: "weekly"
+      # Dependabot runs sometime on Thursdays, so results are available on
+      # Fridays, regardless of timezone. We _could_ run at a specific early
+      # Friday time, but then everyone would run at the same time.
+      day: "thursday"

@@ -1,0 +1,52 @@
+# This docker-compose file is used to run the application localy in containarized environment.
+# ensure to set .env file accordingly
+version: '3.8'
+
+services:
+  heureka-db:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: always
+    profiles:
+      - db
+    environment:
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      # Uncomment the following lines and comment the MARIADB_ROOT_PASSWORD line to use other options
+      # - MARIADB_ROOT_PASSWORD_HASH=*HASHED_PASSWORD
+      # - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes
+      # - MARIADB_RANDOM_ROOT_PASSWORD=yes
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./.db/data:/var/lib/mysql
+      - ./internal/database/mariadb/init/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "3306:3306"
+
+  heureka-app:
+    build: .
+    profiles:
+      - heureka
+    environment:
+      DB_ADDRESS: heureka-db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ROOT_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SCHEMA: /app_sqlschema/schema.sql
+    volumes:
+      - ./internal/database/mariadb/init/schema.sql:/app_sqlschema/schema.sql
+    depends_on:
+      heureka-db:
+        condition: service_healthy
+    ports:
+      - "80:80"
+

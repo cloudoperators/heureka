@@ -1,0 +1,11 @@
+with-expecter: True # Create expecter methods: https://vektra.github.io/mockery/latest/features/#expecter-structs
+dir: ./internal/mocks
+filename: "mock_{{.InterfaceName}}.go"
+outpkg: "mocks"
+packages:
+  github.wdf.sap.corp/cc/heureka/internal/database:
+    interfaces:
+      Database:
+  github.wdf.sap.corp/cc/heureka/internal/app:
+    interfaces:
+      Heureka:
