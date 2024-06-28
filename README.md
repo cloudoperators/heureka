@@ -1,30 +1,13 @@
-# SAP Repository Template
-
-Default templates for SAP open source repositories, including LICENSE, .reuse/dep5, Code of Conduct, etc... All repositories on github.com/SAP will be created based on this template.
-
-## To-Do
-
-In case you are the maintainer of a new SAP open source project, these are the steps to do with the template files:
-
-- Check if the default license (Apache 2.0) also applies to your project. A license change should only be required in exceptional cases. If this is the case, please change the [license file](LICENSE).
-- Enter the correct metadata for the REUSE tool. See our [wiki page](https://wiki.one.int.sap/wiki/display/ospodocs/Using+the+Reuse+Tool+of+FSFE+for+Copyright+and+License+Information) for details how to do it. You can find an initial .reuse/dep5 file to build on. Please replace the parts inside the single angle quotation marks < > by the specific information for your repository and be sure to run the REUSE tool to validate that the metadata is correct.
-- Adjust the contribution guidelines (e.g. add coding style guidelines, pull request checklists, different license if needed etc.)
-- Add information about your project to this README (name, description, requirements etc). Especially take care for the <your-project> placeholders - those ones need to be replaced with your project name. See the sections below the horizontal line and [our guidelines on our wiki page](https://wiki.one.int.sap/wiki/pages/viewpage.action?pageId=3564976048#GuidelinesforGitHubHealthfiles(Readme,Contributing,CodeofConduct)-Readme.md) what is required and recommended.
-- Remove all content in this README above and including the horizontal line ;)
-
-***
-
 # Heureka
 
 ## Overview
 
-Heureka is a Security Posture Management Tool.
+Heureka is a Security Posture Management tool designed to manage the security issues in a complex technology landsacape.
 
-Heureka is commited to empower service owners with a central platform for proactive security management.
-It seamlessly integrates key components such as advanced patch management, intelligent SIEM analysis, and automated policy enforcement.
+Heureka is commited to empower service owners with a central platform for proactive security management. It seamlessly integrates key components such as advanced patch management, intelligent SIEM analysis, and automated policy enforcement.
 
-It is also designed to address the critical compliance aspect as it is equipped with capabilities to track the end-to-end remediation process, thereby providing tangible compliance evidence.
-This approach to security posture management ensures a comprehensive and professional approach to maintaining robust security standards.
+It is also designed to address the critical compliance aspect as it is equipped with capabilities to track the end-to-end remediation process, thereby providing tangible compliance evidence. This approach to security posture management ensures 
+a comprehensive and professional approach to maintaining robust security standards.
 
 ## Requirements and Setup
 
@@ -43,4 +26,4 @@ We as members, contributors, and leaders pledge to make participation in our com
 
 ## Licensing
 
-Copyright (20xx-)20xx SAP SE or an SAP affiliate company and <your-project> contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/SAP/<your-project>).
+Copyright 2004 SAP SE or an SAP affiliate company and heureka contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/SAP/<your-project>).
