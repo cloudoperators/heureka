@@ -1,5 +1,7 @@
 # Heureka
 
+[![REUSE status](https://api.reuse.software/badge/github.com/cloudoperators/heureka)](https://api.reuse.software/info/github.com/cloudoperators/heureka)
+
 ## Overview
 
 Heureka is a Security Posture Management tool designed to manage the security issues in a complex technology landsacape.
