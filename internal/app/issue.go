@@ -99,3 +99,79 @@ func (h *HeurekaApp) ListIssues(filter *entity.IssueFilter, options *entity.List
 		Elements:   res,
 	}, nil
 }
+
+func (h *HeurekaApp) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
+	f := &entity.IssueFilter{
+		PrimaryName: []*string{&issue.PrimaryName},
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.CreateIssue",
+		"object": issue,
+		"filter": f,
+	})
+
+	issues, err := h.ListIssues(f, &entity.ListOptions{})
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while creating issue.")
+	}
+
+	if len(issues.Elements) > 0 {
+		return nil, heurekaError(fmt.Sprintf("Duplicated entry %s for primaryName.", issue.PrimaryName))
+	}
+
+	newIssue, err := h.database.CreateIssue(issue)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while creating issue.")
+	}
+
+	return newIssue, nil
+}
+
+func (h *HeurekaApp) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.UpdateIssue",
+		"object": issue,
+	})
+
+	err := h.database.UpdateIssue(issue)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while updating issue.")
+	}
+
+	issueResult, err := h.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &entity.ListOptions{})
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving updated issue.")
+	}
+
+	if len(issueResult.Elements) != 1 {
+		l.Error(err)
+		return nil, heurekaError("Multiple issues found.")
+	}
+
+	return issueResult.Elements[0].Issue, nil
+}
+
+func (h *HeurekaApp) DeleteIssue(id int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "app.DeleteIssue",
+		"id":    id,
+	})
+
+	err := h.database.DeleteIssue(id)
+
+	if err != nil {
+		l.Error(err)
+		return heurekaError("Internal error while deleting issue.")
+	}
+
+	return nil
+}

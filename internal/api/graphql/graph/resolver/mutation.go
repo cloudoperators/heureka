@@ -295,6 +295,46 @@ func (r *mutationResolver) DeleteIssueRepository(ctx context.Context, id string)
 	return id, nil
 }
 
+// CreateIssue is the resolver for the createIssue field.
+func (r *mutationResolver) CreateIssue(ctx context.Context, input model.IssueInput) (*model.Issue, error) {
+	issue := model.NewIssueEntity(&input)
+	newIssue, err := r.App.CreateIssue(&issue)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("CreateIssueMutationResolver", "Internal Error - when creating issue")
+	}
+	i := model.NewIssue(newIssue)
+	return &i, nil
+}
+
+// UpdateIssue is the resolver for the updateIssue field.
+func (r *mutationResolver) UpdateIssue(ctx context.Context, id string, input model.IssueInput) (*model.Issue, error) {
+	idInt, err := baseResolver.ParseCursor(&id)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("UpdateIssueMutationResolver", "Internal Error - when updating issue")
+	}
+	issue := model.NewIssueEntity(&input)
+	issue.Id = *idInt
+	updatedIssue, err := r.App.UpdateIssue(&issue)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("UpdateIssueMutationResolver", "Internal Error - when updating issue")
+	}
+	i := model.NewIssue(updatedIssue)
+	return &i, nil
+}
+
+// DeleteIssue is the resolver for the deleteIssue field.
+func (r *mutationResolver) DeleteIssue(ctx context.Context, id string) (string, error) {
+	idInt, err := baseResolver.ParseCursor(&id)
+	if err != nil {
+		return "", baseResolver.NewResolverError("DeleteIssueMutationResolver", "Internal Error - when deleting issue")
+	}
+	err = r.App.DeleteIssue(*idInt)
+	if err != nil {
+		return "", baseResolver.NewResolverError("DeleteIssueMutationResolver", "Internal Error - when deleting issue")
+	}
+	return id, nil
+}
+
 // CreateIssueVariant is the resolver for the createIssueVariant field.
 func (r *mutationResolver) CreateIssueVariant(ctx context.Context, input model.IssueVariantInput) (*model.IssueVariant, error) {
 	issueVariant := model.NewIssueVariantEntity(&input)

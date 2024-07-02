@@ -23,6 +23,64 @@ func (_m *MockHeureka) EXPECT() *MockHeureka_Expecter {
 	return &MockHeureka_Expecter{mock: &_m.Mock}
 }
 
+// CreateActivity provides a mock function with given fields: _a0
+func (_m *MockHeureka) CreateActivity(_a0 *entity.Activity) (*entity.Activity, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateActivity")
+	}
+
+	var r0 *entity.Activity
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.Activity) (*entity.Activity, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.Activity) *entity.Activity); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.Activity)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.Activity) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_CreateActivity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateActivity'
+type MockHeureka_CreateActivity_Call struct {
+	*mock.Call
+}
+
+// CreateActivity is a helper method to define mock.On call
+//   - _a0 *entity.Activity
+func (_e *MockHeureka_Expecter) CreateActivity(_a0 interface{}) *MockHeureka_CreateActivity_Call {
+	return &MockHeureka_CreateActivity_Call{Call: _e.mock.On("CreateActivity", _a0)}
+}
+
+func (_c *MockHeureka_CreateActivity_Call) Run(run func(_a0 *entity.Activity)) *MockHeureka_CreateActivity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.Activity))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_CreateActivity_Call) Return(_a0 *entity.Activity, _a1 error) *MockHeureka_CreateActivity_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_CreateActivity_Call) RunAndReturn(run func(*entity.Activity) (*entity.Activity, error)) *MockHeureka_CreateActivity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateComponent provides a mock function with given fields: _a0
 func (_m *MockHeureka) CreateComponent(_a0 *entity.Component) (*entity.Component, error) {
 	ret := _m.Called(_a0)
@@ -599,6 +657,52 @@ func (_c *MockHeureka_CreateUser_Call) Return(_a0 *entity.User, _a1 error) *Mock
 }
 
 func (_c *MockHeureka_CreateUser_Call) RunAndReturn(run func(*entity.User) (*entity.User, error)) *MockHeureka_CreateUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteActivity provides a mock function with given fields: _a0
+func (_m *MockHeureka) DeleteActivity(_a0 int64) error {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteActivity")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockHeureka_DeleteActivity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteActivity'
+type MockHeureka_DeleteActivity_Call struct {
+	*mock.Call
+}
+
+// DeleteActivity is a helper method to define mock.On call
+//   - _a0 int64
+func (_e *MockHeureka_Expecter) DeleteActivity(_a0 interface{}) *MockHeureka_DeleteActivity_Call {
+	return &MockHeureka_DeleteActivity_Call{Call: _e.mock.On("DeleteActivity", _a0)}
+}
+
+func (_c *MockHeureka_DeleteActivity_Call) Run(run func(_a0 int64)) *MockHeureka_DeleteActivity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_DeleteActivity_Call) Return(_a0 error) *MockHeureka_DeleteActivity_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockHeureka_DeleteActivity_Call) RunAndReturn(run func(int64) error) *MockHeureka_DeleteActivity_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1988,6 +2092,64 @@ func (_c *MockHeureka_Shutdown_Call) Return(_a0 error) *MockHeureka_Shutdown_Cal
 }
 
 func (_c *MockHeureka_Shutdown_Call) RunAndReturn(run func() error) *MockHeureka_Shutdown_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateActivity provides a mock function with given fields: _a0
+func (_m *MockHeureka) UpdateActivity(_a0 *entity.Activity) (*entity.Activity, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateActivity")
+	}
+
+	var r0 *entity.Activity
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.Activity) (*entity.Activity, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.Activity) *entity.Activity); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.Activity)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.Activity) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_UpdateActivity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateActivity'
+type MockHeureka_UpdateActivity_Call struct {
+	*mock.Call
+}
+
+// UpdateActivity is a helper method to define mock.On call
+//   - _a0 *entity.Activity
+func (_e *MockHeureka_Expecter) UpdateActivity(_a0 interface{}) *MockHeureka_UpdateActivity_Call {
+	return &MockHeureka_UpdateActivity_Call{Call: _e.mock.On("UpdateActivity", _a0)}
+}
+
+func (_c *MockHeureka_UpdateActivity_Call) Run(run func(_a0 *entity.Activity)) *MockHeureka_UpdateActivity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.Activity))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_UpdateActivity_Call) Return(_a0 *entity.Activity, _a1 error) *MockHeureka_UpdateActivity_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_UpdateActivity_Call) RunAndReturn(run func(*entity.Activity) (*entity.Activity, error)) *MockHeureka_UpdateActivity_Call {
 	_c.Call.Return(run)
 	return _c
 }

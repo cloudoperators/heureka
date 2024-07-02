@@ -451,4 +451,118 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			})
 		})
 	})
+	When("Insert Issue", Label("InsertIssue"), func() {
+		Context("and we have 10 Issues in the database", func() {
+			var newIssueRow mariadb.IssueRow
+			var newIssue entity.Issue
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				newIssueRow = test.NewFakeIssue()
+				newIssue = newIssueRow.AsIssue()
+			})
+			It("can insert correctly", func() {
+				issue, err := db.CreateIssue(&newIssue)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("sets issue id", func() {
+					Expect(issue).NotTo(BeEquivalentTo(0))
+				})
+
+				issueFilter := &entity.IssueFilter{
+					Id: []*int64{&issue.Id},
+				}
+
+				i, err := db.GetIssues(issueFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning issue", func() {
+					Expect(len(i)).To(BeEquivalentTo(1))
+				})
+				By("setting fields", func() {
+					Expect(i[0].PrimaryName).To(BeEquivalentTo(issue.PrimaryName))
+					Expect(i[0].Type.String()).To(BeEquivalentTo(issue.Type.String()))
+					Expect(i[0].Description).To(BeEquivalentTo(issue.Description))
+				})
+			})
+			It("does not insert issue with existing primary name", func() {
+				issueRow := seedCollection.IssueRows[0]
+				issue := issueRow.AsIssue()
+				newIssue, err := db.CreateIssue(&issue)
+
+				By("throwing error", func() {
+					Expect(err).ToNot(BeNil())
+				})
+				By("no issue returned", func() {
+					Expect(newIssue).To(BeNil())
+				})
+
+			})
+		})
+	})
+	When("Update Issue", Label("UpdateIssue"), func() {
+		Context("and we have 10 Issues in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+			It("can update issue description correctly", func() {
+				issue := seedCollection.IssueRows[0].AsIssue()
+
+				issue.Description = "New Description"
+				err := db.UpdateIssue(&issue)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{
+					Id: []*int64{&issue.Id},
+				}
+
+				i, err := db.GetIssues(issueFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning issue", func() {
+					Expect(len(i)).To(BeEquivalentTo(1))
+				})
+				By("setting fields", func() {
+					Expect(i[0].Description).To(BeEquivalentTo(issue.Description))
+				})
+			})
+		})
+	})
+	When("Delete Issue", Label("DeleteIssue"), func() {
+		Context("and we have 10 Issues in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+			It("can delete issue correctly", func() {
+				issue := seedCollection.IssueRows[0].AsIssue()
+
+				err := db.DeleteIssue(issue.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{
+					Id: []*int64{&issue.Id},
+				}
+
+				i, err := db.GetIssues(issueFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning no issue", func() {
+					Expect(len(i)).To(BeEquivalentTo(0))
+				})
+			})
+		})
+	})
 })

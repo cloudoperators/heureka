@@ -22,6 +22,8 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CVI.componentversionissue_component_version_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueVariantId, "IV.issuevariant_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "I.issue_type = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
+	fl = append(fl, "I.issue_deleted_at IS NULL")
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -93,6 +95,20 @@ func (s *SqlDatabase) ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilt
 	return f
 }
 
+func (s *SqlDatabase) getIssueUpdateFields(issue *entity.Issue) string {
+	fl := []string{}
+	if issue.PrimaryName != "" {
+		fl = append(fl, "issue_primary_name = :issue_primary_name")
+	}
+	if issue.Type != "" {
+		fl = append(fl, "issue_type = :issue_type")
+	}
+	if issue.Description != "" {
+		fl = append(fl, "issue_description = :issue_description")
+	}
+	return strings.Join(fl, ", ")
+}
+
 // buildGetIssuesStatement is building the prepared statement and its parameters from the provided filter
 //
 // The where clause is build as follows:
@@ -146,6 +162,7 @@ func (s *SqlDatabase) buildGetIssuesStatement(filter *entity.IssueFilter, aggreg
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
+	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
 	filterParameters = append(filterParameters, cursor.Value)
 	filterParameters = append(filterParameters, cursor.Limit)
 
@@ -202,6 +219,7 @@ func (s *SqlDatabase) buildCountIssuesStatement(filter *entity.IssueFilter) (*sq
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
+	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
 
 	l.WithFields(logrus.Fields{
 		"query": query,
@@ -291,6 +309,7 @@ func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
+	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -344,4 +363,81 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 	defer stmt.Close()
 
 	return performCountScan(stmt, filterParameters, l)
+}
+
+func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"issue": issue,
+		"event": "database.CreateIssue",
+	})
+
+	query := `
+		INSERT INTO Issue (
+			issue_primary_name,
+			issue_type,
+			issue_description
+		) VALUES (
+			:issue_primary_name,
+			:issue_type,
+			:issue_description
+		)
+	`
+
+	issueRow := IssueRow{}
+	issueRow.FromIssue(issue)
+
+	id, err := performInsert(s, query, issueRow, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	issue.Id = id
+
+	return issue, nil
+}
+
+func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
+	l := logrus.WithFields(logrus.Fields{
+		"issue": issue,
+		"event": "database.UpdateIssue",
+	})
+
+	baseQuery := `
+		UPDATE Issue SET
+		%s
+		WHERE issue_id = :issue_id
+	`
+
+	updateFields := s.getIssueUpdateFields(issue)
+
+	query := fmt.Sprintf(baseQuery, updateFields)
+
+	issueRow := IssueRow{}
+	issueRow.FromIssue(issue)
+
+	_, err := performExec(s, query, issueRow, l)
+
+	return err
+}
+
+func (s *SqlDatabase) DeleteIssue(id int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"id":    id,
+		"event": "database.DeleteIssue",
+	})
+
+	query := `
+		UPDATE Issue SET
+		issue_deleted_at = NOW()
+		WHERE issue_id = :id
+	`
+
+	args := map[string]interface{}{
+		"id": id,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
 }

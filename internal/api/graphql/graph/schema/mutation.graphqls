@@ -30,6 +30,10 @@ type Mutation {
     updateIssueRepository(id: ID!, input: IssueRepositoryInput!): IssueRepository!
     deleteIssueRepository(id: ID!): String!
 
+    createIssue(input: IssueInput!): Issue!
+    updateIssue(id: ID!, input: IssueInput!): Issue!
+    deleteIssue(id: ID!): String!
+
     createIssueVariant(input: IssueVariantInput!): IssueVariant!
     updateIssueVariant(id: ID!, input: IssueVariantInput!): IssueVariant!
     deleteIssueVariant(id: ID!): String!

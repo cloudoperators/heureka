@@ -294,6 +294,7 @@ type Issue struct {
 	ID                string                      `json:"id"`
 	Type              *IssueTypes                 `json:"type,omitempty"`
 	PrimaryName       *string                     `json:"primaryName,omitempty"`
+	Description       *string                     `json:"description,omitempty"`
 	LastModified      *string                     `json:"lastModified,omitempty"`
 	IssueVariants     *IssueVariantConnection     `json:"issueVariants,omitempty"`
 	Activities        *ActivityConnection         `json:"activities,omitempty"`
@@ -330,6 +331,12 @@ type IssueFilter struct {
 	IssueMatchStatus   []*IssueMatchStatusValues `json:"issueMatchStatus,omitempty"`
 	IssueType          []*IssueTypes             `json:"issueType,omitempty"`
 	ComponentVersionID []*string                 `json:"componentVersionId,omitempty"`
+}
+
+type IssueInput struct {
+	PrimaryName *string     `json:"primaryName,omitempty"`
+	Description *string     `json:"description,omitempty"`
+	Type        *IssueTypes `json:"type,omitempty"`
 }
 
 type IssueMatch struct {

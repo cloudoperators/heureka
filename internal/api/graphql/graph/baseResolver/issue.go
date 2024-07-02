@@ -49,7 +49,7 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 	}
 
 	var ir entity.IssueResult = issues.Elements[0]
-	issue := model.NewIssue(&ir)
+	issue := model.NewIssueWithAggregations(&ir)
 
 	return &issue, nil
 }
@@ -113,7 +113,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 
 	edges := []*model.IssueEdge{}
 	for _, result := range issues.Elements {
-		iss := model.NewIssue(&result)
+		iss := model.NewIssueWithAggregations(&result)
 		edge := model.IssueEdge{
 			Node:   &iss,
 			Cursor: result.Cursor(),

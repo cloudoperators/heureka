@@ -179,3 +179,115 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 	})
 })
+
+var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		issue   entity.Issue
+		filter  *entity.IssueFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		issue = test.NewFakeIssueEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.IssueFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	})
+
+	It("creates issue", func() {
+		filter.PrimaryName = []*string{&issue.PrimaryName}
+		db.On("CreateIssue", &issue).Return(&issue, nil)
+		db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
+		heureka = app.NewHeurekaApp(db)
+		newIssue, err := heureka.CreateIssue(&issue)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(newIssue.Id).NotTo(BeEquivalentTo(0))
+		By("setting fields", func() {
+			Expect(newIssue.PrimaryName).To(BeEquivalentTo(issue.PrimaryName))
+			Expect(newIssue.Description).To(BeEquivalentTo(issue.Description))
+			Expect(newIssue.Type.String()).To(BeEquivalentTo(issue.Type.String()))
+		})
+	})
+})
+
+var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		issue   entity.Issue
+		filter  *entity.IssueFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		issue = test.NewFakeIssueEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.IssueFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	})
+
+	It("updates issue", func() {
+		db.On("UpdateIssue", &issue).Return(nil)
+		heureka = app.NewHeurekaApp(db)
+		issue.Description = "New Description"
+		filter.Id = []*int64{&issue.Id}
+		db.On("GetIssues", filter).Return([]entity.Issue{issue}, nil)
+		updatedIssue, err := heureka.UpdateIssue(&issue)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		By("setting fields", func() {
+			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issue.PrimaryName))
+			Expect(updatedIssue.Description).To(BeEquivalentTo(issue.Description))
+			Expect(updatedIssue.Type.String()).To(BeEquivalentTo(issue.Type.String()))
+		})
+	})
+})
+
+var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		id      int64
+		filter  *entity.IssueFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		id = 1
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.IssueFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	})
+
+	It("deletes issue", func() {
+		db.On("DeleteIssue", id).Return(nil)
+		heureka = app.NewHeurekaApp(db)
+		db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
+		err := heureka.DeleteIssue(id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+
+		filter.Id = []*int64{&id}
+		issues, err := heureka.ListIssues(filter, &entity.ListOptions{})
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(issues.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+})
