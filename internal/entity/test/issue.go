@@ -4,15 +4,20 @@
 package test
 
 import (
+	"fmt"
+
 	"github.com/brianvoe/gofakeit/v7"
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
 func NewFakeIssueEntity() entity.Issue {
+	t := gofakeit.RandomString(entity.AllIssueTypes)
+	primaryName := fmt.Sprintf("CVE-%d-%d", gofakeit.Year(), gofakeit.Number(100, 9999999))
 	return entity.Issue{
 		Id:                int64(gofakeit.Number(1, 10000000)),
-		PrimaryName:       gofakeit.Name(),
+		PrimaryName:       primaryName,
 		Description:       gofakeit.AdjectiveDescriptive(),
+		Type:              entity.NewIssueType(t),
 		IssueVariants:     nil,
 		IssueMatches:      nil,
 		ComponentVersions: nil,

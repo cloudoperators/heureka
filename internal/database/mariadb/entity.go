@@ -134,6 +134,31 @@ func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregation
 	}
 }
 
+func (ibr *GetIssuesByRow) AsIssue() entity.Issue {
+	return entity.Issue{
+		Id:            GetInt64Value(ibr.IssueRow.Id),
+		PrimaryName:   GetStringValue(ibr.IssueRow.PrimaryName),
+		Type:          entity.NewIssueType(GetStringValue(ibr.Type)),
+		Description:   GetStringValue(ibr.IssueRow.Description),
+		IssueVariants: []entity.IssueVariant{},
+		IssueMatches:  []entity.IssueMatch{},
+		Activity:      []entity.Activity{},
+		CreatedAt:     GetTimeValue(ibr.IssueRow.CreatedAt),
+		DeletedAt:     GetTimeValue(ibr.IssueRow.DeletedAt),
+		UpdatedAt:     GetTimeValue(ibr.IssueRow.UpdatedAt),
+	}
+}
+
+func (ir *IssueRow) FromIssue(i *entity.Issue) {
+	ir.Id = sql.NullInt64{Int64: i.Id, Valid: true}
+	ir.PrimaryName = sql.NullString{String: i.PrimaryName, Valid: true}
+	ir.Type = sql.NullString{String: i.Type.String(), Valid: true}
+	ir.Description = sql.NullString{String: i.Description, Valid: true}
+	ir.CreatedAt = sql.NullTime{Time: i.CreatedAt, Valid: true}
+	ir.DeletedAt = sql.NullTime{Time: i.DeletedAt, Valid: true}
+	ir.UpdatedAt = sql.NullTime{Time: i.UpdatedAt, Valid: true}
+}
+
 type IssueMatchRow struct {
 	Id                    sql.NullInt64  `db:"issuematch_id" json:"id"`
 	Status                sql.NullString `db:"issuematch_status" json:"status"`

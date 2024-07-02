@@ -130,7 +130,19 @@ func NewSeverityEntity(severity *SeverityInput) entity.Severity {
 	return entity.NewSeverity(*severity.Vector)
 }
 
-func NewIssue(issue *entity.IssueResult) Issue {
+func NewIssue(issue *entity.Issue) Issue {
+	lastModified := issue.UpdatedAt.String()
+	issueType := IssueTypes(issue.Type.String())
+	return Issue{
+		ID:           fmt.Sprintf("%d", issue.Id),
+		PrimaryName:  &issue.PrimaryName,
+		Type:         &issueType,
+		Description:  &issue.Description,
+		LastModified: &lastModified,
+	}
+}
+
+func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	lastModified := issue.Issue.UpdatedAt.String()
 	issueType := IssueTypes(issue.Type.String())
 
@@ -154,6 +166,18 @@ func NewIssue(issue *entity.IssueResult) Issue {
 		Type:         &issueType,
 		LastModified: &lastModified,
 		Metadata:     &metadata,
+	}
+}
+
+func NewIssueEntity(issue *IssueInput) entity.Issue {
+	issueType := ""
+	if issue.Type != nil && issue.Type.IsValid() {
+		issueType = issue.Type.String()
+	}
+	return entity.Issue{
+		PrimaryName: lo.FromPtr(issue.PrimaryName),
+		Description: lo.FromPtr(issue.Description),
+		Type:        entity.NewIssueType(issueType),
 	}
 }
 

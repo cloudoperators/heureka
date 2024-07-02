@@ -7,6 +7,7 @@ type Issue implements Node {
     id: ID!
     type: IssueTypes
     primaryName: String
+    description: String
     lastModified: DateTime
     issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
@@ -23,6 +24,12 @@ type IssueMetadata {
     componentVersionCount: Int!
     earliestDiscoveryDate: DateTime!
     earliestTargetRemediationDate: DateTime!
+}
+
+input IssueInput {
+    primaryName: String
+    description: String
+    type: IssueTypes
 }
 
 type IssueConnection implements Connection {
