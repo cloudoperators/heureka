@@ -109,91 +109,35 @@ func (s *SqlDatabase) getIssueUpdateFields(issue *entity.Issue) string {
 	return strings.Join(fl, ", ")
 }
 
-// buildGetIssuesStatement is building the prepared statement and its parameters from the provided filter
-//
-// The where clause is build as follows:
-//   - Filter entries of the same type (array values) are combined with an "OR"
-//   - Filter entries of different types are combined with "AND"
-func (s *SqlDatabase) buildGetIssuesStatement(filter *entity.IssueFilter, aggregations []string) (*sqlx.Stmt, []interface{}, error) {
-	l := logrus.WithFields(logrus.Fields{"filter": filter})
-
-	baseQuery := `
-		SELECT I.* %s FROM Issue I
-		%s
-		WHERE %s %s GROUP BY I.issue_id ORDER BY I.issue_id LIMIT ? 
-	`
+func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, aggregations []string, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+	var query string
+	filter = s.ensureIssueFilter(filter)
+	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := s.getIssueFilterString(filter)
 	withAggreations := len(aggregations) > 0
 	joins := s.getIssueJoins(filter, withAggreations)
-
 	cursor := getCursor(filter.Paginated, filterStr, "I.issue_id > ?")
+
+	whereClause := ""
+	if filterStr != "" || withCursor {
+		whereClause = fmt.Sprintf("WHERE %s", filterStr)
+	}
 
 	ags := ""
 	if len(aggregations) > 0 {
 		ags = fmt.Sprintf(", %s", strings.Join(aggregations, ", "))
+		baseQuery = fmt.Sprintf(baseQuery, ags, "%s", "%s", "%s")
 	}
 
 	// construct final query
-	query := fmt.Sprintf(baseQuery, ags, joins, filterStr, cursor.Statement)
-
-	//construct a prepared statement and if where clause does exist add parameters
-	var stmt *sqlx.Stmt
-	var err error
-	var filterParameters []interface{}
-
-	stmt, err = s.db.Preparex(query)
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-			}).Error(msg)
-		return nil, nil, fmt.Errorf("%s", msg)
+	if withCursor {
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement)
+	} else {
+		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//adding parameters
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceName)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Type)
-	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
-	filterParameters = append(filterParameters, cursor.Value)
-	filterParameters = append(filterParameters, cursor.Limit)
-
-	logrus.WithFields(logrus.Fields{
-		"event":  "internal/database/mariadb/SqlDatabase/buildGetIssuesStatement/Success",
-		"filter": filter,
-		"query":  query,
-	}).Debugf("Constructed Prepared Statment for GetIssues")
-
-	return stmt, filterParameters, nil
-}
-
-func (s *SqlDatabase) buildCountIssuesStatement(filter *entity.IssueFilter) (*sqlx.Stmt, []interface{}, error) {
-	filter = s.ensureIssueFilter(filter)
-	l := logrus.WithFields(logrus.Fields{"filter": filter})
-	// Building the Base Query
-	baseQuery := `
-		SELECT count(distinct I.issue_id) FROM Issue I
-		%s
-		%s 
-	`
-	joins := s.getIssueJoins(filter, false)
-	filterStr := s.getIssueFilterString(filter)
-
-	if filterStr != "" {
-		filterStr = fmt.Sprintf("WHERE %s", filterStr)
-	}
-	// construct final query
-	query := fmt.Sprintf(baseQuery, joins, filterStr)
-
-	//construct a prepared statement and if where clause does exist add parameters
+	//construct prepared statement and if where clause does exist add parameters
 	var stmt *sqlx.Stmt
 	var err error
 
@@ -220,10 +164,10 @@ func (s *SqlDatabase) buildCountIssuesStatement(filter *entity.IssueFilter) (*sq
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
 	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
-
-	l.WithFields(logrus.Fields{
-		"query": query,
-	}).Debugf("Constructed prepared Statment for CountIssues")
+	if withCursor {
+		filterParameters = append(filterParameters, cursor.Value)
+		filterParameters = append(filterParameters, cursor.Limit)
+	}
 
 	return stmt, filterParameters, nil
 }
@@ -234,6 +178,14 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter) ([]e
 		"filter": filter,
 		"event":  "database.GetIssuesWithAggregations",
 	})
+
+	baseQuery := `
+		SELECT I.* %s FROM Issue I
+		%s
+		%s
+		%s GROUP BY I.issue_id ORDER BY I.issue_id LIMIT ?
+	`
+
 	aggregations := []string{
 		"count(distinct issuematch_id) as agg_issue_matches",
 		"count(distinct activity_id) as agg_activities",
@@ -244,7 +196,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter) ([]e
 		"min(issuematch_created_at) agg_earliest_discovery_date",
 	}
 
-	stmt, filterParameters, err := s.buildGetIssuesStatement(filter, aggregations)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, aggregations, true, l)
 
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -267,12 +219,30 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter) ([]e
 	)
 }
 
-func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error) {
-
-	filter = s.ensureIssueFilter(filter)
+func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.GetAllIssueIds",
+		"event": "database.CountIssues",
+	})
+
+	baseQuery := `
+		SELECT count(distinct I.issue_id) FROM Issue I
+		%s
+		%s
+	`
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, false, l)
+
+	if err != nil {
+		return -1, err
+	}
+
+	defer stmt.Close()
+
+	return performCountScan(stmt, filterParameters, l)
+}
+
+func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.GetIssueIds",
 	})
 
 	baseQuery := `
@@ -281,88 +251,47 @@ func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error
 	 	%s GROUP BY I.issue_id ORDER BY I.issue_id
     `
 
-	filterStr := s.getIssueFilterString(filter)
-	if filterStr != "" {
-		filterStr = fmt.Sprintf("WHERE %s", filterStr)
-	}
-	joins := s.getIssueJoins(filter, false)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, false, l)
 
-	query := fmt.Sprintf(baseQuery, joins, filterStr)
-	stmt, err := s.db.Preparex(query)
 	if err != nil {
-		msg := "Error while preparing Statement"
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-			}).Error(msg)
-		return nil, fmt.Errorf("%s", msg)
+		return nil, err
 	}
-	defer stmt.Close()
 
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceName)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Type)
-	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
+	defer stmt.Close()
 
 	return performIdScan(stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter) ([]entity.Issue, error) {
-	filter = s.ensureIssueFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "datanase.GetIssues",
+		"event": "database.GetIssues",
 	})
 
-	//Statement preparation
-	stmt, filterParameters, err := s.buildGetIssuesStatement(filter, nil)
+	baseQuery := `
+		SELECT I.* FROM Issue I
+		%s
+		%s
+		%s GROUP BY I.issue_id ORDER BY I.issue_id LIMIT ?
+    `
+
+	filter = s.ensureIssueFilter(filter)
+
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, true, l)
+
 	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-			}).Error(msg)
-		return nil, fmt.Errorf("%s", msg)
+		return nil, err
 	}
+
 	defer stmt.Close()
 
 	return performListScan(
 		stmt,
 		filterParameters,
 		l,
-		func(l []entity.Issue, e GetIssuesByRow) []entity.Issue {
+		func(l []entity.Issue, e IssueRow) []entity.Issue {
 			return append(l, e.AsIssue())
 		},
 	)
-}
-
-func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
-	filter = s.ensureIssueFilter(filter)
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.CountIssues",
-	})
-
-	stmt, filterParameters, err := s.buildCountIssuesStatement(filter)
-
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-			}).Error(msg)
-		return -1, fmt.Errorf("%s", msg)
-	}
-	defer stmt.Close()
-
-	return performCountScan(stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
