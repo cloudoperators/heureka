@@ -29,6 +29,9 @@ type Heureka interface {
 	DeleteIssueMatch(int64) error
 
 	ListIssueMatchChanges(filter *entity.IssueMatchChangeFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchChangeResult], error)
+	CreateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
+	UpdateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
+	DeleteIssueMatchChange(int64) error
 
 	ListServices(*entity.ServiceFilter, *entity.ListOptions) (*entity.List[entity.ServiceResult], error)
 	CreateService(*entity.Service) (*entity.Service, error)

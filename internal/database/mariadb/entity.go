@@ -647,6 +647,16 @@ func (imcr *IssueMatchChangeRow) AsIssueMatchChange() entity.IssueMatchChange {
 	}
 }
 
+func (imcr *IssueMatchChangeRow) FromIssueMatchChange(imc *entity.IssueMatchChange) {
+	imcr.Id = sql.NullInt64{Int64: imc.Id, Valid: true}
+	imcr.IssueMatchId = sql.NullInt64{Int64: imc.IssueMatchId, Valid: true}
+	imcr.ActivityId = sql.NullInt64{Int64: imc.ActivityId, Valid: true}
+	imcr.Action = sql.NullString{String: imc.Action, Valid: true}
+	imcr.CreatedAt = sql.NullTime{Time: imc.CreatedAt, Valid: true}
+	imcr.DeletedAt = sql.NullTime{Time: imc.DeletedAt, Valid: true}
+	imcr.UpdatedAt = sql.NullTime{Time: imc.UpdatedAt, Valid: true}
+}
+
 type OwnerRow struct {
 	ServiceId sql.NullInt64 `db:"owner_service_id" json:"service_id"`
 	UserId    sql.NullInt64 `db:"owner_user_id" json:"user_id"`

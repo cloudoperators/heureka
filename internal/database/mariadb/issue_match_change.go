@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
@@ -36,7 +37,16 @@ func (s *SqlDatabase) getIssueMatchChangeFilterString(filter *entity.IssueMatchC
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "IMC.issuematchchange_activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IMC.issuematchchange_issue_match_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Action, "IMC.issuematchchange_action = ?", OP_OR))
+	fl = append(fl, "IMC.issuematchchange_deleted_at IS NULL")
 	return combineFilterQueries(fl, OP_AND)
+}
+
+func (s *SqlDatabase) getIssueMatchChangeUpdateFields(imc *entity.IssueMatchChange) string {
+	fl := []string{}
+	if imc.Action != "" {
+		fl = append(fl, "issuematchchange_action = :issuematchchange_action")
+	}
+	return strings.Join(fl, ", ")
 }
 
 func (s *SqlDatabase) buildIssueMatchChangeStatement(baseQuery string, filter *entity.IssueMatchChangeFilter, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
@@ -159,4 +169,81 @@ func (s *SqlDatabase) CountIssueMatchChanges(filter *entity.IssueMatchChangeFilt
 	defer stmt.Close()
 
 	return performCountScan(stmt, filterParameters, l)
+}
+
+func (s *SqlDatabase) CreateIssueMatchChange(imc *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"issueMatchChange": imc,
+		"event":            "database.CreateIssueMatchchange",
+	})
+
+	query := `
+		INSERT INTO IssueMatchChange (
+			issuematchchange_action,
+			issuematchchange_activity_id,
+			issuematchchange_issue_match_id
+		) VALUES (
+			:issuematchchange_action,
+			:issuematchchange_activity_id,
+			:issuematchchange_issue_match_id
+		)
+	`
+
+	imcRow := IssueMatchChangeRow{}
+	imcRow.FromIssueMatchChange(imc)
+
+	id, err := performInsert(s, query, imcRow, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	imc.Id = id
+
+	return imc, nil
+}
+
+func (s *SqlDatabase) UpdateIssueMatchChange(imc *entity.IssueMatchChange) error {
+	l := logrus.WithFields(logrus.Fields{
+		"issueMatchChange": imc,
+		"event":            "database.UpdateIssueMatchChange",
+	})
+
+	baseQuery := `
+		UPDATE IssueMatchChange SET
+		%s
+		WHERE issuematchchange_id = :issuematchchange_id
+	`
+
+	updateFields := s.getIssueMatchChangeUpdateFields(imc)
+
+	query := fmt.Sprintf(baseQuery, updateFields)
+
+	imcRow := IssueMatchChangeRow{}
+	imcRow.FromIssueMatchChange(imc)
+
+	_, err := performExec(s, query, imcRow, l)
+
+	return err
+}
+
+func (s *SqlDatabase) DeleteIssueMatchChange(id int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"id":    id,
+		"event": "database.DeleteIssueMatchChange",
+	})
+
+	query := `
+		UPDATE IssueMatchChange SET
+		issuematchchange_deleted_at = NOW()
+		WHERE issuematchchange_id = :id
+	`
+
+	args := map[string]interface{}{
+		"id": id,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
 }

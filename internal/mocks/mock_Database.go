@@ -1202,6 +1202,64 @@ func (_c *MockDatabase_CreateIssueMatch_Call) RunAndReturn(run func(*entity.Issu
 	return _c
 }
 
+// CreateIssueMatchChange provides a mock function with given fields: _a0
+func (_m *MockDatabase) CreateIssueMatchChange(_a0 *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateIssueMatchChange")
+	}
+
+	var r0 *entity.IssueMatchChange
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.IssueMatchChange) *entity.IssueMatchChange); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.IssueMatchChange)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.IssueMatchChange) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_CreateIssueMatchChange_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateIssueMatchChange'
+type MockDatabase_CreateIssueMatchChange_Call struct {
+	*mock.Call
+}
+
+// CreateIssueMatchChange is a helper method to define mock.On call
+//   - _a0 *entity.IssueMatchChange
+func (_e *MockDatabase_Expecter) CreateIssueMatchChange(_a0 interface{}) *MockDatabase_CreateIssueMatchChange_Call {
+	return &MockDatabase_CreateIssueMatchChange_Call{Call: _e.mock.On("CreateIssueMatchChange", _a0)}
+}
+
+func (_c *MockDatabase_CreateIssueMatchChange_Call) Run(run func(_a0 *entity.IssueMatchChange)) *MockDatabase_CreateIssueMatchChange_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.IssueMatchChange))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_CreateIssueMatchChange_Call) Return(_a0 *entity.IssueMatchChange, _a1 error) *MockDatabase_CreateIssueMatchChange_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_CreateIssueMatchChange_Call) RunAndReturn(run func(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)) *MockDatabase_CreateIssueMatchChange_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateIssueRepository provides a mock function with given fields: _a0
 func (_m *MockDatabase) CreateIssueRepository(_a0 *entity.IssueRepository) (*entity.IssueRepository, error) {
 	ret := _m.Called(_a0)
@@ -1810,6 +1868,52 @@ func (_c *MockDatabase_DeleteIssueMatch_Call) Return(_a0 error) *MockDatabase_De
 }
 
 func (_c *MockDatabase_DeleteIssueMatch_Call) RunAndReturn(run func(int64) error) *MockDatabase_DeleteIssueMatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteIssueMatchChange provides a mock function with given fields: _a0
+func (_m *MockDatabase) DeleteIssueMatchChange(_a0 int64) error {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteIssueMatchChange")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_DeleteIssueMatchChange_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteIssueMatchChange'
+type MockDatabase_DeleteIssueMatchChange_Call struct {
+	*mock.Call
+}
+
+// DeleteIssueMatchChange is a helper method to define mock.On call
+//   - _a0 int64
+func (_e *MockDatabase_Expecter) DeleteIssueMatchChange(_a0 interface{}) *MockDatabase_DeleteIssueMatchChange_Call {
+	return &MockDatabase_DeleteIssueMatchChange_Call{Call: _e.mock.On("DeleteIssueMatchChange", _a0)}
+}
+
+func (_c *MockDatabase_DeleteIssueMatchChange_Call) Run(run func(_a0 int64)) *MockDatabase_DeleteIssueMatchChange_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_DeleteIssueMatchChange_Call) Return(_a0 error) *MockDatabase_DeleteIssueMatchChange_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_DeleteIssueMatchChange_Call) RunAndReturn(run func(int64) error) *MockDatabase_DeleteIssueMatchChange_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3928,6 +4032,52 @@ func (_c *MockDatabase_UpdateIssueMatch_Call) Return(_a0 error) *MockDatabase_Up
 }
 
 func (_c *MockDatabase_UpdateIssueMatch_Call) RunAndReturn(run func(*entity.IssueMatch) error) *MockDatabase_UpdateIssueMatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateIssueMatchChange provides a mock function with given fields: _a0
+func (_m *MockDatabase) UpdateIssueMatchChange(_a0 *entity.IssueMatchChange) error {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIssueMatchChange")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*entity.IssueMatchChange) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_UpdateIssueMatchChange_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIssueMatchChange'
+type MockDatabase_UpdateIssueMatchChange_Call struct {
+	*mock.Call
+}
+
+// UpdateIssueMatchChange is a helper method to define mock.On call
+//   - _a0 *entity.IssueMatchChange
+func (_e *MockDatabase_Expecter) UpdateIssueMatchChange(_a0 interface{}) *MockDatabase_UpdateIssueMatchChange_Call {
+	return &MockDatabase_UpdateIssueMatchChange_Call{Call: _e.mock.On("UpdateIssueMatchChange", _a0)}
+}
+
+func (_c *MockDatabase_UpdateIssueMatchChange_Call) Run(run func(_a0 *entity.IssueMatchChange)) *MockDatabase_UpdateIssueMatchChange_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.IssueMatchChange))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_UpdateIssueMatchChange_Call) Return(_a0 error) *MockDatabase_UpdateIssueMatchChange_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_UpdateIssueMatchChange_Call) RunAndReturn(run func(*entity.IssueMatchChange) error) *MockDatabase_UpdateIssueMatchChange_Call {
 	_c.Call.Return(run)
 	return _c
 }

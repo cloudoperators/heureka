@@ -87,3 +87,103 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 		)
 	})
 })
+
+var _ = Describe("When creating IssueMatchChange", Label("app", "CreateIssueMatchChange"), func() {
+	var (
+		db               *mocks.MockDatabase
+		heureka          app.Heureka
+		issueMatchChange entity.IssueMatchChange
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		issueMatchChange = test.NewFakeIssueMatchChange()
+	})
+
+	It("creates issueMatchChange", func() {
+		db.On("CreateIssueMatchChange", &issueMatchChange).Return(&issueMatchChange, nil)
+		heureka = app.NewHeurekaApp(db)
+		newIssueMatchChange, err := heureka.CreateIssueMatchChange(&issueMatchChange)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(newIssueMatchChange.Id).NotTo(BeEquivalentTo(0))
+		By("setting fields", func() {
+			Expect(newIssueMatchChange.Action).To(BeEquivalentTo(issueMatchChange.Action))
+		})
+	})
+})
+
+var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatchChange"), func() {
+	var (
+		db               *mocks.MockDatabase
+		heureka          app.Heureka
+		issueMatchChange entity.IssueMatchChange
+		filter           *entity.IssueMatchChangeFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		issueMatchChange = test.NewFakeIssueMatchChange()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.IssueMatchChangeFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	})
+
+	It("updates issueMatchChange", func() {
+		db.On("UpdateIssueMatchChange", &issueMatchChange).Return(nil)
+		heureka = app.NewHeurekaApp(db)
+		if issueMatchChange.Action == entity.IssueMatchChangeActionAdd.String() {
+			issueMatchChange.Action = entity.IssueMatchChangeActionRemove.String()
+		} else {
+			issueMatchChange.Action = entity.IssueMatchChangeActionAdd.String()
+		}
+		filter.Id = []*int64{&issueMatchChange.Id}
+		db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{issueMatchChange}, nil)
+		updatedIssueMatchChange, err := heureka.UpdateIssueMatchChange(&issueMatchChange)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		By("setting fields", func() {
+			Expect(updatedIssueMatchChange.Action).To(BeEquivalentTo(issueMatchChange.Action))
+		})
+	})
+})
+
+var _ = Describe("When deleting IssueMatchChange", Label("app", "DeleteIssueMatchChange"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		id      int64
+		filter  *entity.IssueMatchChangeFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		id = 1
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.IssueMatchChangeFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	})
+
+	It("deletes issueMatchChange", func() {
+		db.On("DeleteIssueMatchChange", id).Return(nil)
+		heureka = app.NewHeurekaApp(db)
+		db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{}, nil)
+		err := heureka.DeleteIssueMatchChange(id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+
+		filter.Id = []*int64{&id}
+		issueMatchChanges, err := heureka.ListIssueMatchChanges(filter, &entity.ListOptions{})
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(issueMatchChanges.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+})

@@ -70,3 +70,63 @@ func (h *HeurekaApp) ListIssueMatchChanges(filter *entity.IssueMatchChangeFilter
 		Elements:   res,
 	}, nil
 }
+
+func (h *HeurekaApp) CreateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.CreateIssueMatchChange",
+		"object": issueMatchChange,
+	})
+
+	newIssueMatchChange, err := h.database.CreateIssueMatchChange(issueMatchChange)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while creating issueMatchChange.")
+	}
+
+	return newIssueMatchChange, nil
+}
+
+func (h *HeurekaApp) UpdateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.UpdateIssueMatchChange",
+		"object": issueMatchChange,
+	})
+
+	err := h.database.UpdateIssueMatchChange(issueMatchChange)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while updating issueMatchChange.")
+	}
+
+	imcResult, err := h.ListIssueMatchChanges(&entity.IssueMatchChangeFilter{Id: []*int64{&issueMatchChange.Id}}, &entity.ListOptions{})
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving updated issueMatchChange.")
+	}
+
+	if len(imcResult.Elements) != 1 {
+		l.Error(err)
+		return nil, heurekaError("Multiple issueMatchChanges found.")
+	}
+
+	return imcResult.Elements[0].IssueMatchChange, nil
+}
+
+func (h *HeurekaApp) DeleteIssueMatchChange(id int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "app.DeleteIssueMatchChange",
+		"id":    id,
+	})
+
+	err := h.database.DeleteIssueMatchChange(id)
+
+	if err != nil {
+		l.Error(err)
+		return heurekaError("Internal error while deleting issueMatchChange.")
+	}
+
+	return nil
+}

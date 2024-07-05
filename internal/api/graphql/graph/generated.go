@@ -355,6 +355,7 @@ type ComplexityRoot struct {
 		CreateEvidence          func(childComplexity int, input model.EvidenceInput) int
 		CreateIssue             func(childComplexity int, input model.IssueInput) int
 		CreateIssueMatch        func(childComplexity int, input model.IssueMatchInput) int
+		CreateIssueMatchChange  func(childComplexity int, input model.IssueMatchChangeInput) int
 		CreateIssueRepository   func(childComplexity int, input model.IssueRepositoryInput) int
 		CreateIssueVariant      func(childComplexity int, input model.IssueVariantInput) int
 		CreateService           func(childComplexity int, input model.ServiceInput) int
@@ -367,6 +368,7 @@ type ComplexityRoot struct {
 		DeleteEvidence          func(childComplexity int, id string) int
 		DeleteIssue             func(childComplexity int, id string) int
 		DeleteIssueMatch        func(childComplexity int, id string) int
+		DeleteIssueMatchChange  func(childComplexity int, id string) int
 		DeleteIssueRepository   func(childComplexity int, id string) int
 		DeleteIssueVariant      func(childComplexity int, id string) int
 		DeleteService           func(childComplexity int, id string) int
@@ -379,6 +381,7 @@ type ComplexityRoot struct {
 		UpdateEvidence          func(childComplexity int, id string, input model.EvidenceInput) int
 		UpdateIssue             func(childComplexity int, id string, input model.IssueInput) int
 		UpdateIssueMatch        func(childComplexity int, id string, input model.IssueMatchInput) int
+		UpdateIssueMatchChange  func(childComplexity int, id string, input model.IssueMatchChangeInput) int
 		UpdateIssueRepository   func(childComplexity int, id string, input model.IssueRepositoryInput) int
 		UpdateIssueVariant      func(childComplexity int, id string, input model.IssueVariantInput) int
 		UpdateService           func(childComplexity int, id string, input model.ServiceInput) int
@@ -573,6 +576,9 @@ type MutationResolver interface {
 	CreateIssueMatch(ctx context.Context, input model.IssueMatchInput) (*model.IssueMatch, error)
 	UpdateIssueMatch(ctx context.Context, id string, input model.IssueMatchInput) (*model.IssueMatch, error)
 	DeleteIssueMatch(ctx context.Context, id string) (string, error)
+	CreateIssueMatchChange(ctx context.Context, input model.IssueMatchChangeInput) (*model.IssueMatchChange, error)
+	UpdateIssueMatchChange(ctx context.Context, id string, input model.IssueMatchChangeInput) (*model.IssueMatchChange, error)
+	DeleteIssueMatchChange(ctx context.Context, id string) (string, error)
 	CreateActivity(ctx context.Context, input model.ActivityInput) (*model.Activity, error)
 	UpdateActivity(ctx context.Context, id string, input model.ActivityInput) (*model.Activity, error)
 	DeleteActivity(ctx context.Context, id string) (string, error)
@@ -2028,6 +2034,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateIssueMatch(childComplexity, args["input"].(model.IssueMatchInput)), true
 
+	case "Mutation.createIssueMatchChange":
+		if e.complexity.Mutation.CreateIssueMatchChange == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createIssueMatchChange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateIssueMatchChange(childComplexity, args["input"].(model.IssueMatchChangeInput)), true
+
 	case "Mutation.createIssueRepository":
 		if e.complexity.Mutation.CreateIssueRepository == nil {
 			break
@@ -2172,6 +2190,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteIssueMatch(childComplexity, args["id"].(string)), true
 
+	case "Mutation.deleteIssueMatchChange":
+		if e.complexity.Mutation.DeleteIssueMatchChange == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteIssueMatchChange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteIssueMatchChange(childComplexity, args["id"].(string)), true
+
 	case "Mutation.deleteIssueRepository":
 		if e.complexity.Mutation.DeleteIssueRepository == nil {
 			break
@@ -2315,6 +2345,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateIssueMatch(childComplexity, args["id"].(string), args["input"].(model.IssueMatchInput)), true
+
+	case "Mutation.updateIssueMatchChange":
+		if e.complexity.Mutation.UpdateIssueMatchChange == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateIssueMatchChange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateIssueMatchChange(childComplexity, args["id"].(string), args["input"].(model.IssueMatchChangeInput)), true
 
 	case "Mutation.updateIssueRepository":
 		if e.complexity.Mutation.UpdateIssueRepository == nil {
@@ -2914,6 +2956,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputIssueFilter,
 		ec.unmarshalInputIssueInput,
 		ec.unmarshalInputIssueMatchChangeFilter,
+		ec.unmarshalInputIssueMatchChangeInput,
 		ec.unmarshalInputIssueMatchFilter,
 		ec.unmarshalInputIssueMatchInput,
 		ec.unmarshalInputIssueRepositoryFilter,
@@ -3685,6 +3728,21 @@ func (ec *executionContext) field_Mutation_createEvidence_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createIssueMatchChange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.IssueMatchChangeInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNIssueMatchChangeInput2githubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchChangeInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createIssueMatch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -3851,6 +3909,21 @@ func (ec *executionContext) field_Mutation_deleteComponent_args(ctx context.Cont
 }
 
 func (ec *executionContext) field_Mutation_deleteEvidence_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteIssueMatchChange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -4082,6 +4155,30 @@ func (ec *executionContext) field_Mutation_updateEvidence_args(ctx context.Conte
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg1, err = ec.unmarshalNEvidenceInput2githubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐEvidenceInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateIssueMatchChange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 model.IssueMatchChangeInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNIssueMatchChangeInput2githubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchChangeInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -15603,6 +15700,199 @@ func (ec *executionContext) fieldContext_Mutation_deleteIssueMatch(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createIssueMatchChange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createIssueMatchChange(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateIssueMatchChange(rctx, fc.Args["input"].(model.IssueMatchChangeInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.IssueMatchChange)
+	fc.Result = res
+	return ec.marshalNIssueMatchChange2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchChange(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createIssueMatchChange(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_IssueMatchChange_id(ctx, field)
+			case "action":
+				return ec.fieldContext_IssueMatchChange_action(ctx, field)
+			case "issueMatchId":
+				return ec.fieldContext_IssueMatchChange_issueMatchId(ctx, field)
+			case "issueMatch":
+				return ec.fieldContext_IssueMatchChange_issueMatch(ctx, field)
+			case "activityId":
+				return ec.fieldContext_IssueMatchChange_activityId(ctx, field)
+			case "activity":
+				return ec.fieldContext_IssueMatchChange_activity(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type IssueMatchChange", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createIssueMatchChange_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateIssueMatchChange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateIssueMatchChange(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateIssueMatchChange(rctx, fc.Args["id"].(string), fc.Args["input"].(model.IssueMatchChangeInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.IssueMatchChange)
+	fc.Result = res
+	return ec.marshalNIssueMatchChange2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchChange(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateIssueMatchChange(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_IssueMatchChange_id(ctx, field)
+			case "action":
+				return ec.fieldContext_IssueMatchChange_action(ctx, field)
+			case "issueMatchId":
+				return ec.fieldContext_IssueMatchChange_issueMatchId(ctx, field)
+			case "issueMatch":
+				return ec.fieldContext_IssueMatchChange_issueMatch(ctx, field)
+			case "activityId":
+				return ec.fieldContext_IssueMatchChange_activityId(ctx, field)
+			case "activity":
+				return ec.fieldContext_IssueMatchChange_activity(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type IssueMatchChange", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateIssueMatchChange_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteIssueMatchChange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteIssueMatchChange(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteIssueMatchChange(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteIssueMatchChange(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteIssueMatchChange_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createActivity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_createActivity(ctx, field)
 	if err != nil {
@@ -21145,6 +21435,47 @@ func (ec *executionContext) unmarshalInputIssueMatchChangeFilter(ctx context.Con
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputIssueMatchChangeInput(ctx context.Context, obj interface{}) (model.IssueMatchChangeInput, error) {
+	var it model.IssueMatchChangeInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"action", "issueMatchId", "activityId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "action":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("action"))
+			data, err := ec.unmarshalOIssueMatchChangeActions2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchChangeActions(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Action = data
+		case "issueMatchId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issueMatchId"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IssueMatchID = data
+		case "activityId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("activityId"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ActivityID = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputIssueMatchFilter(ctx context.Context, obj interface{}) (model.IssueMatchFilter, error) {
 	var it model.IssueMatchFilter
 	asMap := map[string]interface{}{}
@@ -24815,6 +25146,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createIssueMatchChange":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createIssueMatchChange(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateIssueMatchChange":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateIssueMatchChange(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteIssueMatchChange":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteIssueMatchChange(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createActivity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createActivity(ctx, field)
@@ -26588,6 +26940,10 @@ func (ec *executionContext) marshalNIssueMatch2ᚖgithubᚗwdfᚗsapᚗcorpᚋcc
 	return ec._IssueMatch(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNIssueMatchChange2githubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchChange(ctx context.Context, sel ast.SelectionSet, v model.IssueMatchChange) graphql.Marshaler {
+	return ec._IssueMatchChange(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNIssueMatchChange2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchChange(ctx context.Context, sel ast.SelectionSet, v *model.IssueMatchChange) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -26596,6 +26952,11 @@ func (ec *executionContext) marshalNIssueMatchChange2ᚖgithubᚗwdfᚗsapᚗcor
 		return graphql.Null
 	}
 	return ec._IssueMatchChange(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNIssueMatchChangeInput2githubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchChangeInput(ctx context.Context, v interface{}) (model.IssueMatchChangeInput, error) {
+	res, err := ec.unmarshalInputIssueMatchChangeInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNIssueMatchInput2githubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatchInput(ctx context.Context, v interface{}) (model.IssueMatchInput, error) {

@@ -66,7 +66,7 @@ func IssueMatchChangeBaseResolver(app app.Heureka, ctx context.Context, filter *
 
 	edges := []*model.IssueMatchChangeEdge{}
 	for _, result := range issueMatchChanges.Elements {
-		imc := model.NewIssueMatchChange(&result)
+		imc := model.NewIssueMatchChange(result.IssueMatchChange)
 		edge := model.IssueMatchChangeEdge{
 			Node:   &imc,
 			Cursor: result.Cursor(),
