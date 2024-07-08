@@ -395,6 +395,12 @@ type IssueMatchChangeFilter struct {
 	Action []*IssueMatchChangeActions `json:"action,omitempty"`
 }
 
+type IssueMatchChangeInput struct {
+	Action       *IssueMatchChangeActions `json:"action,omitempty"`
+	IssueMatchID *string                  `json:"issueMatchId,omitempty"`
+	ActivityID   *string                  `json:"activityId,omitempty"`
+}
+
 type IssueMatchConnection struct {
 	TotalCount int               `json:"totalCount"`
 	Edges      []*IssueMatchEdge `json:"edges,omitempty"`

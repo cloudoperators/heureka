@@ -38,6 +38,9 @@ type Database interface {
 	GetIssueMatchChanges(*entity.IssueMatchChangeFilter) ([]entity.IssueMatchChange, error)
 	GetAllIssueMatchChangeIds(*entity.IssueMatchChangeFilter) ([]int64, error)
 	CountIssueMatchChanges(filter *entity.IssueMatchChangeFilter) (int64, error)
+	CreateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
+	UpdateIssueMatchChange(*entity.IssueMatchChange) error
+	DeleteIssueMatchChange(int64) error
 
 	GetServices(*entity.ServiceFilter) ([]entity.Service, error)
 	GetAllServiceIds(*entity.ServiceFilter) ([]int64, error)

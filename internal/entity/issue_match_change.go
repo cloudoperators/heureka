@@ -5,6 +5,32 @@ package entity
 
 import "time"
 
+type IssueMatchChangeAction string
+
+const (
+	IssueMatchChangeActionAdd    IssueMatchChangeAction = "add"
+	IssueMatchChangeActionRemove IssueMatchChangeAction = "remove"
+)
+
+func (e IssueMatchChangeAction) String() string {
+	return string(e)
+}
+
+func NewIssueMatchChangeAction(s string) IssueMatchChangeAction {
+	switch s {
+	case IssueMatchChangeActionAdd.String():
+		return IssueMatchChangeActionAdd
+	case IssueMatchChangeActionRemove.String():
+		return IssueMatchChangeActionRemove
+	}
+	return IssueMatchChangeActionAdd
+}
+
+var AllIssueMatchChangeActions = []string{
+	IssueMatchChangeActionAdd.String(),
+	IssueMatchChangeActionRemove.String(),
+}
+
 type IssueMatchChange struct {
 	Id           int64 `json:"id"`
 	ActivityId   int64 `json:"activity_id"`

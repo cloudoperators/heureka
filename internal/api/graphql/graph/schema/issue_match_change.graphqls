@@ -11,6 +11,12 @@ type IssueMatchChange implements Node {
     activity: Activity!
 }
 
+input IssueMatchChangeInput {
+    action: IssueMatchChangeActions
+    issueMatchId: String
+    activityId: String
+}
+
 input IssueMatchChangeFilter {
     action: [IssueMatchChangeActions]
 }

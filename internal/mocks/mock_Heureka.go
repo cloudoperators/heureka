@@ -313,6 +313,64 @@ func (_c *MockHeureka_CreateEvidence_Call) RunAndReturn(run func(*entity.Evidenc
 	return _c
 }
 
+// CreateIssue provides a mock function with given fields: _a0
+func (_m *MockHeureka) CreateIssue(_a0 *entity.Issue) (*entity.Issue, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateIssue")
+	}
+
+	var r0 *entity.Issue
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.Issue) (*entity.Issue, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.Issue) *entity.Issue); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.Issue)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.Issue) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_CreateIssue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateIssue'
+type MockHeureka_CreateIssue_Call struct {
+	*mock.Call
+}
+
+// CreateIssue is a helper method to define mock.On call
+//   - _a0 *entity.Issue
+func (_e *MockHeureka_Expecter) CreateIssue(_a0 interface{}) *MockHeureka_CreateIssue_Call {
+	return &MockHeureka_CreateIssue_Call{Call: _e.mock.On("CreateIssue", _a0)}
+}
+
+func (_c *MockHeureka_CreateIssue_Call) Run(run func(_a0 *entity.Issue)) *MockHeureka_CreateIssue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.Issue))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_CreateIssue_Call) Return(_a0 *entity.Issue, _a1 error) *MockHeureka_CreateIssue_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_CreateIssue_Call) RunAndReturn(run func(*entity.Issue) (*entity.Issue, error)) *MockHeureka_CreateIssue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateIssueMatch provides a mock function with given fields: _a0
 func (_m *MockHeureka) CreateIssueMatch(_a0 *entity.IssueMatch) (*entity.IssueMatch, error) {
 	ret := _m.Called(_a0)
@@ -887,6 +945,52 @@ func (_c *MockHeureka_DeleteEvidence_Call) Return(_a0 error) *MockHeureka_Delete
 }
 
 func (_c *MockHeureka_DeleteEvidence_Call) RunAndReturn(run func(int64) error) *MockHeureka_DeleteEvidence_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteIssue provides a mock function with given fields: _a0
+func (_m *MockHeureka) DeleteIssue(_a0 int64) error {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteIssue")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockHeureka_DeleteIssue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteIssue'
+type MockHeureka_DeleteIssue_Call struct {
+	*mock.Call
+}
+
+// DeleteIssue is a helper method to define mock.On call
+//   - _a0 int64
+func (_e *MockHeureka_Expecter) DeleteIssue(_a0 interface{}) *MockHeureka_DeleteIssue_Call {
+	return &MockHeureka_DeleteIssue_Call{Call: _e.mock.On("DeleteIssue", _a0)}
+}
+
+func (_c *MockHeureka_DeleteIssue_Call) Run(run func(_a0 int64)) *MockHeureka_DeleteIssue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_DeleteIssue_Call) Return(_a0 error) *MockHeureka_DeleteIssue_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockHeureka_DeleteIssue_Call) RunAndReturn(run func(int64) error) *MockHeureka_DeleteIssue_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2382,6 +2486,64 @@ func (_c *MockHeureka_UpdateEvidence_Call) Return(_a0 *entity.Evidence, _a1 erro
 }
 
 func (_c *MockHeureka_UpdateEvidence_Call) RunAndReturn(run func(*entity.Evidence) (*entity.Evidence, error)) *MockHeureka_UpdateEvidence_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateIssue provides a mock function with given fields: _a0
+func (_m *MockHeureka) UpdateIssue(_a0 *entity.Issue) (*entity.Issue, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIssue")
+	}
+
+	var r0 *entity.Issue
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.Issue) (*entity.Issue, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.Issue) *entity.Issue); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.Issue)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.Issue) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_UpdateIssue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIssue'
+type MockHeureka_UpdateIssue_Call struct {
+	*mock.Call
+}
+
+// UpdateIssue is a helper method to define mock.On call
+//   - _a0 *entity.Issue
+func (_e *MockHeureka_Expecter) UpdateIssue(_a0 interface{}) *MockHeureka_UpdateIssue_Call {
+	return &MockHeureka_UpdateIssue_Call{Call: _e.mock.On("UpdateIssue", _a0)}
+}
+
+func (_c *MockHeureka_UpdateIssue_Call) Run(run func(_a0 *entity.Issue)) *MockHeureka_UpdateIssue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.Issue))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_UpdateIssue_Call) Return(_a0 *entity.Issue, _a1 error) *MockHeureka_UpdateIssue_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_UpdateIssue_Call) RunAndReturn(run func(*entity.Issue) (*entity.Issue, error)) *MockHeureka_UpdateIssue_Call {
 	_c.Call.Return(run)
 	return _c
 }

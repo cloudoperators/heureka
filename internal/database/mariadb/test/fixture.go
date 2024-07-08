@@ -1274,10 +1274,9 @@ func NewFakeIssueRepositoryService() mariadb.IssueRepositoryServiceRow {
 }
 
 func NewFakeIssueMatchChange() mariadb.IssueMatchChangeRow {
-	actions := []string{"add", "remove"}
 	return mariadb.IssueMatchChangeRow{
 		Action: sql.NullString{
-			String: gofakeit.RandomString(actions),
+			String: gofakeit.RandomString(entity.AllIssueMatchChangeActions),
 			Valid:  true,
 		},
 	}
