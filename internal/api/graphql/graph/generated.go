@@ -348,45 +348,53 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateActivity          func(childComplexity int, input model.ActivityInput) int
-		CreateComponent         func(childComplexity int, input model.ComponentInput) int
-		CreateComponentInstance func(childComplexity int, input model.ComponentInstanceInput) int
-		CreateComponentVersion  func(childComplexity int, input model.ComponentVersionInput) int
-		CreateEvidence          func(childComplexity int, input model.EvidenceInput) int
-		CreateIssue             func(childComplexity int, input model.IssueInput) int
-		CreateIssueMatch        func(childComplexity int, input model.IssueMatchInput) int
-		CreateIssueMatchChange  func(childComplexity int, input model.IssueMatchChangeInput) int
-		CreateIssueRepository   func(childComplexity int, input model.IssueRepositoryInput) int
-		CreateIssueVariant      func(childComplexity int, input model.IssueVariantInput) int
-		CreateService           func(childComplexity int, input model.ServiceInput) int
-		CreateSupportGroup      func(childComplexity int, input model.SupportGroupInput) int
-		CreateUser              func(childComplexity int, input model.UserInput) int
-		DeleteActivity          func(childComplexity int, id string) int
-		DeleteComponent         func(childComplexity int, id string) int
-		DeleteComponentInstance func(childComplexity int, id string) int
-		DeleteComponentVersion  func(childComplexity int, id string) int
-		DeleteEvidence          func(childComplexity int, id string) int
-		DeleteIssue             func(childComplexity int, id string) int
-		DeleteIssueMatch        func(childComplexity int, id string) int
-		DeleteIssueMatchChange  func(childComplexity int, id string) int
-		DeleteIssueRepository   func(childComplexity int, id string) int
-		DeleteIssueVariant      func(childComplexity int, id string) int
-		DeleteService           func(childComplexity int, id string) int
-		DeleteSupportGroup      func(childComplexity int, id string) int
-		DeleteUser              func(childComplexity int, id string) int
-		UpdateActivity          func(childComplexity int, id string, input model.ActivityInput) int
-		UpdateComponent         func(childComplexity int, id string, input model.ComponentInput) int
-		UpdateComponentInstance func(childComplexity int, id string, input model.ComponentInstanceInput) int
-		UpdateComponentVersion  func(childComplexity int, id string, input model.ComponentVersionInput) int
-		UpdateEvidence          func(childComplexity int, id string, input model.EvidenceInput) int
-		UpdateIssue             func(childComplexity int, id string, input model.IssueInput) int
-		UpdateIssueMatch        func(childComplexity int, id string, input model.IssueMatchInput) int
-		UpdateIssueMatchChange  func(childComplexity int, id string, input model.IssueMatchChangeInput) int
-		UpdateIssueRepository   func(childComplexity int, id string, input model.IssueRepositoryInput) int
-		UpdateIssueVariant      func(childComplexity int, id string, input model.IssueVariantInput) int
-		UpdateService           func(childComplexity int, id string, input model.ServiceInput) int
-		UpdateSupportGroup      func(childComplexity int, id string, input model.SupportGroupInput) int
-		UpdateUser              func(childComplexity int, id string, input model.UserInput) int
+		AddIssueRepositoryToService      func(childComplexity int, serviceID string, issueRepositoryID string, priority int) int
+		AddOwnerToService                func(childComplexity int, serviceID string, userID string) int
+		AddServiceToActivity             func(childComplexity int, activityID string, serviceID string) int
+		AddServiceToSupportGroup         func(childComplexity int, supportGroupID string, serviceID string) int
+		CreateActivity                   func(childComplexity int, input model.ActivityInput) int
+		CreateComponent                  func(childComplexity int, input model.ComponentInput) int
+		CreateComponentInstance          func(childComplexity int, input model.ComponentInstanceInput) int
+		CreateComponentVersion           func(childComplexity int, input model.ComponentVersionInput) int
+		CreateEvidence                   func(childComplexity int, input model.EvidenceInput) int
+		CreateIssue                      func(childComplexity int, input model.IssueInput) int
+		CreateIssueMatch                 func(childComplexity int, input model.IssueMatchInput) int
+		CreateIssueMatchChange           func(childComplexity int, input model.IssueMatchChangeInput) int
+		CreateIssueRepository            func(childComplexity int, input model.IssueRepositoryInput) int
+		CreateIssueVariant               func(childComplexity int, input model.IssueVariantInput) int
+		CreateService                    func(childComplexity int, input model.ServiceInput) int
+		CreateSupportGroup               func(childComplexity int, input model.SupportGroupInput) int
+		CreateUser                       func(childComplexity int, input model.UserInput) int
+		DeleteActivity                   func(childComplexity int, id string) int
+		DeleteComponent                  func(childComplexity int, id string) int
+		DeleteComponentInstance          func(childComplexity int, id string) int
+		DeleteComponentVersion           func(childComplexity int, id string) int
+		DeleteEvidence                   func(childComplexity int, id string) int
+		DeleteIssue                      func(childComplexity int, id string) int
+		DeleteIssueMatch                 func(childComplexity int, id string) int
+		DeleteIssueMatchChange           func(childComplexity int, id string) int
+		DeleteIssueRepository            func(childComplexity int, id string) int
+		DeleteIssueVariant               func(childComplexity int, id string) int
+		DeleteService                    func(childComplexity int, id string) int
+		DeleteSupportGroup               func(childComplexity int, id string) int
+		DeleteUser                       func(childComplexity int, id string) int
+		RemoveIssueRepositoryFromService func(childComplexity int, serviceID string, issueRepositoryID string) int
+		RemoveOwnerFromService           func(childComplexity int, serviceID string, userID string) int
+		RemoveServiceFromActivity        func(childComplexity int, activityID string, serviceID string) int
+		RemoveServiceFromSupportGroup    func(childComplexity int, supportGroupID string, serviceID string) int
+		UpdateActivity                   func(childComplexity int, id string, input model.ActivityInput) int
+		UpdateComponent                  func(childComplexity int, id string, input model.ComponentInput) int
+		UpdateComponentInstance          func(childComplexity int, id string, input model.ComponentInstanceInput) int
+		UpdateComponentVersion           func(childComplexity int, id string, input model.ComponentVersionInput) int
+		UpdateEvidence                   func(childComplexity int, id string, input model.EvidenceInput) int
+		UpdateIssue                      func(childComplexity int, id string, input model.IssueInput) int
+		UpdateIssueMatch                 func(childComplexity int, id string, input model.IssueMatchInput) int
+		UpdateIssueMatchChange           func(childComplexity int, id string, input model.IssueMatchChangeInput) int
+		UpdateIssueRepository            func(childComplexity int, id string, input model.IssueRepositoryInput) int
+		UpdateIssueVariant               func(childComplexity int, id string, input model.IssueVariantInput) int
+		UpdateService                    func(childComplexity int, id string, input model.ServiceInput) int
+		UpdateSupportGroup               func(childComplexity int, id string, input model.SupportGroupInput) int
+		UpdateUser                       func(childComplexity int, id string, input model.UserInput) int
 	}
 
 	Page struct {
@@ -549,6 +557,8 @@ type MutationResolver interface {
 	CreateSupportGroup(ctx context.Context, input model.SupportGroupInput) (*model.SupportGroup, error)
 	UpdateSupportGroup(ctx context.Context, id string, input model.SupportGroupInput) (*model.SupportGroup, error)
 	DeleteSupportGroup(ctx context.Context, id string) (string, error)
+	AddServiceToSupportGroup(ctx context.Context, supportGroupID string, serviceID string) (*model.SupportGroup, error)
+	RemoveServiceFromSupportGroup(ctx context.Context, supportGroupID string, serviceID string) (*model.SupportGroup, error)
 	CreateComponent(ctx context.Context, input model.ComponentInput) (*model.Component, error)
 	UpdateComponent(ctx context.Context, id string, input model.ComponentInput) (*model.Component, error)
 	DeleteComponent(ctx context.Context, id string) (string, error)
@@ -561,6 +571,10 @@ type MutationResolver interface {
 	CreateService(ctx context.Context, input model.ServiceInput) (*model.Service, error)
 	UpdateService(ctx context.Context, id string, input model.ServiceInput) (*model.Service, error)
 	DeleteService(ctx context.Context, id string) (string, error)
+	AddOwnerToService(ctx context.Context, serviceID string, userID string) (*model.Service, error)
+	RemoveOwnerFromService(ctx context.Context, serviceID string, userID string) (*model.Service, error)
+	AddIssueRepositoryToService(ctx context.Context, serviceID string, issueRepositoryID string, priority int) (*model.Service, error)
+	RemoveIssueRepositoryFromService(ctx context.Context, serviceID string, issueRepositoryID string) (*model.Service, error)
 	CreateIssueRepository(ctx context.Context, input model.IssueRepositoryInput) (*model.IssueRepository, error)
 	UpdateIssueRepository(ctx context.Context, id string, input model.IssueRepositoryInput) (*model.IssueRepository, error)
 	DeleteIssueRepository(ctx context.Context, id string) (string, error)
@@ -582,6 +596,8 @@ type MutationResolver interface {
 	CreateActivity(ctx context.Context, input model.ActivityInput) (*model.Activity, error)
 	UpdateActivity(ctx context.Context, id string, input model.ActivityInput) (*model.Activity, error)
 	DeleteActivity(ctx context.Context, id string) (string, error)
+	AddServiceToActivity(ctx context.Context, activityID string, serviceID string) (*model.Activity, error)
+	RemoveServiceFromActivity(ctx context.Context, activityID string, serviceID string) (*model.Activity, error)
 }
 type QueryResolver interface {
 	Issues(ctx context.Context, filter *model.IssueFilter, first *int, after *string) (*model.IssueConnection, error)
@@ -1950,6 +1966,54 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueVariantEdge.UpdatedAt(childComplexity), true
 
+	case "Mutation.addIssueRepositoryToService":
+		if e.complexity.Mutation.AddIssueRepositoryToService == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addIssueRepositoryToService_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddIssueRepositoryToService(childComplexity, args["serviceId"].(string), args["issueRepositoryId"].(string), args["priority"].(int)), true
+
+	case "Mutation.addOwnerToService":
+		if e.complexity.Mutation.AddOwnerToService == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addOwnerToService_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddOwnerToService(childComplexity, args["serviceId"].(string), args["userId"].(string)), true
+
+	case "Mutation.addServiceToActivity":
+		if e.complexity.Mutation.AddServiceToActivity == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addServiceToActivity_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddServiceToActivity(childComplexity, args["activityId"].(string), args["serviceId"].(string)), true
+
+	case "Mutation.addServiceToSupportGroup":
+		if e.complexity.Mutation.AddServiceToSupportGroup == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addServiceToSupportGroup_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddServiceToSupportGroup(childComplexity, args["supportGroupId"].(string), args["serviceId"].(string)), true
+
 	case "Mutation.createActivity":
 		if e.complexity.Mutation.CreateActivity == nil {
 			break
@@ -2261,6 +2325,54 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteUser(childComplexity, args["id"].(string)), true
+
+	case "Mutation.removeIssueRepositoryFromService":
+		if e.complexity.Mutation.RemoveIssueRepositoryFromService == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeIssueRepositoryFromService_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveIssueRepositoryFromService(childComplexity, args["serviceId"].(string), args["issueRepositoryId"].(string)), true
+
+	case "Mutation.removeOwnerFromService":
+		if e.complexity.Mutation.RemoveOwnerFromService == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeOwnerFromService_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveOwnerFromService(childComplexity, args["serviceId"].(string), args["userId"].(string)), true
+
+	case "Mutation.removeServiceFromActivity":
+		if e.complexity.Mutation.RemoveServiceFromActivity == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeServiceFromActivity_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveServiceFromActivity(childComplexity, args["activityId"].(string), args["serviceId"].(string)), true
+
+	case "Mutation.removeServiceFromSupportGroup":
+		if e.complexity.Mutation.RemoveServiceFromSupportGroup == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeServiceFromSupportGroup_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveServiceFromSupportGroup(childComplexity, args["supportGroupId"].(string), args["serviceId"].(string)), true
 
 	case "Mutation.updateActivity":
 		if e.complexity.Mutation.UpdateActivity == nil {
@@ -3653,6 +3765,111 @@ func (ec *executionContext) field_Issue_issueVariants_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addIssueRepositoryToService_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["serviceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["serviceId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["issueRepositoryId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issueRepositoryId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["issueRepositoryId"] = arg1
+	var arg2 int
+	if tmp, ok := rawArgs["priority"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("priority"))
+		arg2, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["priority"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addOwnerToService_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["serviceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["serviceId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addServiceToActivity_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["activityId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("activityId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["activityId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["serviceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["serviceId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addServiceToSupportGroup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["supportGroupId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["supportGroupId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["serviceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["serviceId"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createActivity_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -4040,6 +4257,102 @@ func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, 
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeIssueRepositoryFromService_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["serviceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["serviceId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["issueRepositoryId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issueRepositoryId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["issueRepositoryId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeOwnerFromService_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["serviceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["serviceId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeServiceFromActivity_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["activityId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("activityId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["activityId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["serviceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["serviceId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeServiceFromSupportGroup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["supportGroupId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["supportGroupId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["serviceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["serviceId"] = arg1
 	return args, nil
 }
 
@@ -13867,6 +14180,136 @@ func (ec *executionContext) fieldContext_Mutation_deleteSupportGroup(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_addServiceToSupportGroup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addServiceToSupportGroup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddServiceToSupportGroup(rctx, fc.Args["supportGroupId"].(string), fc.Args["serviceId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SupportGroup)
+	fc.Result = res
+	return ec.marshalNSupportGroup2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSupportGroup(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addServiceToSupportGroup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SupportGroup_id(ctx, field)
+			case "name":
+				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "users":
+				return ec.fieldContext_SupportGroup_users(ctx, field)
+			case "services":
+				return ec.fieldContext_SupportGroup_services(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SupportGroup", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addServiceToSupportGroup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeServiceFromSupportGroup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeServiceFromSupportGroup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveServiceFromSupportGroup(rctx, fc.Args["supportGroupId"].(string), fc.Args["serviceId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SupportGroup)
+	fc.Result = res
+	return ec.marshalNSupportGroup2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSupportGroup(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeServiceFromSupportGroup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SupportGroup_id(ctx, field)
+			case "name":
+				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "users":
+				return ec.fieldContext_SupportGroup_users(ctx, field)
+			case "services":
+				return ec.fieldContext_SupportGroup_services(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SupportGroup", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeServiceFromSupportGroup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createComponent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_createComponent(ctx, field)
 	if err != nil {
@@ -14641,6 +15084,290 @@ func (ec *executionContext) fieldContext_Mutation_deleteService(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteService_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addOwnerToService(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addOwnerToService(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddOwnerToService(rctx, fc.Args["serviceId"].(string), fc.Args["userId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Service)
+	fc.Result = res
+	return ec.marshalNService2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐService(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addOwnerToService(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Service_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Service_name(ctx, field)
+			case "owners":
+				return ec.fieldContext_Service_owners(ctx, field)
+			case "supportGroups":
+				return ec.fieldContext_Service_supportGroups(ctx, field)
+			case "activities":
+				return ec.fieldContext_Service_activities(ctx, field)
+			case "issueRepositories":
+				return ec.fieldContext_Service_issueRepositories(ctx, field)
+			case "componentInstances":
+				return ec.fieldContext_Service_componentInstances(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Service", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addOwnerToService_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeOwnerFromService(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeOwnerFromService(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveOwnerFromService(rctx, fc.Args["serviceId"].(string), fc.Args["userId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Service)
+	fc.Result = res
+	return ec.marshalNService2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐService(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeOwnerFromService(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Service_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Service_name(ctx, field)
+			case "owners":
+				return ec.fieldContext_Service_owners(ctx, field)
+			case "supportGroups":
+				return ec.fieldContext_Service_supportGroups(ctx, field)
+			case "activities":
+				return ec.fieldContext_Service_activities(ctx, field)
+			case "issueRepositories":
+				return ec.fieldContext_Service_issueRepositories(ctx, field)
+			case "componentInstances":
+				return ec.fieldContext_Service_componentInstances(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Service", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeOwnerFromService_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addIssueRepositoryToService(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addIssueRepositoryToService(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddIssueRepositoryToService(rctx, fc.Args["serviceId"].(string), fc.Args["issueRepositoryId"].(string), fc.Args["priority"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Service)
+	fc.Result = res
+	return ec.marshalNService2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐService(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addIssueRepositoryToService(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Service_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Service_name(ctx, field)
+			case "owners":
+				return ec.fieldContext_Service_owners(ctx, field)
+			case "supportGroups":
+				return ec.fieldContext_Service_supportGroups(ctx, field)
+			case "activities":
+				return ec.fieldContext_Service_activities(ctx, field)
+			case "issueRepositories":
+				return ec.fieldContext_Service_issueRepositories(ctx, field)
+			case "componentInstances":
+				return ec.fieldContext_Service_componentInstances(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Service", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addIssueRepositoryToService_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeIssueRepositoryFromService(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeIssueRepositoryFromService(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveIssueRepositoryFromService(rctx, fc.Args["serviceId"].(string), fc.Args["issueRepositoryId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Service)
+	fc.Result = res
+	return ec.marshalNService2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐService(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeIssueRepositoryFromService(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Service_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Service_name(ctx, field)
+			case "owners":
+				return ec.fieldContext_Service_owners(ctx, field)
+			case "supportGroups":
+				return ec.fieldContext_Service_supportGroups(ctx, field)
+			case "activities":
+				return ec.fieldContext_Service_activities(ctx, field)
+			case "issueRepositories":
+				return ec.fieldContext_Service_issueRepositories(ctx, field)
+			case "componentInstances":
+				return ec.fieldContext_Service_componentInstances(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Service", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeIssueRepositoryFromService_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -16080,6 +16807,144 @@ func (ec *executionContext) fieldContext_Mutation_deleteActivity(ctx context.Con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteActivity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addServiceToActivity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addServiceToActivity(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddServiceToActivity(rctx, fc.Args["activityId"].(string), fc.Args["serviceId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Activity)
+	fc.Result = res
+	return ec.marshalNActivity2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addServiceToActivity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Activity_id(ctx, field)
+			case "status":
+				return ec.fieldContext_Activity_status(ctx, field)
+			case "services":
+				return ec.fieldContext_Activity_services(ctx, field)
+			case "issues":
+				return ec.fieldContext_Activity_issues(ctx, field)
+			case "evidences":
+				return ec.fieldContext_Activity_evidences(ctx, field)
+			case "issueMatchChanges":
+				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addServiceToActivity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeServiceFromActivity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeServiceFromActivity(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveServiceFromActivity(rctx, fc.Args["activityId"].(string), fc.Args["serviceId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Activity)
+	fc.Result = res
+	return ec.marshalNActivity2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐActivity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeServiceFromActivity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Activity_id(ctx, field)
+			case "status":
+				return ec.fieldContext_Activity_status(ctx, field)
+			case "services":
+				return ec.fieldContext_Activity_services(ctx, field)
+			case "issues":
+				return ec.fieldContext_Activity_issues(ctx, field)
+			case "evidences":
+				return ec.fieldContext_Activity_evidences(ctx, field)
+			case "issueMatchChanges":
+				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeServiceFromActivity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -24957,6 +25822,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "addServiceToSupportGroup":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addServiceToSupportGroup(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeServiceFromSupportGroup":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeServiceFromSupportGroup(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createComponent":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createComponent(ctx, field)
@@ -25037,6 +25916,34 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteService":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteService(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addOwnerToService":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addOwnerToService(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeOwnerFromService":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeOwnerFromService(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addIssueRepositoryToService":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addIssueRepositoryToService(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeIssueRepositoryFromService":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeIssueRepositoryFromService(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -25184,6 +26091,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteActivity":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteActivity(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addServiceToActivity":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addServiceToActivity(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeServiceFromActivity":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeServiceFromActivity(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

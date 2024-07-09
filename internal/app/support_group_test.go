@@ -191,3 +191,47 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		Expect(supportGroups.Elements).To(BeEmpty(), "no error should be thrown")
 	})
 })
+
+var _ = Describe("When modifying Service and SupportGroup", Label("app", "ServiceSupportGroup"), func() {
+	var (
+		db           *mocks.MockDatabase
+		heureka      app.Heureka
+		service      entity.Service
+		supportGroup entity.SupportGroup
+		filter       *entity.SupportGroupFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		service = test.NewFakeServiceEntity()
+		supportGroup = test.NewFakeSupportGroupEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.SupportGroupFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+			Id: []*int64{&supportGroup.Id},
+		}
+	})
+
+	It("adds service to supportGroup", func() {
+		db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
+		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
+		heureka = app.NewHeurekaApp(db)
+		supportGroup, err := heureka.AddServiceToSupportGroup(supportGroup.Id, service.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
+	})
+
+	It("removes service from supportGroup", func() {
+		db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
+		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
+		heureka = app.NewHeurekaApp(db)
+		supportGroup, err := heureka.RemoveServiceFromSupportGroup(supportGroup.Id, service.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
+	})
+})

@@ -414,3 +414,236 @@ var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
 		})
 	})
 })
+
+var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"), func() {
+
+	var seeder *test.DatabaseSeeder
+	var s *server.Server
+	var cfg util.Config
+
+	BeforeEach(func() {
+		var err error
+		_ = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = util2.GetRandomFreePort()
+		s = server.NewServer(cfg)
+
+		s.NonBlockingStart()
+	})
+
+	AfterEach(func() {
+		s.BlockingStop()
+	})
+
+	When("the database has 10 entries", func() {
+		var seedCollection *test.SeedCollection
+
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithNFakeData(10)
+		})
+
+		Context("and a mutation query is performed", func() {
+			It("adds owner to service", Label("addOwner.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/addOwner.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				service := seedCollection.ServiceRows[0].AsService()
+				ownerIds := lo.FilterMap(seedCollection.OwnerRows, func(row mariadb.OwnerRow, _ int) (int64, bool) {
+					if row.ServiceId.Int64 == service.Id {
+						return row.UserId.Int64, true
+					}
+					return 0, false
+				})
+
+				ownerRow, _ := lo.Find(seedCollection.UserRows, func(row mariadb.UserRow) bool {
+					return !lo.Contains(ownerIds, row.Id.Int64)
+				})
+
+				req.Var("serviceId", fmt.Sprintf("%d", service.Id))
+				req.Var("userId", fmt.Sprintf("%d", ownerRow.Id.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Service model.Service `json:"addOwnerToService"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Service.Owners.Edges, func(edge *model.UserEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", ownerRow.Id.Int64)
+				})
+
+				Expect(respData.Service.ID).To(Equal(fmt.Sprintf("%d", service.Id)))
+				Expect(found).To(BeTrue())
+			})
+			It("removes owner from service", Label("removeOwner.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/removeOwner.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				service := seedCollection.ServiceRows[0].AsService()
+
+				ownerRow, _ := lo.Find(seedCollection.OwnerRows, func(row mariadb.OwnerRow) bool {
+					return row.ServiceId.Int64 == service.Id
+				})
+
+				req.Var("serviceId", fmt.Sprintf("%d", service.Id))
+				req.Var("userId", fmt.Sprintf("%d", ownerRow.UserId.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Service model.Service `json:"removeOwnerFromService"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Service.Owners.Edges, func(edge *model.UserEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", ownerRow.UserId.Int64)
+				})
+
+				Expect(respData.Service.ID).To(Equal(fmt.Sprintf("%d", service.Id)))
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+})
+
+var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "Services"), func() {
+
+	var seeder *test.DatabaseSeeder
+	var s *server.Server
+	var cfg util.Config
+	var priority int64
+
+	BeforeEach(func() {
+		var err error
+		_ = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = util2.GetRandomFreePort()
+		s = server.NewServer(cfg)
+
+		s.NonBlockingStart()
+	})
+
+	AfterEach(func() {
+		s.BlockingStop()
+	})
+
+	When("the database has 10 entries", func() {
+		var seedCollection *test.SeedCollection
+
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithNFakeData(10)
+			priority = 1
+		})
+
+		Context("and a mutation query is performed", func() {
+			It("adds issueRepository to service", Label("addIssueRepository.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/addIssueRepository.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				service := seedCollection.ServiceRows[0].AsService()
+				issueRepositoryIds := lo.FilterMap(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow, _ int) (int64, bool) {
+					if row.ServiceId.Int64 == service.Id {
+						return row.IssueRepositoryId.Int64, true
+					}
+					return 0, false
+				})
+
+				issueRepositoryRow, _ := lo.Find(seedCollection.IssueRepositoryRows, func(row mariadb.BaseIssueRepositoryRow) bool {
+					return !lo.Contains(issueRepositoryIds, row.Id.Int64)
+				})
+
+				req.Var("serviceId", fmt.Sprintf("%d", service.Id))
+				req.Var("issueRepositoryId", fmt.Sprintf("%d", issueRepositoryRow.Id.Int64))
+				req.Var("priority", fmt.Sprintf("%d", priority))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Service model.Service `json:"addIssueRepositoryToService"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Service.IssueRepositories.Edges, func(edge *model.IssueRepositoryEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", issueRepositoryRow.Id.Int64)
+				})
+
+				Expect(respData.Service.ID).To(Equal(fmt.Sprintf("%d", service.Id)))
+				Expect(found).To(BeTrue())
+			})
+			It("removes issueRepository from service", Label("removeIssueRepository.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/removeIssueRepository.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				service := seedCollection.ServiceRows[0].AsService()
+
+				issueRepositoryRow, _ := lo.Find(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow) bool {
+					return row.ServiceId.Int64 == service.Id
+				})
+
+				req.Var("serviceId", fmt.Sprintf("%d", service.Id))
+				req.Var("issueRepositoryId", fmt.Sprintf("%d", issueRepositoryRow.IssueRepositoryId.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Service model.Service `json:"removeIssueRepositoryFromService"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Service.IssueRepositories.Edges, func(edge *model.IssueRepositoryEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", issueRepositoryRow.IssueRepositoryId.Int64)
+				})
+
+				Expect(respData.Service.ID).To(Equal(fmt.Sprintf("%d", service.Id)))
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+})

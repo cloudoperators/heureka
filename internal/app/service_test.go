@@ -192,6 +192,96 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		filter.Id = []*int64{&id}
 		services, err := heureka.ListServices(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(services.Elements).To(BeEmpty(), "no error should be thrown")
+		Expect(services.Elements).To(BeEmpty(), "no services should be found")
+	})
+})
+
+var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		service entity.Service
+		owner   entity.User
+		filter  *entity.ServiceFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		service = test.NewFakeServiceEntity()
+		owner = test.NewFakeUserEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.ServiceFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+			Id: []*int64{&service.Id},
+		}
+	})
+
+	It("adds owner to service", func() {
+		db.On("AddOwnerToService", service.Id, owner.Id).Return(nil)
+		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
+		heureka = app.NewHeurekaApp(db)
+		service, err := heureka.AddOwnerToService(service.Id, owner.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(service).NotTo(BeNil(), "service should be returned")
+	})
+
+	It("removes owner from service", func() {
+		db.On("RemoveOwnerFromService", service.Id, owner.Id).Return(nil)
+		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
+		heureka = app.NewHeurekaApp(db)
+		service, err := heureka.RemoveOwnerFromService(service.Id, owner.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(service).NotTo(BeNil(), "service should be returned")
+	})
+})
+
+var _ = Describe("When modifying issueRepository and Service", Label("app", "IssueRepositoryService"), func() {
+	var (
+		db              *mocks.MockDatabase
+		heureka         app.Heureka
+		service         entity.Service
+		issueRepository entity.IssueRepository
+		filter          *entity.ServiceFilter
+		priority        int64
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		service = test.NewFakeServiceEntity()
+		issueRepository = test.NewFakeIssueRepositoryEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.ServiceFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+			Id: []*int64{&service.Id},
+		}
+		priority = 1
+	})
+
+	It("adds issueRepository to service", func() {
+		db.On("AddIssueRepositoryToService", service.Id, issueRepository.Id, priority).Return(nil)
+		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
+		heureka = app.NewHeurekaApp(db)
+		service, err := heureka.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(service).NotTo(BeNil(), "service should be returned")
+	})
+
+	It("removes issueRepository from service", func() {
+		db.On("RemoveIssueRepositoryFromService", service.Id, issueRepository.Id).Return(nil)
+		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
+		heureka = app.NewHeurekaApp(db)
+		service, err := heureka.RemoveIssueRepositoryFromService(service.Id, issueRepository.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(service).NotTo(BeNil(), "service should be returned")
 	})
 })

@@ -10,7 +10,7 @@ type BaseService struct {
 	Name           string        `json:"name"`
 	SupportGroup   *SupportGroup `json:"support_group,omitempty"`
 	SupportGroupId int64         `db:"service_support_group_id"`
-	Owner          []User        `json:"owners,omitempty"`
+	Owners         []User        `json:"owners,omitempty"`
 	Activities     []Activity    `json:"activities,omitempty"`
 	Priority       int64         `json:"priority"`
 	CreatedAt      time.Time     `json:"created_at"`

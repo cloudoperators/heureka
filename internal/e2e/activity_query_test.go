@@ -16,8 +16,10 @@ import (
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/model"
+	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
 	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb/test"
 	"github.wdf.sap.corp/cc/heureka/internal/server"
 )
@@ -365,6 +367,121 @@ var _ = Describe("Deleting Activity via API", Label("e2e", "Activities"), func()
 				}
 
 				Expect(respData.Id).To(Equal(id))
+			})
+		})
+	})
+})
+
+var _ = Describe("Modifying Services of Activity via API", Label("e2e", "ServiceActivity"), func() {
+
+	var seeder *test.DatabaseSeeder
+	var s *server.Server
+	var cfg util.Config
+
+	BeforeEach(func() {
+		var err error
+		_ = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = util2.GetRandomFreePort()
+		s = server.NewServer(cfg)
+
+		s.NonBlockingStart()
+	})
+
+	AfterEach(func() {
+		s.BlockingStop()
+	})
+
+	When("the database has 10 entries", func() {
+		var seedCollection *test.SeedCollection
+
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithNFakeData(10)
+		})
+
+		Context("and a mutation query is performed", func() {
+			It("adds service to activity", Label("addService.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/activity/addService.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				activity := seedCollection.ActivityRows[0].AsActivity()
+				serviceIds := lo.FilterMap(seedCollection.ActivityHasServiceRows, func(row mariadb.ActivityHasServiceRow, _ int) (int64, bool) {
+					if row.ActivityId.Int64 == activity.Id {
+						return row.ServiceId.Int64, true
+					}
+					return 0, false
+				})
+
+				serviceRow, _ := lo.Find(seedCollection.ServiceRows, func(row mariadb.BaseServiceRow) bool {
+					return !lo.Contains(serviceIds, row.Id.Int64)
+				})
+
+				req.Var("activityId", fmt.Sprintf("%d", activity.Id))
+				req.Var("serviceId", fmt.Sprintf("%d", serviceRow.Id.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Activity model.Activity `json:"addServiceToActivity"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Activity.Services.Edges, func(edge *model.ServiceEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", serviceRow.Id.Int64)
+				})
+
+				Expect(respData.Activity.ID).To(Equal(fmt.Sprintf("%d", activity.Id)))
+				Expect(found).To(BeTrue())
+			})
+			It("removes service from activity", Label("removeService.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/activity/removeService.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				activity := seedCollection.ActivityRows[0].AsActivity()
+
+				serviceRow, _ := lo.Find(seedCollection.ActivityHasServiceRows, func(row mariadb.ActivityHasServiceRow) bool {
+					return row.ActivityId.Int64 == activity.Id
+				})
+
+				req.Var("activityId", fmt.Sprintf("%d", activity.Id))
+				req.Var("serviceId", fmt.Sprintf("%d", serviceRow.ServiceId.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Activity model.Activity `json:"removeServiceFromActivity"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Activity.Services.Edges, func(edge *model.ServiceEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", serviceRow.ServiceId.Int64)
+				})
+
+				Expect(respData.Activity.ID).To(Equal(fmt.Sprintf("%d", activity.Id)))
+				Expect(found).To(BeFalse())
 			})
 		})
 	})

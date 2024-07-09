@@ -270,3 +270,53 @@ func (s *SqlDatabase) DeleteSupportGroup(id int64) error {
 
 	return err
 }
+
+func (s *SqlDatabase) AddServiceToSupportGroup(supportGroupId int64, serviceId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"serviceId":      serviceId,
+		"supportGroupId": supportGroupId,
+		"event":          "database.AddServiceToSupportGroup",
+	})
+
+	query := `
+		INSERT INTO SupportGroupService (
+			supportgroupservice_service_id,
+			supportgroupservice_support_group_id
+		) VALUES (
+			:service_id,
+			:support_group_id
+		)
+	`
+
+	args := map[string]interface{}{
+		"service_id":       serviceId,
+		"support_group_id": supportGroupId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
+func (s *SqlDatabase) RemoveServiceFromSupportGroup(supportGroupId int64, serviceId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"serviceId":      serviceId,
+		"supportGroupId": supportGroupId,
+		"event":          "database.RemoveServiceFromSupportGroup",
+	})
+
+	query := `
+		DELETE FROM SupportGroupService
+		WHERE supportgroupservice_service_id = :service_id
+		AND supportgroupservice_support_group_id = :support_group_id
+	`
+
+	args := map[string]interface{}{
+		"service_id":       serviceId,
+		"support_group_id": supportGroupId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}

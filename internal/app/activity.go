@@ -28,6 +28,26 @@ func (h *HeurekaApp) getActivityResults(filter *entity.ActivityFilter) ([]entity
 	return activityResults, nil
 }
 
+func (h *HeurekaApp) GetActivity(activityId int64) (*entity.Activity, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "app.GetActivity",
+		"id":    activityId,
+	})
+	activityFilter := entity.ActivityFilter{Id: []*int64{&activityId}}
+	activities, err := h.ListActivities(&activityFilter, &entity.ListOptions{})
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving activities.")
+	}
+
+	if len(activities.Elements) != 1 {
+		return nil, heurekaError(fmt.Sprintf("Activity %d not found.", activityId))
+	}
+
+	return activities.Elements[0].Activity, nil
+}
+
 func (h *HeurekaApp) ListActivities(filter *entity.ActivityFilter, options *entity.ListOptions) (*entity.List[entity.ActivityResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
@@ -99,19 +119,7 @@ func (h *HeurekaApp) UpdateActivity(activity *entity.Activity) (*entity.Activity
 		return nil, heurekaError("Internal error while updating activity.")
 	}
 
-	activityResult, err := h.ListActivities(&entity.ActivityFilter{Id: []*int64{&activity.Id}}, &entity.ListOptions{})
-
-	if err != nil {
-		l.Error(err)
-		return nil, heurekaError("Internal error while retrieving updated activity.")
-	}
-
-	if len(activityResult.Elements) != 1 {
-		l.Error(err)
-		return nil, heurekaError("Multiple activities found.")
-	}
-
-	return activityResult.Elements[0].Activity, nil
+	return h.GetActivity(activity.Id)
 }
 
 func (h *HeurekaApp) DeleteActivity(id int64) error {
@@ -128,4 +136,38 @@ func (h *HeurekaApp) DeleteActivity(id int64) error {
 	}
 
 	return nil
+}
+
+func (h *HeurekaApp) AddServiceToActivity(activityId, serviceId int64) (*entity.Activity, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":      "app.AddServiceToActivity",
+		"activityId": activityId,
+		"serviceId":  serviceId,
+	})
+
+	err := h.database.AddServiceToActivity(activityId, serviceId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while adding service to activity.")
+	}
+
+	return h.GetActivity(activityId)
+}
+
+func (h *HeurekaApp) RemoveServiceFromActivity(activityId, serviceId int64) (*entity.Activity, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":      "app.RemoveServiceFromActivity",
+		"activityId": activityId,
+		"serviceId":  serviceId,
+	})
+
+	err := h.database.RemoveServiceFromActivity(activityId, serviceId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while removing service from activity.")
+	}
+
+	return h.GetActivity(activityId)
 }
