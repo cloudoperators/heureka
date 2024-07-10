@@ -2,7 +2,7 @@
 
 ## Vision
 
-'Heureka is a Security Posture Management tool designed to manage the security issues in a complex technology landscape'.
+**Heureka is a Security Posture Management tool designed to manage the security issues in a complex technology landscape.**
 
 Heureka is committed to empowering service owners with a central platform for proactive security management. It seamlessly integrates key components such as advanced patch management, intelligent SIEM analysis, and automated policy enforcement.
 
