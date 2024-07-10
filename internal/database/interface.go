@@ -13,6 +13,8 @@ type Database interface {
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
 	DeleteIssue(int64) error
+	AddComponentVersionToIssue(int64, int64) error
+	RemoveComponentVersionFromIssue(int64, int64) error
 
 	GetIssueVariants(*entity.IssueVariantFilter) ([]entity.IssueVariant, error)
 	GetAllIssueVariantIds(*entity.IssueVariantFilter) ([]int64, error)
@@ -86,6 +88,8 @@ type Database interface {
 	DeleteActivity(int64) error
 	AddServiceToActivity(int64, int64) error
 	RemoveServiceFromActivity(int64, int64) error
+	AddIssueToActivity(int64, int64) error
+	RemoveIssueFromActivity(int64, int64) error
 
 	GetEvidences(*entity.EvidenceFilter) ([]entity.Evidence, error)
 	GetAllEvidenceIds(*entity.EvidenceFilter) ([]int64, error)

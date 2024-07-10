@@ -489,3 +489,118 @@ var _ = Describe("Modifying Services of Activity via API", Label("e2e", "Service
 		})
 	})
 })
+
+var _ = Describe("Modifying Issues of Activity via API", Label("e2e", "ServiceIssue"), func() {
+
+	var seeder *test.DatabaseSeeder
+	var s *server.Server
+	var cfg util.Config
+
+	BeforeEach(func() {
+		var err error
+		_ = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = util2.GetRandomFreePort()
+		s = server.NewServer(cfg)
+
+		s.NonBlockingStart()
+	})
+
+	AfterEach(func() {
+		s.BlockingStop()
+	})
+
+	When("the database has 10 entries", func() {
+		var seedCollection *test.SeedCollection
+
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithNFakeData(10)
+		})
+
+		Context("and a mutation query is performed", func() {
+			It("adds issue to activity", Label("addIssue.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/activity/addIssue.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				activity := seedCollection.ActivityRows[0].AsActivity()
+				issueIds := lo.FilterMap(seedCollection.ActivityHasIssueRows, func(row mariadb.ActivityHasIssueRow, _ int) (int64, bool) {
+					if row.ActivityId.Int64 == activity.Id {
+						return row.IssueId.Int64, true
+					}
+					return 0, false
+				})
+
+				issueRow, _ := lo.Find(seedCollection.IssueRows, func(row mariadb.IssueRow) bool {
+					return !lo.Contains(issueIds, row.Id.Int64)
+				})
+
+				req.Var("activityId", fmt.Sprintf("%d", activity.Id))
+				req.Var("issueId", fmt.Sprintf("%d", issueRow.Id.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Activity model.Activity `json:"addIssueToActivity"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Activity.Issues.Edges, func(edge *model.IssueEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", issueRow.Id.Int64)
+				})
+
+				Expect(respData.Activity.ID).To(Equal(fmt.Sprintf("%d", activity.Id)))
+				Expect(found).To(BeTrue())
+			})
+			It("removes issue from activity", Label("removeIssue.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/activity/removeIssue.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				activity := seedCollection.ActivityRows[0].AsActivity()
+
+				issueRow, _ := lo.Find(seedCollection.ActivityHasIssueRows, func(row mariadb.ActivityHasIssueRow) bool {
+					return row.ActivityId.Int64 == activity.Id
+				})
+
+				req.Var("activityId", fmt.Sprintf("%d", activity.Id))
+				req.Var("issueId", fmt.Sprintf("%d", issueRow.IssueId.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Activity model.Activity `json:"removeIssueFromActivity"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Activity.Issues.Edges, func(edge *model.IssueEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", issueRow.ActivityId.Int64)
+				})
+
+				Expect(respData.Activity.ID).To(Equal(fmt.Sprintf("%d", activity.Id)))
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+})

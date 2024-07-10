@@ -397,3 +397,118 @@ var _ = Describe("Deleting Issue via API", Label("e2e", "Issues"), func() {
 		})
 	})
 })
+
+var _ = Describe("Modifying ComponentVersion of Issue via API", Label("e2e", "Issues"), func() {
+
+	var seeder *test.DatabaseSeeder
+	var s *server.Server
+	var cfg util.Config
+
+	BeforeEach(func() {
+		var err error
+		_ = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = util2.GetRandomFreePort()
+		s = server.NewServer(cfg)
+
+		s.NonBlockingStart()
+	})
+
+	AfterEach(func() {
+		s.BlockingStop()
+	})
+
+	When("the database has 10 entries", func() {
+		var seedCollection *test.SeedCollection
+
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithNFakeData(10)
+		})
+
+		Context("and a mutation query is performed", func() {
+			It("adds componentVersion to issue", Label("addComponentVersion.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/addComponentVersion.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				issue := seedCollection.IssueRows[0].AsIssue()
+				componentVersionIds := lo.FilterMap(seedCollection.ComponentVersionIssueRows, func(row mariadb.ComponentVersionIssueRow, _ int) (int64, bool) {
+					if row.IssueId.Int64 == issue.Id {
+						return row.ComponentVersionId.Int64, true
+					}
+					return 0, false
+				})
+
+				componentVersionRow, _ := lo.Find(seedCollection.ComponentVersionRows, func(row mariadb.ComponentVersionRow) bool {
+					return !lo.Contains(componentVersionIds, row.Id.Int64)
+				})
+
+				req.Var("issueId", fmt.Sprintf("%d", issue.Id))
+				req.Var("componentVersionId", fmt.Sprintf("%d", componentVersionRow.Id.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Issue model.Issue `json:"addComponentVersionToIssue"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Issue.ComponentVersions.Edges, func(edge *model.ComponentVersionEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", componentVersionRow.Id.Int64)
+				})
+
+				Expect(respData.Issue.ID).To(Equal(fmt.Sprintf("%d", issue.Id)))
+				Expect(found).To(BeTrue())
+			})
+			It("removes componentVersion from issue", Label("removeComponentVersion.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/removeComponentVersion.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				issue := seedCollection.IssueRows[0].AsIssue()
+
+				componentVersionRow, _ := lo.Find(seedCollection.ComponentVersionIssueRows, func(row mariadb.ComponentVersionIssueRow) bool {
+					return row.IssueId.Int64 == issue.Id
+				})
+
+				req.Var("issueId", fmt.Sprintf("%d", issue.Id))
+				req.Var("componentVersionId", fmt.Sprintf("%d", componentVersionRow.ComponentVersionId.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Issue model.Issue `json:"removeComponentVersionFromIssue"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.Issue.ComponentVersions.Edges, func(edge *model.ComponentVersionEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", componentVersionRow.ComponentVersionId.Int64)
+				})
+
+				Expect(respData.Issue.ID).To(Equal(fmt.Sprintf("%d", issue.Id)))
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+})

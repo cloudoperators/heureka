@@ -322,3 +322,53 @@ func (s *SqlDatabase) RemoveServiceFromActivity(activityId int64, serviceId int6
 
 	return err
 }
+
+func (s *SqlDatabase) AddIssueToActivity(activityId int64, issueId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"issueId":    issueId,
+		"activityId": activityId,
+		"event":      "database.AddIssueToActivity",
+	})
+
+	query := `
+		INSERT INTO ActivityHasIssue (
+			activityhasissue_issue_id,
+			activityhasissue_activity_id
+		) VALUES (
+		 :issue_id,
+		 :activity_id
+		)
+	`
+
+	args := map[string]interface{}{
+		"issue_id":    issueId,
+		"activity_id": activityId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
+func (s *SqlDatabase) RemoveIssueFromActivity(activityId int64, issueId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"issueId":    issueId,
+		"activityId": activityId,
+		"event":      "database.RemoveIssueFromActivity",
+	})
+
+	query := `
+		DELETE FROM ActivityHasIssue
+		WHERE activityhasissue_issue_id = :issue_id
+		AND activityhasissue_activity_id = :activity_id
+	`
+
+	args := map[string]interface{}{
+		"issue_id":    issueId,
+		"activity_id": activityId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
