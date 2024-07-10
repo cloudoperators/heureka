@@ -28,6 +28,26 @@ func (h *HeurekaApp) getIssueMatchResults(filter *entity.IssueMatchFilter) ([]en
 	return results, nil
 }
 
+func (h *HeurekaApp) GetIssueMatch(issueMatchId int64) (*entity.IssueMatch, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "app.GetIssueMatch",
+		"id":    issueMatchId,
+	})
+	issueMatchFilter := entity.IssueMatchFilter{Id: []*int64{&issueMatchId}}
+	issueMatches, err := h.ListIssueMatches(&issueMatchFilter, &entity.ListOptions{})
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving issueMatches.")
+	}
+
+	if len(issueMatches.Elements) != 1 {
+		return nil, heurekaError(fmt.Sprintf("IssueMatch %d not found.", issueMatchId))
+	}
+
+	return issueMatches.Elements[0].IssueMatch, nil
+}
+
 func (h *HeurekaApp) ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
@@ -113,19 +133,7 @@ func (h *HeurekaApp) UpdateIssueMatch(issueMatch *entity.IssueMatch) (*entity.Is
 		return nil, heurekaError("Internal error while updating issueMatch.")
 	}
 
-	issueMatchResult, err := h.ListIssueMatches(&entity.IssueMatchFilter{Id: []*int64{&issueMatch.Id}}, &entity.ListOptions{})
-
-	if err != nil {
-		l.Error(err)
-		return nil, heurekaError("Internal error while retrieving updated issueMatch.")
-	}
-
-	if len(issueMatchResult.Elements) != 1 {
-		l.Error(err)
-		return nil, heurekaError("Multiple issueMatches found.")
-	}
-
-	return issueMatchResult.Elements[0].IssueMatch, nil
+	return h.GetIssueMatch(issueMatch.Id)
 }
 
 func (h *HeurekaApp) DeleteIssueMatch(id int64) error {
@@ -142,4 +150,38 @@ func (h *HeurekaApp) DeleteIssueMatch(id int64) error {
 	}
 
 	return nil
+}
+
+func (h *HeurekaApp) AddEvidenceToIssueMatch(issueMatchId, evidenceId int64) (*entity.IssueMatch, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":        "app.AddEvidenceToIssueMatch",
+		"issueMatchId": issueMatchId,
+		"evidenceId":   evidenceId,
+	})
+
+	err := h.database.AddEvidenceToIssueMatch(issueMatchId, evidenceId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while adding evidence to issueMatch.")
+	}
+
+	return h.GetIssueMatch(issueMatchId)
+}
+
+func (h *HeurekaApp) RemoveEvidenceFromIssueMatch(issueMatchId, evidenceId int64) (*entity.IssueMatch, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":        "app.RemoveEvidenceFromIssueMatch",
+		"issueMatchId": issueMatchId,
+		"evidenceId":   evidenceId,
+	})
+
+	err := h.database.RemoveEvidenceFromIssueMatch(issueMatchId, evidenceId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while removing evidence from issueMatch.")
+	}
+
+	return h.GetIssueMatch(issueMatchId)
 }

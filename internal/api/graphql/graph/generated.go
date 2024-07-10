@@ -348,6 +348,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AddEvidenceToIssueMatch          func(childComplexity int, issueMatchID string, evidenceID string) int
 		AddIssueRepositoryToService      func(childComplexity int, serviceID string, issueRepositoryID string, priority int) int
 		AddOwnerToService                func(childComplexity int, serviceID string, userID string) int
 		AddServiceToActivity             func(childComplexity int, activityID string, serviceID string) int
@@ -378,6 +379,7 @@ type ComplexityRoot struct {
 		DeleteService                    func(childComplexity int, id string) int
 		DeleteSupportGroup               func(childComplexity int, id string) int
 		DeleteUser                       func(childComplexity int, id string) int
+		RemoveEvidenceFromIssueMatch     func(childComplexity int, issueMatchID string, evidenceID string) int
 		RemoveIssueRepositoryFromService func(childComplexity int, serviceID string, issueRepositoryID string) int
 		RemoveOwnerFromService           func(childComplexity int, serviceID string, userID string) int
 		RemoveServiceFromActivity        func(childComplexity int, activityID string, serviceID string) int
@@ -590,6 +592,8 @@ type MutationResolver interface {
 	CreateIssueMatch(ctx context.Context, input model.IssueMatchInput) (*model.IssueMatch, error)
 	UpdateIssueMatch(ctx context.Context, id string, input model.IssueMatchInput) (*model.IssueMatch, error)
 	DeleteIssueMatch(ctx context.Context, id string) (string, error)
+	AddEvidenceToIssueMatch(ctx context.Context, issueMatchID string, evidenceID string) (*model.IssueMatch, error)
+	RemoveEvidenceFromIssueMatch(ctx context.Context, issueMatchID string, evidenceID string) (*model.IssueMatch, error)
 	CreateIssueMatchChange(ctx context.Context, input model.IssueMatchChangeInput) (*model.IssueMatchChange, error)
 	UpdateIssueMatchChange(ctx context.Context, id string, input model.IssueMatchChangeInput) (*model.IssueMatchChange, error)
 	DeleteIssueMatchChange(ctx context.Context, id string) (string, error)
@@ -1966,6 +1970,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueVariantEdge.UpdatedAt(childComplexity), true
 
+	case "Mutation.addEvidenceToIssueMatch":
+		if e.complexity.Mutation.AddEvidenceToIssueMatch == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addEvidenceToIssueMatch_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddEvidenceToIssueMatch(childComplexity, args["issueMatchId"].(string), args["evidenceId"].(string)), true
+
 	case "Mutation.addIssueRepositoryToService":
 		if e.complexity.Mutation.AddIssueRepositoryToService == nil {
 			break
@@ -2325,6 +2341,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteUser(childComplexity, args["id"].(string)), true
+
+	case "Mutation.removeEvidenceFromIssueMatch":
+		if e.complexity.Mutation.RemoveEvidenceFromIssueMatch == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeEvidenceFromIssueMatch_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveEvidenceFromIssueMatch(childComplexity, args["issueMatchId"].(string), args["evidenceId"].(string)), true
 
 	case "Mutation.removeIssueRepositoryFromService":
 		if e.complexity.Mutation.RemoveIssueRepositoryFromService == nil {
@@ -3765,6 +3793,30 @@ func (ec *executionContext) field_Issue_issueVariants_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addEvidenceToIssueMatch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["issueMatchId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issueMatchId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["issueMatchId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["evidenceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("evidenceId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["evidenceId"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_addIssueRepositoryToService_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -4257,6 +4309,30 @@ func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, 
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeEvidenceFromIssueMatch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["issueMatchId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("issueMatchId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["issueMatchId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["evidenceId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("evidenceId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["evidenceId"] = arg1
 	return args, nil
 }
 
@@ -16427,6 +16503,180 @@ func (ec *executionContext) fieldContext_Mutation_deleteIssueMatch(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_addEvidenceToIssueMatch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addEvidenceToIssueMatch(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddEvidenceToIssueMatch(rctx, fc.Args["issueMatchId"].(string), fc.Args["evidenceId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.IssueMatch)
+	fc.Result = res
+	return ec.marshalNIssueMatch2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatch(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addEvidenceToIssueMatch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_IssueMatch_id(ctx, field)
+			case "status":
+				return ec.fieldContext_IssueMatch_status(ctx, field)
+			case "remediationDate":
+				return ec.fieldContext_IssueMatch_remediationDate(ctx, field)
+			case "discoveryDate":
+				return ec.fieldContext_IssueMatch_discoveryDate(ctx, field)
+			case "targetRemediationDate":
+				return ec.fieldContext_IssueMatch_targetRemediationDate(ctx, field)
+			case "severity":
+				return ec.fieldContext_IssueMatch_severity(ctx, field)
+			case "effectiveIssueVariants":
+				return ec.fieldContext_IssueMatch_effectiveIssueVariants(ctx, field)
+			case "evidences":
+				return ec.fieldContext_IssueMatch_evidences(ctx, field)
+			case "issueId":
+				return ec.fieldContext_IssueMatch_issueId(ctx, field)
+			case "issue":
+				return ec.fieldContext_IssueMatch_issue(ctx, field)
+			case "userId":
+				return ec.fieldContext_IssueMatch_userId(ctx, field)
+			case "user":
+				return ec.fieldContext_IssueMatch_user(ctx, field)
+			case "componentInstanceId":
+				return ec.fieldContext_IssueMatch_componentInstanceId(ctx, field)
+			case "componentInstance":
+				return ec.fieldContext_IssueMatch_componentInstance(ctx, field)
+			case "issueMatchChanges":
+				return ec.fieldContext_IssueMatch_issueMatchChanges(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type IssueMatch", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addEvidenceToIssueMatch_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeEvidenceFromIssueMatch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeEvidenceFromIssueMatch(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveEvidenceFromIssueMatch(rctx, fc.Args["issueMatchId"].(string), fc.Args["evidenceId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.IssueMatch)
+	fc.Result = res
+	return ec.marshalNIssueMatch2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMatch(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeEvidenceFromIssueMatch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_IssueMatch_id(ctx, field)
+			case "status":
+				return ec.fieldContext_IssueMatch_status(ctx, field)
+			case "remediationDate":
+				return ec.fieldContext_IssueMatch_remediationDate(ctx, field)
+			case "discoveryDate":
+				return ec.fieldContext_IssueMatch_discoveryDate(ctx, field)
+			case "targetRemediationDate":
+				return ec.fieldContext_IssueMatch_targetRemediationDate(ctx, field)
+			case "severity":
+				return ec.fieldContext_IssueMatch_severity(ctx, field)
+			case "effectiveIssueVariants":
+				return ec.fieldContext_IssueMatch_effectiveIssueVariants(ctx, field)
+			case "evidences":
+				return ec.fieldContext_IssueMatch_evidences(ctx, field)
+			case "issueId":
+				return ec.fieldContext_IssueMatch_issueId(ctx, field)
+			case "issue":
+				return ec.fieldContext_IssueMatch_issue(ctx, field)
+			case "userId":
+				return ec.fieldContext_IssueMatch_userId(ctx, field)
+			case "user":
+				return ec.fieldContext_IssueMatch_user(ctx, field)
+			case "componentInstanceId":
+				return ec.fieldContext_IssueMatch_componentInstanceId(ctx, field)
+			case "componentInstance":
+				return ec.fieldContext_IssueMatch_componentInstance(ctx, field)
+			case "issueMatchChanges":
+				return ec.fieldContext_IssueMatch_issueMatchChanges(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type IssueMatch", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeEvidenceFromIssueMatch_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createIssueMatchChange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_createIssueMatchChange(ctx, field)
 	if err != nil {
@@ -26049,6 +26299,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteIssueMatch":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteIssueMatch(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addEvidenceToIssueMatch":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addEvidenceToIssueMatch(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeEvidenceFromIssueMatch":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeEvidenceFromIssueMatch(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
