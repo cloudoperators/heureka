@@ -13,13 +13,16 @@ It is also designed to address the critical compliance aspect as it is equipped 
 
 ## Value Propositions
 
-1. Enhanced Visibility and Security Posture
+**1. Enhanced Visibility and Security Posture**
+
 A holistic view of the technology landscape, enabling proactive identification and tracking of security issues.
 
-2. Streamlined Security Operations
+**2. Streamlined Security Operations**
+
 Centrally manage security posture, automate patch management, enforce consistent configurations, and improve threat detection with SIEM integration.
 
-3. Enhanced Compliance, and Auditability
+**3. Enhanced Compliance, and Auditability**
+
 Facilitate compliance by tracking remediation progress and providing a complete audit trail (evidence) with detailed documentation of state changes and actions taken.
 
 
@@ -27,13 +30,13 @@ Facilitate compliance by tracking remediation progress and providing a complete 
 
 For a detailed understanding of the system's architecture and design, refer to the following resources:
 
-[Heureka Product Design Document](docs/ora_technical_design_documentation.md): This document provides a glossary of terms and user personas relevant to the Heureka product.
-[Entity Relationship Documentation](docs/entity_relationships.md): This document outlines the core entities within Heureka and how they interact with each other.
+- [Heureka Product Design Document](docs/ora_technical_design_documentation.md): This document provides a glossary of terms and user personas relevant to the Heureka product.
+- [Entity Relationship Documentation](docs/entity_relationships.md): This document outlines the core entities within Heureka and how they interact with each other.
 
 **Additional Resources Coming Soon**
 
-High-Level Architecture Diagrams: These diagrams will provide a visual representation of the overall system architecture, expected to be published before the end of Q3.
-High-Level Features: A high-level overview of the system's functionalities is also planned for publication before the end of Q3.
+- High-Level Architecture Diagrams: These diagrams will provide a visual representation of the overall system architecture, expected to be published before the end of Q3.
+- High-Level Features: A high-level overview of the system's functionalities is also planned for publication before the end of Q3.
 
 
 ## Requirements and Setup
