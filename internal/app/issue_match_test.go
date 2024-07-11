@@ -277,7 +277,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 	})
 })
 
-var _ = Describe("When modifying evidence and issueMatch", Label("app", "EvidenceIssueMatch"), func() {
+var _ = Describe("When modifying relationship of evidence and issueMatch", Label("app", "EvidenceIssueMatchRelationship"), func() {
 	var (
 		db         *mocks.MockDatabase
 		heureka    app.Heureka

@@ -453,6 +453,7 @@ var _ = Describe("Modifying Evidence of IssueMatch via API", Label("e2e", "Issue
 				req := graphql.NewRequest(str)
 
 				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
+				// find all evidenceIds that are attached to the issueMatch
 				evidenceIds := lo.FilterMap(seedCollection.IssueMatchEvidenceRows, func(row mariadb.IssueMatchEvidenceRow, _ int) (int64, bool) {
 					if row.IssueMatchId.Int64 == issueMatch.Id {
 						return row.EvidenceId.Int64, true
@@ -460,6 +461,7 @@ var _ = Describe("Modifying Evidence of IssueMatch via API", Label("e2e", "Issue
 					return 0, false
 				})
 
+				// find evidence that is not attached to the issueMatch
 				evidenceRow, _ := lo.Find(seedCollection.EvidenceRows, func(row mariadb.EvidenceRow) bool {
 					return !lo.Contains(evidenceIds, row.Id.Int64)
 				})
@@ -497,6 +499,7 @@ var _ = Describe("Modifying Evidence of IssueMatch via API", Label("e2e", "Issue
 
 				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
 
+				// find evidence that is attached to the issueMatch
 				evidenceRow, _ := lo.Find(seedCollection.IssueMatchEvidenceRows, func(row mariadb.IssueMatchEvidenceRow) bool {
 					return row.IssueMatchId.Int64 == issueMatch.Id
 				})

@@ -25,6 +25,7 @@ type Heureka interface {
 	DeleteIssueRepository(int64) error
 
 	ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error)
+	GetIssueMatch(int64) (*entity.IssueMatch, error)
 	CreateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)
 	UpdateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)
 	DeleteIssueMatch(int64) error
