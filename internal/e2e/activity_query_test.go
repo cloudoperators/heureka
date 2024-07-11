@@ -415,6 +415,7 @@ var _ = Describe("Modifying Services of Activity via API", Label("e2e", "Service
 				req := graphql.NewRequest(str)
 
 				activity := seedCollection.ActivityRows[0].AsActivity()
+				// find all services that are assigned to the activity
 				serviceIds := lo.FilterMap(seedCollection.ActivityHasServiceRows, func(row mariadb.ActivityHasServiceRow, _ int) (int64, bool) {
 					if row.ActivityId.Int64 == activity.Id {
 						return row.ServiceId.Int64, true
@@ -422,6 +423,7 @@ var _ = Describe("Modifying Services of Activity via API", Label("e2e", "Service
 					return 0, false
 				})
 
+				// find a service that is not assigned to the activity
 				serviceRow, _ := lo.Find(seedCollection.ServiceRows, func(row mariadb.BaseServiceRow) bool {
 					return !lo.Contains(serviceIds, row.Id.Int64)
 				})
@@ -459,6 +461,7 @@ var _ = Describe("Modifying Services of Activity via API", Label("e2e", "Service
 
 				activity := seedCollection.ActivityRows[0].AsActivity()
 
+				// find a service that is assigned to the activity
 				serviceRow, _ := lo.Find(seedCollection.ActivityHasServiceRows, func(row mariadb.ActivityHasServiceRow) bool {
 					return row.ActivityId.Int64 == activity.Id
 				})

@@ -447,6 +447,7 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 				req := graphql.NewRequest(str)
 
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
+				// find all services that are attached to the supportGroup
 				serviceIds := lo.FilterMap(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow, _ int) (int64, bool) {
 					if row.SupportGroupId.Int64 == supportGroup.Id {
 						return row.ServiceId.Int64, true
@@ -454,6 +455,7 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 					return 0, false
 				})
 
+				// find a service that is not attached to the supportGroup
 				serviceRow, _ := lo.Find(seedCollection.ServiceRows, func(row mariadb.BaseServiceRow) bool {
 					return !lo.Contains(serviceIds, row.Id.Int64)
 				})
@@ -491,6 +493,7 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
+				// find a service that is attached to the supportGroup
 				serviceRow, _ := lo.Find(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow) bool {
 					return row.SupportGroupId.Int64 == supportGroup.Id
 				})

@@ -192,7 +192,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	})
 })
 
-var _ = Describe("When modifying Service and SupportGroup", Label("app", "ServiceSupportGroup"), func() {
+var _ = Describe("When modifying relationship of Service and SupportGroup", Label("app", "ServiceSupportGroupRelationship"), func() {
 	var (
 		db           *mocks.MockDatabase
 		heureka      app.Heureka

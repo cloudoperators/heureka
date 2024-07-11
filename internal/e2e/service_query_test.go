@@ -575,13 +575,14 @@ var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "S
 				req := graphql.NewRequest(str)
 
 				service := seedCollection.ServiceRows[0].AsService()
+				// find all issueRepositories that are attached to the service
 				issueRepositoryIds := lo.FilterMap(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow, _ int) (int64, bool) {
 					if row.ServiceId.Int64 == service.Id {
 						return row.IssueRepositoryId.Int64, true
 					}
 					return 0, false
 				})
-
+				// find an issueRepository that is not attached to the service
 				issueRepositoryRow, _ := lo.Find(seedCollection.IssueRepositoryRows, func(row mariadb.BaseIssueRepositoryRow) bool {
 					return !lo.Contains(issueRepositoryIds, row.Id.Int64)
 				})
@@ -620,6 +621,7 @@ var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "S
 
 				service := seedCollection.ServiceRows[0].AsService()
 
+				// find an issueRepository that is attached to the service
 				issueRepositoryRow, _ := lo.Find(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow) bool {
 					return row.ServiceId.Int64 == service.Id
 				})

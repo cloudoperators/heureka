@@ -34,6 +34,7 @@ type Heureka interface {
 	DeleteIssueMatchChange(int64) error
 
 	ListServices(*entity.ServiceFilter, *entity.ListOptions) (*entity.List[entity.ServiceResult], error)
+	GetService(int64) (*entity.Service, error)
 	CreateService(*entity.Service) (*entity.Service, error)
 	UpdateService(*entity.Service) (*entity.Service, error)
 	DeleteService(int64) error
@@ -48,6 +49,7 @@ type Heureka interface {
 	DeleteUser(int64) error
 
 	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
+	GetSupportGroup(int64) (*entity.SupportGroup, error)
 	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
 	UpdateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
 	DeleteSupportGroup(int64) error
@@ -60,6 +62,7 @@ type Heureka interface {
 	DeleteComponentInstance(int64) error
 
 	ListActivities(*entity.ActivityFilter, *entity.ListOptions) (*entity.List[entity.ActivityResult], error)
+	GetActivity(int64) (*entity.Activity, error)
 	CreateActivity(*entity.Activity) (*entity.Activity, error)
 	UpdateActivity(*entity.Activity) (*entity.Activity, error)
 	DeleteActivity(int64) error
