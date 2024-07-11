@@ -40,7 +40,23 @@ For a detailed understanding of the system's architecture and design, refer to t
 
 ## Requirements and Setup
 
-*Insert a short description what is required to get your project running...*
+The `docker-compose.yml` file defines two profiles: `db` for the `heureka-db` service and `heureka` for the `heureka-app` service.
+To start a specific service with its profile, use the --profile option followed by the profile name.
+
+For example, to start the heureka-db service, run:
+```
+docker-compose --profile db up
+```
+
+And to start the heureka-app service, run:
+```
+docker-compose --profile heureka up
+```
+
+To start both services at the same time, run:
+```
+docker-compose --profile db --profile heureka up
+```
 
 ## Support, Feedback, Contributing
 
