@@ -14,19 +14,23 @@ type Heureka interface {
 	DeleteIssue(int64) error
 
 	ListIssueVariants(*entity.IssueVariantFilter, *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error)
+	ListEffectiveIssueVariants(*entity.IssueVariantFilter, *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error)
 	CreateIssueVariant(*entity.IssueVariant) (*entity.IssueVariant, error)
 	UpdateIssueVariant(*entity.IssueVariant) (*entity.IssueVariant, error)
 	DeleteIssueVariant(int64) error
 
-	ListEffectiveIssueVariants(*entity.IssueVariantFilter, *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error)
+	ListIssueRepositories(*entity.IssueRepositoryFilter, *entity.ListOptions) (*entity.List[entity.IssueRepositoryResult], error)
 	CreateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
 	UpdateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
 	DeleteIssueRepository(int64) error
 
 	ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error)
+	GetIssueMatch(int64) (*entity.IssueMatch, error)
 	CreateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)
 	UpdateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)
 	DeleteIssueMatch(int64) error
+	AddEvidenceToIssueMatch(int64, int64) (*entity.IssueMatch, error)
+	RemoveEvidenceFromIssueMatch(int64, int64) (*entity.IssueMatch, error)
 
 	ListIssueMatchChanges(filter *entity.IssueMatchChangeFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchChangeResult], error)
 	CreateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
@@ -84,7 +88,6 @@ type Heureka interface {
 	UpdateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)
 	DeleteComponentVersion(int64) error
 
-	ListIssueRepositories(*entity.IssueRepositoryFilter, *entity.ListOptions) (*entity.List[entity.IssueRepositoryResult], error)
 	GetSeverity(*entity.SeverityFilter) (*entity.Severity, error)
 	Shutdown() error
 }

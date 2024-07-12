@@ -567,4 +567,75 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 		})
 	})
+	When("Add Evidence To IssueMatch", Label("AddEvidenceToIssueMatch"), func() {
+		Context("and we have 10 IssueMatches in the database", func() {
+			var seedCollection *test.SeedCollection
+			var newEvidenceRow mariadb.EvidenceRow
+			var newEvidence entity.Evidence
+			var evidence *entity.Evidence
+			var activity entity.Activity
+			var user entity.User
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				newEvidenceRow = test.NewFakeEvidence()
+				newEvidence = newEvidenceRow.AsEvidence()
+				activity = seedCollection.ActivityRows[0].AsActivity()
+				user = seedCollection.UserRows[0].AsUser()
+				newEvidence.ActivityId = activity.Id
+				newEvidence.UserId = user.Id
+				evidence, _ = db.CreateEvidence(&newEvidence)
+			})
+			It("can add evidence correctly", func() {
+				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
+
+				err := db.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueMatchFilter := &entity.IssueMatchFilter{
+					EvidenceId: []*int64{&evidence.Id},
+				}
+
+				im, err := db.GetIssueMatches(issueMatchFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning issueMatch", func() {
+					Expect(len(im)).To(BeEquivalentTo(1))
+				})
+			})
+		})
+	})
+	When("Remove Evidence From IssueMatch", Label("RemoveEvidenceFromIssueMatch"), func() {
+		Context("and we have 10 IssueMatches in the database", func() {
+			var seedCollection *test.SeedCollection
+			var issueMatchEvidenceRow mariadb.IssueMatchEvidenceRow
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				issueMatchEvidenceRow = seedCollection.IssueMatchEvidenceRows[0]
+			})
+			It("can remove evidence correctly", func() {
+				err := db.RemoveEvidenceFromIssueMatch(issueMatchEvidenceRow.IssueMatchId.Int64, issueMatchEvidenceRow.EvidenceId.Int64)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueMatchFilter := &entity.IssueMatchFilter{
+					EvidenceId: []*int64{&issueMatchEvidenceRow.EvidenceId.Int64},
+				}
+
+				issueMatches, err := db.GetIssueMatches(issueMatchFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				for _, im := range issueMatches {
+					Expect(im.Id).ToNot(BeEquivalentTo(issueMatchEvidenceRow.IssueMatchId.Int64))
+				}
+			})
+		})
+	})
 })

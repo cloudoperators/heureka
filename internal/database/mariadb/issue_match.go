@@ -328,3 +328,54 @@ func (s *SqlDatabase) DeleteIssueMatch(id int64) error {
 
 	return err
 }
+
+func (s *SqlDatabase) AddEvidenceToIssueMatch(issueMatchId int64, evidenceId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"issueMatchId": issueMatchId,
+		"evidenceId":   evidenceId,
+		"event":        "database.AddEvidenceToIssueMatch",
+	})
+
+	query := `
+		INSERT INTO IssueMatchEvidence (
+			issuematchevidence_issue_match_id,
+			issuematchevidence_evidence_id
+		) VALUES (
+			:issuematchevidence_issue_match_id,
+			:issuematchevidence_evidence_id
+		)
+	`
+
+	args := map[string]interface{}{
+		"issuematchevidence_issue_match_id": issueMatchId,
+		"issuematchevidence_evidence_id":    evidenceId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
+func (s *SqlDatabase) RemoveEvidenceFromIssueMatch(issueMatchId int64, evidenceId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"issueMatchId": issueMatchId,
+		"evidenceId":   evidenceId,
+		"event":        "database.RemoveEvidenceFromIssueMatch",
+	})
+
+	query := `
+		DELETE FROM IssueMatchEvidence
+		WHERE
+			issuematchevidence_issue_match_id = :issuematchevidence_issue_match_id
+			AND issuematchevidence_evidence_id = :issuematchevidence_evidence_id
+	`
+
+	args := map[string]interface{}{
+		"issuematchevidence_issue_match_id": issueMatchId,
+		"issuematchevidence_evidence_id":    evidenceId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}

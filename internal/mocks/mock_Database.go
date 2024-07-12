@@ -23,6 +23,53 @@ func (_m *MockDatabase) EXPECT() *MockDatabase_Expecter {
 	return &MockDatabase_Expecter{mock: &_m.Mock}
 }
 
+// AddEvidenceToIssueMatch provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) AddEvidenceToIssueMatch(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddEvidenceToIssueMatch")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_AddEvidenceToIssueMatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddEvidenceToIssueMatch'
+type MockDatabase_AddEvidenceToIssueMatch_Call struct {
+	*mock.Call
+}
+
+// AddEvidenceToIssueMatch is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) AddEvidenceToIssueMatch(_a0 interface{}, _a1 interface{}) *MockDatabase_AddEvidenceToIssueMatch_Call {
+	return &MockDatabase_AddEvidenceToIssueMatch_Call{Call: _e.mock.On("AddEvidenceToIssueMatch", _a0, _a1)}
+}
+
+func (_c *MockDatabase_AddEvidenceToIssueMatch_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_AddEvidenceToIssueMatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AddEvidenceToIssueMatch_Call) Return(_a0 error) *MockDatabase_AddEvidenceToIssueMatch_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_AddEvidenceToIssueMatch_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_AddEvidenceToIssueMatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddIssueRepositoryToService provides a mock function with given fields: _a0, _a1, _a2
 func (_m *MockDatabase) AddIssueRepositoryToService(_a0 int64, _a1 int64, _a2 int64) error {
 	ret := _m.Called(_a0, _a1, _a2)
@@ -3899,6 +3946,53 @@ func (_c *MockDatabase_GetUsers_Call) Return(_a0 []entity.User, _a1 error) *Mock
 }
 
 func (_c *MockDatabase_GetUsers_Call) RunAndReturn(run func(*entity.UserFilter) ([]entity.User, error)) *MockDatabase_GetUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveEvidenceFromIssueMatch provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) RemoveEvidenceFromIssueMatch(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveEvidenceFromIssueMatch")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_RemoveEvidenceFromIssueMatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveEvidenceFromIssueMatch'
+type MockDatabase_RemoveEvidenceFromIssueMatch_Call struct {
+	*mock.Call
+}
+
+// RemoveEvidenceFromIssueMatch is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) RemoveEvidenceFromIssueMatch(_a0 interface{}, _a1 interface{}) *MockDatabase_RemoveEvidenceFromIssueMatch_Call {
+	return &MockDatabase_RemoveEvidenceFromIssueMatch_Call{Call: _e.mock.On("RemoveEvidenceFromIssueMatch", _a0, _a1)}
+}
+
+func (_c *MockDatabase_RemoveEvidenceFromIssueMatch_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_RemoveEvidenceFromIssueMatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RemoveEvidenceFromIssueMatch_Call) Return(_a0 error) *MockDatabase_RemoveEvidenceFromIssueMatch_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_RemoveEvidenceFromIssueMatch_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveEvidenceFromIssueMatch_Call {
 	_c.Call.Return(run)
 	return _c
 }
