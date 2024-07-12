@@ -292,7 +292,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 	})
 })
 
-var _ = Describe("When modifying ComponentVersion and Issue", Label("app", "ComponentVersionIssue"), func() {
+var _ = Describe("When modifying relationship of ComponentVersion and Issue", Label("app", "ComponentVersionIssueRelationship"), func() {
 	var (
 		db               *mocks.MockDatabase
 		heureka          app.Heureka

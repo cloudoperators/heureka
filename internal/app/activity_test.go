@@ -236,7 +236,7 @@ var _ = Describe("When modifying relationship of Service and Activity", Label("a
 	})
 })
 
-var _ = Describe("When modifying Issue and Activity", Label("app", "IssueActivity"), func() {
+var _ = Describe("When modifying relationship of Issue and Activity", Label("app", "IssueActivityRelationship"), func() {
 	var (
 		db       *mocks.MockDatabase
 		heureka  app.Heureka

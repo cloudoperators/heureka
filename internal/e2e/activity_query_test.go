@@ -533,6 +533,7 @@ var _ = Describe("Modifying Issues of Activity via API", Label("e2e", "ServiceIs
 				req := graphql.NewRequest(str)
 
 				activity := seedCollection.ActivityRows[0].AsActivity()
+				// find all issues that are assigned to the activity
 				issueIds := lo.FilterMap(seedCollection.ActivityHasIssueRows, func(row mariadb.ActivityHasIssueRow, _ int) (int64, bool) {
 					if row.ActivityId.Int64 == activity.Id {
 						return row.IssueId.Int64, true
@@ -540,6 +541,7 @@ var _ = Describe("Modifying Issues of Activity via API", Label("e2e", "ServiceIs
 					return 0, false
 				})
 
+				// find an issue that is not assigned to the activity
 				issueRow, _ := lo.Find(seedCollection.IssueRows, func(row mariadb.IssueRow) bool {
 					return !lo.Contains(issueIds, row.Id.Int64)
 				})
@@ -577,6 +579,7 @@ var _ = Describe("Modifying Issues of Activity via API", Label("e2e", "ServiceIs
 
 				activity := seedCollection.ActivityRows[0].AsActivity()
 
+				// find an issue that is assigned to the activity
 				issueRow, _ := lo.Find(seedCollection.ActivityHasIssueRows, func(row mariadb.ActivityHasIssueRow) bool {
 					return row.ActivityId.Int64 == activity.Id
 				})

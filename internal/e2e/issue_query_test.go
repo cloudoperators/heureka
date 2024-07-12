@@ -398,7 +398,7 @@ var _ = Describe("Deleting Issue via API", Label("e2e", "Issues"), func() {
 	})
 })
 
-var _ = Describe("Modifying ComponentVersion of Issue via API", Label("e2e", "Issues"), func() {
+var _ = Describe("Modifying relationship of ComponentVersion of Issue via API", Label("e2e", "ComponentVersionIssueRelationship"), func() {
 
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
@@ -441,6 +441,7 @@ var _ = Describe("Modifying ComponentVersion of Issue via API", Label("e2e", "Is
 				req := graphql.NewRequest(str)
 
 				issue := seedCollection.IssueRows[0].AsIssue()
+				// find all componentVersions that are assigned to the issue
 				componentVersionIds := lo.FilterMap(seedCollection.ComponentVersionIssueRows, func(row mariadb.ComponentVersionIssueRow, _ int) (int64, bool) {
 					if row.IssueId.Int64 == issue.Id {
 						return row.ComponentVersionId.Int64, true
@@ -448,6 +449,7 @@ var _ = Describe("Modifying ComponentVersion of Issue via API", Label("e2e", "Is
 					return 0, false
 				})
 
+				// find a componentVersion that is not assigned to the issue
 				componentVersionRow, _ := lo.Find(seedCollection.ComponentVersionRows, func(row mariadb.ComponentVersionRow) bool {
 					return !lo.Contains(componentVersionIds, row.Id.Int64)
 				})
@@ -485,6 +487,7 @@ var _ = Describe("Modifying ComponentVersion of Issue via API", Label("e2e", "Is
 
 				issue := seedCollection.IssueRows[0].AsIssue()
 
+				// find a componentVersion that is assigned to the issue
 				componentVersionRow, _ := lo.Find(seedCollection.ComponentVersionIssueRows, func(row mariadb.ComponentVersionIssueRow) bool {
 					return row.IssueId.Int64 == issue.Id
 				})
