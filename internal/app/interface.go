@@ -61,6 +61,8 @@ type Heureka interface {
 	DeleteSupportGroup(int64) error
 	AddServiceToSupportGroup(int64, int64) (*entity.SupportGroup, error)
 	RemoveServiceFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	AddUserToSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	RemoveUserFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
 
 	ListComponentInstances(*entity.ComponentInstanceFilter, *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error)
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)

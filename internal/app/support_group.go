@@ -186,3 +186,37 @@ func (h *HeurekaApp) RemoveServiceFromSupportGroup(supportGroupId int64, service
 
 	return h.GetSupportGroup(supportGroupId)
 }
+
+func (h *HeurekaApp) AddUserToSupportGroup(supportGroupId int64, userId int64) (*entity.SupportGroup, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":          "app.AddUserToSupportGroup",
+		"userId":         userId,
+		"supportGroupId": supportGroupId,
+	})
+
+	err := h.database.AddUserToSupportGroup(supportGroupId, userId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while adding user to supportGroup.")
+	}
+
+	return h.GetSupportGroup(supportGroupId)
+}
+
+func (h *HeurekaApp) RemoveUserFromSupportGroup(supportGroupId int64, userId int64) (*entity.SupportGroup, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":          "app.RemoveUserFromSupportGroup",
+		"userId":         userId,
+		"supportGroupId": supportGroupId,
+	})
+
+	err := h.database.RemoveUserFromSupportGroup(supportGroupId, userId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while removing user from supportGroup.")
+	}
+
+	return h.GetSupportGroup(supportGroupId)
+}

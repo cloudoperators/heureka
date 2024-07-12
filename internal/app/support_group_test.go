@@ -235,3 +235,47 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
 })
+
+var _ = Describe("When modifying relationship of User and SupportGroup", Label("app", "UserSupportGroupRelationship"), func() {
+	var (
+		db           *mocks.MockDatabase
+		heureka      app.Heureka
+		user         entity.User
+		supportGroup entity.SupportGroup
+		filter       *entity.SupportGroupFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		user = test.NewFakeUserEntity()
+		supportGroup = test.NewFakeSupportGroupEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.SupportGroupFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+			Id: []*int64{&supportGroup.Id},
+		}
+	})
+
+	It("adds user to supportGroup", func() {
+		db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
+		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
+		heureka = app.NewHeurekaApp(db)
+		supportGroup, err := heureka.AddUserToSupportGroup(supportGroup.Id, user.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
+	})
+
+	It("removes user from supportGroup", func() {
+		db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
+		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
+		heureka = app.NewHeurekaApp(db)
+		supportGroup, err := heureka.RemoveUserFromSupportGroup(supportGroup.Id, user.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
+	})
+})
