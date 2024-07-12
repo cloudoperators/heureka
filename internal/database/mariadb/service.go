@@ -318,3 +318,106 @@ func (s *SqlDatabase) DeleteService(id int64) error {
 
 	return err
 }
+
+func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"serviceId": serviceId,
+		"userId":    userId,
+		"event":     "database.AddOwnerToService",
+	})
+
+	query := `
+		INSERT INTO Owner (
+			owner_service_id,
+			owner_user_id
+		) VALUES (
+			:service_id,
+			:user_id
+		)
+	`
+
+	args := map[string]interface{}{
+		"service_id": serviceId,
+		"user_id":    userId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
+func (s *SqlDatabase) RemoveOwnerFromService(serviceId int64, userId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"serviceId": serviceId,
+		"userId":    userId,
+		"event":     "database.RemoveOwnerFromService",
+	})
+
+	query := `
+		DELETE FROM Owner
+		WHERE owner_service_id = :service_id
+		AND owner_user_id = :user_id
+	`
+
+	args := map[string]interface{}{
+		"service_id": serviceId,
+		"user_id":    userId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
+func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueRepositoryId int64, priority int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"serviceId":         serviceId,
+		"issueRepositoryId": issueRepositoryId,
+		"event":             "database.AddIssueRepositoryToService",
+	})
+
+	query := `
+		INSERT INTO IssueRepositoryService (
+			issuerepositoryservice_service_id,
+			issuerepositoryservice_issue_repository_id,
+			issuerepositoryservice_priority
+		) VALUES (
+		 :service_id,
+		 :issue_repository_id,
+		 :priority
+		)
+	`
+
+	args := map[string]interface{}{
+		"service_id":          serviceId,
+		"issue_repository_id": issueRepositoryId,
+		"priority":            priority,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
+func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRepositoryId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"serviceId":         serviceId,
+		"issueRepositoryId": issueRepositoryId,
+		"event":             "database.RemoveIssueRepositoryFromService",
+	})
+
+	query := `
+		DELETE FROM IssueRepositoryService
+		WHERE issuerepositoryservice_service_id = :service_id
+		AND issuerepositoryservice_issue_repository_id = :issue_repository_id
+	`
+
+	args := map[string]interface{}{
+		"service_id":          serviceId,
+		"issue_repository_id": issueRepositoryId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}

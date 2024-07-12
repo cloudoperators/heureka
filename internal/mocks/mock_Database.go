@@ -23,6 +23,195 @@ func (_m *MockDatabase) EXPECT() *MockDatabase_Expecter {
 	return &MockDatabase_Expecter{mock: &_m.Mock}
 }
 
+// AddIssueRepositoryToService provides a mock function with given fields: _a0, _a1, _a2
+func (_m *MockDatabase) AddIssueRepositoryToService(_a0 int64, _a1 int64, _a2 int64) error {
+	ret := _m.Called(_a0, _a1, _a2)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddIssueRepositoryToService")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64, int64) error); ok {
+		r0 = rf(_a0, _a1, _a2)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_AddIssueRepositoryToService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddIssueRepositoryToService'
+type MockDatabase_AddIssueRepositoryToService_Call struct {
+	*mock.Call
+}
+
+// AddIssueRepositoryToService is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+//   - _a2 int64
+func (_e *MockDatabase_Expecter) AddIssueRepositoryToService(_a0 interface{}, _a1 interface{}, _a2 interface{}) *MockDatabase_AddIssueRepositoryToService_Call {
+	return &MockDatabase_AddIssueRepositoryToService_Call{Call: _e.mock.On("AddIssueRepositoryToService", _a0, _a1, _a2)}
+}
+
+func (_c *MockDatabase_AddIssueRepositoryToService_Call) Run(run func(_a0 int64, _a1 int64, _a2 int64)) *MockDatabase_AddIssueRepositoryToService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64), args[2].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AddIssueRepositoryToService_Call) Return(_a0 error) *MockDatabase_AddIssueRepositoryToService_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_AddIssueRepositoryToService_Call) RunAndReturn(run func(int64, int64, int64) error) *MockDatabase_AddIssueRepositoryToService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddOwnerToService provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) AddOwnerToService(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddOwnerToService")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_AddOwnerToService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddOwnerToService'
+type MockDatabase_AddOwnerToService_Call struct {
+	*mock.Call
+}
+
+// AddOwnerToService is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) AddOwnerToService(_a0 interface{}, _a1 interface{}) *MockDatabase_AddOwnerToService_Call {
+	return &MockDatabase_AddOwnerToService_Call{Call: _e.mock.On("AddOwnerToService", _a0, _a1)}
+}
+
+func (_c *MockDatabase_AddOwnerToService_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_AddOwnerToService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AddOwnerToService_Call) Return(_a0 error) *MockDatabase_AddOwnerToService_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_AddOwnerToService_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_AddOwnerToService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddServiceToActivity provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) AddServiceToActivity(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddServiceToActivity")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_AddServiceToActivity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddServiceToActivity'
+type MockDatabase_AddServiceToActivity_Call struct {
+	*mock.Call
+}
+
+// AddServiceToActivity is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) AddServiceToActivity(_a0 interface{}, _a1 interface{}) *MockDatabase_AddServiceToActivity_Call {
+	return &MockDatabase_AddServiceToActivity_Call{Call: _e.mock.On("AddServiceToActivity", _a0, _a1)}
+}
+
+func (_c *MockDatabase_AddServiceToActivity_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_AddServiceToActivity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AddServiceToActivity_Call) Return(_a0 error) *MockDatabase_AddServiceToActivity_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_AddServiceToActivity_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_AddServiceToActivity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddServiceToSupportGroup provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) AddServiceToSupportGroup(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddServiceToSupportGroup")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_AddServiceToSupportGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddServiceToSupportGroup'
+type MockDatabase_AddServiceToSupportGroup_Call struct {
+	*mock.Call
+}
+
+// AddServiceToSupportGroup is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) AddServiceToSupportGroup(_a0 interface{}, _a1 interface{}) *MockDatabase_AddServiceToSupportGroup_Call {
+	return &MockDatabase_AddServiceToSupportGroup_Call{Call: _e.mock.On("AddServiceToSupportGroup", _a0, _a1)}
+}
+
+func (_c *MockDatabase_AddServiceToSupportGroup_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_AddServiceToSupportGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AddServiceToSupportGroup_Call) Return(_a0 error) *MockDatabase_AddServiceToSupportGroup_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_AddServiceToSupportGroup_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_AddServiceToSupportGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CloseConnection provides a mock function with given fields:
 func (_m *MockDatabase) CloseConnection() error {
 	ret := _m.Called()
@@ -3710,6 +3899,194 @@ func (_c *MockDatabase_GetUsers_Call) Return(_a0 []entity.User, _a1 error) *Mock
 }
 
 func (_c *MockDatabase_GetUsers_Call) RunAndReturn(run func(*entity.UserFilter) ([]entity.User, error)) *MockDatabase_GetUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveIssueRepositoryFromService provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) RemoveIssueRepositoryFromService(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveIssueRepositoryFromService")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_RemoveIssueRepositoryFromService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveIssueRepositoryFromService'
+type MockDatabase_RemoveIssueRepositoryFromService_Call struct {
+	*mock.Call
+}
+
+// RemoveIssueRepositoryFromService is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) RemoveIssueRepositoryFromService(_a0 interface{}, _a1 interface{}) *MockDatabase_RemoveIssueRepositoryFromService_Call {
+	return &MockDatabase_RemoveIssueRepositoryFromService_Call{Call: _e.mock.On("RemoveIssueRepositoryFromService", _a0, _a1)}
+}
+
+func (_c *MockDatabase_RemoveIssueRepositoryFromService_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_RemoveIssueRepositoryFromService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RemoveIssueRepositoryFromService_Call) Return(_a0 error) *MockDatabase_RemoveIssueRepositoryFromService_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_RemoveIssueRepositoryFromService_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveIssueRepositoryFromService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveOwnerFromService provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) RemoveOwnerFromService(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveOwnerFromService")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_RemoveOwnerFromService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveOwnerFromService'
+type MockDatabase_RemoveOwnerFromService_Call struct {
+	*mock.Call
+}
+
+// RemoveOwnerFromService is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) RemoveOwnerFromService(_a0 interface{}, _a1 interface{}) *MockDatabase_RemoveOwnerFromService_Call {
+	return &MockDatabase_RemoveOwnerFromService_Call{Call: _e.mock.On("RemoveOwnerFromService", _a0, _a1)}
+}
+
+func (_c *MockDatabase_RemoveOwnerFromService_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_RemoveOwnerFromService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RemoveOwnerFromService_Call) Return(_a0 error) *MockDatabase_RemoveOwnerFromService_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_RemoveOwnerFromService_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveOwnerFromService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveServiceFromActivity provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) RemoveServiceFromActivity(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveServiceFromActivity")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_RemoveServiceFromActivity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveServiceFromActivity'
+type MockDatabase_RemoveServiceFromActivity_Call struct {
+	*mock.Call
+}
+
+// RemoveServiceFromActivity is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) RemoveServiceFromActivity(_a0 interface{}, _a1 interface{}) *MockDatabase_RemoveServiceFromActivity_Call {
+	return &MockDatabase_RemoveServiceFromActivity_Call{Call: _e.mock.On("RemoveServiceFromActivity", _a0, _a1)}
+}
+
+func (_c *MockDatabase_RemoveServiceFromActivity_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_RemoveServiceFromActivity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RemoveServiceFromActivity_Call) Return(_a0 error) *MockDatabase_RemoveServiceFromActivity_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_RemoveServiceFromActivity_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveServiceFromActivity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveServiceFromSupportGroup provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) RemoveServiceFromSupportGroup(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveServiceFromSupportGroup")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_RemoveServiceFromSupportGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveServiceFromSupportGroup'
+type MockDatabase_RemoveServiceFromSupportGroup_Call struct {
+	*mock.Call
+}
+
+// RemoveServiceFromSupportGroup is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) RemoveServiceFromSupportGroup(_a0 interface{}, _a1 interface{}) *MockDatabase_RemoveServiceFromSupportGroup_Call {
+	return &MockDatabase_RemoveServiceFromSupportGroup_Call{Call: _e.mock.On("RemoveServiceFromSupportGroup", _a0, _a1)}
+}
+
+func (_c *MockDatabase_RemoveServiceFromSupportGroup_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_RemoveServiceFromSupportGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RemoveServiceFromSupportGroup_Call) Return(_a0 error) *MockDatabase_RemoveServiceFromSupportGroup_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_RemoveServiceFromSupportGroup_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveServiceFromSupportGroup_Call {
 	_c.Call.Return(run)
 	return _c
 }

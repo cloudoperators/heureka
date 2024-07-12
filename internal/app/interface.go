@@ -34,9 +34,14 @@ type Heureka interface {
 	DeleteIssueMatchChange(int64) error
 
 	ListServices(*entity.ServiceFilter, *entity.ListOptions) (*entity.List[entity.ServiceResult], error)
+	GetService(int64) (*entity.Service, error)
 	CreateService(*entity.Service) (*entity.Service, error)
 	UpdateService(*entity.Service) (*entity.Service, error)
 	DeleteService(int64) error
+	AddOwnerToService(int64, int64) (*entity.Service, error)
+	RemoveOwnerFromService(int64, int64) (*entity.Service, error)
+	AddIssueRepositoryToService(int64, int64, int64) (*entity.Service, error)
+	RemoveIssueRepositoryFromService(int64, int64) (*entity.Service, error)
 
 	ListUsers(*entity.UserFilter, *entity.ListOptions) (*entity.List[entity.UserResult], error)
 	CreateUser(*entity.User) (*entity.User, error)
@@ -44,9 +49,12 @@ type Heureka interface {
 	DeleteUser(int64) error
 
 	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
+	GetSupportGroup(int64) (*entity.SupportGroup, error)
 	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
 	UpdateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
 	DeleteSupportGroup(int64) error
+	AddServiceToSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	RemoveServiceFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
 
 	ListComponentInstances(*entity.ComponentInstanceFilter, *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error)
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
@@ -54,9 +62,12 @@ type Heureka interface {
 	DeleteComponentInstance(int64) error
 
 	ListActivities(*entity.ActivityFilter, *entity.ListOptions) (*entity.List[entity.ActivityResult], error)
+	GetActivity(int64) (*entity.Activity, error)
 	CreateActivity(*entity.Activity) (*entity.Activity, error)
 	UpdateActivity(*entity.Activity) (*entity.Activity, error)
 	DeleteActivity(int64) error
+	AddServiceToActivity(int64, int64) (*entity.Activity, error)
+	RemoveServiceFromActivity(int64, int64) (*entity.Activity, error)
 
 	ListEvidences(*entity.EvidenceFilter, *entity.ListOptions) (*entity.List[entity.EvidenceResult], error)
 	CreateEvidence(*entity.Evidence) (*entity.Evidence, error)

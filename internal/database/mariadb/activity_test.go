@@ -507,4 +507,69 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 			})
 		})
 	})
+	When("Add Service To Activity", Label("AddServiceToActivity"), func() {
+		Context("and we have 10 activities in the database", func() {
+			var seedCollection *test.SeedCollection
+			var newServiceRow mariadb.ServiceRow
+			var newService entity.Service
+			var service *entity.Service
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				newServiceRow = test.NewFakeService()
+				newService = newServiceRow.AsService()
+				service, _ = db.CreateService(&newService)
+			})
+			It("can add service correctly", func() {
+				activity := seedCollection.ActivityRows[0].AsActivity()
+
+				err := db.AddServiceToActivity(activity.Id, service.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				activityFilter := &entity.ActivityFilter{
+					ServiceId: []*int64{&service.Id},
+				}
+
+				a, err := db.GetActivities(activityFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning activity", func() {
+					Expect(len(a)).To(BeEquivalentTo(1))
+				})
+			})
+		})
+	})
+	When("Remove Service From Activity", Label("RemoveServiceFromActivity"), func() {
+		Context("and we have 10 Activities in the database", func() {
+			var seedCollection *test.SeedCollection
+			var activityHasServiceRow mariadb.ActivityHasServiceRow
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				activityHasServiceRow = seedCollection.ActivityHasServiceRows[0]
+			})
+			It("can remove service correctly", func() {
+				err := db.RemoveServiceFromActivity(activityHasServiceRow.ActivityId.Int64, activityHasServiceRow.ServiceId.Int64)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				activityFilter := &entity.ActivityFilter{
+					ServiceId: []*int64{&activityHasServiceRow.ServiceId.Int64},
+				}
+
+				activities, err := db.GetActivities(activityFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				for _, a := range activities {
+					Expect(a.Id).ToNot(BeEquivalentTo(activityHasServiceRow.ActivityId.Int64))
+				}
+			})
+		})
+	})
 })

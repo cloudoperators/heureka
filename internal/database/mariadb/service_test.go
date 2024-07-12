@@ -606,4 +606,135 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 		})
 	})
+	When("Add Owner To Service", Label("AddOwnerToService"), func() {
+		Context("and we have 10 Services in the database", func() {
+			var seedCollection *test.SeedCollection
+			var newOwnerRow mariadb.UserRow
+			var newOwner entity.User
+			var owner *entity.User
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				newOwnerRow = test.NewFakeUser()
+				newOwner = newOwnerRow.AsUser()
+				owner, _ = db.CreateUser(&newOwner)
+			})
+			It("can add owner correctly", func() {
+				service := seedCollection.ServiceRows[0].AsService()
+
+				err := db.AddOwnerToService(service.Id, owner.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				serviceFilter := &entity.ServiceFilter{
+					OwnerId: []*int64{&owner.Id},
+				}
+
+				s, err := db.GetServices(serviceFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning service", func() {
+					Expect(len(s)).To(BeEquivalentTo(1))
+				})
+			})
+		})
+	})
+	When("Remove Owner From Service", Label("RemoveOwnerFromService"), func() {
+		Context("and we have 10 Services in the database", func() {
+			var seedCollection *test.SeedCollection
+			var ownerRow mariadb.OwnerRow
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				ownerRow = seedCollection.OwnerRows[0]
+			})
+			It("can remove owner correctly", func() {
+				err := db.RemoveOwnerFromService(ownerRow.ServiceId.Int64, ownerRow.UserId.Int64)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				serviceFilter := &entity.ServiceFilter{
+					OwnerId: []*int64{&ownerRow.UserId.Int64},
+				}
+
+				services, err := db.GetServices(serviceFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				for _, s := range services {
+					Expect(s.Id).ToNot(BeEquivalentTo(ownerRow.ServiceId.Int64))
+				}
+			})
+		})
+	})
+	When("Add Issue Repository To Service", Label("AddIssueRepositoryToService"), func() {
+		Context("and we have 10 Services in the database", func() {
+			var seedCollection *test.SeedCollection
+			var newIssueRepositoryRow mariadb.IssueRepositoryRow
+			var newIssueRepository entity.IssueRepository
+			var issueRepository *entity.IssueRepository
+			var priority int64 = 1
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				newIssueRepositoryRow = test.NewFakeIssueRepository()
+				newIssueRepository = newIssueRepositoryRow.AsIssueRepository()
+				issueRepository, _ = db.CreateIssueRepository(&newIssueRepository)
+			})
+			It("can add issue repository correctly", func() {
+				service := seedCollection.ServiceRows[0].AsService()
+
+				err := db.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				serviceFilter := &entity.ServiceFilter{
+					IssueRepositoryId: []*int64{&issueRepository.Id},
+				}
+
+				s, err := db.GetServices(serviceFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning service", func() {
+					Expect(len(s)).To(BeEquivalentTo(1))
+				})
+			})
+		})
+	})
+	When("Remove Issue Repository From Service", Label("RemoveIssueRepositoryFromService"), func() {
+		Context("and we have 10 Services in the database", func() {
+			var seedCollection *test.SeedCollection
+			var issueRepositoryServiceRow mariadb.IssueRepositoryServiceRow
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				issueRepositoryServiceRow = seedCollection.IssueRepositoryServiceRows[0]
+			})
+			It("can remove issue repository correctly", func() {
+				err := db.RemoveIssueRepositoryFromService(issueRepositoryServiceRow.ServiceId.Int64, issueRepositoryServiceRow.IssueRepositoryId.Int64)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				serviceFilter := &entity.ServiceFilter{
+					IssueRepositoryId: []*int64{&issueRepositoryServiceRow.IssueRepositoryId.Int64},
+				}
+
+				services, err := db.GetServices(serviceFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				for _, s := range services {
+					Expect(s.Id).ToNot(BeEquivalentTo(issueRepositoryServiceRow.ServiceId.Int64))
+				}
+			})
+		})
+	})
 })

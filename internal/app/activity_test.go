@@ -191,3 +191,47 @@ var _ = Describe("When deleting Activity", Label("app", "DeleteActivity"), func(
 		Expect(activities.Elements).To(BeEmpty(), "no error should be thrown")
 	})
 })
+
+var _ = Describe("When modifying relationship of Service and Activity", Label("app", "ServiceActivityRelationship"), func() {
+	var (
+		db       *mocks.MockDatabase
+		heureka  app.Heureka
+		service  entity.Service
+		activity entity.Activity
+		filter   *entity.ActivityFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		service = test.NewFakeServiceEntity()
+		activity = test.NewFakeActivityEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.ActivityFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+			Id: []*int64{&activity.Id},
+		}
+	})
+
+	It("adds service to activity", func() {
+		db.On("AddServiceToActivity", activity.Id, service.Id).Return(nil)
+		db.On("GetActivities", filter).Return([]entity.Activity{activity}, nil)
+		heureka = app.NewHeurekaApp(db)
+		activity, err := heureka.AddServiceToActivity(activity.Id, service.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(activity).NotTo(BeNil(), "activity should be returned")
+	})
+
+	It("removes service from activity", func() {
+		db.On("RemoveServiceFromActivity", activity.Id, service.Id).Return(nil)
+		db.On("GetActivities", filter).Return([]entity.Activity{activity}, nil)
+		heureka = app.NewHeurekaApp(db)
+		activity, err := heureka.RemoveServiceFromActivity(activity.Id, service.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(activity).NotTo(BeNil(), "activity should be returned")
+	})
+})

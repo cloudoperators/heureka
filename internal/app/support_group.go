@@ -28,6 +28,26 @@ func (h *HeurekaApp) getSupportGroupResults(filter *entity.SupportGroupFilter) (
 	return supportGroupResults, nil
 }
 
+func (h *HeurekaApp) GetSupportGroup(supportGroupId int64) (*entity.SupportGroup, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "app.GetSupportGroup",
+		"id":    supportGroupId,
+	})
+	supportGroupFilter := entity.SupportGroupFilter{Id: []*int64{&supportGroupId}}
+	supportGroups, err := h.ListSupportGroups(&supportGroupFilter, &entity.ListOptions{})
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving supportGroup.")
+	}
+
+	if len(supportGroups.Elements) != 1 {
+		return nil, heurekaError(fmt.Sprintf("SupportGroup %d not found.", supportGroupId))
+	}
+
+	return supportGroups.Elements[0].SupportGroup, nil
+}
+
 func (h *HeurekaApp) ListSupportGroups(filter *entity.SupportGroupFilter, options *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
@@ -114,20 +134,7 @@ func (h *HeurekaApp) UpdateSupportGroup(supportGroup *entity.SupportGroup) (*ent
 		l.Error(err)
 		return nil, heurekaError("Internal error while updating supportGroup.")
 	}
-
-	supportGroupResult, err := h.ListSupportGroups(&entity.SupportGroupFilter{Id: []*int64{&supportGroup.Id}}, &entity.ListOptions{})
-
-	if err != nil {
-		l.Error(err)
-		return nil, heurekaError("Internal error while retrieving updated supportGroup.")
-	}
-
-	if len(supportGroupResult.Elements) != 1 {
-		l.Error(err)
-		return nil, heurekaError("Multiple supportGroups found.")
-	}
-
-	return supportGroupResult.Elements[0].SupportGroup, nil
+	return h.GetSupportGroup(supportGroup.Id)
 }
 
 func (h *HeurekaApp) DeleteSupportGroup(id int64) error {
@@ -144,4 +151,38 @@ func (h *HeurekaApp) DeleteSupportGroup(id int64) error {
 	}
 
 	return nil
+}
+
+func (h *HeurekaApp) AddServiceToSupportGroup(supportGroupId int64, serviceId int64) (*entity.SupportGroup, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":          "app.AddServiceToSupportGroup",
+		"serviceId":      serviceId,
+		"supportGroupId": supportGroupId,
+	})
+
+	err := h.database.AddServiceToSupportGroup(supportGroupId, serviceId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while adding service to supportGroup.")
+	}
+
+	return h.GetSupportGroup(supportGroupId)
+}
+
+func (h *HeurekaApp) RemoveServiceFromSupportGroup(supportGroupId int64, serviceId int64) (*entity.SupportGroup, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":          "app.RemoveServiceFromSupportGroup",
+		"serviceId":      serviceId,
+		"supportGroupId": supportGroupId,
+	})
+
+	err := h.database.RemoveServiceFromSupportGroup(supportGroupId, serviceId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while removing service from supportGroup.")
+	}
+
+	return h.GetSupportGroup(supportGroupId)
 }
