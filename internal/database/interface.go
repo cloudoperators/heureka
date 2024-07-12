@@ -72,6 +72,8 @@ type Database interface {
 	DeleteSupportGroup(int64) error
 	AddServiceToSupportGroup(int64, int64) error
 	RemoveServiceFromSupportGroup(int64, int64) error
+	AddUserToSupportGroup(int64, int64) error
+	RemoveUserFromSupportGroup(int64, int64) error
 
 	GetComponentInstances(*entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error)
 	GetAllComponentInstanceIds(*entity.ComponentInstanceFilter) ([]int64, error)

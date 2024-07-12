@@ -521,3 +521,123 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 		})
 	})
 })
+
+var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "SupportGroups"), func() {
+
+	var seeder *test.DatabaseSeeder
+	var s *server.Server
+	var cfg util.Config
+
+	BeforeEach(func() {
+		var err error
+		_ = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = util2.GetRandomFreePort()
+		s = server.NewServer(cfg)
+
+		s.NonBlockingStart()
+	})
+
+	AfterEach(func() {
+		s.BlockingStop()
+	})
+
+	When("the database has 10 entries", func() {
+		var seedCollection *test.SeedCollection
+
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithNFakeData(10)
+		})
+
+		Context("and a mutation query is performed", func() {
+			It("adds user to supportGroup", Label("addUser.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/addUser.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
+				// find all users that are attached to the supportGroup
+				userIds := lo.FilterMap(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow, _ int) (int64, bool) {
+					if row.SupportGroupId.Int64 == supportGroup.Id {
+						return row.UserId.Int64, true
+					}
+					return 0, false
+				})
+
+				// find a user that is not attached to the supportGroup
+				userRow, _ := lo.Find(seedCollection.UserRows, func(row mariadb.UserRow) bool {
+					return !lo.Contains(userIds, row.Id.Int64)
+				})
+
+				req.Var("supportGroupId", fmt.Sprintf("%d", supportGroup.Id))
+				req.Var("userId", fmt.Sprintf("%d", userRow.Id.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+
+				ctx := context.Background()
+
+				var respData struct {
+					SupportGroup model.SupportGroup `json:"addUserToSupportGroup"`
+				}
+
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.SupportGroup.Users.Edges, func(edge *model.UserEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", userRow.Id.Int64)
+				})
+
+				Expect(respData.SupportGroup.ID).To(Equal(fmt.Sprintf("%d", supportGroup.Id)))
+				Expect(found).To(BeTrue())
+			})
+			It("removes user from supportGroup", Label("removeUser.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/removeUser.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
+
+				// find a user that is attached to the supportGroup
+				userRow, _ := lo.Find(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow) bool {
+					return row.SupportGroupId.Int64 == supportGroup.Id
+				})
+
+				req.Var("supportGroupId", fmt.Sprintf("%d", supportGroup.Id))
+				req.Var("userId", fmt.Sprintf("%d", userRow.UserId.Int64))
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					SupportGroup model.SupportGroup `json:"removeUserFromSupportGroup"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				_, found := lo.Find(respData.SupportGroup.Users.Edges, func(edge *model.UserEdge) bool {
+					return edge.Node.ID == fmt.Sprintf("%d", userRow.UserId.Int64)
+				})
+
+				Expect(respData.SupportGroup.ID).To(Equal(fmt.Sprintf("%d", supportGroup.Id)))
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+})

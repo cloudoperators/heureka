@@ -473,4 +473,69 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			})
 		})
 	})
+	When("Add User To SupportGroup", Label("AddUserToSupportGroup"), func() {
+		Context("and we have 10 SupportGroups in the database", func() {
+			var seedCollection *test.SeedCollection
+			var newUserRow mariadb.UserRow
+			var newUser entity.User
+			var user *entity.User
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				newUserRow = test.NewFakeUser()
+				newUser = newUserRow.AsUser()
+				user, _ = db.CreateUser(&newUser)
+			})
+			It("can add user correctly", func() {
+				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
+
+				err := db.AddUserToSupportGroup(supportGroup.Id, user.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				supportGroupFilter := &entity.SupportGroupFilter{
+					UserId: []*int64{&user.Id},
+				}
+
+				sg, err := db.GetSupportGroups(supportGroupFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning supportGroup", func() {
+					Expect(len(sg)).To(BeEquivalentTo(1))
+				})
+			})
+		})
+	})
+	When("Remove Service From SupportGroup", Label("RemoveUserFromSupportGroup"), func() {
+		Context("and we have 10 SupportGroups in the database", func() {
+			var seedCollection *test.SeedCollection
+			var supportGroupUserRow mariadb.SupportGroupUserRow
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				supportGroupUserRow = seedCollection.SupportGroupUserRows[0]
+			})
+			It("can remove user correctly", func() {
+				err := db.RemoveUserFromSupportGroup(supportGroupUserRow.SupportGroupId.Int64, supportGroupUserRow.UserId.Int64)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				supportGroupFilter := &entity.SupportGroupFilter{
+					UserId: []*int64{&supportGroupUserRow.UserId.Int64},
+				}
+
+				supportGroups, err := db.GetSupportGroups(supportGroupFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				for _, sg := range supportGroups {
+					Expect(sg.Id).ToNot(BeEquivalentTo(supportGroupUserRow.SupportGroupId.Int64))
+				}
+			})
+		})
+	})
 })

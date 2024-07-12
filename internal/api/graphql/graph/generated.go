@@ -355,6 +355,7 @@ type ComplexityRoot struct {
 		AddOwnerToService                func(childComplexity int, serviceID string, userID string) int
 		AddServiceToActivity             func(childComplexity int, activityID string, serviceID string) int
 		AddServiceToSupportGroup         func(childComplexity int, supportGroupID string, serviceID string) int
+		AddUserToSupportGroup            func(childComplexity int, supportGroupID string, userID string) int
 		CreateActivity                   func(childComplexity int, input model.ActivityInput) int
 		CreateComponent                  func(childComplexity int, input model.ComponentInput) int
 		CreateComponentInstance          func(childComplexity int, input model.ComponentInstanceInput) int
@@ -388,6 +389,7 @@ type ComplexityRoot struct {
 		RemoveOwnerFromService           func(childComplexity int, serviceID string, userID string) int
 		RemoveServiceFromActivity        func(childComplexity int, activityID string, serviceID string) int
 		RemoveServiceFromSupportGroup    func(childComplexity int, supportGroupID string, serviceID string) int
+		RemoveUserFromSupportGroup       func(childComplexity int, supportGroupID string, userID string) int
 		UpdateActivity                   func(childComplexity int, id string, input model.ActivityInput) int
 		UpdateComponent                  func(childComplexity int, id string, input model.ComponentInput) int
 		UpdateComponentInstance          func(childComplexity int, id string, input model.ComponentInstanceInput) int
@@ -565,6 +567,8 @@ type MutationResolver interface {
 	DeleteSupportGroup(ctx context.Context, id string) (string, error)
 	AddServiceToSupportGroup(ctx context.Context, supportGroupID string, serviceID string) (*model.SupportGroup, error)
 	RemoveServiceFromSupportGroup(ctx context.Context, supportGroupID string, serviceID string) (*model.SupportGroup, error)
+	AddUserToSupportGroup(ctx context.Context, supportGroupID string, userID string) (*model.SupportGroup, error)
+	RemoveUserFromSupportGroup(ctx context.Context, supportGroupID string, userID string) (*model.SupportGroup, error)
 	CreateComponent(ctx context.Context, input model.ComponentInput) (*model.Component, error)
 	UpdateComponent(ctx context.Context, id string, input model.ComponentInput) (*model.Component, error)
 	DeleteComponent(ctx context.Context, id string) (string, error)
@@ -2062,6 +2066,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddServiceToSupportGroup(childComplexity, args["supportGroupId"].(string), args["serviceId"].(string)), true
 
+	case "Mutation.addUserToSupportGroup":
+		if e.complexity.Mutation.AddUserToSupportGroup == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addUserToSupportGroup_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddUserToSupportGroup(childComplexity, args["supportGroupId"].(string), args["userId"].(string)), true
+
 	case "Mutation.createActivity":
 		if e.complexity.Mutation.CreateActivity == nil {
 			break
@@ -2457,6 +2473,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RemoveServiceFromSupportGroup(childComplexity, args["supportGroupId"].(string), args["serviceId"].(string)), true
+
+	case "Mutation.removeUserFromSupportGroup":
+		if e.complexity.Mutation.RemoveUserFromSupportGroup == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeUserFromSupportGroup_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveUserFromSupportGroup(childComplexity, args["supportGroupId"].(string), args["userId"].(string)), true
 
 	case "Mutation.updateActivity":
 		if e.complexity.Mutation.UpdateActivity == nil {
@@ -4026,6 +4054,30 @@ func (ec *executionContext) field_Mutation_addServiceToSupportGroup_args(ctx con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addUserToSupportGroup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["supportGroupId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["supportGroupId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createActivity_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -4581,6 +4633,30 @@ func (ec *executionContext) field_Mutation_removeServiceFromSupportGroup_args(ct
 		}
 	}
 	args["serviceId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeUserFromSupportGroup_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["supportGroupId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupId"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["supportGroupId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg1
 	return args, nil
 }
 
@@ -14532,6 +14608,136 @@ func (ec *executionContext) fieldContext_Mutation_removeServiceFromSupportGroup(
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_removeServiceFromSupportGroup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addUserToSupportGroup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addUserToSupportGroup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddUserToSupportGroup(rctx, fc.Args["supportGroupId"].(string), fc.Args["userId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SupportGroup)
+	fc.Result = res
+	return ec.marshalNSupportGroup2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSupportGroup(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addUserToSupportGroup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SupportGroup_id(ctx, field)
+			case "name":
+				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "users":
+				return ec.fieldContext_SupportGroup_users(ctx, field)
+			case "services":
+				return ec.fieldContext_SupportGroup_services(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SupportGroup", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addUserToSupportGroup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeUserFromSupportGroup(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeUserFromSupportGroup(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveUserFromSupportGroup(rctx, fc.Args["supportGroupId"].(string), fc.Args["userId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.SupportGroup)
+	fc.Result = res
+	return ec.marshalNSupportGroup2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSupportGroup(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeUserFromSupportGroup(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_SupportGroup_id(ctx, field)
+			case "name":
+				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "users":
+				return ec.fieldContext_SupportGroup_users(ctx, field)
+			case "services":
+				return ec.fieldContext_SupportGroup_services(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SupportGroup", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeUserFromSupportGroup_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -26526,6 +26732,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "removeServiceFromSupportGroup":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_removeServiceFromSupportGroup(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addUserToSupportGroup":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addUserToSupportGroup(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeUserFromSupportGroup":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeUserFromSupportGroup(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
