@@ -276,3 +276,47 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		Expect(issueMatches.Elements).To(BeEmpty(), "no error should be thrown")
 	})
 })
+
+var _ = Describe("When modifying relationship of evidence and issueMatch", Label("app", "EvidenceIssueMatchRelationship"), func() {
+	var (
+		db         *mocks.MockDatabase
+		heureka    app.Heureka
+		evidence   entity.Evidence
+		issueMatch entity.IssueMatch
+		filter     *entity.IssueMatchFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		issueMatch = test.NewFakeIssueMatch()
+		evidence = test.NewFakeEvidenceEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.IssueMatchFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+			Id: []*int64{&issueMatch.Id},
+		}
+	})
+
+	It("adds evidence to issueMatch", func() {
+		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
+		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
+		heureka = app.NewHeurekaApp(db)
+		issueMatch, err := heureka.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
+	})
+
+	It("removes evidence from issueMatch", func() {
+		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
+		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
+		heureka = app.NewHeurekaApp(db)
+		issueMatch, err := heureka.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
+	})
+})

@@ -9,6 +9,8 @@ type Mutation {
     createSupportGroup(input: SupportGroupInput!): SupportGroup!
     updateSupportGroup(id: ID!, input: SupportGroupInput!): SupportGroup!
     deleteSupportGroup(id: ID!): String!
+    addServiceToSupportGroup(supportGroupId: ID!, serviceId: ID!): SupportGroup!
+    removeServiceFromSupportGroup(supportGroupId: ID!, serviceId: ID!): SupportGroup!
 
     createComponent(input: ComponentInput!): Component!
     updateComponent(id: ID!, input: ComponentInput!): Component!
@@ -25,6 +27,10 @@ type Mutation {
     createService(input: ServiceInput!): Service!
     updateService(id: ID!, input: ServiceInput!): Service!
     deleteService(id: ID!): String!
+    addOwnerToService(serviceId: ID!, userId: ID!): Service!
+    removeOwnerFromService(serviceId: ID!, userId: ID!): Service!
+    addIssueRepositoryToService(serviceId: ID!, issueRepositoryId: ID!, priority: Int!): Service!
+    removeIssueRepositoryFromService(serviceId: ID!, issueRepositoryId: ID!): Service!
 
     createIssueRepository(input: IssueRepositoryInput!): IssueRepository!
     updateIssueRepository(id: ID!, input: IssueRepositoryInput!): IssueRepository!
@@ -45,6 +51,8 @@ type Mutation {
     createIssueMatch(input: IssueMatchInput!): IssueMatch!
     updateIssueMatch(id: ID!, input: IssueMatchInput!): IssueMatch!
     deleteIssueMatch(id: ID!): String!
+    addEvidenceToIssueMatch(issueMatchId: ID!, evidenceId: ID!): IssueMatch!
+    removeEvidenceFromIssueMatch(issueMatchId: ID!, evidenceId: ID!): IssueMatch!
 
     createIssueMatchChange(input: IssueMatchChangeInput!): IssueMatchChange!
     updateIssueMatchChange(id: ID!, input: IssueMatchChangeInput!): IssueMatchChange!
@@ -53,4 +61,6 @@ type Mutation {
     createActivity(input: ActivityInput!): Activity!
     updateActivity(id: ID!, input: ActivityInput!): Activity!
     deleteActivity(id: ID!): String!
+    addServiceToActivity(activityId: ID!, serviceId: ID!): Activity!
+    removeServiceFromActivity(activityId: ID!, serviceId: ID!): Activity!
 }

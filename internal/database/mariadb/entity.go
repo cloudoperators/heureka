@@ -443,7 +443,7 @@ func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
 	return entity.BaseService{
 		Id:         GetInt64Value(bsr.Id),
 		Name:       GetStringValue(bsr.Name),
-		Owner:      []entity.User{},
+		Owners:     []entity.User{},
 		Activities: []entity.Activity{},
 		CreatedAt:  GetTimeValue(bsr.CreatedAt),
 		DeletedAt:  GetTimeValue(bsr.DeletedAt),
@@ -463,7 +463,7 @@ func (sr *ServiceRow) AsService() entity.Service {
 		BaseService: entity.BaseService{
 			Id:         GetInt64Value(sr.Id),
 			Name:       GetStringValue(sr.Name),
-			Owner:      []entity.User{},
+			Owners:     []entity.User{},
 			Activities: []entity.Activity{},
 			CreatedAt:  GetTimeValue(sr.BaseServiceRow.CreatedAt),
 			DeletedAt:  GetTimeValue(sr.BaseServiceRow.DeletedAt),

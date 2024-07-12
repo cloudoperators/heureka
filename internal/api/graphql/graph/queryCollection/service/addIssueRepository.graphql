@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+mutation ($serviceId: ID!, $issueRepositoryId: ID!, $priority: Int!) {
+    addIssueRepositoryToService (
+        serviceId: $serviceId,
+        issueRepositoryId: $issueRepositoryId,
+        priority: $priority
+    ) {
+        id
+        name
+        issueRepositories {
+            edges {
+                node {
+                    id
+                    name
+                }
+            }
+        }
+    }
+}

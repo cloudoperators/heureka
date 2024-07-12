@@ -41,6 +41,8 @@ type Database interface {
 	CreateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
 	UpdateIssueMatchChange(*entity.IssueMatchChange) error
 	DeleteIssueMatchChange(int64) error
+	AddEvidenceToIssueMatch(int64, int64) error
+	RemoveEvidenceFromIssueMatch(int64, int64) error
 
 	GetServices(*entity.ServiceFilter) ([]entity.Service, error)
 	GetAllServiceIds(*entity.ServiceFilter) ([]int64, error)
@@ -48,6 +50,10 @@ type Database interface {
 	CreateService(*entity.Service) (*entity.Service, error)
 	UpdateService(*entity.Service) error
 	DeleteService(int64) error
+	AddOwnerToService(int64, int64) error
+	RemoveOwnerFromService(int64, int64) error
+	AddIssueRepositoryToService(int64, int64, int64) error
+	RemoveIssueRepositoryFromService(int64, int64) error
 
 	GetUsers(*entity.UserFilter) ([]entity.User, error)
 	GetAllUserIds(*entity.UserFilter) ([]int64, error)
@@ -62,6 +68,8 @@ type Database interface {
 	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
 	UpdateSupportGroup(*entity.SupportGroup) error
 	DeleteSupportGroup(int64) error
+	AddServiceToSupportGroup(int64, int64) error
+	RemoveServiceFromSupportGroup(int64, int64) error
 
 	GetComponentInstances(*entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error)
 	GetAllComponentInstanceIds(*entity.ComponentInstanceFilter) ([]int64, error)
@@ -76,6 +84,8 @@ type Database interface {
 	CreateActivity(*entity.Activity) (*entity.Activity, error)
 	UpdateActivity(*entity.Activity) error
 	DeleteActivity(int64) error
+	AddServiceToActivity(int64, int64) error
+	RemoveServiceFromActivity(int64, int64) error
 
 	GetEvidences(*entity.EvidenceFilter) ([]entity.Evidence, error)
 	GetAllEvidenceIds(*entity.EvidenceFilter) ([]int64, error)
