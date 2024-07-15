@@ -565,4 +565,64 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			})
 		})
 	})
+	When("Add Component Version to Issue", Label("AddComponentVersionToIssue"), func() {
+		Context("and we have 10 Issues in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+			It("can add component version correctly", func() {
+				issue := seedCollection.IssueRows[0].AsIssue()
+				componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
+				componentVersion.ComponentId = seedCollection.ComponentRows[0].Id.Int64
+
+				err := db.AddComponentVersionToIssue(issue.Id, componentVersion.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{
+					Id: []*int64{&issue.Id},
+				}
+
+				i, err := db.GetIssues(issueFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning issue", func() {
+					Expect(len(i)).To(BeEquivalentTo(1))
+				})
+			})
+		})
+	})
+	When("Remove Component Version from Issue", Label("RemoveComponentVersionFromIssue"), func() {
+		Context("and we have 10 Issues in the database", func() {
+			var seedCollection *test.SeedCollection
+			var componentVersionIssueRow mariadb.ComponentVersionIssueRow
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				componentVersionIssueRow = seedCollection.ComponentVersionIssueRows[0]
+			})
+			It("can remove component version correctly", func() {
+				err := db.RemoveComponentVersionFromIssue(componentVersionIssueRow.IssueId.Int64, componentVersionIssueRow.ComponentVersionId.Int64)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				issueFilter := &entity.IssueFilter{
+					ComponentVersionId: []*int64{&componentVersionIssueRow.ComponentVersionId.Int64},
+				}
+
+				issues, err := db.GetIssues(issueFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				for _, issue := range issues {
+					Expect(issue.Id).ToNot(BeEquivalentTo(componentVersionIssueRow.IssueId.Int64))
+				}
+			})
+		})
+	})
 })

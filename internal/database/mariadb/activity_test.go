@@ -572,4 +572,69 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 			})
 		})
 	})
+	When("Add Issue To Activity", Label("AddIssueToActivity"), func() {
+		Context("and we have 10 Activities in the database", func() {
+			var seedCollection *test.SeedCollection
+			var newIssueRow mariadb.IssueRow
+			var newIssue entity.Issue
+			var issue *entity.Issue
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				newIssueRow = test.NewFakeIssue()
+				newIssue = newIssueRow.AsIssue()
+				issue, _ = db.CreateIssue(&newIssue)
+			})
+			It("can add issue correctly", func() {
+				activity := seedCollection.ActivityRows[0].AsActivity()
+
+				err := db.AddIssueToActivity(activity.Id, issue.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				activityFilter := &entity.ActivityFilter{
+					IssueId: []*int64{&issue.Id},
+				}
+
+				a, err := db.GetActivities(activityFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning activity", func() {
+					Expect(len(a)).To(BeEquivalentTo(1))
+				})
+			})
+		})
+	})
+	When("Remove Issue From Activity", Label("RemoveIssueFromActivity"), func() {
+		Context("and we have 10 Activities in the database", func() {
+			var seedCollection *test.SeedCollection
+			var activityHasIssueRow mariadb.ActivityHasIssueRow
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+				activityHasIssueRow = seedCollection.ActivityHasIssueRows[0]
+			})
+			It("can remove issue correctly", func() {
+				err := db.RemoveIssueFromActivity(activityHasIssueRow.ActivityId.Int64, activityHasIssueRow.IssueId.Int64)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				activityFilter := &entity.ActivityFilter{
+					IssueId: []*int64{&activityHasIssueRow.IssueId.Int64},
+				}
+
+				activities, err := db.GetActivities(activityFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				for _, a := range activities {
+					Expect(a.Id).ToNot(BeEquivalentTo(activityHasIssueRow.ActivityId.Int64))
+				}
+			})
+		})
+	})
 })

@@ -39,6 +39,8 @@ type Mutation {
     createIssue(input: IssueInput!): Issue!
     updateIssue(id: ID!, input: IssueInput!): Issue!
     deleteIssue(id: ID!): String!
+    addComponentVersionToIssue(issueId: ID!, componentVersionId: ID!): Issue!
+    removeComponentVersionFromIssue(issueId: ID!, componentVersionId: ID!): Issue!
 
     createIssueVariant(input: IssueVariantInput!): IssueVariant!
     updateIssueVariant(id: ID!, input: IssueVariantInput!): IssueVariant!
@@ -63,4 +65,6 @@ type Mutation {
     deleteActivity(id: ID!): String!
     addServiceToActivity(activityId: ID!, serviceId: ID!): Activity!
     removeServiceFromActivity(activityId: ID!, serviceId: ID!): Activity!
+    addIssueToActivity(activityId: ID!, issueId: ID!): Activity!
+    removeIssueFromActivity(activityId: ID!, issueId: ID!): Activity!
 }

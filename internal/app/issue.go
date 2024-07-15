@@ -48,6 +48,26 @@ func (h *HeurekaApp) getIssueResults(filter *entity.IssueFilter) ([]entity.Issue
 	return issueResults, nil
 }
 
+func (h *HeurekaApp) GetIssue(id int64) (*entity.Issue, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "app.GetIssue",
+		"id":    id,
+	})
+
+	issues, err := h.ListIssues(&entity.IssueFilter{Id: []*int64{&id}}, &entity.ListOptions{})
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving issue.")
+	}
+
+	if len(issues.Elements) != 1 {
+		return nil, heurekaError(fmt.Sprintf("Issue %d not found.", id))
+	}
+
+	return issues.Elements[0].Issue, nil
+}
+
 func (h *HeurekaApp) ListIssues(filter *entity.IssueFilter, options *entity.ListOptions) (*entity.List[entity.IssueResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
@@ -174,4 +194,36 @@ func (h *HeurekaApp) DeleteIssue(id int64) error {
 	}
 
 	return nil
+}
+
+func (h *HeurekaApp) AddComponentVersionToIssue(issueId, componentVersionId int64) (*entity.Issue, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "app.AddComponentVersionToIssue",
+		"id":    issueId,
+	})
+
+	err := h.database.AddComponentVersionToIssue(issueId, componentVersionId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while adding component version to issue.")
+	}
+
+	return h.GetIssue(issueId)
+}
+
+func (h *HeurekaApp) RemoveComponentVersionFromIssue(issueId, componentVersionId int64) (*entity.Issue, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "app.RemoveComponentVersionFromIssue",
+		"id":    issueId,
+	})
+
+	err := h.database.RemoveComponentVersionFromIssue(issueId, componentVersionId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while removing component version from issue.")
+	}
+
+	return h.GetIssue(issueId)
 }

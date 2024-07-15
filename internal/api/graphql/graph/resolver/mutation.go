@@ -467,6 +467,50 @@ func (r *mutationResolver) DeleteIssue(ctx context.Context, id string) (string, 
 	return id, nil
 }
 
+// AddComponentVersionToIssue is the resolver for the addComponentVersionToIssue field.
+func (r *mutationResolver) AddComponentVersionToIssue(ctx context.Context, issueID string, componentVersionID string) (*model.Issue, error) {
+	issueIdInt, err := baseResolver.ParseCursor(&issueID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddComponentVersionToIssueMutationResolver", "Internal Error - when adding componentVersion to issue")
+	}
+
+	componentVersionIdInt, err := baseResolver.ParseCursor(&componentVersionID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddComponentVersionToIssueMutationResolver", "Internal Error - when adding componentVersion to issue")
+	}
+
+	issue, err := r.App.AddComponentVersionToIssue(*issueIdInt, *componentVersionIdInt)
+
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddComponentVersionToIssueMutationResolver", "Internal Error - when adding componentVersion to issue")
+	}
+
+	i := model.NewIssue(issue)
+	return &i, nil
+}
+
+// RemoveComponentVersionFromIssue is the resolver for the removeComponentVersionFromIssue field.
+func (r *mutationResolver) RemoveComponentVersionFromIssue(ctx context.Context, issueID string, componentVersionID string) (*model.Issue, error) {
+	issueIdInt, err := baseResolver.ParseCursor(&issueID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveComponentVersionFromIssueMutationResolver", "Internal Error - when removing componentVersion from issue")
+	}
+
+	componentVersionIdInt, err := baseResolver.ParseCursor(&componentVersionID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveComponentVersionFromIssueMutationResolver", "Internal Error - when removing componentVersion from issue")
+	}
+
+	issue, err := r.App.RemoveComponentVersionFromIssue(*issueIdInt, *componentVersionIdInt)
+
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveComponentVersionFromIssueMutationResolver", "Internal Error - when removing componentVersion from issue")
+	}
+
+	i := model.NewIssue(issue)
+	return &i, nil
+}
+
 // CreateIssueVariant is the resolver for the createIssueVariant field.
 func (r *mutationResolver) CreateIssueVariant(ctx context.Context, input model.IssueVariantInput) (*model.IssueVariant, error) {
 	issueVariant := model.NewIssueVariantEntity(&input)
@@ -749,6 +793,50 @@ func (r *mutationResolver) RemoveServiceFromActivity(ctx context.Context, activi
 
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveServiceFromActivityMutationResolver", "Internal Error - when removing service from activity")
+	}
+
+	a := model.NewActivity(activity)
+	return &a, nil
+}
+
+// AddIssueToActivity is the resolver for the addIssueToActivity field.
+func (r *mutationResolver) AddIssueToActivity(ctx context.Context, activityID string, issueID string) (*model.Activity, error) {
+	activityIdInt, err := baseResolver.ParseCursor(&activityID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddIssueToActivityMutationResolver", "Internal Error - when adding issue to activity")
+	}
+
+	issueIdInt, err := baseResolver.ParseCursor(&issueID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddIssueToActivityMutationResolver", "Internal Error - when adding issue to activity")
+	}
+
+	activity, err := r.App.AddIssueToActivity(*activityIdInt, *issueIdInt)
+
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddIssueToActivityMutationResolver", "Internal Error - when adding issue to activity")
+	}
+
+	a := model.NewActivity(activity)
+	return &a, nil
+}
+
+// RemoveIssueFromActivity is the resolver for the removeIssueFromActivity field.
+func (r *mutationResolver) RemoveIssueFromActivity(ctx context.Context, activityID string, issueID string) (*model.Activity, error) {
+	activityIdInt, err := baseResolver.ParseCursor(&activityID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveIssueFromActivityMutationResolver", "Internal Error - when removing issue from activity")
+	}
+
+	issueIdInt, err := baseResolver.ParseCursor(&issueID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveIssueFromActivityMutationResolver", "Internal Error - when removing issue from activity")
+	}
+
+	activity, err := r.App.RemoveIssueFromActivity(*activityIdInt, *issueIdInt)
+
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveIssueFromActivityMutationResolver", "Internal Error - when removing issue from activity")
 	}
 
 	a := model.NewActivity(activity)
