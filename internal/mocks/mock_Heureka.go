@@ -23,6 +23,124 @@ func (_m *MockHeureka) EXPECT() *MockHeureka_Expecter {
 	return &MockHeureka_Expecter{mock: &_m.Mock}
 }
 
+// AddComponentVersionToIssue provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) AddComponentVersionToIssue(_a0 int64, _a1 int64) (*entity.Issue, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddComponentVersionToIssue")
+	}
+
+	var r0 *entity.Issue
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int64, int64) (*entity.Issue, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(int64, int64) *entity.Issue); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.Issue)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_AddComponentVersionToIssue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddComponentVersionToIssue'
+type MockHeureka_AddComponentVersionToIssue_Call struct {
+	*mock.Call
+}
+
+// AddComponentVersionToIssue is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockHeureka_Expecter) AddComponentVersionToIssue(_a0 interface{}, _a1 interface{}) *MockHeureka_AddComponentVersionToIssue_Call {
+	return &MockHeureka_AddComponentVersionToIssue_Call{Call: _e.mock.On("AddComponentVersionToIssue", _a0, _a1)}
+}
+
+func (_c *MockHeureka_AddComponentVersionToIssue_Call) Run(run func(_a0 int64, _a1 int64)) *MockHeureka_AddComponentVersionToIssue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_AddComponentVersionToIssue_Call) Return(_a0 *entity.Issue, _a1 error) *MockHeureka_AddComponentVersionToIssue_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_AddComponentVersionToIssue_Call) RunAndReturn(run func(int64, int64) (*entity.Issue, error)) *MockHeureka_AddComponentVersionToIssue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddEvidenceToIssueMatch provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) AddEvidenceToIssueMatch(_a0 int64, _a1 int64) (*entity.IssueMatch, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddEvidenceToIssueMatch")
+	}
+
+	var r0 *entity.IssueMatch
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int64, int64) (*entity.IssueMatch, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(int64, int64) *entity.IssueMatch); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.IssueMatch)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_AddEvidenceToIssueMatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddEvidenceToIssueMatch'
+type MockHeureka_AddEvidenceToIssueMatch_Call struct {
+	*mock.Call
+}
+
+// AddEvidenceToIssueMatch is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockHeureka_Expecter) AddEvidenceToIssueMatch(_a0 interface{}, _a1 interface{}) *MockHeureka_AddEvidenceToIssueMatch_Call {
+	return &MockHeureka_AddEvidenceToIssueMatch_Call{Call: _e.mock.On("AddEvidenceToIssueMatch", _a0, _a1)}
+}
+
+func (_c *MockHeureka_AddEvidenceToIssueMatch_Call) Run(run func(_a0 int64, _a1 int64)) *MockHeureka_AddEvidenceToIssueMatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_AddEvidenceToIssueMatch_Call) Return(_a0 *entity.IssueMatch, _a1 error) *MockHeureka_AddEvidenceToIssueMatch_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_AddEvidenceToIssueMatch_Call) RunAndReturn(run func(int64, int64) (*entity.IssueMatch, error)) *MockHeureka_AddEvidenceToIssueMatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddIssueRepositoryToService provides a mock function with given fields: _a0, _a1, _a2
 func (_m *MockHeureka) AddIssueRepositoryToService(_a0 int64, _a1 int64, _a2 int64) (*entity.Service, error) {
 	ret := _m.Called(_a0, _a1, _a2)
@@ -2492,6 +2610,124 @@ func (_c *MockHeureka_ListUsers_Call) Return(_a0 *entity.List[entity.UserResult]
 }
 
 func (_c *MockHeureka_ListUsers_Call) RunAndReturn(run func(*entity.UserFilter, *entity.ListOptions) (*entity.List[entity.UserResult], error)) *MockHeureka_ListUsers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveComponentVersionFromIssue provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) RemoveComponentVersionFromIssue(_a0 int64, _a1 int64) (*entity.Issue, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveComponentVersionFromIssue")
+	}
+
+	var r0 *entity.Issue
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int64, int64) (*entity.Issue, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(int64, int64) *entity.Issue); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.Issue)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_RemoveComponentVersionFromIssue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveComponentVersionFromIssue'
+type MockHeureka_RemoveComponentVersionFromIssue_Call struct {
+	*mock.Call
+}
+
+// RemoveComponentVersionFromIssue is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockHeureka_Expecter) RemoveComponentVersionFromIssue(_a0 interface{}, _a1 interface{}) *MockHeureka_RemoveComponentVersionFromIssue_Call {
+	return &MockHeureka_RemoveComponentVersionFromIssue_Call{Call: _e.mock.On("RemoveComponentVersionFromIssue", _a0, _a1)}
+}
+
+func (_c *MockHeureka_RemoveComponentVersionFromIssue_Call) Run(run func(_a0 int64, _a1 int64)) *MockHeureka_RemoveComponentVersionFromIssue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_RemoveComponentVersionFromIssue_Call) Return(_a0 *entity.Issue, _a1 error) *MockHeureka_RemoveComponentVersionFromIssue_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_RemoveComponentVersionFromIssue_Call) RunAndReturn(run func(int64, int64) (*entity.Issue, error)) *MockHeureka_RemoveComponentVersionFromIssue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveEvidenceFromIssueMatch provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) RemoveEvidenceFromIssueMatch(_a0 int64, _a1 int64) (*entity.IssueMatch, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveEvidenceFromIssueMatch")
+	}
+
+	var r0 *entity.IssueMatch
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int64, int64) (*entity.IssueMatch, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(int64, int64) *entity.IssueMatch); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.IssueMatch)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_RemoveEvidenceFromIssueMatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveEvidenceFromIssueMatch'
+type MockHeureka_RemoveEvidenceFromIssueMatch_Call struct {
+	*mock.Call
+}
+
+// RemoveEvidenceFromIssueMatch is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockHeureka_Expecter) RemoveEvidenceFromIssueMatch(_a0 interface{}, _a1 interface{}) *MockHeureka_RemoveEvidenceFromIssueMatch_Call {
+	return &MockHeureka_RemoveEvidenceFromIssueMatch_Call{Call: _e.mock.On("RemoveEvidenceFromIssueMatch", _a0, _a1)}
+}
+
+func (_c *MockHeureka_RemoveEvidenceFromIssueMatch_Call) Run(run func(_a0 int64, _a1 int64)) *MockHeureka_RemoveEvidenceFromIssueMatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_RemoveEvidenceFromIssueMatch_Call) Return(_a0 *entity.IssueMatch, _a1 error) *MockHeureka_RemoveEvidenceFromIssueMatch_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_RemoveEvidenceFromIssueMatch_Call) RunAndReturn(run func(int64, int64) (*entity.IssueMatch, error)) *MockHeureka_RemoveEvidenceFromIssueMatch_Call {
 	_c.Call.Return(run)
 	return _c
 }

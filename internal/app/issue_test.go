@@ -291,3 +291,47 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 		Expect(issues.Elements).To(BeEmpty(), "no error should be thrown")
 	})
 })
+
+var _ = Describe("When modifying relationship of ComponentVersion and Issue", Label("app", "ComponentVersionIssueRelationship"), func() {
+	var (
+		db               *mocks.MockDatabase
+		heureka          app.Heureka
+		issue            entity.Issue
+		componentVersion entity.ComponentVersion
+		filter           *entity.IssueFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		issue = test.NewFakeIssueEntity()
+		componentVersion = test.NewFakeComponentVersionEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.IssueFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+			Id: []*int64{&issue.Id},
+		}
+	})
+
+	It("adds componentVersion to issue", func() {
+		db.On("AddComponentVersionToIssue", issue.Id, componentVersion.Id).Return(nil)
+		db.On("GetIssues", filter).Return([]entity.Issue{issue}, nil)
+		heureka = app.NewHeurekaApp(db)
+		issue, err := heureka.AddComponentVersionToIssue(issue.Id, componentVersion.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(issue).NotTo(BeNil(), "issue should be returned")
+	})
+
+	It("removes componentVersion from issue", func() {
+		db.On("RemoveComponentVersionFromIssue", issue.Id, componentVersion.Id).Return(nil)
+		db.On("GetIssues", filter).Return([]entity.Issue{issue}, nil)
+		heureka = app.NewHeurekaApp(db)
+		issue, err := heureka.RemoveComponentVersionFromIssue(issue.Id, componentVersion.Id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(issue).NotTo(BeNil(), "issue should be returned")
+	})
+})

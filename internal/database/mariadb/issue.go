@@ -370,3 +370,54 @@ func (s *SqlDatabase) DeleteIssue(id int64) error {
 
 	return err
 }
+
+func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersionId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"issueId":            issueId,
+		"componentVersionId": componentVersionId,
+		"event":              "database.AddComponentVersionToIssue",
+	})
+
+	query := `
+		INSERT INTO ComponentVersionIssue (
+			componentversionissue_issue_id,
+			componentversionissue_component_version_id
+		) VALUES (
+			:issue_id,
+			:component_version_id
+		)
+	`
+
+	args := map[string]interface{}{
+		"issue_id":             issueId,
+		"component_version_id": componentVersionId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
+func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVersionId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"issueId":            issueId,
+		"componentVersionId": componentVersionId,
+		"event":              "database.RemoveComponentVersionFromIssue",
+	})
+
+	query := `
+		DELETE FROM ComponentVersionIssue
+		WHERE
+			componentversionissue_issue_id = :issue_id
+			AND componentversionissue_component_version_id = :component_version_id
+	`
+
+	args := map[string]interface{}{
+		"issue_id":             issueId,
+		"component_version_id": componentVersionId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
