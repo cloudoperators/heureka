@@ -40,7 +40,60 @@ For a detailed understanding of the system's architecture and design, refer to t
 
 ## Requirements and Setup
 
-*Insert a short description what is required to get your project running...*
+The application can be configured using environment variables. These variables are stored in a `.env` file at the root of the project.
+For configuring tests, there is a separate `.test.env` file.
+
+Here's a basic example of what the .env file could look like:
+
+```
+DB_USER=my_username
+DB_PASSWORD=my_password
+DB_ROOT_PASSWORD=my_password
+DB_NAME=heureka
+DB_ADDRESS=localhost
+DB_PORT=3306
+DB_SCHEMA=internal/database/mariadb/init/schema.sql
+
+DB_CONTAINER_IMAGE=mariadb:latest
+
+DOCKER_IMAGE_REGISTRY=hub.docker.com
+
+DOCKER_CREDENTIAL_STORE=docker-credential-desktop
+
+LOG_PRETTY_PRINT=true
+
+LOCAL_TEST_DB=true
+
+SEED_MODE=false
+```
+
+### Docker
+
+The `docker-compose.yml` file defines two profiles: `db` for the `heureka-db` service and `heureka` for the `heureka-app` service.
+To start a specific service with its profile, use the --profile option followed by the profile name.
+
+For example, to start the heureka-db service, run:
+```
+docker-compose --profile db up
+```
+
+And to start the heureka-app service, run:
+```
+docker-compose --profile heureka up
+```
+
+To start both services at the same time, run:
+```
+docker-compose --profile db --profile heureka up
+```
+
+### Makefile
+
+Alternatively, the application can be started by using the provided Makefile:
+
+```
+make start-all-heureka
+```
 
 ## Support, Feedback, Contributing
 
