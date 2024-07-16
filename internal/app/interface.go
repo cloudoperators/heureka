@@ -12,6 +12,8 @@ type Heureka interface {
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) (*entity.Issue, error)
 	DeleteIssue(int64) error
+	AddComponentVersionToIssue(int64, int64) (*entity.Issue, error)
+	RemoveComponentVersionFromIssue(int64, int64) (*entity.Issue, error)
 
 	ListIssueVariants(*entity.IssueVariantFilter, *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error)
 	ListEffectiveIssueVariants(*entity.IssueVariantFilter, *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error)
@@ -72,6 +74,8 @@ type Heureka interface {
 	DeleteActivity(int64) error
 	AddServiceToActivity(int64, int64) (*entity.Activity, error)
 	RemoveServiceFromActivity(int64, int64) (*entity.Activity, error)
+	AddIssueToActivity(int64, int64) (*entity.Activity, error)
+	RemoveIssueFromActivity(int64, int64) (*entity.Activity, error)
 
 	ListEvidences(*entity.EvidenceFilter, *entity.ListOptions) (*entity.List[entity.EvidenceResult], error)
 	CreateEvidence(*entity.Evidence) (*entity.Evidence, error)

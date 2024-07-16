@@ -23,6 +23,53 @@ func (_m *MockDatabase) EXPECT() *MockDatabase_Expecter {
 	return &MockDatabase_Expecter{mock: &_m.Mock}
 }
 
+// AddComponentVersionToIssue provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) AddComponentVersionToIssue(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddComponentVersionToIssue")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_AddComponentVersionToIssue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddComponentVersionToIssue'
+type MockDatabase_AddComponentVersionToIssue_Call struct {
+	*mock.Call
+}
+
+// AddComponentVersionToIssue is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) AddComponentVersionToIssue(_a0 interface{}, _a1 interface{}) *MockDatabase_AddComponentVersionToIssue_Call {
+	return &MockDatabase_AddComponentVersionToIssue_Call{Call: _e.mock.On("AddComponentVersionToIssue", _a0, _a1)}
+}
+
+func (_c *MockDatabase_AddComponentVersionToIssue_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_AddComponentVersionToIssue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AddComponentVersionToIssue_Call) Return(_a0 error) *MockDatabase_AddComponentVersionToIssue_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_AddComponentVersionToIssue_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_AddComponentVersionToIssue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddEvidenceToIssueMatch provides a mock function with given fields: _a0, _a1
 func (_m *MockDatabase) AddEvidenceToIssueMatch(_a0 int64, _a1 int64) error {
 	ret := _m.Called(_a0, _a1)
@@ -114,6 +161,53 @@ func (_c *MockDatabase_AddIssueRepositoryToService_Call) Return(_a0 error) *Mock
 }
 
 func (_c *MockDatabase_AddIssueRepositoryToService_Call) RunAndReturn(run func(int64, int64, int64) error) *MockDatabase_AddIssueRepositoryToService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddIssueToActivity provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) AddIssueToActivity(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddIssueToActivity")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_AddIssueToActivity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddIssueToActivity'
+type MockDatabase_AddIssueToActivity_Call struct {
+	*mock.Call
+}
+
+// AddIssueToActivity is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) AddIssueToActivity(_a0 interface{}, _a1 interface{}) *MockDatabase_AddIssueToActivity_Call {
+	return &MockDatabase_AddIssueToActivity_Call{Call: _e.mock.On("AddIssueToActivity", _a0, _a1)}
+}
+
+func (_c *MockDatabase_AddIssueToActivity_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_AddIssueToActivity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AddIssueToActivity_Call) Return(_a0 error) *MockDatabase_AddIssueToActivity_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_AddIssueToActivity_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_AddIssueToActivity_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3950,6 +4044,53 @@ func (_c *MockDatabase_GetUsers_Call) RunAndReturn(run func(*entity.UserFilter) 
 	return _c
 }
 
+// RemoveComponentVersionFromIssue provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) RemoveComponentVersionFromIssue(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveComponentVersionFromIssue")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_RemoveComponentVersionFromIssue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveComponentVersionFromIssue'
+type MockDatabase_RemoveComponentVersionFromIssue_Call struct {
+	*mock.Call
+}
+
+// RemoveComponentVersionFromIssue is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) RemoveComponentVersionFromIssue(_a0 interface{}, _a1 interface{}) *MockDatabase_RemoveComponentVersionFromIssue_Call {
+	return &MockDatabase_RemoveComponentVersionFromIssue_Call{Call: _e.mock.On("RemoveComponentVersionFromIssue", _a0, _a1)}
+}
+
+func (_c *MockDatabase_RemoveComponentVersionFromIssue_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_RemoveComponentVersionFromIssue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RemoveComponentVersionFromIssue_Call) Return(_a0 error) *MockDatabase_RemoveComponentVersionFromIssue_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_RemoveComponentVersionFromIssue_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveComponentVersionFromIssue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemoveEvidenceFromIssueMatch provides a mock function with given fields: _a0, _a1
 func (_m *MockDatabase) RemoveEvidenceFromIssueMatch(_a0 int64, _a1 int64) error {
 	ret := _m.Called(_a0, _a1)
@@ -3993,6 +4134,53 @@ func (_c *MockDatabase_RemoveEvidenceFromIssueMatch_Call) Return(_a0 error) *Moc
 }
 
 func (_c *MockDatabase_RemoveEvidenceFromIssueMatch_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveEvidenceFromIssueMatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveIssueFromActivity provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) RemoveIssueFromActivity(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveIssueFromActivity")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_RemoveIssueFromActivity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveIssueFromActivity'
+type MockDatabase_RemoveIssueFromActivity_Call struct {
+	*mock.Call
+}
+
+// RemoveIssueFromActivity is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) RemoveIssueFromActivity(_a0 interface{}, _a1 interface{}) *MockDatabase_RemoveIssueFromActivity_Call {
+	return &MockDatabase_RemoveIssueFromActivity_Call{Call: _e.mock.On("RemoveIssueFromActivity", _a0, _a1)}
+}
+
+func (_c *MockDatabase_RemoveIssueFromActivity_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_RemoveIssueFromActivity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RemoveIssueFromActivity_Call) Return(_a0 error) *MockDatabase_RemoveIssueFromActivity_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_RemoveIssueFromActivity_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveIssueFromActivity_Call {
 	_c.Call.Return(run)
 	return _c
 }

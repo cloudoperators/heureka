@@ -171,3 +171,37 @@ func (h *HeurekaApp) RemoveServiceFromActivity(activityId, serviceId int64) (*en
 
 	return h.GetActivity(activityId)
 }
+
+func (h *HeurekaApp) AddIssueToActivity(activityId, issueId int64) (*entity.Activity, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":      "app.AddIssueToActivity",
+		"activityId": activityId,
+		"issueId":    issueId,
+	})
+
+	err := h.database.AddIssueToActivity(activityId, issueId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while adding issue to activity.")
+	}
+
+	return h.GetActivity(activityId)
+}
+
+func (h *HeurekaApp) RemoveIssueFromActivity(activityId, issueId int64) (*entity.Activity, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":      "app.RemoveIssueFromActivity",
+		"activityId": activityId,
+		"issueId":    issueId,
+	})
+
+	err := h.database.RemoveIssueFromActivity(activityId, issueId)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while removing issue from activity.")
+	}
+
+	return h.GetActivity(activityId)
+}
