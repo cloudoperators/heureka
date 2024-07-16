@@ -139,6 +139,50 @@ func (r *mutationResolver) RemoveServiceFromSupportGroup(ctx context.Context, su
 	return &sg, nil
 }
 
+// AddUserToSupportGroup is the resolver for the addUserToSupportGroup field.
+func (r *mutationResolver) AddUserToSupportGroup(ctx context.Context, supportGroupID string, userID string) (*model.SupportGroup, error) {
+	supportGroupIdInt, err := baseResolver.ParseCursor(&supportGroupID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddUserToSupportGroupMutationResolver", "Internal Error - when adding user to supportGroup")
+	}
+
+	userIdInt, err := baseResolver.ParseCursor(&userID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddUserToSupportGroupMutationResolver", "Internal Error - when adding user to supportGroup")
+	}
+
+	supportGroup, err := r.App.AddUserToSupportGroup(*supportGroupIdInt, *userIdInt)
+
+	if err != nil {
+		return nil, baseResolver.NewResolverError("AddUserToSupportGroupMutationResolver", "Internal Error - when adding user to supportGroup")
+	}
+
+	sg := model.NewSupportGroup(supportGroup)
+	return &sg, nil
+}
+
+// RemoveUserFromSupportGroup is the resolver for the removeUserFromSupportGroup field.
+func (r *mutationResolver) RemoveUserFromSupportGroup(ctx context.Context, supportGroupID string, userID string) (*model.SupportGroup, error) {
+	supportGroupIdInt, err := baseResolver.ParseCursor(&supportGroupID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveUserFromSupportGroupMutationResolver", "Internal Error - when removing user from supportGroup")
+	}
+
+	userIdInt, err := baseResolver.ParseCursor(&userID)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveUserFromSupportGroupMutationResolver", "Internal Error - when removing user from supportGroup")
+	}
+
+	supportGroup, err := r.App.RemoveUserFromSupportGroup(*supportGroupIdInt, *userIdInt)
+
+	if err != nil {
+		return nil, baseResolver.NewResolverError("RemoveUserFromSupportGroupMutationResolver", "Internal Error - when removing user from supportGroup")
+	}
+
+	sg := model.NewSupportGroup(supportGroup)
+	return &sg, nil
+}
+
 // CreateComponent is the resolver for the createComponent field.
 func (r *mutationResolver) CreateComponent(ctx context.Context, input model.ComponentInput) (*model.Component, error) {
 	component := model.NewComponentEntity(&input)

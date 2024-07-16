@@ -11,6 +11,8 @@ type Mutation {
     deleteSupportGroup(id: ID!): String!
     addServiceToSupportGroup(supportGroupId: ID!, serviceId: ID!): SupportGroup!
     removeServiceFromSupportGroup(supportGroupId: ID!, serviceId: ID!): SupportGroup!
+    addUserToSupportGroup(supportGroupId: ID!, userId: ID!): SupportGroup!
+    removeUserFromSupportGroup(supportGroupId: ID!, userId: ID!): SupportGroup!
 
     createComponent(input: ComponentInput!): Component!
     updateComponent(id: ID!, input: ComponentInput!): Component!

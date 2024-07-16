@@ -353,6 +353,53 @@ func (_c *MockDatabase_AddServiceToSupportGroup_Call) RunAndReturn(run func(int6
 	return _c
 }
 
+// AddUserToSupportGroup provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) AddUserToSupportGroup(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddUserToSupportGroup")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_AddUserToSupportGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddUserToSupportGroup'
+type MockDatabase_AddUserToSupportGroup_Call struct {
+	*mock.Call
+}
+
+// AddUserToSupportGroup is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) AddUserToSupportGroup(_a0 interface{}, _a1 interface{}) *MockDatabase_AddUserToSupportGroup_Call {
+	return &MockDatabase_AddUserToSupportGroup_Call{Call: _e.mock.On("AddUserToSupportGroup", _a0, _a1)}
+}
+
+func (_c *MockDatabase_AddUserToSupportGroup_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_AddUserToSupportGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_AddUserToSupportGroup_Call) Return(_a0 error) *MockDatabase_AddUserToSupportGroup_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_AddUserToSupportGroup_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_AddUserToSupportGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CloseConnection provides a mock function with given fields:
 func (_m *MockDatabase) CloseConnection() error {
 	ret := _m.Called()
@@ -4369,6 +4416,53 @@ func (_c *MockDatabase_RemoveServiceFromSupportGroup_Call) Return(_a0 error) *Mo
 }
 
 func (_c *MockDatabase_RemoveServiceFromSupportGroup_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveServiceFromSupportGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveUserFromSupportGroup provides a mock function with given fields: _a0, _a1
+func (_m *MockDatabase) RemoveUserFromSupportGroup(_a0 int64, _a1 int64) error {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveUserFromSupportGroup")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int64, int64) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatabase_RemoveUserFromSupportGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveUserFromSupportGroup'
+type MockDatabase_RemoveUserFromSupportGroup_Call struct {
+	*mock.Call
+}
+
+// RemoveUserFromSupportGroup is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockDatabase_Expecter) RemoveUserFromSupportGroup(_a0 interface{}, _a1 interface{}) *MockDatabase_RemoveUserFromSupportGroup_Call {
+	return &MockDatabase_RemoveUserFromSupportGroup_Call{Call: _e.mock.On("RemoveUserFromSupportGroup", _a0, _a1)}
+}
+
+func (_c *MockDatabase_RemoveUserFromSupportGroup_Call) Run(run func(_a0 int64, _a1 int64)) *MockDatabase_RemoveUserFromSupportGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_RemoveUserFromSupportGroup_Call) Return(_a0 error) *MockDatabase_RemoveUserFromSupportGroup_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatabase_RemoveUserFromSupportGroup_Call) RunAndReturn(run func(int64, int64) error) *MockDatabase_RemoveUserFromSupportGroup_Call {
 	_c.Call.Return(run)
 	return _c
 }
