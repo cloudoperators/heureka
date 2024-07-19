@@ -421,3 +421,33 @@ func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRep
 
 	return err
 }
+
+func (s *SqlDatabase) GetServiceNames(filter *entity.ServiceFilter) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetServiceNames",
+	})
+	query := `
+		SELECT service_name FROM Service
+	`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		l.Error(err)
+	}
+	defer rows.Close()
+	var columnValue string
+	serviceNames := []string{}
+	for rows.Next() {
+		err := rows.Scan(&columnValue)
+		if err != nil {
+			l.Error(err)
+		}
+		serviceNames = append(serviceNames, columnValue)
+	}
+	err = rows.Err()
+	if err != nil {
+		l.Error(err)
+	}
+
+	return serviceNames, err
+}

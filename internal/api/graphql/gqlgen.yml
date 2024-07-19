@@ -191,3 +191,13 @@ models:
         resolver: true
       services:
         resolver: true
+  ServiceFilterValue:
+    fields:
+      serviceName: 
+        resolver: true
+      userSapID:
+        resolver: true
+      userName:
+        resolver: true
+      supportGroupName:
+        resolver: true

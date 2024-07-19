@@ -57,6 +57,7 @@ type Database interface {
 	RemoveOwnerFromService(int64, int64) error
 	AddIssueRepositoryToService(int64, int64, int64) error
 	RemoveIssueRepositoryFromService(int64, int64) error
+	GetServiceNames(*entity.ServiceFilter) ([]string, error)
 
 	GetUsers(*entity.UserFilter) ([]entity.User, error)
 	GetAllUserIds(*entity.UserFilter) ([]int64, error)

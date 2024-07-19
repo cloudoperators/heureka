@@ -9,6 +9,7 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph"
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/baseResolver"
@@ -78,6 +79,11 @@ func (r *queryResolver) SupportGroups(ctx context.Context, filter *model.Support
 // Users is the resolver for the Users field.
 func (r *queryResolver) Users(ctx context.Context, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error) {
 	return baseResolver.UserBaseResolver(r.App, ctx, filter, first, after, nil)
+}
+
+// ServiceFilterValue is the resolver for the ServiceFilterValue field.
+func (r *queryResolver) ServiceFilterValue(ctx context.Context) ([]*string, error) {
+	panic(fmt.Errorf("not implemented: ServiceFilterValue - ServiceFilterValue"))
 }
 
 // Query returns graph.QueryResolver implementation.
