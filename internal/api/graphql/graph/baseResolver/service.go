@@ -176,6 +176,7 @@ func ServiceNameBaseResolver(app app.Heureka, filter *model.ServiceFilter, ctx c
 
 	var pointerNames []*string
 
+<<<<<<< HEAD
 	for _, name := range names {
 		pointerNames = append(pointerNames, &name)
 	}
@@ -186,4 +187,11 @@ func ServiceNameBaseResolver(app app.Heureka, filter *model.ServiceFilter, ctx c
 	}
 
 	return &filterItem, nil
+=======
+	for i := 0; i < len(names); i++ {
+		pointerNames = append(pointerNames, &names[i])
+	}
+
+	return pointerNames, nil
+>>>>>>> f5dfbfd (feat: add Service Filter Query)
 }

@@ -195,7 +195,11 @@ models:
     fields:
       serviceName: 
         resolver: true
+<<<<<<< HEAD
       uniqueUserId:
+=======
+      userSapID:
+>>>>>>> f5dfbfd (feat: add Service Filter Query)
         resolver: true
       userName:
         resolver: true
