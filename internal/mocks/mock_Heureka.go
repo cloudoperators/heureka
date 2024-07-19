@@ -437,6 +437,65 @@ func (_c *MockHeureka_AddServiceToSupportGroup_Call) RunAndReturn(run func(int64
 	return _c
 }
 
+// AddUserToSupportGroup provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) AddUserToSupportGroup(_a0 int64, _a1 int64) (*entity.SupportGroup, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddUserToSupportGroup")
+	}
+
+	var r0 *entity.SupportGroup
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int64, int64) (*entity.SupportGroup, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(int64, int64) *entity.SupportGroup); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.SupportGroup)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_AddUserToSupportGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddUserToSupportGroup'
+type MockHeureka_AddUserToSupportGroup_Call struct {
+	*mock.Call
+}
+
+// AddUserToSupportGroup is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockHeureka_Expecter) AddUserToSupportGroup(_a0 interface{}, _a1 interface{}) *MockHeureka_AddUserToSupportGroup_Call {
+	return &MockHeureka_AddUserToSupportGroup_Call{Call: _e.mock.On("AddUserToSupportGroup", _a0, _a1)}
+}
+
+func (_c *MockHeureka_AddUserToSupportGroup_Call) Run(run func(_a0 int64, _a1 int64)) *MockHeureka_AddUserToSupportGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_AddUserToSupportGroup_Call) Return(_a0 *entity.SupportGroup, _a1 error) *MockHeureka_AddUserToSupportGroup_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_AddUserToSupportGroup_Call) RunAndReturn(run func(int64, int64) (*entity.SupportGroup, error)) *MockHeureka_AddUserToSupportGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateActivity provides a mock function with given fields: _a0
 func (_m *MockHeureka) CreateActivity(_a0 *entity.Activity) (*entity.Activity, error) {
 	ret := _m.Called(_a0)
@@ -2728,6 +2787,65 @@ func (_c *MockHeureka_ListIssues_Call) RunAndReturn(run func(*entity.IssueFilter
 	return _c
 }
 
+// ListServiceNames provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) ListServiceNames(_a0 *entity.ServiceFilter, _a1 *entity.ListOptions) ([]string, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListServiceNames")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter, *entity.ListOptions) ([]string, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter, *entity.ListOptions) []string); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ServiceFilter, *entity.ListOptions) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_ListServiceNames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListServiceNames'
+type MockHeureka_ListServiceNames_Call struct {
+	*mock.Call
+}
+
+// ListServiceNames is a helper method to define mock.On call
+//   - _a0 *entity.ServiceFilter
+//   - _a1 *entity.ListOptions
+func (_e *MockHeureka_Expecter) ListServiceNames(_a0 interface{}, _a1 interface{}) *MockHeureka_ListServiceNames_Call {
+	return &MockHeureka_ListServiceNames_Call{Call: _e.mock.On("ListServiceNames", _a0, _a1)}
+}
+
+func (_c *MockHeureka_ListServiceNames_Call) Run(run func(_a0 *entity.ServiceFilter, _a1 *entity.ListOptions)) *MockHeureka_ListServiceNames_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ServiceFilter), args[1].(*entity.ListOptions))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_ListServiceNames_Call) Return(_a0 []string, _a1 error) *MockHeureka_ListServiceNames_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_ListServiceNames_Call) RunAndReturn(run func(*entity.ServiceFilter, *entity.ListOptions) ([]string, error)) *MockHeureka_ListServiceNames_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListServices provides a mock function with given fields: _a0, _a1
 func (_m *MockHeureka) ListServices(_a0 *entity.ServiceFilter, _a1 *entity.ListOptions) (*entity.List[entity.ServiceResult], error) {
 	ret := _m.Called(_a0, _a1)
@@ -3314,6 +3432,65 @@ func (_c *MockHeureka_RemoveServiceFromSupportGroup_Call) Return(_a0 *entity.Sup
 }
 
 func (_c *MockHeureka_RemoveServiceFromSupportGroup_Call) RunAndReturn(run func(int64, int64) (*entity.SupportGroup, error)) *MockHeureka_RemoveServiceFromSupportGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveUserFromSupportGroup provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) RemoveUserFromSupportGroup(_a0 int64, _a1 int64) (*entity.SupportGroup, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveUserFromSupportGroup")
+	}
+
+	var r0 *entity.SupportGroup
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int64, int64) (*entity.SupportGroup, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(int64, int64) *entity.SupportGroup); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.SupportGroup)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int64, int64) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_RemoveUserFromSupportGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveUserFromSupportGroup'
+type MockHeureka_RemoveUserFromSupportGroup_Call struct {
+	*mock.Call
+}
+
+// RemoveUserFromSupportGroup is a helper method to define mock.On call
+//   - _a0 int64
+//   - _a1 int64
+func (_e *MockHeureka_Expecter) RemoveUserFromSupportGroup(_a0 interface{}, _a1 interface{}) *MockHeureka_RemoveUserFromSupportGroup_Call {
+	return &MockHeureka_RemoveUserFromSupportGroup_Call{Call: _e.mock.On("RemoveUserFromSupportGroup", _a0, _a1)}
+}
+
+func (_c *MockHeureka_RemoveUserFromSupportGroup_Call) Run(run func(_a0 int64, _a1 int64)) *MockHeureka_RemoveUserFromSupportGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_RemoveUserFromSupportGroup_Call) Return(_a0 *entity.SupportGroup, _a1 error) *MockHeureka_RemoveUserFromSupportGroup_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_RemoveUserFromSupportGroup_Call) RunAndReturn(run func(int64, int64) (*entity.SupportGroup, error)) *MockHeureka_RemoveUserFromSupportGroup_Call {
 	_c.Call.Return(run)
 	return _c
 }

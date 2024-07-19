@@ -222,3 +222,19 @@ func (h *HeurekaApp) RemoveIssueRepositoryFromService(serviceId, issueRepository
 
 	return h.GetService(serviceId)
 }
+
+func (h *HeurekaApp) ListServiceNames(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.ListServiceNames",
+		"filter": filter,
+	})
+
+	serviceNames, err := h.database.GetServiceNames(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving serviceNames.")
+	}
+
+	return serviceNames, nil
+}

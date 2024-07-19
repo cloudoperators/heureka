@@ -55,6 +55,7 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Service() ServiceResolver
+	ServiceFilterValue() ServiceFilterValueResolver
 	SupportGroup() SupportGroupResolver
 	User() UserResolver
 }
@@ -432,6 +433,7 @@ type ComplexityRoot struct {
 		IssueRepositories  func(childComplexity int, filter *model.IssueRepositoryFilter, first *int, after *string) int
 		IssueVariants      func(childComplexity int, filter *model.IssueVariantFilter, first *int, after *string) int
 		Issues             func(childComplexity int, filter *model.IssueFilter, first *int, after *string) int
+		ServiceFilterValue func(childComplexity int) int
 		Services           func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
 		SupportGroups      func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
 		Users              func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
@@ -457,6 +459,13 @@ type ComplexityRoot struct {
 		Cursor   func(childComplexity int) int
 		Node     func(childComplexity int) int
 		Priority func(childComplexity int) int
+	}
+
+	ServiceFilterValue struct {
+		ServiceName      func(childComplexity int) int
+		SupportGroupName func(childComplexity int) int
+		UserName         func(childComplexity int) int
+		UserSapID        func(childComplexity int) int
 	}
 
 	Severity struct {
@@ -629,6 +638,7 @@ type QueryResolver interface {
 	Evidences(ctx context.Context, filter *model.EvidenceFilter, first *int, after *string) (*model.EvidenceConnection, error)
 	SupportGroups(ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string) (*model.SupportGroupConnection, error)
 	Users(ctx context.Context, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
+	ServiceFilterValue(ctx context.Context) ([]*string, error)
 }
 type ServiceResolver interface {
 	Owners(ctx context.Context, obj *model.Service, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -636,6 +646,12 @@ type ServiceResolver interface {
 	Activities(ctx context.Context, obj *model.Service, filter *model.ActivityFilter, first *int, after *string) (*model.ActivityConnection, error)
 	IssueRepositories(ctx context.Context, obj *model.Service, filter *model.IssueRepositoryFilter, first *int, after *string) (*model.IssueRepositoryConnection, error)
 	ComponentInstances(ctx context.Context, obj *model.Service, filter *model.ComponentInstanceFilter, first *int, after *string) (*model.ComponentInstanceConnection, error)
+}
+type ServiceFilterValueResolver interface {
+	ServiceName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error)
+	UserSapID(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error)
+	UserName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error)
+	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error)
 }
 type SupportGroupResolver interface {
 	Users(ctx context.Context, obj *model.SupportGroup, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -2832,6 +2848,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Issues(childComplexity, args["filter"].(*model.IssueFilter), args["first"].(*int), args["after"].(*string)), true
 
+	case "Query.ServiceFilterValue":
+		if e.complexity.Query.ServiceFilterValue == nil {
+			break
+		}
+
+		return e.complexity.Query.ServiceFilterValue(childComplexity), true
+
 	case "Query.Services":
 		if e.complexity.Query.Services == nil {
 			break
@@ -2983,6 +3006,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ServiceEdge.Priority(childComplexity), true
+
+	case "ServiceFilterValue.serviceName":
+		if e.complexity.ServiceFilterValue.ServiceName == nil {
+			break
+		}
+
+		return e.complexity.ServiceFilterValue.ServiceName(childComplexity), true
+
+	case "ServiceFilterValue.supportGroupName":
+		if e.complexity.ServiceFilterValue.SupportGroupName == nil {
+			break
+		}
+
+		return e.complexity.ServiceFilterValue.SupportGroupName(childComplexity), true
+
+	case "ServiceFilterValue.userName":
+		if e.complexity.ServiceFilterValue.UserName == nil {
+			break
+		}
+
+		return e.complexity.ServiceFilterValue.UserName(childComplexity), true
+
+	case "ServiceFilterValue.userSapID":
+		if e.complexity.ServiceFilterValue.UserSapID == nil {
+			break
+		}
+
+		return e.complexity.ServiceFilterValue.UserSapID(childComplexity), true
 
 	case "Severity.cvss":
 		if e.complexity.Severity.Cvss == nil {
@@ -3290,7 +3341,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/activity.graphqls" "schema/common.graphqls" "schema/component.graphqls" "schema/component_instance.graphqls" "schema/component_version.graphqls" "schema/evidence.graphqls" "schema/issue.graphqls" "schema/issue_match.graphqls" "schema/issue_match_change.graphqls" "schema/issue_repository.graphqls" "schema/issue_variant.graphqls" "schema/mutation.graphqls" "schema/query.graphqls" "schema/service.graphqls" "schema/support_group.graphqls" "schema/user.graphqls"
+//go:embed "schema/activity.graphqls" "schema/common.graphqls" "schema/component.graphqls" "schema/component_instance.graphqls" "schema/component_version.graphqls" "schema/evidence.graphqls" "schema/issue.graphqls" "schema/issue_match.graphqls" "schema/issue_match_change.graphqls" "schema/issue_repository.graphqls" "schema/issue_variant.graphqls" "schema/mutation.graphqls" "schema/query.graphqls" "schema/service.graphqls" "schema/service_filter.graphqls" "schema/support_group.graphqls" "schema/user.graphqls"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -3316,6 +3367,7 @@ var sources = []*ast.Source{
 	{Name: "schema/mutation.graphqls", Input: sourceData("schema/mutation.graphqls"), BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: sourceData("schema/query.graphqls"), BuiltIn: false},
 	{Name: "schema/service.graphqls", Input: sourceData("schema/service.graphqls"), BuiltIn: false},
+	{Name: "schema/service_filter.graphqls", Input: sourceData("schema/service_filter.graphqls"), BuiltIn: false},
 	{Name: "schema/support_group.graphqls", Input: sourceData("schema/support_group.graphqls"), BuiltIn: false},
 	{Name: "schema/user.graphqls", Input: sourceData("schema/user.graphqls"), BuiltIn: false},
 }
@@ -19051,6 +19103,47 @@ func (ec *executionContext) fieldContext_Query_Users(ctx context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_ServiceFilterValue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_ServiceFilterValue(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ServiceFilterValue(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_ServiceFilterValue(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query___type(ctx, field)
 	if err != nil {
@@ -19850,6 +19943,170 @@ func (ec *executionContext) fieldContext_ServiceEdge_priority(_ context.Context,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceFilterValue_serviceName(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_serviceName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ServiceFilterValue().ServiceName(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ServiceFilterValue_serviceName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceFilterValue_userSapID(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_userSapID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ServiceFilterValue().UserSapID(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ServiceFilterValue_userSapID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceFilterValue_userName(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_userName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ServiceFilterValue().UserName(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ServiceFilterValue_userName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceFilterValue_supportGroupName(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_supportGroupName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ServiceFilterValue().SupportGroupName(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ServiceFilterValue_supportGroupName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -27442,6 +27699,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "ServiceFilterValue":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ServiceFilterValue(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -27742,6 +28018,172 @@ func (ec *executionContext) _ServiceEdge(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._ServiceEdge_cursor(ctx, field, obj)
 		case "priority":
 			out.Values[i] = ec._ServiceEdge_priority(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var serviceFilterValueImplementors = []string{"ServiceFilterValue"}
+
+func (ec *executionContext) _ServiceFilterValue(ctx context.Context, sel ast.SelectionSet, obj *model.ServiceFilterValue) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, serviceFilterValueImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ServiceFilterValue")
+		case "serviceName":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ServiceFilterValue_serviceName(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "userSapID":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ServiceFilterValue_userSapID(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "userName":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ServiceFilterValue_userName(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "supportGroupName":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ServiceFilterValue_supportGroupName(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

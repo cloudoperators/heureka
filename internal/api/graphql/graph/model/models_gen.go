@@ -604,6 +604,13 @@ type ServiceFilter struct {
 	SupportGroupName []*string `json:"supportGroupName,omitempty"`
 }
 
+type ServiceFilterValue struct {
+	ServiceName      []*string `json:"serviceName,omitempty"`
+	UserSapID        []*string `json:"userSapID,omitempty"`
+	UserName         []*string `json:"userName,omitempty"`
+	SupportGroupName []*string `json:"supportGroupName,omitempty"`
+}
+
 type ServiceInput struct {
 	Name *string `json:"name,omitempty"`
 }
