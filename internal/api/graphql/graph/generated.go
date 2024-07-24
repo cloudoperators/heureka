@@ -423,20 +423,20 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Activities         func(childComplexity int, filter *model.ActivityFilter, first *int, after *string) int
-		ComponentInstances func(childComplexity int, filter *model.ComponentInstanceFilter, first *int, after *string) int
-		ComponentVersions  func(childComplexity int, filter *model.ComponentVersionFilter, first *int, after *string) int
-		Components         func(childComplexity int, filter *model.ComponentFilter, first *int, after *string) int
-		Evidences          func(childComplexity int, filter *model.EvidenceFilter, first *int, after *string) int
-		IssueMatchChanges  func(childComplexity int, filter *model.IssueMatchChangeFilter, first *int, after *string) int
-		IssueMatches       func(childComplexity int, filter *model.IssueMatchFilter, first *int, after *string) int
-		IssueRepositories  func(childComplexity int, filter *model.IssueRepositoryFilter, first *int, after *string) int
-		IssueVariants      func(childComplexity int, filter *model.IssueVariantFilter, first *int, after *string) int
-		Issues             func(childComplexity int, filter *model.IssueFilter, first *int, after *string) int
-		ServiceFilterValue func(childComplexity int) int
-		Services           func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
-		SupportGroups      func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
-		Users              func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
+		Activities          func(childComplexity int, filter *model.ActivityFilter, first *int, after *string) int
+		ComponentInstances  func(childComplexity int, filter *model.ComponentInstanceFilter, first *int, after *string) int
+		ComponentVersions   func(childComplexity int, filter *model.ComponentVersionFilter, first *int, after *string) int
+		Components          func(childComplexity int, filter *model.ComponentFilter, first *int, after *string) int
+		Evidences           func(childComplexity int, filter *model.EvidenceFilter, first *int, after *string) int
+		IssueMatchChanges   func(childComplexity int, filter *model.IssueMatchChangeFilter, first *int, after *string) int
+		IssueMatches        func(childComplexity int, filter *model.IssueMatchFilter, first *int, after *string) int
+		IssueRepositories   func(childComplexity int, filter *model.IssueRepositoryFilter, first *int, after *string) int
+		IssueVariants       func(childComplexity int, filter *model.IssueVariantFilter, first *int, after *string) int
+		Issues              func(childComplexity int, filter *model.IssueFilter, first *int, after *string) int
+		ServiceFilterValues func(childComplexity int) int
+		Services            func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
+		SupportGroups       func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
+		Users               func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
 	}
 
 	Service struct {
@@ -638,7 +638,7 @@ type QueryResolver interface {
 	Evidences(ctx context.Context, filter *model.EvidenceFilter, first *int, after *string) (*model.EvidenceConnection, error)
 	SupportGroups(ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string) (*model.SupportGroupConnection, error)
 	Users(ctx context.Context, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
-	ServiceFilterValue(ctx context.Context) ([]*string, error)
+	ServiceFilterValues(ctx context.Context) (*model.ServiceFilterValue, error)
 }
 type ServiceResolver interface {
 	Owners(ctx context.Context, obj *model.Service, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -2848,12 +2848,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Issues(childComplexity, args["filter"].(*model.IssueFilter), args["first"].(*int), args["after"].(*string)), true
 
-	case "Query.ServiceFilterValue":
-		if e.complexity.Query.ServiceFilterValue == nil {
+	case "Query.ServiceFilterValues":
+		if e.complexity.Query.ServiceFilterValues == nil {
 			break
 		}
 
-		return e.complexity.Query.ServiceFilterValue(childComplexity), true
+		return e.complexity.Query.ServiceFilterValues(childComplexity), true
 
 	case "Query.Services":
 		if e.complexity.Query.Services == nil {
@@ -19103,8 +19103,8 @@ func (ec *executionContext) fieldContext_Query_Users(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_ServiceFilterValue(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_ServiceFilterValue(ctx, field)
+func (ec *executionContext) _Query_ServiceFilterValues(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_ServiceFilterValues(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -19117,7 +19117,7 @@ func (ec *executionContext) _Query_ServiceFilterValue(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ServiceFilterValue(rctx)
+		return ec.resolvers.Query().ServiceFilterValues(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -19126,19 +19126,29 @@ func (ec *executionContext) _Query_ServiceFilterValue(ctx context.Context, field
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*string)
+	res := resTmp.(*model.ServiceFilterValue)
 	fc.Result = res
-	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+	return ec.marshalOServiceFilterValue2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilterValue(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_ServiceFilterValue(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_ServiceFilterValues(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "serviceName":
+				return ec.fieldContext_ServiceFilterValue_serviceName(ctx, field)
+			case "userSapID":
+				return ec.fieldContext_ServiceFilterValue_userSapID(ctx, field)
+			case "userName":
+				return ec.fieldContext_ServiceFilterValue_userName(ctx, field)
+			case "supportGroupName":
+				return ec.fieldContext_ServiceFilterValue_supportGroupName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ServiceFilterValue", field.Name)
 		},
 	}
 	return fc, nil
@@ -27699,7 +27709,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "ServiceFilterValue":
+		case "ServiceFilterValues":
 			field := field
 
 			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
@@ -27708,7 +27718,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_ServiceFilterValue(ctx, field)
+				res = ec._Query_ServiceFilterValues(ctx, field)
 				return res
 			}
 
@@ -30776,6 +30786,13 @@ func (ec *executionContext) unmarshalOServiceFilter2ᚖgithubᚗwdfᚗsapᚗcorp
 	}
 	res, err := ec.unmarshalInputServiceFilter(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOServiceFilterValue2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilterValue(ctx context.Context, sel ast.SelectionSet, v *model.ServiceFilterValue) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ServiceFilterValue(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOSeverity2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSeverity(ctx context.Context, sel ast.SelectionSet, v *model.Severity) graphql.Marshaler {
