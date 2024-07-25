@@ -105,7 +105,10 @@ Heureka uses [Ginkgo](https://onsi.github.io/ginkgo/) for behavior-driven develo
 
 - Database Tests: These tests are found in the ./internal/database/db directory. Database tests ensure that the application correctly interacts with the database. They test database queries, updates, deletions, and other related operations.
 
-If `LOCAL_TEST_DB` is set to `true` in `.test.env`, the tests will interact with a local database; otherwise, they will run against a containerized database.
+In the `.test.env` file, the `LOCAL_TEST_DB` variable controls the database used for testing:
+
+- If `LOCAL_TEST_DB=true`, tests will interact with a **local database**. Please ensure your local database server is running before executing the tests.
+- If `LOCAL_TEST_DB=false`, tests will run against a **containerized database**.
 
 Run all tests:
 ```
