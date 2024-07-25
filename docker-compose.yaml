@@ -3,8 +3,6 @@
 
 # This docker-compose file is used to run the application localy in containarized environment.
 # ensure to set .env file accordingly
-version: '3.8'
-
 services:
   heureka-db:
     image: mariadb:latest

@@ -39,7 +39,7 @@ echo:
 	echo "version:" $(VERSION)
 
 build-image:
-	docker buildx -t $(SERVER_IMAGE):$(VERSION) -t $(SERVER_IMAGE):latest . --load
+	docker buildx build -t $(SERVER_IMAGE):$(VERSION) -t $(SERVER_IMAGE):latest . --load
 
 push:
 	docker push $(SERVER_IMAGE):$(VERSION)
