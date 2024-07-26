@@ -778,6 +778,40 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 			})
+			// Context("and using a filter", func() {
+			// 	DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
+			// 		// select a support group
+			// 		sgRow := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
+
+			// 		// collect all service ids that belong to the support group
+			// 		serviceIds := []int64{}
+			// 		for _, sgsRow := range seedCollection.SupportGroupServiceRows {
+			// 			if sgsRow.SupportGroupId.Int64 == sgRow.Id.Int64 {
+			// 				serviceIds = append(serviceIds, sgsRow.ServiceId.Int64)
+			// 			}
+			// 		}
+
+			// 		filter := &entity.ServiceFilter{
+			// 			Paginated: entity.Paginated{
+			// 				First: &pageSize,
+			// 				After: nil,
+			// 			},
+			// 			SupportGroupName: []*string{&sgRow.Name.String},
+			// 		}
+			// 		entries, err := db.CountServices(filter)
+			// 		By("throwing no error", func() {
+			// 			Expect(err).To(BeNil())
+			// 		})
+
+			// 		By("returning the correct count", func() {
+			// 			Expect(entries).To(BeEquivalentTo(len(serviceIds)))
+			// 		})
+			// 	},
+			// 		Entry("and pageSize is 1 and it has 13 elements", 1, 13),
+			// 		Entry("and  pageSize is 20 and it has 5 elements", 20, 5),
+			// 		Entry("and  pageSize is 100 and it has 100 elements", 100, 100),
+			// 	)
+			// })
 		})
 	})
 })

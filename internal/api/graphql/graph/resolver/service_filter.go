@@ -14,22 +14,22 @@ import (
 )
 
 // ServiceName is the resolver for the serviceName field.
-func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error) {
-	return baseResolver.ServiceNameBaseResolver(r.App, ctx)
+func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter, first *int, after *string) ([]*string, error) {
+	return baseResolver.ServiceNameBaseResolver(r.App, filter, ctx, first, after)
 }
 
 // UserSapID is the resolver for the userSapID field.
-func (r *serviceFilterValueResolver) UserSapID(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error) {
+func (r *serviceFilterValueResolver) UserSapID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) ([]*string, error) {
 	panic(fmt.Errorf("not implemented: UserSapID - userSapID"))
 }
 
 // UserName is the resolver for the userName field.
-func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error) {
+func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) ([]*string, error) {
 	panic(fmt.Errorf("not implemented: UserName - userName"))
 }
 
 // SupportGroupName is the resolver for the supportGroupName field.
-func (r *serviceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error) {
+func (r *serviceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter, first *int, after *string) ([]*string, error) {
 	panic(fmt.Errorf("not implemented: SupportGroupName - supportGroupName"))
 }
 
