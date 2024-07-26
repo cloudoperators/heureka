@@ -12,7 +12,8 @@ query ($filter: UserFilter, $first: Int, $after: String) {
         edges { 
             node { 
                 id
-                sapID
+                uniqueUserId
+                type
                 name
                 supportGroups { 
                     totalCount
