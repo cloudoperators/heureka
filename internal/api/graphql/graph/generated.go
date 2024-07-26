@@ -437,7 +437,7 @@ type ComplexityRoot struct {
 		IssueRepositories   func(childComplexity int, filter *model.IssueRepositoryFilter, first *int, after *string) int
 		IssueVariants       func(childComplexity int, filter *model.IssueVariantFilter, first *int, after *string) int
 		Issues              func(childComplexity int, filter *model.IssueFilter, first *int, after *string) int
-		ServiceFilterValues func(childComplexity int) int
+		ServiceFilterValues func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
 		Services            func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
 		SupportGroups       func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
 		Users               func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
@@ -466,10 +466,10 @@ type ComplexityRoot struct {
 	}
 
 	ServiceFilterValue struct {
-		ServiceName      func(childComplexity int) int
-		SupportGroupName func(childComplexity int) int
-		UserName         func(childComplexity int) int
-		UserSapID        func(childComplexity int) int
+		ServiceName      func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
+		SupportGroupName func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
+		UserName         func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
+		UserSapID        func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
 	}
 
 	Severity struct {
@@ -644,7 +644,7 @@ type QueryResolver interface {
 	Evidences(ctx context.Context, filter *model.EvidenceFilter, first *int, after *string) (*model.EvidenceConnection, error)
 	SupportGroups(ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string) (*model.SupportGroupConnection, error)
 	Users(ctx context.Context, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
-	ServiceFilterValues(ctx context.Context) (*model.ServiceFilterValue, error)
+	ServiceFilterValues(ctx context.Context, filter *model.ServiceFilter, first *int, after *string) (*model.ServiceFilterValue, error)
 }
 type ServiceResolver interface {
 	Owners(ctx context.Context, obj *model.Service, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -654,10 +654,10 @@ type ServiceResolver interface {
 	ComponentInstances(ctx context.Context, obj *model.Service, filter *model.ComponentInstanceFilter, first *int, after *string) (*model.ComponentInstanceConnection, error)
 }
 type ServiceFilterValueResolver interface {
-	ServiceName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error)
-	UserSapID(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error)
-	UserName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error)
-	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue) ([]*string, error)
+	ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter, first *int, after *string) ([]*string, error)
+	UserSapID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) ([]*string, error)
+	UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) ([]*string, error)
+	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter, first *int, after *string) ([]*string, error)
 }
 type SupportGroupResolver interface {
 	Users(ctx context.Context, obj *model.SupportGroup, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -2892,7 +2892,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.ServiceFilterValues(childComplexity), true
+		args, err := ec.field_Query_ServiceFilterValues_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ServiceFilterValues(childComplexity, args["filter"].(*model.ServiceFilter), args["first"].(*int), args["after"].(*string)), true
 
 	case "Query.Services":
 		if e.complexity.Query.Services == nil {
@@ -3051,28 +3056,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.ServiceFilterValue.ServiceName(childComplexity), true
+		args, err := ec.field_ServiceFilterValue_serviceName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.ServiceName(childComplexity, args["filter"].(*model.ServiceFilter), args["first"].(*int), args["after"].(*string)), true
 
 	case "ServiceFilterValue.supportGroupName":
 		if e.complexity.ServiceFilterValue.SupportGroupName == nil {
 			break
 		}
 
-		return e.complexity.ServiceFilterValue.SupportGroupName(childComplexity), true
+		args, err := ec.field_ServiceFilterValue_supportGroupName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.SupportGroupName(childComplexity, args["filter"].(*model.SupportGroupFilter), args["first"].(*int), args["after"].(*string)), true
 
 	case "ServiceFilterValue.userName":
 		if e.complexity.ServiceFilterValue.UserName == nil {
 			break
 		}
 
-		return e.complexity.ServiceFilterValue.UserName(childComplexity), true
+		args, err := ec.field_ServiceFilterValue_userName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.UserName(childComplexity, args["filter"].(*model.UserFilter), args["first"].(*int), args["after"].(*string)), true
 
 	case "ServiceFilterValue.userSapID":
 		if e.complexity.ServiceFilterValue.UserSapID == nil {
 			break
 		}
 
-		return e.complexity.ServiceFilterValue.UserSapID(childComplexity), true
+		args, err := ec.field_ServiceFilterValue_userSapID_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.UserSapID(childComplexity, args["filter"].(*model.UserFilter), args["first"].(*int), args["after"].(*string)), true
 
 	case "Severity.cvss":
 		if e.complexity.Severity.Cvss == nil {
@@ -5424,6 +5449,39 @@ func (ec *executionContext) field_Query_Issues_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_ServiceFilterValues_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.ServiceFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOServiceFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_Services_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -5535,6 +5593,138 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_ServiceFilterValue_serviceName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.ServiceFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOServiceFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_ServiceFilterValue_supportGroupName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.SupportGroupFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOSupportGroupFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSupportGroupFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_ServiceFilterValue_userName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.UserFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOUserFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐUserFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_ServiceFilterValue_userSapID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.UserFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOUserFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐUserFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg2
 	return args, nil
 }
 
@@ -19413,7 +19603,7 @@ func (ec *executionContext) _Query_ServiceFilterValues(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ServiceFilterValues(rctx)
+		return ec.resolvers.Query().ServiceFilterValues(rctx, fc.Args["filter"].(*model.ServiceFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -19427,7 +19617,7 @@ func (ec *executionContext) _Query_ServiceFilterValues(ctx context.Context, fiel
 	return ec.marshalOServiceFilterValue2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilterValue(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_ServiceFilterValues(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_ServiceFilterValues(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -19446,6 +19636,17 @@ func (ec *executionContext) fieldContext_Query_ServiceFilterValues(_ context.Con
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceFilterValue", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_ServiceFilterValues_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -20268,7 +20469,7 @@ func (ec *executionContext) _ServiceFilterValue_serviceName(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().ServiceName(rctx, obj)
+		return ec.resolvers.ServiceFilterValue().ServiceName(rctx, obj, fc.Args["filter"].(*model.ServiceFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20282,7 +20483,7 @@ func (ec *executionContext) _ServiceFilterValue_serviceName(ctx context.Context,
 	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ServiceFilterValue_serviceName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ServiceFilterValue_serviceName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ServiceFilterValue",
 		Field:      field,
@@ -20291,6 +20492,17 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_serviceName(_ contex
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ServiceFilterValue_serviceName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -20309,7 +20521,7 @@ func (ec *executionContext) _ServiceFilterValue_userSapID(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().UserSapID(rctx, obj)
+		return ec.resolvers.ServiceFilterValue().UserSapID(rctx, obj, fc.Args["filter"].(*model.UserFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20323,7 +20535,7 @@ func (ec *executionContext) _ServiceFilterValue_userSapID(ctx context.Context, f
 	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ServiceFilterValue_userSapID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ServiceFilterValue_userSapID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ServiceFilterValue",
 		Field:      field,
@@ -20332,6 +20544,17 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_userSapID(_ context.
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ServiceFilterValue_userSapID_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -20350,7 +20573,7 @@ func (ec *executionContext) _ServiceFilterValue_userName(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().UserName(rctx, obj)
+		return ec.resolvers.ServiceFilterValue().UserName(rctx, obj, fc.Args["filter"].(*model.UserFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20364,7 +20587,7 @@ func (ec *executionContext) _ServiceFilterValue_userName(ctx context.Context, fi
 	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ServiceFilterValue_userName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ServiceFilterValue_userName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ServiceFilterValue",
 		Field:      field,
@@ -20373,6 +20596,17 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_userName(_ context.C
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ServiceFilterValue_userName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -20391,7 +20625,7 @@ func (ec *executionContext) _ServiceFilterValue_supportGroupName(ctx context.Con
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().SupportGroupName(rctx, obj)
+		return ec.resolvers.ServiceFilterValue().SupportGroupName(rctx, obj, fc.Args["filter"].(*model.SupportGroupFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20405,7 +20639,7 @@ func (ec *executionContext) _ServiceFilterValue_supportGroupName(ctx context.Con
 	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ServiceFilterValue_supportGroupName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ServiceFilterValue_supportGroupName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ServiceFilterValue",
 		Field:      field,
@@ -20414,6 +20648,17 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_supportGroupName(_ c
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ServiceFilterValue_supportGroupName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
