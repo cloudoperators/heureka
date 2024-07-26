@@ -3,7 +3,7 @@ VERSION  ?= $(shell git log -1 --pretty=format:"%H")
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
-.PHONY: all test doc
+.PHONY: all test doc gqlgen test-all test-e2e test-app test-db
 
 # Source the .env file to use the env vars with make
 -include .env
@@ -47,3 +47,21 @@ push:
 
 run:
 	go run cmd/heureka/main.go
+
+gqlgen:
+	cd internal/api/graphql && go run github.com/99designs/gqlgen generate
+
+mockery:
+	mockery
+
+test-all:
+	ginkgo -r
+
+test-e2e:
+	ginkgo internal/e2e
+
+test-app:
+	ginkgo internal/app
+
+test-db:
+	ginkgo internal/database/mariadb
