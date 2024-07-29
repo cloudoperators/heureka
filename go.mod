@@ -15,7 +15,7 @@ require (
 	github.com/machinebox/graphql v0.2.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo/v2 v2.19.0
-	github.com/onsi/gomega v1.33.1
+	github.com/onsi/gomega v1.34.0
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/prometheus/client_golang v1.19.1
 	github.com/samber/lo v1.46.0
