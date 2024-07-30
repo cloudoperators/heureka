@@ -65,3 +65,6 @@ test-app:
 
 test-db:
 	ginkgo internal/database/mariadb
+
+fmt:
+	go fmt ./...
