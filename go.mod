@@ -4,7 +4,7 @@ go 1.22.4
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.0.4
-	github.com/docker/docker v27.0.3+incompatible
+	github.com/docker/docker v27.1.1+incompatible
 	github.com/docker/docker-credential-helpers v0.8.2
 	github.com/docker/go-connections v0.5.0
 	github.com/gin-contrib/cors v1.7.2
@@ -14,8 +14,8 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onsi/ginkgo/v2 v2.19.0
-	github.com/onsi/gomega v1.33.1
+	github.com/onsi/ginkgo/v2 v2.19.1
+	github.com/onsi/gomega v1.34.0
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/prometheus/client_golang v1.19.1
 	github.com/samber/lo v1.46.0
@@ -106,7 +106,7 @@ require (
 
 require (
 	github.com/99designs/gqlgen v0.17.49
-	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/mattn/go-runewidth v0.0.15 // indirect
