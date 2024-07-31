@@ -59,6 +59,7 @@ func (s *SqlDatabase) getComponentVersionFilterString(filter *entity.ComponentVe
 	fl = append(fl, buildFilterQuery(filter.Id, "CV.componentversion_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "CVI.componentversionissue_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Version, "CV.componentversion_version = ?", OP_OR))
 	fl = append(fl, "CV.componentversion_deleted_at IS NULL")
 
 	return combineFilterQueries(fl, OP_AND)
@@ -106,6 +107,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
+	filterParameters = buildQueryParameters(filterParameters, filter.Version)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
 		filterParameters = append(filterParameters, cursor.Limit)

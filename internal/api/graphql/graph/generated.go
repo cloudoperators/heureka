@@ -22900,7 +22900,7 @@ func (ec *executionContext) unmarshalInputComponentVersionFilter(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"issueId"}
+	fieldsInOrder := [...]string{"issueId", "version"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -22914,6 +22914,13 @@ func (ec *executionContext) unmarshalInputComponentVersionFilter(ctx context.Con
 				return it, err
 			}
 			it.IssueID = data
+		case "version":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("version"))
+			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Version = data
 		}
 	}
 
