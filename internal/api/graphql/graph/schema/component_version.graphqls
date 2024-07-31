@@ -28,4 +28,5 @@ type ComponentVersionEdge implements Edge {
 
 input ComponentVersionFilter {
     issueId: [String],
+    version: [String],
 }

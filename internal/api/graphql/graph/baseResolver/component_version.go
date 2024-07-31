@@ -91,6 +91,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		Paginated:   entity.Paginated{First: first, After: afterId},
 		IssueId:     issueId,
 		ComponentId: componentId,
+		Version:     filter.Version,
 	}
 
 	opt := GetListOptions(requestedFields)
