@@ -67,6 +67,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 
 	var imId []*int64
 	var serviceId []*int64
+	var copmonentVersionId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -80,6 +81,8 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 			imId = []*int64{pid}
 		case model.ServiceNodeName:
 			serviceId = []*int64{pid}
+		case model.ComponentVersionNodeName:
+			copmonentVersionId = []*int64{pid}
 		}
 	}
 
@@ -88,9 +91,10 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	}
 
 	f := &entity.ComponentInstanceFilter{
-		Paginated:    entity.Paginated{First: first, After: afterId},
-		IssueMatchId: imId,
-		ServiceId:    serviceId,
+		Paginated:          entity.Paginated{First: first, After: afterId},
+		IssueMatchId:       imId,
+		ServiceId:          serviceId,
+		ComponentVersionId: copmonentVersionId,
 	}
 
 	opt := GetListOptions(requestedFields)

@@ -44,6 +44,14 @@ func (r *componentVersionResolver) Issues(ctx context.Context, obj *model.Compon
 	})
 }
 
+// ComponentInstances is the resolver for the componentInstances field.
+func (r *componentVersionResolver) ComponentInstances(ctx context.Context, obj *model.ComponentVersion, first *int, after *string) (*model.ComponentInstanceConnection, error) {
+	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, nil, first, after, &model.NodeParent{
+		Parent:     obj,
+		ParentName: model.ComponentVersionNodeName,
+	})
+}
+
 // ComponentVersion returns graph.ComponentVersionResolver implementation.
 func (r *Resolver) ComponentVersion() graph.ComponentVersionResolver {
 	return &componentVersionResolver{r}

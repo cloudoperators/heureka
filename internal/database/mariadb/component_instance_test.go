@@ -97,6 +97,32 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						Expect(entries[0]).To(BeEquivalentTo(ciId))
 					})
 				})
+				It("can filter by a single componentVersion id that does exist", func() {
+					// select a component version
+					cvRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+
+					// collect all componentInstance ids that belong to the component version
+					ciIds := []int64{}
+					for _, ciRow := range seedCollection.ComponentInstanceRows {
+						if ciRow.ComponentVersionId.Int64 == cvRow.Id.Int64 {
+							ciIds = append(ciIds, ciRow.ServiceId.Int64)
+						}
+					}
+
+					filter := &entity.ComponentInstanceFilter{
+						ComponentVersionId: []*int64{&cvRow.Id.Int64},
+					}
+
+					entries, err := db.GetAllComponentInstanceIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						Expect(len(entries)).To(BeEquivalentTo(len(ciIds)))
+					})
+				})
 			})
 		})
 	})
