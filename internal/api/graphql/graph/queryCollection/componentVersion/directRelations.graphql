@@ -33,6 +33,16 @@ query ($filter: ComponentVersionFilter, $first: Int, $after: String) {
                         nextPageAfter
                     }
                 }
+                componentInstances { 
+                    totalCount
+                    edges { 
+                        node { 
+                            id
+                            ccrn
+                            componentVersionId
+                        }
+                    }
+                }
             }
             cursor
         }

@@ -163,6 +163,14 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 						Expect(issueFound).To(BeTrue(), "attached issue does exist and belongs to componentVersion")
 					}
 
+					for _, ci := range cv.Node.ComponentInstances.Edges {
+						Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
+						Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has ccrn set")
+
+						Expect(*ci.Node.ComponentVersionID).To(BeEquivalentTo(cv.Node.ID))
+
+					}
+
 					if cv.Node.Component != nil {
 						Expect(cv.Node.Component.ID).ToNot(BeNil(), "component has a ID set")
 						Expect(cv.Node.Component.Name).ToNot(BeNil(), "component has a name set")
