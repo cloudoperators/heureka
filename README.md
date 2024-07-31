@@ -97,6 +97,14 @@ make start-all-heureka
 
 ### Tests
 
+#### Mockery
+
+Heureka uses [Mockery](https://vektra.github.io/mockery/) for building Mocks based on defined interfaces for the purpose of Unit-Testing.
+
+Please [follow the steps to install mockery on your local system](https://vektra.github.io/mockery/latest/installation/) to be able to build mocks.
+
+#### Using Ginkgo
+
 Heureka uses [Ginkgo](https://onsi.github.io/ginkgo/) for behavior-driven development (BDD) style tests. In the current project setup, tests are organized into three different directories, each serving a specific purpose:
 
 - End-to-End Tests: These tests are located in the ./internal/e2e directory. End-to-end tests are designed to test the flow of an application from start to finish and ensure all integrated pieces of an application function as expected together.
@@ -135,8 +143,6 @@ The ginkgo `-focus` allows using a regular expression to run a specific test:
 ginkgo -focus="Getting Services" ./internal/database/mariadb
 ```
 If the test block you're trying to run depends on `BeforeEach`, `JustBeforeEach`, or `Describe` blocks that aren't being run when you use the `-focus` flag, this could cause the test to fail.
-
-
 
 ## Support, Feedback, Contributing
 
