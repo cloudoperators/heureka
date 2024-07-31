@@ -133,6 +133,8 @@ models:
         resolver: true
       issues:
         resolver: true
+      componentInstances:
+        resolver: true
   Service:
     fields:
       owners:
