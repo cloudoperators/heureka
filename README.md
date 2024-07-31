@@ -95,6 +95,55 @@ Alternatively, the application can be started by using the provided Makefile:
 make start-all-heureka
 ```
 
+### Tests
+
+#### Mockery
+
+Heureka uses [Mockery](https://vektra.github.io/mockery/) for building Mocks based on defined interfaces for the purpose of Unit-Testing.
+
+Please [follow the steps to install mockery on your local system](https://vektra.github.io/mockery/latest/installation/) to be able to build mocks.
+
+#### Using Ginkgo
+
+Heureka uses [Ginkgo](https://onsi.github.io/ginkgo/) for behavior-driven development (BDD) style tests. In the current project setup, tests are organized into three different directories, each serving a specific purpose:
+
+- End-to-End Tests: These tests are located in the ./internal/e2e directory. End-to-end tests are designed to test the flow of an application from start to finish and ensure all integrated pieces of an application function as expected together.
+
+- Application Layer Tests: These tests resides in the ./internal/app directory. Application layer tests focus on testing the application's behavior, such as handling requests and responses, executing appropriate logic, and more.
+
+- Database Tests: These tests are found in the ./internal/database/db directory. Database tests ensure that the application correctly interacts with the database. They test database queries, updates, deletions, and other related operations.
+
+In the `.test.env` file, the `LOCAL_TEST_DB` variable controls the database used for testing:
+
+- If `LOCAL_TEST_DB=true`, tests will interact with a **local database**. Please ensure your local database server is running before executing the tests.
+- If `LOCAL_TEST_DB=false`, tests will run against a **containerized database**.
+
+Run all tests:
+```
+ginkgo -r
+```
+
+Run end-to-end tests:
+```
+ginkgo ./internal/e2e
+```
+
+Run application tests:
+```
+ginkgo ./internal/app
+```
+
+Run database tests:
+```
+ginkgo ./internal/database/mariadb
+```
+
+The ginkgo `-focus` allows using a regular expression to run a specific test:
+```
+ginkgo -focus="Getting Services" ./internal/database/mariadb
+```
+If the test block you're trying to run depends on `BeforeEach`, `JustBeforeEach`, or `Describe` blocks that aren't being run when you use the `-focus` flag, this could cause the test to fail.
+
 ## Support, Feedback, Contributing
 
 This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/SAP/<your-project>/issues). Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).

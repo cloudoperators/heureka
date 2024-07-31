@@ -199,11 +199,12 @@ type ComponentInstanceInput struct {
 }
 
 type ComponentVersion struct {
-	ID          string           `json:"id"`
-	Version     *string          `json:"version,omitempty"`
-	ComponentID *string          `json:"componentId,omitempty"`
-	Component   *Component       `json:"component,omitempty"`
-	Issues      *IssueConnection `json:"issues,omitempty"`
+	ID                 string                       `json:"id"`
+	Version            *string                      `json:"version,omitempty"`
+	ComponentID        *string                      `json:"componentId,omitempty"`
+	Component          *Component                   `json:"component,omitempty"`
+	Issues             *IssueConnection             `json:"issues,omitempty"`
+	ComponentInstances *ComponentInstanceConnection `json:"componentInstances,omitempty"`
 }
 
 func (ComponentVersion) IsNode()            {}

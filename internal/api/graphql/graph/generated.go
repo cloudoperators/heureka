@@ -172,11 +172,12 @@ type ComplexityRoot struct {
 	}
 
 	ComponentVersion struct {
-		Component   func(childComplexity int) int
-		ComponentID func(childComplexity int) int
-		ID          func(childComplexity int) int
-		Issues      func(childComplexity int, first *int, after *string) int
-		Version     func(childComplexity int) int
+		Component          func(childComplexity int) int
+		ComponentID        func(childComplexity int) int
+		ComponentInstances func(childComplexity int, first *int, after *string) int
+		ID                 func(childComplexity int) int
+		Issues             func(childComplexity int, first *int, after *string) int
+		Version            func(childComplexity int) int
 	}
 
 	ComponentVersionConnection struct {
@@ -522,6 +523,7 @@ type ComponentInstanceResolver interface {
 type ComponentVersionResolver interface {
 	Component(ctx context.Context, obj *model.ComponentVersion) (*model.Component, error)
 	Issues(ctx context.Context, obj *model.ComponentVersion, first *int, after *string) (*model.IssueConnection, error)
+	ComponentInstances(ctx context.Context, obj *model.ComponentVersion, first *int, after *string) (*model.ComponentInstanceConnection, error)
 }
 type EvidenceResolver interface {
 	Author(ctx context.Context, obj *model.Evidence) (*model.User, error)
@@ -1171,6 +1173,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ComponentVersion.ComponentID(childComplexity), true
+
+	case "ComponentVersion.componentInstances":
+		if e.complexity.ComponentVersion.ComponentInstances == nil {
+			break
+		}
+
+		args, err := ec.field_ComponentVersion_componentInstances_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ComponentVersion.ComponentInstances(childComplexity, args["first"].(*int), args["after"].(*string)), true
 
 	case "ComponentVersion.id":
 		if e.complexity.ComponentVersion.ID == nil {
@@ -3495,6 +3509,30 @@ func (ec *executionContext) field_ComponentInstance_issueMatches_args(ctx contex
 		}
 	}
 	args["after"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_ComponentVersion_componentInstances_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
 	return args, nil
 }
 
@@ -8296,6 +8334,8 @@ func (ec *executionContext) fieldContext_ComponentInstance_componentVersion(_ co
 				return ec.fieldContext_ComponentVersion_component(ctx, field)
 			case "issues":
 				return ec.fieldContext_ComponentVersion_issues(ctx, field)
+			case "componentInstances":
+				return ec.fieldContext_ComponentVersion_componentInstances(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ComponentVersion", field.Name)
 		},
@@ -9036,6 +9076,66 @@ func (ec *executionContext) fieldContext_ComponentVersion_issues(ctx context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _ComponentVersion_componentInstances(ctx context.Context, field graphql.CollectedField, obj *model.ComponentVersion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ComponentVersion_componentInstances(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ComponentVersion().ComponentInstances(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ComponentInstanceConnection)
+	fc.Result = res
+	return ec.marshalOComponentInstanceConnection2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐComponentInstanceConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ComponentVersion_componentInstances(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ComponentVersion",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "totalCount":
+				return ec.fieldContext_ComponentInstanceConnection_totalCount(ctx, field)
+			case "edges":
+				return ec.fieldContext_ComponentInstanceConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_ComponentInstanceConnection_pageInfo(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ComponentInstanceConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ComponentVersion_componentInstances_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ComponentVersionConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ComponentVersionConnection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ComponentVersionConnection_totalCount(ctx, field)
 	if err != nil {
@@ -9234,6 +9334,8 @@ func (ec *executionContext) fieldContext_ComponentVersionEdge_node(_ context.Con
 				return ec.fieldContext_ComponentVersion_component(ctx, field)
 			case "issues":
 				return ec.fieldContext_ComponentVersion_issues(ctx, field)
+			case "componentInstances":
+				return ec.fieldContext_ComponentVersion_componentInstances(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ComponentVersion", field.Name)
 		},
@@ -15203,6 +15305,8 @@ func (ec *executionContext) fieldContext_Mutation_createComponentVersion(ctx con
 				return ec.fieldContext_ComponentVersion_component(ctx, field)
 			case "issues":
 				return ec.fieldContext_ComponentVersion_issues(ctx, field)
+			case "componentInstances":
+				return ec.fieldContext_ComponentVersion_componentInstances(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ComponentVersion", field.Name)
 		},
@@ -15270,6 +15374,8 @@ func (ec *executionContext) fieldContext_Mutation_updateComponentVersion(ctx con
 				return ec.fieldContext_ComponentVersion_component(ctx, field)
 			case "issues":
 				return ec.fieldContext_ComponentVersion_issues(ctx, field)
+			case "componentInstances":
+				return ec.fieldContext_ComponentVersion_componentInstances(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ComponentVersion", field.Name)
 		},
@@ -25079,6 +25185,39 @@ func (ec *executionContext) _ComponentVersion(ctx context.Context, sel ast.Selec
 					}
 				}()
 				res = ec._ComponentVersion_issues(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "componentInstances":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ComponentVersion_componentInstances(ctx, field, obj)
 				return res
 			}
 
