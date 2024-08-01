@@ -6,7 +6,8 @@ mutation ($input: UserInput!) {
         input: $input
     ) {
         id
-        sapID
+        uniqueUserId
+        type
         name
     }
 }

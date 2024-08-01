@@ -601,7 +601,8 @@ func (this ServiceEdge) GetCursor() *string { return this.Cursor }
 
 type ServiceFilter struct {
 	ServiceName      []*string `json:"serviceName,omitempty"`
-	UserSapID        []*string `json:"userSapID,omitempty"`
+	UniqueUserID     []*string `json:"uniqueUserID,omitempty"`
+	Type             []*int    `json:"type,omitempty"`
 	UserName         []*string `json:"userName,omitempty"`
 	SupportGroupName []*string `json:"supportGroupName,omitempty"`
 }
@@ -660,7 +661,8 @@ type SupportGroupInput struct {
 
 type User struct {
 	ID            string                  `json:"id"`
-	SapID         *string                 `json:"sapID,omitempty"`
+	UniqueUserID  *string                 `json:"uniqueUserId,omitempty"`
+	Type          int                     `json:"type"`
 	Name          *string                 `json:"name,omitempty"`
 	SupportGroups *SupportGroupConnection `json:"supportGroups,omitempty"`
 	Services      *ServiceConnection      `json:"services,omitempty"`
@@ -694,8 +696,9 @@ type UserFilter struct {
 }
 
 type UserInput struct {
-	SapID *string `json:"sapID,omitempty"`
-	Name  *string `json:"name,omitempty"`
+	UniqueUserID *string `json:"uniqueUserId,omitempty"`
+	Type         *string `json:"type,omitempty"`
+	Name         *string `json:"name,omitempty"`
 }
 
 type ActivityStatusValues string

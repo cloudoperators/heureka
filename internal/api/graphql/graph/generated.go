@@ -487,9 +487,10 @@ type ComplexityRoot struct {
 	User struct {
 		ID            func(childComplexity int) int
 		Name          func(childComplexity int) int
-		SapID         func(childComplexity int) int
 		Services      func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
 		SupportGroups func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
+		Type          func(childComplexity int) int
+		UniqueUserID  func(childComplexity int) int
 	}
 
 	UserConnection struct {
@@ -3106,13 +3107,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Name(childComplexity), true
 
-	case "User.sapID":
-		if e.complexity.User.SapID == nil {
-			break
-		}
-
-		return e.complexity.User.SapID(childComplexity), true
-
 	case "User.services":
 		if e.complexity.User.Services == nil {
 			break
@@ -3136,6 +3130,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.SupportGroups(childComplexity, args["filter"].(*model.SupportGroupFilter), args["first"].(*int), args["after"].(*string)), true
+
+	case "User.type":
+		if e.complexity.User.Type == nil {
+			break
+		}
+
+		return e.complexity.User.Type(childComplexity), true
+
+	case "User.uniqueUserId":
+		if e.complexity.User.UniqueUserID == nil {
+			break
+		}
+
+		return e.complexity.User.UniqueUserID(childComplexity), true
 
 	case "UserConnection.edges":
 		if e.complexity.UserConnection.Edges == nil {
@@ -9663,8 +9671,10 @@ func (ec *executionContext) fieldContext_Evidence_author(_ context.Context, fiel
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "sapID":
-				return ec.fieldContext_User_sapID(ctx, field)
+			case "uniqueUserId":
+				return ec.fieldContext_User_uniqueUserId(ctx, field)
+			case "type":
+				return ec.fieldContext_User_type(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "supportGroups":
@@ -11411,8 +11421,10 @@ func (ec *executionContext) fieldContext_IssueMatch_user(_ context.Context, fiel
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "sapID":
-				return ec.fieldContext_User_sapID(ctx, field)
+			case "uniqueUserId":
+				return ec.fieldContext_User_uniqueUserId(ctx, field)
+			case "type":
+				return ec.fieldContext_User_type(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "supportGroups":
@@ -14253,8 +14265,10 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "sapID":
-				return ec.fieldContext_User_sapID(ctx, field)
+			case "uniqueUserId":
+				return ec.fieldContext_User_uniqueUserId(ctx, field)
+			case "type":
+				return ec.fieldContext_User_type(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "supportGroups":
@@ -14320,8 +14334,10 @@ func (ec *executionContext) fieldContext_Mutation_updateUser(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "sapID":
-				return ec.fieldContext_User_sapID(ctx, field)
+			case "uniqueUserId":
+				return ec.fieldContext_User_uniqueUserId(ctx, field)
+			case "type":
+				return ec.fieldContext_User_type(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "supportGroups":
@@ -20584,8 +20600,8 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	return fc, nil
 }
 
-func (ec *executionContext) _User_sapID(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_User_sapID(ctx, field)
+func (ec *executionContext) _User_uniqueUserId(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_uniqueUserId(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -20598,7 +20614,7 @@ func (ec *executionContext) _User_sapID(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.SapID, nil
+		return obj.UniqueUserID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20612,7 +20628,7 @@ func (ec *executionContext) _User_sapID(ctx context.Context, field graphql.Colle
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_User_sapID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_User_uniqueUserId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -20620,6 +20636,50 @@ func (ec *executionContext) fieldContext_User_sapID(_ context.Context, field gra
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_type(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -20973,8 +21033,10 @@ func (ec *executionContext) fieldContext_UserEdge_node(_ context.Context, field 
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
-			case "sapID":
-				return ec.fieldContext_User_sapID(ctx, field)
+			case "uniqueUserId":
+				return ec.fieldContext_User_uniqueUserId(ctx, field)
+			case "type":
+				return ec.fieldContext_User_type(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "supportGroups":
@@ -23635,7 +23697,7 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceName", "userSapID", "userName", "supportGroupName"}
+	fieldsInOrder := [...]string{"serviceName", "uniqueUserID", "type", "userName", "supportGroupName"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -23649,13 +23711,20 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 				return it, err
 			}
 			it.ServiceName = data
-		case "userSapID":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userSapID"))
+		case "uniqueUserID":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserID"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.UserSapID = data
+			it.UniqueUserID = data
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalOInt2ᚕᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
 		case "userName":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userName"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
@@ -23832,20 +23901,27 @@ func (ec *executionContext) unmarshalInputUserInput(ctx context.Context, obj int
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"sapID", "name"}
+	fieldsInOrder := [...]string{"uniqueUserId", "type", "name"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "sapID":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sapID"))
+		case "uniqueUserId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserId"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.SapID = data
+			it.UniqueUserID = data
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
 		case "name":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -28158,8 +28234,13 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "sapID":
-			out.Values[i] = ec._User_sapID(ctx, field, obj)
+		case "uniqueUserId":
+			out.Values[i] = ec._User_uniqueUserId(ctx, field, obj)
+		case "type":
+			out.Values[i] = ec._User_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "name":
 			out.Values[i] = ec._User_name(ctx, field, obj)
 		case "supportGroups":
@@ -29813,6 +29894,38 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	}
 	res := graphql.MarshalFloatContext(*v)
 	return graphql.WrapContextMarshaler(ctx, res)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚕᚖint(ctx context.Context, v interface{}) ([]*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*int, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOInt2ᚖint(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOInt2ᚕᚖint(ctx context.Context, sel ast.SelectionSet, v []*int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalOInt2ᚖint(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {

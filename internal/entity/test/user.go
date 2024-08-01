@@ -11,14 +11,15 @@ import (
 )
 
 func NewFakeUserEntity() entity.User {
-	sapId := fmt.Sprintf("I%d", gofakeit.IntRange(100000, 999999))
+	uniqueUserId := fmt.Sprintf("I%d", gofakeit.IntRange(100000, 999999))
 	return entity.User{
-		Id:        int64(gofakeit.Number(1, 10000000)),
-		Name:      gofakeit.Name(),
-		SapID:     sapId,
-		CreatedAt: gofakeit.Date(),
-		DeletedAt: gofakeit.Date(),
-		UpdatedAt: gofakeit.Date(),
+		Id:           int64(gofakeit.Number(1, 10000000)),
+		Name:         gofakeit.Name(),
+		UniqueUserID: uniqueUserId,
+		Type:         entity.HumanUserType,
+		CreatedAt:    gofakeit.Date(),
+		DeletedAt:    gofakeit.Date(),
+		UpdatedAt:    gofakeit.Date(),
 	}
 }
 

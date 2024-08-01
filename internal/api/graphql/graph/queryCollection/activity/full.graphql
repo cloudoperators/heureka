@@ -23,7 +23,8 @@ query ($filter: ActivityFilter, $first: Int, $after: String) {
                                 edges {
                                     node {
                                         id
-                                        sapID
+                                        uniqueUserId
+                                        type
                                         name
                                     }
                                     cursor
@@ -165,7 +166,8 @@ query ($filter: ActivityFilter, $first: Int, $after: String) {
                             description
                             author {
                                 id
-                                sapID
+                                uniqueUserId
+                                type
                                 name
                             }
                             activity {

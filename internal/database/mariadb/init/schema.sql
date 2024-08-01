@@ -123,14 +123,15 @@ create table if not exists User
     user_id         int unsigned auto_increment
         primary key,
     user_name       varchar(256)                          not null,
-    user_sapID      varchar(64)                           not null,
+    user_unique_user_id varchar(64)                       not null,
+    user_type       int unsigned,
     user_created_at timestamp default current_timestamp() not null,
     user_deleted_at timestamp                             null,
     user_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     constraint id_UNIQUE
         unique (user_id),
-    constraint sapID_UNIQUE
-        unique (user_sapID)
+    constraint unique_user_id_UNIQUE
+        unique (user_unique_user_id)
 );
 
 create table if not exists Evidence

@@ -16,7 +16,8 @@ query ($filter: EvidenceFilter, $first: Int, $after: String) {
                 authorId
                 author { 
                     id
-                    sapID
+                    uniqueUserId
+                    type
                     name
                 }
                 activityId

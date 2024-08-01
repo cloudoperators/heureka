@@ -156,7 +156,8 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 					for _, owner := range service.Node.Owners.Edges {
 						Expect(owner.Node.ID).ToNot(BeNil(), "owner has a ID set")
 						Expect(owner.Node.Name).ToNot(BeNil(), "owner has a name set")
-						Expect(owner.Node.SapID).ToNot(BeNil(), "owner has a sapId set")
+						Expect(owner.Node.UniqueUserID).ToNot(BeNil(), "owner has a uniqueUserId set")
+						Expect(owner.Node.Type).ToNot(BeNil(), "owner has a type set")
 
 						_, ownerFound := lo.Find(seedCollection.OwnerRows, func(row mariadb.OwnerRow) bool {
 							return fmt.Sprintf("%d", row.UserId.Int64) == owner.Node.ID && // correct owner
