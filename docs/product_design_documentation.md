@@ -131,7 +131,34 @@ Responsible for ensuring that all established processes are followed including t
 
 ## High-Level Features
 
-**TBD**
+
+### Security Issue Scanners
+
+This  focuses on gathering new issues from established repositories. It includes:
+
+- CVE Scanner: This  collects data from CVE advisories, providing up-to-date information on potential system vulnerabilities.
+
+- SIEM Alerts Scanner: This  interfaces with your SIEM system, gathering alerts to provide real-time analysis of security threats and potential breaches.
+
+- Policy Violations Scanner: This  interacts with the Policy Gatekeeper tool to identify actions that violate predefined security policies, ensuring compliance and mitigating risks.
+
+
+### Inventory Scanner
+This provides a comprehensive view of all components within the landscape.
+
+It provides detailed information about existing instances and versions of each component. It also identifies services dependent on these components, aiding in system management and security.
+
+
+### Issue Classification/Documentation
+This involves compliant classification of all issues by documenting essential attributes like unique ID (e.g., CVE ID), severity, target remediation time, and affected service resolution efforts
+
+### Issue Remmediation Management
+This feature empowers service owners to comprehensively track the life cycle of each issue, providing complete visibility into the issue resolution process
+
+
+### Compliance Artifact Management
+Heureka provides real-time, comprehensive audit artifacts and evidence to simplify compliance requirements fulfillment.
+
 
 
 
