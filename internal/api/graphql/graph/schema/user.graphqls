@@ -3,14 +3,16 @@
 
 type User implements Node {
     id:ID!
-    sapID: String
+    uniqueUserId: String
+    type: Int!
     name: String
     supportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
     services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
 }
 
 input UserInput {
-    sapID: String
+    uniqueUserId: String
+    type: String
     name: String
 }
 

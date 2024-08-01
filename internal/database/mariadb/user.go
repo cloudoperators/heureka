@@ -16,7 +16,8 @@ func (s *SqlDatabase) getUserFilterString(filter *entity.UserFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "U.user_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Name, "U.user_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.SapID, "U.user_sapID = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.UniqueUserID, "U.user_unique_user_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Type, "U.user_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGU.supportgroupuser_support_group_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "O.owner_service_id = ?", OP_OR))
 	fl = append(fl, "U.user_deleted_at IS NULL")
@@ -35,7 +36,8 @@ func (s *SqlDatabase) ensureUserFilter(f *entity.UserFilter) *entity.UserFilter 
 			},
 			Id:             nil,
 			Name:           nil,
-			SapID:          nil,
+			UniqueUserID:   nil,
+			Type:           nil,
 			SupportGroupId: nil,
 			ServiceId:      nil,
 		}
@@ -54,8 +56,11 @@ func (s *SqlDatabase) getUserUpdateFields(user *entity.User) string {
 	if user.Name != "" {
 		fl = append(fl, "user_name = :user_name")
 	}
-	if user.SapID != "" {
-		fl = append(fl, "user_sapID = :user_sapID")
+	if user.UniqueUserID != "" {
+		fl = append(fl, "user_unique_user_id = :user_unique_user_id")
+	}
+	if user.Type != entity.InvalidUserType {
+		fl = append(fl, "user_type = :user_type")
 	}
 
 	return strings.Join(fl, ", ")
@@ -117,7 +122,8 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.Name)
-	filterParameters = buildQueryParameters(filterParameters, filter.SapID)
+	filterParameters = buildQueryParameters(filterParameters, filter.UniqueUserID)
+	filterParameters = buildQueryParameters(filterParameters, filter.Type)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	if withCursor {
@@ -213,10 +219,12 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 	query := `
 		INSERT INTO User (
 			user_name,
-			user_sapID
+			user_unique_user_id,
+			user_type
 		) VALUES (
 			:user_name,
-			:user_sapID
+			:user_unique_user_id,
+			:user_type
 		)
 	`
 

@@ -316,16 +316,18 @@ func NewIssueVariantEntity(issueVariant *IssueVariantInput) entity.IssueVariant 
 
 func NewUser(user *entity.User) User {
 	return User{
-		ID:    fmt.Sprintf("%d", user.Id),
-		SapID: &user.SapID,
-		Name:  &user.Name,
+		ID:           fmt.Sprintf("%d", user.Id),
+		UniqueUserID: &user.UniqueUserID,
+		Name:         &user.Name,
+		Type:         int(user.Type),
 	}
 }
 
 func NewUserEntity(user *UserInput) entity.User {
 	return entity.User{
-		Name:  lo.FromPtr(user.Name),
-		SapID: lo.FromPtr(user.SapID),
+		Name:         lo.FromPtr(user.Name),
+		UniqueUserID: lo.FromPtr(user.UniqueUserID),
+		Type:         entity.GetUserTypeFromString(lo.FromPtr(user.Type)),
 	}
 }
 

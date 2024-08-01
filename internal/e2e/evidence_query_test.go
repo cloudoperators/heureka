@@ -174,7 +174,8 @@ var _ = Describe("Getting Evidences via API", Label("e2e", "Evidences"), func() 
 
 						author := evidence.Node.Author
 						Expect(author.ID).ToNot(BeNil(), "author has a ID set")
-						Expect(author.SapID).ToNot(BeNil(), "author has a sapId set")
+						Expect(author.UniqueUserID).ToNot(BeNil(), "author has a uniqueUserId set")
+						Expect(author.Type).ToNot(BeNil(), "author has a type set")
 						Expect(author.Name).ToNot(BeNil(), "author has a name set")
 
 						activity := evidence.Node.Activity
