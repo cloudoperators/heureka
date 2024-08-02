@@ -73,7 +73,7 @@ func (h *HeurekaApp) ListUsers(filter *entity.UserFilter, options *entity.ListOp
 
 func (h *HeurekaApp) CreateUser(user *entity.User) (*entity.User, error) {
 	f := &entity.UserFilter{
-		SapID: []*string{&user.SapID},
+		UniqueUserID: []*string{&user.UniqueUserID},
 	}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -89,7 +89,7 @@ func (h *HeurekaApp) CreateUser(user *entity.User) (*entity.User, error) {
 	}
 
 	if len(users.Elements) > 0 {
-		return nil, heurekaError(fmt.Sprintf("Duplicated entry %s for sapId.", user.SapID))
+		return nil, heurekaError(fmt.Sprintf("Duplicated entry %s for UniqueUserID.", user.UniqueUserID))
 	}
 
 	newUser, err := h.database.CreateUser(user)

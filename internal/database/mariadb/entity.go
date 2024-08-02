@@ -42,6 +42,14 @@ func GetTimeValue(v sql.NullTime) time.Time {
 	}
 }
 
+func GetUserTypeValue(v sql.NullInt64) entity.UserType {
+	if v.Valid {
+		return entity.UserType(v.Int64)
+	} else {
+		return entity.InvalidUserType
+	}
+}
+
 type DatabaseRow interface {
 	IssueRow |
 		IssueCountRow |
@@ -563,29 +571,32 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 }
 
 type UserRow struct {
-	Id        sql.NullInt64  `db:"user_id" json:"id"`
-	Name      sql.NullString `db:"user_name" json:"ccrn"`
-	SapID     sql.NullString `db:"user_sapID" json:"sapId"`
-	CreatedAt sql.NullTime   `db:"user_created_at" json:"created_at"`
-	DeletedAt sql.NullTime   `db:"user_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt sql.NullTime   `db:"user_updated_at" json:"updated_at"`
+	Id           sql.NullInt64  `db:"user_id" json:"id"`
+	Name         sql.NullString `db:"user_name" json:"ccrn"`
+	UniqueUserID sql.NullString `db:"user_unique_user_id" json:"unique_user_id"`
+	Type         sql.NullInt64  `db:"user_type" json:"type"`
+	CreatedAt    sql.NullTime   `db:"user_created_at" json:"created_at"`
+	DeletedAt    sql.NullTime   `db:"user_deleted_at" json:"deleted_at,omitempty"`
+	UpdatedAt    sql.NullTime   `db:"user_updated_at" json:"updated_at"`
 }
 
 func (ur *UserRow) AsUser() entity.User {
 	return entity.User{
-		Id:        GetInt64Value(ur.Id),
-		Name:      GetStringValue(ur.Name),
-		SapID:     GetStringValue(ur.SapID),
-		CreatedAt: GetTimeValue(ur.CreatedAt),
-		DeletedAt: GetTimeValue(ur.DeletedAt),
-		UpdatedAt: GetTimeValue(ur.UpdatedAt),
+		Id:           GetInt64Value(ur.Id),
+		Name:         GetStringValue(ur.Name),
+		UniqueUserID: GetStringValue(ur.UniqueUserID),
+		Type:         GetUserTypeValue(ur.Type),
+		CreatedAt:    GetTimeValue(ur.CreatedAt),
+		DeletedAt:    GetTimeValue(ur.DeletedAt),
+		UpdatedAt:    GetTimeValue(ur.UpdatedAt),
 	}
 }
 
 func (ur *UserRow) FromUser(u *entity.User) {
 	ur.Id = sql.NullInt64{Int64: u.Id, Valid: true}
 	ur.Name = sql.NullString{String: u.Name, Valid: true}
-	ur.SapID = sql.NullString{String: u.SapID, Valid: true}
+	ur.UniqueUserID = sql.NullString{String: u.UniqueUserID, Valid: true}
+	ur.Type = sql.NullInt64{Int64: int64(u.Type), Valid: true}
 	ur.CreatedAt = sql.NullTime{Time: u.CreatedAt, Valid: true}
 	ur.DeletedAt = sql.NullTime{Time: u.DeletedAt, Valid: true}
 	ur.UpdatedAt = sql.NullTime{Time: u.UpdatedAt, Valid: true}

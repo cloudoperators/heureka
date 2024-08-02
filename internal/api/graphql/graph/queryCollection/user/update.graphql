@@ -8,7 +8,8 @@ mutation ($id: ID!, $input: UserInput!) {
     ) {
         __typename
         id
-        sapID
+        uniqueUserId
+        type
         name
     }
 }

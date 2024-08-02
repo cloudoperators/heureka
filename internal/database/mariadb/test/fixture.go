@@ -952,10 +952,12 @@ func (s *DatabaseSeeder) InsertFakeUser(user mariadb.UserRow) (int64, error) {
 	query := `
 		INSERT INTO User (
 			user_name,
-			user_sapID
+			user_unique_user_id,
+			user_type
 		) VALUES (
 			:user_name,
-			:user_sapID
+			:user_unique_user_id,
+			:user_type
 		)`
 	return s.ExecPreparedNamed(query, user)
 }
@@ -1209,11 +1211,24 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	}
 }
 
+var nextUserType entity.UserType = entity.HumanUserType
+
+func getNextUserType() int64 {
+	userType := nextUserType
+	if userType == entity.HumanUserType {
+		nextUserType = entity.TechnicalUserType
+	} else {
+		nextUserType = entity.HumanUserType
+	}
+	return int64(userType)
+}
+
 func NewFakeUser() mariadb.UserRow {
-	sapId := fmt.Sprintf("I%d", gofakeit.IntRange(100000, 999999))
+	uniqueUserId := fmt.Sprintf("I%d", gofakeit.IntRange(100000, 999999))
 	return mariadb.UserRow{
-		Name:  sql.NullString{String: gofakeit.Name(), Valid: true},
-		SapID: sql.NullString{String: sapId, Valid: true},
+		Name:         sql.NullString{String: gofakeit.Name(), Valid: true},
+		UniqueUserID: sql.NullString{String: uniqueUserId, Valid: true},
+		Type:         sql.NullInt64{Int64: getNextUserType(), Valid: true},
 	}
 }
 

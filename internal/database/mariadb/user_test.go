@@ -147,7 +147,8 @@ var _ = Describe("User", Label("database", "User"), func() {
 							for _, row := range seedCollection.UserRows {
 								if r.Id == row.Id.Int64 {
 									Expect(r.Name).Should(BeEquivalentTo(row.Name.String), "Name matches")
-									Expect(r.SapID).Should(BeEquivalentTo(row.SapID.String), "SAP ID matches")
+									Expect(r.UniqueUserID).Should(BeEquivalentTo(row.UniqueUserID.String), "Unique User ID matches")
+									Expect(r.Type).Should(BeEquivalentTo(row.Type.Int64), "Type matches")
 									Expect(r.CreatedAt.Unix()).ShouldNot(BeEquivalentTo(row.CreatedAt.Time.Unix()), "CreatedAt got set")
 									Expect(r.UpdatedAt.Unix()).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time.Unix()), "UpdatedAt got set")
 								}
@@ -257,7 +258,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 				It("can filter by a single sap id", func() {
 					row := seedCollection.UserRows[rand.Intn(len(seedCollection.UserRows))]
 
-					filter := &entity.UserFilter{SapID: []*string{&row.SapID.String}}
+					filter := &entity.UserFilter{UniqueUserID: []*string{&row.UniqueUserID.String}}
 
 					entries, err := db.GetUsers(filter)
 
@@ -269,8 +270,41 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 					By("returning expected number of results", func() {
 						for _, entry := range entries {
-							Expect(entry.SapID).To(BeEquivalentTo(row.SapID.String))
+							Expect(entry.UniqueUserID).To(BeEquivalentTo(row.UniqueUserID.String))
 						}
+					})
+				})
+				It("can filter by user type", func() {
+					humanUserTypeFilter := &entity.UserFilter{Type: []entity.UserType{entity.HumanUserType}}
+					humanUserEntries, cErr := db.GetUsers(humanUserTypeFilter)
+					By("throwing no error when filtering human user type", func() {
+						Expect(cErr).To(BeNil())
+					})
+					By("returning some results for human user type", func() {
+						Expect(humanUserEntries).NotTo(BeEmpty())
+					})
+					By("returning expected number of human users", func() {
+						for _, entry := range humanUserEntries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.HumanUserType))
+						}
+					})
+
+					technicalUserTypeFilter := &entity.UserFilter{Type: []entity.UserType{entity.TechnicalUserType}}
+					technicalUserEntries, tErr := db.GetUsers(technicalUserTypeFilter)
+					By("throwing no error when filtering technical user type", func() {
+						Expect(tErr).To(BeNil())
+					})
+					By("returning some results for technical user type", func() {
+						Expect(technicalUserEntries).NotTo(BeEmpty())
+					})
+					By("returning expected number of technical users", func() {
+						for _, entry := range technicalUserEntries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.TechnicalUserType))
+						}
+					})
+
+					By("number of human and technical user types should match number of all users", func() {
+						Expect(len(humanUserEntries) + len(technicalUserEntries)).To(BeEquivalentTo(len(seedCollection.UserRows)))
 					})
 				})
 			})
@@ -367,7 +401,8 @@ var _ = Describe("User", Label("database", "User"), func() {
 				By("setting fields", func() {
 					Expect(u[0].Id).To(BeEquivalentTo(user.Id))
 					Expect(u[0].Name).To(BeEquivalentTo(user.Name))
-					Expect(u[0].SapID).To(BeEquivalentTo(user.SapID))
+					Expect(u[0].UniqueUserID).To(BeEquivalentTo(user.UniqueUserID))
+					Expect(u[0].Type).To(BeEquivalentTo(user.Type))
 				})
 			})
 			It("does not insert user with existing sap id", func() {
@@ -415,13 +450,14 @@ var _ = Describe("User", Label("database", "User"), func() {
 				By("setting fields", func() {
 					Expect(u[0].Id).To(BeEquivalentTo(user.Id))
 					Expect(u[0].Name).To(BeEquivalentTo(user.Name))
-					Expect(u[0].SapID).To(BeEquivalentTo(user.SapID))
+					Expect(u[0].UniqueUserID).To(BeEquivalentTo(user.UniqueUserID))
+					Expect(u[0].Type).To(BeEquivalentTo(user.Type))
 				})
 			})
-			It("can update sapId correctly", func() {
+			It("can update unique user id correctly", func() {
 				user := seedCollection.UserRows[0].AsUser()
 
-				user.SapID = "D13377331"
+				user.UniqueUserID = "D13377331"
 				err := db.UpdateUser(&user)
 
 				By("throwing no error", func() {
@@ -442,7 +478,36 @@ var _ = Describe("User", Label("database", "User"), func() {
 				By("setting fields", func() {
 					Expect(u[0].Id).To(BeEquivalentTo(user.Id))
 					Expect(u[0].Name).To(BeEquivalentTo(user.Name))
-					Expect(u[0].SapID).To(BeEquivalentTo(user.SapID))
+					Expect(u[0].UniqueUserID).To(BeEquivalentTo(user.UniqueUserID))
+					Expect(u[0].Type).To(BeEquivalentTo(user.Type))
+				})
+			})
+			It("can update user type correctly", func() {
+				user := seedCollection.UserRows[0].AsUser()
+
+				user.Type = entity.TechnicalUserType
+				err := db.UpdateUser(&user)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				userFilter := &entity.UserFilter{
+					Id: []*int64{&user.Id},
+				}
+
+				u, err := db.GetUsers(userFilter)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning user", func() {
+					Expect(len(u)).To(BeEquivalentTo(1))
+				})
+				By("setting fields", func() {
+					Expect(u[0].Id).To(BeEquivalentTo(user.Id))
+					Expect(u[0].Name).To(BeEquivalentTo(user.Name))
+					Expect(u[0].UniqueUserID).To(BeEquivalentTo(user.UniqueUserID))
+					Expect(u[0].Type).To(BeEquivalentTo(user.Type))
 				})
 			})
 		})

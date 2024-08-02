@@ -110,7 +110,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 	})
 
 	It("creates user", func() {
-		filter.SapID = []*string{&user.SapID}
+		filter.UniqueUserID = []*string{&user.UniqueUserID}
 		db.On("CreateUser", &user).Return(&user, nil)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
 		heureka = app.NewHeurekaApp(db)
@@ -119,7 +119,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		Expect(newUser.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
 			Expect(newUser.Name).To(BeEquivalentTo(user.Name))
-			Expect(newUser.SapID).To(BeEquivalentTo(user.SapID))
+			Expect(newUser.UniqueUserID).To(BeEquivalentTo(user.UniqueUserID))
 		})
 	})
 })
@@ -156,7 +156,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedUser.Name).To(BeEquivalentTo(user.Name))
-			Expect(updatedUser.SapID).To(BeEquivalentTo(user.SapID))
+			Expect(updatedUser.UniqueUserID).To(BeEquivalentTo(user.UniqueUserID))
 		})
 	})
 })

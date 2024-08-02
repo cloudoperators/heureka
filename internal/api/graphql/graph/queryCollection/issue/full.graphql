@@ -107,7 +107,8 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                                         edges {
                                             node {
                                                 id
-                                                sapID
+                                                uniqueUserId
+                                                type
                                                 name
                                             }
                                             cursor

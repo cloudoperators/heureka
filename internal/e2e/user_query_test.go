@@ -157,7 +157,8 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 					for _, user := range respData.Users.Edges {
 						Expect(user.Node.ID).ToNot(BeNil(), "user has a ID set")
 						Expect(user.Node.Name).ToNot(BeNil(), "user has a name set")
-						Expect(user.Node.SapID).ToNot(BeNil(), "user has a sapId set")
+						Expect(user.Node.UniqueUserID).ToNot(BeNil(), "user has a uniqueUserId set")
+						Expect(user.Node.Type).ToNot(BeNil(), "user has a type set")
 
 						for _, service := range user.Node.Services.Edges {
 							Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
@@ -239,8 +240,9 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 				req := graphql.NewRequest(str)
 
 				req.Var("input", map[string]string{
-					"sapID": user.SapID,
-					"name":  user.Name,
+					"uniqueUserId": user.UniqueUserID,
+					"type":         entity.GetUserTypeString(user.Type),
+					"name":         user.Name,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -254,7 +256,8 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 				}
 
 				Expect(*respData.User.Name).To(Equal(user.Name))
-				Expect(*respData.User.SapID).To(Equal(user.SapID))
+				Expect(*respData.User.UniqueUserID).To(Equal(user.UniqueUserID))
+				Expect(entity.UserType(respData.User.Type)).To(Equal(user.Type))
 			})
 		})
 	})
@@ -321,7 +324,8 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 				}
 
 				Expect(*respData.User.Name).To(Equal(user.Name))
-				Expect(*respData.User.SapID).To(Equal(user.SapID))
+				Expect(*respData.User.UniqueUserID).To(Equal(user.UniqueUserID))
+				Expect(entity.UserType(respData.User.Type)).To(Equal(user.Type))
 			})
 		})
 	})
