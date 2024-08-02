@@ -8,6 +8,9 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
         after: $after
     ) {
         totalCount
+        vulnerabilityCount
+        policyViolationCount
+        securityEventCount
         edges {
             node {
                 id

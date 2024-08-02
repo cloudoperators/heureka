@@ -3,7 +3,9 @@
 
 package entity
 
-import "time"
+import (
+	"time"
+)
 
 type IssueWithAggregations struct {
 	IssueAggregations
@@ -84,4 +86,31 @@ type Issue struct {
 	CreatedAt         time.Time          `json:"created_at"`
 	DeletedAt         time.Time          `json:"deleted_at,omitempty"`
 	UpdatedAt         time.Time          `json:"updated_lsat"`
+}
+
+type IssueCount struct {
+	Count int64     `json:"count"`
+	Type  IssueType `json:"type"`
+}
+
+type IssueTypeCounts struct {
+	VulnerabilityCount   int64 `json:"vulnerability_count"`
+	PolicyViolationCount int64 `json:"policy_violation_count"`
+	SecurityEventCount   int64 `json:"security_event_count"`
+}
+
+func (itc *IssueTypeCounts) TotalIssueCount() int64 {
+	return itc.VulnerabilityCount + itc.PolicyViolationCount + itc.SecurityEventCount
+}
+
+type IssueList struct {
+	*List[IssueResult]
+	VulnerabilityCount   *int64
+	PolicyViolationCount *int64
+	SecurityEventCount   *int64
+}
+
+type IssueListOptions struct {
+	ListOptions
+	ShowIssueTypeCounts bool
 }
