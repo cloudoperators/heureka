@@ -202,12 +202,14 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 		heureka app.Heureka
 		filter  *entity.UserFilter
 		options *entity.ListOptions
+		name    string
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = getListOptions()
 		filter = getUserFilter()
+		name = "Stephen Haag"
 	})
 
 	When("no filters are used", func() {
@@ -225,21 +227,62 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 	})
 	When("specific UserNames filter is applied", func() {
 		BeforeEach(func() {
-			namePointers := []*string{}
-			name := "Stephen Haag"
-			namePointers = append(namePointers, &name)
-
 			filter = &entity.UserFilter{
-				Name: namePointers,
+				Name: []*string{&name},
 			}
 
-			db.On("GetUserNames", filter).Return([]string{"Stephen Haag"}, nil)
+			db.On("GetUserNames", filter).Return([]string{name}, nil)
 		})
 		It("returns filtered users according to the service type", func() {
 			heureka = app.NewHeurekaApp(db)
 			res, err := heureka.ListUserNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(res).Should(ConsistOf("Stephen Haag"), "should only consist of 'Stephen Haag'")
+			Expect(res).Should(ConsistOf(name), "should only consist of name")
+		})
+	})
+})
+var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserID"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		filter  *entity.UserFilter
+		options *entity.ListOptions
+		uuid    string
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = getListOptions()
+		filter = getUserFilter()
+		uuid = "I978974"
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetUniqueUserIDs", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListUniqueUserID(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific UniqueUserID filter is applied", func() {
+		BeforeEach(func() {
+			filter = &entity.UserFilter{
+				UniqueUserID: []*string{&uuid},
+			}
+
+			db.On("GetUniqueUserIDs", filter).Return([]string{uuid}, nil)
+		})
+		It("returns filtered users according to the service type", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListUniqueUserID(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf(uuid), "should only consist of UniqueUserID")
 		})
 	})
 })

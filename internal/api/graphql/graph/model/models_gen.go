@@ -610,7 +610,7 @@ func (this ServiceEdge) GetCursor() *string { return this.Cursor }
 
 type ServiceFilter struct {
 	ServiceName      []*string `json:"serviceName,omitempty"`
-	UniqueUserID     []*string `json:"uniqueUserID,omitempty"`
+	UniqueUserID     []*string `json:"uniqueUserId,omitempty"`
 	Type             []*int    `json:"type,omitempty"`
 	UserName         []*string `json:"userName,omitempty"`
 	SupportGroupName []*string `json:"supportGroupName,omitempty"`
@@ -618,7 +618,7 @@ type ServiceFilter struct {
 
 type ServiceFilterValue struct {
 	ServiceName      *FilterItem `json:"serviceName,omitempty"`
-	UserSapID        *FilterItem `json:"userSapID,omitempty"`
+	UniqueUserID     *FilterItem `json:"uniqueUserId,omitempty"`
 	UserName         *FilterItem `json:"userName,omitempty"`
 	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
 }
@@ -709,6 +709,7 @@ func (this UserEdge) GetCursor() *string { return this.Cursor }
 type UserFilter struct {
 	UserName        []*string `json:"userName,omitempty"`
 	SupportGroupIds []*string `json:"supportGroupIds,omitempty"`
+	UniqueUserID    []*string `json:"uniqueUserId,omitempty"`
 }
 
 type UserInput struct {

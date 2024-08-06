@@ -3,7 +3,7 @@
 
 type ServiceFilterValue {
     serviceName(filter: ServiceFilter, first: Int, after: String): FilterItem
-    userSapID(filter: UserFilter, first: Int, after: String): FilterItem
+    uniqueUserId(filter: UserFilter, first: Int, after: String): FilterItem
     userName(filter: UserFilter, first: Int, after: String): FilterItem
     supportGroupName(filter: SupportGroupFilter, first: Int, after: String): FilterItem
 }

@@ -195,7 +195,7 @@ models:
     fields:
       serviceName: 
         resolver: true
-      userSapID:
+      uniqueUserId:
         resolver: true
       userName:
         resolver: true

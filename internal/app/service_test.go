@@ -292,12 +292,14 @@ var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"),
 		heureka app.Heureka
 		filter  *entity.ServiceFilter
 		options *entity.ListOptions
+		name    string
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = getListOptions()
 		filter = getServiceFilter()
+		name = "f1"
 	})
 
 	When("no filters are used", func() {
@@ -315,21 +317,17 @@ var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"),
 	})
 	When("specific serviceNames filter is applied", func() {
 		BeforeEach(func() {
-			namePointers := []*string{}
-			name := "f1"
-			namePointers = append(namePointers, &name)
-
 			filter = &entity.ServiceFilter{
-				Name: namePointers,
+				Name: []*string{&name},
 			}
 
-			db.On("GetServiceNames", filter).Return([]string{"f1"}, nil)
+			db.On("GetServiceNames", filter).Return([]string{name}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
 			heureka = app.NewHeurekaApp(db)
 			res, err := heureka.ListServiceNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(res).Should(ConsistOf("f1"), "should only consist of 'f1'")
+			Expect(res).Should(ConsistOf(name), "should only consist of serviceName")
 		})
 	})
 })

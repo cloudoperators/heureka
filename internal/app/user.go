@@ -161,3 +161,19 @@ func (h *HeurekaApp) ListUserNames(filter *entity.UserFilter, options *entity.Li
 
 	return userNames, nil
 }
+
+func (h *HeurekaApp) ListUniqueUserID(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.ListUniqueUserID",
+		"filter": filter,
+	})
+
+	uniqueUserID, err := h.database.GetUniqueUserIDs(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving uniqueUserID.")
+	}
+
+	return uniqueUserID, nil
+}

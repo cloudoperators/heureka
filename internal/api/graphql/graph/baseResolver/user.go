@@ -167,3 +167,46 @@ func UserNameBaseResolver(app app.Heureka, filter *model.UserFilter, ctx context
 
 	return &filterItem, nil
 }
+
+func UniqueUserIDBaseResolver(app app.Heureka, filter *model.UserFilter, ctx context.Context, first *int, after *string) (*model.FilterItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called UniqueUserIDBaseResolver")
+
+	afterId, err := ParseCursor(after)
+	if err != nil {
+		logrus.WithField("after", after).Error("UniqueUserIDBaseResolver: Error while parsing parameter 'after'")
+		return nil, NewResolverError("UniqueUserIDBaseResolver", "Bad Request - unable to parse cursor 'after'")
+	}
+
+	if filter == nil {
+		filter = &model.UserFilter{}
+	}
+
+	f := &entity.UserFilter{
+		Paginated:    entity.Paginated{First: first, After: afterId},
+		UniqueUserID: filter.UniqueUserID,
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, err := app.ListUniqueUserID(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("UniqueUserIDBaseResolver", err.Error())
+	}
+
+	var pointerNames []*string
+
+	for _, name := range names {
+		pointerNames = append(pointerNames, &name)
+	}
+
+	filterItem := model.FilterItem{
+		FilterName: &FilterUniqueUserID,
+		Values:     pointerNames,
+	}
+
+	return &filterItem, nil
+}
