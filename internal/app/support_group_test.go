@@ -279,3 +279,50 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
 })
+var _ = Describe("When listing supportGroupNames", Label("app", "ListSupportGroupNames"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		filter  *entity.SupportGroupFilter
+		options *entity.ListOptions
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = getListOptions()
+		filter = getSupportGroupFilter()
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetSupportGroupNames", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListSupportGroupNames(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific supportGroupNames filter is applied", func() {
+		BeforeEach(func() {
+			namePointers := []*string{}
+			name := "src"
+			namePointers = append(namePointers, &name)
+
+			filter = &entity.SupportGroupFilter{
+				Name: namePointers,
+			}
+
+			db.On("GetSupportGroupNames", filter).Return([]string{"src"}, nil)
+		})
+		It("returns filtered userGroups according to the service type", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListSupportGroupNames(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf("src"), "should only consist of 'src'")
+		})
+	})
+})

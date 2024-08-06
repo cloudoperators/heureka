@@ -778,40 +778,67 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 			})
-			// Context("and using a filter", func() {
-			// 	DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
-			// 		// select a support group
-			// 		sgRow := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
+			Context("and using a ServiceName filter", func() {
 
-			// 		// collect all service ids that belong to the support group
-			// 		serviceIds := []int64{}
-			// 		for _, sgsRow := range seedCollection.SupportGroupServiceRows {
-			// 			if sgsRow.SupportGroupId.Int64 == sgRow.Id.Int64 {
-			// 				serviceIds = append(serviceIds, sgsRow.ServiceId.Int64)
-			// 			}
-			// 		}
+				var filter *entity.ServiceFilter
+				var expectedServiceNames []string
+				BeforeEach(func() {
+					namePointers := []*string{}
 
-			// 		filter := &entity.ServiceFilter{
-			// 			Paginated: entity.Paginated{
-			// 				First: &pageSize,
-			// 				After: nil,
-			// 			},
-			// 			SupportGroupName: []*string{&sgRow.Name.String},
-			// 		}
-			// 		entries, err := db.CountServices(filter)
-			// 		By("throwing no error", func() {
-			// 			Expect(err).To(BeNil())
-			// 		})
+					name := "f1"
+					namePointers = append(namePointers, &name)
 
-			// 		By("returning the correct count", func() {
-			// 			Expect(entries).To(BeEquivalentTo(len(serviceIds)))
-			// 		})
-			// 	},
-			// 		Entry("and pageSize is 1 and it has 13 elements", 1, 13),
-			// 		Entry("and  pageSize is 20 and it has 5 elements", 20, 5),
-			// 		Entry("and  pageSize is 100 and it has 100 elements", 100, 100),
-			// 	)
-			// })
+					filter = &entity.ServiceFilter{
+						Name: namePointers,
+					}
+
+					It("can fetch the filtered items correctly", func() {
+						res, err := db.GetServiceNames(filter)
+
+						By("throwing no error", func() {
+							Expect(err).Should(BeNil())
+						})
+
+						By("returning the correct number of results", func() {
+							Expect(len(res)).Should(BeIdenticalTo(len(expectedServiceNames)))
+						})
+
+						By("returning the correct names", func() {
+							left, right := lo.Difference(res, expectedServiceNames)
+							Expect(left).Should(BeEmpty())
+							Expect(right).Should(BeEmpty())
+						})
+					})
+					It("and using another filter", func() {
+
+						var anotherFilter *entity.ServiceFilter
+						BeforeEach(func() {
+
+							nonExistentServiceName := "NonexistentService"
+
+							nonExistentServiceNames := []*string{&nonExistentServiceName}
+
+							anotherFilter = &entity.ServiceFilter{
+								Name: nonExistentServiceNames,
+							}
+
+							It("returns an empty list when no services match the filter", func() {
+								res, err := db.GetServiceNames(anotherFilter)
+								Expect(err).Should(BeNil())
+								Expect(res).Should(BeEmpty())
+
+								By("throwing no error", func() {
+									Expect(err).Should(BeNil())
+								})
+
+								By("returning an empty list", func() {
+									Expect(res).Should(BeEmpty())
+								})
+							})
+						})
+					})
+				})
+			})
 		})
 	})
 })

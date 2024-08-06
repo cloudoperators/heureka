@@ -15,5 +15,5 @@ type Query {
     Evidences(filter: EvidenceFilter, first: Int, after: String): EvidenceConnection
     SupportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
     Users(filter: UserFilter, first: Int, after: String): UserConnection
-    ServiceFilterValues(filter: ServiceFilter, first: Int, after: String): ServiceFilterValue
+    ServiceFilterValues: ServiceFilterValue
 }

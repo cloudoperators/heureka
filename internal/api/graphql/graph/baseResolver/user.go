@@ -125,3 +125,45 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 
 	return &connection, nil
 }
+func UserNameBaseResolver(app app.Heureka, filter *model.UserFilter, ctx context.Context, first *int, after *string) (*model.FilterItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called UserNameBaseResolver")
+
+	afterId, err := ParseCursor(after)
+	if err != nil {
+		logrus.WithField("after", after).Error("UserNameBaseResolver: Error while parsing parameter 'after'")
+		return nil, NewResolverError("UserNameBaseResolver", "Bad Request - unable to parse cursor 'after'")
+	}
+
+	if filter == nil {
+		filter = &model.UserFilter{}
+	}
+
+	f := &entity.UserFilter{
+		Paginated: entity.Paginated{First: first, After: afterId},
+		Name:      filter.UserName,
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, err := app.ListUserNames(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("UserNameBaseResolver", err.Error())
+	}
+
+	var pointerNames []*string
+
+	for _, name := range names {
+		pointerNames = append(pointerNames, &name)
+	}
+
+	filterItem := model.FilterItem{
+		FilterName: &FilterUserName,
+		Values:     pointerNames,
+	}
+
+	return &filterItem, nil
+}

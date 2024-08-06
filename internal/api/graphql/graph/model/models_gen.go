@@ -293,6 +293,11 @@ type EvidenceInput struct {
 	Severity    *SeverityInput `json:"severity,omitempty"`
 }
 
+type FilterItem struct {
+	FilterName *string   `json:"filterName,omitempty"`
+	Values     []*string `json:"values,omitempty"`
+}
+
 type Issue struct {
 	ID                string                      `json:"id"`
 	Type              *IssueTypes                 `json:"type,omitempty"`
@@ -612,10 +617,10 @@ type ServiceFilter struct {
 }
 
 type ServiceFilterValue struct {
-	ServiceName      []*string `json:"serviceName,omitempty"`
-	UserSapID        []*string `json:"userSapID,omitempty"`
-	UserName         []*string `json:"userName,omitempty"`
-	SupportGroupName []*string `json:"supportGroupName,omitempty"`
+	ServiceName      *FilterItem `json:"serviceName,omitempty"`
+	UserSapID        *FilterItem `json:"userSapID,omitempty"`
+	UserName         *FilterItem `json:"userName,omitempty"`
+	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
 }
 
 type ServiceInput struct {

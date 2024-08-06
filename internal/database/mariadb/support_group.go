@@ -370,3 +370,52 @@ func (s *SqlDatabase) RemoveUserFromSupportGroup(supportGroupId int64, userId in
 
 	return err
 }
+
+func (s *SqlDatabase) GetSupportGroupNames(filter *entity.SupportGroupFilter) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetSupportGroupNames",
+	})
+
+	baseQuery := `
+    SELECT SG.supportgroup_name FROM SupportGroup SG
+    %s
+    %s
+    `
+
+	// Ensure the filter is initialized
+	filter = s.ensureSupportGroupFilter(filter)
+
+	// Builds full statement with possible joins and filters
+	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, l)
+	if err != nil {
+		l.Error("Error preparing statement: ", err)
+		return nil, err
+	}
+	defer stmt.Close()
+
+	// Execute the query
+	rows, err := stmt.Queryx(filterParameters...)
+	if err != nil {
+		l.Error("Error executing query: ", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Collect the results
+	supportGroupNames := []string{}
+	var name string
+	for rows.Next() {
+		if err := rows.Scan(&name); err != nil {
+			l.Error("Error scanning row: ", err)
+			continue
+		}
+		supportGroupNames = append(supportGroupNames, name)
+	}
+	if err = rows.Err(); err != nil {
+		l.Error("Row iteration error: ", err)
+		return nil, err
+	}
+
+	return supportGroupNames, nil
+}

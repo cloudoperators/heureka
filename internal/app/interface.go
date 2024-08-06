@@ -54,6 +54,7 @@ type Heureka interface {
 	CreateUser(*entity.User) (*entity.User, error)
 	UpdateUser(*entity.User) (*entity.User, error)
 	DeleteUser(int64) error
+	ListUserNames(*entity.UserFilter, *entity.ListOptions) ([]string, error)
 
 	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
 	GetSupportGroup(int64) (*entity.SupportGroup, error)
@@ -64,6 +65,7 @@ type Heureka interface {
 	RemoveServiceFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
 	AddUserToSupportGroup(int64, int64) (*entity.SupportGroup, error)
 	RemoveUserFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	ListSupportGroupNames(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)
 
 	ListComponentInstances(*entity.ComponentInstanceFilter, *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error)
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)

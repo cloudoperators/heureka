@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package resolver
 
 // This file will be automatically regenerated based on the schema, any resolver implementations
@@ -14,23 +17,23 @@ import (
 )
 
 // ServiceName is the resolver for the serviceName field.
-func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter, first *int, after *string) ([]*string, error) {
+func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter, first *int, after *string) (*model.FilterItem, error) {
 	return baseResolver.ServiceNameBaseResolver(r.App, filter, ctx, first, after)
 }
 
 // UserSapID is the resolver for the userSapID field.
-func (r *serviceFilterValueResolver) UserSapID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) ([]*string, error) {
+func (r *serviceFilterValueResolver) UserSapID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error) {
 	panic(fmt.Errorf("not implemented: UserSapID - userSapID"))
 }
 
 // UserName is the resolver for the userName field.
-func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) ([]*string, error) {
-	panic(fmt.Errorf("not implemented: UserName - userName"))
+func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error) {
+	return baseResolver.UserNameBaseResolver(r.App, filter, ctx, first, after)
 }
 
 // SupportGroupName is the resolver for the supportGroupName field.
-func (r *serviceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter, first *int, after *string) ([]*string, error) {
-	panic(fmt.Errorf("not implemented: SupportGroupName - supportGroupName"))
+func (r *serviceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter, first *int, after *string) (*model.FilterItem, error) {
+	return baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter, first, after)
 }
 
 // ServiceFilterValue returns graph.ServiceFilterValueResolver implementation.

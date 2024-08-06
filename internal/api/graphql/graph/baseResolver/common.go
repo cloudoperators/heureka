@@ -6,10 +6,17 @@ package baseResolver
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/samber/lo"
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"strconv"
+)
+
+var (
+	FilterServiceName      string = "Service Name"
+	FilterSupportGroupName string = "SupportGroup Name"
+	FilterUserName         string = "User Name"
 )
 
 type ResolverError struct {

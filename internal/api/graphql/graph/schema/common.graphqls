@@ -99,3 +99,8 @@ type Severity {
 input SeverityInput {
     vector: String
 }
+
+type FilterItem {
+    filterName: String
+    values: [String]
+}

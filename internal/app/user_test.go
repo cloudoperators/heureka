@@ -196,3 +196,50 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		Expect(users.Elements).To(BeEmpty(), "no error should be thrown")
 	})
 })
+var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		filter  *entity.UserFilter
+		options *entity.ListOptions
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = getListOptions()
+		filter = getUserFilter()
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetUserNames", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListUserNames(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific UserNames filter is applied", func() {
+		BeforeEach(func() {
+			namePointers := []*string{}
+			name := "Stephen Haag"
+			namePointers = append(namePointers, &name)
+
+			filter = &entity.UserFilter{
+				Name: namePointers,
+			}
+
+			db.On("GetUserNames", filter).Return([]string{"Stephen Haag"}, nil)
+		})
+		It("returns filtered users according to the service type", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListUserNames(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf("Stephen Haag"), "should only consist of 'Stephen Haag'")
+		})
+	})
+})

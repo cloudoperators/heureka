@@ -67,7 +67,7 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ServiceFilterValues.ServiceName).To(BeEmpty())
+			Expect(respData.ServiceFilterValues.ServiceName.Values).To(BeEmpty())
 		})
 	})
 
@@ -99,12 +99,13 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ServiceFilterValues.ServiceName)).To(Equal(len(seedCollection.ServiceRows)))
+				Expect(len(respData.ServiceFilterValues.ServiceName.Values)).To(Equal(len(seedCollection.ServiceRows)))
 
 				existingServiceNames := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
 					return s.Name.String
 				})
-				for _, name := range respData.ServiceFilterValues.ServiceName {
+
+				for _, name := range respData.ServiceFilterValues.ServiceName.Values {
 					Expect(lo.Contains(existingServiceNames, *name)).To(BeTrue())
 				}
 			})
