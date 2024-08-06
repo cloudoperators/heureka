@@ -541,4 +541,108 @@ var _ = Describe("User", Label("database", "User"), func() {
 			})
 		})
 	})
+	When("Getting UserNames", Label("GetUserNames"), func() {
+		Context("and the database is empty", func() {
+			It("can perform the list query", func() {
+				res, err := db.GetUserNames(nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning an empty list", func() {
+					Expect(res).To(BeEmpty())
+				})
+			})
+		})
+		Context("and we have 10 services in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+
+			Context("and using no filter", func() {
+				It("can fetch the items correctly", func() {
+					res, err := db.GetUserNames(nil)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
+					})
+
+					existingUserNames := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
+						return s.Name.String
+					})
+
+					By("returning the correct names", func() {
+						left, right := lo.Difference(res, existingUserNames)
+						Expect(left).Should(BeEmpty())
+						Expect(right).Should(BeEmpty())
+					})
+				})
+			})
+			Context("and using a UserNames filter", func() {
+
+				var filter *entity.UserFilter
+				var expectedUserNames []string
+				BeforeEach(func() {
+					namePointers := []*string{}
+
+					name := "f1"
+					namePointers = append(namePointers, &name)
+
+					filter = &entity.UserFilter{
+						Name: namePointers,
+					}
+
+					It("can fetch the filtered items correctly", func() {
+						res, err := db.GetUserNames(filter)
+
+						By("throwing no error", func() {
+							Expect(err).Should(BeNil())
+						})
+
+						By("returning the correct number of results", func() {
+							Expect(len(res)).Should(BeIdenticalTo(len(expectedUserNames)))
+						})
+
+						By("returning the correct names", func() {
+							left, right := lo.Difference(res, expectedUserNames)
+							Expect(left).Should(BeEmpty())
+							Expect(right).Should(BeEmpty())
+						})
+					})
+					It("and using another filter", func() {
+
+						var anotherFilter *entity.UserFilter
+						BeforeEach(func() {
+
+							nonExistentUserName := "NonexistentService"
+
+							nonExistentUserNames := []*string{&nonExistentUserName}
+
+							anotherFilter = &entity.UserFilter{
+								Name: nonExistentUserNames,
+							}
+
+							It("returns an empty list when no users match the filter", func() {
+								res, err := db.GetUserNames(anotherFilter)
+								Expect(err).Should(BeNil())
+								Expect(res).Should(BeEmpty())
+
+								By("throwing no error", func() {
+									Expect(err).Should(BeNil())
+								})
+
+								By("returning an empty list", func() {
+									Expect(res).Should(BeEmpty())
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
 })

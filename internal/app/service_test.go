@@ -313,4 +313,23 @@ var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"),
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
 	})
+	When("specific serviceNames filter is applied", func() {
+		BeforeEach(func() {
+			namePointers := []*string{}
+			name := "f1"
+			namePointers = append(namePointers, &name)
+
+			filter = &entity.ServiceFilter{
+				Name: namePointers,
+			}
+
+			db.On("GetServiceNames", filter).Return([]string{"f1"}, nil)
+		})
+		It("returns filtered services according to the service type", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListServiceNames(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf("f1"), "should only consist of 'f1'")
+		})
+	})
 })

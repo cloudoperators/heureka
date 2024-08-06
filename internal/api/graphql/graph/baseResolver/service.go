@@ -143,7 +143,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	return &connection, nil
 
 }
-func ServiceNameBaseResolver(app app.Heureka, filter *model.ServiceFilter, ctx context.Context, first *int, after *string) ([]*string, error) {
+func ServiceNameBaseResolver(app app.Heureka, filter *model.ServiceFilter, ctx context.Context, first *int, after *string) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -180,5 +180,10 @@ func ServiceNameBaseResolver(app app.Heureka, filter *model.ServiceFilter, ctx c
 		pointerNames = append(pointerNames, &name)
 	}
 
-	return pointerNames, nil
+	filterItem := model.FilterItem{
+		FilterName: &FilterServiceName,
+		Values:     pointerNames,
+	}
+
+	return &filterItem, nil
 }

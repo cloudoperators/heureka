@@ -81,7 +81,7 @@ func (r *queryResolver) Users(ctx context.Context, filter *model.UserFilter, fir
 }
 
 // ServiceFilterValues is the resolver for the ServiceFilterValues field.
-func (r *queryResolver) ServiceFilterValues(ctx context.Context, filter *model.ServiceFilter, first *int, after *string) (*model.ServiceFilterValue, error) {
+func (r *queryResolver) ServiceFilterValues(ctx context.Context) (*model.ServiceFilterValue, error) {
 	return &model.ServiceFilterValue{}, nil
 }
 
