@@ -326,6 +326,71 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(entry.Type).To(BeEquivalentTo(issueType))
 					}
 				})
+				It("can filter issue PrimaryName using wild card search", func() {
+					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
+
+					const charactersToRemoveFromBeginning = 2
+					const charactersToRemoveFromEnd = 2
+					const minimalCharactersToKeep = 5
+
+					start := charactersToRemoveFromBeginning
+					end := len(row.PrimaryName.String) - charactersToRemoveFromEnd
+
+					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
+
+					searchStr := row.PrimaryName.String[start:end]
+					filter := &entity.IssueFilter{Search: []*string{&searchStr}}
+
+					entries, err := db.GetIssues(filter)
+
+					issueIds := []int64{}
+					for _, entry := range entries {
+						issueIds = append(issueIds, entry.Id)
+					}
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("at least one element was discarded (filtered)", func() {
+						Expect(len(seedCollection.IssueRows) > len(issueIds)).To(BeTrue())
+					})
+
+					By("returning the expected elements", func() {
+						Expect(issueIds).To(ContainElement(row.Id.Int64))
+					})
+				})
+				It("can filter issue variant SecondaryName using wild card search", func() {
+					// select an issueVariant
+					issueVariantRow := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+
+					const charactersToRemoveFromBeginning = 2
+					const charactersToRemoveFromEnd = 2
+					const minimalCharactersToKeep = 5
+
+					start := charactersToRemoveFromBeginning
+					end := len(issueVariantRow.SecondaryName.String) - charactersToRemoveFromEnd
+
+					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
+
+					searchStr := issueVariantRow.SecondaryName.String[start:end]
+					filter := &entity.IssueFilter{Search: []*string{&searchStr}}
+
+					entries, err := db.GetIssues(filter)
+
+					issueIds := []int64{}
+					for _, entry := range entries {
+						issueIds = append(issueIds, entry.Id)
+					}
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning the expected elements", func() {
+						Expect(issueIds).To(ContainElement(issueVariantRow.IssueId.Int64))
+					})
+				})
 			})
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate", func(pageSize int) {

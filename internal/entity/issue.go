@@ -57,6 +57,7 @@ type IssueFilter struct {
 	IssueMatchId                    []*int64    `json:"issue_match_id"`
 	ComponentVersionId              []*int64    `json:"component_version_id"`
 	IssueVariantId                  []*int64    `json:"issue_variant_id"`
+	Search                          []*string   `json:"search"`
 	IssueMatchStatus                []*string   `json:"issue_match_status"`
 	IssueMatchDiscoveryDate         *TimeFilter `json:"issue_match_discovery_date"`
 	IssueMatchTargetRemediationDate *TimeFilter `json:"issue_match_target_remediation_date"`

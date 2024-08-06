@@ -58,6 +58,8 @@ input IssueFilter {
 
     componentVersionId: [String],
 
+    search: [String],
+
     # leave away for MVP
     # cveDescription: [String]
     # fromAdvisory: ID,

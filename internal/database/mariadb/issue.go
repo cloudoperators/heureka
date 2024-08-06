@@ -12,6 +12,11 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
+const (
+	wildCardFilterQuery      = "IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')"
+	wildCardFilterParamCount = 2
+)
+
 func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ServiceName, "S.service_name = ?", OP_OR))
@@ -23,6 +28,7 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.IssueVariantId, "IV.issuevariant_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "I.issue_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
 	fl = append(fl, "I.issue_deleted_at IS NULL")
 
 	return combineFilterQueries(fl, OP_AND)
@@ -55,7 +61,7 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, withAggregations
 		`)
 	}
 
-	if len(filter.IssueVariantId) > 0 {
+	if len(filter.IssueVariantId) > 0 || len(filter.Search) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueVariant IV ON I.issue_id = IV.issuevariant_issue_id
 		`)
@@ -164,6 +170,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
 	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
+	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
 		filterParameters = append(filterParameters, cursor.Limit)
