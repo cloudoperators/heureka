@@ -65,6 +65,7 @@ type Database interface {
 	UpdateUser(*entity.User) error
 	DeleteUser(int64) error
 	GetUserNames(*entity.UserFilter) ([]string, error)
+	GetUniqueUserIDs(*entity.UserFilter) ([]string, error)
 
 	GetSupportGroups(*entity.SupportGroupFilter) ([]entity.SupportGroup, error)
 	GetAllSupportGroupIds(*entity.SupportGroupFilter) ([]int64, error)

@@ -46,7 +46,7 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 	})
 
 	When("the database is empty", func() {
-		It("returns empty resultset", func() {
+		It("returns empty resultset for serviceFilter", func() {
 			// create a queryCollection (safe to share across requests)
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
@@ -69,6 +69,69 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 
 			Expect(respData.ServiceFilterValues.ServiceName.Values).To(BeEmpty())
 		})
+		It("returns empty for supportGroupNames", func() {
+			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroupNames.graphql")
+
+			Expect(err).To(BeNil())
+			str := string(b)
+			req := graphql.NewRequest(str)
+
+			req.Header.Set("Cache-Control", "no-cache")
+			ctx := context.Background()
+
+			var respData struct {
+				ServiceFilterValues model.ServiceFilterValue `json:"ServiceFilterValues"`
+			}
+			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+			}
+
+			Expect(respData.ServiceFilterValues.SupportGroupName.Values).To(BeEmpty())
+		})
+		It("returns empty for userNames", func() {
+			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/userNames.graphql")
+
+			Expect(err).To(BeNil())
+			str := string(b)
+			req := graphql.NewRequest(str)
+
+			req.Header.Set("Cache-Control", "no-cache")
+			ctx := context.Background()
+
+			var respData struct {
+				ServiceFilterValues model.ServiceFilterValue `json:"ServiceFilterValues"`
+			}
+			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+			}
+
+			Expect(respData.ServiceFilterValues.UserName.Values).To(BeEmpty())
+		})
+		It("returns empty for uniqueUserID", func() {
+			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/uniqueUserId.graphql")
+
+			Expect(err).To(BeNil())
+			str := string(b)
+			req := graphql.NewRequest(str)
+
+			req.Header.Set("Cache-Control", "no-cache")
+			ctx := context.Background()
+
+			var respData struct {
+				ServiceFilterValues model.ServiceFilterValue `json:"ServiceFilterValues"`
+			}
+			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+			}
+
+			Expect(respData.ServiceFilterValues.UniqueUserID.Values).To(BeEmpty())
+		})
 	})
 
 	When("the database has 10 entries", func() {
@@ -79,10 +142,8 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 		})
 		Context("and no additional filters are present", func() {
 			It("returns correct serviceNames", func() {
-				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/serviceNames.graphql")
 
 				Expect(err).To(BeNil())
@@ -107,6 +168,93 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 
 				for _, name := range respData.ServiceFilterValues.ServiceName.Values {
 					Expect(lo.Contains(existingServiceNames, *name)).To(BeTrue())
+				}
+			})
+			It("returns correct supportGroupNames", func() {
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroupNames.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					ServiceFilterValues model.ServiceFilterValue `json:"ServiceFilterValues"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				Expect(len(respData.ServiceFilterValues.SupportGroupName.Values)).To(Equal(len(seedCollection.SupportGroupRows)))
+
+				existingSupportGroupNames := lo.Map(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow, index int) string {
+					return s.Name.String
+				})
+
+				for _, name := range respData.ServiceFilterValues.SupportGroupName.Values {
+					Expect(lo.Contains(existingSupportGroupNames, *name)).To(BeTrue())
+				}
+			})
+			It("returns correct userNames", func() {
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/userNames.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					ServiceFilterValues model.ServiceFilterValue `json:"ServiceFilterValues"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				Expect(len(respData.ServiceFilterValues.UserName.Values)).To(Equal(len(seedCollection.UserRows)))
+
+				existingUserNames := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
+					return s.Name.String
+				})
+
+				for _, name := range respData.ServiceFilterValues.UserName.Values {
+					Expect(lo.Contains(existingUserNames, *name)).To(BeTrue())
+				}
+			})
+			It("returns correct UniqueUserID", func() {
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/uniqueUserId.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					ServiceFilterValues model.ServiceFilterValue `json:"ServiceFilterValues"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				Expect(len(respData.ServiceFilterValues.UniqueUserID.Values)).To(Equal(len(seedCollection.UserRows)))
+
+				existingUniqueUserIds := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
+					return s.UniqueUserID.String
+				})
+
+				for _, name := range respData.ServiceFilterValues.UniqueUserID.Values {
+					Expect(lo.Contains(existingUniqueUserIds, *name)).To(BeTrue())
 				}
 			})
 		})

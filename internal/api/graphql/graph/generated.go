@@ -470,8 +470,8 @@ type ComplexityRoot struct {
 	ServiceFilterValue struct {
 		ServiceName      func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
 		SupportGroupName func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
+		UniqueUserID     func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
 		UserName         func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
-		UserSapID        func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
 	}
 
 	Severity struct {
@@ -657,7 +657,7 @@ type ServiceResolver interface {
 }
 type ServiceFilterValueResolver interface {
 	ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter, first *int, after *string) (*model.FilterItem, error)
-	UserSapID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error)
+	UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error)
 	UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error)
 	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter, first *int, after *string) (*model.FilterItem, error)
 }
@@ -3065,6 +3065,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ServiceFilterValue.SupportGroupName(childComplexity, args["filter"].(*model.SupportGroupFilter), args["first"].(*int), args["after"].(*string)), true
 
+	case "ServiceFilterValue.uniqueUserId":
+		if e.complexity.ServiceFilterValue.UniqueUserID == nil {
+			break
+		}
+
+		args, err := ec.field_ServiceFilterValue_uniqueUserId_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.UniqueUserID(childComplexity, args["filter"].(*model.UserFilter), args["first"].(*int), args["after"].(*string)), true
+
 	case "ServiceFilterValue.userName":
 		if e.complexity.ServiceFilterValue.UserName == nil {
 			break
@@ -3076,18 +3088,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ServiceFilterValue.UserName(childComplexity, args["filter"].(*model.UserFilter), args["first"].(*int), args["after"].(*string)), true
-
-	case "ServiceFilterValue.userSapID":
-		if e.complexity.ServiceFilterValue.UserSapID == nil {
-			break
-		}
-
-		args, err := ec.field_ServiceFilterValue_userSapID_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.ServiceFilterValue.UserSapID(childComplexity, args["filter"].(*model.UserFilter), args["first"].(*int), args["after"].(*string)), true
 
 	case "Severity.cvss":
 		if e.complexity.Severity.Cvss == nil {
@@ -5619,7 +5619,7 @@ func (ec *executionContext) field_ServiceFilterValue_supportGroupName_args(ctx c
 	return args, nil
 }
 
-func (ec *executionContext) field_ServiceFilterValue_userName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_ServiceFilterValue_uniqueUserId_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *model.UserFilter
@@ -5652,7 +5652,7 @@ func (ec *executionContext) field_ServiceFilterValue_userName_args(ctx context.C
 	return args, nil
 }
 
-func (ec *executionContext) field_ServiceFilterValue_userSapID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_ServiceFilterValue_userName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *model.UserFilter
@@ -19516,8 +19516,8 @@ func (ec *executionContext) fieldContext_Query_ServiceFilterValues(_ context.Con
 			switch field.Name {
 			case "serviceName":
 				return ec.fieldContext_ServiceFilterValue_serviceName(ctx, field)
-			case "userSapID":
-				return ec.fieldContext_ServiceFilterValue_userSapID(ctx, field)
+			case "uniqueUserId":
+				return ec.fieldContext_ServiceFilterValue_uniqueUserId(ctx, field)
 			case "userName":
 				return ec.fieldContext_ServiceFilterValue_userName(ctx, field)
 			case "supportGroupName":
@@ -20391,8 +20391,8 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_serviceName(ctx cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ServiceFilterValue_userSapID(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ServiceFilterValue_userSapID(ctx, field)
+func (ec *executionContext) _ServiceFilterValue_uniqueUserId(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_uniqueUserId(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -20405,7 +20405,7 @@ func (ec *executionContext) _ServiceFilterValue_userSapID(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().UserSapID(rctx, obj, fc.Args["filter"].(*model.UserFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
+		return ec.resolvers.ServiceFilterValue().UniqueUserID(rctx, obj, fc.Args["filter"].(*model.UserFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20419,7 +20419,7 @@ func (ec *executionContext) _ServiceFilterValue_userSapID(ctx context.Context, f
 	return ec.marshalOFilterItem2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ServiceFilterValue_userSapID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ServiceFilterValue_uniqueUserId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ServiceFilterValue",
 		Field:      field,
@@ -20442,7 +20442,7 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_userSapID(ctx contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_ServiceFilterValue_userSapID_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_ServiceFilterValue_uniqueUserId_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -24285,7 +24285,7 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceName", "uniqueUserID", "type", "userName", "supportGroupName"}
+	fieldsInOrder := [...]string{"serviceName", "uniqueUserId", "type", "userName", "supportGroupName"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -24299,8 +24299,8 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 				return it, err
 			}
 			it.ServiceName = data
-		case "uniqueUserID":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserID"))
+		case "uniqueUserId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserId"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
@@ -24455,7 +24455,7 @@ func (ec *executionContext) unmarshalInputUserFilter(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"userName", "supportGroupIds"}
+	fieldsInOrder := [...]string{"userName", "supportGroupIds", "uniqueUserId"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -24476,6 +24476,13 @@ func (ec *executionContext) unmarshalInputUserFilter(ctx context.Context, obj in
 				return it, err
 			}
 			it.SupportGroupIds = data
+		case "uniqueUserId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserId"))
+			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UniqueUserID = data
 		}
 	}
 
@@ -28676,7 +28683,7 @@ func (ec *executionContext) _ServiceFilterValue(ctx context.Context, sel ast.Sel
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "userSapID":
+		case "uniqueUserId":
 			field := field
 
 			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
@@ -28685,7 +28692,7 @@ func (ec *executionContext) _ServiceFilterValue(ctx context.Context, sel ast.Sel
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._ServiceFilterValue_userSapID(ctx, field, obj)
+				res = ec._ServiceFilterValue_uniqueUserId(ctx, field, obj)
 				return res
 			}
 

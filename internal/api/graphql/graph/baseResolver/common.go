@@ -17,6 +17,7 @@ var (
 	FilterServiceName      string = "Service Name"
 	FilterSupportGroupName string = "SupportGroup Name"
 	FilterUserName         string = "User Name"
+	FilterUniqueUserID     string = "Unique User ID"
 )
 
 type ResolverError struct {

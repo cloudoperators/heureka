@@ -9,7 +9,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph"
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/baseResolver"
@@ -21,9 +20,9 @@ func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model
 	return baseResolver.ServiceNameBaseResolver(r.App, filter, ctx, first, after)
 }
 
-// UserSapID is the resolver for the userSapID field.
-func (r *serviceFilterValueResolver) UserSapID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error) {
-	panic(fmt.Errorf("not implemented: UserSapID - userSapID"))
+// UniqueUserID is the resolver for the uniqueUserId field.
+func (r *serviceFilterValueResolver) UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error) {
+	return baseResolver.UniqueUserIDBaseResolver(r.App, filter, ctx, first, after)
 }
 
 // UserName is the resolver for the userName field.

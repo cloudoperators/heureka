@@ -55,6 +55,7 @@ type Heureka interface {
 	UpdateUser(*entity.User) (*entity.User, error)
 	DeleteUser(int64) error
 	ListUserNames(*entity.UserFilter, *entity.ListOptions) ([]string, error)
+	ListUniqueUserID(*entity.UserFilter, *entity.ListOptions) ([]string, error)
 
 	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
 	GetSupportGroup(int64) (*entity.SupportGroup, error)

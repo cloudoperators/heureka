@@ -4149,6 +4149,64 @@ func (_c *MockDatabase_GetSupportGroups_Call) RunAndReturn(run func(*entity.Supp
 	return _c
 }
 
+// GetUniqueUserIDs provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetUniqueUserIDs(_a0 *entity.UserFilter) ([]string, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUniqueUserIDs")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.UserFilter) ([]string, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.UserFilter) []string); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.UserFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetUniqueUserIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUniqueUserIDs'
+type MockDatabase_GetUniqueUserIDs_Call struct {
+	*mock.Call
+}
+
+// GetUniqueUserIDs is a helper method to define mock.On call
+//   - _a0 *entity.UserFilter
+func (_e *MockDatabase_Expecter) GetUniqueUserIDs(_a0 interface{}) *MockDatabase_GetUniqueUserIDs_Call {
+	return &MockDatabase_GetUniqueUserIDs_Call{Call: _e.mock.On("GetUniqueUserIDs", _a0)}
+}
+
+func (_c *MockDatabase_GetUniqueUserIDs_Call) Run(run func(_a0 *entity.UserFilter)) *MockDatabase_GetUniqueUserIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.UserFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetUniqueUserIDs_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetUniqueUserIDs_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetUniqueUserIDs_Call) RunAndReturn(run func(*entity.UserFilter) ([]string, error)) *MockDatabase_GetUniqueUserIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUserNames provides a mock function with given fields: _a0
 func (_m *MockDatabase) GetUserNames(_a0 *entity.UserFilter) ([]string, error) {
 	ret := _m.Called(_a0)

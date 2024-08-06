@@ -115,9 +115,8 @@ func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *
 
 	f := &entity.SupportGroupFilter{
 		Paginated: entity.Paginated{First: first, After: afterId},
-		//UserId:    filter.UserIds,
-		UserId: userIds,
-		Name:   filter.SupportGroupName,
+		UserId:    userIds,
+		Name:      filter.SupportGroupName,
 	}
 
 	opt := GetListOptions(requestedFields)
