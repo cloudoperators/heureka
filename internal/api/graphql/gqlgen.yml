@@ -191,3 +191,7 @@ models:
         resolver: true
       services:
         resolver: true
+  Scan:
+    fields:
+      users:
+        resolver: true

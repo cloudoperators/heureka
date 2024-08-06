@@ -94,6 +94,11 @@ type Heureka interface {
 	UpdateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)
 	DeleteComponentVersion(int64) error
 
+	ListScans(*entity.ScanFilter, *entity.ListOptions) (*entity.List[entity.ScanResult], error)
+	CreateScan(*entity.Scan) (*entity.Scan, error)
+	UpdateScan(*entity.Scan) (*entity.Scan, error)
+	DeleteScan(int64) error
+
 	GetSeverity(*entity.SeverityFilter) (*entity.Severity, error)
 	Shutdown() error
 }

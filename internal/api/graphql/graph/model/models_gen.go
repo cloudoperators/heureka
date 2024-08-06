@@ -566,6 +566,45 @@ type PageInfo struct {
 type Query struct {
 }
 
+type Scan struct {
+	ID    string          `json:"id"`
+	Type  *string         `json:"type,omitempty"`
+	Scope *string         `json:"scope,omitempty"`
+	Users *UserConnection `json:"users,omitempty"`
+}
+
+func (Scan) IsNode()            {}
+func (this Scan) GetID() string { return this.ID }
+
+type ScanConnection struct {
+	TotalCount int         `json:"totalCount"`
+	Edges      []*ScanEdge `json:"edges,omitempty"`
+	PageInfo   *PageInfo   `json:"pageInfo,omitempty"`
+}
+
+func (ScanConnection) IsConnection()               {}
+func (this ScanConnection) GetTotalCount() int     { return this.TotalCount }
+func (this ScanConnection) GetPageInfo() *PageInfo { return this.PageInfo }
+
+type ScanEdge struct {
+	Node   *Scan   `json:"node"`
+	Cursor *string `json:"cursor,omitempty"`
+}
+
+func (ScanEdge) IsEdge()                 {}
+func (this ScanEdge) GetNode() Node      { return *this.Node }
+func (this ScanEdge) GetCursor() *string { return this.Cursor }
+
+type ScanFilter struct {
+	Status []*string `json:"status,omitempty"`
+}
+
+type ScanInput struct {
+	Type   *string           `json:"type,omitempty"`
+	Scope  *string           `json:"scope,omitempty"`
+	Status *ScanStatusValues `json:"status,omitempty"`
+}
+
 type Service struct {
 	ID                 string                       `json:"id"`
 	Name               *string                      `json:"name,omitempty"`
@@ -958,6 +997,49 @@ func (e *IssueTypes) UnmarshalGQL(v interface{}) error {
 }
 
 func (e IssueTypes) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ScanStatusValues string
+
+const (
+	ScanStatusValuesInProgress ScanStatusValues = "inProgress"
+	ScanStatusValuesFail       ScanStatusValues = "fail"
+	ScanStatusValuesSuccess    ScanStatusValues = "success"
+)
+
+var AllScanStatusValues = []ScanStatusValues{
+	ScanStatusValuesInProgress,
+	ScanStatusValuesFail,
+	ScanStatusValuesSuccess,
+}
+
+func (e ScanStatusValues) IsValid() bool {
+	switch e {
+	case ScanStatusValuesInProgress, ScanStatusValuesFail, ScanStatusValuesSuccess:
+		return true
+	}
+	return false
+}
+
+func (e ScanStatusValues) String() string {
+	return string(e)
+}
+
+func (e *ScanStatusValues) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ScanStatusValues(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ScanStatusValues", str)
+	}
+	return nil
+}
+
+func (e ScanStatusValues) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
