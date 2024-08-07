@@ -235,9 +235,12 @@ type ComplexityRoot struct {
 	}
 
 	IssueConnection struct {
-		Edges      func(childComplexity int) int
-		PageInfo   func(childComplexity int) int
-		TotalCount func(childComplexity int) int
+		Edges                func(childComplexity int) int
+		PageInfo             func(childComplexity int) int
+		PolicyViolationCount func(childComplexity int) int
+		SecurityEventCount   func(childComplexity int) int
+		TotalCount           func(childComplexity int) int
+		VulnerabilityCount   func(childComplexity int) int
 	}
 
 	IssueEdge struct {
@@ -1496,12 +1499,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueConnection.PageInfo(childComplexity), true
 
+	case "IssueConnection.policyViolationCount":
+		if e.complexity.IssueConnection.PolicyViolationCount == nil {
+			break
+		}
+
+		return e.complexity.IssueConnection.PolicyViolationCount(childComplexity), true
+
+	case "IssueConnection.securityEventCount":
+		if e.complexity.IssueConnection.SecurityEventCount == nil {
+			break
+		}
+
+		return e.complexity.IssueConnection.SecurityEventCount(childComplexity), true
+
 	case "IssueConnection.totalCount":
 		if e.complexity.IssueConnection.TotalCount == nil {
 			break
 		}
 
 		return e.complexity.IssueConnection.TotalCount(childComplexity), true
+
+	case "IssueConnection.vulnerabilityCount":
+		if e.complexity.IssueConnection.VulnerabilityCount == nil {
+			break
+		}
+
+		return e.complexity.IssueConnection.VulnerabilityCount(childComplexity), true
 
 	case "IssueEdge.cursor":
 		if e.complexity.IssueEdge.Cursor == nil {
@@ -6203,6 +6227,12 @@ func (ec *executionContext) fieldContext_Activity_issues(ctx context.Context, fi
 			switch field.Name {
 			case "totalCount":
 				return ec.fieldContext_IssueConnection_totalCount(ctx, field)
+			case "vulnerabilityCount":
+				return ec.fieldContext_IssueConnection_vulnerabilityCount(ctx, field)
+			case "policyViolationCount":
+				return ec.fieldContext_IssueConnection_policyViolationCount(ctx, field)
+			case "securityEventCount":
+				return ec.fieldContext_IssueConnection_securityEventCount(ctx, field)
 			case "edges":
 				return ec.fieldContext_IssueConnection_edges(ctx, field)
 			case "pageInfo":
@@ -9277,6 +9307,12 @@ func (ec *executionContext) fieldContext_ComponentVersion_issues(ctx context.Con
 			switch field.Name {
 			case "totalCount":
 				return ec.fieldContext_IssueConnection_totalCount(ctx, field)
+			case "vulnerabilityCount":
+				return ec.fieldContext_IssueConnection_vulnerabilityCount(ctx, field)
+			case "policyViolationCount":
+				return ec.fieldContext_IssueConnection_policyViolationCount(ctx, field)
+			case "securityEventCount":
+				return ec.fieldContext_IssueConnection_securityEventCount(ctx, field)
 			case "edges":
 				return ec.fieldContext_IssueConnection_edges(ctx, field)
 			case "pageInfo":
@@ -10939,6 +10975,138 @@ func (ec *executionContext) _IssueConnection_totalCount(ctx context.Context, fie
 }
 
 func (ec *executionContext) fieldContext_IssueConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IssueConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IssueConnection_vulnerabilityCount(ctx context.Context, field graphql.CollectedField, obj *model.IssueConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueConnection_vulnerabilityCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.VulnerabilityCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_IssueConnection_vulnerabilityCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IssueConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IssueConnection_policyViolationCount(ctx context.Context, field graphql.CollectedField, obj *model.IssueConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueConnection_policyViolationCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PolicyViolationCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_IssueConnection_policyViolationCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IssueConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IssueConnection_securityEventCount(ctx context.Context, field graphql.CollectedField, obj *model.IssueConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueConnection_securityEventCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SecurityEventCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_IssueConnection_securityEventCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IssueConnection",
 		Field:      field,
@@ -18736,6 +18904,12 @@ func (ec *executionContext) fieldContext_Query_Issues(ctx context.Context, field
 			switch field.Name {
 			case "totalCount":
 				return ec.fieldContext_IssueConnection_totalCount(ctx, field)
+			case "vulnerabilityCount":
+				return ec.fieldContext_IssueConnection_vulnerabilityCount(ctx, field)
+			case "policyViolationCount":
+				return ec.fieldContext_IssueConnection_policyViolationCount(ctx, field)
+			case "securityEventCount":
+				return ec.fieldContext_IssueConnection_securityEventCount(ctx, field)
 			case "edges":
 				return ec.fieldContext_IssueConnection_edges(ctx, field)
 			case "pageInfo":
@@ -26419,6 +26593,21 @@ func (ec *executionContext) _IssueConnection(ctx context.Context, sel ast.Select
 			out.Values[i] = graphql.MarshalString("IssueConnection")
 		case "totalCount":
 			out.Values[i] = ec._IssueConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "vulnerabilityCount":
+			out.Values[i] = ec._IssueConnection_vulnerabilityCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "policyViolationCount":
+			out.Values[i] = ec._IssueConnection_policyViolationCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "securityEventCount":
+			out.Values[i] = ec._IssueConnection_securityEventCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

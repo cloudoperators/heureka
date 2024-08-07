@@ -8,7 +8,7 @@ import (
 )
 
 type Heureka interface {
-	ListIssues(*entity.IssueFilter, *entity.ListOptions) (*entity.List[entity.IssueResult], error)
+	ListIssues(*entity.IssueFilter, *entity.IssueListOptions) (*entity.IssueList, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) (*entity.Issue, error)
 	DeleteIssue(int64) error

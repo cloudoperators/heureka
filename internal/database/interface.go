@@ -9,6 +9,7 @@ type Database interface {
 	GetIssues(*entity.IssueFilter) ([]entity.Issue, error)
 	GetIssuesWithAggregations(*entity.IssueFilter) ([]entity.IssueWithAggregations, error)
 	CountIssues(*entity.IssueFilter) (int64, error)
+	CountIssueTypes(*entity.IssueFilter) (*entity.IssueTypeCounts, error)
 	GetAllIssueIds(*entity.IssueFilter) ([]int64, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
