@@ -92,6 +92,7 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 		SupportGroupId: supportGroupId,
 		ServiceId:      serviceId,
 		Name:           filter.UserName,
+		UniqueUserID:   filter.UniqueUserID,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -125,25 +126,20 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 
 	return &connection, nil
 }
-func UserNameBaseResolver(app app.Heureka, filter *model.UserFilter, ctx context.Context, first *int, after *string) (*model.FilterItem, error) {
+func UserNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFilter) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 	}).Debug("Called UserNameBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("UserNameBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("UserNameBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	if filter == nil {
 		filter = &model.UserFilter{}
 	}
 
 	f := &entity.UserFilter{
-		Paginated: entity.Paginated{First: first, After: afterId},
-		Name:      filter.UserName,
+		Paginated:    entity.Paginated{},
+		Name:         filter.UserName,
+		UniqueUserID: filter.UniqueUserID,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -168,25 +164,20 @@ func UserNameBaseResolver(app app.Heureka, filter *model.UserFilter, ctx context
 	return &filterItem, nil
 }
 
-func UniqueUserIDBaseResolver(app app.Heureka, filter *model.UserFilter, ctx context.Context, first *int, after *string) (*model.FilterItem, error) {
+func UniqueUserIDBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFilter) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 	}).Debug("Called UniqueUserIDBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("UniqueUserIDBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("UniqueUserIDBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	if filter == nil {
 		filter = &model.UserFilter{}
 	}
 
 	f := &entity.UserFilter{
-		Paginated:    entity.Paginated{First: first, After: afterId},
+		Paginated:    entity.Paginated{},
 		UniqueUserID: filter.UniqueUserID,
+		Name:         filter.UserName,
 	}
 
 	opt := GetListOptions(requestedFields)

@@ -471,10 +471,10 @@ type ComplexityRoot struct {
 	}
 
 	ServiceFilterValue struct {
-		ServiceName      func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
-		SupportGroupName func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
-		UniqueUserID     func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
-		UserName         func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
+		ServiceName      func(childComplexity int, filter *model.ServiceFilter) int
+		SupportGroupName func(childComplexity int, filter *model.SupportGroupFilter) int
+		UniqueUserID     func(childComplexity int, filter *model.UserFilter) int
+		UserName         func(childComplexity int, filter *model.UserFilter) int
 	}
 
 	Severity struct {
@@ -659,10 +659,10 @@ type ServiceResolver interface {
 	ComponentInstances(ctx context.Context, obj *model.Service, filter *model.ComponentInstanceFilter, first *int, after *string) (*model.ComponentInstanceConnection, error)
 }
 type ServiceFilterValueResolver interface {
-	ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter, first *int, after *string) (*model.FilterItem, error)
-	UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error)
-	UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error)
-	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter, first *int, after *string) (*model.FilterItem, error)
+	ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error)
+	UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error)
+	UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error)
+	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error)
 }
 type SupportGroupResolver interface {
 	Users(ctx context.Context, obj *model.SupportGroup, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -3075,7 +3075,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.ServiceFilterValue.ServiceName(childComplexity, args["filter"].(*model.ServiceFilter), args["first"].(*int), args["after"].(*string)), true
+		return e.complexity.ServiceFilterValue.ServiceName(childComplexity, args["filter"].(*model.ServiceFilter)), true
 
 	case "ServiceFilterValue.supportGroupName":
 		if e.complexity.ServiceFilterValue.SupportGroupName == nil {
@@ -3087,7 +3087,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.ServiceFilterValue.SupportGroupName(childComplexity, args["filter"].(*model.SupportGroupFilter), args["first"].(*int), args["after"].(*string)), true
+		return e.complexity.ServiceFilterValue.SupportGroupName(childComplexity, args["filter"].(*model.SupportGroupFilter)), true
 
 	case "ServiceFilterValue.uniqueUserId":
 		if e.complexity.ServiceFilterValue.UniqueUserID == nil {
@@ -3099,7 +3099,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.ServiceFilterValue.UniqueUserID(childComplexity, args["filter"].(*model.UserFilter), args["first"].(*int), args["after"].(*string)), true
+		return e.complexity.ServiceFilterValue.UniqueUserID(childComplexity, args["filter"].(*model.UserFilter)), true
 
 	case "ServiceFilterValue.userName":
 		if e.complexity.ServiceFilterValue.UserName == nil {
@@ -3111,7 +3111,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.ServiceFilterValue.UserName(childComplexity, args["filter"].(*model.UserFilter), args["first"].(*int), args["after"].(*string)), true
+		return e.complexity.ServiceFilterValue.UserName(childComplexity, args["filter"].(*model.UserFilter)), true
 
 	case "Severity.cvss":
 		if e.complexity.Severity.Cvss == nil {
@@ -5589,24 +5589,6 @@ func (ec *executionContext) field_ServiceFilterValue_serviceName_args(ctx contex
 		}
 	}
 	args["filter"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg2
 	return args, nil
 }
 
@@ -5622,24 +5604,6 @@ func (ec *executionContext) field_ServiceFilterValue_supportGroupName_args(ctx c
 		}
 	}
 	args["filter"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg2
 	return args, nil
 }
 
@@ -5655,24 +5619,6 @@ func (ec *executionContext) field_ServiceFilterValue_uniqueUserId_args(ctx conte
 		}
 	}
 	args["filter"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg2
 	return args, nil
 }
 
@@ -5688,24 +5634,6 @@ func (ec *executionContext) field_ServiceFilterValue_userName_args(ctx context.C
 		}
 	}
 	args["filter"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["first"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["first"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["after"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["after"] = arg2
 	return args, nil
 }
 
@@ -20521,7 +20449,7 @@ func (ec *executionContext) _ServiceFilterValue_serviceName(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().ServiceName(rctx, obj, fc.Args["filter"].(*model.ServiceFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
+		return ec.resolvers.ServiceFilterValue().ServiceName(rctx, obj, fc.Args["filter"].(*model.ServiceFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20579,7 +20507,7 @@ func (ec *executionContext) _ServiceFilterValue_uniqueUserId(ctx context.Context
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().UniqueUserID(rctx, obj, fc.Args["filter"].(*model.UserFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
+		return ec.resolvers.ServiceFilterValue().UniqueUserID(rctx, obj, fc.Args["filter"].(*model.UserFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20637,7 +20565,7 @@ func (ec *executionContext) _ServiceFilterValue_userName(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().UserName(rctx, obj, fc.Args["filter"].(*model.UserFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
+		return ec.resolvers.ServiceFilterValue().UserName(rctx, obj, fc.Args["filter"].(*model.UserFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20695,7 +20623,7 @@ func (ec *executionContext) _ServiceFilterValue_supportGroupName(ctx context.Con
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().SupportGroupName(rctx, obj, fc.Args["filter"].(*model.SupportGroupFilter), fc.Args["first"].(*int), fc.Args["after"].(*string))
+		return ec.resolvers.ServiceFilterValue().SupportGroupName(rctx, obj, fc.Args["filter"].(*model.SupportGroupFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

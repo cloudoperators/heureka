@@ -16,23 +16,23 @@ import (
 )
 
 // ServiceName is the resolver for the serviceName field.
-func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter, first *int, after *string) (*model.FilterItem, error) {
-	return baseResolver.ServiceNameBaseResolver(r.App, filter, ctx, first, after)
+func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	return baseResolver.ServiceNameBaseResolver(r.App, ctx, filter)
 }
 
 // UniqueUserID is the resolver for the uniqueUserId field.
-func (r *serviceFilterValueResolver) UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error) {
-	return baseResolver.UniqueUserIDBaseResolver(r.App, filter, ctx, first, after)
+func (r *serviceFilterValueResolver) UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error) {
+	return baseResolver.UniqueUserIDBaseResolver(r.App, ctx, filter)
 }
 
 // UserName is the resolver for the userName field.
-func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter, first *int, after *string) (*model.FilterItem, error) {
-	return baseResolver.UserNameBaseResolver(r.App, filter, ctx, first, after)
+func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error) {
+	return baseResolver.UserNameBaseResolver(r.App, ctx, filter)
 }
 
 // SupportGroupName is the resolver for the supportGroupName field.
-func (r *serviceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter, first *int, after *string) (*model.FilterItem, error) {
-	return baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter, first, after)
+func (r *serviceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+	return baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter)
 }
 
 // ServiceFilterValue returns graph.ServiceFilterValueResolver implementation.

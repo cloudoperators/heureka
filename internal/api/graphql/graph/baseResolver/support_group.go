@@ -87,17 +87,12 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	return &connection, nil
 }
 
-func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string) (*model.FilterItem, error) {
+func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 	}).Debug("Called SupportGroupNameBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("SupportGroupNameBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("SupportGroupNameBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
+	var err error
 
 	if filter == nil {
 		filter = &model.SupportGroupFilter{}
@@ -114,7 +109,7 @@ func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	f := &entity.SupportGroupFilter{
-		Paginated: entity.Paginated{First: first, After: afterId},
+		Paginated: entity.Paginated{},
 		UserId:    userIds,
 		Name:      filter.SupportGroupName,
 	}

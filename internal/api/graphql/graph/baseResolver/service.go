@@ -143,24 +143,18 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	return &connection, nil
 
 }
-func ServiceNameBaseResolver(app app.Heureka, filter *model.ServiceFilter, ctx context.Context, first *int, after *string) (*model.FilterItem, error) {
+func ServiceNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 	}).Debug("Called ServiceNameBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("ServiceNameBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("ServiceNameBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	if filter == nil {
 		filter = &model.ServiceFilter{}
 	}
 
 	f := &entity.ServiceFilter{
-		Paginated:        entity.Paginated{First: first, After: afterId},
+		Paginated:        entity.Paginated{},
 		SupportGroupName: filter.SupportGroupName,
 		Name:             filter.ServiceName,
 		OwnerName:        filter.UserName,
@@ -176,7 +170,6 @@ func ServiceNameBaseResolver(app app.Heureka, filter *model.ServiceFilter, ctx c
 
 	var pointerNames []*string
 
-<<<<<<< HEAD
 	for _, name := range names {
 		pointerNames = append(pointerNames, &name)
 	}
@@ -187,11 +180,4 @@ func ServiceNameBaseResolver(app app.Heureka, filter *model.ServiceFilter, ctx c
 	}
 
 	return &filterItem, nil
-=======
-	for i := 0; i < len(names); i++ {
-		pointerNames = append(pointerNames, &names[i])
-	}
-
-	return pointerNames, nil
->>>>>>> f5dfbfd (feat: add Service Filter Query)
 }
