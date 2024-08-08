@@ -10,6 +10,7 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/model"
 	"github.wdf.sap.corp/cc/heureka/internal/app"
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
+	"github.wdf.sap.corp/cc/heureka/internal/util"
 )
 
 func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string, parent *model.NodeParent) (*model.SupportGroupConnection, error) {
@@ -84,4 +85,53 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	return &connection, nil
+}
+
+func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called SupportGroupNameBaseResolver")
+	var err error
+
+	if filter == nil {
+		filter = &model.SupportGroupFilter{}
+	}
+	var userIds []*int64
+
+	if len(filter.UserIds) > 0 {
+		userIds, err = util.ConvertStrToIntSlice(filter.UserIds)
+
+		if err != nil {
+			logrus.WithField("Filter", filter).Error("SupportGroupNameBaseResolver: Error while parsing 'UserIds'")
+			return nil, NewResolverError("SupportGroupNameBaseResolver", "Bad Request - unable to parse 'UserIds'")
+		}
+	}
+
+	f := &entity.SupportGroupFilter{
+		Paginated: entity.Paginated{},
+		UserId:    userIds,
+		Name:      filter.SupportGroupName,
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, err := app.ListSupportGroupNames(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("SupportGroupNameBaseResolver", err.Error())
+	}
+
+	var pointerNames []*string
+
+	for _, name := range names {
+		pointerNames = append(pointerNames, &name)
+	}
+
+	filterItem := model.FilterItem{
+		FilterName: &FilterSupportGroupName,
+		Values:     pointerNames,
+	}
+
+	return &filterItem, nil
 }

@@ -80,6 +80,11 @@ func (r *queryResolver) Users(ctx context.Context, filter *model.UserFilter, fir
 	return baseResolver.UserBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
+// ServiceFilterValues is the resolver for the ServiceFilterValues field.
+func (r *queryResolver) ServiceFilterValues(ctx context.Context) (*model.ServiceFilterValue, error) {
+	return &model.ServiceFilterValue{}, nil
+}
+
 // Query returns graph.QueryResolver implementation.
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 

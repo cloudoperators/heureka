@@ -29,7 +29,7 @@ type ServiceEdge implements Edge {
 
 input ServiceFilter {
     serviceName: [String]
-    uniqueUserID: [String]
+    uniqueUserId: [String]
     type: [Int]
     userName: [String]
     supportGroupName: [String]

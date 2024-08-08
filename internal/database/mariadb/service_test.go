@@ -737,4 +737,108 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 		})
 	})
+	When("Getting ServiceNames", Label("GetServiceNames"), func() {
+		Context("and the database is empty", func() {
+			It("can perform the list query", func() {
+				res, err := db.GetServiceNames(nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning an empty list", func() {
+					Expect(res).To(BeEmpty())
+				})
+			})
+		})
+		Context("and we have 10 services in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+
+			Context("and using no filter", func() {
+				It("can fetch the items correctly", func() {
+					res, err := db.GetServiceNames(nil)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
+					})
+
+					existingServiceNames := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
+						return s.Name.String
+					})
+
+					By("returning the correct names", func() {
+						left, right := lo.Difference(res, existingServiceNames)
+						Expect(left).Should(BeEmpty())
+						Expect(right).Should(BeEmpty())
+					})
+				})
+			})
+			Context("and using a ServiceName filter", func() {
+
+				var filter *entity.ServiceFilter
+				var expectedServiceNames []string
+				BeforeEach(func() {
+					namePointers := []*string{}
+
+					name := "f1"
+					namePointers = append(namePointers, &name)
+
+					filter = &entity.ServiceFilter{
+						Name: namePointers,
+					}
+
+					It("can fetch the filtered items correctly", func() {
+						res, err := db.GetServiceNames(filter)
+
+						By("throwing no error", func() {
+							Expect(err).Should(BeNil())
+						})
+
+						By("returning the correct number of results", func() {
+							Expect(len(res)).Should(BeIdenticalTo(len(expectedServiceNames)))
+						})
+
+						By("returning the correct names", func() {
+							left, right := lo.Difference(res, expectedServiceNames)
+							Expect(left).Should(BeEmpty())
+							Expect(right).Should(BeEmpty())
+						})
+					})
+					It("and using another filter", func() {
+
+						var anotherFilter *entity.ServiceFilter
+						BeforeEach(func() {
+
+							nonExistentServiceName := "NonexistentService"
+
+							nonExistentServiceNames := []*string{&nonExistentServiceName}
+
+							anotherFilter = &entity.ServiceFilter{
+								Name: nonExistentServiceNames,
+							}
+
+							It("returns an empty list when no services match the filter", func() {
+								res, err := db.GetServiceNames(anotherFilter)
+								Expect(err).Should(BeNil())
+								Expect(res).Should(BeEmpty())
+
+								By("throwing no error", func() {
+									Expect(err).Should(BeNil())
+								})
+
+								By("returning an empty list", func() {
+									Expect(res).Should(BeEmpty())
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
 })

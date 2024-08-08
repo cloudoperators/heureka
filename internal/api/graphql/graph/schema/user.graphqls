@@ -30,4 +30,5 @@ type UserEdge implements Edge {
 input UserFilter {
     userName: [String],
     supportGroupIds: [String],
+    uniqueUserId: [String],
 }
