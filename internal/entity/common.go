@@ -41,6 +41,7 @@ type HeurekaEntity interface {
 		Issue |
 		IssueMatch |
 		IssueMatchChange |
+		Scan |
 		HeurekaFilter
 }
 

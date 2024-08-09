@@ -11,7 +11,24 @@ const (
 	ScanTypeInProgress ScanType = "InProgress"
 	ScanTypeFail       ScanType = "Fail"
 	ScanTypeSuccess    ScanType = "Success"
+	ScanTypeUnknown    ScanType = "Unknown"
 )
+
+func (e ScanType) String() string {
+	return string(e)
+}
+
+func NewScanTypeValue(s string) ScanType {
+	switch s {
+	case ScanTypeInProgress.String():
+		return ScanTypeInProgress
+	case ScanTypeFail.String():
+		return ScanTypeFail
+	case ScanTypeSuccess.String():
+		return ScanTypeSuccess
+	}
+	return ScanTypeUnknown
+}
 
 type Scan struct {
 	Id         int64     `json:"id"`

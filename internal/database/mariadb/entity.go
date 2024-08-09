@@ -73,7 +73,8 @@ type DatabaseRow interface {
 		ActivityHasIssueRow |
 		ActivityHasServiceRow |
 		IssueRepositoryServiceRow |
-		IssueMatchChangeRow
+		IssueMatchChangeRow |
+		ScanRow
 }
 
 type IssueRow struct {
@@ -731,4 +732,22 @@ type IssueRepositoryServiceRow struct {
 	CreatedAt         sql.NullTime  `db:"issuerepositoryservice_created_at" json:"created_at"`
 	DeletedAt         sql.NullTime  `db:"issuerepositoryservice_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt         sql.NullTime  `db:"issuerepositoryservice_updated_at" json:"updated_at"`
+}
+
+type ScanRow struct {
+	ScanId     sql.NullInt64  `db:"scan_id" json:"scan_id"`
+	ScanType   sql.NullString `db:"scan_type" json:"scan_type"`
+	Scope      sql.NullString `db:"scope" json:"scope"`
+	StartedAt  sql.NullTime   `db:"created_at" json:"created_at"`
+	FinishedAt sql.NullTime   `db:"finished_at" json:"finished_at"`
+}
+
+func (sr *ScanRow) AsScan() entity.Scan {
+	return entity.Scan{
+		Id:         GetInt64Value(sr.ScanId),
+		Type:       entity.NewScanTypeValue(GetStringValue(sr.ScanType)),
+		Scope:      GetStringValue(sr.Scope),
+		StartedAt:  GetTimeValue(sr.StartedAt),
+		FinishedAt: GetTimeValue(sr.FinishedAt),
+	}
 }
