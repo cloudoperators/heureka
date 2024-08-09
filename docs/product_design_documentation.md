@@ -132,32 +132,34 @@ Responsible for ensuring that all established processes are followed including t
 ## High-Level Features
 
 
-### Security Issue Scanners
+### Security Issue Overview
 
-This  focuses on gathering new issues from established repositories. It includes:
+This provides a comprehensive and interactive overview of all security issues in the technology landscape which include real-time data on active threats, vulnerabilities, non-compliant assets, and ongoing incidents. 
+It allows for easy navigation and drill-down into specific issues for more detailed information facilitating prompt and effective response.
+Powered by scanner engines gathering new issues from established repositories. It includes:
 
 - CVE Scanner: This  collects data from CVE advisories, providing up-to-date information on potential system vulnerabilities.
-
 - SIEM Alerts Scanner: This  interfaces with your SIEM system, gathering alerts to provide real-time analysis of security threats and potential breaches.
-
 - Policy Violations Scanner: This  interacts with the Policy Gatekeeper tool to identify actions that violate predefined security policies, ensuring compliance and mitigating risks.
 
-
-### Inventory Scanner
+### Inventory Overview
 This provides a comprehensive view of all components within the landscape.
 
 It provides detailed information about existing instances and versions of each component. It also identifies services dependent on these components, aiding in system management and security.
-
+This feature will help in understanding the potential impact of security issues, planning for security improvements, and ensuring that all parts of the technology landscape are adequately protected.
 
 ### Issue Classification/Documentation
-This involves compliant classification of all issues by documenting essential attributes like unique ID (e.g., CVE ID), severity, target remediation time, and affected service resolution efforts
+This feature ensures a systematic and compliant classification of all security issues. It involves by documenting essential attributes such as a unique ID (e.g., CVE ID), severity level, target remediation time, and affected service resolution efforts.
+This comprehensive documentation aids in prioritizing and managing security issues effectively.
 
 ### Issue Remmediation Management
-This feature empowers service owners to comprehensively track the life cycle of each issue, providing complete visibility into the issue resolution process
-
+This feature empowers service owners with the ability to track the life cycle of each issue. It provides complete visibility into the issue resolution process, from identification to remediation. With this, owners get to manage and resolve issues more efficiently, enhancing the overall security posture.
 
 ### Compliance Artifact Management
-Heureka provides real-time, comprehensive audit artifacts and evidence to simplify compliance requirements fulfillment.
+This feature simplifies the fulfillment of compliance requirements. by providing real-time, comprehensive audit artifacts and evidence. It ensures that all necessary compliance documentation is readily available and up-to-date, making audits smoother and more efficient.
+
+### Alerting and Notifications
+This feature would provide real-time alerts and notifications about new and emerging security issues. This could include email notifications, SMS alerts, or integration with communication platforms like Slack. This would ensure that teams are immediately aware of any issues and can respond promptly.
 
 
 
