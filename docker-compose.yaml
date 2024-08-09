@@ -33,6 +33,7 @@ services:
 
   heureka-app:
     build: .
+    container_name: heureka-app
     profiles:
       - heureka
     environment:

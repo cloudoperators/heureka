@@ -337,6 +337,7 @@ type IssueFilter struct {
 	IssueMatchStatus   []*IssueMatchStatusValues `json:"issueMatchStatus,omitempty"`
 	IssueType          []*IssueTypes             `json:"issueType,omitempty"`
 	ComponentVersionID []*string                 `json:"componentVersionId,omitempty"`
+	Search             []*string                 `json:"search,omitempty"`
 }
 
 type IssueInput struct {
