@@ -43,6 +43,7 @@ type SeedCollection struct {
 	IssueMatchEvidenceRows     []mariadb.IssueMatchEvidenceRow
 	IssueMatchChangeRows       []mariadb.IssueMatchChangeRow
 	IssueRepositoryServiceRows []mariadb.IssueRepositoryServiceRow
+	ScanRows                   []mariadb.ScanRow
 }
 
 func (s *SeedCollection) GetIssueVariantsByIssueId(id int64) []mariadb.IssueVariantRow {
@@ -807,6 +808,14 @@ func (s *DatabaseSeeder) SeedIssueMatchChanges(num int, issueMatches []mariadb.I
 		}
 	}
 	return rows
+}
+
+// SeedScans ...
+func (s *DatabaseSeeder) SeedScans(num int, scans []mariadb.ScanRow) []mariadb.ScanRow {
+	var rows []mariadb.ScanRow
+	for i := 0; i < num; i++ {
+		srs := NewFakeScan()
+	}
 }
 
 func (s *DatabaseSeeder) InsertFakeIssueMatchEvidence(ime mariadb.IssueMatchEvidenceRow) (int64, error) {
