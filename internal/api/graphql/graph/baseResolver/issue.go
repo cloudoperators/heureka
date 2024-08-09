@@ -14,6 +14,14 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+func GetIssueListOptions(requestedFields []string) *entity.IssueListOptions {
+	listOptions := GetListOptions(requestedFields)
+	return &entity.IssueListOptions{
+		ListOptions:         *listOptions,
+		ShowIssueTypeCounts: lo.Contains(requestedFields, "issueTypeCounts"),
+	}
+}
+
 func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.Issue, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
@@ -29,7 +37,7 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 		Id: parent.ChildIds,
 	}
 
-	opt := &entity.ListOptions{}
+	opt := &entity.IssueListOptions{}
 
 	issues, err := app.ListIssues(f, opt)
 
@@ -104,7 +112,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		IssueMatchTargetRemediationDate: nil, //@todo Implement
 	}
 
-	opt := GetListOptions(requestedFields)
+	opt := GetIssueListOptions(requestedFields)
 
 	issues, err := app.ListIssues(f, opt)
 
@@ -123,17 +131,29 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		edges = append(edges, &edge)
 	}
 
-	tc := 0
+	totalCount := 0
 	if issues.TotalCount != nil {
-		tc = int(*issues.TotalCount)
+		totalCount = int(*issues.TotalCount)
+	}
+
+	vulnerabilityCount := 0
+	policiyViolationCount := 0
+	securityEventCount := 0
+
+	if issues.VulnerabilityCount != nil && issues.PolicyViolationCount != nil && issues.SecurityEventCount != nil {
+		vulnerabilityCount = int(*issues.VulnerabilityCount)
+		policiyViolationCount = int(*issues.PolicyViolationCount)
+		securityEventCount = int(*issues.SecurityEventCount)
 	}
 
 	connection := model.IssueConnection{
-		TotalCount: tc,
-		Edges:      edges,
-		PageInfo:   model.NewPageInfo(issues.PageInfo),
+		TotalCount:           totalCount,
+		VulnerabilityCount:   vulnerabilityCount,
+		PolicyViolationCount: policiyViolationCount,
+		SecurityEventCount:   securityEventCount,
+		Edges:                edges,
+		PageInfo:             model.NewPageInfo(issues.PageInfo),
 	}
 
 	return &connection, nil
-
 }

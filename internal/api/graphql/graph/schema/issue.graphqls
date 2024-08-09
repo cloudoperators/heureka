@@ -34,6 +34,9 @@ input IssueInput {
 
 type IssueConnection implements Connection {
     totalCount: Int!
+    vulnerabilityCount: Int!
+    policyViolationCount: Int!
+    securityEventCount: Int!
     edges: [IssueEdge]!
     pageInfo: PageInfo
 }

@@ -247,6 +247,54 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 	return performCountScan(stmt, filterParameters, l)
 }
 
+func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.IssueTypeCounts, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.CountIssueTypes",
+	})
+
+	baseQuery := `
+		SELECT I.issue_type, COUNT(distinct I.issue_id) as issue_count FROM Issue I
+		%s
+		%s
+		GROUP BY I.issue_type
+	`
+
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, false, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	counts, err := performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []entity.IssueCount, e IssueCountRow) []entity.IssueCount {
+			return append(l, e.AsIssueCount())
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var issueTypeCounts entity.IssueTypeCounts
+	for _, count := range counts {
+		switch count.Type {
+		case entity.IssueTypeVulnerability:
+			issueTypeCounts.VulnerabilityCount = count.Count
+		case entity.IssueTypePolicyViolation:
+			issueTypeCounts.PolicyViolationCount = count.Count
+		case entity.IssueTypeSecurityEvent:
+			issueTypeCounts.SecurityEventCount = count.Count
+		}
+	}
+
+	return &issueTypeCounts, nil
+}
+
 func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetIssueIds",

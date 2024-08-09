@@ -893,6 +893,64 @@ func (_c *MockDatabase_CountIssueRepositories_Call) RunAndReturn(run func(*entit
 	return _c
 }
 
+// CountIssueTypes provides a mock function with given fields: _a0
+func (_m *MockDatabase) CountIssueTypes(_a0 *entity.IssueFilter) (*entity.IssueTypeCounts, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountIssueTypes")
+	}
+
+	var r0 *entity.IssueTypeCounts
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.IssueFilter) (*entity.IssueTypeCounts, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.IssueFilter) *entity.IssueTypeCounts); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.IssueTypeCounts)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.IssueFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_CountIssueTypes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountIssueTypes'
+type MockDatabase_CountIssueTypes_Call struct {
+	*mock.Call
+}
+
+// CountIssueTypes is a helper method to define mock.On call
+//   - _a0 *entity.IssueFilter
+func (_e *MockDatabase_Expecter) CountIssueTypes(_a0 interface{}) *MockDatabase_CountIssueTypes_Call {
+	return &MockDatabase_CountIssueTypes_Call{Call: _e.mock.On("CountIssueTypes", _a0)}
+}
+
+func (_c *MockDatabase_CountIssueTypes_Call) Run(run func(_a0 *entity.IssueFilter)) *MockDatabase_CountIssueTypes_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.IssueFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_CountIssueTypes_Call) Return(_a0 *entity.IssueTypeCounts, _a1 error) *MockDatabase_CountIssueTypes_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_CountIssueTypes_Call) RunAndReturn(run func(*entity.IssueFilter) (*entity.IssueTypeCounts, error)) *MockDatabase_CountIssueTypes_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CountIssueVariants provides a mock function with given fields: _a0
 func (_m *MockDatabase) CountIssueVariants(_a0 *entity.IssueVariantFilter) (int64, error) {
 	ret := _m.Called(_a0)

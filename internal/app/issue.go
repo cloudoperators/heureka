@@ -54,7 +54,7 @@ func (h *HeurekaApp) GetIssue(id int64) (*entity.Issue, error) {
 		"id":    id,
 	})
 
-	issues, err := h.ListIssues(&entity.IssueFilter{Id: []*int64{&id}}, &entity.ListOptions{})
+	issues, err := h.ListIssues(&entity.IssueFilter{Id: []*int64{&id}}, &entity.IssueListOptions{})
 
 	if err != nil {
 		l.Error(err)
@@ -68,11 +68,13 @@ func (h *HeurekaApp) GetIssue(id int64) (*entity.Issue, error) {
 	return issues.Elements[0].Issue, nil
 }
 
-func (h *HeurekaApp) ListIssues(filter *entity.IssueFilter, options *entity.ListOptions) (*entity.List[entity.IssueResult], error) {
-	var count int64
+func (h *HeurekaApp) ListIssues(filter *entity.IssueFilter, options *entity.IssueListOptions) (*entity.IssueList, error) {
 	var pageInfo *entity.PageInfo
 	var res []entity.IssueResult
 	var err error
+	issueList := entity.IssueList{
+		List: &entity.List[entity.IssueResult]{},
+	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  "app.ListIssues",
@@ -95,6 +97,8 @@ func (h *HeurekaApp) ListIssues(filter *entity.IssueFilter, options *entity.List
 		}
 	}
 
+	issueList.Elements = res
+
 	if options.ShowPageInfo {
 		if len(res) > 0 {
 			ids, err := h.database.GetAllIssueIds(filter)
@@ -103,21 +107,23 @@ func (h *HeurekaApp) ListIssues(filter *entity.IssueFilter, options *entity.List
 				return nil, heurekaError("Error while getting all Ids")
 			}
 			pageInfo = getPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
-		}
-	} else if options.ShowTotalCount {
-		count, err = h.database.CountIssues(filter)
-		if err != nil {
-			l.Error(err)
-			return nil, heurekaError("Error while total count of issues")
+			issueList.PageInfo = pageInfo
 		}
 	}
+	if options.ShowPageInfo || options.ShowTotalCount || options.ShowIssueTypeCounts {
+		counts, err := h.database.CountIssueTypes(filter)
+		if err != nil {
+			l.Error(err)
+			return nil, heurekaError("Error while count of issues")
+		}
+		tc := counts.TotalIssueCount()
+		issueList.PolicyViolationCount = &counts.PolicyViolationCount
+		issueList.SecurityEventCount = &counts.SecurityEventCount
+		issueList.VulnerabilityCount = &counts.VulnerabilityCount
+		issueList.TotalCount = &tc
+	}
 
-	return &entity.List[entity.IssueResult]{
-		TotalCount: &count,
-		PageInfo:   pageInfo,
-		Elements:   res,
-	}, nil
+	return &issueList, nil
 }
 
 func (h *HeurekaApp) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
@@ -131,7 +137,7 @@ func (h *HeurekaApp) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
 		"filter": f,
 	})
 
-	issues, err := h.ListIssues(f, &entity.ListOptions{})
+	issues, err := h.ListIssues(f, &entity.IssueListOptions{})
 
 	if err != nil {
 		l.Error(err)
@@ -165,7 +171,7 @@ func (h *HeurekaApp) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) {
 		return nil, heurekaError("Internal error while updating issue.")
 	}
 
-	issueResult, err := h.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &entity.ListOptions{})
+	issueResult, err := h.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &entity.IssueListOptions{})
 
 	if err != nil {
 		l.Error(err)

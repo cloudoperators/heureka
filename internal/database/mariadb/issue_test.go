@@ -515,6 +515,41 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 			})
 		})
+		Context("and counting issue types", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(20)
+			})
+			It("returns the correct count for each issue type", func() {
+				vulnerabilityCount := 0
+				policyViolationCount := 0
+				securityEventCount := 0
+
+				for _, issue := range seedCollection.IssueRows {
+					switch issue.Type.String {
+					case entity.IssueTypeVulnerability.String():
+						vulnerabilityCount++
+					case entity.IssueTypePolicyViolation.String():
+						policyViolationCount++
+					case entity.IssueTypeSecurityEvent.String():
+						securityEventCount++
+					}
+				}
+
+				issueTypeCounts, err := db.CountIssueTypes(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				By("returning the correct counts", func() {
+					Expect(issueTypeCounts.VulnerabilityCount).To(BeEquivalentTo(vulnerabilityCount))
+					Expect(issueTypeCounts.PolicyViolationCount).To(BeEquivalentTo(policyViolationCount))
+					Expect(issueTypeCounts.SecurityEventCount).To(BeEquivalentTo(securityEventCount))
+				})
+
+			})
+		})
 	})
 	When("Insert Issue", Label("InsertIssue"), func() {
 		Context("and we have 10 Issues in the database", func() {

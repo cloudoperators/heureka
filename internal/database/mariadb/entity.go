@@ -52,6 +52,7 @@ func GetUserTypeValue(v sql.NullInt64) entity.UserType {
 
 type DatabaseRow interface {
 	IssueRow |
+		IssueCountRow |
 		GetIssuesByRow |
 		IssueMatchRow |
 		IssueAggregationsRow |
@@ -154,6 +155,18 @@ func (ibr *GetIssuesByRow) AsIssue() entity.Issue {
 		CreatedAt:     GetTimeValue(ibr.IssueRow.CreatedAt),
 		DeletedAt:     GetTimeValue(ibr.IssueRow.DeletedAt),
 		UpdatedAt:     GetTimeValue(ibr.IssueRow.UpdatedAt),
+	}
+}
+
+type IssueCountRow struct {
+	Count sql.NullInt64  `db:"issue_count"`
+	Type  sql.NullString `db:"issue_type"`
+}
+
+func (icr *IssueCountRow) AsIssueCount() entity.IssueCount {
+	return entity.IssueCount{
+		Count: GetInt64Value(icr.Count),
+		Type:  entity.NewIssueType(GetStringValue(icr.Type)),
 	}
 }
 

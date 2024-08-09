@@ -31,18 +31,37 @@ func getIssueFilter() *entity.IssueFilter {
 	}
 }
 
+func getIssueListOptions() *entity.IssueListOptions {
+	listOptions := getListOptions()
+	return &entity.IssueListOptions{
+		ListOptions:         *listOptions,
+		ShowIssueTypeCounts: false,
+	}
+}
+
+func getIssueTypeCounts() *entity.IssueTypeCounts {
+	return &entity.IssueTypeCounts{
+		VulnerabilityCount:   1000,
+		PolicyViolationCount: 300,
+		SecurityEventCount:   37,
+	}
+}
+
 var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 	var (
-		db      *mocks.MockDatabase
-		heureka app.Heureka
-		filter  *entity.IssueFilter
-		options *entity.ListOptions
+		db              *mocks.MockDatabase
+		heureka         app.Heureka
+		filter          *entity.IssueFilter
+		options         *entity.IssueListOptions
+		issueTypeCounts *entity.IssueTypeCounts
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		options = getListOptions()
+		options = getIssueListOptions()
 		filter = getIssueFilter()
+		issueTypeCounts = getIssueTypeCounts()
+
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -50,7 +69,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
-			db.On("CountIssues", filter).Return(int64(1337), nil)
+			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
 		})
 
 		It("shows the total count in the results", func() {
@@ -64,6 +83,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 	When("the list option does include the PageInfo", func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
+			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
@@ -286,7 +306,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issues, err := heureka.ListIssues(filter, &entity.ListOptions{})
+		issues, err := heureka.ListIssues(filter, &entity.IssueListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issues.Elements).To(BeEmpty(), "no error should be thrown")
 	})
