@@ -3,7 +3,7 @@ VERSION  ?= $(shell git log -1 --pretty=format:"%H")
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
-.PHONY: all test doc gqlgen test-all test-e2e test-app test-db
+.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db fmt compose-prepare compose-up compose-down compose-restart compose-build
 
 # Source the .env file to use the env vars with make
 -include .env
@@ -54,17 +54,34 @@ gqlgen:
 mockery:
 	mockery
 
+GINKGO := go run github.com/onsi/ginkgo/v2/ginkgo
 test-all:
-	ginkgo -r
+	$(GINKGO) -r
 
 test-e2e:
-	ginkgo internal/e2e
+	$(GINKGO) -r internal/e2e
 
 test-app:
-	ginkgo internal/app
+	$(GINKGO) -r internal/app
 
 test-db:
-	ginkgo internal/database/mariadb
+	$(GINKGO) -r internal/database/mariadb
 
 fmt:
 	go fmt ./...
+
+DOCKER_COMPOSE := docker-compose -f docker-compose.yaml
+DOCKER_COMPOSE_SERVICES := heureka-app heureka-db
+compose-prepare:
+	sed 's/^SEED_MODE=false/SEED_MODE=true/g' .test.env > .env
+
+compose-up:
+	$(DOCKER_COMPOSE) up -d $(DOCKER_COMPOSE_SERVICES)
+
+compose-down:
+	$(DOCKER_COMPOSE) down $(DOCKER_COMPOSE_SERVICES)
+
+compose-restart: compose-down compose-up
+
+compose-build:
+	$(DOCKER_COMPOSE) build $(DOCKER_COMPOSE_SERVICES)

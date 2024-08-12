@@ -23949,7 +23949,7 @@ func (ec *executionContext) unmarshalInputIssueFilter(ctx context.Context, obj i
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"affectedService", "primaryName", "issueMatchStatus", "issueType", "componentVersionId"}
+	fieldsInOrder := [...]string{"affectedService", "primaryName", "issueMatchStatus", "issueType", "componentVersionId", "search"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -23991,6 +23991,13 @@ func (ec *executionContext) unmarshalInputIssueFilter(ctx context.Context, obj i
 				return it, err
 			}
 			it.ComponentVersionID = data
+		case "search":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
+			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Search = data
 		}
 	}
 
