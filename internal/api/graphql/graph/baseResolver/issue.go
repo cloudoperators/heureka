@@ -105,6 +105,8 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		PrimaryName:        filter.PrimaryName,
 		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 
+		Search: filter.Search,
+
 		IssueMatchStatus:                nil, //@todo Implement
 		IssueMatchDiscoveryDate:         nil, //@todo Implement
 		IssueMatchTargetRemediationDate: nil, //@todo Implement

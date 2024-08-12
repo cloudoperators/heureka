@@ -165,8 +165,14 @@ func buildFilterQuery[T any](filter []T, expr string, op string) string {
 }
 
 func buildQueryParameters[T any](params []interface{}, filter []T) []interface{} {
+	return buildQueryParametersCount(params, filter, 1)
+}
+
+func buildQueryParametersCount[T any](params []interface{}, filter []T, count int) []interface{} {
 	for _, item := range filter {
-		params = append(params, item)
+		for i := 0; i < count; i++ {
+			params = append(params, item)
+		}
 	}
 	return params
 }
