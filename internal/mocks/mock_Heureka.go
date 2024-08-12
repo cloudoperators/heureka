@@ -3028,7 +3028,7 @@ func (_m *MockHeureka) ListUniqueUserID(_a0 *entity.UserFilter, _a1 *entity.List
 	ret := _m.Called(_a0, _a1)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ListUniqueUserID")
+		panic("no return value specified for ListUniqueUserIDs")
 	}
 
 	var r0 []string
@@ -3053,7 +3053,7 @@ func (_m *MockHeureka) ListUniqueUserID(_a0 *entity.UserFilter, _a1 *entity.List
 	return r0, r1
 }
 
-// MockHeureka_ListUniqueUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListUniqueUserID'
+// MockHeureka_ListUniqueUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListUniqueUserIDs'
 type MockHeureka_ListUniqueUserID_Call struct {
 	*mock.Call
 }
@@ -3062,7 +3062,7 @@ type MockHeureka_ListUniqueUserID_Call struct {
 //   - _a0 *entity.UserFilter
 //   - _a1 *entity.ListOptions
 func (_e *MockHeureka_Expecter) ListUniqueUserID(_a0 interface{}, _a1 interface{}) *MockHeureka_ListUniqueUserID_Call {
-	return &MockHeureka_ListUniqueUserID_Call{Call: _e.mock.On("ListUniqueUserID", _a0, _a1)}
+	return &MockHeureka_ListUniqueUserID_Call{Call: _e.mock.On("ListUniqueUserIDs", _a0, _a1)}
 }
 
 func (_c *MockHeureka_ListUniqueUserID_Call) Run(run func(_a0 *entity.UserFilter, _a1 *entity.ListOptions)) *MockHeureka_ListUniqueUserID_Call {

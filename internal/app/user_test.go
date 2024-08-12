@@ -241,7 +241,7 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 		})
 	})
 })
-var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserID"), func() {
+var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"), func() {
 	var (
 		db      *mocks.MockDatabase
 		heureka app.Heureka
@@ -265,7 +265,7 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserID"), 
 
 		It("it return the results", func() {
 			heureka = app.NewHeurekaApp(db)
-			res, err := heureka.ListUniqueUserID(filter, options)
+			res, err := heureka.ListUniqueUserIDs(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -280,7 +280,7 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserID"), 
 		})
 		It("returns filtered users according to the service type", func() {
 			heureka = app.NewHeurekaApp(db)
-			res, err := heureka.ListUniqueUserID(filter, options)
+			res, err := heureka.ListUniqueUserIDs(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(uuid), "should only consist of UniqueUserID")
 		})

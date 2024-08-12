@@ -182,7 +182,7 @@ func UniqueUserIDBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListUniqueUserID(f, opt)
+	names, err := app.ListUniqueUserIDs(f, opt)
 
 	if err != nil {
 		return nil, NewResolverError("UniqueUserIDBaseResolver", err.Error())

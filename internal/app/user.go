@@ -162,9 +162,9 @@ func (h *HeurekaApp) ListUserNames(filter *entity.UserFilter, options *entity.Li
 	return userNames, nil
 }
 
-func (h *HeurekaApp) ListUniqueUserID(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
+func (h *HeurekaApp) ListUniqueUserIDs(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":  "app.ListUniqueUserID",
+		"event":  "app.ListUniqueUserIDs",
 		"filter": filter,
 	})
 
