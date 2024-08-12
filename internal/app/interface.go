@@ -48,11 +48,14 @@ type Heureka interface {
 	RemoveOwnerFromService(int64, int64) (*entity.Service, error)
 	AddIssueRepositoryToService(int64, int64, int64) (*entity.Service, error)
 	RemoveIssueRepositoryFromService(int64, int64) (*entity.Service, error)
+	ListServiceNames(*entity.ServiceFilter, *entity.ListOptions) ([]string, error)
 
 	ListUsers(*entity.UserFilter, *entity.ListOptions) (*entity.List[entity.UserResult], error)
 	CreateUser(*entity.User) (*entity.User, error)
 	UpdateUser(*entity.User) (*entity.User, error)
 	DeleteUser(int64) error
+	ListUserNames(*entity.UserFilter, *entity.ListOptions) ([]string, error)
+	ListUniqueUserIDs(*entity.UserFilter, *entity.ListOptions) ([]string, error)
 
 	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
 	GetSupportGroup(int64) (*entity.SupportGroup, error)
@@ -63,6 +66,7 @@ type Heureka interface {
 	RemoveServiceFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
 	AddUserToSupportGroup(int64, int64) (*entity.SupportGroup, error)
 	RemoveUserFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	ListSupportGroupNames(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)
 
 	ListComponentInstances(*entity.ComponentInstanceFilter, *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error)
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)

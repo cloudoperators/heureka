@@ -145,3 +145,35 @@ func (h *HeurekaApp) DeleteUser(id int64) error {
 
 	return nil
 }
+
+func (h *HeurekaApp) ListUserNames(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.ListUserNames",
+		"filter": filter,
+	})
+
+	userNames, err := h.database.GetUserNames(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving userNames.")
+	}
+
+	return userNames, nil
+}
+
+func (h *HeurekaApp) ListUniqueUserIDs(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.ListUniqueUserIDs",
+		"filter": filter,
+	})
+
+	uniqueUserID, err := h.database.GetUniqueUserIDs(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving uniqueUserID.")
+	}
+
+	return uniqueUserID, nil
+}

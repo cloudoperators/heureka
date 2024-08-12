@@ -3975,6 +3975,64 @@ func (_c *MockDatabase_GetIssuesWithAggregations_Call) RunAndReturn(run func(*en
 	return _c
 }
 
+// GetServiceNames provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetServiceNames(_a0 *entity.ServiceFilter) ([]string, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServiceNames")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter) ([]string, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter) []string); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ServiceFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetServiceNames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServiceNames'
+type MockDatabase_GetServiceNames_Call struct {
+	*mock.Call
+}
+
+// GetServiceNames is a helper method to define mock.On call
+//   - _a0 *entity.ServiceFilter
+func (_e *MockDatabase_Expecter) GetServiceNames(_a0 interface{}) *MockDatabase_GetServiceNames_Call {
+	return &MockDatabase_GetServiceNames_Call{Call: _e.mock.On("GetServiceNames", _a0)}
+}
+
+func (_c *MockDatabase_GetServiceNames_Call) Run(run func(_a0 *entity.ServiceFilter)) *MockDatabase_GetServiceNames_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ServiceFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetServiceNames_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetServiceNames_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetServiceNames_Call) RunAndReturn(run func(*entity.ServiceFilter) ([]string, error)) *MockDatabase_GetServiceNames_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetServices provides a mock function with given fields: _a0
 func (_m *MockDatabase) GetServices(_a0 *entity.ServiceFilter) ([]entity.Service, error) {
 	ret := _m.Called(_a0)
@@ -4033,6 +4091,64 @@ func (_c *MockDatabase_GetServices_Call) RunAndReturn(run func(*entity.ServiceFi
 	return _c
 }
 
+// GetSupportGroupNames provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetSupportGroupNames(_a0 *entity.SupportGroupFilter) ([]string, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSupportGroupNames")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.SupportGroupFilter) ([]string, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.SupportGroupFilter) []string); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.SupportGroupFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetSupportGroupNames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSupportGroupNames'
+type MockDatabase_GetSupportGroupNames_Call struct {
+	*mock.Call
+}
+
+// GetSupportGroupNames is a helper method to define mock.On call
+//   - _a0 *entity.SupportGroupFilter
+func (_e *MockDatabase_Expecter) GetSupportGroupNames(_a0 interface{}) *MockDatabase_GetSupportGroupNames_Call {
+	return &MockDatabase_GetSupportGroupNames_Call{Call: _e.mock.On("GetSupportGroupNames", _a0)}
+}
+
+func (_c *MockDatabase_GetSupportGroupNames_Call) Run(run func(_a0 *entity.SupportGroupFilter)) *MockDatabase_GetSupportGroupNames_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.SupportGroupFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetSupportGroupNames_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetSupportGroupNames_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetSupportGroupNames_Call) RunAndReturn(run func(*entity.SupportGroupFilter) ([]string, error)) *MockDatabase_GetSupportGroupNames_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetSupportGroups provides a mock function with given fields: _a0
 func (_m *MockDatabase) GetSupportGroups(_a0 *entity.SupportGroupFilter) ([]entity.SupportGroup, error) {
 	ret := _m.Called(_a0)
@@ -4087,6 +4203,122 @@ func (_c *MockDatabase_GetSupportGroups_Call) Return(_a0 []entity.SupportGroup, 
 }
 
 func (_c *MockDatabase_GetSupportGroups_Call) RunAndReturn(run func(*entity.SupportGroupFilter) ([]entity.SupportGroup, error)) *MockDatabase_GetSupportGroups_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetUniqueUserIDs provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetUniqueUserIDs(_a0 *entity.UserFilter) ([]string, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUniqueUserIDs")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.UserFilter) ([]string, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.UserFilter) []string); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.UserFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetUniqueUserIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUniqueUserIDs'
+type MockDatabase_GetUniqueUserIDs_Call struct {
+	*mock.Call
+}
+
+// GetUniqueUserIDs is a helper method to define mock.On call
+//   - _a0 *entity.UserFilter
+func (_e *MockDatabase_Expecter) GetUniqueUserIDs(_a0 interface{}) *MockDatabase_GetUniqueUserIDs_Call {
+	return &MockDatabase_GetUniqueUserIDs_Call{Call: _e.mock.On("GetUniqueUserIDs", _a0)}
+}
+
+func (_c *MockDatabase_GetUniqueUserIDs_Call) Run(run func(_a0 *entity.UserFilter)) *MockDatabase_GetUniqueUserIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.UserFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetUniqueUserIDs_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetUniqueUserIDs_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetUniqueUserIDs_Call) RunAndReturn(run func(*entity.UserFilter) ([]string, error)) *MockDatabase_GetUniqueUserIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetUserNames provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetUserNames(_a0 *entity.UserFilter) ([]string, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserNames")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.UserFilter) ([]string, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.UserFilter) []string); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.UserFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetUserNames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserNames'
+type MockDatabase_GetUserNames_Call struct {
+	*mock.Call
+}
+
+// GetUserNames is a helper method to define mock.On call
+//   - _a0 *entity.UserFilter
+func (_e *MockDatabase_Expecter) GetUserNames(_a0 interface{}) *MockDatabase_GetUserNames_Call {
+	return &MockDatabase_GetUserNames_Call{Call: _e.mock.On("GetUserNames", _a0)}
+}
+
+func (_c *MockDatabase_GetUserNames_Call) Run(run func(_a0 *entity.UserFilter)) *MockDatabase_GetUserNames_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.UserFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetUserNames_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetUserNames_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetUserNames_Call) RunAndReturn(run func(*entity.UserFilter) ([]string, error)) *MockDatabase_GetUserNames_Call {
 	_c.Call.Return(run)
 	return _c
 }

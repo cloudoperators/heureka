@@ -293,6 +293,11 @@ type EvidenceInput struct {
 	Severity    *SeverityInput `json:"severity,omitempty"`
 }
 
+type FilterItem struct {
+	FilterName *string   `json:"filterName,omitempty"`
+	Values     []*string `json:"values,omitempty"`
+}
+
 type Issue struct {
 	ID                string                      `json:"id"`
 	Type              *IssueTypes                 `json:"type,omitempty"`
@@ -606,10 +611,17 @@ func (this ServiceEdge) GetCursor() *string { return this.Cursor }
 
 type ServiceFilter struct {
 	ServiceName      []*string `json:"serviceName,omitempty"`
-	UniqueUserID     []*string `json:"uniqueUserID,omitempty"`
+	UniqueUserID     []*string `json:"uniqueUserId,omitempty"`
 	Type             []*int    `json:"type,omitempty"`
 	UserName         []*string `json:"userName,omitempty"`
 	SupportGroupName []*string `json:"supportGroupName,omitempty"`
+}
+
+type ServiceFilterValue struct {
+	ServiceName      *FilterItem `json:"serviceName,omitempty"`
+	UniqueUserID     *FilterItem `json:"uniqueUserId,omitempty"`
+	UserName         *FilterItem `json:"userName,omitempty"`
+	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
 }
 
 type ServiceInput struct {
@@ -698,6 +710,7 @@ func (this UserEdge) GetCursor() *string { return this.Cursor }
 type UserFilter struct {
 	UserName        []*string `json:"userName,omitempty"`
 	SupportGroupIds []*string `json:"supportGroupIds,omitempty"`
+	UniqueUserID    []*string `json:"uniqueUserId,omitempty"`
 }
 
 type UserInput struct {

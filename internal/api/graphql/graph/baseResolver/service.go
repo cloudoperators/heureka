@@ -143,3 +143,41 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	return &connection, nil
 
 }
+func ServiceNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called ServiceNameBaseResolver")
+
+	if filter == nil {
+		filter = &model.ServiceFilter{}
+	}
+
+	f := &entity.ServiceFilter{
+		Paginated:        entity.Paginated{},
+		SupportGroupName: filter.SupportGroupName,
+		Name:             filter.ServiceName,
+		OwnerName:        filter.UserName,
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, err := app.ListServiceNames(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("ServiceNameBaseResolver", err.Error())
+	}
+
+	var pointerNames []*string
+
+	for _, name := range names {
+		pointerNames = append(pointerNames, &name)
+	}
+
+	filterItem := model.FilterItem{
+		FilterName: &FilterServiceName,
+		Values:     pointerNames,
+	}
+
+	return &filterItem, nil
+}

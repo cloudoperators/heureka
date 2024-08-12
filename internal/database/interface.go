@@ -57,6 +57,7 @@ type Database interface {
 	RemoveOwnerFromService(int64, int64) error
 	AddIssueRepositoryToService(int64, int64, int64) error
 	RemoveIssueRepositoryFromService(int64, int64) error
+	GetServiceNames(*entity.ServiceFilter) ([]string, error)
 
 	GetUsers(*entity.UserFilter) ([]entity.User, error)
 	GetAllUserIds(*entity.UserFilter) ([]int64, error)
@@ -64,6 +65,8 @@ type Database interface {
 	CreateUser(*entity.User) (*entity.User, error)
 	UpdateUser(*entity.User) error
 	DeleteUser(int64) error
+	GetUserNames(*entity.UserFilter) ([]string, error)
+	GetUniqueUserIDs(*entity.UserFilter) ([]string, error)
 
 	GetSupportGroups(*entity.SupportGroupFilter) ([]entity.SupportGroup, error)
 	GetAllSupportGroupIds(*entity.SupportGroupFilter) ([]int64, error)
@@ -75,6 +78,7 @@ type Database interface {
 	RemoveServiceFromSupportGroup(int64, int64) error
 	AddUserToSupportGroup(int64, int64) error
 	RemoveUserFromSupportGroup(int64, int64) error
+	GetSupportGroupNames(*entity.SupportGroupFilter) ([]string, error)
 
 	GetComponentInstances(*entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error)
 	GetAllComponentInstanceIds(*entity.ComponentInstanceFilter) ([]int64, error)

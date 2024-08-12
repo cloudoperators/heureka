@@ -220,3 +220,19 @@ func (h *HeurekaApp) RemoveUserFromSupportGroup(supportGroupId int64, userId int
 
 	return h.GetSupportGroup(supportGroupId)
 }
+
+func (h *HeurekaApp) ListSupportGroupNames(filter *entity.SupportGroupFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.ListSupportGroupNames",
+		"filter": filter,
+	})
+
+	supportGroupNames, err := h.database.GetSupportGroupNames(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving supportGroupNames.")
+	}
+
+	return supportGroupNames, nil
+}

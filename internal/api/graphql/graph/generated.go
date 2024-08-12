@@ -55,6 +55,7 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Service() ServiceResolver
+	ServiceFilterValue() ServiceFilterValueResolver
 	SupportGroup() SupportGroupResolver
 	User() UserResolver
 }
@@ -213,6 +214,11 @@ type ComplexityRoot struct {
 	EvidenceEdge struct {
 		Cursor func(childComplexity int) int
 		Node   func(childComplexity int) int
+	}
+
+	FilterItem struct {
+		FilterName func(childComplexity int) int
+		Values     func(childComplexity int) int
 	}
 
 	Issue struct {
@@ -426,19 +432,20 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Activities         func(childComplexity int, filter *model.ActivityFilter, first *int, after *string) int
-		ComponentInstances func(childComplexity int, filter *model.ComponentInstanceFilter, first *int, after *string) int
-		ComponentVersions  func(childComplexity int, filter *model.ComponentVersionFilter, first *int, after *string) int
-		Components         func(childComplexity int, filter *model.ComponentFilter, first *int, after *string) int
-		Evidences          func(childComplexity int, filter *model.EvidenceFilter, first *int, after *string) int
-		IssueMatchChanges  func(childComplexity int, filter *model.IssueMatchChangeFilter, first *int, after *string) int
-		IssueMatches       func(childComplexity int, filter *model.IssueMatchFilter, first *int, after *string) int
-		IssueRepositories  func(childComplexity int, filter *model.IssueRepositoryFilter, first *int, after *string) int
-		IssueVariants      func(childComplexity int, filter *model.IssueVariantFilter, first *int, after *string) int
-		Issues             func(childComplexity int, filter *model.IssueFilter, first *int, after *string) int
-		Services           func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
-		SupportGroups      func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
-		Users              func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
+		Activities          func(childComplexity int, filter *model.ActivityFilter, first *int, after *string) int
+		ComponentInstances  func(childComplexity int, filter *model.ComponentInstanceFilter, first *int, after *string) int
+		ComponentVersions   func(childComplexity int, filter *model.ComponentVersionFilter, first *int, after *string) int
+		Components          func(childComplexity int, filter *model.ComponentFilter, first *int, after *string) int
+		Evidences           func(childComplexity int, filter *model.EvidenceFilter, first *int, after *string) int
+		IssueMatchChanges   func(childComplexity int, filter *model.IssueMatchChangeFilter, first *int, after *string) int
+		IssueMatches        func(childComplexity int, filter *model.IssueMatchFilter, first *int, after *string) int
+		IssueRepositories   func(childComplexity int, filter *model.IssueRepositoryFilter, first *int, after *string) int
+		IssueVariants       func(childComplexity int, filter *model.IssueVariantFilter, first *int, after *string) int
+		Issues              func(childComplexity int, filter *model.IssueFilter, first *int, after *string) int
+		ServiceFilterValues func(childComplexity int) int
+		Services            func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
+		SupportGroups       func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
+		Users               func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
 	}
 
 	Service struct {
@@ -461,6 +468,13 @@ type ComplexityRoot struct {
 		Cursor   func(childComplexity int) int
 		Node     func(childComplexity int) int
 		Priority func(childComplexity int) int
+	}
+
+	ServiceFilterValue struct {
+		ServiceName      func(childComplexity int, filter *model.ServiceFilter) int
+		SupportGroupName func(childComplexity int, filter *model.SupportGroupFilter) int
+		UniqueUserID     func(childComplexity int, filter *model.UserFilter) int
+		UserName         func(childComplexity int, filter *model.UserFilter) int
 	}
 
 	Severity struct {
@@ -635,6 +649,7 @@ type QueryResolver interface {
 	Evidences(ctx context.Context, filter *model.EvidenceFilter, first *int, after *string) (*model.EvidenceConnection, error)
 	SupportGroups(ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string) (*model.SupportGroupConnection, error)
 	Users(ctx context.Context, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
+	ServiceFilterValues(ctx context.Context) (*model.ServiceFilterValue, error)
 }
 type ServiceResolver interface {
 	Owners(ctx context.Context, obj *model.Service, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -642,6 +657,12 @@ type ServiceResolver interface {
 	Activities(ctx context.Context, obj *model.Service, filter *model.ActivityFilter, first *int, after *string) (*model.ActivityConnection, error)
 	IssueRepositories(ctx context.Context, obj *model.Service, filter *model.IssueRepositoryFilter, first *int, after *string) (*model.IssueRepositoryConnection, error)
 	ComponentInstances(ctx context.Context, obj *model.Service, filter *model.ComponentInstanceFilter, first *int, after *string) (*model.ComponentInstanceConnection, error)
+}
+type ServiceFilterValueResolver interface {
+	ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error)
+	UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error)
+	UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error)
+	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error)
 }
 type SupportGroupResolver interface {
 	Users(ctx context.Context, obj *model.SupportGroup, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -1359,6 +1380,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.EvidenceEdge.Node(childComplexity), true
+
+	case "FilterItem.filterName":
+		if e.complexity.FilterItem.FilterName == nil {
+			break
+		}
+
+		return e.complexity.FilterItem.FilterName(childComplexity), true
+
+	case "FilterItem.values":
+		if e.complexity.FilterItem.Values == nil {
+			break
+		}
+
+		return e.complexity.FilterItem.Values(childComplexity), true
 
 	case "Issue.activities":
 		if e.complexity.Issue.Activities == nil {
@@ -2871,6 +2906,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Issues(childComplexity, args["filter"].(*model.IssueFilter), args["first"].(*int), args["after"].(*string)), true
 
+	case "Query.ServiceFilterValues":
+		if e.complexity.Query.ServiceFilterValues == nil {
+			break
+		}
+
+		return e.complexity.Query.ServiceFilterValues(childComplexity), true
+
 	case "Query.Services":
 		if e.complexity.Query.Services == nil {
 			break
@@ -3022,6 +3064,54 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ServiceEdge.Priority(childComplexity), true
+
+	case "ServiceFilterValue.serviceName":
+		if e.complexity.ServiceFilterValue.ServiceName == nil {
+			break
+		}
+
+		args, err := ec.field_ServiceFilterValue_serviceName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.ServiceName(childComplexity, args["filter"].(*model.ServiceFilter)), true
+
+	case "ServiceFilterValue.supportGroupName":
+		if e.complexity.ServiceFilterValue.SupportGroupName == nil {
+			break
+		}
+
+		args, err := ec.field_ServiceFilterValue_supportGroupName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.SupportGroupName(childComplexity, args["filter"].(*model.SupportGroupFilter)), true
+
+	case "ServiceFilterValue.uniqueUserId":
+		if e.complexity.ServiceFilterValue.UniqueUserID == nil {
+			break
+		}
+
+		args, err := ec.field_ServiceFilterValue_uniqueUserId_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.UniqueUserID(childComplexity, args["filter"].(*model.UserFilter)), true
+
+	case "ServiceFilterValue.userName":
+		if e.complexity.ServiceFilterValue.UserName == nil {
+			break
+		}
+
+		args, err := ec.field_ServiceFilterValue_userName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ServiceFilterValue.UserName(childComplexity, args["filter"].(*model.UserFilter)), true
 
 	case "Severity.cvss":
 		if e.complexity.Severity.Cvss == nil {
@@ -3336,7 +3426,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/activity.graphqls" "schema/common.graphqls" "schema/component.graphqls" "schema/component_instance.graphqls" "schema/component_version.graphqls" "schema/evidence.graphqls" "schema/issue.graphqls" "schema/issue_match.graphqls" "schema/issue_match_change.graphqls" "schema/issue_repository.graphqls" "schema/issue_variant.graphqls" "schema/mutation.graphqls" "schema/query.graphqls" "schema/service.graphqls" "schema/support_group.graphqls" "schema/user.graphqls"
+//go:embed "schema/activity.graphqls" "schema/common.graphqls" "schema/component.graphqls" "schema/component_instance.graphqls" "schema/component_version.graphqls" "schema/evidence.graphqls" "schema/issue.graphqls" "schema/issue_match.graphqls" "schema/issue_match_change.graphqls" "schema/issue_repository.graphqls" "schema/issue_variant.graphqls" "schema/mutation.graphqls" "schema/query.graphqls" "schema/service.graphqls" "schema/service_filter.graphqls" "schema/support_group.graphqls" "schema/user.graphqls"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -3362,6 +3452,7 @@ var sources = []*ast.Source{
 	{Name: "schema/mutation.graphqls", Input: sourceData("schema/mutation.graphqls"), BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: sourceData("schema/query.graphqls"), BuiltIn: false},
 	{Name: "schema/service.graphqls", Input: sourceData("schema/service.graphqls"), BuiltIn: false},
+	{Name: "schema/service_filter.graphqls", Input: sourceData("schema/service_filter.graphqls"), BuiltIn: false},
 	{Name: "schema/support_group.graphqls", Input: sourceData("schema/support_group.graphqls"), BuiltIn: false},
 	{Name: "schema/user.graphqls", Input: sourceData("schema/user.graphqls"), BuiltIn: false},
 }
@@ -5483,6 +5574,66 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_ServiceFilterValue_serviceName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.ServiceFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOServiceFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_ServiceFilterValue_supportGroupName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.SupportGroupFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOSupportGroupFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSupportGroupFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_ServiceFilterValue_uniqueUserId_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.UserFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOUserFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐUserFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_ServiceFilterValue_userName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.UserFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOUserFilter2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐUserFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
 	return args, nil
 }
 
@@ -10123,6 +10274,88 @@ func (ec *executionContext) _EvidenceEdge_cursor(ctx context.Context, field grap
 func (ec *executionContext) fieldContext_EvidenceEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "EvidenceEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FilterItem_filterName(ctx context.Context, field graphql.CollectedField, obj *model.FilterItem) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FilterItem_filterName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FilterName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FilterItem_filterName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FilterItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FilterItem_values(ctx context.Context, field graphql.CollectedField, obj *model.FilterItem) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_FilterItem_values(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Values, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_FilterItem_values(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FilterItem",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -19347,6 +19580,57 @@ func (ec *executionContext) fieldContext_Query_Users(ctx context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_ServiceFilterValues(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_ServiceFilterValues(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ServiceFilterValues(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ServiceFilterValue)
+	fc.Result = res
+	return ec.marshalOServiceFilterValue2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilterValue(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_ServiceFilterValues(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "serviceName":
+				return ec.fieldContext_ServiceFilterValue_serviceName(ctx, field)
+			case "uniqueUserId":
+				return ec.fieldContext_ServiceFilterValue_uniqueUserId(ctx, field)
+			case "userName":
+				return ec.fieldContext_ServiceFilterValue_userName(ctx, field)
+			case "supportGroupName":
+				return ec.fieldContext_ServiceFilterValue_supportGroupName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ServiceFilterValue", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query___type(ctx, field)
 	if err != nil {
@@ -20147,6 +20431,238 @@ func (ec *executionContext) fieldContext_ServiceEdge_priority(_ context.Context,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceFilterValue_serviceName(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_serviceName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ServiceFilterValue().ServiceName(rctx, obj, fc.Args["filter"].(*model.ServiceFilter))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FilterItem)
+	fc.Result = res
+	return ec.marshalOFilterItem2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ServiceFilterValue_serviceName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "filterName":
+				return ec.fieldContext_FilterItem_filterName(ctx, field)
+			case "values":
+				return ec.fieldContext_FilterItem_values(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FilterItem", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ServiceFilterValue_serviceName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceFilterValue_uniqueUserId(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_uniqueUserId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ServiceFilterValue().UniqueUserID(rctx, obj, fc.Args["filter"].(*model.UserFilter))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FilterItem)
+	fc.Result = res
+	return ec.marshalOFilterItem2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ServiceFilterValue_uniqueUserId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "filterName":
+				return ec.fieldContext_FilterItem_filterName(ctx, field)
+			case "values":
+				return ec.fieldContext_FilterItem_values(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FilterItem", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ServiceFilterValue_uniqueUserId_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceFilterValue_userName(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_userName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ServiceFilterValue().UserName(rctx, obj, fc.Args["filter"].(*model.UserFilter))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FilterItem)
+	fc.Result = res
+	return ec.marshalOFilterItem2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ServiceFilterValue_userName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "filterName":
+				return ec.fieldContext_FilterItem_filterName(ctx, field)
+			case "values":
+				return ec.fieldContext_FilterItem_values(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FilterItem", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ServiceFilterValue_userName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ServiceFilterValue_supportGroupName(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_supportGroupName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ServiceFilterValue().SupportGroupName(rctx, obj, fc.Args["filter"].(*model.SupportGroupFilter))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FilterItem)
+	fc.Result = res
+	return ec.marshalOFilterItem2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ServiceFilterValue_supportGroupName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ServiceFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "filterName":
+				return ec.fieldContext_FilterItem_filterName(ctx, field)
+			case "values":
+				return ec.fieldContext_FilterItem_values(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FilterItem", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ServiceFilterValue_supportGroupName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -23878,7 +24394,7 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceName", "uniqueUserID", "type", "userName", "supportGroupName"}
+	fieldsInOrder := [...]string{"serviceName", "uniqueUserId", "type", "userName", "supportGroupName"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -23892,8 +24408,8 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 				return it, err
 			}
 			it.ServiceName = data
-		case "uniqueUserID":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserID"))
+		case "uniqueUserId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserId"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
@@ -24048,7 +24564,7 @@ func (ec *executionContext) unmarshalInputUserFilter(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"userName", "supportGroupIds"}
+	fieldsInOrder := [...]string{"userName", "supportGroupIds", "uniqueUserId"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -24069,6 +24585,13 @@ func (ec *executionContext) unmarshalInputUserFilter(ctx context.Context, obj in
 				return it, err
 			}
 			it.SupportGroupIds = data
+		case "uniqueUserId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserId"))
+			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UniqueUserID = data
 		}
 	}
 
@@ -25750,6 +26273,44 @@ func (ec *executionContext) _EvidenceEdge(ctx context.Context, sel ast.Selection
 			}
 		case "cursor":
 			out.Values[i] = ec._EvidenceEdge_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var filterItemImplementors = []string{"FilterItem"}
+
+func (ec *executionContext) _FilterItem(ctx context.Context, sel ast.SelectionSet, obj *model.FilterItem) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, filterItemImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FilterItem")
+		case "filterName":
+			out.Values[i] = ec._FilterItem_filterName(ctx, field, obj)
+		case "values":
+			out.Values[i] = ec._FilterItem_values(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -27860,6 +28421,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "ServiceFilterValues":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ServiceFilterValues(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -28160,6 +28740,172 @@ func (ec *executionContext) _ServiceEdge(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._ServiceEdge_cursor(ctx, field, obj)
 		case "priority":
 			out.Values[i] = ec._ServiceEdge_priority(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var serviceFilterValueImplementors = []string{"ServiceFilterValue"}
+
+func (ec *executionContext) _ServiceFilterValue(ctx context.Context, sel ast.SelectionSet, obj *model.ServiceFilterValue) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, serviceFilterValueImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ServiceFilterValue")
+		case "serviceName":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ServiceFilterValue_serviceName(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "uniqueUserId":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ServiceFilterValue_uniqueUserId(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "userName":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ServiceFilterValue_userName(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "supportGroupName":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ServiceFilterValue_supportGroupName(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -30076,6 +30822,13 @@ func (ec *executionContext) unmarshalOEvidenceFilter2ᚖgithubᚗwdfᚗsapᚗcor
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalOFilterItem2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx context.Context, sel ast.SelectionSet, v *model.FilterItem) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._FilterItem(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
 	if v == nil {
 		return nil, nil
@@ -30789,6 +31542,13 @@ func (ec *executionContext) unmarshalOServiceFilter2ᚖgithubᚗwdfᚗsapᚗcorp
 	}
 	res, err := ec.unmarshalInputServiceFilter(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOServiceFilterValue2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilterValue(ctx context.Context, sel ast.SelectionSet, v *model.ServiceFilterValue) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ServiceFilterValue(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOSeverity2ᚖgithubᚗwdfᚗsapᚗcorpᚋccᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSeverity(ctx context.Context, sel ast.SelectionSet, v *model.Severity) graphql.Marshaler {

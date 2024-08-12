@@ -285,3 +285,49 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 		Expect(service).NotTo(BeNil(), "service should be returned")
 	})
 })
+
+var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"), func() {
+	var (
+		db      *mocks.MockDatabase
+		heureka app.Heureka
+		filter  *entity.ServiceFilter
+		options *entity.ListOptions
+		name    string
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = getListOptions()
+		filter = getServiceFilter()
+		name = "f1"
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetServiceNames", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListServiceNames(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific serviceNames filter is applied", func() {
+		BeforeEach(func() {
+			filter = &entity.ServiceFilter{
+				Name: []*string{&name},
+			}
+
+			db.On("GetServiceNames", filter).Return([]string{name}, nil)
+		})
+		It("returns filtered services according to the service type", func() {
+			heureka = app.NewHeurekaApp(db)
+			res, err := heureka.ListServiceNames(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf(name), "should only consist of serviceName")
+		})
+	})
+})
