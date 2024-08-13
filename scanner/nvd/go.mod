@@ -1,3 +1,3 @@
 module github.com/cloudoperators/heureka/scanners/nvd
 
-go 1.22.4
+go 1.22.6
