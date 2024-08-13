@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.wdf.sap.corp/cc/heureka/scanners/cveScanner/models"
 	"golang.org/x/time/rate"
@@ -35,14 +36,18 @@ func (s *Scanner) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func NewScanner(baseURL string, apiKey string, resultsPerPage string, rl *rate.Limiter) *Scanner {
+func NewScanner(cfg Config) *Scanner {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
+
+	// The public rate limit (without an API key) is 5 requests in a rolling 30 second window; the rate limit with an API key is 50 requests in a rolling 30 second window
+	rl := rate.NewLimiter(rate.Every(30*time.Second/50), 50)
+
 	return &Scanner{
-		BaseURL:        baseURL,
-		ApiKey:         apiKey,
-		ResultsPerPage: resultsPerPage,
+		BaseURL:        cfg.NvdApiUrl,
+		ApiKey:         cfg.NvdApiKey,
+		ResultsPerPage: cfg.NvdResultsPerPage,
 		HTTPClient:     &http.Client{Transport: tr},
 		RateLimiter:    rl,
 	}

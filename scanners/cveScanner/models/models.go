@@ -286,3 +286,22 @@ type CveFilter struct {
 	ModStartDate string
 	ModEndDate   string
 }
+
+type Issue struct {
+	Id          string `json:"id"`
+	Type        string `json:"type"`
+	PrimaryName string `json:"primary_name"`
+	Description string `json:"description"`
+}
+
+type IssueVariant struct {
+	Id            string `json:"id"`
+	SecondaryName string `json:"secondary_name"`
+	IssueId       int64  `json:"issue_id"`
+}
+
+type IssueRepository struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	Url  string `json:"url"`
+}
