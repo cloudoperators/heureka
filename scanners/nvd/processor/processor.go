@@ -108,15 +108,30 @@ func (p *Processor) CreateIssueRepository() (string, error) {
 	}
 }
 
-func (p *Processor) Process(cve *models.Cve) error {
-	var (
-		issueRespData struct {
-			Issue models.Issue `json:"createIssue"`
-		}
-		issueVariantRespData struct {
-			IssueVariant models.IssueVariant `json:"createIssueVariant"`
-		}
-	)
+// GetIssueId ...
+func (p *Processor) GetIssueId(cve *models.Cve) (string, error) {
+	var issueConnectionResp struct {
+		IssueConnection models.IssueConnection `json:"Issues"`
+	}
+
+	// Fetch Issue by CVE name
+	req := graphql.NewRequest(GetIssueIdQuery)
+	req.Var("filter", map[string][]string{
+		"primaryName": {p.IssueRepositoryName},
+	})
+
+	err := p.Client.Run(context.Background(), req, &issueRepositoryConnectionResp)
+	if err != nil {
+		return "", err
+	}
+
+}
+
+// CreateIssue creates a new Issue based on a CVE
+func (p *Processor) CreateIssue(cve *models.Cve) (string, error) {
+	var issueRespData struct {
+		Issue models.Issue `json:"createIssue"`
+	}
 
 	// Create new Issue
 	req := graphql.NewRequest(CreateIssueQuery)
@@ -127,28 +142,47 @@ func (p *Processor) Process(cve *models.Cve) error {
 	})
 
 	err := p.Client.Run(context.Background(), req, &issueRespData)
-	if err != nil {
-		fmt.Println(err)
-		return err
+
+	return issueRespData.Issue.Id, err
+}
+
+// CreateIssueVariant ...
+func (p *Processor) CreateIssueVariant(issueId string, issueRepositoryId string, cve *models.Cve) (string, error) {
+	var issueVariantRespData struct {
+		IssueVariant models.IssueVariant `json:"createIssueVariant"`
 	}
 
 	// Create new IssueVariant
-	req = graphql.NewRequest(CreateIssueVariantQuery)
+	req := graphql.NewRequest(CreateIssueVariantQuery)
 	req.Var("input", map[string]interface{}{
 		"secondaryName":     cve.Id,
 		"description":       cve.GetDescription("en"),
-		"issueRepositoryId": p.IssueRepositoryId,
-		"issueId":           issueRespData.Issue.Id,
+		"issueRepositoryId": issueRepositoryId,
+		"issueId":           issueId,
 		"severity": map[string]string{
-			"vector": "todo",
+			"vector": cve.GetSeverityVector(),
 		},
 	})
 
-	err = p.Client.Run(context.Background(), req, &issueVariantRespData)
+	err := p.Client.Run(context.Background(), req, &issueVariantRespData)
+
+	return issueVariantRespData.IssueVariant.Id, err
+}
+
+func (p *Processor) Process(cve *models.Cve) error {
+	// Create new Issue
+	issueId, err := p.CreateIssue(cve)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		fmt.Printf("couldn't create new Issue")
 	}
 
-	return err
+	// Create new IssueVariant
+	issueVariantId, err := p.CreateIssueVariant(issueId, p.IssueRepositoryId, cve)
+	if err != nil {
+		return fmt.Errorf("couldn't create new IssueVariant")
+	}
+
+	fmt.Printf("Created new Issue: %s", issueId)
+	fmt.Printf("Created new IssueVariant: %s", issueVariantId)
+	return nil
 }

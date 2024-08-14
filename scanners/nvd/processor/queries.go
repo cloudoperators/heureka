@@ -2,6 +2,20 @@ package processor
 
 // GraphQL queries
 const (
+	GetIssueIdQuery = `
+		query ($filter: IssueFilter) {
+			Issues (
+				filter: $filter,
+			) {
+				totalCount
+				edges {
+					node {
+						id
+					}
+				}
+			}
+		}
+	`
 	CreateIssueQuery = `
 		mutation ($input: IssueInput!) {
 			createIssue (

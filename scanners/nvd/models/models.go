@@ -56,6 +56,21 @@ func (cve Cve) GetDescription(language string) string {
 	return ""
 }
 
+// GetSeverityVector tries to fetch a CvssV31 vector string from the CVE
+func (cve Cve) GetSeverityVector() string {
+	var vector string
+	// Try to first fetch Cvssv31 score
+	for _, metric := range cve.Metrics.CvssMetricV31 {
+		if len(metric.CvsssData.VectorString) > 0 {
+			vector = metric.CvsssData.VectorString
+			break
+		} else {
+			continue
+		}
+	}
+	return vector
+}
+
 type CveTag struct {
 	SourceIdentifier string   `json:"sourceIdentifier,omitempty"`
 	Tags             []string `json:"tags,omitempty"`
@@ -287,6 +302,9 @@ type CveFilter struct {
 	ModEndDate   string
 }
 
+//
+// Models for Issue
+//
 type Issue struct {
 	Id          string `json:"id"`
 	Type        string `json:"type"`
@@ -294,12 +312,18 @@ type Issue struct {
 	Description string `json:"description"`
 }
 
+//
+// Models for IssueVariant
+//
 type IssueVariant struct {
 	Id            string `json:"id"`
 	SecondaryName string `json:"secondary_name"`
 	IssueId       int64  `json:"issue_id"`
 }
 
+//
+// Models for IssueRepository
+//
 type IssueRepository struct {
 	Id        string  `json:"id"`
 	Name      *string `json:"name,omitempty"`
