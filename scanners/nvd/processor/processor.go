@@ -55,9 +55,7 @@ func (p *Processor) GetIssueRepositoryId() (string, error) {
 	)
 
 	// Fetch IssueRepositoryId by name
-	query := p.GetIssueRepositoryIdQuery()
-	req := graphql.NewRequest(query)
-
+	req := graphql.NewRequest(GetIssueRepositoryIdQuery)
 	req.Var("filter", map[string][]string{
 		"name": {p.IssueRepositoryName},
 	})
@@ -89,9 +87,8 @@ func (p *Processor) CreateIssueRepository() (string, error) {
 	var createIssueRepositoryResp struct {
 		IssueRepository models.IssueRepository `json:"createIssueRepository"`
 	}
-	query := p.CreateIssueRepositoryQuery()
-	req := graphql.NewRequest(query)
 
+	req := graphql.NewRequest(CreateIssueRepositoryQuery)
 	req.Var("input", map[string]string{
 		"name": p.IssueRepositoryName,
 		"url":  p.IssueRepositoryUrl,
@@ -112,29 +109,31 @@ func (p *Processor) CreateIssueRepository() (string, error) {
 }
 
 func (p *Processor) Process(cve *models.Cve) error {
-	query := p.GetCreateIssueQuery()
-	req := graphql.NewRequest(query)
+	var (
+		issueRespData struct {
+			Issue models.Issue `json:"createIssue"`
+		}
+		issueVariantRespData struct {
+			IssueVariant models.IssueVariant `json:"createIssueVariant"`
+		}
+	)
 
+	// Create new Issue
+	req := graphql.NewRequest(CreateIssueQuery)
 	req.Var("input", map[string]string{
 		"primaryName": cve.Id,
 		"description": cve.GetDescription("en"),
 		"type":        "Vulnerability",
 	})
 
-	var issueRespData struct {
-		Issue models.Issue `json:"createIssue"`
-	}
-
 	err := p.Client.Run(context.Background(), req, &issueRespData)
-
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 
-	query = p.GetCreateIssueVariantQuery()
-	req = graphql.NewRequest(query)
-
+	// Create new IssueVariant
+	req = graphql.NewRequest(CreateIssueVariantQuery)
 	req.Var("input", map[string]interface{}{
 		"secondaryName":     cve.Id,
 		"description":       cve.GetDescription("en"),
@@ -145,76 +144,11 @@ func (p *Processor) Process(cve *models.Cve) error {
 		},
 	})
 
-	var issueVariantRespData struct {
-		IssueVariant models.IssueVariant `json:"createIssueVariant"`
-	}
-
 	err = p.Client.Run(context.Background(), req, &issueVariantRespData)
-
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 
 	return err
-}
-
-func (p *Processor) GetCreateIssueQuery() string {
-	return `
-	mutation ($input: IssueInput!) {
-		createIssue (
-			input: $input
-		) {
-			id
-			primaryName
-			description
-			type
-		}
-	}
-	`
-}
-
-func (p *Processor) GetCreateIssueVariantQuery() string {
-	return `
-	mutation ($input: IssueVariantInput!) {
-    createIssueVariant (
-        input: $input
-    ) {
-        id
-        secondaryName
-        issueId
- 	   }
-	}
-	`
-}
-
-func (p *Processor) GetIssueRepositoryIdQuery() string {
-	return `
-	query ($filter: IssueRepositoryFilter) {
-		IssueRepositories (
-			filter: $filter,
-		) {
-            totalCount
-			edges {
-				node {
-					id
-				}
-			}
-		}
-	}
-	`
-}
-
-func (p *Processor) CreateIssueRepositoryQuery() string {
-	return `
-	mutation ($input: IssueRepositoryInput!) {
-		createIssueRepository (
-			input: $input
-		) {
-			id
-			name
-			url
-		}
-	}
-	`
 }
