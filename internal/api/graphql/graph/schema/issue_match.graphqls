@@ -30,6 +30,10 @@ input IssueMatchInput {
 }
 
 input IssueMatchFilter {
+    search: [String]
+    primaryName: [String]
+    componentName: [String]
+    issueType: [IssueTypes]
     status: [IssueMatchStatusValues]
     severity: [SeverityValues]
     affectedService: [String]

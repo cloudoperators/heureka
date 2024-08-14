@@ -101,6 +101,10 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		IssueId:             issueId,
 		EvidenceId:          eId,
 		ComponentInstanceId: ciId,
+		Search:              filter.Search,
+		ComponentName:       filter.ComponentName,
+		PrimaryName:         filter.PrimaryName,
+		IssueType:           lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 	}
 
 	opt := GetListOptions(requestedFields)
