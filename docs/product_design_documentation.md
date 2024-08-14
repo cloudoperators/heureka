@@ -2,16 +2,16 @@
 
 ## Vision
 
-**Heureka is a Security Posture Management tool designed to manage the security issues in a complex technology landscape.**
+**Heureka is a Security Posture Management tool designed to manage security issues in a complex technology landscape.**
 
-Heureka is committed to empowering service owners with a central platform for proactive security management. It seamlessly integrates key components such as advanced patch management, intelligent SIEM analysis, and automated policy enforcement.
+Heureka is committed to empowering service owners with a central platform for proactive security management. It integrates key components such as advanced patch management, intelligent SIEM analysis, and automated policy enforcement.
 
-It is also designed to address the critical compliance aspect as it is equipped with capabilities to track the end-to-end remediation process, thereby providing tangible compliance evidence. This approach to security posture management ensures a comprehensive and professional approach to maintaining robust security standards.
+It is also designed to address the critical compliance aspect as it can track the end-to-end remediation process, thereby providing tangible compliance evidence. This approach to security posture management ensures a comprehensive and professional approach to maintaining robust security standards.
 
 ## Problem Statements
 
 ### Complexity and Visibility
-Maintaining security in a complex cloud operations platform landscape is a monumental task. These landscapes often consist of numerous services, each with a multitude of components like images, databases, libraries, and configurations. 
+Maintaining security in a complex cloud operations platform landscape is a monumental task. These landscapes often consist of numerous services, each having multiple components like images, databases, libraries, and configurations. 
 The challenge is compounded by the fact that these components have varying versions and can be shared across multiple services creating a critical need to pinpoint the specific instance (version) of a component as the security baseline, as vulnerabilities within a single component can impact multiple services within the landscape.
 
 ### Compliance and Efficiency
@@ -22,7 +22,7 @@ This makes tracking remediation, documenting evidence, and managing security con
  
 - Enhance Visibility and Security Posture:
   - Track the overall state of the technology landscape 
-  - Track security issues associated to specific components of the technology landscape
+  - Track security issues associated with specific components of the technology landscape
  
 - Streamline Security Operations:
   - Provide a central platform to monitor and assess the overall security posture of the technology landscape
@@ -149,10 +149,10 @@ It provides detailed information about existing instances and versions of each c
 This feature will help in understanding the potential impact of security issues, planning for security improvements, and ensuring that all parts of the technology landscape are adequately protected.
 
 ### Issue Classification/Documentation
-This feature ensures a systematic and compliant classification of all security issues. It involves by documenting essential attributes such as a unique ID (e.g., CVE ID), severity level, target remediation time, and affected service resolution efforts.
+This feature ensures a systematic and compliant classification of all security issues. It involves documenting essential attributes such as a unique ID (e.g., CVE ID), severity level, target remediation time, and affected service resolution efforts.
 This comprehensive documentation aids in prioritizing and managing security issues effectively.
 
-### Issue Remmediation Management
+### Issue Remediation Management
 This feature empowers service owners with the ability to track the life cycle of each issue. It provides complete visibility into the issue resolution process, from identification to remediation. With this, owners get to manage and resolve issues more efficiently, enhancing the overall security posture.
 
 ### Compliance Artifact Management
