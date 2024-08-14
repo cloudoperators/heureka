@@ -27,29 +27,34 @@ func NewProcessor(cfg Config) *Processor {
 }
 
 func (p *Processor) Setup() error {
-	repositoryId, err := p.GetIssueRepositoryId()
+	// Check if there is already an IssueRepository with the same name
+	existentingIssueRepositoryId, err := p.GetIssueRepositoryId()
 	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+		fmt.Printf("err: %s", err)
 
-	if repositoryId == "-1" {
-		fmt.Printf("Invalid issue repository ID")
-
-		// Create new issue repository
-		issueRepositoryId, err := p.CreateIssueRepository()
+		// Create new IssueRepository
+		newIssueRepositoryId, err := p.CreateIssueRepository()
 		if err != nil {
-			return fmt.Errorf("couldn't create new issue repository")
+			fmt.Println(err)
 		}
-		p.IssueRepositoryId = issueRepositoryId
+		p.IssueRepositoryId = newIssueRepositoryId
 	} else {
-		p.IssueRepositoryId = repositoryId
+		p.IssueRepositoryId = existentingIssueRepositoryId
 	}
 
 	return nil
 }
 
+// GetIssueRepositoryId fetches an IssueRepository based on the name of the scanner
 func (p *Processor) GetIssueRepositoryId() (string, error) {
+	var (
+		newIssueRepositoryId          string
+		issueRepositoryConnectionResp struct {
+			IssueRepositoryConnection models.IssueRepositoryConnection `json:"IssueRepositories"`
+		}
+	)
+
+	// Fetch IssueRepositoryId by name
 	query := p.GetIssueRepositoryIdQuery()
 	req := graphql.NewRequest(query)
 
@@ -57,20 +62,31 @@ func (p *Processor) GetIssueRepositoryId() (string, error) {
 		"name": {p.IssueRepositoryName},
 	})
 
-	var issueRepositoryRespData struct {
-		IssueRepository models.IssueRepository `json:"IssueRepositories"`
-	}
-
-	err := p.Client.Run(context.Background(), req, &issueRepositoryRespData)
+	err := p.Client.Run(context.Background(), req, &issueRepositoryConnectionResp)
 	if err != nil {
 		return "", err
 	}
 
-	return issueRepositoryRespData.IssueRepository.Id, nil
+	// TODO: What to do if multiple edges/Ids available?
+	if issueRepositoryConnectionResp.IssueRepositoryConnection.TotalCount > 0 {
+		for _, repositoryEdge := range issueRepositoryConnectionResp.IssueRepositoryConnection.Edges {
+			fmt.Printf("id: %s", repositoryEdge.Node.Id)
+			newIssueRepositoryId = repositoryEdge.Node.Id
+		}
+	} else {
+		return "", fmt.Errorf("didn't get any repository ids")
+	}
+
+	return newIssueRepositoryId, nil
 }
 
+// CreateIssueRepository creates a new IssueRepository based on
+// - the name and
+// - the URL
+// of the current scanner
 func (p *Processor) CreateIssueRepository() (string, error) {
-	var issueRepositoryRespData struct {
+	var repositoryId string
+	var createIssueRepositoryResp struct {
 		IssueRepository models.IssueRepository `json:"createIssueRepository"`
 	}
 	query := p.CreateIssueRepositoryQuery()
@@ -81,13 +97,18 @@ func (p *Processor) CreateIssueRepository() (string, error) {
 		"url":  p.IssueRepositoryUrl,
 	})
 
-	err := p.Client.Run(context.Background(), req, &issueRepositoryRespData)
+	err := p.Client.Run(context.Background(), req, &createIssueRepositoryResp)
 	if err != nil {
 		fmt.Println(err)
 		return "", err
 	}
+	repositoryId = createIssueRepositoryResp.IssueRepository.Id
 
-	return issueRepositoryRespData.IssueRepository.Id, nil
+	if len(repositoryId) > 0 {
+		return repositoryId, nil
+	} else {
+		return "", fmt.Errorf("repositoryId is empty")
+	}
 }
 
 func (p *Processor) Process(cve *models.Cve) error {
@@ -173,6 +194,7 @@ func (p *Processor) GetIssueRepositoryIdQuery() string {
 		IssueRepositories (
 			filter: $filter,
 		) {
+            totalCount
 			edges {
 				node {
 					id
