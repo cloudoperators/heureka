@@ -301,7 +301,22 @@ type IssueVariant struct {
 }
 
 type IssueRepository struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-	Url  string `json:"url"`
+	Id        string  `json:"id"`
+	Name      *string `json:"name,omitempty"`
+	URL       *string `json:"url,omitempty"`
+	CreatedAt *string `json:"created_at,omitempty"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
+}
+
+type IssueRepositoryConnection struct {
+	TotalCount int                    `json:"totalCount"`
+	Edges      []*IssueRepositoryEdge `json:"edges,omitempty"`
+}
+
+type IssueRepositoryEdge struct {
+	Node      *IssueRepository `json:"node"`
+	Cursor    *string          `json:"cursor,omitempty"`
+	Priority  *int             `json:"priority,omitempty"`
+	CreatedAt *string          `json:"created_at,omitempty"`
+	UpdatedAt *string          `json:"updated_at,omitempty"`
 }

@@ -44,6 +44,12 @@ func main() {
 	}
 
 	processor := processor.NewProcessor(processorCfg)
+	err = processor.Setup()
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	for _, cve := range cves {
 		err = processor.Process(&cve.Cve)
