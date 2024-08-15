@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.wdf.sap.corp/cc/heureka/scanners/cveScanner/models"
+	"github.wdf.sap.corp/cc/heureka/scanners/nvd/models"
 	"golang.org/x/time/rate"
 )
 

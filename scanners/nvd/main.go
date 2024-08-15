@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.wdf.sap.corp/cc/heureka/scanners/cveScanner/models"
-	"github.wdf.sap.corp/cc/heureka/scanners/cveScanner/processor"
-	"github.wdf.sap.corp/cc/heureka/scanners/cveScanner/scanner"
+	"github.wdf.sap.corp/cc/heureka/scanners/nvd/models"
+	"github.wdf.sap.corp/cc/heureka/scanners/nvd/processor"
+	"github.wdf.sap.corp/cc/heureka/scanners/nvd/scanner"
 )
 
 func main() {

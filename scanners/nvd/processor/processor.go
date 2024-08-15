@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/machinebox/graphql"
-	"github.wdf.sap.corp/cc/heureka/scanners/cveScanner/models"
+	"github.wdf.sap.corp/cc/heureka/scanners/nvd/models"
 )
 
 type Processor struct {
@@ -194,7 +194,7 @@ func (p *Processor) Process(cve *models.Cve) error {
 		return fmt.Errorf("couldn't create new IssueVariant")
 	}
 
-	fmt.Printf("Created new Issue: %s", issueId)
-	fmt.Printf("Created new IssueVariant: %s", issueVariantId)
+	fmt.Printf("Created new Issue: %s\n", issueId)
+	fmt.Printf("Created new IssueVariant: %s\n", issueVariantId)
 	return nil
 }
