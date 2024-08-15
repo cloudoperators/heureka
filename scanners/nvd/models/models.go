@@ -13,6 +13,9 @@ package models
 // CVS 2.0
 // https://csrc.nist.gov/schema/nvd/api/2.0/external/cvss-v2.0.json
 
+// Provide empty CVSS score for CVE which don't have
+const emptyCVSS = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N"
+
 type CveResponse struct {
 	ResultsPerPage  int       `json:"resultsPerPage"`
 	StartIndex      int       `json:"startIndex"`
@@ -67,6 +70,12 @@ func (cve Cve) GetSeverityVector() string {
 		} else {
 			continue
 		}
+	}
+
+	// If no vector has been found, set each base metric to "least impactful"
+	// or "neutral" value. Therefore we CVSS score cannot be really calculated
+	if len(vector) > 0 {
+		vector = emptyCVSS
 	}
 	return vector
 }
