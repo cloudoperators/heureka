@@ -9,6 +9,8 @@ on:
       - .github/workflows/helm-release.yaml
       - charts/heureka
       - scanner/k8s-assets/chart/k8s-assets-scanner
+      - scanner/keppel/chart/keppel-scanner
+      - scanner/nvd/chart/nvd-scanner
 
 
 permissions:
@@ -30,6 +32,10 @@ jobs:
             chartName: heureka
           - chartDir: scanner/k8s-assets/chart/k8s-assets-scanner
             chartName: k8s-assets-scanner
+          - chartDir: scanner/keppel/chart/keppel-scanner
+            chartName: keppel-scanner
+          - chartDir: scanner/nvd/chart/nvd-scanner
+            chartName: nvd-scanner
 
 
     steps:

@@ -1,18 +1,18 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-# Default values for k8s-assets-scanner.
+# Default values for keppel-scanner.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 scanner:
   api_token: "my_token"
   heureka_url: "api.heureka.greenhouse-qa.eu-nl-1.cloud.sap"
-  config_mount_path: "/etc/heureka/config/k8s-assets-scanner"
+  config_mount_path: "/etc/heureka/config/keppel-scanner"
   schedule: "0 * * * *"
 
 image:
-  repository: ghcr.io/cloudoperators/heureka-scanner-k8s-assets
+  repository: ghcr.io/cloudoperators/heureka-scanner-keppel
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "main"
