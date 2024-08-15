@@ -14,7 +14,7 @@ import (
 // https://github.com/sapcc/keppel/blob/master/internal/models/account.go
 type Account struct {
 	Name         string
-	AuthTenantId string `json:"auth_tenant_id"`
+	AuthTenantID string `json:"auth_tenant_id"`
 }
 
 type AccountResponse struct {
@@ -82,8 +82,49 @@ type Component struct {
 	Type *string `json:"type,omitempty"`
 }
 
+type ComponentConnection struct {
+	TotalCount int              `json:"totalCount"`
+	Edges      []*ComponentEdge `json:"edges,omitempty"`
+}
+
+type ComponentEdge struct {
+	Node   *Component `json:"node"`
+	Cursor *string    `json:"cursor,omitempty"`
+}
+
 type ComponentVersion struct {
 	ID          string  `json:"id"`
 	Version     *string `json:"version,omitempty"`
 	ComponentID *string `json:"componentId,omitempty"`
+}
+
+type ComponentVersionConnection struct {
+	TotalCount int                     `json:"totalCount"`
+	Edges      []*ComponentVersionEdge `json:"edges"`
+}
+
+type ComponentVersionEdge struct {
+	Node   *ComponentVersion `json:"node"`
+	Cursor *string           `json:"cursor,omitempty"`
+}
+
+type IssueConnection struct {
+	TotalCount           int          `json:"totalCount"`
+	VulnerabilityCount   int          `json:"vulnerabilityCount"`
+	PolicyViolationCount int          `json:"policyViolationCount"`
+	SecurityEventCount   int          `json:"securityEventCount"`
+	Edges                []*IssueEdge `json:"edges"`
+}
+
+type IssueEdge struct {
+	Node   *Issue  `json:"node"`
+	Cursor *string `json:"cursor,omitempty"`
+}
+
+type Issue struct {
+	ID           string  `json:"id"`
+	Type         *string `json:"type,omitempty"`
+	PrimaryName  *string `json:"primaryName,omitempty"`
+	Description  *string `json:"description,omitempty"`
+	LastModified *string `json:"lastModified,omitempty"`
 }
