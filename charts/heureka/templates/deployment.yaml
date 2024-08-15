@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "heureka.fullname" . }}
+  labels:
+    {{- include "heureka.labels" . | nindent 4 }}
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/targets: "kubernetes"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "heureka.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "heureka.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/targets: kubernetes
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ include "heureka.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.serverTag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: mariadb-schema-init-volume
+              mountPath: /app/schema-init/schema.sql
+              subPath: schema.sql
+          env:
+            - name: ENVIRONMENT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "heureka.fullname" . }}
+                  key: environment
+            - name: SERVER_PORT
+              value: ":{{ .Values.service.port }}"
+            - name: SEED_MODE
+              value: "{{ .Values.seedMode }}"
+            - name: DB_NAME
+              value: "heureka"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_SCHEMA
+              value: "/app/schema-init/schema.sql"
+            - name: DB_USER
+              value: "my_username"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "heureka.fullname" . }}-mariadb
+                  key: mariadb-password
+            - name: DB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "heureka.fullname" . }}-mariadb
+                  key: mariadb-root-password
+            - name: DB_ADDRESS
+              value: "heureka-mariadb.heureka.svc.cluster.local"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.port }}
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - name: mariadb-schema-init-volume
+        configMap:
+          name: {{ include "heureka.fullname" . }}-mariadb-schema
