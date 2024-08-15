@@ -480,7 +480,7 @@ func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVe
 func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetServiceNames",
+		"event":  "database.GetIssueNames",
 	})
 
 	baseQuery := `
