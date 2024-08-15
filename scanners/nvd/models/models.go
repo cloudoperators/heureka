@@ -312,6 +312,16 @@ type Issue struct {
 	Description string `json:"description"`
 }
 
+type IssueEdge struct {
+	Node   *Issue  `json:"node"`
+	Cursor *string `json:"cursor,omitempty"`
+}
+
+type IssueConnection struct {
+	TotalCount int          `json:"totalCount"`
+	Edges      []*IssueEdge `json:"edges"`
+}
+
 //
 // Models for IssueVariant
 //

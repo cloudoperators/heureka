@@ -110,6 +110,7 @@ func (p *Processor) CreateIssueRepository() (string, error) {
 
 // GetIssueId ...
 func (p *Processor) GetIssueId(cve *models.Cve) (string, error) {
+	var issueId string
 	var issueConnectionResp struct {
 		IssueConnection models.IssueConnection `json:"Issues"`
 	}
@@ -120,11 +121,22 @@ func (p *Processor) GetIssueId(cve *models.Cve) (string, error) {
 		"primaryName": {p.IssueRepositoryName},
 	})
 
-	err := p.Client.Run(context.Background(), req, &issueRepositoryConnectionResp)
+	err := p.Client.Run(context.Background(), req, &issueConnectionResp)
 	if err != nil {
 		return "", err
 	}
 
+	if issueConnectionResp.IssueConnection.TotalCount > 0 {
+			for _, issueEdge := range issueConnectionResp.IssueConnection.Edges {
+			fmt.Printf("id: %s", issueEdge.Node.Id)
+			issueId = issueEdge.Node.Id
+			}
+
+	} else {
+			return "", fmt.Errorf("didn't get any issue ids")
+	}
+
+	return issueId, nil
 }
 
 // CreateIssue creates a new Issue based on a CVE
