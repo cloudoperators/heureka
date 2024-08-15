@@ -147,3 +147,19 @@ func (h *HeurekaApp) DeleteComponent(id int64) error {
 
 	return nil
 }
+
+func (h *HeurekaApp) ListComponentNames(filter *entity.ComponentFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.ListComponentNames",
+		"filter": filter,
+	})
+
+	componentNames, err := h.database.GetComponentNames(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving componentNames.")
+	}
+
+	return componentNames, nil
+}

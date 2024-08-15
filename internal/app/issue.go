@@ -233,3 +233,19 @@ func (h *HeurekaApp) RemoveComponentVersionFromIssue(issueId, componentVersionId
 
 	return h.GetIssue(issueId)
 }
+
+func (h *HeurekaApp) ListIssueNames(filter *entity.IssueFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  "app.ListIssueNames",
+		"filter": filter,
+	})
+
+	issueNames, err := h.database.GetIssueNames(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, heurekaError("Internal error while retrieving issueNames.")
+	}
+
+	return issueNames, nil
+}

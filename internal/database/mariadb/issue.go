@@ -476,3 +476,52 @@ func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVe
 
 	return err
 }
+
+func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetServiceNames",
+	})
+
+	baseQuery := `
+    SELECT I.issue_primary_name FROM Issue I
+    %s
+    %s
+    `
+
+	// Ensure the filter is initialized
+	filter = s.ensureIssueFilter(filter)
+
+	// Builds full statement with possible joins and filters
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, false, l)
+	if err != nil {
+		l.Error("Error preparing statement: ", err)
+		return nil, err
+	}
+	defer stmt.Close()
+
+	// Execute the query
+	rows, err := stmt.Queryx(filterParameters...)
+	if err != nil {
+		l.Error("Error executing query: ", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Collect the results
+	issueNames := []string{}
+	var name string
+	for rows.Next() {
+		if err := rows.Scan(&name); err != nil {
+			l.Error("Error scanning row: ", err)
+			continue
+		}
+		issueNames = append(issueNames, name)
+	}
+	if err = rows.Err(); err != nil {
+		l.Error("Row iteration error: ", err)
+		return nil, err
+	}
+
+	return issueNames, nil
+}

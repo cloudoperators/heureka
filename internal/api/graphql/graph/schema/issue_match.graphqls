@@ -30,6 +30,7 @@ input IssueMatchInput {
 }
 
 input IssueMatchFilter {
+    id: [String]
     search: [String]
     primaryName: [String]
     componentName: [String]
@@ -37,7 +38,7 @@ input IssueMatchFilter {
     status: [IssueMatchStatusValues]
     severity: [SeverityValues]
     affectedService: [String]
-    SupportGroupName: [String]
+    supportGroupName: [String]
 }
 
 #type CCloudSeverity {

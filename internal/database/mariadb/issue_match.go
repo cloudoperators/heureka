@@ -80,7 +80,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter) string
 			`)
 		}
 
-		if len(filter.AffectedServiceName) > 0 {
+		if len(filter.AffectedServiceName) > 0 || len(filter.SupportGroupName) > 0 {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id
 			`)

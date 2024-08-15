@@ -129,8 +129,8 @@ func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	filterItem := model.FilterItem{
-		FilterName: &FilterSupportGroupName,
-		Values:     pointerNames,
+		DisplayName: &FilterDisplaySupportGroupName,
+		Values:      pointerNames,
 	}
 
 	return &filterItem, nil
