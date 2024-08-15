@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-cronjob
+spec:
+  schedule: "{{ .Values.scanner.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+          - name: config-volume
+            configMap:
+              name: {{ .Release.Name }}-configmap
+          containers:
+          - name: {{ .Release.Name }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            volumeMounts:
+            - name: config-volume
+              mountPath: "{{ .Values.scanner.config_mount_path }}"
+              readOnly: true
+            env:
+            - name: HEUREKA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: api_token
+            - name: HEUREKA_URL
+              value: {{ .Values.scanner.heureka_url }}
+            args:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the Kubernetes cluster
+          restartPolicy: OnFailure

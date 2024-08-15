@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/helm-release.yaml
       - charts/heureka
+      - scanner/k8s-assets/chart/k8s-assets-scanner
 
 
 permissions:
@@ -27,6 +28,8 @@ jobs:
         include:
           - chartDir: charts/heureka
             chartName: heureka
+          - chartDir: scanner/k8s-assets/chart/k8s-assets-scanner
+            chartName: k8s-assets-scanner
 
 
     steps:
