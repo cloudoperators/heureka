@@ -111,7 +111,7 @@ func ComponentNameBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called IssueNameBaseResolver")
+	}).Debug("Called ComponentNameBaseResolver")
 
 	if filter == nil {
 		filter = &model.ComponentFilter{}
