@@ -191,6 +191,22 @@ models:
         resolver: true
       services:
         resolver: true
+  IssueMatchFilterValue:
+    fields:
+      status:
+        resolver: false
+      severity:
+        resolver: false
+      issueType:
+        resolver: false
+      primaryName:
+        resolver: true
+      affectedService:
+        resolver: true
+      componentName:
+        resolver: true
+      supportGroupName:
+        resolver: true
   ServiceFilterValue:
     fields:
       serviceName: 

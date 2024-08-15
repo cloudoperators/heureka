@@ -17,22 +17,42 @@ import (
 
 // ServiceName is the resolver for the serviceName field.
 func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
-	return baseResolver.ServiceNameBaseResolver(r.App, ctx, filter)
+	item, err := baseResolver.ServiceNameBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterServiceName
+	return item, nil
 }
 
 // UniqueUserID is the resolver for the uniqueUserId field.
 func (r *serviceFilterValueResolver) UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error) {
-	return baseResolver.UniqueUserIDBaseResolver(r.App, ctx, filter)
+	item, err := baseResolver.UniqueUserIDBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterUniqueUserId
+	return item, err
 }
 
 // UserName is the resolver for the userName field.
 func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error) {
-	return baseResolver.UserNameBaseResolver(r.App, ctx, filter)
+	item, err := baseResolver.UserNameBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterUserName
+	return item, err
 }
 
 // SupportGroupName is the resolver for the supportGroupName field.
 func (r *serviceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
-	return baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter)
+	item, err := baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterSupportGroupName
+	return item, err
 }
 
 // ServiceFilterValue returns graph.ServiceFilterValueResolver implementation.

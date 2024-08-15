@@ -16,4 +16,5 @@ type Query {
     SupportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
     Users(filter: UserFilter, first: Int, after: String): UserConnection
     ServiceFilterValues: ServiceFilterValue
+    IssueMatchFilterValues: IssueMatchFilterValue
 }

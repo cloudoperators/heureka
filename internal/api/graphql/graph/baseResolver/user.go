@@ -157,8 +157,8 @@ func UserNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.Us
 	}
 
 	filterItem := model.FilterItem{
-		FilterName: &FilterUserName,
-		Values:     pointerNames,
+		DisplayName: &FilterDisplayUserName,
+		Values:      pointerNames,
 	}
 
 	return &filterItem, nil
@@ -195,8 +195,8 @@ func UniqueUserIDBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	filterItem := model.FilterItem{
-		FilterName: &FilterUniqueUserID,
-		Values:     pointerNames,
+		DisplayName: &FilterDisplayUniqueUserId,
+		Values:      pointerNames,
 	}
 
 	return &filterItem, nil
