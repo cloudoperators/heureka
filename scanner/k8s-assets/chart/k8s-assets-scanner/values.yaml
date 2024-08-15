@@ -7,15 +7,15 @@
 
 scanner:
   api_token: "my_token"
-  heureka_url: "heureka.greehouse.com"
-  config_mount_path: "/etc/heureka/scanner/config"
+  heureka_url: "api.heureka.greenhouse-qa.eu-nl-1.cloud.sap"
+  config_mount_path: "/etc/heureka/config/k8s-assets-scanner"
   schedule: "0 * * * *"
 
 image:
   repository: ghcr.io/cloudoperators/heureka-scanner-k8s-assets
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: "main"
 
 serviceAccount:
   # Specifies whether a service account should be created
