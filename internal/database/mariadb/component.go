@@ -271,7 +271,7 @@ func (s *SqlDatabase) DeleteComponent(id int64) error {
 func (s *SqlDatabase) GetComponentNames(filter *entity.ComponentFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetServiceNames",
+		"event":  "database.GetComponentNames",
 	})
 
 	baseQuery := `
