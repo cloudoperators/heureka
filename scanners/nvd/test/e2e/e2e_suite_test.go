@@ -22,10 +22,11 @@ func TestE2E(t *testing.T) {
 var _ = BeforeSuite(func() {
 	cfg = processor.Config {
 		HeurekaUrl: "http://127.0.0.1:80/query",
-		IssueRepositoryName: "nvd",
+		IssueRepositoryName: "NVD",
 		IssueRepositoryUrl: "https://nvd.nist.gov",
 	}
 
 	// Setup new processor
 	cveProcessor = processor.NewProcessor(cfg)
+	cveProcessor.IssueRepositoryName = cfg.IssueRepositoryName
 })

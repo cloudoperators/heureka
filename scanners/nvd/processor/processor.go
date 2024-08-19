@@ -118,7 +118,7 @@ func (p *Processor) GetIssueId(cve *models.Cve) (string, error) {
 	// Fetch Issue by CVE name
 	req := graphql.NewRequest(GetIssueIdQuery)
 	req.Var("filter", map[string][]string{
-		"primaryName": {p.IssueRepositoryName},
+		"primaryName": []string{cve.Id},
 	})
 
 	err := p.Client.Run(context.Background(), req, &issueConnectionResp)
@@ -127,13 +127,13 @@ func (p *Processor) GetIssueId(cve *models.Cve) (string, error) {
 	}
 
 	if issueConnectionResp.IssueConnection.TotalCount > 0 {
-			for _, issueEdge := range issueConnectionResp.IssueConnection.Edges {
+		for _, issueEdge := range issueConnectionResp.IssueConnection.Edges {
 			fmt.Printf("id: %s", issueEdge.Node.Id)
 			issueId = issueEdge.Node.Id
-			}
+		}
 
 	} else {
-			return "", fmt.Errorf("didn't get any issue ids")
+		return "", fmt.Errorf("didn't get any issue ids")
 	}
 
 	return issueId, nil
@@ -172,7 +172,7 @@ func (p *Processor) CreateIssueVariant(issueId string, issueRepositoryId string,
 		"issueRepositoryId": issueRepositoryId,
 		"issueId":           issueId,
 		"severity": map[string]string{
-			"vector": cve.GetSeverityVector(),
+			"vector": cve.SeverityVector(),
 		},
 	})
 

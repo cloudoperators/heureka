@@ -60,7 +60,7 @@ func (cve Cve) GetDescription(language string) string {
 }
 
 // GetSeverityVector tries to fetch a CvssV31 vector string from the CVE
-func (cve Cve) GetSeverityVector() string {
+func (cve Cve) SeverityVector() string {
 	var vector string
 	// Try to first fetch Cvssv31 score
 	for _, metric := range cve.Metrics.CvssMetricV31 {
@@ -74,7 +74,7 @@ func (cve Cve) GetSeverityVector() string {
 
 	// If no vector has been found, set each base metric to "least impactful"
 	// or "neutral" value. Therefore we CVSS score cannot be really calculated
-	if len(vector) > 0 {
+	if len(vector) == 0 {
 		vector = emptyCVSS
 	}
 	return vector
