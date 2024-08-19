@@ -4,7 +4,7 @@ go 1.22.6
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.0.4
-	github.com/docker/docker v27.1.1+incompatible
+	github.com/docker/docker v27.1.2+incompatible
 	github.com/docker/docker-credential-helpers v0.8.2
 	github.com/docker/go-connections v0.5.0
 	github.com/gin-contrib/cors v1.7.2
