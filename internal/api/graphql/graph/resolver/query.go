@@ -93,7 +93,7 @@ func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.Issu
 		Status: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueMatchStatus,
 			FilterName:  &baseResolver.IssueMatchFilterStatus,
-			Values:      lo.Map(model.AllSeverityValues, func(item model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
+			Values:      lo.Map(model.AllIssueMatchStatusValues, func(item model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
 		},
 		IssueType: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueType,
@@ -103,7 +103,7 @@ func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.Issu
 		Severity: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueSeverity,
 			FilterName:  &baseResolver.IssueMatchFilterSeverity,
-			Values:      lo.Map(model.AllIssueMatchStatusValues, func(item model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
+			Values:      lo.Map(model.AllSeverityValues, func(item model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
 		},
 	}, nil
 }
