@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/machinebox/graphql"
+	log "github.com/sirupsen/logrus"
 	"github.wdf.sap.corp/cc/heureka/scanners/nvd/models"
 )
 
@@ -30,13 +31,19 @@ func (p *Processor) Setup() error {
 	// Check if there is already an IssueRepository with the same name
 	existentingIssueRepositoryId, err := p.GetIssueRepositoryId()
 	if err != nil {
-		fmt.Printf("err: %s", err)
+		log.Warnf("There is no IssueRepository: %s", err)
 
 		// Create new IssueRepository
 		newIssueRepositoryId, err := p.CreateIssueRepository()
 		if err != nil {
-			fmt.Println(err)
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Couldn't create new IssueRepository")
 		}
+		log.WithFields(log.Fields{
+			"issueRepositoryId": newIssueRepositoryId,
+		}).Info("Created new IssueRepository")
+
 		p.IssueRepositoryId = newIssueRepositoryId
 	} else {
 		p.IssueRepositoryId = existentingIssueRepositoryId
@@ -62,6 +69,7 @@ func (p *Processor) GetIssueRepositoryId() (string, error) {
 
 	err := p.Client.Run(context.Background(), req, &issueRepositoryConnectionResp)
 	if err != nil {
+		log.Error("Couldn't fetch IssueRepositoryId")
 		return "", err
 	}
 
@@ -96,7 +104,7 @@ func (p *Processor) CreateIssueRepository() (string, error) {
 
 	err := p.Client.Run(context.Background(), req, &createIssueRepositoryResp)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("Couldn't create IssueRepository")
 		return "", err
 	}
 	repositoryId = createIssueRepositoryResp.IssueRepository.Id
@@ -123,12 +131,12 @@ func (p *Processor) GetIssueId(cve *models.Cve) (string, error) {
 
 	err := p.Client.Run(context.Background(), req, &issueConnectionResp)
 	if err != nil {
+		log.Error("Couldn't fetch IssueId")
 		return "", err
 	}
 
 	if issueConnectionResp.IssueConnection.TotalCount > 0 {
 		for _, issueEdge := range issueConnectionResp.IssueConnection.Edges {
-			fmt.Printf("id: %s", issueEdge.Node.Id)
 			issueId = issueEdge.Node.Id
 		}
 
@@ -185,7 +193,9 @@ func (p *Processor) Process(cve *models.Cve) error {
 	// Create new Issue
 	issueId, err := p.CreateIssue(cve)
 	if err != nil {
-		fmt.Printf("couldn't create new Issue")
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Couldn't create new Issue")
 	}
 
 	// Create new IssueVariant
@@ -194,7 +204,13 @@ func (p *Processor) Process(cve *models.Cve) error {
 		return fmt.Errorf("couldn't create new IssueVariant")
 	}
 
-	fmt.Printf("Created new Issue: %s\n", issueId)
-	fmt.Printf("Created new IssueVariant: %s\n", issueVariantId)
+	log.WithFields(log.Fields{
+		"issueID": issueId,
+	}).Info("Created new Issue")
+
+	log.WithFields(log.Fields{
+		"issueVariantId": issueVariantId,
+	}).Info("Created new IssueVariant")
+
 	return nil
 }
