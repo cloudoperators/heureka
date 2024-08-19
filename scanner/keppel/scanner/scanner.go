@@ -17,14 +17,14 @@ import (
 )
 
 type Scanner struct {
-	KeppelBaseUrl   string
-	IdentityBaseUrl string
-	Username        string
-	Password        string
-	AuthToken       string
-	Region          string
-	Domain          string
-	Project         string
+	KeppelBaseUrl    string
+	IdentityEndpoint string
+	Username         string
+	Password         string
+	AuthToken        string
+	Region           string
+	Domain           string
+	Project          string
 }
 
 func NewScanner(cfg Config) *Scanner {
@@ -35,15 +35,13 @@ func NewScanner(cfg Config) *Scanner {
 		Region:        cfg.Region,
 		Domain:        cfg.Domain,
 		Project:       cfg.Project,
-		// AuthToken: ,
 	}
 }
 
 func (s *Scanner) Setup() error {
 	token, err := s.CreateAuthToken()
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return fmt.Errorf("failed to create auth token")
 	}
 	s.AuthToken = token
 	return nil
@@ -67,7 +65,7 @@ func (s *Scanner) CreateAuthToken() (string, error) {
 func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient, error) {
 
 	opts := &tokens.AuthOptions{
-		IdentityEndpoint: fmt.Sprintf("https://identity-3.%s.cloud.sap/v3", s.Region),
+		IdentityEndpoint: s.IdentityEndpoint,
 		Username:         s.Username,
 		Password:         s.Password,
 		DomainName:       s.Domain,
@@ -88,7 +86,7 @@ func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient,
 }
 
 func (s *Scanner) ListAccounts() ([]models.Account, error) {
-	url := fmt.Sprintf("https://keppel.%s.cloud.sap/keppel/v1/accounts", s.Region)
+	url := fmt.Sprintf("%s/keppel/v1/accounts", s.KeppelBaseUrl)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
 		return nil, err
@@ -103,7 +101,7 @@ func (s *Scanner) ListAccounts() ([]models.Account, error) {
 }
 
 func (s *Scanner) ListRepositories(account string) ([]models.Repository, error) {
-	url := fmt.Sprintf("https://keppel.%s.cloud.sap/keppel/v1/accounts/%s/repositories", s.Region, account)
+	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories", s.KeppelBaseUrl, account)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
 		return nil, err
@@ -118,7 +116,7 @@ func (s *Scanner) ListRepositories(account string) ([]models.Repository, error) 
 }
 
 func (s *Scanner) ListManifests(account string, repository string) ([]models.Manifest, error) {
-	url := fmt.Sprintf("https://keppel.%s.cloud.sap/keppel/v1/accounts/%s/repositories/%s/_manifests", s.Region, account, repository)
+	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories/%s/_manifests", s.KeppelBaseUrl, account, repository)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
 		return nil, err
@@ -133,7 +131,7 @@ func (s *Scanner) ListManifests(account string, repository string) ([]models.Man
 }
 
 func (s *Scanner) GetTrivyReport(account string, repository string, manifest string) (*models.TrivyReport, error) {
-	url := fmt.Sprintf("https://keppel.%s.cloud.sap/keppel/v1/accounts/%s/repositories/%s/_manifests/%s/trivy_report", s.Region, account, repository, manifest)
+	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories/%s/_manifests/%s/trivy_report", s.KeppelBaseUrl, account, repository, manifest)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
 		return nil, err
