@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/machinebox/graphql"
+	log "github.com/sirupsen/logrus"
 )
 
 type Processor struct {
@@ -19,10 +20,6 @@ func NewProcessor(cfg Config) *Processor {
 	return &Processor{
 		Client: graphql.NewClient(cfg.HeurekaUrl),
 	}
-}
-
-func (p *Processor) Setup() error {
-	return nil
 }
 
 func (p *Processor) ProcessRepository(repository models.Repository) (models.Component, error) {
@@ -64,11 +61,19 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 		for _, vulnerability := range result.Vulnerabilities {
 			issue, err := p.GetIssue(vulnerability.VulnerabilityID)
 			if err != nil {
-				fmt.Println(err)
+				log.WithFields(log.Fields{
+					"vulnerabilityID":    vulnerability.VulnerabilityID,
+					"issueID":            issue.ID,
+					"issuePrimaryName":   issue.PrimaryName,
+					"componentVersionID": componentVersionId,
+					"report":             report.ArtifactName,
+				}).WithError(err).Error("Error while getting issue")
 				continue
 			}
 			if issue == nil {
-				fmt.Printf("issue not found for: %s\n", vulnerability.VulnerabilityID)
+				log.WithFields(log.Fields{
+					"vulnerabilityID": vulnerability.VulnerabilityID,
+				}).Warning("Issue not found")
 				continue
 				// use this for inserting issues, necessary to test without nvd scanner
 				// i, err := p.CreateIssue(vulnerability.VulnerabilityID, vulnerability.Description)
@@ -87,6 +92,10 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 			err = p.Client.Run(context.Background(), req, &respData)
 			if err != nil {
 				fmt.Println(err)
+				log.WithFields(log.Fields{
+					"issueID":            issue.ID,
+					"componentVersionID": componentVersionId,
+				}).WithError(err).Error("Could not add component version to issue")
 			}
 		}
 

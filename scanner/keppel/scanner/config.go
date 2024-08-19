@@ -9,6 +9,5 @@ type Config struct {
 	KeppelPassword   string `envconfig:"KEPPEL_PASSWORD" required:"true" json:"-"`
 	Domain           string `envconfig:"KEPPEL_DOMAIN" required:"true" json:"-"`
 	Project          string `envconfig:"KEPPEL_PROJECT" required:"true" json:"-"`
-	Region           string `envconfig:"KEPPEL_REGION" required:"true" json:"-"`
 	IdentityEndpoint string `envconfig:"IDENTITY_ENDPOINT" required:"true" json:"-"`
 }

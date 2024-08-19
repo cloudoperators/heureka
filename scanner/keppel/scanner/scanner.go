@@ -13,7 +13,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
-	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type Scanner struct {
@@ -22,26 +22,25 @@ type Scanner struct {
 	Username         string
 	Password         string
 	AuthToken        string
-	Region           string
 	Domain           string
 	Project          string
 }
 
 func NewScanner(cfg Config) *Scanner {
 	return &Scanner{
-		KeppelBaseUrl: cfg.KeppelBaseUrl,
-		Username:      cfg.KeppelUsername,
-		Password:      cfg.KeppelPassword,
-		Region:        cfg.Region,
-		Domain:        cfg.Domain,
-		Project:       cfg.Project,
+		KeppelBaseUrl:    cfg.KeppelBaseUrl,
+		Username:         cfg.KeppelUsername,
+		Password:         cfg.KeppelPassword,
+		Domain:           cfg.Domain,
+		Project:          cfg.Project,
+		IdentityEndpoint: cfg.IdentityEndpoint,
 	}
 }
 
 func (s *Scanner) Setup() error {
 	token, err := s.CreateAuthToken()
 	if err != nil {
-		return fmt.Errorf("failed to create auth token")
+		return fmt.Errorf("failed to create auth token: %w", err)
 	}
 	s.AuthToken = token
 	return nil
@@ -50,13 +49,13 @@ func (s *Scanner) Setup() error {
 func (s *Scanner) CreateAuthToken() (string, error) {
 	provider, err := s.newAuthenticatedProviderClient()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to authenticate")
+		return "", err
 	}
 	endpointOpts := gophercloud.EndpointOpts{}
 
 	iClient, err := openstack.NewIdentityV3(provider, endpointOpts)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create identity v3 client")
+		return "", fmt.Errorf("failed to create identity v3 client: %w", err)
 	}
 
 	return iClient.Token(), nil
@@ -78,6 +77,11 @@ func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient,
 
 	provider, err := openstack.NewClient(opts.IdentityEndpoint)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"identityEndpoint": opts.IdentityEndpoint,
+			"domain":           s.Domain,
+			"project":          s.Project,
+		}).WithError(err)
 		return nil, err
 	}
 
@@ -89,11 +93,18 @@ func (s *Scanner) ListAccounts() ([]models.Account, error) {
 	url := fmt.Sprintf("%s/keppel/v1/accounts", s.KeppelBaseUrl)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"url": url,
+		}).WithError(err).Error("Error during request in ListAccounts")
 		return nil, err
 	}
 
 	var accountResponse models.AccountResponse
 	if err = json.Unmarshal(body, &accountResponse); err != nil {
+		log.WithFields(log.Fields{
+			"url":  url,
+			"body": body,
+		}).WithError(err).Error("Error during unmarshal in ListAccounts")
 		return nil, err
 	}
 
@@ -104,11 +115,18 @@ func (s *Scanner) ListRepositories(account string) ([]models.Repository, error) 
 	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories", s.KeppelBaseUrl, account)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"url": url,
+		}).WithError(err).Error("Error during request in ListRepositories")
 		return nil, err
 	}
 
 	var repositoryResponse models.RepositoryResponse
 	if err = json.Unmarshal(body, &repositoryResponse); err != nil {
+		log.WithFields(log.Fields{
+			"url":  url,
+			"body": body,
+		}).WithError(err).Error("Error during unmarshal in ListRepositories")
 		return nil, err
 	}
 
@@ -119,11 +137,18 @@ func (s *Scanner) ListManifests(account string, repository string) ([]models.Man
 	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories/%s/_manifests", s.KeppelBaseUrl, account, repository)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"url": url,
+		}).WithError(err).Error("Error during request in ListManifests")
 		return nil, err
 	}
 
 	var manifestResponse models.ManifestResponse
 	if err = json.Unmarshal(body, &manifestResponse); err != nil {
+		log.WithFields(log.Fields{
+			"url":  url,
+			"body": body,
+		}).WithError(err).Error("Error during unmarshal in ListManifests")
 		return nil, err
 	}
 
@@ -134,11 +159,18 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories/%s/_manifests/%s/trivy_report", s.KeppelBaseUrl, account, repository, manifest)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"url": url}).
+			WithError(err).Error("Error during GetTrivyReport")
 		return nil, err
 	}
 
 	var trivyReport models.TrivyReport
 	if err = json.Unmarshal(body, &trivyReport); err != nil {
+		log.WithFields(log.Fields{
+			"url":  url,
+			"body": body,
+		}).WithError(err).Error("Error during unmarshal in GetTrivyReport")
 		return nil, err
 	}
 
@@ -166,6 +198,10 @@ func (s *Scanner) sendRequest(url string, token string) ([]byte, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"url":  url,
+			"body": body,
+		}).WithError(err).Error("Error during reading response body")
 		return nil, err
 	}
 
