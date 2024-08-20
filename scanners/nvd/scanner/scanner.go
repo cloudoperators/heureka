@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.wdf.sap.corp/cc/heureka/scanners/nvd/models"
 	"golang.org/x/time/rate"
 )
@@ -41,7 +42,8 @@ func NewScanner(cfg Config) *Scanner {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
-	// The public rate limit (without an API key) is 5 requests in a rolling 30 second window; the rate limit with an API key is 50 requests in a rolling 30 second window
+	// The public rate limit (without an API key) is 5 requests in a rolling 30 second
+	// window; the rate limit with an API key is 50 requests in a rolling 30 second window
 	rl := rate.NewLimiter(rate.Every(30*time.Second/50), 50)
 
 	return &Scanner{
@@ -65,30 +67,25 @@ func (s *Scanner) GetCVEs(filter models.CveFilter) ([]models.CveItem, error) {
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return nil, fmt.Errorf("Couldn't create new request: %w", err)
 		}
 
 		req.Header.Add("apiKey", s.ApiKey)
 
 		resp, err := s.HTTPClient.Do(req)
-
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return nil, fmt.Errorf("Couldn't send request: %w", err)
 		}
 
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println(err)
-			return nil, err
+			return nil, fmt.Errorf("Couldn't read response body: %w", err)
 		}
 
 		if err = json.Unmarshal(body, &cveResponse); err != nil {
-			fmt.Println(err)
-			return nil, err
+			return nil, fmt.Errorf("Couldn't unmarshall body into a CVE: %w", err)
 		}
 
 		allCves = append(allCves, cveResponse.Vulnerabilities...)
@@ -113,5 +110,7 @@ func (s *Scanner) createUrl(filter models.CveFilter, startIndex int) string {
 	if filter.ModEndDate != "" {
 		url += "&modEndDate=" + filter.ModEndDate
 	}
+
+	log.Debug("NVD URL: %s", url)
 	return url
 }
