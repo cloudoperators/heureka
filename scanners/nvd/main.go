@@ -7,8 +7,8 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"os"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
@@ -33,7 +33,9 @@ func main() {
 	var scannerCfg scanner.Config
 	err := envconfig.Process("heureka", &scannerCfg)
 	if err != nil {
-		fmt.Println(err)
+		log.WithFields(log.Fields{
+			"errror": err,
+		}).Warn("Couldn't initialize scanner config")
 	}
 	scanner := scanner.NewScanner(scannerCfg)
 
