@@ -12,10 +12,6 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-const (
-	serviceWildCardQuery = "S.service_name LIKE Concat('%',?,'%')"
-)
-
 func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Name, "S.service_name = ?", OP_OR))
