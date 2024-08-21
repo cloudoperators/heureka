@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 query GetIssueRepositories ($filter: IssueRepositoryFilter) {
-	IssueRepositories (
-		filter: $filter,
-	) {
-		totalCount
-		edges {
-			node {
-				id
-			}
-		}
+  IssueRepositories (
+	filter: $filter,
+  ) {
+	totalCount
+	edges {
+	  node {
+		id
+	  }
 	}
+  }
 }

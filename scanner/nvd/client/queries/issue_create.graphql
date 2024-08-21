@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 mutation CreateIssue ($input: IssueInput!) {
-	createIssue (
-		input: $input
+  createIssue (
+	input: $input
   ) {
-	    id
-		primaryName
-		description
-		type
-	}
+	id
+	primaryName
+	description
+	type
+  }
 }

@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 mutation CreateIssueRepository ($input: IssueRepositoryInput!) {
-	createIssueRepository (
-		input: $input
-	) {
-		id
-		name
-		url
-	}
+  createIssueRepository (
+	input: $input
+  ) {
+	id
+	name
+	url
+  }
 }

@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 mutation CreateIssueVariant ($input: IssueVariantInput!) {
-	createIssueVariant (
-		input: $input
+  createIssueVariant (
+	input: $input
   ) {
-	    id
-		secondaryName
-		issueId
-	}
+	id
+	secondaryName
+	issueId
+  }
 }
