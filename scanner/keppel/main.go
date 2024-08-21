@@ -7,12 +7,17 @@ import (
 	"os"
 	"sync"
 
+	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/cloudoperators/heureka/scanners/keppel/processor"
 	"github.com/cloudoperators/heureka/scanners/keppel/scanner"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 )
+
+type Config struct {
+	LogLevel string `envconfig:"LOG_LEVEL" default:"debug" required:"true" json:"-"`
+}
 
 func init() {
 	// Log as JSON instead of the default ASCII formatter.
@@ -22,8 +27,20 @@ func init() {
 	// Can be any io.Writer, see below for File example
 	log.SetOutput(os.Stdout)
 
+	var cfg Config
+	err := envconfig.Process("heureka", &cfg)
+	if err != nil {
+		log.WithError(err).Fatal("Error while reading env config")
+	}
+
+	level, err := log.ParseLevel(cfg.LogLevel)
+
+	if err != nil {
+		log.WithError(err).Fatal("Error while parsing log level")
+	}
+
 	// Only log the warning severity or above.
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(level)
 }
 
 func main() {
@@ -55,13 +72,13 @@ func main() {
 	wg.Add(len(accounts))
 
 	for _, account := range accounts {
-		go ProcessAccount(account, keppelScanner, keppelProcessor, &wg)
+		go HandleAccount(account, keppelScanner, keppelProcessor, &wg)
 	}
 
 	wg.Wait()
 }
 
-func ProcessAccount(account models.Account, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor, wg *sync.WaitGroup) error {
+func HandleAccount(account models.Account, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	repositories, err := keppelScanner.ListRepositories(account.Name)
 	if err != nil {
@@ -72,57 +89,63 @@ func ProcessAccount(account models.Account, keppelScanner *scanner.Scanner, kepp
 	}
 
 	for _, repository := range repositories {
-		component, err := keppelProcessor.ProcessRepository(repository)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"account:":   account.Name,
-				"repository": repository.Name,
-			}).WithError(err).Error("Error during ProcessRepository")
-			componentPtr, err := keppelProcessor.GetComponent(repository.Name)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"account:":   account.Name,
-					"repository": repository.Name,
-				}).WithError(err).Error("Error during GetComponent")
-			}
-			component = *componentPtr
-		}
-
-		manifests, err := keppelScanner.ListManifests(account.Name, repository.Name)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"account:":   account.Name,
-				"repository": repository.Name,
-			}).WithError(err).Error("Error during ListManifests")
-			continue
-		}
-		for _, manifest := range manifests {
-			componentVersion, err := keppelProcessor.ProcessManifest(manifest, component.ID)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"account:":   account.Name,
-					"repository": repository.Name,
-				}).WithError(err).Error("Error during ProcessManifest")
-				componentVersionPtr, err := keppelProcessor.GetComponentVersion(manifest.Digest)
-				if err != nil {
-					log.WithFields(log.Fields{
-						"account:":   account.Name,
-						"repository": repository.Name,
-					}).WithError(err).Error("Error during GetComponentVersion")
-				}
-				componentVersion = *componentVersionPtr
-			}
-			trivyReport, err := keppelScanner.GetTrivyReport(account.Name, repository.Name, manifest.Digest)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"account:":   account.Name,
-					"repository": repository.Name,
-				}).WithError(err).Error("Error during GetTrivyReport")
-				continue
-			}
-			keppelProcessor.ProcessReport(*trivyReport, componentVersion.ID)
-		}
+		HandleRepository(account, repository, keppelScanner, keppelProcessor)
 	}
 
 	return nil
+}
+
+func HandleRepository(account models.Account, repository models.Repository, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+	component, err := keppelProcessor.ProcessRepository(repository)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"account:":   account.Name,
+			"repository": repository.Name,
+		}).WithError(err).Error("Error during ProcessRepository")
+		component, err = keppelProcessor.GetComponent(repository.Name)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"account:":   account.Name,
+				"repository": repository.Name,
+			}).WithError(err).Error("Error during GetComponent")
+		}
+	}
+
+	manifests, err := keppelScanner.ListManifests(account.Name, repository.Name)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"account:":   account.Name,
+			"repository": repository.Name,
+		}).WithError(err).Error("Error during ListManifests")
+		return
+	}
+	for _, manifest := range manifests {
+		HandleManifest(account, repository, manifest, component, keppelScanner, keppelProcessor)
+	}
+}
+
+func HandleManifest(account models.Account, repository models.Repository, manifest models.Manifest, component *client.Component, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+	componentVersion, err := keppelProcessor.ProcessManifest(manifest, component.Id)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"account:":   account.Name,
+			"repository": repository.Name,
+		}).WithError(err).Error("Error during ProcessManifest")
+		componentVersion, err = keppelProcessor.GetComponentVersion(manifest.Digest)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"account:":   account.Name,
+				"repository": repository.Name,
+			}).WithError(err).Error("Error during GetComponentVersion")
+		}
+	}
+	trivyReport, err := keppelScanner.GetTrivyReport(account.Name, repository.Name, manifest.Digest)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"account:":   account.Name,
+			"repository": repository.Name,
+		}).WithError(err).Error("Error during GetTrivyReport")
+		return
+	}
+	keppelProcessor.ProcessReport(*trivyReport, componentVersion.Id)
 }

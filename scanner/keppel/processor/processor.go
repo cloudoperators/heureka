@@ -5,10 +5,11 @@ package processor
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 
+	"github.com/Khan/genqlient/graphql"
+	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
-	"github.com/machinebox/graphql"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,43 +18,51 @@ type Processor struct {
 }
 
 func NewProcessor(cfg Config) *Processor {
+	httpClient := http.Client{}
+	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
 	return &Processor{
-		Client: graphql.NewClient(cfg.HeurekaUrl),
+		Client: &gClient,
 	}
 }
 
-func (p *Processor) ProcessRepository(repository models.Repository) (models.Component, error) {
-	var componentRespData struct {
-		Component models.Component `json:"createComponent"`
-	}
-
-	// Create new Component
-	req := graphql.NewRequest(CreateComponentQuery)
-	req.Var("input", map[string]string{
-		"name": repository.Name,
-		"type": "containerImage",
+func (p *Processor) ProcessRepository(repository models.Repository) (*client.Component, error) {
+	r, err := client.CreateComponent(context.Background(), *p.Client, &client.ComponentInput{
+		Name: repository.Name,
+		Type: client.ComponentTypeValuesContainerimage,
 	})
 
-	err := p.Client.Run(context.Background(), req, &componentRespData)
+	if err != nil {
+		return nil, err
+	}
 
-	return componentRespData.Component, err
+	component := r.GetCreateComponent()
+
+	log.WithFields(log.Fields{
+		"componentId": component.Id,
+		"component":   component,
+	}).Info("Component created")
+
+	return component, nil
 }
 
-func (p *Processor) ProcessManifest(manifest models.Manifest, componentId string) (models.ComponentVersion, error) {
-	var componentVersionRespData struct {
-		ComponentVersion models.ComponentVersion `json:"createComponentVersion"`
-	}
-
-	// Create new ComponentVersion
-	req := graphql.NewRequest(CreateComponentVersionQuery)
-	req.Var("input", map[string]string{
-		"version":     manifest.Digest,
-		"componentId": componentId,
+func (p *Processor) ProcessManifest(manifest models.Manifest, componentId string) (*client.ComponentVersion, error) {
+	r, err := client.CreateComponentVersion(context.Background(), *p.Client, &client.ComponentVersionInput{
+		Version:     manifest.Digest,
+		ComponentId: componentId,
 	})
 
-	err := p.Client.Run(context.Background(), req, &componentVersionRespData)
+	if err != nil {
+		return nil, err
+	}
 
-	return componentVersionRespData.ComponentVersion, err
+	componentVersion := r.GetCreateComponentVersion()
+
+	log.WithFields(log.Fields{
+		"componentVersionId": componentVersion.Id,
+		"componentVersion":   componentVersion,
+	}).Info("ComponentVersion created")
+
+	return componentVersion, nil
 }
 
 func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId string) {
@@ -63,7 +72,7 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 			if err != nil {
 				log.WithFields(log.Fields{
 					"vulnerabilityID":    vulnerability.VulnerabilityID,
-					"issueID":            issue.ID,
+					"issueID":            issue.Id,
 					"issuePrimaryName":   issue.PrimaryName,
 					"componentVersionID": componentVersionId,
 					"report":             report.ArtifactName,
@@ -83,114 +92,92 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 				// }
 				// issue = &i
 			}
-			var respData struct {
-				ComponentVersion models.ComponentVersion `json:"addComponentVersionToIssue"`
-			}
-			req := graphql.NewRequest(AddComponentVersionToIssueQuery)
-			req.Var("componentVersionId", componentVersionId)
-			req.Var("issueId", issue.ID)
-			err = p.Client.Run(context.Background(), req, &respData)
+			_, err = client.AddComponentVersionToIssue(context.Background(), *p.Client, issue.Id, componentVersionId)
+
 			if err != nil {
-				fmt.Println(err)
 				log.WithFields(log.Fields{
-					"issueID":            issue.ID,
-					"componentVersionID": componentVersionId,
+					"issueId":            issue.Id,
+					"componentVersionId": componentVersionId,
 				}).WithError(err).Error("Could not add component version to issue")
+			} else {
+				log.WithFields(log.Fields{
+					"issueId":            issue.Id,
+					"componentVersionId": componentVersionId,
+				}).Info("Added issue to componentVersion")
 			}
 		}
 
 	}
 }
 
-func (p *Processor) GetComponent(name string) (*models.Component, error) {
-	var respData struct {
-		Component models.ComponentConnection `json:"Components"`
-	}
-
-	req := graphql.NewRequest(ListComponentsQuery)
-	req.Var("filter", map[string][]string{
-		"componentName": {name},
-	})
-	req.Var("first", 1)
-
-	err := p.Client.Run(context.Background(), req, &respData)
+func (p *Processor) GetComponent(name string) (*client.Component, error) {
+	r, err := client.ListComponents(context.Background(), *p.Client, &client.ComponentFilter{
+		ComponentName: []string{name},
+	}, 1)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var component *models.Component
-	if len(respData.Component.Edges) > 0 {
-		component = respData.Component.Edges[0].Node
+	var component *client.Component
+	if len(r.Components.Edges) > 0 {
+		component = r.Components.Edges[0].GetNode()
 	}
 
 	return component, nil
 }
 
-func (p *Processor) GetComponentVersion(version string) (*models.ComponentVersion, error) {
-	var respData struct {
-		ComponentVersion models.ComponentVersionConnection `json:"ComponentVersions"`
-	}
-
-	req := graphql.NewRequest(ListComponentVersionsQuery)
-	req.Var("filter", map[string][]string{
-		"version": {version},
-	})
-	req.Var("first", 1)
-
-	err := p.Client.Run(context.Background(), req, &respData)
+func (p *Processor) GetComponentVersion(version string) (*client.ComponentVersion, error) {
+	r, err := client.ListComponentVersions(context.Background(), *p.Client, &client.ComponentVersionFilter{
+		Version: []string{version},
+	}, 1)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var componentVersion *models.ComponentVersion
-	if len(respData.ComponentVersion.Edges) > 0 {
-		componentVersion = respData.ComponentVersion.Edges[0].Node
+	var componentVersion *client.ComponentVersion
+	if len(r.ComponentVersions.Edges) > 0 {
+		componentVersion = r.ComponentVersions.Edges[0].GetNode()
 	}
 
 	return componentVersion, nil
 }
 
-func (p *Processor) GetIssue(primaryName string) (*models.Issue, error) {
-	var respData struct {
-		Issue models.IssueConnection `json:"Issues"`
-	}
-
-	req := graphql.NewRequest(ListIssueQuery)
-	req.Var("filter", map[string][]string{
-		"primaryName": {primaryName},
-	})
-	req.Var("first", 1)
-
-	err := p.Client.Run(context.Background(), req, &respData)
+func (p *Processor) GetIssue(primaryName string) (*client.Issue, error) {
+	r, err := client.ListIssues(context.Background(), *p.Client, &client.IssueFilter{
+		PrimaryName: []string{primaryName},
+	}, 1)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var issue *models.Issue
-	if len(respData.Issue.Edges) > 0 {
-		issue = respData.Issue.Edges[0].Node
+	var issue *client.Issue
+	if len(r.Issues.Edges) > 0 {
+		issue = r.Issues.Edges[0].GetNode()
 	}
 
 	return issue, nil
 }
 
-func (p *Processor) CreateIssue(primaryName string, description string) (models.Issue, error) {
-	var issueRespData struct {
-		Issue models.Issue `json:"createIssue"`
-	}
-
-	// Create new Issue
-	req := graphql.NewRequest(CreateIssueQuery)
-	req.Var("input", map[string]string{
-		"primaryName": primaryName,
-		"description": description,
-		"type":        "Vulnerability",
+func (p *Processor) CreateIssue(primaryName string, description string) (*client.Issue, error) {
+	r, err := client.CreateIssue(context.Background(), *p.Client, &client.IssueInput{
+		PrimaryName: primaryName,
+		Description: description,
+		Type:        "Vulnerability",
 	})
 
-	err := p.Client.Run(context.Background(), req, &issueRespData)
+	if err != nil {
+		return nil, err
+	}
 
-	return issueRespData.Issue, err
+	issue := r.GetCreateIssue()
+
+	log.WithFields(log.Fields{
+		"issueId": issue.Id,
+		"issue":   issue,
+	}).Info("Issue created")
+
+	return issue, nil
 }
