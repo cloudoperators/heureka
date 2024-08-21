@@ -1,0 +1,28 @@
+{{- range $namespace, $pods := .Values.pods }}
+  {{- range $pod := $pods }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ $pod.name }}
+  namespace: {{ $namespace }}
+spec:
+  containers:
+    - name: {{ $pod.name }}
+      image: {{ $pod.image }}
+      {{- if $pod.env }}
+      env:
+        {{- range $key, $value := $pod.env }}
+        - name: {{ $key }}
+          value: {{ $value }}
+        {{- end }}
+      {{- end }}
+      {{- if $pod.ports }}
+      ports:
+        {{- range $port := $pod.ports }}
+        - containerPort: {{ $port.containerPort }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+
+{{- end }}
