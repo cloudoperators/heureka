@@ -5,6 +5,6 @@ package processor
 
 type Config struct {
 	HeurekaUrl          string `envconfig:"HEUREKA_URL" required:"true" json:"-"`
-	IssueRepositoryName string `envconfig:"ISSUE_REPOSITORY_NAME" required:"true" default:"NVD" json:"-"`
+	IssueRepositoryName string `envconfig:"ISSUE_REPOSITORY_NAME" required:"true" default:"nvd" json:"-"`
 	IssueRepositoryUrl  string `envconfig:"ISSUE_REPOSITORY_URL" required:"true" default:"https://nvd.nist.gov/" json:"-"`
 }

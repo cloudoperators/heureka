@@ -5,23 +5,29 @@ package processor
 
 import (
 	"context"
+	"net/http"
+
 	"fmt"
 
-	"github.com/machinebox/graphql"
+	"github.com/Khan/genqlient/graphql"
 	log "github.com/sirupsen/logrus"
+	"github.wdf.sap.corp/cc/heureka/scanner/nvd/client"
 	"github.wdf.sap.corp/cc/heureka/scanner/nvd/models"
+	"time"
 )
 
 type Processor struct {
-	Client              *graphql.Client
+	GraphqlClient       graphql.Client
 	IssueRepositoryName string
 	IssueRepositoryId   string
 	IssueRepositoryUrl  string
 }
 
+// NewProcessor
 func NewProcessor(cfg Config) *Processor {
+	httpClient := http.Client{Timeout: time.Duration(10) * time.Second}
 	return &Processor{
-		Client:              graphql.NewClient(cfg.HeurekaUrl),
+		GraphqlClient:       graphql.NewClient(cfg.HeurekaUrl, &httpClient),
 		IssueRepositoryName: cfg.IssueRepositoryName,
 		IssueRepositoryUrl:  cfg.IssueRepositoryUrl,
 	}
@@ -29,187 +35,86 @@ func NewProcessor(cfg Config) *Processor {
 
 func (p *Processor) Setup() error {
 	// Check if there is already an IssueRepository with the same name
-	existentingIssueRepositoryId, err := p.GetIssueRepositoryId()
-	if err != nil {
+	queryFilter := client.IssueRepositoryFilter{
+		Name: []string{p.IssueRepositoryName},
+	}
+	issueRepositoryResp, err := client.GetIssueRepositories(context.TODO(), p.GraphqlClient, &queryFilter)
+
+	if (err == nil) && (issueRepositoryResp.IssueRepositories.TotalCount == 0) {
 		log.Warnf("There is no IssueRepository: %s", err)
 
 		// Create new IssueRepository
-		newIssueRepositoryId, err := p.CreateIssueRepository()
+		issueRepositoryInput := client.IssueRepositoryInput{
+			Name: p.IssueRepositoryName,
+			Url:  p.IssueRepositoryUrl,
+		}
+		resp, err := client.CreateIssueRepository(context.TODO(), p.GraphqlClient, &issueRepositoryInput)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
 			}).Error("Couldn't create new IssueRepository")
 		}
+
+		// Save IssueRepositoryId
+		p.IssueRepositoryId = resp.CreateIssueRepository.Id
 		log.WithFields(log.Fields{
-			"issueRepositoryId": newIssueRepositoryId,
+			"issueRepositoryId": p.IssueRepositoryId,
 		}).Info("Created new IssueRepository")
-
-		p.IssueRepositoryId = newIssueRepositoryId
 	} else {
-		p.IssueRepositoryId = existentingIssueRepositoryId
-	}
 
+		// Extract IssueRepositoryId
+		for _, ir := range issueRepositoryResp.IssueRepositories.Edges {
+			log.Debugf("nodeId: %s", ir.Node.Id)
+			p.IssueRepositoryId = ir.Node.Id
+			break
+		}
+		log.Debugf("IssueRepositoryId: %s", p.IssueRepositoryId)
+	}
 	return nil
 }
 
-// GetIssueRepositoryId fetches an IssueRepository based on the name of the scanner
-func (p *Processor) GetIssueRepositoryId() (string, error) {
-	var (
-		newIssueRepositoryId          string
-		issueRepositoryConnectionResp struct {
-			IssueRepositoryConnection models.IssueRepositoryConnection `json:"IssueRepositories"`
-		}
-	)
-
-	// Fetch IssueRepositoryId by name
-	req := graphql.NewRequest(GetIssueRepositoryIdQuery)
-	req.Var("filter", map[string][]string{
-		"name": {p.IssueRepositoryName},
-	})
-
-	err := p.Client.Run(context.Background(), req, &issueRepositoryConnectionResp)
-	if err != nil {
-		log.Error("Couldn't fetch IssueRepositoryId")
-		return "", err
-	}
-
-	// TODO: What to do if multiple edges/Ids available?
-	if issueRepositoryConnectionResp.IssueRepositoryConnection.TotalCount > 0 {
-		for _, repositoryEdge := range issueRepositoryConnectionResp.IssueRepositoryConnection.Edges {
-			fmt.Printf("id: %s", repositoryEdge.Node.Id)
-			newIssueRepositoryId = repositoryEdge.Node.Id
-		}
-	} else {
-		return "", fmt.Errorf("didn't get any repository ids")
-	}
-
-	return newIssueRepositoryId, nil
-}
-
-// CreateIssueRepository creates a new IssueRepository based on
-// - the name and
-// - the URL
-// of the current scanner
-func (p *Processor) CreateIssueRepository() (string, error) {
-	var repositoryId string
-	var createIssueRepositoryResp struct {
-		IssueRepository models.IssueRepository `json:"createIssueRepository"`
-	}
-
-	req := graphql.NewRequest(CreateIssueRepositoryQuery)
-	req.Var("input", map[string]string{
-		"name": p.IssueRepositoryName,
-		"url":  p.IssueRepositoryUrl,
-	})
-
-	err := p.Client.Run(context.Background(), req, &createIssueRepositoryResp)
-	if err != nil {
-		log.Error("Couldn't create IssueRepository")
-		return "", err
-	}
-	repositoryId = createIssueRepositoryResp.IssueRepository.Id
-
-	if len(repositoryId) > 0 {
-		return repositoryId, nil
-	} else {
-		return "", fmt.Errorf("repositoryId is empty")
-	}
-}
-
-// GetIssueId ...
-func (p *Processor) GetIssueId(cve *models.Cve) (string, error) {
-	var issueId string
-	var issueConnectionResp struct {
-		IssueConnection models.IssueConnection `json:"Issues"`
-	}
-
-	// Fetch Issue by CVE name
-	req := graphql.NewRequest(GetIssueIdQuery)
-	req.Var("filter", map[string][]string{
-		"primaryName": []string{cve.Id},
-	})
-
-	err := p.Client.Run(context.Background(), req, &issueConnectionResp)
-	if err != nil {
-		log.Error("Couldn't fetch IssueId")
-		return "", err
-	}
-
-	if issueConnectionResp.IssueConnection.TotalCount > 0 {
-		for _, issueEdge := range issueConnectionResp.IssueConnection.Edges {
-			issueId = issueEdge.Node.Id
-		}
-
-	} else {
-		return "", fmt.Errorf("didn't get any issue ids")
-	}
-
-	return issueId, nil
-}
-
-// CreateIssue creates a new Issue based on a CVE
-func (p *Processor) CreateIssue(cve *models.Cve) (string, error) {
-	var issueRespData struct {
-		Issue models.Issue `json:"createIssue"`
-	}
-
-	// Create new Issue
-	req := graphql.NewRequest(CreateIssueQuery)
-	req.Var("input", map[string]string{
-		"primaryName": cve.Id,
-		"description": cve.GetDescription("en"),
-		"type":        "Vulnerability",
-	})
-
-	err := p.Client.Run(context.Background(), req, &issueRespData)
-
-	return issueRespData.Issue.Id, err
-}
-
-// CreateIssueVariant ...
-func (p *Processor) CreateIssueVariant(issueId string, issueRepositoryId string, cve *models.Cve) (string, error) {
-	var issueVariantRespData struct {
-		IssueVariant models.IssueVariant `json:"createIssueVariant"`
-	}
-
-	// Create new IssueVariant
-	req := graphql.NewRequest(CreateIssueVariantQuery)
-	req.Var("input", map[string]interface{}{
-		"secondaryName":     cve.Id,
-		"description":       cve.GetDescription("en"),
-		"issueRepositoryId": issueRepositoryId,
-		"issueId":           issueId,
-		"severity": map[string]string{
-			"vector": cve.SeverityVector(),
-		},
-	})
-
-	err := p.Client.Run(context.Background(), req, &issueVariantRespData)
-
-	return issueVariantRespData.IssueVariant.Id, err
-}
-
 func (p *Processor) Process(cve *models.Cve) error {
+	var issueId string
+
 	// Create new Issue
-	issueId, err := p.CreateIssue(cve)
+	createIssueInput := client.IssueInput{
+		PrimaryName: cve.Id,
+		Description: cve.GetDescription("en"),
+		Type:        "Vulnerability",
+	}
+	createIssueResp, err := client.CreateIssue(context.TODO(), p.GraphqlClient, &createIssueInput)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Error("Couldn't create new Issue")
+		return fmt.Errorf("Couldn't create new Issue")
 	}
 
-	// Create new IssueVariant
-	issueVariantId, err := p.CreateIssueVariant(issueId, p.IssueRepositoryId, cve)
-	if err != nil {
-		return fmt.Errorf("couldn't create new IssueVariant")
-	}
-
+	issueId = createIssueResp.CreateIssue.Id
 	log.WithFields(log.Fields{
 		"issueID": issueId,
 	}).Info("Created new Issue")
 
+	// Create new IssueVariant
+	issueVariantInput := client.IssueVariantInput{
+		SecondaryName:     cve.Id,
+		Description:       cve.GetDescription("en"),
+		IssueRepositoryId: p.IssueRepositoryId,
+		IssueId:           issueId,
+		Severity: &client.SeverityInput{
+			Vector: cve.SeverityVector(),
+		},
+	}
+	createIssueVariantResp, err := client.CreateIssueVariant(context.TODO(), p.GraphqlClient, &issueVariantInput)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Couldn't create new IssueVariant")
+		return fmt.Errorf("couldn't create new IssueVariant")
+	}
+
 	log.WithFields(log.Fields{
-		"issueVariantId": issueVariantId,
+		"issueVariantId": createIssueVariantResp.CreateIssueVariant.Id,
 	}).Info("Created new IssueVariant")
 
 	return nil
