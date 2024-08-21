@@ -2,13 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 
 query GetIssueRepositories ($filter: IssueRepositoryFilter) {
+  # @genqlient(typename: IssueRepositoryConnection)
   IssueRepositories (
 	filter: $filter,
   ) {
 	totalCount
 	edges {
+      # @genqlient(typename: IssueRepository)
 	  node {
 		id
+        name
+        url
 	  }
 	}
   }

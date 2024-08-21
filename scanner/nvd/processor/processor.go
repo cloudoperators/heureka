@@ -5,9 +5,8 @@ package processor
 
 import (
 	"context"
-	"net/http"
-
 	"fmt"
+	"net/http"
 
 	"github.com/Khan/genqlient/graphql"
 	log "github.com/sirupsen/logrus"
@@ -38,9 +37,9 @@ func (p *Processor) Setup() error {
 	queryFilter := client.IssueRepositoryFilter{
 		Name: []string{p.IssueRepositoryName},
 	}
-	issueRepositoryResp, err := client.GetIssueRepositories(context.TODO(), p.GraphqlClient, &queryFilter)
+	listRepositoriesResp, err := client.GetIssueRepositories(context.TODO(), p.GraphqlClient, &queryFilter)
 
-	if (err == nil) && (issueRepositoryResp.IssueRepositories.TotalCount == 0) {
+	if (err == nil) && (listRepositoriesResp.IssueRepositories.TotalCount == 0) {
 		log.Warnf("There is no IssueRepository: %s", err)
 
 		// Create new IssueRepository
@@ -48,7 +47,7 @@ func (p *Processor) Setup() error {
 			Name: p.IssueRepositoryName,
 			Url:  p.IssueRepositoryUrl,
 		}
-		resp, err := client.CreateIssueRepository(context.TODO(), p.GraphqlClient, &issueRepositoryInput)
+		issueMutationResp, err := client.CreateIssueRepository(context.TODO(), p.GraphqlClient, &issueRepositoryInput)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -56,14 +55,14 @@ func (p *Processor) Setup() error {
 		}
 
 		// Save IssueRepositoryId
-		p.IssueRepositoryId = resp.CreateIssueRepository.Id
+		p.IssueRepositoryId = issueMutationResp.CreateIssueRepository.Id
 		log.WithFields(log.Fields{
 			"issueRepositoryId": p.IssueRepositoryId,
 		}).Info("Created new IssueRepository")
 	} else {
 
 		// Extract IssueRepositoryId
-		for _, ir := range issueRepositoryResp.IssueRepositories.Edges {
+		for _, ir := range listRepositoriesResp.IssueRepositories.Edges {
 			log.Debugf("nodeId: %s", ir.Node.Id)
 			p.IssueRepositoryId = ir.Node.Id
 			break
@@ -82,7 +81,7 @@ func (p *Processor) Process(cve *models.Cve) error {
 		Description: cve.GetDescription("en"),
 		Type:        "Vulnerability",
 	}
-	createIssueResp, err := client.CreateIssue(context.TODO(), p.GraphqlClient, &createIssueInput)
+	issueMutationResp, err := client.CreateIssue(context.TODO(), p.GraphqlClient, &createIssueInput)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -90,7 +89,7 @@ func (p *Processor) Process(cve *models.Cve) error {
 		return fmt.Errorf("Couldn't create new Issue")
 	}
 
-	issueId = createIssueResp.CreateIssue.Id
+	issueId = issueMutationResp.CreateIssue.Id
 	log.WithFields(log.Fields{
 		"issueID": issueId,
 	}).Info("Created new Issue")
@@ -105,7 +104,7 @@ func (p *Processor) Process(cve *models.Cve) error {
 			Vector: cve.SeverityVector(),
 		},
 	}
-	createIssueVariantResp, err := client.CreateIssueVariant(context.TODO(), p.GraphqlClient, &issueVariantInput)
+	variantMutationResp, err := client.CreateIssueVariant(context.TODO(), p.GraphqlClient, &issueVariantInput)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -114,7 +113,7 @@ func (p *Processor) Process(cve *models.Cve) error {
 	}
 
 	log.WithFields(log.Fields{
-		"issueVariantId": createIssueVariantResp.CreateIssueVariant.Id,
+		"issueVariantId": variantMutationResp.CreateIssueVariant.Id,
 	}).Info("Created new IssueVariant")
 
 	return nil
