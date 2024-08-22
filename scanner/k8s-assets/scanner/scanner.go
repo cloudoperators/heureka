@@ -49,7 +49,7 @@ func (s *Scanner) GetPodsAllNamespaces() []v1.Pod {
 func (s *Scanner) GetPodsByNamespace(namespace string, listOptions metav1.ListOptions) ([]v1.Pod, error) {
 	pods, err := s.ClientSet.CoreV1().Pods(namespace).List(context.Background(), listOptions)
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("couldn't list pods")
 	}
 	return pods.Items, nil
 }
