@@ -10,11 +10,14 @@ import (
 )
 
 func main() {
+
 	kubeconfig := ""
 	config, err := scanner.BuildConfig(kubeconfig)
 	if err != nil {
 		panic(err.Error())
 	}
+
+	k8sScanner := scanner.NewScanner(config)
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
