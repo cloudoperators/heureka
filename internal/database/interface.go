@@ -16,6 +16,7 @@ type Database interface {
 	DeleteIssue(int64) error
 	AddComponentVersionToIssue(int64, int64) error
 	RemoveComponentVersionFromIssue(int64, int64) error
+	GetIssueNames(*entity.IssueFilter) ([]string, error)
 
 	GetIssueVariants(*entity.IssueVariantFilter) ([]entity.IssueVariant, error)
 	GetAllIssueVariantIds(*entity.IssueVariantFilter) ([]int64, error)
@@ -86,6 +87,7 @@ type Database interface {
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
 	UpdateComponentInstance(*entity.ComponentInstance) error
 	DeleteComponentInstance(int64) error
+	GetComponentNames(filter *entity.ComponentFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
 	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)

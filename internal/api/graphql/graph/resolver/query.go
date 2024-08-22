@@ -10,9 +10,11 @@ package resolver
 import (
 	"context"
 
+	"github.com/samber/lo"
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph"
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/baseResolver"
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/model"
+	"k8s.io/utils/pointer"
 )
 
 // Issues is the resolver for the Issues field.
@@ -83,6 +85,27 @@ func (r *queryResolver) Users(ctx context.Context, filter *model.UserFilter, fir
 // ServiceFilterValues is the resolver for the ServiceFilterValues field.
 func (r *queryResolver) ServiceFilterValues(ctx context.Context) (*model.ServiceFilterValue, error) {
 	return &model.ServiceFilterValue{}, nil
+}
+
+// IssueMatchFilterValues is the resolver for the IssueMatchFilterValues field.
+func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.IssueMatchFilterValue, error) {
+	return &model.IssueMatchFilterValue{
+		Status: &model.FilterItem{
+			DisplayName: &baseResolver.FilterDisplayIssueMatchStatus,
+			FilterName:  &baseResolver.IssueMatchFilterStatus,
+			Values:      lo.Map(model.AllIssueMatchStatusValues, func(item model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
+		},
+		IssueType: &model.FilterItem{
+			DisplayName: &baseResolver.FilterDisplayIssueType,
+			FilterName:  &baseResolver.IssueMatchFilterIssueType,
+			Values:      lo.Map(model.AllIssueTypes, func(item model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		},
+		Severity: &model.FilterItem{
+			DisplayName: &baseResolver.FilterDisplayIssueSeverity,
+			FilterName:  &baseResolver.IssueMatchFilterSeverity,
+			Values:      lo.Map(model.AllSeverityValues, func(item model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
+		},
+	}, nil
 }
 
 // Query returns graph.QueryResolver implementation.

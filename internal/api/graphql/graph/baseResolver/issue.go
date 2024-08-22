@@ -157,3 +157,46 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 
 	return &connection, nil
 }
+
+func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter) (*model.FilterItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called IssueNameBaseResolver")
+
+	if filter == nil {
+		filter = &model.IssueFilter{}
+	}
+
+	f := &entity.IssueFilter{
+		Paginated:                       entity.Paginated{},
+		ServiceName:                     filter.AffectedService,
+		PrimaryName:                     filter.PrimaryName,
+		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		Search:                          filter.Search,
+		IssueMatchStatus:                nil, //@todo Implement
+		IssueMatchDiscoveryDate:         nil, //@todo Implement
+		IssueMatchTargetRemediationDate: nil, //@todo Implement
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, err := app.ListIssueNames(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("IssueNamesBaseReolver", err.Error())
+	}
+
+	var pointerNames []*string
+
+	for _, name := range names {
+		pointerNames = append(pointerNames, &name)
+	}
+
+	filterItem := model.FilterItem{
+		DisplayName: &FilterDisplayIssuePrimaryName,
+		Values:      pointerNames,
+	}
+
+	return &filterItem, nil
+}

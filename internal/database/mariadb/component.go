@@ -267,3 +267,52 @@ func (s *SqlDatabase) DeleteComponent(id int64) error {
 
 	return err
 }
+
+func (s *SqlDatabase) GetComponentNames(filter *entity.ComponentFilter) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetComponentNames",
+	})
+
+	baseQuery := `
+    SELECT C.component_name FROM Component C
+    %s
+    %s
+    `
+
+	// Ensure the filter is initialized
+	filter = s.ensureComponentFilter(filter)
+
+	// Builds full statement with possible joins and filters
+	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, false, l)
+	if err != nil {
+		l.Error("Error preparing statement: ", err)
+		return nil, err
+	}
+	defer stmt.Close()
+
+	// Execute the query
+	rows, err := stmt.Queryx(filterParameters...)
+	if err != nil {
+		l.Error("Error executing query: ", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Collect the results
+	componentNames := []string{}
+	var name string
+	for rows.Next() {
+		if err := rows.Scan(&name); err != nil {
+			l.Error("Error scanning row: ", err)
+			continue
+		}
+		componentNames = append(componentNames, name)
+	}
+	if err = rows.Err(); err != nil {
+		l.Error("Row iteration error: ", err)
+		return nil, err
+	}
+
+	return componentNames, nil
+}

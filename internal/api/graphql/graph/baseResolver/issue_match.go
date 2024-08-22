@@ -92,7 +92,18 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		filter = &model.IssueMatchFilter{}
 	}
 
+	issue_match_ids := []*int64{}
+	for _, issue_match_id := range filter.ID {
+		filterById, err := ParseCursor(issue_match_id)
+		if err != nil {
+			logrus.WithField("filter", filter).Error("IssueMatchBaseResolver: Error while parsing filter value 'id'")
+			return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - unable to parse filter, the value of the filter ID is invalid")
+		}
+		issue_match_ids = append(issue_match_ids, filterById)
+	}
+
 	f := &entity.IssueMatchFilter{
+		Id:                  issue_match_ids,
 		Paginated:           entity.Paginated{First: first, After: afterId},
 		AffectedServiceName: filter.AffectedService,
 		Status:              lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
@@ -101,6 +112,10 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		IssueId:             issueId,
 		EvidenceId:          eId,
 		ComponentInstanceId: ciId,
+		Search:              filter.Search,
+		ComponentName:       filter.ComponentName,
+		PrimaryName:         filter.PrimaryName,
+		IssueType:           lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -133,5 +148,4 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	}
 
 	return &connection, nil
-
 }

@@ -1,0 +1,13 @@
+{{ if .Files.Get "files/schema.sql" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "heureka.fullname" . }}-mariadb-schema
+  labels:
+    {{- include "heureka.labels" . | nindent 4 }}
+data:
+  schema.sql: |-
+{{ .Files.Get "files/schema.sql" | indent 6 }}
+{{ else }}
+{{ fail "Error: schema.sql file not found in files/ directory" }}
+{{ end }}

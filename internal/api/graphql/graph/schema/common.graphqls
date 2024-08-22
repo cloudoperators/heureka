@@ -101,6 +101,7 @@ input SeverityInput {
 }
 
 type FilterItem {
+    displayName: String
     filterName: String
     values: [String]
 }

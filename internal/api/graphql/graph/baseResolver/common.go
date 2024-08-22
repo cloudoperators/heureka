@@ -14,10 +14,29 @@ import (
 )
 
 var (
-	FilterServiceName      string = "Service Name"
-	FilterSupportGroupName string = "SupportGroup Name"
-	FilterUserName         string = "User Name"
-	FilterUniqueUserID     string = "Unique User ID"
+	FilterDisplayServiceName      string = "Service Name"
+	FilterDisplaySupportGroupName string = "Support Group Name"
+	FilterDisplayUserName         string = "User Name"
+	FilterDisplayUniqueUserId     string = "Unique User ID"
+	FilterDisplayComponentName    string = "Component Name"
+	FilterDisplayIssueType        string = "Issue Type"
+	FilterDisplayIssueMatchStatus string = "Issue Match Status"
+	FilterDisplayIssuePrimaryName string = "Issue Name"
+	FilterDisplayIssueSeverity    string = "Severity"
+
+	ServiceFilterServiceName      string = "serviceName"
+	ServiceFilterUniqueUserId     string = "uniqueUserId"
+	ServiceFilterType             string = "type"
+	ServiceFilterUserName         string = "userName"
+	ServiceFilterSupportGroupName string = "supportGroupName"
+
+	IssueMatchFilterPrimaryName      string = "primaryName"
+	IssueMatchFilterComponentName    string = "componentName"
+	IssueMatchFilterIssueType        string = "issueType"
+	IssueMatchFilterStatus           string = "status"
+	IssueMatchFilterSeverity         string = "severity"
+	IssueMatchFilterAffectedService  string = "affectedService"
+	IssueMatchFilterSupportGroupName string = "supportGroupName"
 )
 
 type ResolverError struct {

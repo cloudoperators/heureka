@@ -38,6 +38,10 @@ func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter)
 	fl = append(fl, buildFilterQuery(filter.SeverityValue, "IM.issuematch_rating = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Status, "IM.issuematch_status = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupName, "SG.supportgroup_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ComponentName, "C.component_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueType, "I.issue_type = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
 	fl = append(fl, "IM.issuematch_deleted_at IS NULL")
 
 	return combineFilterQueries(fl, OP_AND)
@@ -45,22 +49,49 @@ func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter)
 
 func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter) string {
 	joins := ""
+
+	if len(filter.Search) > 0 || len(filter.IssueType) > 0 || len(filter.PrimaryName) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, `
+			LEFT JOIN Issue I on I.issue_id = IM.issuematch_issue_id
+		`)
+		if len(filter.Search) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+			LEFT JOIN IssueVariant IV on IV.issuevariant_issue_id = I.issue_id
+			`)
+		}
+	}
+
 	if len(filter.EvidenceId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatchEvidence IME on IME.issuematchevidence_issue_match_id = IM.issuematch_id
 		`)
 	}
-	if len(filter.AffectedServiceName) > 0 || len(filter.SupportGroupName) > 0 {
+
+	if len(filter.AffectedServiceName) > 0 || len(filter.SupportGroupName) > 0 || len(filter.ComponentName) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on CI.componentinstance_id = IM.issuematch_component_instance_id
-			LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id
+			
 		`)
-	}
-	if len(filter.SupportGroupName) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
+
+		if len(filter.ComponentName) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+                LEFT JOIN ComponentVersion CV on CV.componentversion_id = CI.componentinstance_component_version_id
+				LEFT JOIN Component C on C.component_id = CV.componentversion_component_id
+			`)
+		}
+
+		if len(filter.AffectedServiceName) > 0 || len(filter.SupportGroupName) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+				LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id
+			`)
+		}
+
+		if len(filter.SupportGroupName) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
 			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
 		`)
+		}
 	}
 	return joins
 }
@@ -94,9 +125,67 @@ func (s *SqlDatabase) getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) s
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]int64, error) {
-
+func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+	var query string
 	filter = s.ensureIssueMatchFilter(filter)
+	l.WithFields(logrus.Fields{"filter": filter})
+
+	filterStr := s.getIssueMatchFilterString(filter)
+	joins := s.getIssueMatchJoins(filter)
+	cursor := getCursor(filter.Paginated, filterStr, "IM.issuematch_id > ?")
+
+	whereClause := ""
+	if filterStr != "" || withCursor {
+		whereClause = fmt.Sprintf("WHERE %s", filterStr)
+	}
+
+	// construct final query
+	if withCursor {
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement)
+	} else {
+		query = fmt.Sprintf(baseQuery, joins, whereClause)
+	}
+
+	//construct prepared statement and if where clause does exist add parameters
+	var stmt *sqlx.Stmt
+	var err error
+
+	stmt, err = s.db.Preparex(query)
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+				"stmt":  stmt,
+			}).Error(msg)
+		return nil, nil, fmt.Errorf("%s", msg)
+	}
+
+	//adding parameters
+	var filterParameters []interface{}
+	filterParameters = buildQueryParameters(filterParameters, filter.Id)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
+	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
+	filterParameters = buildQueryParameters(filterParameters, filter.AffectedServiceName)
+	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
+	filterParameters = buildQueryParameters(filterParameters, filter.Status)
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)
+	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentName)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueType)
+	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
+
+	if withCursor {
+		filterParameters = append(filterParameters, cursor.Value)
+		filterParameters = append(filterParameters, cursor.Limit)
+	}
+
+	return stmt, filterParameters, nil
+}
+
+func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssueMatches",
@@ -108,40 +197,16 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
 	 	%s GROUP BY IM.issuematch_id ORDER BY IM.issuematch_id
     `
 
-	filterStr := s.getIssueMatchFilterString(filter)
-	if filterStr != "" {
-		filterStr = fmt.Sprintf("WHERE %s", filterStr)
-	}
-	joins := s.getIssueMatchJoins(filter)
+	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, l)
 
-	query := fmt.Sprintf(baseQuery, joins, filterStr)
-	stmt, err := s.db.Preparex(query)
 	if err != nil {
-		msg := "Error while preparing Statement"
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-			}).Error(msg)
-		return nil, fmt.Errorf("%s", msg)
+		return nil, err
 	}
-	defer stmt.Close()
-
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.AffectedServiceName)
-	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
-	filterParameters = buildQueryParameters(filterParameters, filter.Status)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)
 
 	return performIdScan(stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter) ([]entity.IssueMatch, error) {
-	filter = s.ensureIssueMatchFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssueMatches",
@@ -150,37 +215,14 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter) ([]entity
 	baseQuery := `
 		SELECT IM.* FROM IssueMatch IM 
 		%s
-		WHERE %s %s GROUP BY IM.issuematch_id ORDER BY IM.issuematch_id LIMIT ?
+	    %s %s GROUP BY IM.issuematch_id ORDER BY IM.issuematch_id LIMIT ?
     `
 
-	filterStr := s.getIssueMatchFilterString(filter)
-	joins := s.getIssueMatchJoins(filter)
-	cursor := getCursor(filter.Paginated, filterStr, "IM.issuematch_id > ?")
+	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, true, l)
 
-	query := fmt.Sprintf(baseQuery, joins, filterStr, cursor.Statement)
-	stmt, err := s.db.Preparex(query)
 	if err != nil {
-		msg := "Error while preparing Statement"
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-			}).Error(msg)
-		return nil, fmt.Errorf("%s", msg)
+		return nil, err
 	}
-	defer stmt.Close()
-
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.AffectedServiceName)
-	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
-	filterParameters = buildQueryParameters(filterParameters, filter.Status)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)
-	filterParameters = append(filterParameters, cursor.Value)
-	filterParameters = append(filterParameters, cursor.Limit)
 
 	return performListScan(
 		stmt,
@@ -193,7 +235,6 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter) ([]entity
 }
 
 func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64, error) {
-	filter = s.ensureIssueMatchFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.CountIssueMatches",
@@ -205,39 +246,11 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
 		%s
     `
 
-	filterStr := s.getIssueMatchFilterString(filter)
-	joins := s.getIssueMatchJoins(filter)
-	if filterStr != "" {
-		filterStr = fmt.Sprintf("WHERE %s", filterStr)
-	}
+	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, l)
 
-	query := fmt.Sprintf(baseQuery, joins, filterStr)
-
-	var stmt *sqlx.Stmt
-	var err error
-	stmt, err = s.db.Preparex(query)
 	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-				"stmt":  stmt,
-			}).Error(msg)
-		return -1, fmt.Errorf("%s", msg)
+		return -1, err
 	}
-	defer stmt.Close()
-
-	//adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.AffectedServiceName)
-	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
-	filterParameters = buildQueryParameters(filterParameters, filter.Status)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)
 
 	return performCountScan(stmt, filterParameters, l)
 }

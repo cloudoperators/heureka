@@ -106,3 +106,40 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	return &connection, nil
 
 }
+
+func ComponentNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter) (*model.FilterItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called ComponentNameBaseResolver")
+
+	if filter == nil {
+		filter = &model.ComponentFilter{}
+	}
+
+	f := &entity.ComponentFilter{
+		Paginated: entity.Paginated{},
+		Name:      filter.ComponentName,
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, err := app.ListComponentNames(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("ComponentNameBaseReolver", err.Error())
+	}
+
+	var pointerNames []*string
+
+	for _, name := range names {
+		pointerNames = append(pointerNames, &name)
+	}
+
+	filterItem := model.FilterItem{
+		DisplayName: &FilterDisplayComponentName,
+		Values:      pointerNames,
+	}
+
+	return &filterItem, nil
+}

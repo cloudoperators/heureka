@@ -175,8 +175,8 @@ func ServiceNameBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	filterItem := model.FilterItem{
-		FilterName: &FilterServiceName,
-		Values:     pointerNames,
+		DisplayName: &FilterDisplayServiceName,
+		Values:      pointerNames,
 	}
 
 	return &filterItem, nil
