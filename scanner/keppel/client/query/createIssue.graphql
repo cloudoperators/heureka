@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+mutation CreateIssue($input: IssueInput!) {
+    # @genqlient(typename: "Issue")
+    createIssue (
+        input: $input
+    ) {
+        id
+        primaryName
+        description
+        type
+    }
+}
