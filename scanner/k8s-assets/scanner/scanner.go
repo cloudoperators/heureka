@@ -11,27 +11,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Scanner struct {
+	Config     Config
 	KubeConfig *rest.Config
 	ClientSet  *kubernetes.Clientset
 }
 
-func NewScanner(kubeConfig *rest.Config, clientSet *kubernetes.Clientset) Scanner {
+type PodLabels struct {
+	SupportGroup string
+	Owner        string
+	ServiceName  string
+}
+
+func NewScanner(kubeConfig *rest.Config, clientSet *kubernetes.Clientset, cfg Config) Scanner {
 	return Scanner{
 		KubeConfig: kubeConfig,
 		ClientSet:  clientSet,
+		Config:     cfg,
 	}
-}
-
-func BuildConfig(kubeconfig string) (*rest.Config, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
 }
 
 func (s *Scanner) GetNamespaces(listOptions metav1.ListOptions) ([]v1.Namespace, error) {
@@ -40,6 +39,21 @@ func (s *Scanner) GetNamespaces(listOptions metav1.ListOptions) ([]v1.Namespace,
 		return nil, fmt.Errorf("couldn't list namespaces")
 	}
 	return namespaces.Items, nil
+}
+
+func (s *Scanner) GetRelevantLabels(pod v1.Pod) PodLabels {
+	podLabels := PodLabels{}
+	for labelName, labelValue := range pod.Labels {
+		switch labelName {
+		case s.Config.ServiceNameLabel:
+			podLabels.ServiceName = labelValue
+		case s.Config.SupportGroupLabel:
+			podLabels.SupportGroup = labelValue
+		default:
+			continue
+		}
+	}
+	return podLabels
 }
 
 func (s *Scanner) GetPodsAllNamespaces() []v1.Pod {

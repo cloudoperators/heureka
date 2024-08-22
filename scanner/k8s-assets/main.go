@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 
@@ -61,6 +62,13 @@ func oidcBasedConfig() (*rest.Config, error) {
 }
 
 func main() {
+	var scannerCfg scanner.Config
+	err := envconfig.Process("heureka", &scannerCfg)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"errror": err,
+		}).Warn("Couldn't initialize scanner config")
+	}
 	// Configure new k8s scanner
 	kubeConfig, err := oidcBasedConfig()
 	if err != nil {
@@ -74,7 +82,7 @@ func main() {
 	}
 
 	// Create new k8s scanner
-	scanner := scanner.NewScanner(kubeConfig, k8sClient)
+	scanner := scanner.NewScanner(kubeConfig, k8sClient, scannerCfg)
 
 	// Get namespaces
 	namespaces, err := scanner.GetNamespaces(v1.ListOptions{})
@@ -91,6 +99,21 @@ func main() {
 				"namespace": n.Name,
 			}).Error("cannot get pods for namespace")
 		}
+
+		for _, p := range pods {
+			// List all containers:
+			for _, c := range p.Spec.Containers {
+				fmt.Printf("\tcontainer: %s\t%s\n", c.Name, c.Image)
+			}
+
+			// List all labels
+			for labelName, labelValue := range p.Labels {
+				fmt.Printf("\tlabel %s:%s\n", labelName, labelValue)
+			}
+
+			fmt.Printf("\n\n")
+		}
+
 		log.Infof("Number of pods (%s): %d", n.Name, len(pods))
 	}
 }
