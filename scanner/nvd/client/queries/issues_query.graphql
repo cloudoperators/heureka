@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+query GetIssues ($filter: IssueFilter) {
+  # @genqlient(typename: IssueConnection)
+  Issues (
+	filter: $filter,
+  ) {
+	totalCount
+	edges {
+      # @genqlient(typename: Issue)
+	  node {
+		id
+        primaryName
+        description
+        type
+	  }
+	}
+  }
+}
