@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# Default genqlient config; for full documentation see:
+# https://github.com/Khan/genqlient/blob/main/docs/genqlient.yaml
+schema: ../../../internal/api/graphql/graph/schema/*.graphqls
+operations:
+- ./query/*.graphql
+generated: generated.go
+package: client
+use_struct_references: true
