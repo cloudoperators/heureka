@@ -13,10 +13,28 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// Some usefull structs
 type Scanner struct {
 	Config     Config
 	KubeConfig *rest.Config
 	ClientSet  *kubernetes.Clientset
+}
+
+type ServiceInfo struct {
+	Name string
+	Pods []PodInfo
+}
+
+type PodInfo struct {
+	Labels     PodLabels
+	Name       string
+	Containers []ContainerInfo
+}
+
+type ContainerInfo struct {
+	Name      string
+	Image     string
+	ImageHash string
 }
 
 type PodLabels struct {
@@ -54,6 +72,30 @@ func (s *Scanner) GetRelevantLabels(pod v1.Pod) PodLabels {
 		}
 	}
 	return podLabels
+}
+
+func (s *Scanner) extractImageHash(image string) string {
+	// Implementation to extract image hash
+	// This is a placeholder and needs to be implemented based on your specific requirements
+	return "placeholder-hash"
+}
+
+func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
+	podInfo := PodInfo{
+		Labels:     s.GetRelevantLabels(pod),
+		Containers: make([]ContainerInfo, 0, len(pod.Spec.Containers)),
+	}
+
+	for _, container := range pod.Spec.Containers {
+		imageHash := s.extractImageHash(container.Image)
+		podInfo.Containers = append(podInfo.Containers, ContainerInfo{
+			Name:      container.Name,
+			Image:     container.Image,
+			ImageHash: imageHash,
+		})
+	}
+
+	return podInfo
 }
 
 func (s *Scanner) GetPodsAllNamespaces() []v1.Pod {
