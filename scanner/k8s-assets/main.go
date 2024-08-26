@@ -4,10 +4,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 
+	"github.com/cloudoperators/heureka/scanners/k8s-assets/processor"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/scanner"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
@@ -84,6 +86,14 @@ func main() {
 	// Create new k8s scanner
 	scanner := scanner.NewScanner(kubeConfig, k8sClient, scannerCfg)
 
+	// Create new processor
+	var cfg processor.Config
+	err = envconfig.Process("heureka", &cfg)
+	if err != nil {
+		log.WithError(err).Fatal("Error while reading env config")
+	}
+	processor := processor.NewProcessor(cfg)
+
 	// Get namespaces
 	namespaces, err := scanner.GetNamespaces(v1.ListOptions{})
 	if err != nil {
@@ -100,18 +110,34 @@ func main() {
 			}).Error("cannot get pods for namespace")
 		}
 
+		// Process pods
 		for _, p := range pods {
-			// List all containers:
-			for _, c := range p.Spec.Containers {
-				fmt.Printf("\tcontainer: %s\t%s\n", c.Name, c.Image)
+			podInfo := scanner.GetPodInfo(p)
+			serviceInfo := scanner.GetServiceInfo(podInfo)
+
+			// Process service
+			serviceId, err := processor.ProcessService(context.Background(), n.Name, serviceInfo)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err":         err,
+					"serviceInfo": serviceInfo,
+					"podInfo":     podInfo,
+				}).Error("Couldn't process service")
 			}
 
-			// List all labels
-			for labelName, labelValue := range p.Labels {
-				fmt.Printf("\tlabel %s:%s\n", labelName, labelValue)
+			// Process pod
+			err = processor.ProcessPod(context.Background(), n.Name, serviceId, podInfo)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"err":     err,
+					"podInfo": podInfo,
+				}).Error("Couldn't process pod")
 			}
 
-			fmt.Printf("\n\n")
+			fmt.Printf("PodInfo: %#v\n", podInfo)
+			// fmt.Printf("serviceInfo: %#v\n", serviceInfo)
+
+			// fmt.Printf("\n\n")
 		}
 
 		log.Infof("Number of pods (%s): %d", n.Name, len(pods))

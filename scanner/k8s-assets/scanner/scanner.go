@@ -21,8 +21,9 @@ type Scanner struct {
 }
 
 type ServiceInfo struct {
-	Name string
-	Pods []PodInfo
+	Name         string
+	SupportGroup string
+	Pods         []PodInfo
 }
 
 type PodInfo struct {
@@ -51,6 +52,7 @@ func NewScanner(kubeConfig *rest.Config, clientSet *kubernetes.Clientset, cfg Co
 	}
 }
 
+// GetNamespaces fetches all available namespaces for a cluster
 func (s *Scanner) GetNamespaces(listOptions metav1.ListOptions) ([]v1.Namespace, error) {
 	namespaces, err := s.ClientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
@@ -59,6 +61,7 @@ func (s *Scanner) GetNamespaces(listOptions metav1.ListOptions) ([]v1.Namespace,
 	return namespaces.Items, nil
 }
 
+// GetRelevantLabels returns only specific/relevant pod labels
 func (s *Scanner) GetRelevantLabels(pod v1.Pod) PodLabels {
 	podLabels := PodLabels{}
 	for labelName, labelValue := range pod.Labels {
@@ -75,8 +78,6 @@ func (s *Scanner) GetRelevantLabels(pod v1.Pod) PodLabels {
 }
 
 func (s *Scanner) extractImageHash(image string) string {
-	// Implementation to extract image hash
-	// This is a placeholder and needs to be implemented based on your specific requirements
 	return "placeholder-hash"
 }
 
@@ -98,10 +99,15 @@ func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 	return podInfo
 }
 
-func (s *Scanner) GetPodsAllNamespaces() []v1.Pod {
-	return []v1.Pod{}
+// GetServiceInfo extracts meta information from a PodInfo object
+func (s *Scanner) GetServiceInfo(podInfo PodInfo) ServiceInfo {
+	return ServiceInfo{
+		Name:         podInfo.Labels.ServiceName,
+		SupportGroup: podInfo.Labels.SupportGroup,
+	}
 }
 
+// GetPodsByNamespace returns a list of pods for a given namespace
 func (s *Scanner) GetPodsByNamespace(namespace string, listOptions metav1.ListOptions) ([]v1.Pod, error) {
 	pods, err := s.ClientSet.CoreV1().Pods(namespace).List(context.Background(), listOptions)
 	if err != nil {

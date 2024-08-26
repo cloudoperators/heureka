@@ -4,8 +4,7 @@
 package scanner
 
 type Config struct {
-	// ~/.kube/config
-	KubeConfigPath    string `envconfig:"KUBE_CONFIG_PATH" required:"true" json:"-"`
-	SupportGroupLabel string `envconfig:"SUPPORT_GROUP_LABEL" required:"true"`
-	ServiceNameLabel  string `envconfig:"SERVICE_NAME_LABEL" required:"true"`
+	KubeConfigPath    string `envconfig:"KUBE_CONFIG_PATH" default:"~/.kube/config" required:"true" json:"-"`
+	SupportGroupLabel string `envconfig:"SUPPORT_GROUP_LABEL" default:"ccloud/support-group" required:"true"`
+	ServiceNameLabel  string `envconfig:"SERVICE_NAME_LABEL" default:"ccloud/service" required:"true"`
 }
