@@ -638,4 +638,115 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 		})
 	})
+	// When("Getting IssueMatch", Label("GetIssueMatches"), func() {
+	// 	Context("and the database is empty", func() {
+	// 		It("can perform the list query", func() {
+	// 			res, err := db.GetIssueMatches(nil)
+	// 			By("throwing no error", func() {
+	// 				Expect(err).To(BeNil())
+	// 			})
+	// 			By("returning an empty list", func() {
+	// 				Expect(res).To(BeEmpty())
+	// 			})
+	// 		})
+	// 	})
+	// 	Context("and we have 10 services in the database", func() {
+	// 		var seedCollection *test.SeedCollection
+	// 		BeforeEach(func() {
+	// 			seedCollection = seeder.SeedDbWithNFakeData(10)
+	// 		})
+
+	// 		Context("and using no filter", func() {
+	// 			It("can fetch the items correctly", func() {
+	// 				res, err := db.GetIssueMatches(nil)
+
+	// 				matches := make([]entity.IssueMatch, len(res))
+	// 				for i, v := range res {
+	// 					matches[i] = entity.IssueMatch{Id: v.Id}
+	// 				}
+
+	// 				By("throwing no error", func() {
+	// 					Expect(err).Should(BeNil())
+	// 				})
+
+	// 				By("returning the correct number of results", func() {
+	// 					Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.IssueMatchRows)))
+	// 				})
+
+	// 				existingIssueMatchIds := make([]int64, len(seedCollection.IssueMatchRows))
+	// 				for i, s := range seedCollection.IssueMatchRows {
+	// 					existingIssueMatchIds[i] = s.Id.Int64
+	// 				}
+
+	// 				By("returning the correct IDs", func() {
+	// 					returnedIds := lo.Map(res, func(c entity.IssueMatch, _ int) int64 { return c.Id })
+	// 					left, right := lo.Difference(returnedIds, existingIssueMatchIds)
+	// 					Expect(left).Should(BeEmpty())
+	// 					Expect(right).Should(BeEmpty())
+	// 				})
+	// 			})
+	// 		})
+	// 		Context("and using a IssueMatch filter", func() {
+
+	// 			var filter *entity.IssueMatch
+	// 			var expectedServiceNames []string
+	// 			BeforeEach(func() {
+	// 				namePointers := []*string{}
+
+	// 				id := "f1"
+	// 				idPoiners = append(namePointers, &id)
+
+	// 				filter = &entity.IssueMatch{
+	// 					Id: namePointers,
+	// 				}
+
+	// 				It("can fetch the filtered items correctly", func() {
+	// 					res, err := db.GetServiceNames(filter)
+
+	// 					By("throwing no error", func() {
+	// 						Expect(err).Should(BeNil())
+	// 					})
+
+	// 					By("returning the correct number of results", func() {
+	// 						Expect(len(res)).Should(BeIdenticalTo(len(expectedServiceNames)))
+	// 					})
+
+	// 					By("returning the correct names", func() {
+	// 						left, right := lo.Difference(res, expectedServiceNames)
+	// 						Expect(left).Should(BeEmpty())
+	// 						Expect(right).Should(BeEmpty())
+	// 					})
+	// 				})
+	// 				It("and using another filter", func() {
+
+	// 					var anotherFilter *entity.ServiceFilter
+	// 					BeforeEach(func() {
+
+	// 						nonExistentServiceName := "NonexistentService"
+
+	// 						nonExistentServiceNames := []*string{&nonExistentServiceName}
+
+	// 						anotherFilter = &entity.ServiceFilter{
+	// 							Name: nonExistentServiceNames,
+	// 						}
+
+	// 						It("returns an empty list when no services match the filter", func() {
+	// 							res, err := db.GetServiceNames(anotherFilter)
+	// 							Expect(err).Should(BeNil())
+	// 							Expect(res).Should(BeEmpty())
+
+	// 							By("throwing no error", func() {
+	// 								Expect(err).Should(BeNil())
+	// 							})
+
+	// 							By("returning an empty list", func() {
+	// 								Expect(res).Should(BeEmpty())
+	// 							})
+	// 						})
+	// 					})
+	// 				})
+	// 			})
+	// 		})
+	// 	})
+	// })
 })

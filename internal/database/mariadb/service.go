@@ -12,6 +12,10 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
+const (
+	serviceWildCardFilterQuery = "S.service_name LIKE Concat('%',?,'%')"
+)
+
 func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Name, "S.service_name = ?", OP_OR))
@@ -23,6 +27,7 @@ func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) strin
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IRS.issuerepositoryservice_issue_repository_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGS.supportgroupservice_support_group_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerId, "O.owner_user_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Search, serviceWildCardFilterQuery, OP_OR))
 	fl = append(fl, "S.service_deleted_at IS NULL")
 
 	return combineFilterQueries(fl, OP_AND)
@@ -161,6 +166,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerId)
+	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
 		filterParameters = append(filterParameters, cursor.Limit)
