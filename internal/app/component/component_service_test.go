@@ -1,0 +1,210 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package component_test
+
+import (
+	c "github.wdf.sap.corp/cc/heureka/internal/app/component"
+	"github.wdf.sap.corp/cc/heureka/internal/app/event"
+	"math"
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/samber/lo"
+	"github.wdf.sap.corp/cc/heureka/internal/entity"
+	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
+	"github.wdf.sap.corp/cc/heureka/internal/mocks"
+)
+
+func TestComponentService(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Component Service Test Suite")
+}
+
+var er event.EventRegistry
+
+var _ = BeforeSuite(func() {
+	er = event.NewEventRegistry()
+})
+
+func getComponentFilter() *entity.ComponentFilter {
+	cName := "SomeNotExistingComponent"
+	return &entity.ComponentFilter{
+		Paginated: entity.Paginated{
+			First: nil,
+			After: nil,
+		},
+		Name: []*string{&cName},
+	}
+}
+
+var _ = Describe("When listing Components", Label("app", "ListComponents"), func() {
+	var (
+		db               *mocks.MockDatabase
+		componentService c.ComponentService
+		filter           *entity.ComponentFilter
+		options          *entity.ListOptions
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = entity.NewListOptions()
+		filter = getComponentFilter()
+	})
+
+	When("the list option does include the totalCount", func() {
+
+		BeforeEach(func() {
+			options.ShowTotalCount = true
+			db.On("GetComponents", filter).Return([]entity.Component{}, nil)
+			db.On("CountComponents", filter).Return(int64(1337), nil)
+		})
+
+		It("shows the total count in the results", func() {
+			componentService = c.NewComponentService(db, er)
+			res, err := componentService.ListComponents(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
+		})
+	})
+
+	When("the list option does include the PageInfo", func() {
+		BeforeEach(func() {
+			options.ShowPageInfo = true
+		})
+		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+			filter.First = &pageSize
+			components := test.NNewFakeComponentEntities(resElements)
+
+			var ids = lo.Map(components, func(c entity.Component, _ int) int64 { return c.Id })
+			var i int64 = 0
+			for len(ids) < dbElements {
+				i++
+				ids = append(ids, i)
+			}
+			db.On("GetComponents", filter).Return(components, nil)
+			db.On("GetAllComponentIds", filter).Return(ids, nil)
+			componentService = c.NewComponentService(db, er)
+			res, err := componentService.ListComponents(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+		},
+			Entry("When  pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
+			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
+			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+		)
+	})
+})
+
+var _ = Describe("When creating Component", Label("app", "CreateComponent"), func() {
+	var (
+		db               *mocks.MockDatabase
+		componentService c.ComponentService
+		component        entity.Component
+		filter           *entity.ComponentFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		component = test.NewFakeComponentEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.ComponentFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	})
+
+	It("creates component", func() {
+		filter.Name = []*string{&component.Name}
+		db.On("CreateComponent", &component).Return(&component, nil)
+		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
+		componentService = c.NewComponentService(db, er)
+		newComponent, err := componentService.CreateComponent(&component)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(newComponent.Id).NotTo(BeEquivalentTo(0))
+		By("setting fields", func() {
+			Expect(newComponent.Name).To(BeEquivalentTo(component.Name))
+			Expect(newComponent.Type).To(BeEquivalentTo(component.Type))
+		})
+	})
+})
+
+var _ = Describe("When updating Component", Label("app", "UpdateComponent"), func() {
+	var (
+		db               *mocks.MockDatabase
+		componentService c.ComponentService
+		component        entity.Component
+		filter           *entity.ComponentFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		component = test.NewFakeComponentEntity()
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.ComponentFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	})
+
+	It("updates component", func() {
+		db.On("UpdateComponent", &component).Return(nil)
+		componentService = c.NewComponentService(db, er)
+		component.Name = "NewComponent"
+		filter.Id = []*int64{&component.Id}
+		db.On("GetComponents", filter).Return([]entity.Component{component}, nil)
+		updatedComponent, err := componentService.UpdateComponent(&component)
+		Expect(err).To(BeNil(), "no error should be thrown")
+		By("setting fields", func() {
+			Expect(updatedComponent.Name).To(BeEquivalentTo(component.Name))
+			Expect(updatedComponent.Type).To(BeEquivalentTo(component.Type))
+		})
+	})
+})
+
+var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), func() {
+	var (
+		db               *mocks.MockDatabase
+		componentService c.ComponentService
+		id               int64
+		filter           *entity.ComponentFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		id = 1
+		first := 10
+		var after int64
+		after = 0
+		filter = &entity.ComponentFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	})
+
+	It("deletes component", func() {
+		db.On("DeleteComponent", id).Return(nil)
+		componentService = c.NewComponentService(db, er)
+		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
+		err := componentService.DeleteComponent(id)
+		Expect(err).To(BeNil(), "no error should be thrown")
+
+		filter.Id = []*int64{&id}
+		components, err := componentService.ListComponents(filter, &entity.ListOptions{})
+		Expect(err).To(BeNil(), "no error should be thrown")
+		Expect(components.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+})

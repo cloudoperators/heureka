@@ -1,0 +1,16 @@
+package support_group
+
+import "github.wdf.sap.corp/cc/heureka/internal/entity"
+
+type SupportGroupService interface {
+	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
+	GetSupportGroup(int64) (*entity.SupportGroup, error)
+	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
+	UpdateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
+	DeleteSupportGroup(int64) error
+	AddServiceToSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	RemoveServiceFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	AddUserToSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	RemoveUserFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	ListSupportGroupNames(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)
+}

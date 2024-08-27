@@ -29,6 +29,21 @@ type IssueVariantFilter struct {
 	IssueMatchId      []*int64  `json:"issue_match_id"`
 }
 
+func NewIssueVariantFilter() *IssueVariantFilter {
+	return &IssueVariantFilter{
+		Paginated: Paginated{
+			First: nil,
+			After: nil,
+		},
+		Id:                nil,
+		SecondaryName:     nil,
+		IssueId:           nil,
+		IssueRepositoryId: nil,
+		ServiceId:         nil,
+		IssueMatchId:      nil,
+	}
+}
+
 type IssueVariantAggregations struct {
 }
 
