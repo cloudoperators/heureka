@@ -19,6 +19,27 @@ type Processor struct {
 	Client *graphql.Client
 }
 
+type CCRN struct {
+	Region    string
+	Cluster   string
+	Namespace string
+	Pod       string
+	PodID     string
+	Container string
+}
+
+func (c CCRN) String() string {
+	// Define default CCRN
+	return fmt.Sprintf("rn.cloud.sap/ccrn/kubernetes/v1/%s/-/-/kubernikus/%s/%s/%s/%s/%s",
+		c.Region,
+		c.Cluster,
+		c.Namespace,
+		c.Pod,
+		c.PodID,
+		c.Container,
+	)
+}
+
 func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
@@ -86,10 +107,12 @@ func (p *Processor) ProcessPod(ctx context.Context, namespace string, serviceID 
 	return nil
 }
 
-func (p *Processor) getComponentVersion(ctx context.Context) (string, error) {
+func (p *Processor) getComponentVersion(ctx context.Context, manifest string) (string, error) {
 	var componentVersionId string
 
-	listComponentVersionFilter := client.ComponentVersionFilter{}
+	listComponentVersionFilter := client.ComponentVersionFilter{
+		Version: []string{manifest},
+	}
 	listCompoVersResp, err := client.ListComponentVersions(ctx, *p.Client, &listComponentVersionFilter)
 	if err != nil {
 		return "", fmt.Errorf("Couldn't list ComponentVersion")
@@ -128,47 +151,45 @@ func (p *Processor) getComponent(ctx context.Context, name string) (string, erro
 	return componentId, nil
 }
 
-func (p *Processor) getComponentInstance(ctx context.Context, serviceId string) (string, error) {
-	listComponentInstanceFilter := client.ComponentInstanceFilter{
-		ServiceId: []string{serviceId},
-	}
-	listCompInstResp, err := client.ListComponentInstances(ctx, *p.Client, &listComponentInstanceFilter)
-	if err != nil {
-		return "", fmt.Errorf("couldn't list ComponentInstances: %w", err)
-	}
+// func (p *Processor) getComponentInstance(ctx context.Context, serviceId string) (string, error) {
+// 	listComponentInstanceFilter := client.ComponentInstanceFilter{
+// 		ServiceId: []string{serviceId},
+// 	}
+// 	listCompInstResp, err := client.ListComponentInstances(ctx, *p.Client, &listComponentInstanceFilter)
+// 	if err != nil {
+// 		return "", fmt.Errorf("couldn't list ComponentInstances: %w", err)
+// 	}
 
-	if listCompInstResp.ComponentInstances.TotalCount > 0 {
-		return listCompInstResp.ComponentInstances.Edges[0].Node.Id, nil
-	}
-	return "", fmt.Errorf("no ComponentInstance found with CCRN: and ServiceId: %s", serviceId)
-}
+// 	if listCompInstResp.ComponentInstances.TotalCount > 0 {
+// 		return listCompInstResp.ComponentInstances.Edges[0].Node.Id, nil
+// 	}
+// 	return "", fmt.Errorf("no ComponentInstance found with CCRN: and ServiceId: %s", serviceId)
+// }
 
 // ProcessContainer creates a ComponentVersion and ComponentInstance for a container
 func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serviceID string, podInfo scanner.PodInfo, containerInfo scanner.ContainerInfo) error {
 
-	// Get image hash (component version) from the pod
-	// componentVersion, err := scanner.ExtractImageHash(containerInfo.ImageHash)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to map image hash to component version: %w", err)
-	// }
-	componentVersion := "testing"
-
-	// Create new ComponentVersion
-	componentVersionInput := &client.ComponentVersionInput{
-		Version:     componentVersion,
-		ComponentId: containerInfo.ImageHash,
-	}
-	createCompotVersResp, err := client.CreateComponentVersion(ctx, *p.Client, componentVersionInput)
+	// Find component version by container image hash
+	componentVersionId, err := p.getComponentVersion(ctx, containerInfo.ImageHash)
 	if err != nil {
-		return fmt.Errorf("failed to create ComponentVersion: %w", err)
+		return fmt.Errorf("Couldn't find ComponentVersion")
 	}
-	componentVersionID := createCompotVersResp.CreateComponentVersion.Id
+
+	// Create new CCRN
+	ccrn := CCRN{
+		Region:    "de",
+		Cluster:   "testing",
+		Namespace: namespace,
+		Pod:       podInfo.Name,
+		PodID:     podInfo.Name, // Change this!
+		Container: containerInfo.Name,
+	}
 
 	// Create new ComponentInstance
 	componentInstanceInput := &client.ComponentInstanceInput{
-		Ccrn:               podInfo.Name,
+		Ccrn:               ccrn.String(),
 		Count:              len(podInfo.Containers),
-		ComponentVersionId: componentVersionID,
+		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
 	}
 	createCompInstResp, err := client.CreateComponentInstance(ctx, *p.Client, componentInstanceInput)
@@ -179,7 +200,7 @@ func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serv
 
 	// Do logging
 	log.WithFields(log.Fields{
-		"componentVersionID":  componentVersionID,
+		"componentVersionID":  componentVersionId,
 		"componentInstanceID": componentInstanceID,
 	}).Info("Created new entities")
 

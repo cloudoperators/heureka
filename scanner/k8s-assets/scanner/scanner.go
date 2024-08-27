@@ -7,6 +7,9 @@ import (
 	"context"
 	"fmt"
 
+	"strings"
+
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -29,6 +32,8 @@ type ServiceInfo struct {
 type PodInfo struct {
 	Labels     PodLabels
 	Name       string
+	Namespace  string
+	UID        string
 	Containers []ContainerInfo
 }
 
@@ -77,18 +82,50 @@ func (s *Scanner) GetRelevantLabels(pod v1.Pod) PodLabels {
 	return podLabels
 }
 
-func (s *Scanner) extractImageHash(image string) string {
-	return "placeholder-hash"
+// ParseImageHash extracts the image ID hash (after the @)
+func (s *Scanner) ParseImageHash(image string) (string, error) {
+	parts := strings.Split(image, "@")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("image does not contain a manifest hash: %s", image)
+	}
+	return parts[1], nil
+}
+
+// fetchImageId fetches the right imageId for a specific container
+func (s *Scanner) fetchImageId(pod v1.Pod, container v1.Container) string {
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		if containerStatus.Image == container.Image {
+			return containerStatus.ImageID
+		}
+	}
+	return ""
 }
 
 func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 	podInfo := PodInfo{
+		Name:       pod.Name,
+		UID:        string(pod.UID),
+		Namespace:  pod.Namespace,
 		Labels:     s.GetRelevantLabels(pod),
 		Containers: make([]ContainerInfo, 0, len(pod.Spec.Containers)),
 	}
 
 	for _, container := range pod.Spec.Containers {
-		imageHash := s.extractImageHash(container.Image)
+		var imageHash, imageId string
+
+		imageId = s.fetchImageId(pod, container)
+		if imageId == "" {
+			log.WithFields(log.Fields{
+				"container": container,
+				"pod":       pod,
+			}).Error("Couldn't find imageId")
+		} else {
+			hash, err := s.ParseImageHash(imageId)
+			if err != nil {
+				log.WithError(err).Error("Couldn't parse image hash in the image ID")
+			}
+			imageHash = hash
+		}
 		podInfo.Containers = append(podInfo.Containers, ContainerInfo{
 			Name:      container.Name,
 			Image:     container.Image,
