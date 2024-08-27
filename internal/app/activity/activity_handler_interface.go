@@ -5,7 +5,7 @@ package activity
 
 import "github.wdf.sap.corp/cc/heureka/internal/entity"
 
-type ActivityService interface {
+type ActivityHandler interface {
 	ListActivities(*entity.ActivityFilter, *entity.ListOptions) (*entity.List[entity.ActivityResult], error)
 	GetActivity(int64) (*entity.Activity, error)
 	CreateActivity(*entity.Activity) (*entity.Activity, error)

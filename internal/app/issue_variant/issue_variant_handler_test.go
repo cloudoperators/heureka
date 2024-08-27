@@ -17,7 +17,7 @@ import (
 	"testing"
 )
 
-func TestIssueVariantService(t *testing.T) {
+func TestIssueVariantHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "IssueVariant Service Test Suite")
 }
@@ -66,8 +66,8 @@ func issueVariantListOptions() *entity.ListOptions {
 var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		issueVariantService iv.IssueVariantService
-		rs                  issue_repository.IssueRepositoryService
+		issueVariantHandler iv.IssueVariantHandler
+		rs                  issue_repository.IssueRepositoryHandler
 		filter              *entity.IssueVariantFilter
 		options             *entity.ListOptions
 	)
@@ -76,7 +76,7 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = issueVariantListOptions()
 		filter = issueVariantFilter()
-		rs = issue_repository.NewIssueRepositoryService(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er)
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -88,8 +88,8 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		})
 
 		It("shows the total count in the results", func() {
-			issueVariantService = iv.NewIssueVariantService(db, er, rs)
-			res, err := issueVariantService.ListIssueVariants(filter, options)
+			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
+			res, err := issueVariantHandler.ListIssueVariants(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -111,8 +111,8 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 			}
 			db.On("GetIssueVariants", filter).Return(advisories, nil)
 			db.On("GetAllIssueVariantIds", filter).Return(ids, nil)
-			issueVariantService = iv.NewIssueVariantService(db, er, rs)
-			res, err := issueVariantService.ListIssueVariants(filter, options)
+			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
+			res, err := issueVariantHandler.ListIssueVariants(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -128,13 +128,13 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffectiveIssueVariants"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		issueVariantService iv.IssueVariantService
+		issueVariantHandler iv.IssueVariantHandler
 		ivFilter            *entity.IssueVariantFilter
 		irFilter            *entity.IssueRepositoryFilter
 		options             *entity.ListOptions
 		issueVariants       []entity.IssueVariant
 		repositories        []entity.IssueRepository
-		rs                  issue_repository.IssueRepositoryService
+		rs                  issue_repository.IssueRepositoryHandler
 	)
 
 	BeforeEach(func() {
@@ -147,7 +147,7 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 		var after int64 = 0
 		irFilter.First = &first
 		irFilter.After = &after
-		rs = issue_repository.NewIssueRepositoryService(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er)
 	})
 
 	When("having different priority", func() {
@@ -166,8 +166,8 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 			db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
 		})
 		It("can list advisories", func() {
-			issueVariantService = iv.NewIssueVariantService(db, er, rs)
-			res, err := issueVariantService.ListEffectiveIssueVariants(ivFilter, options)
+			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
+			res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			for _, item := range res.Elements {
 				Expect(item.IssueRepositoryId).To(BeEquivalentTo(repositories[1].Id))
@@ -190,8 +190,8 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 			db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
 		})
 		It("can list issueVariants", func() {
-			issueVariantService = iv.NewIssueVariantService(db, er, rs)
-			res, err := issueVariantService.ListEffectiveIssueVariants(ivFilter, options)
+			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
+			res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			ir_ids := lo.Map(res.Elements, func(item entity.IssueVariantResult, _ int) int64 {
 				return item.IssueRepositoryId
@@ -205,10 +205,10 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		issueVariantService iv.IssueVariantService
+		issueVariantHandler iv.IssueVariantHandler
 		issueVariant        entity.IssueVariant
 		filter              *entity.IssueVariantFilter
-		rs                  issue_repository.IssueRepositoryService
+		rs                  issue_repository.IssueRepositoryHandler
 	)
 
 	BeforeEach(func() {
@@ -223,15 +223,15 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 				After: &after,
 			},
 		}
-		rs = issue_repository.NewIssueRepositoryService(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er)
 	})
 
 	It("creates issueVariant", func() {
 		filter.SecondaryName = []*string{&issueVariant.SecondaryName}
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
-		issueVariantService = iv.NewIssueVariantService(db, er, rs)
-		newIssueVariant, err := issueVariantService.CreateIssueVariant(&issueVariant)
+		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
+		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(&issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueVariant.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -249,10 +249,10 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		issueVariantService iv.IssueVariantService
+		issueVariantHandler iv.IssueVariantHandler
 		issueVariant        entity.IssueVariant
 		filter              *entity.IssueVariantFilter
-		rs                  issue_repository.IssueRepositoryService
+		rs                  issue_repository.IssueRepositoryHandler
 	)
 
 	BeforeEach(func() {
@@ -267,16 +267,16 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 				After: &after,
 			},
 		}
-		rs = issue_repository.NewIssueRepositoryService(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er)
 	})
 
 	It("updates issueVariant", func() {
 		db.On("UpdateIssueVariant", &issueVariant).Return(nil)
-		issueVariantService = iv.NewIssueVariantService(db, er, rs)
+		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
 		issueVariant.SecondaryName = "SecretAdvisory"
 		filter.Id = []*int64{&issueVariant.Id}
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{issueVariant}, nil)
-		updatedIssueVariant, err := issueVariantService.UpdateIssueVariant(&issueVariant)
+		updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(&issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueVariant.SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
@@ -293,10 +293,10 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		issueVariantService iv.IssueVariantService
+		issueVariantHandler iv.IssueVariantHandler
 		id                  int64
 		filter              *entity.IssueVariantFilter
-		rs                  issue_repository.IssueRepositoryService
+		rs                  issue_repository.IssueRepositoryHandler
 	)
 
 	BeforeEach(func() {
@@ -311,18 +311,18 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 				After: &after,
 			},
 		}
-		rs = issue_repository.NewIssueRepositoryService(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er)
 	})
 
 	It("deletes issueVariant", func() {
 		db.On("DeleteIssueVariant", id).Return(nil)
-		issueVariantService = iv.NewIssueVariantService(db, er, rs)
+		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
-		err := issueVariantService.DeleteIssueVariant(id)
+		err := issueVariantHandler.DeleteIssueVariant(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issueVariants, err := issueVariantService.ListIssueVariants(filter, &entity.ListOptions{})
+		issueVariants, err := issueVariantHandler.ListIssueVariants(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueVariants.Elements).To(BeEmpty(), "no error should be thrown")
 	})

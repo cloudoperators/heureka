@@ -4,7 +4,6 @@
 package app
 
 import (
-	"fmt"
 	"github.wdf.sap.corp/cc/heureka/internal/app/activity"
 	"github.wdf.sap.corp/cc/heureka/internal/app/component"
 	"github.wdf.sap.corp/cc/heureka/internal/app/component_instance"
@@ -23,58 +22,46 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/database"
 )
 
-type HeurekaError struct {
-	msg string
-}
-
-func (e *HeurekaError) Error() string {
-	return fmt.Sprintf("NewHeurekaError: %s", e.msg)
-}
-
 type HeurekaApp struct {
-	activity.ActivityService
-	component.ComponentService
-	component_instance.ComponentInstanceService
-	component_version.ComponentVersionService
-	evidence.EvidenceService
-	issue.IssueService
-	issue_match.IssueMatchService
-	issue_match_change.IssueMatchChangeService
-	issue_repository.IssueRepositoryService
-	issue_variant.IssueVariantService
-	service.ServiceService
-	severity.SeverityService
-	support_group.SupportGroupService
-	user.UserService
+	activity.ActivityHandler
+	component.ComponentHandler
+	component_instance.ComponentInstanceHandler
+	component_version.ComponentVersionHandler
+	evidence.EvidenceHandler
+	issue.IssueHandler
+	issue_match.IssueMatchHandler
+	issue_match_change.IssueMatchChangeHandler
+	issue_repository.IssueRepositoryHandler
+	issue_variant.IssueVariantHandler
+	service.ServiceHandler
+	severity.SeverityHandler
+	support_group.SupportGroupHandler
+	user.UserHandler
 
 	eventRegistry event.EventRegistry
 	database      database.Database
 }
 
-func NewHeurekaError(msg string) *HeurekaError {
-	return &HeurekaError{msg: msg}
-}
-
 func NewHeurekaApp(db database.Database) *HeurekaApp {
 	er := event.NewEventRegistry()
-	rs := issue_repository.NewIssueRepositoryService(db, er)
-	ivs := issue_variant.NewIssueVariantService(db, er, rs)
-	ss := severity.NewSeverityService(db, er, ivs)
+	rh := issue_repository.NewIssueRepositoryHandler(db, er)
+	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
+	sh := severity.NewSeverityHandler(db, er, ivh)
 	return &HeurekaApp{
-		ActivityService:          activity.NewActivityService(db, er),
-		ComponentService:         component.NewComponentService(db, er),
-		ComponentInstanceService: component_instance.NewComponentInstanceService(db, er),
-		ComponentVersionService:  component_version.NewComponentVersionService(db, er),
-		EvidenceService:          evidence.NewEvidenceService(db, er),
-		IssueService:             issue.NewIssueService(db, er),
-		IssueMatchService:        issue_match.NewIssueMatchService(db, er, ss),
-		IssueMatchChangeService:  issue_match_change.NewIssueMatchChangeService(db, er),
-		IssueRepositoryService:   rs,
-		IssueVariantService:      ivs,
-		ServiceService:           service.NewServiceService(db, er),
-		SeverityService:          ss,
-		SupportGroupService:      support_group.NewSupportGroupService(db, er),
-		UserService:              user.NewUserService(db, er),
+		ActivityHandler:          activity.NewActivityHandler(db, er),
+		ComponentHandler:         component.NewComponentHandler(db, er),
+		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er),
+		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er),
+		EvidenceHandler:          evidence.NewEvidenceHandler(db, er),
+		IssueHandler:             issue.NewIssueHandler(db, er),
+		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh),
+		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er),
+		IssueRepositoryHandler:   rh,
+		IssueVariantHandler:      ivh,
+		ServiceHandler:           service.NewServiceHandler(db, er),
+		SeverityHandler:          sh,
+		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er),
+		UserHandler:              user.NewUserHandler(db, er),
 		database:                 db,
 	}
 }

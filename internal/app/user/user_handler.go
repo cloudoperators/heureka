@@ -13,31 +13,31 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type userService struct {
+type userHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 }
 
-func NewUserService(db database.Database, er event.EventRegistry) UserService {
-	return &userService{
+func NewUserHandler(db database.Database, er event.EventRegistry) UserHandler {
+	return &userHandler{
 		database:      db,
 		eventRegistry: er,
 	}
 }
 
-type UserServiceError struct {
+type UserHandlerError struct {
 	msg string
 }
 
-func (e *UserServiceError) Error() string {
-	return fmt.Sprintf("ServiceServiceError: %s", e.msg)
+func (e *UserHandlerError) Error() string {
+	return fmt.Sprintf("ServiceHandlerError: %s", e.msg)
 }
 
-func NewUserServiceError(msg string) *UserServiceError {
-	return &UserServiceError{msg: msg}
+func NewUserHandlerError(msg string) *UserHandlerError {
+	return &UserHandlerError{msg: msg}
 }
 
-func (u *userService) getUserResults(filter *entity.UserFilter) ([]entity.UserResult, error) {
+func (u *userHandler) getUserResults(filter *entity.UserFilter) ([]entity.UserResult, error) {
 	var userResults []entity.UserResult
 	users, err := u.database.GetUsers(filter)
 	if err != nil {
@@ -55,7 +55,7 @@ func (u *userService) getUserResults(filter *entity.UserFilter) ([]entity.UserRe
 	return userResults, nil
 }
 
-func (u *userService) ListUsers(filter *entity.UserFilter, options *entity.ListOptions) (*entity.List[entity.UserResult], error) {
+func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListOptions) (*entity.List[entity.UserResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -70,7 +70,7 @@ func (u *userService) ListUsers(filter *entity.UserFilter, options *entity.ListO
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserServiceError("Error while filtering for Users")
+		return nil, NewUserHandlerError("Error while filtering for Users")
 	}
 
 	if options.ShowPageInfo {
@@ -78,7 +78,7 @@ func (u *userService) ListUsers(filter *entity.UserFilter, options *entity.ListO
 			ids, err := u.database.GetAllUserIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewUserServiceError("Error while getting all Ids")
+				return nil, NewUserHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -87,7 +87,7 @@ func (u *userService) ListUsers(filter *entity.UserFilter, options *entity.ListO
 		count, err = u.database.CountUsers(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewUserServiceError("Error while total count of Users")
+			return nil, NewUserHandlerError("Error while total count of Users")
 		}
 	}
 	ret := &entity.List[entity.UserResult]{
@@ -101,7 +101,7 @@ func (u *userService) ListUsers(filter *entity.UserFilter, options *entity.ListO
 	return ret, nil
 }
 
-func (u *userService) CreateUser(user *entity.User) (*entity.User, error) {
+func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 	f := &entity.UserFilter{
 		UniqueUserID: []*string{&user.UniqueUserID},
 	}
@@ -115,18 +115,18 @@ func (u *userService) CreateUser(user *entity.User) (*entity.User, error) {
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserServiceError("Internal error while creating user.")
+		return nil, NewUserHandlerError("Internal error while creating user.")
 	}
 
 	if len(users.Elements) > 0 {
-		return nil, NewUserServiceError(fmt.Sprintf("Duplicated entry %s for UniqueUserID.", user.UniqueUserID))
+		return nil, NewUserHandlerError(fmt.Sprintf("Duplicated entry %s for UniqueUserID.", user.UniqueUserID))
 	}
 
 	newUser, err := u.database.CreateUser(user)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserServiceError("Internal error while creating user.")
+		return nil, NewUserHandlerError("Internal error while creating user.")
 	}
 
 	u.eventRegistry.PushEvent(&CreateUserEvent{User: newUser})
@@ -134,7 +134,7 @@ func (u *userService) CreateUser(user *entity.User) (*entity.User, error) {
 	return newUser, nil
 }
 
-func (u *userService) UpdateUser(user *entity.User) (*entity.User, error) {
+func (u *userHandler) UpdateUser(user *entity.User) (*entity.User, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateUserEventName,
 		"object": user,
@@ -144,19 +144,19 @@ func (u *userService) UpdateUser(user *entity.User) (*entity.User, error) {
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserServiceError("Internal error while updating user.")
+		return nil, NewUserHandlerError("Internal error while updating user.")
 	}
 
 	userResult, err := u.ListUsers(&entity.UserFilter{Id: []*int64{&user.Id}}, &entity.ListOptions{})
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserServiceError("Internal error while retrieving updated user.")
+		return nil, NewUserHandlerError("Internal error while retrieving updated user.")
 	}
 
 	if len(userResult.Elements) != 1 {
 		l.Error(err)
-		return nil, NewUserServiceError("Multiple users found.")
+		return nil, NewUserHandlerError("Multiple users found.")
 	}
 
 	u.eventRegistry.PushEvent(&UpdateUserEvent{User: user})
@@ -164,7 +164,7 @@ func (u *userService) UpdateUser(user *entity.User) (*entity.User, error) {
 	return userResult.Elements[0].User, nil
 }
 
-func (u *userService) DeleteUser(id int64) error {
+func (u *userHandler) DeleteUser(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteUserEventName,
 		"id":    id,
@@ -174,7 +174,7 @@ func (u *userService) DeleteUser(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewUserServiceError("Internal error while deleting user.")
+		return NewUserHandlerError("Internal error while deleting user.")
 	}
 
 	u.eventRegistry.PushEvent(&DeleteUserEvent{UserID: id})
@@ -182,7 +182,7 @@ func (u *userService) DeleteUser(id int64) error {
 	return nil
 }
 
-func (u *userService) ListUserNames(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
+func (u *userHandler) ListUserNames(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListUserNamesEventName,
 		"filter": filter,
@@ -192,7 +192,7 @@ func (u *userService) ListUserNames(filter *entity.UserFilter, options *entity.L
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserServiceError("Internal error while retrieving userNames.")
+		return nil, NewUserHandlerError("Internal error while retrieving userNames.")
 	}
 
 	u.eventRegistry.PushEvent(&ListUserNamesEvent{Filter: filter, Options: options, Names: userNames})
@@ -200,7 +200,7 @@ func (u *userService) ListUserNames(filter *entity.UserFilter, options *entity.L
 	return userNames, nil
 }
 
-func (u *userService) ListUniqueUserIDs(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
+func (u *userHandler) ListUniqueUserIDs(filter *entity.UserFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListUniqueUserIDsEventName,
 		"filter": filter,
@@ -210,7 +210,7 @@ func (u *userService) ListUniqueUserIDs(filter *entity.UserFilter, options *enti
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserServiceError("Internal error while retrieving uniqueUserID.")
+		return nil, NewUserHandlerError("Internal error while retrieving uniqueUserID.")
 	}
 
 	u.eventRegistry.PushEvent(&ListUniqueUserIDsEvent{Filter: filter, Options: options, IDs: uniqueUserID})

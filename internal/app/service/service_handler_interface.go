@@ -5,7 +5,7 @@ package service
 
 import "github.wdf.sap.corp/cc/heureka/internal/entity"
 
-type ServiceService interface {
+type ServiceHandler interface {
 	GetService(serviceId int64) (*entity.Service, error)
 	ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error)
 	CreateService(service *entity.Service) (*entity.Service, error)

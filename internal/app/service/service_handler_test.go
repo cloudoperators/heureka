@@ -17,7 +17,7 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 )
 
-func TestServiceService(t *testing.T) {
+func TestServiceHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Service Service Test Suite")
 }
@@ -52,7 +52,7 @@ func getServiceFilter() *entity.ServiceFilter {
 var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 	var (
 		db             *mocks.MockDatabase
-		serviceService s.ServiceService
+		serviceHandler s.ServiceHandler
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 	)
@@ -72,8 +72,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 
 		It("shows the total count in the results", func() {
-			serviceService = s.NewServiceService(db, er)
-			res, err := serviceService.ListServices(filter, options)
+			serviceHandler = s.NewServiceHandler(db, er)
+			res, err := serviceHandler.ListServices(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -95,8 +95,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			}
 			db.On("GetServices", filter).Return(services, nil)
 			db.On("GetAllServiceIds", filter).Return(ids, nil)
-			serviceService = s.NewServiceService(db, er)
-			res, err := serviceService.ListServices(filter, options)
+			serviceHandler = s.NewServiceHandler(db, er)
+			res, err := serviceHandler.ListServices(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -112,7 +112,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 var _ = Describe("When creating Service", Label("app", "CreateService"), func() {
 	var (
 		db             *mocks.MockDatabase
-		serviceService s.ServiceService
+		serviceHandler s.ServiceHandler
 		service        entity.Service
 		filter         *entity.ServiceFilter
 	)
@@ -135,8 +135,8 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		filter.Name = []*string{&service.Name}
 		db.On("CreateService", &service).Return(&service, nil)
 		db.On("GetServices", filter).Return([]entity.Service{}, nil)
-		serviceService = s.NewServiceService(db, er)
-		newService, err := serviceService.CreateService(&service)
+		serviceHandler = s.NewServiceHandler(db, er)
+		newService, err := serviceHandler.CreateService(&service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newService.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -148,7 +148,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 var _ = Describe("When updating Service", Label("app", "UpdateService"), func() {
 	var (
 		db             *mocks.MockDatabase
-		serviceService s.ServiceService
+		serviceHandler s.ServiceHandler
 		service        entity.Service
 		filter         *entity.ServiceFilter
 	)
@@ -169,11 +169,11 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 
 	It("updates service", func() {
 		db.On("UpdateService", &service).Return(nil)
-		serviceService = s.NewServiceService(db, er)
+		serviceHandler = s.NewServiceHandler(db, er)
 		service.Name = "SecretService"
 		filter.Id = []*int64{&service.Id}
 		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
-		updatedService, err := serviceService.UpdateService(&service)
+		updatedService, err := serviceHandler.UpdateService(&service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedService.Name).To(BeEquivalentTo(service.Name))
@@ -184,7 +184,7 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() {
 	var (
 		db             *mocks.MockDatabase
-		serviceService s.ServiceService
+		serviceHandler s.ServiceHandler
 		id             int64
 		filter         *entity.ServiceFilter
 	)
@@ -205,13 +205,13 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 
 	It("deletes service", func() {
 		db.On("DeleteService", id).Return(nil)
-		serviceService = s.NewServiceService(db, er)
+		serviceHandler = s.NewServiceHandler(db, er)
 		db.On("GetServices", filter).Return([]entity.Service{}, nil)
-		err := serviceService.DeleteService(id)
+		err := serviceHandler.DeleteService(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		services, err := serviceService.ListServices(filter, &entity.ListOptions{})
+		services, err := serviceHandler.ListServices(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(services.Elements).To(BeEmpty(), "no services should be found")
 	})
@@ -220,7 +220,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"), func() {
 	var (
 		db             *mocks.MockDatabase
-		serviceService s.ServiceService
+		serviceHandler s.ServiceHandler
 		service        entity.Service
 		owner          entity.User
 		filter         *entity.ServiceFilter
@@ -245,8 +245,8 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 	It("adds owner to service", func() {
 		db.On("AddOwnerToService", service.Id, owner.Id).Return(nil)
 		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
-		serviceService = s.NewServiceService(db, er)
-		service, err := serviceService.AddOwnerToService(service.Id, owner.Id)
+		serviceHandler = s.NewServiceHandler(db, er)
+		service, err := serviceHandler.AddOwnerToService(service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
 	})
@@ -254,17 +254,17 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 	It("removes owner from service", func() {
 		db.On("RemoveOwnerFromService", service.Id, owner.Id).Return(nil)
 		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
-		serviceService = s.NewServiceService(db, er)
-		service, err := serviceService.RemoveOwnerFromService(service.Id, owner.Id)
+		serviceHandler = s.NewServiceHandler(db, er)
+		service, err := serviceHandler.RemoveOwnerFromService(service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
 	})
 })
 
-var _ = Describe("When modifying relationship of issueRepository and Service", Label("app", "IssueRepositoryServiceRelationship"), func() {
+var _ = Describe("When modifying relationship of issueRepository and Service", Label("app", "IssueRepositoryHandlerRelationship"), func() {
 	var (
 		db              *mocks.MockDatabase
-		serviceService  s.ServiceService
+		serviceHandler  s.ServiceHandler
 		service         entity.Service
 		issueRepository entity.IssueRepository
 		filter          *entity.ServiceFilter
@@ -291,8 +291,8 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 	It("adds issueRepository to service", func() {
 		db.On("AddIssueRepositoryToService", service.Id, issueRepository.Id, priority).Return(nil)
 		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
-		serviceService = s.NewServiceService(db, er)
-		service, err := serviceService.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
+		serviceHandler = s.NewServiceHandler(db, er)
+		service, err := serviceHandler.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
 	})
@@ -300,8 +300,8 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 	It("removes issueRepository from service", func() {
 		db.On("RemoveIssueRepositoryFromService", service.Id, issueRepository.Id).Return(nil)
 		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
-		serviceService = s.NewServiceService(db, er)
-		service, err := serviceService.RemoveIssueRepositoryFromService(service.Id, issueRepository.Id)
+		serviceHandler = s.NewServiceHandler(db, er)
+		service, err := serviceHandler.RemoveIssueRepositoryFromService(service.Id, issueRepository.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
 	})
@@ -310,7 +310,7 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"), func() {
 	var (
 		db             *mocks.MockDatabase
-		serviceService s.ServiceService
+		serviceHandler s.ServiceHandler
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 		name           string
@@ -330,8 +330,8 @@ var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"),
 		})
 
 		It("it return the results", func() {
-			serviceService = s.NewServiceService(db, er)
-			res, err := serviceService.ListServiceNames(filter, options)
+			serviceHandler = s.NewServiceHandler(db, er)
+			res, err := serviceHandler.ListServiceNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -345,8 +345,8 @@ var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"),
 			db.On("GetServiceNames", filter).Return([]string{name}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
-			serviceService = s.NewServiceService(db, er)
-			res, err := serviceService.ListServiceNames(filter, options)
+			serviceHandler = s.NewServiceHandler(db, er)
+			res, err := serviceHandler.ListServiceNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(name), "should only consist of serviceName")
 		})

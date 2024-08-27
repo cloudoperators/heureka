@@ -15,33 +15,33 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type issueVariantService struct {
+type issueVariantHandler struct {
 	database          database.Database
 	eventRegistry     event.EventRegistry
-	repositoryService issue_repository.IssueRepositoryService
+	repositoryService issue_repository.IssueRepositoryHandler
 }
 
-func NewIssueVariantService(database database.Database, eventRegistry event.EventRegistry, rs issue_repository.IssueRepositoryService) IssueVariantService {
-	return &issueVariantService{
+func NewIssueVariantHandler(database database.Database, eventRegistry event.EventRegistry, rs issue_repository.IssueRepositoryHandler) IssueVariantHandler {
+	return &issueVariantHandler{
 		database:          database,
 		eventRegistry:     eventRegistry,
 		repositoryService: rs,
 	}
 }
 
-type IssueVariantServiceError struct {
+type IssueVariantHandlerError struct {
 	message string
 }
 
-func NewIssueVariantServiceError(message string) *IssueVariantServiceError {
-	return &IssueVariantServiceError{message: message}
+func NewIssueVariantHandlerError(message string) *IssueVariantHandlerError {
+	return &IssueVariantHandlerError{message: message}
 }
 
-func (e *IssueVariantServiceError) Error() string {
+func (e *IssueVariantHandlerError) Error() string {
 	return e.message
 }
 
-func (iv *issueVariantService) getIssueVariantResults(filter *entity.IssueVariantFilter) ([]entity.IssueVariantResult, error) {
+func (iv *issueVariantHandler) getIssueVariantResults(filter *entity.IssueVariantFilter) ([]entity.IssueVariantResult, error) {
 	var ivResults []entity.IssueVariantResult
 	issueVariants, err := iv.database.GetIssueVariants(filter)
 	if err != nil {
@@ -59,7 +59,7 @@ func (iv *issueVariantService) getIssueVariantResults(filter *entity.IssueVarian
 	return ivResults, nil
 }
 
-func (iv *issueVariantService) ListIssueVariants(filter *entity.IssueVariantFilter, options *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error) {
+func (iv *issueVariantHandler) ListIssueVariants(filter *entity.IssueVariantFilter, options *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -73,7 +73,7 @@ func (iv *issueVariantService) ListIssueVariants(filter *entity.IssueVariantFilt
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError("Error while filtering for IssueVariants")
+		return nil, NewIssueVariantHandlerError("Error while filtering for IssueVariants")
 	}
 
 	if options.ShowPageInfo {
@@ -81,7 +81,7 @@ func (iv *issueVariantService) ListIssueVariants(filter *entity.IssueVariantFilt
 			ids, err := iv.database.GetAllIssueVariantIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewIssueVariantServiceError("Error while getting all Ids")
+				return nil, NewIssueVariantHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -90,7 +90,7 @@ func (iv *issueVariantService) ListIssueVariants(filter *entity.IssueVariantFilt
 		count, err = iv.database.CountIssueVariants(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewIssueVariantServiceError("Error while total count of IssueVariants")
+			return nil, NewIssueVariantHandlerError("Error while total count of IssueVariants")
 		}
 	}
 
@@ -109,7 +109,7 @@ func (iv *issueVariantService) ListIssueVariants(filter *entity.IssueVariantFilt
 	return ret, nil
 }
 
-func (iv *issueVariantService) ListEffectiveIssueVariants(filter *entity.IssueVariantFilter, options *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error) {
+func (iv *issueVariantHandler) ListEffectiveIssueVariants(filter *entity.IssueVariantFilter, options *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListEffectiveIssueVariantsEventName,
 		"filter": filter,
@@ -119,7 +119,7 @@ func (iv *issueVariantService) ListEffectiveIssueVariants(filter *entity.IssueVa
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError("Internal error while returning issueVariants.")
+		return nil, NewIssueVariantHandlerError("Internal error while returning issueVariants.")
 	}
 
 	repositoryIds := lo.Map(issueVariants.Elements, func(item entity.IssueVariantResult, _ int) *int64 {
@@ -135,7 +135,7 @@ func (iv *issueVariantService) ListEffectiveIssueVariants(filter *entity.IssueVa
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError("Internal error while returning issue repositories.")
+		return nil, NewIssueVariantHandlerError("Internal error while returning issue repositories.")
 	}
 
 	maxPriorityIr := lo.MaxBy(repositories.Elements, func(item entity.IssueRepositoryResult, max entity.IssueRepositoryResult) bool {
@@ -166,7 +166,7 @@ func (iv *issueVariantService) ListEffectiveIssueVariants(filter *entity.IssueVa
 	return ret, nil
 }
 
-func (iv *issueVariantService) CreateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
+func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
 	f := &entity.IssueVariantFilter{
 		SecondaryName: []*string{&issueVariant.SecondaryName},
 	}
@@ -181,19 +181,19 @@ func (iv *issueVariantService) CreateIssueVariant(issueVariant *entity.IssueVari
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError("Internal error while creating issueVariant.")
+		return nil, NewIssueVariantHandlerError("Internal error while creating issueVariant.")
 	}
 
 	if len(issueVariants.Elements) > 0 {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError(fmt.Sprintf("Duplicated entry %s for name.", issueVariant.SecondaryName))
+		return nil, NewIssueVariantHandlerError(fmt.Sprintf("Duplicated entry %s for name.", issueVariant.SecondaryName))
 	}
 
 	newIv, err := iv.database.CreateIssueVariant(issueVariant)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError("Internal error while creating issueVariant.")
+		return nil, NewIssueVariantHandlerError("Internal error while creating issueVariant.")
 	}
 
 	iv.eventRegistry.PushEvent(&CreateIssueVariantEvent{IssueVariant: newIv})
@@ -201,7 +201,7 @@ func (iv *issueVariantService) CreateIssueVariant(issueVariant *entity.IssueVari
 	return newIv, nil
 }
 
-func (iv *issueVariantService) UpdateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
+func (iv *issueVariantHandler) UpdateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueVariantEventName,
 		"object": issueVariant,
@@ -211,19 +211,19 @@ func (iv *issueVariantService) UpdateIssueVariant(issueVariant *entity.IssueVari
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError("Internal error while updating issueVariant.")
+		return nil, NewIssueVariantHandlerError("Internal error while updating issueVariant.")
 	}
 
 	ivResult, err := iv.ListIssueVariants(&entity.IssueVariantFilter{Id: []*int64{&issueVariant.Id}}, &entity.ListOptions{})
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError("Internal error while retrieving updated issueVariant.")
+		return nil, NewIssueVariantHandlerError("Internal error while retrieving updated issueVariant.")
 	}
 
 	if len(ivResult.Elements) != 1 {
 		l.Error(err)
-		return nil, NewIssueVariantServiceError("Multiple issueVariants found.")
+		return nil, NewIssueVariantHandlerError("Multiple issueVariants found.")
 	}
 
 	iv.eventRegistry.PushEvent(&UpdateIssueVariantEvent{IssueVariant: ivResult.Elements[0].IssueVariant})
@@ -231,7 +231,7 @@ func (iv *issueVariantService) UpdateIssueVariant(issueVariant *entity.IssueVari
 	return ivResult.Elements[0].IssueVariant, nil
 }
 
-func (iv *issueVariantService) DeleteIssueVariant(id int64) error {
+func (iv *issueVariantHandler) DeleteIssueVariant(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteIssueVariantEventName,
 		"id":    id,
@@ -241,7 +241,7 @@ func (iv *issueVariantService) DeleteIssueVariant(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewIssueVariantServiceError("Internal error while deleting issueVariant.")
+		return NewIssueVariantHandlerError("Internal error while deleting issueVariant.")
 	}
 
 	iv.eventRegistry.PushEvent(&DeleteIssueVariantEvent{IssueVariantID: id})

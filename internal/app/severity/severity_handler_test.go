@@ -19,7 +19,7 @@ import (
 	"testing"
 )
 
-func TestSeverityService(t *testing.T) {
+func TestSeverityHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Severity Service Test Suite")
 }
@@ -39,9 +39,9 @@ func severityFilter() *entity.SeverityFilter {
 var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 	var (
 		db               *mocks.MockDatabase
-		ivs              issue_variant.IssueVariantService
-		rs               issue_repository.IssueRepositoryService
-		severityService  ss.SeverityService
+		ivs              issue_variant.IssueVariantHandler
+		rs               issue_repository.IssueRepositoryHandler
+		severityHandler  ss.SeverityHandler
 		sFilter          *entity.SeverityFilter
 		ivFilter         *entity.IssueVariantFilter
 		irFilter         *entity.IssueRepositoryFilter
@@ -61,8 +61,8 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		irFilter = entity.NewIssueRepositoryFilter()
 		irFilter.First = &first
 		irFilter.After = &after
-		rs = issue_repository.NewIssueRepositoryService(db, er)
-		ivs = issue_variant.NewIssueVariantService(db, er, rs)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er)
+		ivs = issue_variant.NewIssueVariantHandler(db, er, rs)
 	})
 
 	Context("issue repositories have different priority", func() {
@@ -86,8 +86,8 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				issueVariants[1].Severity.Score = maxSeverityScore
 			})
 			It("returns severity value", func() {
-				severityService = ss.NewSeverityService(db, er, ivs)
-				severity, err := severityService.GetSeverity(sFilter)
+				severityHandler = ss.NewSeverityHandler(db, er, ivs)
+				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
 				Expect(severity.Score).To(BeEquivalentTo(maxSeverityScore), "severity score is correct.")
@@ -100,8 +100,8 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				issueVariants[1].Severity.Score = maxSeverityScore - 1
 			})
 			It("returns severity value", func() {
-				severityService = ss.NewSeverityService(db, er, ivs)
-				severity, err := severityService.GetSeverity(sFilter)
+				severityHandler = ss.NewSeverityHandler(db, er, ivs)
+				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
 				Expect(severity.Score).To(BeEquivalentTo(maxSeverityScore-1), "severity score is correct.")
@@ -130,8 +130,8 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				issueVariants[1].Severity.Score = maxSeverityScore - 1
 			})
 			It("return severity value", func() {
-				severityService = ss.NewSeverityService(db, er, ivs)
-				severity, err := severityService.GetSeverity(sFilter)
+				severityHandler = ss.NewSeverityHandler(db, er, ivs)
+				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
 				Expect(severity.Score).To(BeEquivalentTo(maxSeverityScore), "severity score ist correct.")

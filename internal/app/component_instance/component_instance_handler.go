@@ -12,31 +12,31 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type componentInstanceService struct {
+type componentInstanceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 }
 
-func NewComponentInstanceService(database database.Database, eventRegistry event.EventRegistry) ComponentInstanceService {
-	return &componentInstanceService{
+func NewComponentInstanceHandler(database database.Database, eventRegistry event.EventRegistry) ComponentInstanceHandler {
+	return &componentInstanceHandler{
 		database:      database,
 		eventRegistry: eventRegistry,
 	}
 }
 
-type ComponentInstanceServiceError struct {
+type ComponentInstanceHandlerError struct {
 	message string
 }
 
-func NewComponentInstanceServiceError(message string) *ComponentInstanceServiceError {
-	return &ComponentInstanceServiceError{message: message}
+func NewComponentInstanceHandlerError(message string) *ComponentInstanceHandlerError {
+	return &ComponentInstanceHandlerError{message: message}
 }
 
-func (e *ComponentInstanceServiceError) Error() string {
+func (e *ComponentInstanceHandlerError) Error() string {
 	return e.message
 }
 
-func (ci *componentInstanceService) getComponentInstanceResults(filter *entity.ComponentInstanceFilter) ([]entity.ComponentInstanceResult, error) {
+func (ci *componentInstanceHandler) getComponentInstanceResults(filter *entity.ComponentInstanceFilter) ([]entity.ComponentInstanceResult, error) {
 	var componentInstanceResults []entity.ComponentInstanceResult
 	entries, err := ci.database.GetComponentInstances(filter)
 	if err != nil {
@@ -56,7 +56,7 @@ func (ci *componentInstanceService) getComponentInstanceResults(filter *entity.C
 	return componentInstanceResults, nil
 }
 
-func (ci *componentInstanceService) ListComponentInstances(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
+func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -71,7 +71,7 @@ func (ci *componentInstanceService) ListComponentInstances(filter *entity.Compon
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentInstanceServiceError("Error while filtering for ComponentInstances")
+		return nil, NewComponentInstanceHandlerError("Error while filtering for ComponentInstances")
 	}
 
 	if options.ShowPageInfo {
@@ -79,7 +79,7 @@ func (ci *componentInstanceService) ListComponentInstances(filter *entity.Compon
 			ids, err := ci.database.GetAllComponentInstanceIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewComponentInstanceServiceError("Error while getting all Ids")
+				return nil, NewComponentInstanceHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -88,7 +88,7 @@ func (ci *componentInstanceService) ListComponentInstances(filter *entity.Compon
 		count, err = ci.database.CountComponentInstances(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewComponentInstanceServiceError("Error while total count of ComponentInstances")
+			return nil, NewComponentInstanceHandlerError("Error while total count of ComponentInstances")
 		}
 	}
 
@@ -109,7 +109,7 @@ func (ci *componentInstanceService) ListComponentInstances(filter *entity.Compon
 	}, nil
 }
 
-func (ci *componentInstanceService) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentInstanceEventName,
 		"object": componentInstance,
@@ -119,7 +119,7 @@ func (ci *componentInstanceService) CreateComponentInstance(componentInstance *e
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentInstanceServiceError("Internal error while creating componentInstance.")
+		return nil, NewComponentInstanceHandlerError("Internal error while creating componentInstance.")
 	}
 
 	ci.eventRegistry.PushEvent(&CreateComponentInstanceEvent{
@@ -129,7 +129,7 @@ func (ci *componentInstanceService) CreateComponentInstance(componentInstance *e
 	return newComponentInstance, nil
 }
 
-func (ci *componentInstanceService) UpdateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentInstanceEventName,
 		"object": componentInstance,
@@ -139,19 +139,19 @@ func (ci *componentInstanceService) UpdateComponentInstance(componentInstance *e
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentInstanceServiceError("Internal error while updating componentInstance.")
+		return nil, NewComponentInstanceHandlerError("Internal error while updating componentInstance.")
 	}
 
 	componentInstanceResult, err := ci.ListComponentInstances(&entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, &entity.ListOptions{})
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentInstanceServiceError("Internal error while retrieving updated componentInstance.")
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving updated componentInstance.")
 	}
 
 	if len(componentInstanceResult.Elements) != 1 {
 		l.Error(err)
-		return nil, NewComponentInstanceServiceError("Multiple componentInstances found.")
+		return nil, NewComponentInstanceHandlerError("Multiple componentInstances found.")
 	}
 
 	ci.eventRegistry.PushEvent(&UpdateComponentInstanceEvent{
@@ -161,7 +161,7 @@ func (ci *componentInstanceService) UpdateComponentInstance(componentInstance *e
 	return componentInstanceResult.Elements[0].ComponentInstance, nil
 }
 
-func (ci *componentInstanceService) DeleteComponentInstance(id int64) error {
+func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteComponentInstanceEventName,
 		"id":    id,
@@ -171,7 +171,7 @@ func (ci *componentInstanceService) DeleteComponentInstance(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewComponentInstanceServiceError("Internal error while deleting componentInstance.")
+		return NewComponentInstanceHandlerError("Internal error while deleting componentInstance.")
 	}
 
 	ci.eventRegistry.PushEvent(&DeleteComponentInstanceEvent{

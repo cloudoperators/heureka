@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func TestIssueService(t *testing.T) {
+func TestIssueHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "IssueMatchChange Service Test Suite")
 }
@@ -43,7 +43,7 @@ func getIssueMatchChangeFilter() *entity.IssueMatchChangeFilter {
 var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchChanges"), func() {
 	var (
 		db                      *mocks.MockDatabase
-		issueMatchChangeService imc.IssueMatchChangeService
+		issueMatchChangeHandler imc.IssueMatchChangeHandler
 		filter                  *entity.IssueMatchChangeFilter
 		options                 *entity.ListOptions
 	)
@@ -63,8 +63,8 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 		})
 
 		It("shows the total count in the results", func() {
-			issueMatchChangeService = imc.NewIssueMatchChangeService(db, er)
-			res, err := issueMatchChangeService.ListIssueMatchChanges(filter, options)
+			issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
+			res, err := issueMatchChangeHandler.ListIssueMatchChanges(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -86,8 +86,8 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 			}
 			db.On("GetIssueMatchChanges", filter).Return(imcs, nil)
 			db.On("GetAllIssueMatchChangeIds", filter).Return(ids, nil)
-			issueMatchChangeService = imc.NewIssueMatchChangeService(db, er)
-			res, err := issueMatchChangeService.ListIssueMatchChanges(filter, options)
+			issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
+			res, err := issueMatchChangeHandler.ListIssueMatchChanges(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -103,7 +103,7 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 var _ = Describe("When creating IssueMatchChange", Label("app", "CreateIssueMatchChange"), func() {
 	var (
 		db                      *mocks.MockDatabase
-		issueMatchChangeService imc.IssueMatchChangeService
+		issueMatchChangeHandler imc.IssueMatchChangeHandler
 		issueMatchChange        entity.IssueMatchChange
 	)
 
@@ -114,8 +114,8 @@ var _ = Describe("When creating IssueMatchChange", Label("app", "CreateIssueMatc
 
 	It("creates issueMatchChange", func() {
 		db.On("CreateIssueMatchChange", &issueMatchChange).Return(&issueMatchChange, nil)
-		issueMatchChangeService = imc.NewIssueMatchChangeService(db, er)
-		newIssueMatchChange, err := issueMatchChangeService.CreateIssueMatchChange(&issueMatchChange)
+		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
+		newIssueMatchChange, err := issueMatchChangeHandler.CreateIssueMatchChange(&issueMatchChange)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueMatchChange.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -127,7 +127,7 @@ var _ = Describe("When creating IssueMatchChange", Label("app", "CreateIssueMatc
 var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatchChange"), func() {
 	var (
 		db                      *mocks.MockDatabase
-		issueMatchChangeService imc.IssueMatchChangeService
+		issueMatchChangeHandler imc.IssueMatchChangeHandler
 		issueMatchChange        entity.IssueMatchChange
 		filter                  *entity.IssueMatchChangeFilter
 	)
@@ -148,7 +148,7 @@ var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatc
 
 	It("updates issueMatchChange", func() {
 		db.On("UpdateIssueMatchChange", &issueMatchChange).Return(nil)
-		issueMatchChangeService = imc.NewIssueMatchChangeService(db, er)
+		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
 		if issueMatchChange.Action == entity.IssueMatchChangeActionAdd.String() {
 			issueMatchChange.Action = entity.IssueMatchChangeActionRemove.String()
 		} else {
@@ -156,7 +156,7 @@ var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatc
 		}
 		filter.Id = []*int64{&issueMatchChange.Id}
 		db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{issueMatchChange}, nil)
-		updatedIssueMatchChange, err := issueMatchChangeService.UpdateIssueMatchChange(&issueMatchChange)
+		updatedIssueMatchChange, err := issueMatchChangeHandler.UpdateIssueMatchChange(&issueMatchChange)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueMatchChange.Action).To(BeEquivalentTo(issueMatchChange.Action))
@@ -167,7 +167,7 @@ var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatc
 var _ = Describe("When deleting IssueMatchChange", Label("app", "DeleteIssueMatchChange"), func() {
 	var (
 		db                      *mocks.MockDatabase
-		issueMatchChangeService imc.IssueMatchChangeService
+		issueMatchChangeHandler imc.IssueMatchChangeHandler
 		id                      int64
 		filter                  *entity.IssueMatchChangeFilter
 	)
@@ -188,13 +188,13 @@ var _ = Describe("When deleting IssueMatchChange", Label("app", "DeleteIssueMatc
 
 	It("deletes issueMatchChange", func() {
 		db.On("DeleteIssueMatchChange", id).Return(nil)
-		issueMatchChangeService = imc.NewIssueMatchChangeService(db, er)
+		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
 		db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{}, nil)
-		err := issueMatchChangeService.DeleteIssueMatchChange(id)
+		err := issueMatchChangeHandler.DeleteIssueMatchChange(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issueMatchChanges, err := issueMatchChangeService.ListIssueMatchChanges(filter, &entity.ListOptions{})
+		issueMatchChanges, err := issueMatchChangeHandler.ListIssueMatchChanges(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatchChanges.Elements).To(BeEmpty(), "no error should be thrown")
 	})

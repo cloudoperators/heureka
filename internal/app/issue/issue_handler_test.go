@@ -17,7 +17,7 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 )
 
-func TestIssueService(t *testing.T) {
+func TestIssueHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Issue Service Test Suite")
 }
@@ -62,7 +62,7 @@ func getIssueTypeCounts() *entity.IssueTypeCounts {
 var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 	var (
 		db              *mocks.MockDatabase
-		issueService    issue.IssueService
+		issueHandler    issue.IssueHandler
 		filter          *entity.IssueFilter
 		options         *entity.IssueListOptions
 		issueTypeCounts *entity.IssueTypeCounts
@@ -85,8 +85,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 
 		It("shows the total count in the results", func() {
-			issueService = issue.NewIssueService(db, er)
-			res, err := issueService.ListIssues(filter, options)
+			issueHandler = issue.NewIssueHandler(db, er)
+			res, err := issueHandler.ListIssues(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -109,8 +109,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			}
 			db.On("GetIssues", filter).Return(matches, nil)
 			db.On("GetAllIssueIds", filter).Return(ids, nil)
-			issueService = issue.NewIssueService(db, er)
-			res, err := issueService.ListIssues(filter, options)
+			issueHandler = issue.NewIssueHandler(db, er)
+			res, err := issueHandler.ListIssues(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -134,8 +134,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 			It("should return an empty result", func() {
 
-				issueService = issue.NewIssueService(db, er)
-				res, err := issueService.ListIssues(filter, options)
+				issueHandler = issue.NewIssueHandler(db, er)
+				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
 
@@ -146,8 +146,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				db.On("GetIssuesWithAggregations", filter).Return(test.NNewFakeIssueEntitiesWithAggregations(10), nil)
 			})
 			It("should return the expected issues in the result", func() {
-				issueService = issue.NewIssueService(db, er)
-				res, err := issueService.ListIssues(filter, options)
+				issueHandler = issue.NewIssueHandler(db, er)
+				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(10), "return 10 results")
 			})
@@ -158,8 +158,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			})
 
 			It("should return the expected issues in the result", func() {
-				issueService = issue.NewIssueService(db, er)
-				_, err := issueService.ListIssues(filter, options)
+				issueHandler = issue.NewIssueHandler(db, er)
+				_, err := issueHandler.ListIssues(filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
 			})
@@ -178,8 +178,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			})
 			It("should return an empty result", func() {
 
-				issueService = issue.NewIssueService(db, er)
-				res, err := issueService.ListIssues(filter, options)
+				issueHandler = issue.NewIssueHandler(db, er)
+				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
 
@@ -190,8 +190,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				db.On("GetIssues", filter).Return(test.NNewFakeIssueEntities(15), nil)
 			})
 			It("should return the expected issues in the result", func() {
-				issueService = issue.NewIssueService(db, er)
-				res, err := issueService.ListIssues(filter, options)
+				issueHandler = issue.NewIssueHandler(db, er)
+				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(15), "return 15 results")
 			})
@@ -203,8 +203,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			})
 
 			It("should return the expected issues in the result", func() {
-				issueService = issue.NewIssueService(db, er)
-				_, err := issueService.ListIssues(filter, options)
+				issueHandler = issue.NewIssueHandler(db, er)
+				_, err := issueHandler.ListIssues(filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
 			})
@@ -215,7 +215,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 	var (
 		db           *mocks.MockDatabase
-		issueService issue.IssueService
+		issueHandler issue.IssueHandler
 		issueEntity  entity.Issue
 		filter       *entity.IssueFilter
 	)
@@ -238,8 +238,8 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		filter.PrimaryName = []*string{&issueEntity.PrimaryName}
 		db.On("CreateIssue", &issueEntity).Return(&issueEntity, nil)
 		db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
-		issueService = issue.NewIssueService(db, er)
-		newIssue, err := issueService.CreateIssue(&issueEntity)
+		issueHandler = issue.NewIssueHandler(db, er)
+		newIssue, err := issueHandler.CreateIssue(&issueEntity)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssue.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -253,7 +253,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	var (
 		db           *mocks.MockDatabase
-		issueService issue.IssueService
+		issueHandler issue.IssueHandler
 		issueEntity  entity.Issue
 		filter       *entity.IssueFilter
 	)
@@ -274,11 +274,11 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 
 	It("updates issueEntity", func() {
 		db.On("UpdateIssue", &issueEntity).Return(nil)
-		issueService = issue.NewIssueService(db, er)
+		issueHandler = issue.NewIssueHandler(db, er)
 		issueEntity.Description = "New Description"
 		filter.Id = []*int64{&issueEntity.Id}
 		db.On("GetIssues", filter).Return([]entity.Issue{issueEntity}, nil)
-		updatedIssue, err := issueService.UpdateIssue(&issueEntity)
+		updatedIssue, err := issueHandler.UpdateIssue(&issueEntity)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issueEntity.PrimaryName))
@@ -291,7 +291,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 	var (
 		db           *mocks.MockDatabase
-		issueService issue.IssueService
+		issueHandler issue.IssueHandler
 		id           int64
 		filter       *entity.IssueFilter
 	)
@@ -312,13 +312,13 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 
 	It("deletes issue", func() {
 		db.On("DeleteIssue", id).Return(nil)
-		issueService = issue.NewIssueService(db, er)
+		issueHandler = issue.NewIssueHandler(db, er)
 		db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
-		err := issueService.DeleteIssue(id)
+		err := issueHandler.DeleteIssue(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issues, err := issueService.ListIssues(filter, &entity.IssueListOptions{})
+		issues, err := issueHandler.ListIssues(filter, &entity.IssueListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issues.Elements).To(BeEmpty(), "no error should be thrown")
 	})
@@ -327,7 +327,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 var _ = Describe("When modifying relationship of ComponentVersion and Issue", Label("app", "ComponentVersionIssueRelationship"), func() {
 	var (
 		db               *mocks.MockDatabase
-		issueService     issue.IssueService
+		issueHandler     issue.IssueHandler
 		issueEntity      entity.Issue
 		componentVersion entity.ComponentVersion
 		filter           *entity.IssueFilter
@@ -352,8 +352,8 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 	It("adds componentVersion to issueEntity", func() {
 		db.On("AddComponentVersionToIssue", issueEntity.Id, componentVersion.Id).Return(nil)
 		db.On("GetIssues", filter).Return([]entity.Issue{issueEntity}, nil)
-		issueService = issue.NewIssueService(db, er)
-		issue, err := issueService.AddComponentVersionToIssue(issueEntity.Id, componentVersion.Id)
+		issueHandler = issue.NewIssueHandler(db, er)
+		issue, err := issueHandler.AddComponentVersionToIssue(issueEntity.Id, componentVersion.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
 	})
@@ -361,8 +361,8 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 	It("removes componentVersion from issueEntity", func() {
 		db.On("RemoveComponentVersionFromIssue", issueEntity.Id, componentVersion.Id).Return(nil)
 		db.On("GetIssues", filter).Return([]entity.Issue{issueEntity}, nil)
-		issueService = issue.NewIssueService(db, er)
-		issue, err := issueService.RemoveComponentVersionFromIssue(issueEntity.Id, componentVersion.Id)
+		issueHandler = issue.NewIssueHandler(db, er)
+		issue, err := issueHandler.RemoveComponentVersionFromIssue(issueEntity.Id, componentVersion.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
 	})

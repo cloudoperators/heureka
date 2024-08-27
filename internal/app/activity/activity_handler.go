@@ -13,31 +13,31 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type activityService struct {
+type activityHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 }
 
-func NewActivityService(db database.Database, er event.EventRegistry) ActivityService {
-	return &activityService{
+func NewActivityHandler(db database.Database, er event.EventRegistry) ActivityHandler {
+	return &activityHandler{
 		database:      db,
 		eventRegistry: er,
 	}
 }
 
-type ActivityServiceError struct {
+type ActivityHandlerError struct {
 	msg string
 }
 
-func (e *ActivityServiceError) Error() string {
-	return fmt.Sprintf("ActivityServiceError: %s", e.msg)
+func (e *ActivityHandlerError) Error() string {
+	return fmt.Sprintf("ActivityHandlerError: %s", e.msg)
 }
 
-func NewActivityServiceError(msg string) *ActivityServiceError {
-	return &ActivityServiceError{msg: msg}
+func NewActivityHandlerError(msg string) *ActivityHandlerError {
+	return &ActivityHandlerError{msg: msg}
 }
 
-func (a *activityService) getActivityResults(filter *entity.ActivityFilter) ([]entity.ActivityResult, error) {
+func (a *activityHandler) getActivityResults(filter *entity.ActivityFilter) ([]entity.ActivityResult, error) {
 	var activityResults []entity.ActivityResult
 	activities, err := a.database.GetActivities(filter)
 	if err != nil {
@@ -55,7 +55,7 @@ func (a *activityService) getActivityResults(filter *entity.ActivityFilter) ([]e
 	return activityResults, nil
 }
 
-func (a *activityService) GetActivity(activityId int64) (*entity.Activity, error) {
+func (a *activityHandler) GetActivity(activityId int64) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetActivityEventName,
 		"id":    activityId,
@@ -65,11 +65,11 @@ func (a *activityService) GetActivity(activityId int64) (*entity.Activity, error
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewActivityServiceError("Internal error while retrieving activities.")
+		return nil, NewActivityHandlerError("Internal error while retrieving activities.")
 	}
 
 	if len(activities.Elements) != 1 {
-		return nil, NewActivityServiceError(fmt.Sprintf("Activity %d not found.", activityId))
+		return nil, NewActivityHandlerError(fmt.Sprintf("Activity %d not found.", activityId))
 	}
 
 	a.eventRegistry.PushEvent(&GetActivityEvent{
@@ -80,7 +80,7 @@ func (a *activityService) GetActivity(activityId int64) (*entity.Activity, error
 	return activities.Elements[0].Activity, nil
 }
 
-func (a *activityService) ListActivities(filter *entity.ActivityFilter, options *entity.ListOptions) (*entity.List[entity.ActivityResult], error) {
+func (a *activityHandler) ListActivities(filter *entity.ActivityFilter, options *entity.ListOptions) (*entity.List[entity.ActivityResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -94,7 +94,7 @@ func (a *activityService) ListActivities(filter *entity.ActivityFilter, options 
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewActivityServiceError("Error while filtering for Activities")
+		return nil, NewActivityHandlerError("Error while filtering for Activities")
 	}
 
 	if options.ShowPageInfo {
@@ -102,7 +102,7 @@ func (a *activityService) ListActivities(filter *entity.ActivityFilter, options 
 			ids, err := a.database.GetAllActivityIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewActivityServiceError("Error while getting all Ids")
+				return nil, NewActivityHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -111,7 +111,7 @@ func (a *activityService) ListActivities(filter *entity.ActivityFilter, options 
 		count, err = a.database.CountActivities(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewActivityServiceError("Error while total count of Activities")
+			return nil, NewActivityHandlerError("Error while total count of Activities")
 		}
 	}
 
@@ -130,7 +130,7 @@ func (a *activityService) ListActivities(filter *entity.ActivityFilter, options 
 	return ret, nil
 }
 
-func (a *activityService) CreateActivity(activity *entity.Activity) (*entity.Activity, error) {
+func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ActivityCreateEventName,
 		"object": activity,
@@ -140,7 +140,7 @@ func (a *activityService) CreateActivity(activity *entity.Activity) (*entity.Act
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewActivityServiceError("Internal error while creating activity.")
+		return nil, NewActivityHandlerError("Internal error while creating activity.")
 	}
 
 	a.eventRegistry.PushEvent(&ActivityCreateEvent{
@@ -150,7 +150,7 @@ func (a *activityService) CreateActivity(activity *entity.Activity) (*entity.Act
 	return newActivity, nil
 }
 
-func (a *activityService) UpdateActivity(activity *entity.Activity) (*entity.Activity, error) {
+func (a *activityHandler) UpdateActivity(activity *entity.Activity) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ActivityUpdateEventName,
 		"object": activity,
@@ -160,7 +160,7 @@ func (a *activityService) UpdateActivity(activity *entity.Activity) (*entity.Act
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewActivityServiceError("Internal error while updating activity.")
+		return nil, NewActivityHandlerError("Internal error while updating activity.")
 	}
 
 	a.eventRegistry.PushEvent(&ActivityUpdateEvent{
@@ -170,7 +170,7 @@ func (a *activityService) UpdateActivity(activity *entity.Activity) (*entity.Act
 	return a.GetActivity(activity.Id)
 }
 
-func (a *activityService) DeleteActivity(id int64) error {
+func (a *activityHandler) DeleteActivity(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": ActivityDeleteEventName,
 		"id":    id,
@@ -180,7 +180,7 @@ func (a *activityService) DeleteActivity(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewActivityServiceError("Internal error while deleting activity.")
+		return NewActivityHandlerError("Internal error while deleting activity.")
 	}
 
 	a.eventRegistry.PushEvent(&ActivityDeleteEvent{
@@ -190,7 +190,7 @@ func (a *activityService) DeleteActivity(id int64) error {
 	return nil
 }
 
-func (a *activityService) AddServiceToActivity(activityId, serviceId int64) (*entity.Activity, error) {
+func (a *activityHandler) AddServiceToActivity(activityId, serviceId int64) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":      AddServiceToActivityEventName,
 		"activityId": activityId,
@@ -201,7 +201,7 @@ func (a *activityService) AddServiceToActivity(activityId, serviceId int64) (*en
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewActivityServiceError("Internal error while adding service to activity.")
+		return nil, NewActivityHandlerError("Internal error while adding service to activity.")
 	}
 
 	a.eventRegistry.PushEvent(&AddServiceToActivityEvent{
@@ -212,7 +212,7 @@ func (a *activityService) AddServiceToActivity(activityId, serviceId int64) (*en
 	return a.GetActivity(activityId)
 }
 
-func (a *activityService) RemoveServiceFromActivity(activityId, serviceId int64) (*entity.Activity, error) {
+func (a *activityHandler) RemoveServiceFromActivity(activityId, serviceId int64) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":      RemoveServiceFromActivityEventName,
 		"activityId": activityId,
@@ -223,7 +223,7 @@ func (a *activityService) RemoveServiceFromActivity(activityId, serviceId int64)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewActivityServiceError("Internal error while removing service from activity.")
+		return nil, NewActivityHandlerError("Internal error while removing service from activity.")
 	}
 
 	a.eventRegistry.PushEvent(&RemoveServiceFromActivityEvent{
@@ -234,7 +234,7 @@ func (a *activityService) RemoveServiceFromActivity(activityId, serviceId int64)
 	return a.GetActivity(activityId)
 }
 
-func (a *activityService) AddIssueToActivity(activityId, issueId int64) (*entity.Activity, error) {
+func (a *activityHandler) AddIssueToActivity(activityId, issueId int64) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":      AddIssueToActivityEventName,
 		"activityId": activityId,
@@ -245,7 +245,7 @@ func (a *activityService) AddIssueToActivity(activityId, issueId int64) (*entity
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewActivityServiceError("Internal error while adding issue to activity.")
+		return nil, NewActivityHandlerError("Internal error while adding issue to activity.")
 	}
 
 	a.eventRegistry.PushEvent(&AddIssueToActivityEvent{
@@ -256,7 +256,7 @@ func (a *activityService) AddIssueToActivity(activityId, issueId int64) (*entity
 	return a.GetActivity(activityId)
 }
 
-func (a *activityService) RemoveIssueFromActivity(activityId, issueId int64) (*entity.Activity, error) {
+func (a *activityHandler) RemoveIssueFromActivity(activityId, issueId int64) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":      RemoveIssueFromActivityEventName,
 		"activityId": activityId,
@@ -267,7 +267,7 @@ func (a *activityService) RemoveIssueFromActivity(activityId, issueId int64) (*e
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewActivityServiceError("Internal error while removing issue from activity.")
+		return nil, NewActivityHandlerError("Internal error while removing issue from activity.")
 	}
 
 	a.eventRegistry.PushEvent(&RemoveIssueFromActivityEvent{

@@ -13,31 +13,31 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type serviceService struct {
+type serviceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 }
 
-func NewServiceService(db database.Database, er event.EventRegistry) ServiceService {
-	return &serviceService{
+func NewServiceHandler(db database.Database, er event.EventRegistry) ServiceHandler {
+	return &serviceHandler{
 		database:      db,
 		eventRegistry: er,
 	}
 }
 
-type ServiceServiceError struct {
+type ServiceHandlerError struct {
 	msg string
 }
 
-func (e *ServiceServiceError) Error() string {
-	return fmt.Sprintf("ServiceServiceError: %s", e.msg)
+func (e *ServiceHandlerError) Error() string {
+	return fmt.Sprintf("ServiceHandlerError: %s", e.msg)
 }
 
-func NewServiceServiceError(msg string) *ServiceServiceError {
-	return &ServiceServiceError{msg: msg}
+func NewServiceHandlerError(msg string) *ServiceHandlerError {
+	return &ServiceHandlerError{msg: msg}
 }
 
-func (s *serviceService) getServiceResults(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
+func (s *serviceHandler) getServiceResults(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
 	var serviceResults []entity.ServiceResult
 	services, err := s.database.GetServices(filter)
 	if err != nil {
@@ -55,7 +55,7 @@ func (s *serviceService) getServiceResults(filter *entity.ServiceFilter) ([]enti
 	return serviceResults, nil
 }
 
-func (s *serviceService) GetService(serviceId int64) (*entity.Service, error) {
+func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetServiceEventName,
 		"id":    serviceId,
@@ -65,11 +65,11 @@ func (s *serviceService) GetService(serviceId int64) (*entity.Service, error) {
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while retrieving services.")
+		return nil, NewServiceHandlerError("Internal error while retrieving services.")
 	}
 
 	if len(services.Elements) != 1 {
-		return nil, NewServiceServiceError(fmt.Sprintf("Service %d not found.", serviceId))
+		return nil, NewServiceHandlerError(fmt.Sprintf("Service %d not found.", serviceId))
 	}
 
 	s.eventRegistry.PushEvent(&GetServiceEvent{ServiceID: serviceId, Service: services.Elements[0].Service})
@@ -77,7 +77,7 @@ func (s *serviceService) GetService(serviceId int64) (*entity.Service, error) {
 	return services.Elements[0].Service, nil
 }
 
-func (s *serviceService) ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error) {
+func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -92,7 +92,7 @@ func (s *serviceService) ListServices(filter *entity.ServiceFilter, options *ent
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Error while filtering for Services")
+		return nil, NewServiceHandlerError("Error while filtering for Services")
 	}
 
 	if options.ShowPageInfo {
@@ -100,7 +100,7 @@ func (s *serviceService) ListServices(filter *entity.ServiceFilter, options *ent
 			ids, err := s.database.GetAllServiceIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewServiceServiceError("Error while getting all Ids")
+				return nil, NewServiceHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -109,7 +109,7 @@ func (s *serviceService) ListServices(filter *entity.ServiceFilter, options *ent
 		count, err = s.database.CountServices(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewServiceServiceError("Error while total count of Services")
+			return nil, NewServiceHandlerError("Error while total count of Services")
 		}
 	}
 	ret := &entity.List[entity.ServiceResult]{
@@ -123,7 +123,7 @@ func (s *serviceService) ListServices(filter *entity.ServiceFilter, options *ent
 	return ret, nil
 }
 
-func (s *serviceService) CreateService(service *entity.Service) (*entity.Service, error) {
+func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service, error) {
 	f := &entity.ServiceFilter{
 		Name: []*string{&service.Name},
 	}
@@ -138,18 +138,18 @@ func (s *serviceService) CreateService(service *entity.Service) (*entity.Service
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while creating service.")
+		return nil, NewServiceHandlerError("Internal error while creating service.")
 	}
 
 	if len(services.Elements) > 0 {
-		return nil, NewServiceServiceError(fmt.Sprintf("Duplicated entry %s for name.", service.Name))
+		return nil, NewServiceHandlerError(fmt.Sprintf("Duplicated entry %s for name.", service.Name))
 	}
 
 	newService, err := s.database.CreateService(service)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while creating service.")
+		return nil, NewServiceHandlerError("Internal error while creating service.")
 	}
 
 	s.eventRegistry.PushEvent(&CreateServiceEvent{Service: newService})
@@ -157,7 +157,7 @@ func (s *serviceService) CreateService(service *entity.Service) (*entity.Service
 	return newService, nil
 }
 
-func (s *serviceService) UpdateService(service *entity.Service) (*entity.Service, error) {
+func (s *serviceHandler) UpdateService(service *entity.Service) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateServiceEventName,
 		"object": service,
@@ -167,7 +167,7 @@ func (s *serviceService) UpdateService(service *entity.Service) (*entity.Service
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while updating service.")
+		return nil, NewServiceHandlerError("Internal error while updating service.")
 	}
 
 	s.eventRegistry.PushEvent(&UpdateServiceEvent{Service: service})
@@ -175,7 +175,7 @@ func (s *serviceService) UpdateService(service *entity.Service) (*entity.Service
 	return s.GetService(service.Id)
 }
 
-func (s *serviceService) DeleteService(id int64) error {
+func (s *serviceHandler) DeleteService(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteServiceEventName,
 		"id":    id,
@@ -185,7 +185,7 @@ func (s *serviceService) DeleteService(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewServiceServiceError("Internal error while deleting service.")
+		return NewServiceHandlerError("Internal error while deleting service.")
 	}
 
 	s.eventRegistry.PushEvent(&DeleteServiceEvent{ServiceID: id})
@@ -193,7 +193,7 @@ func (s *serviceService) DeleteService(id int64) error {
 	return nil
 }
 
-func (s *serviceService) AddOwnerToService(serviceId, ownerId int64) (*entity.Service, error) {
+func (s *serviceHandler) AddOwnerToService(serviceId, ownerId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":     AddOwnerToServiceEventName,
 		"serviceId": serviceId,
@@ -204,7 +204,7 @@ func (s *serviceService) AddOwnerToService(serviceId, ownerId int64) (*entity.Se
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while adding owner to service.")
+		return nil, NewServiceHandlerError("Internal error while adding owner to service.")
 	}
 
 	s.eventRegistry.PushEvent(&AddOwnerToServiceEvent{ServiceID: serviceId, OwnerID: ownerId})
@@ -212,7 +212,7 @@ func (s *serviceService) AddOwnerToService(serviceId, ownerId int64) (*entity.Se
 	return s.GetService(serviceId)
 }
 
-func (s *serviceService) RemoveOwnerFromService(serviceId, ownerId int64) (*entity.Service, error) {
+func (s *serviceHandler) RemoveOwnerFromService(serviceId, ownerId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":     RemoveOwnerFromServiceEventName,
 		"serviceId": serviceId,
@@ -223,7 +223,7 @@ func (s *serviceService) RemoveOwnerFromService(serviceId, ownerId int64) (*enti
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while removing owner from service.")
+		return nil, NewServiceHandlerError("Internal error while removing owner from service.")
 	}
 
 	s.eventRegistry.PushEvent(&RemoveOwnerFromServiceEvent{ServiceID: serviceId, OwnerID: ownerId})
@@ -231,7 +231,7 @@ func (s *serviceService) RemoveOwnerFromService(serviceId, ownerId int64) (*enti
 	return s.GetService(serviceId)
 }
 
-func (s *serviceService) AddIssueRepositoryToService(serviceId, issueRepositoryId int64, priority int64) (*entity.Service, error) {
+func (s *serviceHandler) AddIssueRepositoryToService(serviceId, issueRepositoryId int64, priority int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":             AddIssueRepositoryToServiceEventName,
 		"serviceId":         serviceId,
@@ -242,7 +242,7 @@ func (s *serviceService) AddIssueRepositoryToService(serviceId, issueRepositoryI
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while adding issue repository to service.")
+		return nil, NewServiceHandlerError("Internal error while adding issue repository to service.")
 	}
 
 	s.eventRegistry.PushEvent(&AddIssueRepositoryToServiceEvent{ServiceID: serviceId, RepositoryID: issueRepositoryId})
@@ -250,7 +250,7 @@ func (s *serviceService) AddIssueRepositoryToService(serviceId, issueRepositoryI
 	return s.GetService(serviceId)
 }
 
-func (s *serviceService) RemoveIssueRepositoryFromService(serviceId, issueRepositoryId int64) (*entity.Service, error) {
+func (s *serviceHandler) RemoveIssueRepositoryFromService(serviceId, issueRepositoryId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":             RemoveIssueRepositoryFromServiceEventName,
 		"serviceId":         serviceId,
@@ -261,7 +261,7 @@ func (s *serviceService) RemoveIssueRepositoryFromService(serviceId, issueReposi
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while removing issue repository from service.")
+		return nil, NewServiceHandlerError("Internal error while removing issue repository from service.")
 	}
 
 	s.eventRegistry.PushEvent(&RemoveIssueRepositoryFromServiceEvent{ServiceID: serviceId, RepositoryID: issueRepositoryId})
@@ -269,7 +269,7 @@ func (s *serviceService) RemoveIssueRepositoryFromService(serviceId, issueReposi
 	return s.GetService(serviceId)
 }
 
-func (s *serviceService) ListServiceNames(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error) {
+func (s *serviceHandler) ListServiceNames(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListServiceNamesEventName,
 		"filter": filter,
@@ -279,7 +279,7 @@ func (s *serviceService) ListServiceNames(filter *entity.ServiceFilter, options 
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceServiceError("Internal error while retrieving serviceNames.")
+		return nil, NewServiceHandlerError("Internal error while retrieving serviceNames.")
 	}
 
 	s.eventRegistry.PushEvent(&ListServiceNamesEvent{Filter: filter, Options: options, Names: serviceNames})

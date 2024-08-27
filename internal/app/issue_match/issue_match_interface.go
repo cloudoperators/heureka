@@ -5,7 +5,7 @@ package issue_match
 
 import "github.wdf.sap.corp/cc/heureka/internal/entity"
 
-type IssueMatchService interface {
+type IssueMatchHandler interface {
 	ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error)
 	GetIssueMatch(int64) (*entity.IssueMatch, error)
 	CreateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)

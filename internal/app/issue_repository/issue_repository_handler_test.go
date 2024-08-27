@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func TestIssueRepositoryService(t *testing.T) {
+func TestIssueRepositoryHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Test IssueRepository Service")
 }
@@ -44,7 +44,7 @@ func getIssueRepositoryFilter() *entity.IssueRepositoryFilter {
 var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueRepositories"), func() {
 	var (
 		db                     *mocks.MockDatabase
-		issueRepositoryService ir.IssueRepositoryService
+		issueRepositoryHandler ir.IssueRepositoryHandler
 		filter                 *entity.IssueRepositoryFilter
 		options                *entity.ListOptions
 	)
@@ -64,8 +64,8 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 		})
 
 		It("shows the total count in the results", func() {
-			issueRepositoryService = ir.NewIssueRepositoryService(db, er)
-			res, err := issueRepositoryService.ListIssueRepositories(filter, options)
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
+			res, err := issueRepositoryHandler.ListIssueRepositories(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -87,8 +87,8 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 			}
 			db.On("GetIssueRepositories", filter).Return(repositories, nil)
 			db.On("GetAllIssueRepositoryIds", filter).Return(ids, nil)
-			issueRepositoryService = ir.NewIssueRepositoryService(db, er)
-			res, err := issueRepositoryService.ListIssueRepositories(filter, options)
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
+			res, err := issueRepositoryHandler.ListIssueRepositories(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -104,7 +104,7 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepository"), func() {
 	var (
 		db                     *mocks.MockDatabase
-		issueRepositoryService ir.IssueRepositoryService
+		issueRepositoryHandler ir.IssueRepositoryHandler
 		issueRepository        entity.IssueRepository
 		filter                 *entity.IssueRepositoryFilter
 	)
@@ -127,8 +127,8 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		filter.Name = []*string{&issueRepository.Name}
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
-		issueRepositoryService = ir.NewIssueRepositoryService(db, er)
-		newIssueRepository, err := issueRepositoryService.CreateIssueRepository(&issueRepository)
+		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
+		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(&issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueRepository.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -140,7 +140,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepository"), func() {
 	var (
 		db                     *mocks.MockDatabase
-		issueRepositoryService ir.IssueRepositoryService
+		issueRepositoryHandler ir.IssueRepositoryHandler
 		issueRepository        entity.IssueRepository
 		filter                 *entity.IssueRepositoryFilter
 	)
@@ -161,11 +161,11 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 
 	It("updates issueRepository", func() {
 		db.On("UpdateIssueRepository", &issueRepository).Return(nil)
-		issueRepositoryService = ir.NewIssueRepositoryService(db, er)
+		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
 		issueRepository.Name = "SecretRepository"
 		filter.Id = []*int64{&issueRepository.Id}
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{issueRepository}, nil)
-		updatedIssueRepository, err := issueRepositoryService.UpdateIssueRepository(&issueRepository)
+		updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(&issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueRepository.Name).To(BeEquivalentTo(issueRepository.Name))
@@ -176,7 +176,7 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepository"), func() {
 	var (
 		db                     *mocks.MockDatabase
-		issueRepositoryService ir.IssueRepositoryService
+		issueRepositoryHandler ir.IssueRepositoryHandler
 		id                     int64
 		filter                 *entity.IssueRepositoryFilter
 	)
@@ -197,13 +197,13 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 
 	It("deletes issueRepository", func() {
 		db.On("DeleteIssueRepository", id).Return(nil)
-		issueRepositoryService = ir.NewIssueRepositoryService(db, er)
+		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
-		err := issueRepositoryService.DeleteIssueRepository(id)
+		err := issueRepositoryHandler.DeleteIssueRepository(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issueRepositories, err := issueRepositoryService.ListIssueRepositories(filter, &entity.ListOptions{})
+		issueRepositories, err := issueRepositoryHandler.ListIssueRepositories(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueRepositories.Elements).To(BeEmpty(), "no error should be thrown")
 	})

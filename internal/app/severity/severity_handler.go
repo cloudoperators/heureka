@@ -12,33 +12,33 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type severityService struct {
+type severityHandler struct {
 	database            database.Database
 	eventRegistry       event.EventRegistry
-	issueVariantService issue_variant.IssueVariantService
+	issueVariantHandler issue_variant.IssueVariantHandler
 }
 
-func NewSeverityService(database database.Database, eventRegistry event.EventRegistry, ivs issue_variant.IssueVariantService) SeverityService {
-	return &severityService{
+func NewSeverityHandler(database database.Database, eventRegistry event.EventRegistry, ivs issue_variant.IssueVariantHandler) SeverityHandler {
+	return &severityHandler{
 		database:            database,
 		eventRegistry:       eventRegistry,
-		issueVariantService: ivs,
+		issueVariantHandler: ivs,
 	}
 }
 
-type SeverityServiceError struct {
+type SeverityHandlerError struct {
 	message string
 }
 
-func NewSeverityServiceError(message string) *SeverityServiceError {
-	return &SeverityServiceError{message: message}
+func NewSeverityHandlerError(message string) *SeverityHandlerError {
+	return &SeverityHandlerError{message: message}
 }
 
-func (e *SeverityServiceError) Error() string {
+func (e *SeverityHandlerError) Error() string {
 	return e.message
 }
 
-func (s *severityService) GetSeverity(filter *entity.SeverityFilter) (*entity.Severity, error) {
+func (s *severityHandler) GetSeverity(filter *entity.SeverityFilter) (*entity.Severity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  GetSeverityEventName,
 		"filter": filter,
@@ -50,11 +50,11 @@ func (s *severityService) GetSeverity(filter *entity.SeverityFilter) (*entity.Se
 	}
 
 	opts := entity.ListOptions{}
-	issueVariants, err := s.issueVariantService.ListEffectiveIssueVariants(&issueVariantFilter, &opts)
+	issueVariants, err := s.issueVariantHandler.ListEffectiveIssueVariants(&issueVariantFilter, &opts)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewSeverityServiceError("Internal error while returning effective issueVariants.")
+		return nil, NewSeverityHandlerError("Internal error while returning effective issueVariants.")
 
 	}
 

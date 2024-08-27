@@ -23,7 +23,7 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 )
 
-func TestIssueMatchService(t *testing.T) {
+func TestIssueMatchHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "IssueMatch Service Test Suite")
 }
@@ -53,7 +53,7 @@ func getIssueMatchFilter() *entity.IssueMatchFilter {
 var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), func() {
 	var (
 		db                *mocks.MockDatabase
-		issueMatchService im.IssueMatchService
+		issueMatchHandler im.IssueMatchHandler
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
 	)
@@ -73,8 +73,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		})
 
 		It("shows the total count in the results", func() {
-			issueMatchService = im.NewIssueMatchService(db, er, nil)
-			res, err := issueMatchService.ListIssueMatches(filter, options)
+			issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
+			res, err := issueMatchHandler.ListIssueMatches(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -96,8 +96,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			}
 			db.On("GetIssueMatches", filter).Return(matches, nil)
 			db.On("GetAllIssueMatchIds", filter).Return(ids, nil)
-			issueMatchService = im.NewIssueMatchService(db, er, nil)
-			res, err := issueMatchService.ListIssueMatches(filter, options)
+			issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
+			res, err := issueMatchHandler.ListIssueMatches(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -122,8 +122,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			})
 			It("should return an empty result", func() {
 
-				issueMatchService = im.NewIssueMatchService(db, er, nil)
-				res, err := issueMatchService.ListIssueMatches(filter, options)
+				issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
+				res, err := issueMatchHandler.ListIssueMatches(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
 
@@ -134,8 +134,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 				db.On("GetIssueMatches", filter).Return(test.NNewFakeIssueMatches(15), nil)
 			})
 			It("should return the expected matches in the result", func() {
-				issueMatchService = im.NewIssueMatchService(db, er, nil)
-				res, err := issueMatchService.ListIssueMatches(filter, options)
+				issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
+				res, err := issueMatchHandler.ListIssueMatches(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(15), "return 15 results")
 			})
@@ -147,8 +147,8 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			})
 
 			It("should return the expected matches in the result", func() {
-				issueMatchService = im.NewIssueMatchService(db, er, nil)
-				_, err := issueMatchService.ListIssueMatches(filter, options)
+				issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
+				_, err := issueMatchHandler.ListIssueMatches(filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
 			})
@@ -159,15 +159,15 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), func() {
 	var (
 		db                *mocks.MockDatabase
-		issueMatchService im.IssueMatchService
+		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatch
 		ivFilter          *entity.IssueVariantFilter
 		irFilter          *entity.IssueRepositoryFilter
 		issueVariants     []entity.IssueVariant
 		repositories      []entity.IssueRepository
-		ss                severity.SeverityService
-		ivs               issue_variant.IssueVariantService
-		rs                issue_repository.IssueRepositoryService
+		ss                severity.SeverityHandler
+		ivs               issue_variant.IssueVariantHandler
+		rs                issue_repository.IssueRepositoryHandler
 	)
 
 	BeforeEach(func() {
@@ -181,9 +181,9 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ivFilter.After = &after
 		irFilter.First = &first
 		irFilter.After = &after
-		rs = issue_repository.NewIssueRepositoryService(db, er)
-		ivs = issue_variant.NewIssueVariantService(db, er, rs)
-		ss = severity.NewSeverityService(db, er, ivs)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er)
+		ivs = issue_variant.NewIssueVariantHandler(db, er, rs)
+		ss = severity.NewSeverityHandler(db, er, ivs)
 	})
 
 	It("creates issueMatch", func() {
@@ -196,8 +196,8 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		db.On("CreateIssueMatch", &issueMatch).Return(&issueMatch, nil)
 		db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
 		db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
-		issueMatchService = im.NewIssueMatchService(db, er, ss)
-		newIssueMatch, err := issueMatchService.CreateIssueMatch(&issueMatch)
+		issueMatchHandler = im.NewIssueMatchHandler(db, er, ss)
+		newIssueMatch, err := issueMatchHandler.CreateIssueMatch(&issueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueMatch.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -217,7 +217,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), func() {
 	var (
 		db                *mocks.MockDatabase
-		issueMatchService im.IssueMatchService
+		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatch
 		filter            *entity.IssueMatchFilter
 	)
@@ -238,7 +238,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 
 	It("updates issueMatch", func() {
 		db.On("UpdateIssueMatch", &issueMatch).Return(nil)
-		issueMatchService = im.NewIssueMatchService(db, er, nil)
+		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		if issueMatch.Status == entity.NewIssueMatchStatusValue("new") {
 			issueMatch.Status = entity.NewIssueMatchStatusValue("risk_accepted")
 		} else {
@@ -246,7 +246,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 		}
 		filter.Id = []*int64{&issueMatch.Id}
 		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
-		updatedIssueMatch, err := issueMatchService.UpdateIssueMatch(&issueMatch)
+		updatedIssueMatch, err := issueMatchHandler.UpdateIssueMatch(&issueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueMatch.TargetRemediationDate).To(BeEquivalentTo(issueMatch.TargetRemediationDate))
@@ -265,7 +265,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), func() {
 	var (
 		db                *mocks.MockDatabase
-		issueMatchService im.IssueMatchService
+		issueMatchHandler im.IssueMatchHandler
 		id                int64
 		filter            *entity.IssueMatchFilter
 	)
@@ -286,13 +286,13 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 
 	It("deletes issueMatch", func() {
 		db.On("DeleteIssueMatch", id).Return(nil)
-		issueMatchService = im.NewIssueMatchService(db, er, nil)
+		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, nil)
-		err := issueMatchService.DeleteIssueMatch(id)
+		err := issueMatchHandler.DeleteIssueMatch(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issueMatches, err := issueMatchService.ListIssueMatches(filter, &entity.ListOptions{})
+		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatches.Elements).To(BeEmpty(), "no error should be thrown")
 	})
@@ -301,7 +301,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 var _ = Describe("When modifying relationship of evidence and issueMatch", Label("app", "EvidenceIssueMatchRelationship"), func() {
 	var (
 		db                *mocks.MockDatabase
-		issueMatchService im.IssueMatchService
+		issueMatchHandler im.IssueMatchHandler
 		evidence          entity.Evidence
 		issueMatch        entity.IssueMatch
 		filter            *entity.IssueMatchFilter
@@ -326,8 +326,8 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 	It("adds evidence to issueMatch", func() {
 		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
 		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
-		issueMatchService = im.NewIssueMatchService(db, er, nil)
-		issueMatch, err := issueMatchService.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
+		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
+		issueMatch, err := issueMatchHandler.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
 	})
@@ -335,8 +335,8 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 	It("removes evidence from issueMatch", func() {
 		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
 		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
-		issueMatchService = im.NewIssueMatchService(db, er, nil)
-		issueMatch, err := issueMatchService.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
+		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
+		issueMatch, err := issueMatchHandler.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
 	})

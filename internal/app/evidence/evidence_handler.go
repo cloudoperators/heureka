@@ -13,31 +13,31 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type evidenceService struct {
+type evidenceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 }
 
-func NewEvidenceService(db database.Database, er event.EventRegistry) EvidenceService {
-	return &evidenceService{
+func NewEvidenceHandler(db database.Database, er event.EventRegistry) EvidenceHandler {
+	return &evidenceHandler{
 		database:      db,
 		eventRegistry: er,
 	}
 }
 
-type EvidenceServiceError struct {
+type EvidenceHandlerError struct {
 	msg string
 }
 
-func (e *EvidenceServiceError) Error() string {
-	return fmt.Sprintf("EvidenceServiceError: %s", e.msg)
+func (e *EvidenceHandlerError) Error() string {
+	return fmt.Sprintf("EvidenceHandlerError: %s", e.msg)
 }
 
-func NewEvidenceServiceError(msg string) *EvidenceServiceError {
-	return &EvidenceServiceError{msg: msg}
+func NewEvidenceHandlerError(msg string) *EvidenceHandlerError {
+	return &EvidenceHandlerError{msg: msg}
 }
 
-func (e *evidenceService) getEvidenceResults(filter *entity.EvidenceFilter) ([]entity.EvidenceResult, error) {
+func (e *evidenceHandler) getEvidenceResults(filter *entity.EvidenceFilter) ([]entity.EvidenceResult, error) {
 	var evidenceResults []entity.EvidenceResult
 	evidences, err := e.database.GetEvidences(filter)
 	if err != nil {
@@ -55,7 +55,7 @@ func (e *evidenceService) getEvidenceResults(filter *entity.EvidenceFilter) ([]e
 	return evidenceResults, nil
 }
 
-func (e *evidenceService) ListEvidences(filter *entity.EvidenceFilter, options *entity.ListOptions) (*entity.List[entity.EvidenceResult], error) {
+func (e *evidenceHandler) ListEvidences(filter *entity.EvidenceFilter, options *entity.ListOptions) (*entity.List[entity.EvidenceResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -70,7 +70,7 @@ func (e *evidenceService) ListEvidences(filter *entity.EvidenceFilter, options *
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewEvidenceServiceError("Error while filtering for Evidences")
+		return nil, NewEvidenceHandlerError("Error while filtering for Evidences")
 	}
 
 	if options.ShowPageInfo {
@@ -78,7 +78,7 @@ func (e *evidenceService) ListEvidences(filter *entity.EvidenceFilter, options *
 			ids, err := e.database.GetAllEvidenceIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewEvidenceServiceError("Error while getting all Ids")
+				return nil, NewEvidenceHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -87,7 +87,7 @@ func (e *evidenceService) ListEvidences(filter *entity.EvidenceFilter, options *
 		count, err = e.database.CountEvidences(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewEvidenceServiceError("Error while total count of Evidences")
+			return nil, NewEvidenceHandlerError("Error while total count of Evidences")
 		}
 	}
 
@@ -102,7 +102,7 @@ func (e *evidenceService) ListEvidences(filter *entity.EvidenceFilter, options *
 	return ret, nil
 }
 
-func (e *evidenceService) CreateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
+func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateEvidenceEventName,
 		"object": evidence,
@@ -112,7 +112,7 @@ func (e *evidenceService) CreateEvidence(evidence *entity.Evidence) (*entity.Evi
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewEvidenceServiceError("Internal error while creating evidence.")
+		return nil, NewEvidenceHandlerError("Internal error while creating evidence.")
 	}
 
 	e.eventRegistry.PushEvent(&CreateEvidenceEvent{Evidence: newEvidence})
@@ -120,7 +120,7 @@ func (e *evidenceService) CreateEvidence(evidence *entity.Evidence) (*entity.Evi
 	return newEvidence, nil
 }
 
-func (e *evidenceService) UpdateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
+func (e *evidenceHandler) UpdateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateEvidenceEventName,
 		"object": evidence,
@@ -130,19 +130,19 @@ func (e *evidenceService) UpdateEvidence(evidence *entity.Evidence) (*entity.Evi
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewEvidenceServiceError("Internal error while updating evidence.")
+		return nil, NewEvidenceHandlerError("Internal error while updating evidence.")
 	}
 
 	evidenceResult, err := e.ListEvidences(&entity.EvidenceFilter{Id: []*int64{&evidence.Id}}, &entity.ListOptions{})
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewEvidenceServiceError("Internal error while retrieving updated evidence.")
+		return nil, NewEvidenceHandlerError("Internal error while retrieving updated evidence.")
 	}
 
 	if len(evidenceResult.Elements) != 1 {
 		l.Error(err)
-		return nil, NewEvidenceServiceError("Multiple evidences found.")
+		return nil, NewEvidenceHandlerError("Multiple evidences found.")
 	}
 
 	e.eventRegistry.PushEvent(&UpdateEvidenceEvent{Evidence: evidence})
@@ -150,7 +150,7 @@ func (e *evidenceService) UpdateEvidence(evidence *entity.Evidence) (*entity.Evi
 	return evidenceResult.Elements[0].Evidence, nil
 }
 
-func (e *evidenceService) DeleteEvidence(id int64) error {
+func (e *evidenceHandler) DeleteEvidence(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteEvidenceEventName,
 		"id":    id,
@@ -160,7 +160,7 @@ func (e *evidenceService) DeleteEvidence(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewEvidenceServiceError("Internal error while deleting evidence.")
+		return NewEvidenceHandlerError("Internal error while deleting evidence.")
 	}
 
 	e.eventRegistry.PushEvent(&DeleteEvidenceEvent{EvidenceID: id})

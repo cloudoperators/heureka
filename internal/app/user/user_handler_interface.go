@@ -5,7 +5,7 @@ package user
 
 import "github.wdf.sap.corp/cc/heureka/internal/entity"
 
-type UserService interface {
+type UserHandler interface {
 	ListUsers(*entity.UserFilter, *entity.ListOptions) (*entity.List[entity.UserResult], error)
 	CreateUser(*entity.User) (*entity.User, error)
 	UpdateUser(*entity.User) (*entity.User, error)

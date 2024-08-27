@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func TestComponentInstanceService(t *testing.T) {
+func TestComponentInstanceHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Component Instance Service Test Suite")
 }
@@ -48,7 +48,7 @@ func componentInstanceListOptions() *entity.ListOptions {
 var _ = Describe("When listing Component Instances", Label("app", "ListComponentInstances"), func() {
 	var (
 		db                       *mocks.MockDatabase
-		componentInstanceService ci.ComponentInstanceService
+		componentInstanceHandler ci.ComponentInstanceHandler
 		filter                   *entity.ComponentInstanceFilter
 		options                  *entity.ListOptions
 	)
@@ -68,8 +68,8 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		})
 
 		It("shows the total count in the results", func() {
-			componentInstanceService = ci.NewComponentInstanceService(db, er)
-			res, err := componentInstanceService.ListComponentInstances(filter, options)
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
+			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -91,8 +91,8 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 			}
 			db.On("GetComponentInstances", filter).Return(componentInstances, nil)
 			db.On("GetAllComponentInstanceIds", filter).Return(ids, nil)
-			componentInstanceService = ci.NewComponentInstanceService(db, er)
-			res, err := componentInstanceService.ListComponentInstances(filter, options)
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
+			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -108,7 +108,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponentInstance"), func() {
 	var (
 		db                       *mocks.MockDatabase
-		componentInstanceService ci.ComponentInstanceService
+		componentInstanceHandler ci.ComponentInstanceHandler
 		componentInstance        entity.ComponentInstance
 	)
 
@@ -119,8 +119,8 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 
 	It("creates componentInstance", func() {
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
-		componentInstanceService = ci.NewComponentInstanceService(db, er)
-		newComponentInstance, err := componentInstanceService.CreateComponentInstance(&componentInstance)
+		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
+		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -135,7 +135,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponentInstance"), func() {
 	var (
 		db                       *mocks.MockDatabase
-		componentInstanceService ci.ComponentInstanceService
+		componentInstanceHandler ci.ComponentInstanceHandler
 		componentInstance        entity.ComponentInstance
 		filter                   *entity.ComponentInstanceFilter
 	)
@@ -156,11 +156,11 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 
 	It("updates componentInstance", func() {
 		db.On("UpdateComponentInstance", &componentInstance).Return(nil)
-		componentInstanceService = ci.NewComponentInstanceService(db, er)
+		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
 		componentInstance.CCRN = "NewCCRN"
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter).Return([]entity.ComponentInstance{componentInstance}, nil)
-		updatedComponentInstance, err := componentInstanceService.UpdateComponentInstance(&componentInstance)
+		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(&componentInstance)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
@@ -174,7 +174,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponentInstance"), func() {
 	var (
 		db                       *mocks.MockDatabase
-		componentInstanceService ci.ComponentInstanceService
+		componentInstanceHandler ci.ComponentInstanceHandler
 		id                       int64
 		filter                   *entity.ComponentInstanceFilter
 	)
@@ -195,13 +195,13 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 
 	It("deletes componentInstance", func() {
 		db.On("DeleteComponentInstance", id).Return(nil)
-		componentInstanceService = ci.NewComponentInstanceService(db, er)
+		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
 		db.On("GetComponentInstances", filter).Return([]entity.ComponentInstance{}, nil)
-		err := componentInstanceService.DeleteComponentInstance(id)
+		err := componentInstanceHandler.DeleteComponentInstance(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		componentInstances, err := componentInstanceService.ListComponentInstances(filter, &entity.ListOptions{})
+		componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(componentInstances.Elements).To(BeEmpty(), "no error should be thrown")
 	})

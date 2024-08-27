@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func TestUserService(t *testing.T) {
+func TestUserHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "User Service Test Suite")
 }
@@ -42,7 +42,7 @@ func getUserFilter() *entity.UserFilter {
 var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 	var (
 		db          *mocks.MockDatabase
-		userService u.UserService
+		userHandler u.UserHandler
 		filter      *entity.UserFilter
 		options     *entity.ListOptions
 	)
@@ -62,8 +62,8 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 		})
 
 		It("shows the total count in the results", func() {
-			userService = u.NewUserService(db, er)
-			res, err := userService.ListUsers(filter, options)
+			userHandler = u.NewUserHandler(db, er)
+			res, err := userHandler.ListUsers(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -85,8 +85,8 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			}
 			db.On("GetUsers", filter).Return(users, nil)
 			db.On("GetAllUserIds", filter).Return(ids, nil)
-			userService = u.NewUserService(db, er)
-			res, err := userService.ListUsers(filter, options)
+			userHandler = u.NewUserHandler(db, er)
+			res, err := userHandler.ListUsers(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -102,7 +102,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 	var (
 		db          *mocks.MockDatabase
-		userService u.UserService
+		userHandler u.UserHandler
 		user        entity.User
 		filter      *entity.UserFilter
 	)
@@ -125,8 +125,8 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		filter.UniqueUserID = []*string{&user.UniqueUserID}
 		db.On("CreateUser", &user).Return(&user, nil)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
-		userService = u.NewUserService(db, er)
-		newUser, err := userService.CreateUser(&user)
+		userHandler = u.NewUserHandler(db, er)
+		newUser, err := userHandler.CreateUser(&user)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newUser.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -139,7 +139,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 	var (
 		db          *mocks.MockDatabase
-		userService u.UserService
+		userHandler u.UserHandler
 		user        entity.User
 		filter      *entity.UserFilter
 	)
@@ -160,11 +160,11 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 
 	It("updates user", func() {
 		db.On("UpdateUser", &user).Return(nil)
-		userService = u.NewUserService(db, er)
+		userHandler = u.NewUserHandler(db, er)
 		user.Name = "Sauron"
 		filter.Id = []*int64{&user.Id}
 		db.On("GetUsers", filter).Return([]entity.User{user}, nil)
-		updatedUser, err := userService.UpdateUser(&user)
+		updatedUser, err := userHandler.UpdateUser(&user)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedUser.Name).To(BeEquivalentTo(user.Name))
@@ -176,7 +176,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 	var (
 		db          *mocks.MockDatabase
-		userService u.UserService
+		userHandler u.UserHandler
 		id          int64
 		filter      *entity.UserFilter
 	)
@@ -197,13 +197,13 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 
 	It("deletes user", func() {
 		db.On("DeleteUser", id).Return(nil)
-		userService = u.NewUserService(db, er)
+		userHandler = u.NewUserHandler(db, er)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
-		err := userService.DeleteUser(id)
+		err := userHandler.DeleteUser(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		users, err := userService.ListUsers(filter, &entity.ListOptions{})
+		users, err := userHandler.ListUsers(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(users.Elements).To(BeEmpty(), "no error should be thrown")
 	})
@@ -211,7 +211,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 	var (
 		db          *mocks.MockDatabase
-		userService u.UserService
+		userHandler u.UserHandler
 		filter      *entity.UserFilter
 		options     *entity.ListOptions
 		name        string
@@ -231,8 +231,8 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 		})
 
 		It("it return the results", func() {
-			userService = u.NewUserService(db, er)
-			res, err := userService.ListUserNames(filter, options)
+			userHandler = u.NewUserHandler(db, er)
+			res, err := userHandler.ListUserNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -246,8 +246,8 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 			db.On("GetUserNames", filter).Return([]string{name}, nil)
 		})
 		It("returns filtered users according to the service type", func() {
-			userService = u.NewUserService(db, er)
-			res, err := userService.ListUserNames(filter, options)
+			userHandler = u.NewUserHandler(db, er)
+			res, err := userHandler.ListUserNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(name), "should only consist of name")
 		})
@@ -256,7 +256,7 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"), func() {
 	var (
 		db          *mocks.MockDatabase
-		userService u.UserService
+		userHandler u.UserHandler
 		filter      *entity.UserFilter
 		options     *entity.ListOptions
 		uuid        string
@@ -276,8 +276,8 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 		})
 
 		It("it return the results", func() {
-			userService = u.NewUserService(db, er)
-			res, err := userService.ListUniqueUserIDs(filter, options)
+			userHandler = u.NewUserHandler(db, er)
+			res, err := userHandler.ListUniqueUserIDs(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -291,8 +291,8 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 			db.On("GetUniqueUserIDs", filter).Return([]string{uuid}, nil)
 		})
 		It("returns filtered users according to the service type", func() {
-			userService = u.NewUserService(db, er)
-			res, err := userService.ListUniqueUserIDs(filter, options)
+			userHandler = u.NewUserHandler(db, er)
+			res, err := userHandler.ListUniqueUserIDs(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(uuid), "should only consist of UniqueUserID")
 		})

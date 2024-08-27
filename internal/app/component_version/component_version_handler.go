@@ -12,31 +12,31 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type componentVersionService struct {
+type componentVersionHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 }
 
-func NewComponentVersionService(database database.Database, eventRegistry event.EventRegistry) ComponentVersionService {
-	return &componentVersionService{
+func NewComponentVersionHandler(database database.Database, eventRegistry event.EventRegistry) ComponentVersionHandler {
+	return &componentVersionHandler{
 		database:      database,
 		eventRegistry: eventRegistry,
 	}
 }
 
-type ComponentVersionServiceError struct {
+type ComponentVersionHandlerError struct {
 	message string
 }
 
-func NewComponentVersionServiceError(message string) *ComponentVersionServiceError {
-	return &ComponentVersionServiceError{message: message}
+func NewComponentVersionHandlerError(message string) *ComponentVersionHandlerError {
+	return &ComponentVersionHandlerError{message: message}
 }
 
-func (e *ComponentVersionServiceError) Error() string {
+func (e *ComponentVersionHandlerError) Error() string {
 	return e.message
 }
 
-func (cv *componentVersionService) getComponentVersionResults(filter *entity.ComponentVersionFilter) ([]entity.ComponentVersionResult, error) {
+func (cv *componentVersionHandler) getComponentVersionResults(filter *entity.ComponentVersionFilter) ([]entity.ComponentVersionResult, error) {
 	var componentVersionResults []entity.ComponentVersionResult
 	componentVersions, err := cv.database.GetComponentVersions(filter)
 	if err != nil {
@@ -54,7 +54,7 @@ func (cv *componentVersionService) getComponentVersionResults(filter *entity.Com
 	return componentVersionResults, nil
 }
 
-func (cv *componentVersionService) ListComponentVersions(filter *entity.ComponentVersionFilter, options *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error) {
+func (cv *componentVersionHandler) ListComponentVersions(filter *entity.ComponentVersionFilter, options *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -69,7 +69,7 @@ func (cv *componentVersionService) ListComponentVersions(filter *entity.Componen
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentVersionServiceError("Error while filtering for ComponentVersions")
+		return nil, NewComponentVersionHandlerError("Error while filtering for ComponentVersions")
 	}
 
 	if options.ShowPageInfo {
@@ -77,7 +77,7 @@ func (cv *componentVersionService) ListComponentVersions(filter *entity.Componen
 			ids, err := cv.database.GetAllComponentVersionIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewComponentVersionServiceError("Error while getting all Ids")
+				return nil, NewComponentVersionHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -86,7 +86,7 @@ func (cv *componentVersionService) ListComponentVersions(filter *entity.Componen
 		count, err = cv.database.CountComponentVersions(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewComponentVersionServiceError("Error while total count of ComponentVersions")
+			return nil, NewComponentVersionHandlerError("Error while total count of ComponentVersions")
 		}
 	}
 
@@ -107,7 +107,7 @@ func (cv *componentVersionService) ListComponentVersions(filter *entity.Componen
 	}, nil
 }
 
-func (cv *componentVersionService) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
+func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentVersionEventName,
 		"object": componentVersion,
@@ -117,7 +117,7 @@ func (cv *componentVersionService) CreateComponentVersion(componentVersion *enti
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentVersionServiceError("Internal error while creating componentVersion.")
+		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion.")
 	}
 
 	cv.eventRegistry.PushEvent(&CreateComponentVersionEvent{
@@ -127,7 +127,7 @@ func (cv *componentVersionService) CreateComponentVersion(componentVersion *enti
 	return newComponent, nil
 }
 
-func (cv *componentVersionService) UpdateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
+func (cv *componentVersionHandler) UpdateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentVersionEventName,
 		"object": componentVersion,
@@ -137,19 +137,19 @@ func (cv *componentVersionService) UpdateComponentVersion(componentVersion *enti
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentVersionServiceError("Internal error while updating componentVersion.")
+		return nil, NewComponentVersionHandlerError("Internal error while updating componentVersion.")
 	}
 
 	componentVersionResult, err := cv.ListComponentVersions(&entity.ComponentVersionFilter{Id: []*int64{&componentVersion.Id}}, &entity.ListOptions{})
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentVersionServiceError("Internal error while retrieving updated componentVersion.")
+		return nil, NewComponentVersionHandlerError("Internal error while retrieving updated componentVersion.")
 	}
 
 	if len(componentVersionResult.Elements) != 1 {
 		l.Error(err)
-		return nil, NewComponentVersionServiceError("Multiple componentVersions found.")
+		return nil, NewComponentVersionHandlerError("Multiple componentVersions found.")
 	}
 
 	cv.eventRegistry.PushEvent(&UpdateComponentVersionEvent{
@@ -159,7 +159,7 @@ func (cv *componentVersionService) UpdateComponentVersion(componentVersion *enti
 	return componentVersionResult.Elements[0].ComponentVersion, nil
 }
 
-func (cv *componentVersionService) DeleteComponentVersion(id int64) error {
+func (cv *componentVersionHandler) DeleteComponentVersion(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteComponentVersionEventName,
 		"id":    id,
@@ -169,7 +169,7 @@ func (cv *componentVersionService) DeleteComponentVersion(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewComponentVersionServiceError("Internal error while deleting componentVersion.")
+		return NewComponentVersionHandlerError("Internal error while deleting componentVersion.")
 	}
 
 	cv.eventRegistry.PushEvent(&DeleteComponentVersionEvent{

@@ -5,7 +5,7 @@ package support_group
 
 import "github.wdf.sap.corp/cc/heureka/internal/entity"
 
-type SupportGroupService interface {
+type SupportGroupHandler interface {
 	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
 	GetSupportGroup(int64) (*entity.SupportGroup, error)
 	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)

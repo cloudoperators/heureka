@@ -11,6 +11,7 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/app/evidence"
 	"github.wdf.sap.corp/cc/heureka/internal/app/issue"
 	"github.wdf.sap.corp/cc/heureka/internal/app/issue_match"
+	"github.wdf.sap.corp/cc/heureka/internal/app/issue_match_change"
 	"github.wdf.sap.corp/cc/heureka/internal/app/issue_repository"
 	"github.wdf.sap.corp/cc/heureka/internal/app/issue_variant"
 	"github.wdf.sap.corp/cc/heureka/internal/app/service"
@@ -20,20 +21,21 @@ import (
 )
 
 type Heureka interface {
-	issue.IssueService
-	activity.ActivityService
-	service.ServiceService
-	user.UserService
-	component.ComponentService
-	component_instance.ComponentInstanceService
-	component_version.ComponentVersionService
-	support_group.SupportGroupService
-	issue_variant.IssueVariantService
-	issue_repository.IssueRepositoryService
-	issue_match.IssueMatchService
-	severity.SeverityService
-	evidence.EvidenceService
-	issue_match.IssueMatchService
+	issue.IssueHandler
+	activity.ActivityHandler
+	service.ServiceHandler
+	user.UserHandler
+	component.ComponentHandler
+	component_instance.ComponentInstanceHandler
+	component_version.ComponentVersionHandler
+	support_group.SupportGroupHandler
+	issue_variant.IssueVariantHandler
+	issue_repository.IssueRepositoryHandler
+	issue_match.IssueMatchHandler
+	issue_match_change.IssueMatchChangeHandler
+	severity.SeverityHandler
+	evidence.EvidenceHandler
+	issue_match.IssueMatchHandler
 
 	Shutdown() error
 }

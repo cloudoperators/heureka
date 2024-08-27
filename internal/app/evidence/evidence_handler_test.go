@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func TestEvidenceService(t *testing.T) {
+func TestEvidenceHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Evidence Service Test Suite")
 }
@@ -47,7 +47,7 @@ func evidenceListOptions() *entity.ListOptions {
 var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func() {
 	var (
 		db              *mocks.MockDatabase
-		evidenceService es.EvidenceService
+		evidenceHandler es.EvidenceHandler
 		filter          *entity.EvidenceFilter
 		options         *entity.ListOptions
 	)
@@ -67,8 +67,8 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 		})
 
 		It("shows the total count in the results", func() {
-			evidenceService = es.NewEvidenceService(db, er)
-			res, err := evidenceService.ListEvidences(filter, options)
+			evidenceHandler = es.NewEvidenceHandler(db, er)
+			res, err := evidenceHandler.ListEvidences(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -90,8 +90,8 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 			}
 			db.On("GetEvidences", filter).Return(evidences, nil)
 			db.On("GetAllEvidenceIds", filter).Return(ids, nil)
-			evidenceService = es.NewEvidenceService(db, er)
-			res, err := evidenceService.ListEvidences(filter, options)
+			evidenceHandler = es.NewEvidenceHandler(db, er)
+			res, err := evidenceHandler.ListEvidences(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -107,7 +107,7 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 var _ = Describe("When creating Evidence", Label("app", "CreateEvidence"), func() {
 	var (
 		db              *mocks.MockDatabase
-		evidenceService es.EvidenceService
+		evidenceHandler es.EvidenceHandler
 		evidence        entity.Evidence
 	)
 
@@ -118,8 +118,8 @@ var _ = Describe("When creating Evidence", Label("app", "CreateEvidence"), func(
 
 	It("creates evidence", func() {
 		db.On("CreateEvidence", &evidence).Return(&evidence, nil)
-		evidenceService = es.NewEvidenceService(db, er)
-		newEvidence, err := evidenceService.CreateEvidence(&evidence)
+		evidenceHandler = es.NewEvidenceHandler(db, er)
+		newEvidence, err := evidenceHandler.CreateEvidence(&evidence)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newEvidence.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -136,7 +136,7 @@ var _ = Describe("When creating Evidence", Label("app", "CreateEvidence"), func(
 var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func() {
 	var (
 		db              *mocks.MockDatabase
-		evidenceService es.EvidenceService
+		evidenceHandler es.EvidenceHandler
 		evidence        entity.Evidence
 		filter          *entity.EvidenceFilter
 	)
@@ -157,11 +157,11 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 
 	It("updates evidence", func() {
 		db.On("UpdateEvidence", &evidence).Return(nil)
-		evidenceService = es.NewEvidenceService(db, er)
+		evidenceHandler = es.NewEvidenceHandler(db, er)
 		evidence.Description = "New Description"
 		filter.Id = []*int64{&evidence.Id}
 		db.On("GetEvidences", filter).Return([]entity.Evidence{evidence}, nil)
-		updatedEvidence, err := evidenceService.UpdateEvidence(&evidence)
+		updatedEvidence, err := evidenceHandler.UpdateEvidence(&evidence)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedEvidence.Description).To(BeEquivalentTo(evidence.Description))
@@ -177,7 +177,7 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 var _ = Describe("When deleting Evidence", Label("app", "DeleteEvidence"), func() {
 	var (
 		db              *mocks.MockDatabase
-		evidenceService es.EvidenceService
+		evidenceHandler es.EvidenceHandler
 		id              int64
 		filter          *entity.EvidenceFilter
 	)
@@ -198,13 +198,13 @@ var _ = Describe("When deleting Evidence", Label("app", "DeleteEvidence"), func(
 
 	It("deletes evidence", func() {
 		db.On("DeleteEvidence", id).Return(nil)
-		evidenceService = es.NewEvidenceService(db, er)
+		evidenceHandler = es.NewEvidenceHandler(db, er)
 		db.On("GetEvidences", filter).Return([]entity.Evidence{}, nil)
-		err := evidenceService.DeleteEvidence(id)
+		err := evidenceHandler.DeleteEvidence(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		evidences, err := evidenceService.ListEvidences(filter, &entity.ListOptions{})
+		evidences, err := evidenceHandler.ListEvidences(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(evidences.Elements).To(BeEmpty(), "no error should be thrown")
 	})

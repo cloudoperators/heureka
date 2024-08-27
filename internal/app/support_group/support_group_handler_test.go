@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func TestSupportGroupService(t *testing.T) {
+func TestSupportGroupHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Support Group Service Test Suite")
 }
@@ -39,7 +39,7 @@ func getSupportGroupFilter() *entity.SupportGroupFilter {
 var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		supportGroupService sg.SupportGroupService
+		supportGroupHandler sg.SupportGroupHandler
 		filter              *entity.SupportGroupFilter
 		options             *entity.ListOptions
 	)
@@ -59,8 +59,8 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 		})
 
 		It("shows the total count in the results", func() {
-			supportGroupService = sg.NewSupportGroupService(db, er)
-			res, err := supportGroupService.ListSupportGroups(filter, options)
+			supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+			res, err := supportGroupHandler.ListSupportGroups(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -82,8 +82,8 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 			}
 			db.On("GetSupportGroups", filter).Return(supportGroups, nil)
 			db.On("GetAllSupportGroupIds", filter).Return(ids, nil)
-			supportGroupService = sg.NewSupportGroupService(db, er)
-			res, err := supportGroupService.ListSupportGroups(filter, options)
+			supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+			res, err := supportGroupHandler.ListSupportGroups(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -99,7 +99,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		supportGroupService sg.SupportGroupService
+		supportGroupHandler sg.SupportGroupHandler
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
 	)
@@ -122,8 +122,8 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		filter.Name = []*string{&supportGroup.Name}
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{}, nil)
-		supportGroupService = sg.NewSupportGroupService(db, er)
-		newSupportGroup, err := supportGroupService.CreateSupportGroup(&supportGroup)
+		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(&supportGroup)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newSupportGroup.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -135,7 +135,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		supportGroupService sg.SupportGroupService
+		supportGroupHandler sg.SupportGroupHandler
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
 	)
@@ -156,11 +156,11 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 
 	It("updates supportGroup", func() {
 		db.On("UpdateSupportGroup", &supportGroup).Return(nil)
-		supportGroupService = sg.NewSupportGroupService(db, er)
+		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
 		supportGroup.Name = "Team Alone"
 		filter.Id = []*int64{&supportGroup.Id}
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
-		updatedSupportGroup, err := supportGroupService.UpdateSupportGroup(&supportGroup)
+		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(&supportGroup)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedSupportGroup.Name).To(BeEquivalentTo(supportGroup.Name))
@@ -171,7 +171,7 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		supportGroupService sg.SupportGroupService
+		supportGroupHandler sg.SupportGroupHandler
 		id                  int64
 		filter              *entity.SupportGroupFilter
 	)
@@ -192,13 +192,13 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 
 	It("deletes supportGroup", func() {
 		db.On("DeleteSupportGroup", id).Return(nil)
-		supportGroupService = sg.NewSupportGroupService(db, er)
+		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{}, nil)
-		err := supportGroupService.DeleteSupportGroup(id)
+		err := supportGroupHandler.DeleteSupportGroup(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		supportGroups, err := supportGroupService.ListSupportGroups(filter, &entity.ListOptions{})
+		supportGroups, err := supportGroupHandler.ListSupportGroups(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroups.Elements).To(BeEmpty(), "no error should be thrown")
 	})
@@ -207,7 +207,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 var _ = Describe("When modifying relationship of Service and SupportGroup", Label("app", "ServiceSupportGroupRelationship"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		supportGroupService sg.SupportGroupService
+		supportGroupHandler sg.SupportGroupHandler
 		service             entity.Service
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
@@ -232,8 +232,8 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 	It("adds service to supportGroup", func() {
 		db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
-		supportGroupService = sg.NewSupportGroupService(db, er)
-		supportGroup, err := supportGroupService.AddServiceToSupportGroup(supportGroup.Id, service.Id)
+		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+		supportGroup, err := supportGroupHandler.AddServiceToSupportGroup(supportGroup.Id, service.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
@@ -241,8 +241,8 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 	It("removes service from supportGroup", func() {
 		db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
-		supportGroupService = sg.NewSupportGroupService(db, er)
-		supportGroup, err := supportGroupService.RemoveServiceFromSupportGroup(supportGroup.Id, service.Id)
+		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+		supportGroup, err := supportGroupHandler.RemoveServiceFromSupportGroup(supportGroup.Id, service.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
@@ -251,7 +251,7 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 var _ = Describe("When modifying relationship of User and SupportGroup", Label("app", "UserSupportGroupRelationship"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		supportGroupService sg.SupportGroupService
+		supportGroupHandler sg.SupportGroupHandler
 		user                entity.User
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
@@ -276,8 +276,8 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 	It("adds user to supportGroup", func() {
 		db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
-		supportGroupService = sg.NewSupportGroupService(db, er)
-		supportGroup, err := supportGroupService.AddUserToSupportGroup(supportGroup.Id, user.Id)
+		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+		supportGroup, err := supportGroupHandler.AddUserToSupportGroup(supportGroup.Id, user.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
@@ -285,8 +285,8 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 	It("removes user from supportGroup", func() {
 		db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
-		supportGroupService = sg.NewSupportGroupService(db, er)
-		supportGroup, err := supportGroupService.RemoveUserFromSupportGroup(supportGroup.Id, user.Id)
+		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+		supportGroup, err := supportGroupHandler.RemoveUserFromSupportGroup(supportGroup.Id, user.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
@@ -294,7 +294,7 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 var _ = Describe("When listing supportGroupNames", Label("app", "ListSupportGroupNames"), func() {
 	var (
 		db                  *mocks.MockDatabase
-		supportGroupService sg.SupportGroupService
+		supportGroupHandler sg.SupportGroupHandler
 		filter              *entity.SupportGroupFilter
 		options             *entity.ListOptions
 		name                string
@@ -314,8 +314,8 @@ var _ = Describe("When listing supportGroupNames", Label("app", "ListSupportGrou
 		})
 
 		It("it return the results", func() {
-			supportGroupService = sg.NewSupportGroupService(db, er)
-			res, err := supportGroupService.ListSupportGroupNames(filter, options)
+			supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+			res, err := supportGroupHandler.ListSupportGroupNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -329,8 +329,8 @@ var _ = Describe("When listing supportGroupNames", Label("app", "ListSupportGrou
 			db.On("GetSupportGroupNames", filter).Return([]string{name}, nil)
 		})
 		It("returns filtered userGroups according to the service type", func() {
-			supportGroupService = sg.NewSupportGroupService(db, er)
-			res, err := supportGroupService.ListSupportGroupNames(filter, options)
+			supportGroupHandler = sg.NewSupportGroupHandler(db, er)
+			res, err := supportGroupHandler.ListSupportGroupNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(name), "should only consist of supportGroup")
 		})

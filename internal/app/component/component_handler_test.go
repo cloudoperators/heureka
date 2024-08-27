@@ -17,7 +17,7 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 )
 
-func TestComponentService(t *testing.T) {
+func TestComponentHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Component Service Test Suite")
 }
@@ -42,7 +42,7 @@ func getComponentFilter() *entity.ComponentFilter {
 var _ = Describe("When listing Components", Label("app", "ListComponents"), func() {
 	var (
 		db               *mocks.MockDatabase
-		componentService c.ComponentService
+		componentHandler c.ComponentHandler
 		filter           *entity.ComponentFilter
 		options          *entity.ListOptions
 	)
@@ -62,8 +62,8 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		})
 
 		It("shows the total count in the results", func() {
-			componentService = c.NewComponentService(db, er)
-			res, err := componentService.ListComponents(filter, options)
+			componentHandler = c.NewComponentHandler(db, er)
+			res, err := componentHandler.ListComponents(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -85,8 +85,8 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			}
 			db.On("GetComponents", filter).Return(components, nil)
 			db.On("GetAllComponentIds", filter).Return(ids, nil)
-			componentService = c.NewComponentService(db, er)
-			res, err := componentService.ListComponents(filter, options)
+			componentHandler = c.NewComponentHandler(db, er)
+			res, err := componentHandler.ListComponents(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -102,7 +102,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 var _ = Describe("When creating Component", Label("app", "CreateComponent"), func() {
 	var (
 		db               *mocks.MockDatabase
-		componentService c.ComponentService
+		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
 	)
@@ -125,8 +125,8 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		filter.Name = []*string{&component.Name}
 		db.On("CreateComponent", &component).Return(&component, nil)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
-		componentService = c.NewComponentService(db, er)
-		newComponent, err := componentService.CreateComponent(&component)
+		componentHandler = c.NewComponentHandler(db, er)
+		newComponent, err := componentHandler.CreateComponent(&component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponent.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -139,7 +139,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 var _ = Describe("When updating Component", Label("app", "UpdateComponent"), func() {
 	var (
 		db               *mocks.MockDatabase
-		componentService c.ComponentService
+		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
 	)
@@ -160,11 +160,11 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 
 	It("updates component", func() {
 		db.On("UpdateComponent", &component).Return(nil)
-		componentService = c.NewComponentService(db, er)
+		componentHandler = c.NewComponentHandler(db, er)
 		component.Name = "NewComponent"
 		filter.Id = []*int64{&component.Id}
 		db.On("GetComponents", filter).Return([]entity.Component{component}, nil)
-		updatedComponent, err := componentService.UpdateComponent(&component)
+		updatedComponent, err := componentHandler.UpdateComponent(&component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponent.Name).To(BeEquivalentTo(component.Name))
@@ -176,7 +176,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), func() {
 	var (
 		db               *mocks.MockDatabase
-		componentService c.ComponentService
+		componentHandler c.ComponentHandler
 		id               int64
 		filter           *entity.ComponentFilter
 	)
@@ -197,13 +197,13 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 
 	It("deletes component", func() {
 		db.On("DeleteComponent", id).Return(nil)
-		componentService = c.NewComponentService(db, er)
+		componentHandler = c.NewComponentHandler(db, er)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
-		err := componentService.DeleteComponent(id)
+		err := componentHandler.DeleteComponent(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		components, err := componentService.ListComponents(filter, &entity.ListOptions{})
+		components, err := componentHandler.ListComponents(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(components.Elements).To(BeEmpty(), "no error should be thrown")
 	})

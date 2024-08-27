@@ -13,31 +13,31 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
-type issueRepositoryService struct {
+type issueRepositoryHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 }
 
-func NewIssueRepositoryService(database database.Database, eventRegistry event.EventRegistry) IssueRepositoryService {
-	return &issueRepositoryService{
+func NewIssueRepositoryHandler(database database.Database, eventRegistry event.EventRegistry) IssueRepositoryHandler {
+	return &issueRepositoryHandler{
 		database:      database,
 		eventRegistry: eventRegistry,
 	}
 }
 
-type IssueRepositoryServiceError struct {
+type IssueRepositoryHandlerError struct {
 	message string
 }
 
-func NewIssueRepositoryServiceError(message string) *IssueRepositoryServiceError {
-	return &IssueRepositoryServiceError{message: message}
+func NewIssueRepositoryHandlerError(message string) *IssueRepositoryHandlerError {
+	return &IssueRepositoryHandlerError{message: message}
 }
 
-func (e *IssueRepositoryServiceError) Error() string {
+func (e *IssueRepositoryHandlerError) Error() string {
 	return e.message
 }
 
-func (ir *issueRepositoryService) getIssueRepositoryResults(filter *entity.IssueRepositoryFilter) ([]entity.IssueRepositoryResult, error) {
+func (ir *issueRepositoryHandler) getIssueRepositoryResults(filter *entity.IssueRepositoryFilter) ([]entity.IssueRepositoryResult, error) {
 	var irResults []entity.IssueRepositoryResult
 	issueRepositories, err := ir.database.GetIssueRepositories(filter)
 	if err != nil {
@@ -55,7 +55,7 @@ func (ir *issueRepositoryService) getIssueRepositoryResults(filter *entity.Issue
 	return irResults, nil
 }
 
-func (ir *issueRepositoryService) ListIssueRepositories(filter *entity.IssueRepositoryFilter, options *entity.ListOptions) (*entity.List[entity.IssueRepositoryResult], error) {
+func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepositoryFilter, options *entity.ListOptions) (*entity.List[entity.IssueRepositoryResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -68,7 +68,7 @@ func (ir *issueRepositoryService) ListIssueRepositories(filter *entity.IssueRepo
 	res, err := ir.getIssueRepositoryResults(filter)
 
 	if err != nil {
-		return nil, NewIssueRepositoryServiceError("Error while filtering for IssueRepositories")
+		return nil, NewIssueRepositoryHandlerError("Error while filtering for IssueRepositories")
 	}
 
 	if options.ShowPageInfo {
@@ -76,7 +76,7 @@ func (ir *issueRepositoryService) ListIssueRepositories(filter *entity.IssueRepo
 			ids, err := ir.database.GetAllIssueRepositoryIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewIssueRepositoryServiceError("Error while getting all Ids")
+				return nil, NewIssueRepositoryHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -85,7 +85,7 @@ func (ir *issueRepositoryService) ListIssueRepositories(filter *entity.IssueRepo
 		count, err = ir.database.CountIssueRepositories(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewIssueRepositoryServiceError("Error while total count of IssueRepositories")
+			return nil, NewIssueRepositoryHandlerError("Error while total count of IssueRepositories")
 		}
 	}
 
@@ -100,7 +100,7 @@ func (ir *issueRepositoryService) ListIssueRepositories(filter *entity.IssueRepo
 	return ret, nil
 }
 
-func (ir *issueRepositoryService) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
 	f := &entity.IssueRepositoryFilter{
 		Name: []*string{&issueRepository.Name},
 	}
@@ -115,19 +115,19 @@ func (ir *issueRepositoryService) CreateIssueRepository(issueRepository *entity.
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueRepositoryServiceError("Internal error while creating issueRepository.")
+		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository.")
 	}
 
 	if len(issueRepositories.Elements) > 0 {
 		l.Error(err)
-		return nil, NewIssueRepositoryServiceError(fmt.Sprintf("Duplicated entry %s for name.", issueRepository.Name))
+		return nil, NewIssueRepositoryHandlerError(fmt.Sprintf("Duplicated entry %s for name.", issueRepository.Name))
 	}
 
 	newIssueRepository, err := ir.database.CreateIssueRepository(issueRepository)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueRepositoryServiceError("Internal error while creating issueRepository.")
+		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository.")
 	}
 
 	ir.eventRegistry.PushEvent(&CreateIssueRepositoryEvent{IssueRepository: newIssueRepository})
@@ -135,7 +135,7 @@ func (ir *issueRepositoryService) CreateIssueRepository(issueRepository *entity.
 	return newIssueRepository, nil
 }
 
-func (ir *issueRepositoryService) UpdateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+func (ir *issueRepositoryHandler) UpdateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueRepositoryEventName,
 		"object": issueRepository,
@@ -145,19 +145,19 @@ func (ir *issueRepositoryService) UpdateIssueRepository(issueRepository *entity.
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueRepositoryServiceError("Internal error while updating issueRepository.")
+		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository.")
 	}
 
 	issueRepositoryResult, err := ir.ListIssueRepositories(&entity.IssueRepositoryFilter{Id: []*int64{&issueRepository.Id}}, &entity.ListOptions{})
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueRepositoryServiceError("Internal error while retrieving updated issueRepository.")
+		return nil, NewIssueRepositoryHandlerError("Internal error while retrieving updated issueRepository.")
 	}
 
 	if len(issueRepositoryResult.Elements) != 1 {
 		l.Error(err)
-		return nil, NewIssueRepositoryServiceError("Multiple issueRepositories found.")
+		return nil, NewIssueRepositoryHandlerError("Multiple issueRepositories found.")
 	}
 
 	ir.eventRegistry.PushEvent(&UpdateIssueRepositoryEvent{IssueRepository: issueRepository})
@@ -165,7 +165,7 @@ func (ir *issueRepositoryService) UpdateIssueRepository(issueRepository *entity.
 	return issueRepositoryResult.Elements[0].IssueRepository, nil
 }
 
-func (ir *issueRepositoryService) DeleteIssueRepository(id int64) error {
+func (ir *issueRepositoryHandler) DeleteIssueRepository(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteIssueRepositoryEventName,
 		"id":    id,
@@ -175,7 +175,7 @@ func (ir *issueRepositoryService) DeleteIssueRepository(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewIssueRepositoryServiceError("Internal error while updating issueRepository.")
+		return NewIssueRepositoryHandlerError("Internal error while updating issueRepository.")
 	}
 
 	ir.eventRegistry.PushEvent(&DeleteIssueRepositoryEvent{IssueRepositoryID: id})

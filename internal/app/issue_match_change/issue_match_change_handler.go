@@ -14,31 +14,31 @@ import (
 	"github.wdf.sap.corp/cc/heureka/pkg/util"
 )
 
-type issueMatchChangeService struct {
+type issueMatchChangeHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 }
 
-func NewIssueMatchChangeService(db database.Database, er event.EventRegistry) IssueMatchChangeService {
-	return &issueMatchChangeService{
+func NewIssueMatchChangeHandler(db database.Database, er event.EventRegistry) IssueMatchChangeHandler {
+	return &issueMatchChangeHandler{
 		database:      db,
 		eventRegistry: er,
 	}
 }
 
-type IssueMatchChangeServiceError struct {
+type IssueMatchChangeHandlerError struct {
 	msg string
 }
 
-func (e *IssueMatchChangeServiceError) Error() string {
-	return fmt.Sprintf("IssueMatchChangeServiceError: %s", e.msg)
+func (e *IssueMatchChangeHandlerError) Error() string {
+	return fmt.Sprintf("IssueMatchChangeHandlerError: %s", e.msg)
 }
 
-func NewIssueMatchChangeServiceError(msg string) *IssueMatchChangeServiceError {
-	return &IssueMatchChangeServiceError{msg: msg}
+func NewIssueMatchChangeHandlerError(msg string) *IssueMatchChangeHandlerError {
+	return &IssueMatchChangeHandlerError{msg: msg}
 }
 
-func (imc *issueMatchChangeService) getIssueMatchChangeResults(filter *entity.IssueMatchChangeFilter) ([]entity.IssueMatchChangeResult, error) {
+func (imc *issueMatchChangeHandler) getIssueMatchChangeResults(filter *entity.IssueMatchChangeFilter) ([]entity.IssueMatchChangeResult, error) {
 	var results []entity.IssueMatchChangeResult
 	vmcs, err := imc.database.GetIssueMatchChanges(filter)
 	if err != nil {
@@ -55,7 +55,7 @@ func (imc *issueMatchChangeService) getIssueMatchChangeResults(filter *entity.Is
 	return results, nil
 }
 
-func (imc *issueMatchChangeService) ListIssueMatchChanges(filter *entity.IssueMatchChangeFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchChangeResult], error) {
+func (imc *issueMatchChangeHandler) ListIssueMatchChanges(filter *entity.IssueMatchChangeFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchChangeResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -70,7 +70,7 @@ func (imc *issueMatchChangeService) ListIssueMatchChanges(filter *entity.IssueMa
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueMatchChangeServiceError("Error while filtering for IssueMatchChanges")
+		return nil, NewIssueMatchChangeHandlerError("Error while filtering for IssueMatchChanges")
 	}
 
 	if options.ShowPageInfo {
@@ -78,7 +78,7 @@ func (imc *issueMatchChangeService) ListIssueMatchChanges(filter *entity.IssueMa
 			ids, err := imc.database.GetAllIssueMatchChangeIds(filter)
 			if err != nil {
 				l.Error(err)
-				return nil, NewIssueMatchChangeServiceError("Error while getting all Ids")
+				return nil, NewIssueMatchChangeHandlerError("Error while getting all Ids")
 			}
 			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
 			count = int64(len(ids))
@@ -87,7 +87,7 @@ func (imc *issueMatchChangeService) ListIssueMatchChanges(filter *entity.IssueMa
 		count, err = imc.database.CountIssueMatchChanges(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewIssueMatchChangeServiceError("Error while total count of IssueMatchChanges")
+			return nil, NewIssueMatchChangeHandlerError("Error while total count of IssueMatchChanges")
 		}
 	}
 
@@ -106,7 +106,7 @@ func (imc *issueMatchChangeService) ListIssueMatchChanges(filter *entity.IssueMa
 	return ret, nil
 }
 
-func (imc *issueMatchChangeService) CreateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateIssueMatchChangeEventName,
 		"object": issueMatchChange,
@@ -116,7 +116,7 @@ func (imc *issueMatchChangeService) CreateIssueMatchChange(issueMatchChange *ent
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueMatchChangeServiceError("Internal error while creating issueMatchChange.")
+		return nil, NewIssueMatchChangeHandlerError("Internal error while creating issueMatchChange.")
 	}
 
 	imc.eventRegistry.PushEvent(&CreateIssueMatchChangeEvent{
@@ -126,7 +126,7 @@ func (imc *issueMatchChangeService) CreateIssueMatchChange(issueMatchChange *ent
 	return newIssueMatchChange, nil
 }
 
-func (imc *issueMatchChangeService) UpdateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+func (imc *issueMatchChangeHandler) UpdateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueMatchChangeEventName,
 		"object": issueMatchChange,
@@ -136,19 +136,19 @@ func (imc *issueMatchChangeService) UpdateIssueMatchChange(issueMatchChange *ent
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueMatchChangeServiceError("Internal error while updating issueMatchChange.")
+		return nil, NewIssueMatchChangeHandlerError("Internal error while updating issueMatchChange.")
 	}
 
 	imcResult, err := imc.ListIssueMatchChanges(&entity.IssueMatchChangeFilter{Id: []*int64{&issueMatchChange.Id}}, &entity.ListOptions{})
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueMatchChangeServiceError("Internal error while retrieving updated issueMatchChange.")
+		return nil, NewIssueMatchChangeHandlerError("Internal error while retrieving updated issueMatchChange.")
 	}
 
 	if len(imcResult.Elements) != 1 {
 		l.Error(err)
-		return nil, NewIssueMatchChangeServiceError("Multiple issueMatchChanges found.")
+		return nil, NewIssueMatchChangeHandlerError("Multiple issueMatchChanges found.")
 	}
 
 	imc.eventRegistry.PushEvent(&UpdateIssueMatchChangeEvent{
@@ -158,7 +158,7 @@ func (imc *issueMatchChangeService) UpdateIssueMatchChange(issueMatchChange *ent
 	return imcResult.Elements[0].IssueMatchChange, nil
 }
 
-func (imc *issueMatchChangeService) DeleteIssueMatchChange(id int64) error {
+func (imc *issueMatchChangeHandler) DeleteIssueMatchChange(id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteIssueMatchChangeEventName,
 		"id":    id,
@@ -168,7 +168,7 @@ func (imc *issueMatchChangeService) DeleteIssueMatchChange(id int64) error {
 
 	if err != nil {
 		l.Error(err)
-		return NewIssueMatchChangeServiceError("Internal error while deleting issueMatchChange.")
+		return NewIssueMatchChangeHandlerError("Internal error while deleting issueMatchChange.")
 	}
 
 	imc.eventRegistry.PushEvent(&DeleteIssueMatchChangeEvent{

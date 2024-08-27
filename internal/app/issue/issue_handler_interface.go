@@ -5,7 +5,7 @@ package issue
 
 import "github.wdf.sap.corp/cc/heureka/internal/entity"
 
-type IssueService interface {
+type IssueHandler interface {
 	ListIssues(*entity.IssueFilter, *entity.IssueListOptions) (*entity.IssueList, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) (*entity.Issue, error)

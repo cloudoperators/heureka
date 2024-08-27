@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func TestComponentVersionService(t *testing.T) {
+func TestComponentVersionHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Component Version Service Test Suite")
 }
@@ -39,7 +39,7 @@ func getComponentVersionFilter() *entity.ComponentVersionFilter {
 var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVersions"), func() {
 	var (
 		db                     *mocks.MockDatabase
-		componenVersionService cv.ComponentVersionService
+		componenVersionService cv.ComponentVersionHandler
 		filter                 *entity.ComponentVersionFilter
 		options                *entity.ListOptions
 	)
@@ -59,7 +59,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		})
 
 		It("shows the total count in the results", func() {
-			componenVersionService = cv.NewComponentVersionService(db, er)
+			componenVersionService = cv.NewComponentVersionHandler(db, er)
 			res, err := componenVersionService.ListComponentVersions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -82,7 +82,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 			db.On("GetComponentVersions", filter).Return(componentVersions, nil)
 			db.On("GetAllComponentVersionIds", filter).Return(ids, nil)
-			componenVersionService = cv.NewComponentVersionService(db, er)
+			componenVersionService = cv.NewComponentVersionHandler(db, er)
 			res, err := componenVersionService.ListComponentVersions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -99,7 +99,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponentVersion"), func() {
 	var (
 		db                     *mocks.MockDatabase
-		componenVersionService cv.ComponentVersionService
+		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersion
 	)
 
@@ -110,7 +110,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 
 	It("creates componentVersion", func() {
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
-		componenVersionService = cv.NewComponentVersionService(db, er)
+		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		newComponentVersion, err := componenVersionService.CreateComponentVersion(&componentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentVersion.Id).NotTo(BeEquivalentTo(0))
@@ -124,7 +124,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponentVersion"), func() {
 	var (
 		db                     *mocks.MockDatabase
-		componenVersionService cv.ComponentVersionService
+		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersion
 		filter                 *entity.ComponentVersionFilter
 	)
@@ -145,7 +145,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 
 	It("updates componentVersion", func() {
 		db.On("UpdateComponentVersion", &componentVersion).Return(nil)
-		componenVersionService = cv.NewComponentVersionService(db, er)
+		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		componentVersion.Version = "7.3.3.1"
 		filter.Id = []*int64{&componentVersion.Id}
 		db.On("GetComponentVersions", filter).Return([]entity.ComponentVersion{componentVersion}, nil)
@@ -161,7 +161,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponentVersion"), func() {
 	var (
 		db                     *mocks.MockDatabase
-		componenVersionService cv.ComponentVersionService
+		componenVersionService cv.ComponentVersionHandler
 		id                     int64
 		filter                 *entity.ComponentVersionFilter
 	)
@@ -182,7 +182,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 
 	It("deletes componentVersion", func() {
 		db.On("DeleteComponentVersion", id).Return(nil)
-		componenVersionService = cv.NewComponentVersionService(db, er)
+		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		db.On("GetComponentVersions", filter).Return([]entity.ComponentVersion{}, nil)
 		err := componenVersionService.DeleteComponentVersion(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
