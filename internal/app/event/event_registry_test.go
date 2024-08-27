@@ -1,0 +1,109 @@
+package event
+
+import (
+	"context"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+func TestEventRegistry(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Event Registry Test Suite")
+}
+
+type TestEvent struct {
+	name string
+}
+
+func NewTestEvent(name string) Event {
+	return &TestEvent{name: name}
+}
+
+func (e *TestEvent) Name() EventName {
+	return EventName(e.name)
+}
+
+var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func() {
+	var (
+		er     EventRegistry
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
+
+	BeforeEach(func() {
+		er = NewEventRegistry()
+		ctx, cancel = context.WithCancel(context.Background())
+	})
+
+	AfterEach(func() {
+		cancel()
+	})
+
+	It("should register and handle events", func() {
+		var eventHandled int32
+		handler := func(e Event) {
+			atomic.AddInt32(&eventHandled, 1)
+		}
+
+		er.RegisterEventHandler("test_event", handler)
+		er.PushEvent(NewTestEvent("test_event"))
+		er.Run(ctx)
+
+		time.Sleep(25 * time.Millisecond) // Allow some time for the event to be processed
+
+		Expect(atomic.LoadInt32(&eventHandled)).To(Equal(int32(1)))
+	})
+
+	It("should handle multiple events", func() {
+		var eventHandled int32
+		handler := func(e Event) {
+			atomic.AddInt32(&eventHandled, 1)
+		}
+
+		er.RegisterEventHandler("test_event", handler)
+		er.PushEvent(NewTestEvent("test_event"))
+		er.PushEvent(NewTestEvent("test_event"))
+		er.Run(ctx)
+
+		time.Sleep(25 * time.Millisecond) // Allow some time for the events to be processed
+
+		Expect(atomic.LoadInt32(&eventHandled)).To(Equal(int32(2)))
+	})
+
+	It("should handle multiple times when multiple handlers are registered", func() {
+		var eventHandled int32
+		handler := func(e Event) {
+			atomic.AddInt32(&eventHandled, 1)
+		}
+		er.RegisterEventHandler("test_event", handler)
+		er.RegisterEventHandler("test_event", handler)
+		er.RegisterEventHandler("test_event", handler)
+		er.PushEvent(NewTestEvent("test_event"))
+		er.PushEvent(NewTestEvent("test_event"))
+		er.Run(ctx)
+
+		time.Sleep(25 * time.Millisecond) // Allow some time for the events to be processed
+
+		Expect(atomic.LoadInt32(&eventHandled)).To(Equal(int32(6)))
+	})
+
+	It("should stop processing on context cancel", func() {
+		var eventHandled int32
+		handler := func(e Event) {
+			atomic.AddInt32(&eventHandled, 1)
+		}
+
+		er.RegisterEventHandler("test_event", handler)
+		er.PushEvent(NewTestEvent("test_event"))
+		er.Run(ctx)
+
+		time.Sleep(10 * time.Millisecond) // Allow some time for the event to be processed
+		cancel()                          // Cancel the context to stop processing
+		time.Sleep(10 * time.Millisecond) // Allow some time for the cancellation to take effect
+
+		Expect(atomic.LoadInt32(&eventHandled)).To(Equal(int32(1)))
+	})
+})
