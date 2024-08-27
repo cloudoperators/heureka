@@ -4,10 +4,9 @@
 package processor
 
 import (
-	"net/http"
-
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/client"
@@ -17,10 +16,13 @@ import (
 
 type Processor struct {
 	Client *graphql.Client
+	config Config
 }
 
 type CCRN struct {
 	Region    string
+	Domain    string
+	Project   string
 	Cluster   string
 	Namespace string
 	Pod       string
@@ -30,8 +32,10 @@ type CCRN struct {
 
 func (c CCRN) String() string {
 	// Define default CCRN
-	return fmt.Sprintf("rn.cloud.sap/ccrn/kubernetes/v1/%s/-/-/kubernikus/%s/%s/%s/%s/%s",
+	return fmt.Sprintf("rn.cloud.sap/ccrn/kubernetes/v1/%s/%s/%s/kubernikus/%s/%s/%s/%s/%s",
 		c.Region,
+		c.Domain,
+		c.Project,
 		c.Cluster,
 		c.Namespace,
 		c.Pod,
@@ -44,6 +48,7 @@ func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
 	return &Processor{
+		config: cfg,
 		Client: &gClient,
 	}
 }
@@ -151,21 +156,6 @@ func (p *Processor) getComponent(ctx context.Context, name string) (string, erro
 	return componentId, nil
 }
 
-// func (p *Processor) getComponentInstance(ctx context.Context, serviceId string) (string, error) {
-// 	listComponentInstanceFilter := client.ComponentInstanceFilter{
-// 		ServiceId: []string{serviceId},
-// 	}
-// 	listCompInstResp, err := client.ListComponentInstances(ctx, *p.Client, &listComponentInstanceFilter)
-// 	if err != nil {
-// 		return "", fmt.Errorf("couldn't list ComponentInstances: %w", err)
-// 	}
-
-// 	if listCompInstResp.ComponentInstances.TotalCount > 0 {
-// 		return listCompInstResp.ComponentInstances.Edges[0].Node.Id, nil
-// 	}
-// 	return "", fmt.Errorf("no ComponentInstance found with CCRN: and ServiceId: %s", serviceId)
-// }
-
 // ProcessContainer creates a ComponentVersion and ComponentInstance for a container
 func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serviceID string, podInfo scanner.PodInfo, containerInfo scanner.ContainerInfo) error {
 
@@ -177,8 +167,10 @@ func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serv
 
 	// Create new CCRN
 	ccrn := CCRN{
-		Region:    "de",
-		Cluster:   "testing",
+		Region:    p.config.RegionName,
+		Domain:    "x", // TODO
+		Project:   "x", // TODO
+		Cluster:   p.config.ClusterName,
 		Namespace: namespace,
 		Pod:       podInfo.Name,
 		PodID:     podInfo.Name, // Change this!
@@ -195,6 +187,7 @@ func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serv
 	createCompInstResp, err := client.CreateComponentInstance(ctx, *p.Client, componentInstanceInput)
 	if err != nil {
 		return fmt.Errorf("failed to create ComponentInstance: %w", err)
+
 	}
 	componentInstanceID := createCompInstResp.CreateComponentInstance.Id
 

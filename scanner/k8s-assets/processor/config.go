@@ -4,5 +4,7 @@
 package processor
 
 type Config struct {
-	HeurekaUrl string `envconfig:"HEUREKA_URL" required:"true" json:"-"`
+	HeurekaUrl  string `envconfig:"HEUREKA_URL" required:"true" json:"-"`
+	ClusterName string `envconfig:"HEUREKA_CLUSTER_NAME" required:"true" json:"-"`
+	RegionName  string `envconfig:"HEUREKA_CLUSTER_REGION" required:"true" json:"-"`
 }
