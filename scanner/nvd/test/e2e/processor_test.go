@@ -9,7 +9,7 @@ package e2e_test
 
 // 	. "github.com/onsi/ginkgo/v2"
 // 	. "github.com/onsi/gomega"
-// 	"github.wdf.sap.corp/cc/heureka/scanner/nvd/models"
+// 	"github.com/cloudoperators/heureka/scanner/nvd/models"
 // )
 
 // var _ = Describe("Submitting Issues", Ordered, Label("e2e", "Issues", "create"), func() {

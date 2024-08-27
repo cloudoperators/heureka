@@ -13,7 +13,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/scanner/nvd/models"
+	"github.com/cloudoperators/heureka/scanner/nvd/models"
 	"golang.org/x/time/rate"
 )
 

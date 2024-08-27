@@ -10,9 +10,9 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/scanner/nvd/models"
-	"github.wdf.sap.corp/cc/heureka/scanner/nvd/processor"
-	"github.wdf.sap.corp/cc/heureka/scanner/nvd/scanner"
+	"github.com/cloudoperators/heureka/scanner/nvd/models"
+	"github.com/cloudoperators/heureka/scanner/nvd/processor"
+	"github.com/cloudoperators/heureka/scanner/nvd/scanner"
 )
 
 func init() {
