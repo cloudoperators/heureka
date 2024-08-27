@@ -134,28 +134,6 @@ func (p *Processor) getComponentVersion(ctx context.Context, manifest string) (s
 	return componentVersionId, nil
 }
 
-func (p *Processor) getComponent(ctx context.Context, name string) (string, error) {
-	var componentId string
-
-	listComponentFilter := client.ComponentFilter{
-		ComponentName: []string{name},
-	}
-	listComponentResp, err := client.ListComponents(ctx, *p.Client, &listComponentFilter)
-	if err != nil {
-		return "", fmt.Errorf("Couldn't list Components")
-	}
-
-	if listComponentResp.Components.TotalCount > 0 {
-		for _, c := range listComponentResp.Components.Edges {
-			componentId = c.Node.Id
-			break
-		}
-	} else {
-		return "", fmt.Errorf("ListComponents returned no Component objects")
-	}
-	return componentId, nil
-}
-
 // ProcessContainer creates a ComponentVersion and ComponentInstance for a container
 func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serviceID string, podInfo scanner.PodInfo, containerInfo scanner.ContainerInfo) error {
 
