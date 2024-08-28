@@ -25086,7 +25086,7 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceName", "uniqueUserId", "type", "userName", "supportGroupName"}
+	fieldsInOrder := [...]string{"serviceName", "uniqueUserId", "type", "userName", "supportGroupName", "search"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -25128,6 +25128,13 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 				return it, err
 			}
 			it.SupportGroupName = data
+		case "search":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
+			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Search = data
 		}
 	}
 

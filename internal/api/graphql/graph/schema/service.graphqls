@@ -33,4 +33,5 @@ input ServiceFilter {
     type: [Int]
     userName: [String]
     supportGroupName: [String]
+    search: [String]
 }

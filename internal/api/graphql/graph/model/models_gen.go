@@ -630,6 +630,7 @@ type ServiceFilter struct {
 	Type             []*int    `json:"type,omitempty"`
 	UserName         []*string `json:"userName,omitempty"`
 	SupportGroupName []*string `json:"supportGroupName,omitempty"`
+	Search           []*string `json:"search,omitempty"`
 }
 
 type ServiceFilterValue struct {

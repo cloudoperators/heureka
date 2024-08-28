@@ -32,6 +32,7 @@ type ServiceFilter struct {
 	ComponentInstanceId []*int64  `json:"component_instance_id"`
 	IssueRepositoryId   []*int64  `json:"issue_repository_id"`
 	SupportGroupId      []*int64  `json:"support_group_id"`
+	Search              []*string `json:"search"`
 }
 
 type Service struct {

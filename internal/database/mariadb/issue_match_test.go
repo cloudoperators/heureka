@@ -339,7 +339,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 							Expect(found).To(BeTrue())
 						})
 					}
-
 				})
 				Context("and and we use Pagination", func() {
 					DescribeTable("can correctly paginate ", func(pageSize int) {

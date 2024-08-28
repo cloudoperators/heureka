@@ -378,6 +378,40 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						}
 					})
 				})
+				It("can filter service ServiceName using wild card search", func() {
+					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+
+					const charactersToRemoveFromBeginning = 2
+					const charactersToRemoveFromEnd = 2
+					const minimalCharactersToKeep = 2
+
+					start := charactersToRemoveFromBeginning
+					end := len(row.Name.String) - charactersToRemoveFromEnd
+
+					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
+
+					searchStr := row.Name.String[start:end]
+					filter := &entity.ServiceFilter{Search: []*string{&searchStr}}
+
+					entries, err := db.GetServices(filter)
+
+					names := []string{}
+					for _, entry := range entries {
+						names = append(names, entry.Name)
+					}
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("at least one element was discarded (filtered)", func() {
+						Expect(len(seedCollection.ServiceRows) > len(names)).To(BeTrue())
+					})
+
+					By("returning the expected elements", func() {
+						Expect(names).To(ContainElement(row.Name.String))
+					})
+				})
 			})
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {

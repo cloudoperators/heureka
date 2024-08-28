@@ -103,6 +103,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		ActivityId:        activityId,
 		IssueRepositoryId: irId,
 		SupportGroupId:    sgId,
+		Search:            filter.Search,
 	}
 
 	opt := GetListOptions(requestedFields)
