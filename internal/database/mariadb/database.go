@@ -246,7 +246,7 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity](stmt *sqlx.Stmt, fil
 		var row T
 		err := rows.StructScan(&row)
 		if err != nil {
-			msg := "Error while scanning struct from Results"
+			msg := "Error while scanning struct from SupportGroups"
 			cols, _ := rows.Columns()
 			l.WithFields(
 				logrus.Fields{

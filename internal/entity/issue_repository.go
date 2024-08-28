@@ -24,6 +24,19 @@ type IssueRepositoryFilter struct {
 	ServiceName []*string `json:"service_name"`
 }
 
+func NewIssueRepositoryFilter() *IssueRepositoryFilter {
+	return &IssueRepositoryFilter{
+		Paginated: Paginated{
+			First: nil,
+			After: nil,
+		},
+		Id:          nil,
+		ServiceId:   nil,
+		Name:        nil,
+		ServiceName: nil,
+	}
+}
+
 type IssueRepositoryAggregations struct {
 }
 
