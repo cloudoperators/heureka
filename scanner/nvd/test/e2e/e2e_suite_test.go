@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"testing"
 
-	"github.wdf.sap.corp/cc/heureka/scanner/nvd/processor"
+	"github.com/cloudoperators/heureka/scanner/nvd/processor"
 )
 
 var cveProcessor *processor.Processor

@@ -9,9 +9,9 @@ import (
 	"net/http"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/cloudoperators/heureka/scanner/nvd/client"
+	"github.com/cloudoperators/heureka/scanner/nvd/models"
 	log "github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/scanner/nvd/client"
-	"github.wdf.sap.corp/cc/heureka/scanner/nvd/models"
 	"time"
 )
 
