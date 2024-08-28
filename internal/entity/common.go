@@ -4,6 +4,8 @@
 package entity
 
 import (
+	"github.wdf.sap.corp/cc/heureka/pkg/util"
+	"math"
 	"time"
 
 	"github.com/onsi/ginkgo/v2/dsl/core"
@@ -85,6 +87,14 @@ type ListOptions struct {
 	IncludeAggregations bool `json:"include_aggregations"`
 }
 
+func NewListOptions() *ListOptions {
+	return &ListOptions{
+		ShowTotalCount:      false,
+		ShowPageInfo:        false,
+		IncludeAggregations: false,
+	}
+}
+
 type PageInfo struct {
 	HasNextPage     *bool   `json:"has_next_page,omitempty"`
 	HasPreviousPage *bool   `json:"has_previous_page,omitempty"`
@@ -117,6 +127,12 @@ type TimeFilter struct {
 type Paginated struct {
 	First *int   `json:"first"`
 	After *int64 `json:"from"`
+}
+
+func MaxPaginated() Paginated {
+	return Paginated{
+		First: util.Ptr(math.MaxInt),
+	}
 }
 
 type Severity struct {

@@ -4,142 +4,69 @@
 package app
 
 import (
-	"fmt"
-
+	"github.wdf.sap.corp/cc/heureka/internal/app/activity"
+	"github.wdf.sap.corp/cc/heureka/internal/app/component"
+	"github.wdf.sap.corp/cc/heureka/internal/app/component_instance"
+	"github.wdf.sap.corp/cc/heureka/internal/app/component_version"
+	"github.wdf.sap.corp/cc/heureka/internal/app/event"
+	"github.wdf.sap.corp/cc/heureka/internal/app/evidence"
+	"github.wdf.sap.corp/cc/heureka/internal/app/issue"
+	"github.wdf.sap.corp/cc/heureka/internal/app/issue_match"
+	"github.wdf.sap.corp/cc/heureka/internal/app/issue_match_change"
+	"github.wdf.sap.corp/cc/heureka/internal/app/issue_repository"
+	"github.wdf.sap.corp/cc/heureka/internal/app/issue_variant"
+	"github.wdf.sap.corp/cc/heureka/internal/app/service"
+	"github.wdf.sap.corp/cc/heureka/internal/app/severity"
+	"github.wdf.sap.corp/cc/heureka/internal/app/support_group"
+	"github.wdf.sap.corp/cc/heureka/internal/app/user"
 	"github.wdf.sap.corp/cc/heureka/internal/database"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/pkg/util"
 )
 
-type HeurekaError struct {
-	msg string
-}
-
-func (e *HeurekaError) Error() string {
-	return fmt.Sprintf("HeurekaError: %s", e.msg)
-}
-
 type HeurekaApp struct {
-	database database.Database
-}
+	activity.ActivityHandler
+	component.ComponentHandler
+	component_instance.ComponentInstanceHandler
+	component_version.ComponentVersionHandler
+	evidence.EvidenceHandler
+	issue.IssueHandler
+	issue_match.IssueMatchHandler
+	issue_match_change.IssueMatchChangeHandler
+	issue_repository.IssueRepositoryHandler
+	issue_variant.IssueVariantHandler
+	service.ServiceHandler
+	severity.SeverityHandler
+	support_group.SupportGroupHandler
+	user.UserHandler
 
-func heurekaError(msg string) *HeurekaError {
-	return &HeurekaError{msg: msg}
+	eventRegistry event.EventRegistry
+	database      database.Database
 }
 
 func NewHeurekaApp(db database.Database) *HeurekaApp {
+	er := event.NewEventRegistry()
+	rh := issue_repository.NewIssueRepositoryHandler(db, er)
+	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
+	sh := severity.NewSeverityHandler(db, er, ivh)
 	return &HeurekaApp{
-		database: db,
+		ActivityHandler:          activity.NewActivityHandler(db, er),
+		ComponentHandler:         component.NewComponentHandler(db, er),
+		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er),
+		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er),
+		EvidenceHandler:          evidence.NewEvidenceHandler(db, er),
+		IssueHandler:             issue.NewIssueHandler(db, er),
+		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh),
+		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er),
+		IssueRepositoryHandler:   rh,
+		IssueVariantHandler:      ivh,
+		ServiceHandler:           service.NewServiceHandler(db, er),
+		SeverityHandler:          sh,
+		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er),
+		UserHandler:              user.NewUserHandler(db, er),
+		eventRegistry:            er,
+		database:                 db,
 	}
 }
 
 func (h *HeurekaApp) Shutdown() error {
 	return h.database.CloseConnection()
-}
-
-func preparePagination(filter *entity.Paginated, options *entity.ListOptions) {
-	if options.ShowPageInfo {
-		first := 10
-		if filter.First != nil {
-			first = *filter.First
-		}
-		//@†odo add debug log entry
-		listSize := first + 1
-		filter.First = &listSize
-	}
-}
-
-func ensurePaginated(filter *entity.Paginated) {
-	if filter.First == nil {
-		first := 10
-		filter.First = &first
-	}
-	if filter.After == nil {
-		var after int64 = 0
-		filter.After = &after
-	}
-}
-
-func getPages(firstCursor *string, ids []int64, pageSize int) ([]entity.Page, entity.Page) {
-	var currentCursor = util.Ptr("0")
-	var pages []entity.Page
-	var currentPage entity.Page
-	var i = 0
-	var pN = 0
-	var page entity.Page
-	for _, id := range ids {
-		i++
-		if i == 1 {
-			pN++
-			page = entity.Page{
-				After:     currentCursor,
-				IsCurrent: false,
-			}
-		}
-		if fmt.Sprintf("%d", id) == *firstCursor {
-			page.IsCurrent = true
-		}
-		page.PageCount = util.Ptr(i)
-		if i >= pageSize {
-			currentCursor = util.Ptr(fmt.Sprintf("%d", id))
-			page.PageNumber = util.Ptr(pN)
-			pages = append(pages, page)
-			i = 0
-			if page.IsCurrent {
-				currentPage = page
-			}
-		}
-	}
-	if len(ids)%pageSize != 0 {
-		page.PageNumber = util.Ptr(pN)
-		pages = append(pages, page)
-		if page.IsCurrent {
-			currentPage = page
-		}
-	}
-	return pages, currentPage
-}
-
-func getPageInfo[T entity.HasCursor](res []T, ids []int64, pageSize int, currentCursor int64) *entity.PageInfo {
-	var nextPageAfter *string
-	currentAfter := util.Ptr(fmt.Sprintf("%d", currentCursor))
-	firstCursor := res[0].Cursor()
-	if len(res) > 1 {
-		nextPageAfter = res[len(res)-1].Cursor()
-	} else {
-		nextPageAfter = firstCursor
-	}
-
-	//@todo write test for correct after in first page
-	//@todo write test for correct current page
-	pages, currentPage := getPages(firstCursor, ids, pageSize)
-
-	return &entity.PageInfo{
-		HasNextPage:     util.Ptr(currentPage.PageNumber != nil && *currentPage.PageNumber < len(pages)),
-		HasPreviousPage: util.Ptr(currentPage.PageNumber != nil && *currentPage.PageNumber > 1),
-		IsValidPage:     util.Ptr(*currentPage.After == *currentAfter),
-		PageNumber:      currentPage.PageNumber,
-		NextPageAfter:   nextPageAfter,
-		Pages:           pages,
-	}
-}
-
-func finalizePagination[T entity.HasCursor](results []T, filter *entity.Paginated, options *entity.ListOptions) (*entity.PageInfo, []T) {
-	var pageInfo entity.PageInfo
-	count := len(results)
-	if options.ShowPageInfo && len(results) > 0 {
-		hasNextPage := len(results) == *filter.First
-		if hasNextPage {
-			results = results[:count-1]
-		}
-		firstCursor := results[0].Cursor()
-		lastCursor := results[len(results)-1].Cursor()
-		pageInfo = entity.PageInfo{
-			HasNextPage: &hasNextPage,
-			StartCursor: firstCursor,
-			EndCursor:   lastCursor,
-		}
-
-	}
-	return &pageInfo, results
 }
