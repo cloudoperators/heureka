@@ -5,7 +5,6 @@ package event
 
 import (
 	"context"
-	"sync"
 )
 
 type Handler func(Event)
@@ -17,15 +16,11 @@ type EventRegistry interface {
 }
 
 type eventRegistry struct {
-	events   []Event
 	handlers map[EventName][]Handler
-	mu       sync.Mutex
+	ch       chan Event
 }
 
 func (er *eventRegistry) RegisterEventHandler(event EventName, handler Handler) {
-	er.mu.Lock()
-	defer er.mu.Unlock()
-
 	if er.handlers == nil {
 		er.handlers = make(map[EventName][]Handler)
 	}
@@ -34,18 +29,18 @@ func (er *eventRegistry) RegisterEventHandler(event EventName, handler Handler) 
 }
 
 func (er *eventRegistry) PushEvent(event Event) {
-	er.mu.Lock()
-	defer er.mu.Unlock()
-
-	if er.events == nil {
-		er.events = make([]Event, 0)
+	if er.ch == nil {
+		er.ch = make(chan Event, 1)
 	}
 
-	er.events = append(er.events, event)
+	er.ch <- event
 }
 
 func NewEventRegistry() EventRegistry {
-	return &eventRegistry{}
+	return &eventRegistry{
+		handlers: make(map[EventName][]Handler),
+		ch:       make(chan Event, 1),
+	}
 }
 
 func (er *eventRegistry) Run(ctx context.Context) {
@@ -57,16 +52,7 @@ func (er *eventRegistry) process(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			if len(er.events) == 0 {
-				continue
-			}
-
-			er.mu.Lock()
-			event := er.events[0]
-			er.events = er.events[1:]
-			er.mu.Unlock()
-
+		case event := <-er.ch:
 			for _, handler := range er.handlers[event.Name()] {
 				handler(event)
 			}

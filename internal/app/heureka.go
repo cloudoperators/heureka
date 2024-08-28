@@ -62,6 +62,7 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 		SeverityHandler:          sh,
 		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er),
 		UserHandler:              user.NewUserHandler(db, er),
+		eventRegistry:            er,
 		database:                 db,
 	}
 }

@@ -51,9 +51,9 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 			atomic.AddInt32(&eventHandled, 1)
 		}
 
+		er.Run(ctx)
 		er.RegisterEventHandler("test_event", handler)
 		er.PushEvent(NewTestEvent("test_event"))
-		er.Run(ctx)
 
 		time.Sleep(25 * time.Millisecond) // Allow some time for the event to be processed
 
@@ -65,11 +65,10 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		handler := func(e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
-
+		er.Run(ctx)
 		er.RegisterEventHandler("test_event", handler)
 		er.PushEvent(NewTestEvent("test_event"))
 		er.PushEvent(NewTestEvent("test_event"))
-		er.Run(ctx)
 
 		time.Sleep(25 * time.Millisecond) // Allow some time for the events to be processed
 
@@ -81,12 +80,13 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		handler := func(e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
-		er.RegisterEventHandler("test_event", handler)
-		er.RegisterEventHandler("test_event", handler)
-		er.RegisterEventHandler("test_event", handler)
-		er.PushEvent(NewTestEvent("test_event"))
-		er.PushEvent(NewTestEvent("test_event"))
+
 		er.Run(ctx)
+		er.RegisterEventHandler("test_event", handler)
+		er.RegisterEventHandler("test_event", handler)
+		er.RegisterEventHandler("test_event", handler)
+		er.PushEvent(NewTestEvent("test_event"))
+		er.PushEvent(NewTestEvent("test_event"))
 
 		time.Sleep(25 * time.Millisecond) // Allow some time for the events to be processed
 
@@ -99,9 +99,9 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 			atomic.AddInt32(&eventHandled, 1)
 		}
 
+		er.Run(ctx)
 		er.RegisterEventHandler("test_event", handler)
 		er.PushEvent(NewTestEvent("test_event"))
-		er.Run(ctx)
 
 		time.Sleep(10 * time.Millisecond) // Allow some time for the event to be processed
 		cancel()                          // Cancel the context to stop processing
