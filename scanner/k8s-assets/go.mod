@@ -7,15 +7,7 @@ require (
 	k8s.io/client-go v0.31.0
 )
 
-require (
-	github.com/agnivade/levenshtein v1.1.1 // indirect
-	github.com/alexflint/go-arg v1.4.2 // indirect
-	github.com/alexflint/go-scalar v1.0.0 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.11 // indirect
-	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
-)
+require github.com/vektah/gqlparser/v2 v2.5.11 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

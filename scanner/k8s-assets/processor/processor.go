@@ -103,10 +103,41 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 }
 
 // ProcessPod processes a single pod and its containers
-func (p *Processor) ProcessPod(ctx context.Context, namespace string, serviceID string, podInfo scanner.PodInfo) error {
-	for _, containerInfo := range podInfo.Containers {
-		if err := p.ProcessContainer(ctx, namespace, serviceID, podInfo, containerInfo); err != nil {
-			return fmt.Errorf("failed to process container %s in pod %s: %w", containerInfo.Name, podInfo.Name, err)
+// func (p *Processor) ProcessPod(ctx context.Context, namespace string, serviceID string, podInfo scanner.PodInfo) error {
+// 	for _, containerInfo := range podInfo.Containers {
+// 		if err := p.ProcessContainer(ctx, namespace, serviceID, podInfo, containerInfo); err != nil {
+// 			return fmt.Errorf("failed to process container %s in pod %s: %w", containerInfo.Name, podInfo.Name, err)
+// 		}
+// 	}
+// 	return nil
+// }
+
+func (p *Processor) collectUniqueContainers(podReplicaSet scanner.PodReplicaSet) []scanner.ContainerInfo {
+	uniqueContainers := make(map[string]scanner.ContainerInfo)
+
+	for _, pod := range podReplicaSet.Pods {
+		for _, container := range pod.Containers {
+			key := fmt.Sprintf("%s-%s", container.Name, container.ImageHash)
+			if _, exists := uniqueContainers[key]; !exists {
+				uniqueContainers[key] = container
+			}
+		}
+	}
+
+	result := make([]scanner.ContainerInfo, 0, len(uniqueContainers))
+	for _, container := range uniqueContainers {
+		result = append(result, container)
+	}
+
+	return result
+}
+
+func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, serviceID string, podReplicaSet scanner.PodReplicaSet) error {
+	uniqueContainers := p.collectUniqueContainers(podReplicaSet)
+
+	for _, containerInfo := range uniqueContainers {
+		if err := p.ProcessContainer(ctx, namespace, serviceID, podReplicaSet.GenerateName, containerInfo); err != nil {
+			return fmt.Errorf("failed to process container %s in pod replica set %s: %w", containerInfo.Name, podReplicaSet.GenerateName, err)
 		}
 	}
 	return nil
@@ -135,8 +166,13 @@ func (p *Processor) getComponentVersion(ctx context.Context, manifest string) (s
 }
 
 // ProcessContainer creates a ComponentVersion and ComponentInstance for a container
-func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serviceID string, podInfo scanner.PodInfo, containerInfo scanner.ContainerInfo) error {
-
+func (p *Processor) ProcessContainer(
+	ctx context.Context,
+	namespace string,
+	serviceID string,
+	podGroupName string,
+	containerInfo scanner.ContainerInfo,
+) error {
 	// Find component version by container image hash
 	componentVersionId, err := p.getComponentVersion(ctx, containerInfo.ImageHash)
 	if err != nil {
@@ -150,22 +186,21 @@ func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serv
 		Project:   "x", // TODO
 		Cluster:   p.config.ClusterName,
 		Namespace: namespace,
-		Pod:       podInfo.Name,
-		PodID:     podInfo.Name, // Change this!
+		Pod:       podGroupName,
+		PodID:     podGroupName, // Use podGroupName instead of individual pod name
 		Container: containerInfo.Name,
 	}
 
 	// Create new ComponentInstance
 	componentInstanceInput := &client.ComponentInstanceInput{
 		Ccrn:               ccrn.String(),
-		Count:              len(podInfo.Containers),
+		Count:              1, // TODO
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
 	}
 	createCompInstResp, err := client.CreateComponentInstance(ctx, *p.Client, componentInstanceInput)
 	if err != nil {
 		return fmt.Errorf("failed to create ComponentInstance: %w", err)
-
 	}
 	componentInstanceID := createCompInstResp.CreateComponentInstance.Id
 
@@ -173,6 +208,8 @@ func (p *Processor) ProcessContainer(ctx context.Context, namespace string, serv
 	log.WithFields(log.Fields{
 		"componentVersionID":  componentVersionId,
 		"componentInstanceID": componentInstanceID,
+		"podGroup":            podGroupName,
+		"container":           containerInfo.Name,
 	}).Info("Created new entities")
 
 	return nil

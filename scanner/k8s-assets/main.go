@@ -9,6 +9,10 @@ import (
 	"os"
 	"path"
 
+	"runtime"
+	"sync"
+	"time"
+
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/processor"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/scanner"
 	"github.com/kelseyhightower/envconfig"
@@ -20,9 +24,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"runtime"
-	"sync"
-	"time"
 )
 
 type Config struct {
@@ -33,44 +34,6 @@ type WorkerResult struct {
 	Namespace string
 	PodCount  int
 	Error     error
-}
-
-func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Processor, namespace string) WorkerResult {
-	result := WorkerResult{Namespace: namespace}
-
-	pods, err := s.GetPodsByNamespace(namespace, metav1.ListOptions{})
-	if err != nil {
-		result.Error = fmt.Errorf("failed to get pods for namespace %s: %w", namespace, err)
-		return result
-	}
-
-	result.PodCount = len(pods)
-
-	for _, pod := range pods {
-		podInfo := s.GetPodInfo(pod)
-		serviceInfo := s.GetServiceInfo(podInfo)
-
-		serviceId, err := p.ProcessService(ctx, namespace, serviceInfo)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error":       err,
-				"namespace":   namespace,
-				"serviceName": serviceInfo.Name,
-			}).Error("Failed to process service")
-			continue
-		}
-
-		err = p.ProcessPod(ctx, namespace, serviceId, podInfo)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error":       err,
-				"namespace":   namespace,
-				"serviceName": serviceInfo.Name,
-				"podName":     podInfo.Name,
-			}).Error("Failed to process pod")
-		}
-	}
-	return result
 }
 
 func init() {
@@ -109,6 +72,55 @@ func oidcBasedConfig() (*rest.Config, error) {
 		return nil, err
 	}
 	return config, nil
+}
+
+func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Processor, namespace string) WorkerResult {
+	result := WorkerResult{Namespace: namespace}
+
+	pods, err := s.GetPodsByNamespace(namespace, metav1.ListOptions{})
+	if err != nil {
+		result.Error = fmt.Errorf("failed to get pods for namespace %s: %w", namespace, err)
+		return result
+	}
+
+	result.PodCount = len(pods)
+	podReplicas := s.GroupPodsByGenerateName(pods)
+
+	for _, podReplica := range podReplicas {
+		if len(podReplica.Pods) == 0 {
+			continue
+		}
+		fmt.Printf("GenerateName: %s\n", podReplica.GenerateName)
+		for _, pod := range podReplica.Pods {
+			fmt.Printf(".pod: %s\n", pod.Name)
+			for _, container := range pod.Containers {
+				fmt.Printf("\tcontainerName: %s\t\t containerImage:%s\t ImageId: %s\n", container.Name, container.Image, container.ImageHash)
+			}
+		}
+		// TODO
+		serviceInfo := s.GetServiceInfo(podReplica.Pods[0])
+
+		serviceId, err := p.ProcessService(ctx, namespace, serviceInfo)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error":       err,
+				"namespace":   namespace,
+				"serviceName": serviceInfo.Name,
+			}).Error("Failed to process service")
+			continue
+		}
+
+		err = p.ProcessPodReplicaSet(ctx, namespace, serviceId, podReplica)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error":       err,
+				"namespace":   namespace,
+				"serviceName": serviceInfo.Name,
+				"podName":     podReplica.GenerateName,
+			}).Error("Failed to process pod")
+		}
+	}
+	return result
 }
 
 func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.Processor, namespaces []v1.Namespace) {

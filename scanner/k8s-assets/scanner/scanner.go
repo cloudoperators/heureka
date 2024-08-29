@@ -29,12 +29,18 @@ type ServiceInfo struct {
 	Pods         []PodInfo
 }
 
+type PodReplicaSet struct {
+	GenerateName string
+	Pods         []PodInfo
+}
+
 type PodInfo struct {
-	Labels     PodLabels
-	Name       string
-	Namespace  string
-	UID        string
-	Containers []ContainerInfo
+	Labels       PodLabels
+	Name         string
+	GenerateName string
+	Namespace    string
+	UID          string
+	Containers   []ContainerInfo
 }
 
 type ContainerInfo struct {
@@ -103,11 +109,12 @@ func (s *Scanner) fetchImageId(pod v1.Pod, container v1.Container) string {
 
 func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 	podInfo := PodInfo{
-		Name:       pod.Name,
-		UID:        string(pod.UID),
-		Namespace:  pod.Namespace,
-		Labels:     s.GetRelevantLabels(pod),
-		Containers: make([]ContainerInfo, 0, len(pod.Spec.Containers)),
+		Name:         pod.Name,
+		GenerateName: pod.GenerateName,
+		UID:          string(pod.UID),
+		Namespace:    pod.Namespace,
+		Labels:       s.GetRelevantLabels(pod),
+		Containers:   make([]ContainerInfo, 0, len(pod.Spec.Containers)),
 	}
 
 	for _, container := range pod.Spec.Containers {
@@ -136,6 +143,31 @@ func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 	return podInfo
 }
 
+// GroupPodsByGenerateName will group pod replicas by "GenerateName"
+// wll return a list pf PodReplicaSet
+func (s *Scanner) GroupPodsByGenerateName(pods []v1.Pod) []PodReplicaSet {
+	podGroups := make(map[string][]PodInfo)
+
+	for _, pod := range pods {
+		podInfo := s.GetPodInfo(pod)
+		key := podInfo.GenerateName
+		if key == "" {
+			key = podInfo.Name // Use Name if GenerateName is empty
+		}
+		podGroups[key] = append(podGroups[key], podInfo)
+	}
+
+	result := make([]PodReplicaSet, 0, len(podGroups))
+	for generateName, pods := range podGroups {
+		result = append(result, PodReplicaSet{
+			GenerateName: generateName,
+			Pods:         pods,
+		})
+	}
+
+	return result
+}
+
 // GetServiceInfo extracts meta information from a PodInfo object
 func (s *Scanner) GetServiceInfo(podInfo PodInfo) ServiceInfo {
 	return ServiceInfo{
@@ -150,5 +182,6 @@ func (s *Scanner) GetPodsByNamespace(namespace string, listOptions metav1.ListOp
 	if err != nil {
 		return nil, fmt.Errorf("couldn't list pods")
 	}
+	log.Infof("Got %d pods", len(pods.Items))
 	return pods.Items, nil
 }
