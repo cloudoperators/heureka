@@ -182,6 +182,5 @@ func (s *Scanner) GetPodsByNamespace(namespace string, listOptions metav1.ListOp
 	if err != nil {
 		return nil, fmt.Errorf("couldn't list pods")
 	}
-	log.Infof("Got %d pods", len(pods.Items))
 	return pods.Items, nil
 }

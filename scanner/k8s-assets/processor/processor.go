@@ -30,6 +30,15 @@ type CCRN struct {
 	Container string
 }
 
+// UniqueContainerInfo extends scanner.ContainerInfo to represent a unique container
+// configuration within a pod replica set, adding a count of occurrences.
+// It is used by the CollectUniqueContainers function to aggregate information about
+// distinct containers across multiple pods.
+type UniqueContainerInfo struct {
+	scanner.ContainerInfo
+	Count int
+}
+
 func (c CCRN) String() string {
 	// Define default CCRN
 	return fmt.Sprintf("rn.cloud.sap/ccrn/kubernetes/v1/%s/%s/%s/kubernikus/%s/%s/%s/%s/%s",
@@ -102,38 +111,51 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 	return serviceId, nil
 }
 
-// ProcessPod processes a single pod and its containers
-// func (p *Processor) ProcessPod(ctx context.Context, namespace string, serviceID string, podInfo scanner.PodInfo) error {
-// 	for _, containerInfo := range podInfo.Containers {
-// 		if err := p.ProcessContainer(ctx, namespace, serviceID, podInfo, containerInfo); err != nil {
-// 			return fmt.Errorf("failed to process container %s in pod %s: %w", containerInfo.Name, podInfo.Name, err)
-// 		}
-// 	}
-// 	return nil
-// }
-
-func (p *Processor) collectUniqueContainers(podReplicaSet scanner.PodReplicaSet) []scanner.ContainerInfo {
-	uniqueContainers := make(map[string]scanner.ContainerInfo)
+// CollectUniqueContainers processes a PodReplicaSet and returns a slice of
+// unique container name, image name, and image ID combinations with their
+// respective counts across all pods in the replica set.
+//
+// This function identifies unique combinations based on container name, image
+// name, and image ID (referred to as ImageHash in the code). It counts how many
+// times each unique combination appears across all pods in the replica set.
+//
+// Parameters:
+//   - podReplicaSet: A scanner.PodReplicaSet object representing a group of related pods.
+//
+// Returns:
+//   - []UniqueContainerInfo: A slice of UniqueContainerInfo structs. Each struct contains:
+//   - ContainerInfo: The original container information (Name, Image, ImageHash).
+//   - Count: The number of times this unique combination appears in the PodReplicaSet.
+//
+// The returned slice will contain one entry for each unique combination of
+// container name, image name, and image ID found in the PodReplicaSet, along
+// with a count of its occurrences.
+func (p *Processor) CollectUniqueContainers(podReplicaSet scanner.PodReplicaSet) []UniqueContainerInfo {
+	uniqueContainers := make(map[string]*UniqueContainerInfo)
 
 	for _, pod := range podReplicaSet.Pods {
 		for _, container := range pod.Containers {
 			key := fmt.Sprintf("%s-%s", container.Name, container.ImageHash)
 			if _, exists := uniqueContainers[key]; !exists {
-				uniqueContainers[key] = container
+				uniqueContainers[key] = &UniqueContainerInfo{
+					ContainerInfo: container,
+					Count:         0,
+				}
 			}
+			uniqueContainers[key].Count++
 		}
 	}
 
-	result := make([]scanner.ContainerInfo, 0, len(uniqueContainers))
+	result := make([]UniqueContainerInfo, 0, len(uniqueContainers))
 	for _, container := range uniqueContainers {
-		result = append(result, container)
+		result = append(result, *container)
 	}
 
 	return result
 }
 
 func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, serviceID string, podReplicaSet scanner.PodReplicaSet) error {
-	uniqueContainers := p.collectUniqueContainers(podReplicaSet)
+	uniqueContainers := p.CollectUniqueContainers(podReplicaSet)
 
 	for _, containerInfo := range uniqueContainers {
 		if err := p.ProcessContainer(ctx, namespace, serviceID, podReplicaSet.GenerateName, containerInfo); err != nil {
@@ -171,7 +193,7 @@ func (p *Processor) ProcessContainer(
 	namespace string,
 	serviceID string,
 	podGroupName string,
-	containerInfo scanner.ContainerInfo,
+	containerInfo UniqueContainerInfo,
 ) error {
 	// Find component version by container image hash
 	componentVersionId, err := p.getComponentVersion(ctx, containerInfo.ImageHash)
@@ -210,7 +232,7 @@ func (p *Processor) ProcessContainer(
 		"componentInstanceID": componentInstanceID,
 		"podGroup":            podGroupName,
 		"container":           containerInfo.Name,
-	}).Info("Created new entities")
+	}).Debug("Created new entities")
 
 	return nil
 }

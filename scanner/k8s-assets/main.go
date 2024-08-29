@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 
-	"runtime"
 	"sync"
 	"time"
 
@@ -24,6 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"runtime"
 )
 
 type Config struct {
@@ -89,13 +89,6 @@ func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Proc
 	for _, podReplica := range podReplicas {
 		if len(podReplica.Pods) == 0 {
 			continue
-		}
-		fmt.Printf("GenerateName: %s\n", podReplica.GenerateName)
-		for _, pod := range podReplica.Pods {
-			fmt.Printf(".pod: %s\n", pod.Name)
-			for _, container := range pod.Containers {
-				fmt.Printf("\tcontainerName: %s\t\t containerImage:%s\t ImageId: %s\n", container.Name, container.Image, container.ImageHash)
-			}
 		}
 		// TODO
 		serviceInfo := s.GetServiceInfo(podReplica.Pods[0])
@@ -178,7 +171,7 @@ func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.P
 			log.WithFields(log.Fields{
 				"namespace": result.Namespace,
 				"podCount":  result.PodCount,
-			}).Info("Successfully processed namespace")
+			}).Debug("Successfully processed namespace")
 		}
 	}
 }
