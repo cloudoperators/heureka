@@ -46,7 +46,7 @@ services:
       DB_SCHEMA: /app_sqlschema/schema.sql
       SEED_MODE: ${SEED_MODE}
       AUTH_TYPE: token
-      AUTH_TOKEN_MAP: '{"testscanner":"xxx", "someotherscanner":"yyy"}'
+      AUTH_TOKEN_SECRET: xxx
     volumes:
       - ./internal/database/mariadb/init/schema.sql:/app_sqlschema/schema.sql
     depends_on:

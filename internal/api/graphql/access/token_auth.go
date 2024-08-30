@@ -1,32 +1,28 @@
 package access
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type TokenAuth struct {
-	logger           Logger
-	scannerSecretMap map[string]string
+	logger Logger
+	secret []byte
 }
 
 func NewTokenAuth(l Logger) *TokenAuth {
-	ta := TokenAuth{logger: l}
+	return &TokenAuth{logger: l, secret: []byte(os.Getenv("AUTH_TOKEN_SECRET"))}
+}
 
-	env := os.Getenv("AUTH_TOKEN_MAP")
-	if env != "" {
-		err := json.Unmarshal([]byte(env), &ta.scannerSecretMap)
-		if err != nil {
-			l.Error("Error parsing JSON: ", err.Error())
-		}
-	}
-
-	return &ta
+type TokenClaims struct {
+	Name    string `json:"name"`
+	Role    string `json:"role"`
+	Version string `json:"version"`
+	jwt.RegisteredClaims
 }
 
 func (ta *TokenAuth) GetMiddleware() gin.HandlerFunc {
@@ -40,7 +36,7 @@ func (ta *TokenAuth) GetMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		token, err := ta.parseFromString(tokenString)
+		token, claims, err := ta.parseFromString(tokenString)
 		if err != nil {
 			ta.logger.Error("JWT parsing error: ", err.Error())
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token parsing error"})
@@ -53,29 +49,21 @@ func (ta *TokenAuth) GetMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		c.Set("authinfo", claims)
+
 		c.Next()
 	}
 }
 
-func (ta *TokenAuth) parseFromString(tokenString string) (*jwt.Token, error) {
-	return jwt.Parse(tokenString, ta.parse)
+func (ta *TokenAuth) parseFromString(tokenString string) (*jwt.Token, *TokenClaims, error) {
+	claims := &TokenClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, ta.parse)
+	return token, claims, err
 }
 
 func (ta *TokenAuth) parse(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, fmt.Errorf("Invalid JWT parse method")
 	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, fmt.Errorf("Could not get claims from JWT")
-	}
-	scannerName, ok := claims["scanner_name"].(string)
-	if !ok {
-		return nil, fmt.Errorf("Could not claim scanner_name from JWT")
-	}
-	secret, ok := ta.scannerSecretMap[scannerName]
-	if !ok {
-		return nil, fmt.Errorf("Could not find secret for scanner: %s", scannerName)
-	}
-	return []byte(secret), nil
+	return ta.secret, nil
 }
