@@ -7,6 +7,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
+
+	"bytes"
+	"text/template"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/client"
@@ -36,21 +40,27 @@ type CCRN struct {
 // distinct containers across multiple pods.
 type UniqueContainerInfo struct {
 	scanner.ContainerInfo
-	Count int
+	PodName      string
+	GenerateName string
+	Count        int
 }
 
 func (c CCRN) String() string {
-	// Define default CCRN
-	return fmt.Sprintf("rn.cloud.sap/ccrn/kubernetes/v1/%s/%s/%s/kubernikus/%s/%s/%s/%s/%s",
-		c.Region,
-		c.Domain,
-		c.Project,
-		c.Cluster,
-		c.Namespace,
-		c.Pod,
-		c.PodID,
-		c.Container,
-	)
+	ccrnTemplate := `rn.cloud.sap/ccrn/kubernetes/v1/{{.Region}}/-/-/-/{{.Region}}/{{.Namespace}}/{{.Pod}}/{{.PodID}}/{{.Container}}`
+
+	tmpl, err := template.New("ccrn").Parse(ccrnTemplate)
+	if err != nil {
+		return ""
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, c)
+	if err != nil {
+		log.Error("Couldn't create CCRN string")
+		return ""
+	}
+
+	return buf.String()
 }
 
 func NewProcessor(cfg Config) *Processor {
@@ -139,6 +149,8 @@ func (p *Processor) CollectUniqueContainers(podReplicaSet scanner.PodReplicaSet)
 			if _, exists := uniqueContainers[key]; !exists {
 				uniqueContainers[key] = &UniqueContainerInfo{
 					ContainerInfo: container,
+					PodName:       pod.Name,
+					GenerateName:  strings.TrimSuffix(pod.GenerateName, "-"),
 					Count:         0,
 				}
 			}
@@ -198,25 +210,25 @@ func (p *Processor) ProcessContainer(
 	// Find component version by container image hash
 	componentVersionId, err := p.getComponentVersion(ctx, containerInfo.ImageHash)
 	if err != nil {
-		return fmt.Errorf("Couldn't find ComponentVersion")
+		return fmt.Errorf("Couldn't find ComponentVersion (imageHash: %s): %w", containerInfo.ImageHash, err)
 	}
 
 	// Create new CCRN
 	ccrn := CCRN{
 		Region:    p.config.RegionName,
-		Domain:    "x", // TODO
-		Project:   "x", // TODO
+		Domain:    "-", // Not used at the moment
+		Project:   "-", // Not used at the moment
 		Cluster:   p.config.ClusterName,
 		Namespace: namespace,
-		Pod:       podGroupName,
-		PodID:     podGroupName, // Use podGroupName instead of individual pod name
+		Pod:       containerInfo.GenerateName,
+		PodID:     containerInfo.PodName,
 		Container: containerInfo.Name,
 	}
 
 	// Create new ComponentInstance
 	componentInstanceInput := &client.ComponentInstanceInput{
 		Ccrn:               ccrn.String(),
-		Count:              1, // TODO
+		Count:              containerInfo.Count,
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
 	}
@@ -232,7 +244,8 @@ func (p *Processor) ProcessContainer(
 		"componentInstanceID": componentInstanceID,
 		"podGroup":            podGroupName,
 		"container":           containerInfo.Name,
-	}).Debug("Created new entities")
+		"count":               containerInfo.Count,
+	}).Info("Created new entities")
 
 	return nil
 }

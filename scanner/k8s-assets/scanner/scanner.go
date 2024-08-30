@@ -67,7 +67,7 @@ func NewScanner(kubeConfig *rest.Config, clientSet *kubernetes.Clientset, cfg Co
 func (s *Scanner) GetNamespaces(listOptions metav1.ListOptions) ([]v1.Namespace, error) {
 	namespaces, err := s.ClientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("couldn't list namespaces")
+		return nil, fmt.Errorf("couldn't list namespaces: %w", err)
 	}
 	return namespaces.Items, nil
 }
@@ -123,8 +123,9 @@ func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 		imageId = s.fetchImageId(pod, container)
 		if imageId == "" {
 			log.WithFields(log.Fields{
-				"container": container,
-				"pod":       pod,
+				"containerName": container.Name,
+				"podName":       pod.Name,
+				"namespace":     pod.Namespace,
 			}).Error("Couldn't find imageId")
 		} else {
 			hash, err := s.ParseImageHash(imageId)
@@ -180,7 +181,7 @@ func (s *Scanner) GetServiceInfo(podInfo PodInfo) ServiceInfo {
 func (s *Scanner) GetPodsByNamespace(namespace string, listOptions metav1.ListOptions) ([]v1.Pod, error) {
 	pods, err := s.ClientSet.CoreV1().Pods(namespace).List(context.Background(), listOptions)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't list pods")
+		return nil, fmt.Errorf("couldn't list pods: %w", err)
 	}
 	return pods.Items, nil
 }

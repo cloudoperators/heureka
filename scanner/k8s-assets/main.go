@@ -171,7 +171,7 @@ func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.P
 			log.WithFields(log.Fields{
 				"namespace": result.Namespace,
 				"podCount":  result.PodCount,
-			}).Debug("Successfully processed namespace")
+			}).Info("Successfully processed namespace")
 		}
 	}
 }
