@@ -76,6 +76,18 @@ func NewProcessor(cfg Config) *Processor {
 func (p *Processor) ProcessService(ctx context.Context, namespace string, serviceInfo scanner.ServiceInfo) (string, error) {
 	var serviceId string
 
+	// The Service might already exist in the DB
+	// Let's try to fetch one Service by name
+	_serviceId, err := p.getService(ctx, serviceInfo)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"serviceName": serviceInfo.Name,
+		}).Error("failed to fetch service")
+	} else {
+		serviceId = _serviceId
+		return serviceId, nil
+	}
+
 	// Create new Service
 	createServiceInput := &client.ServiceInput{
 		Name: serviceInfo.Name,
@@ -83,13 +95,7 @@ func (p *Processor) ProcessService(ctx context.Context, namespace string, servic
 
 	createServiceResp, err := client.CreateService(ctx, *p.Client, createServiceInput)
 	if err != nil {
-		// The Service might already exist in the DB
-		// Let's try to fetch one Service by name
-		_serviceId, err := p.getService(ctx, serviceInfo)
-		if err != nil {
-			return "", fmt.Errorf("failed to create Service %s: %w", serviceInfo.Name, err)
-		}
-		serviceId = _serviceId
+		return "", fmt.Errorf("failed to create Service %s: %w", serviceInfo.Name, err)
 	} else {
 		serviceId = createServiceResp.CreateService.Id
 	}
