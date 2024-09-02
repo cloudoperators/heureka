@@ -46,7 +46,7 @@ type UniqueContainerInfo struct {
 }
 
 func (c CCRN) String() string {
-	ccrnTemplate := `rn.cloud.sap/ccrn/kubernetes/v1/{{.Region}}/-/-/-/{{.Region}}/{{.Namespace}}/{{.Pod}}/{{.PodID}}/{{.Container}}`
+	ccrnTemplate := `rn.cloud.sap/ccrn/kubernetes/v1/{{.Region}}/-/-/-/{{.Cluster}}/{{.Namespace}}/{{.Pod}}/{{.Container}}`
 
 	tmpl, err := template.New("ccrn").Parse(ccrnTemplate)
 	if err != nil {

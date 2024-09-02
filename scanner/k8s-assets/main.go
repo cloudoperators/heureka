@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	kubeconfig "github.com/cloudoperators/heureka/scanners/k8s-assets/config"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/processor"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/scanner"
 	"github.com/kelseyhightower/envconfig"
@@ -58,20 +59,6 @@ func init() {
 
 	// Only log the warning severity or above.
 	log.SetLevel(level)
-}
-
-func oidcBasedConfig() (*rest.Config, error) {
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		//replace path with a kubeconfig that has a valid oidc token for your cluster
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: path.Join(homedir.HomeDir(), "Library", "Application Support", "SAPCC", "u8s", ".kube", "config")},
-		//replace with the context you want to use
-		&clientcmd.ConfigOverrides{CurrentContext: "qa-de-1"},
-	).ClientConfig()
-
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
 }
 
 func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Processor, namespace string) WorkerResult {
@@ -184,8 +171,8 @@ func main() {
 			"errror": err,
 		}).Warn("Couldn't initialize scanner config")
 	}
-	// Configure new k8s scanner
-	kubeConfig, err := oidcBasedConfig()
+
+	kubeConfig, err := kubeconfig.GetKubeConfig(scannerCfg.KubeconfigType, scannerCfg.KubeConfigPath, scannerCfg.KubeconfigContext)
 	if err != nil {
 		log.WithError(err).Fatal("couldn't load kubeConfig")
 	}
