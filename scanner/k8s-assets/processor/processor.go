@@ -183,11 +183,11 @@ func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, 
 	return nil
 }
 
-func (p *Processor) getComponentVersion(ctx context.Context, manifest string) (string, error) {
+func (p *Processor) getComponentVersion(ctx context.Context, versionHash string) (string, error) {
 	var componentVersionId string
 
 	listComponentVersionFilter := client.ComponentVersionFilter{
-		Version: []string{manifest},
+		Version: []string{versionHash},
 	}
 	listCompoVersResp, err := client.ListComponentVersions(ctx, *p.Client, &listComponentVersionFilter)
 	if err != nil {
