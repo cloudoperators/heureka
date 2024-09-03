@@ -1,13 +1,22 @@
 package access
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+const (
+	ginContextKey ginContextKeyType = "GinContextKey"
+	usernameKey   string            = "username"
+)
+
+type ginContextKeyType string
 
 type TokenAuth struct {
 	logger Logger
@@ -19,8 +28,6 @@ func NewTokenAuth(l Logger) *TokenAuth {
 }
 
 type TokenClaims struct {
-	Name    string `json:"name"`
-	Role    string `json:"role"`
 	Version string `json:"version"`
 	jwt.RegisteredClaims
 }
@@ -47,10 +54,16 @@ func (ta *TokenAuth) GetMiddleware() gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
+		} else if claims.ExpiresAt.Before(time.Now()) {
+			ta.logger.Warn("Expired token")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+			c.Abort()
+			return
 		}
 
-		c.Set("authinfo", claims)
-
+		c.Set(usernameKey, claims.RegisteredClaims.Subject)
+		ctx := context.WithValue(c.Request.Context(), ginContextKey, c)
+		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}
 }
@@ -66,4 +79,34 @@ func (ta *TokenAuth) parse(token *jwt.Token) (interface{}, error) {
 		return nil, fmt.Errorf("Invalid JWT parse method")
 	}
 	return ta.secret, nil
+}
+
+func UsernameFromContext(ctx context.Context) (string, error) {
+	gc, err := ginContextFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	u, ok := gc.Get(usernameKey)
+	if !ok {
+		return "", fmt.Errorf("could not find username in gin.Context")
+	}
+	us, ok := u.(string)
+	if !ok {
+		return "", fmt.Errorf("invalid username type")
+	}
+	return us, nil
+}
+
+func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
+	ginContext := ctx.Value(ginContextKey)
+	if ginContext == nil {
+		return nil, fmt.Errorf("could not retrieve gin.Context")
+	}
+
+	gc, ok := ginContext.(*gin.Context)
+	if !ok {
+		return nil, fmt.Errorf("gin.Context has wrong type")
+	}
+	return gc, nil
 }

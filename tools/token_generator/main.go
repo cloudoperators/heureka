@@ -3,22 +3,28 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/access"
 )
 
 var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 type TokenClaims struct {
-	Name    string `json:"name"`
-	Role    string `json:"role"`
 	Version string `json:"version"`
 	jwt.RegisteredClaims
 }
 
 func GenerateJWT() (string, error) {
-	claims := access.TokenClaims{Name: "a", Role: "b", Version: "c"}
+	claims := TokenClaims{
+		Version: "0.3.1",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "heureka",
+			Subject:   "testUser",
+        },
+    }
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString(jwtSecret)
