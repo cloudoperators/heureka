@@ -5,12 +5,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"path"
-
 	"sync"
 	"time"
+	"fmt"
 
 	kubeconfig "github.com/cloudoperators/heureka/scanners/k8s-assets/config"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/processor"
@@ -21,9 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	"runtime"
 )
 
@@ -195,7 +190,8 @@ func main() {
 	processor := processor.NewProcessor(cfg)
 
 	// Create context with timeout (30min should be ok)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	scanTimeout, _ := time.ParseDuration(scannerCfg.ScannerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout*time.Minute)
 	defer cancel()
 
 	// Get namespaces
