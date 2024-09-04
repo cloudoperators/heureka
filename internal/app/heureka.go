@@ -4,6 +4,8 @@
 package app
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -47,6 +49,7 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 	rh := issue_repository.NewIssueRepositoryHandler(db, er)
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
 	sh := severity.NewSeverityHandler(db, er, ivh)
+	er.Run(context.Background())
 	return &HeurekaApp{
 		ActivityHandler:          activity.NewActivityHandler(db, er),
 		ComponentHandler:         component.NewComponentHandler(db, er),
