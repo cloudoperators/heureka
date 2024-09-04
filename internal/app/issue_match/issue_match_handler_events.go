@@ -85,8 +85,10 @@ func (e *RemoveEvidenceFromIssueMatchEvent) Name() event.EventName {
 	return RemoveEvidenceFromIssueMatchEventName
 }
 
-func OnComponentInstanceCreate(db database.Database, event component_instance.CreateComponentInstanceEvent) {
-	OnComponentVersionAssignmentToComponentInstance(db, event.ComponentInstance.Id, event.ComponentInstance.ComponentVersionId)
+func OnComponentInstanceCreate(db database.Database, event event.Event) {
+	if createEvent, ok := event.(*component_instance.CreateComponentInstanceEvent); ok {
+		OnComponentVersionAssignmentToComponentInstance(db, createEvent.ComponentInstance.Id, createEvent.ComponentInstance.ComponentVersionId)
+	}
 }
 
 // @todo method is to long and needs a refactoring.

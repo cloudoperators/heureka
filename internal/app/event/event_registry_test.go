@@ -37,7 +37,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 	)
 
 	BeforeEach(func() {
-		er = NewEventRegistry()
+		er = NewEventRegistry(db)
 		ctx, cancel = context.WithCancel(context.Background())
 	})
 
