@@ -4,16 +4,17 @@
 package component_version_test
 
 import (
+	"math"
+	"testing"
+
+	cv "github.com/cloudoperators/heureka/internal/app/component_version"
+	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	cv "github.wdf.sap.corp/cc/heureka/internal/app/component_version"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
-	"math"
-	"testing"
 )
 
 func TestComponentVersionHandler(t *testing.T) {

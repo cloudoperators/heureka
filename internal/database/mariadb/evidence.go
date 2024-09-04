@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
 func (s *SqlDatabase) ensureEvidenceFilter(f *entity.EvidenceFilter) *entity.EvidenceFilter {

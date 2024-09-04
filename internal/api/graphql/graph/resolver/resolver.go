@@ -4,8 +4,8 @@
 package resolver
 
 import (
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph"
-	"github.wdf.sap.corp/cc/heureka/internal/app"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
+	"github.com/cloudoperators/heureka/internal/app"
 )
 
 // This file will not be regenerated automatically.

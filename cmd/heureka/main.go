@@ -6,12 +6,12 @@ package main
 import (
 	"fmt"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
+	"github.com/cloudoperators/heureka/internal/server"
+	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/cloudoperators/heureka/pkg/log"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb/test"
-	"github.wdf.sap.corp/cc/heureka/internal/server"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
-	"github.wdf.sap.corp/cc/heureka/pkg/log"
 )
 
 var (

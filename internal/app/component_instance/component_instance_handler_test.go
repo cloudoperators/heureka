@@ -4,16 +4,17 @@
 package component_instance_test
 
 import (
+	"math"
+	"testing"
+
+	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
+	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	ci "github.wdf.sap.corp/cc/heureka/internal/app/component_instance"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
-	"math"
-	"testing"
 )
 
 func TestComponentInstanceHandler(t *testing.T) {

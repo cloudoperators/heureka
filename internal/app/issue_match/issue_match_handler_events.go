@@ -4,8 +4,8 @@
 package issue_match
 
 import (
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 const (

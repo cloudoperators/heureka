@@ -10,8 +10,8 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/pkg/util"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/pkg/util"
 )
 
 // add custom models here

@@ -9,16 +9,16 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/onsi/ginkgo/v2/dsl/core"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
 
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
 )
 
 type SeedCollection struct {

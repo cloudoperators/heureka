@@ -4,22 +4,22 @@
 package app
 
 import (
-	"github.wdf.sap.corp/cc/heureka/internal/app/activity"
-	"github.wdf.sap.corp/cc/heureka/internal/app/component"
-	"github.wdf.sap.corp/cc/heureka/internal/app/component_instance"
-	"github.wdf.sap.corp/cc/heureka/internal/app/component_version"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	"github.wdf.sap.corp/cc/heureka/internal/app/evidence"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_match"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_match_change"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_repository"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_variant"
-	"github.wdf.sap.corp/cc/heureka/internal/app/service"
-	"github.wdf.sap.corp/cc/heureka/internal/app/severity"
-	"github.wdf.sap.corp/cc/heureka/internal/app/support_group"
-	"github.wdf.sap.corp/cc/heureka/internal/app/user"
-	"github.wdf.sap.corp/cc/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/app/activity"
+	"github.com/cloudoperators/heureka/internal/app/component"
+	"github.com/cloudoperators/heureka/internal/app/component_instance"
+	"github.com/cloudoperators/heureka/internal/app/component_version"
+	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/evidence"
+	"github.com/cloudoperators/heureka/internal/app/issue"
+	"github.com/cloudoperators/heureka/internal/app/issue_match"
+	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
+	"github.com/cloudoperators/heureka/internal/app/issue_repository"
+	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/service"
+	"github.com/cloudoperators/heureka/internal/app/severity"
+	"github.com/cloudoperators/heureka/internal/app/support_group"
+	"github.com/cloudoperators/heureka/internal/app/user"
+	"github.com/cloudoperators/heureka/internal/database"
 )
 
 type HeurekaApp struct {

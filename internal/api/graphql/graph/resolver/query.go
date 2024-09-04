@@ -10,10 +10,10 @@ package resolver
 import (
 	"context"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/baseResolver"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/model"
 	"k8s.io/utils/pointer"
 )
 

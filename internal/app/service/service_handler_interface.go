@@ -3,7 +3,7 @@
 
 package service
 
-import "github.wdf.sap.corp/cc/heureka/internal/entity"
+import "github.com/cloudoperators/heureka/internal/entity"
 
 type ServiceHandler interface {
 	GetService(serviceId int64) (*entity.Service, error)

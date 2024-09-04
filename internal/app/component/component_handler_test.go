@@ -4,17 +4,18 @@
 package component_test
 
 import (
-	c "github.wdf.sap.corp/cc/heureka/internal/app/component"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
 	"math"
 	"testing"
 
+	c "github.com/cloudoperators/heureka/internal/app/component"
+	"github.com/cloudoperators/heureka/internal/app/event"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 )
 
 func TestComponentHandler(t *testing.T) {
