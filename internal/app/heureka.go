@@ -44,7 +44,7 @@ type HeurekaApp struct {
 }
 
 func NewHeurekaApp(db database.Database) *HeurekaApp {
-	er := event.NewEventRegistry()
+	er := event.NewEventRegistry(db)
 	rh := issue_repository.NewIssueRepositoryHandler(db, er)
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
 	sh := severity.NewSeverityHandler(db, er, ivh)
@@ -67,6 +67,10 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 		eventRegistry:            er,
 		database:                 db,
 	}
+}
+
+func (h *HeurekaApp) SubscribeHandlers() event.EventRegistry {
+	h.eventRegistry.RegisterEventHandler(component_instance.CreateComponentInstanceEventName, issue_match.OnComponentInstanceCreate)
 }
 
 func (h *HeurekaApp) Shutdown() error {
