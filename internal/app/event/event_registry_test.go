@@ -5,11 +5,14 @@ package event
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.wdf.sap.corp/cc/heureka/internal/database"
+	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 )
 
 func TestEventRegistry(t *testing.T) {
@@ -32,11 +35,13 @@ func (e *TestEvent) Name() EventName {
 var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func() {
 	var (
 		er     EventRegistry
+		db     *mocks.MockDatabase
 		ctx    context.Context
 		cancel context.CancelFunc
 	)
 
 	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
 		er = NewEventRegistry(db)
 		ctx, cancel = context.WithCancel(context.Background())
 	})
@@ -47,12 +52,12 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should register and handle events", func() {
 		var eventHandled int32
-		handler := func(e Event) {
+		handler := func(db database.Database, e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
 
 		er.Run(ctx)
-		er.RegisterEventHandler("test_event", handler)
+		er.RegisterEventHandler("test_event", EventHandlerFunc(handler))
 		er.PushEvent(NewTestEvent("test_event"))
 
 		time.Sleep(25 * time.Millisecond) // Allow some time for the event to be processed
@@ -62,11 +67,11 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should handle multiple events", func() {
 		var eventHandled int32
-		handler := func(e Event) {
+		handler := func(db database.Database, e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
 		er.Run(ctx)
-		er.RegisterEventHandler("test_event", handler)
+		er.RegisterEventHandler("test_event", EventHandlerFunc(handler))
 		er.PushEvent(NewTestEvent("test_event"))
 		er.PushEvent(NewTestEvent("test_event"))
 
@@ -77,14 +82,14 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should handle multiple times when multiple handlers are registered", func() {
 		var eventHandled int32
-		handler := func(e Event) {
+		handler := func(db database.Database, e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
 
 		er.Run(ctx)
-		er.RegisterEventHandler("test_event", handler)
-		er.RegisterEventHandler("test_event", handler)
-		er.RegisterEventHandler("test_event", handler)
+		er.RegisterEventHandler("test_event", EventHandlerFunc(handler))
+		er.RegisterEventHandler("test_event", EventHandlerFunc(handler))
+		er.RegisterEventHandler("test_event", EventHandlerFunc(handler))
 		er.PushEvent(NewTestEvent("test_event"))
 		er.PushEvent(NewTestEvent("test_event"))
 
@@ -95,12 +100,12 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should stop processing on context cancel", func() {
 		var eventHandled int32
-		handler := func(e Event) {
+		handler := func(db database.Database, e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
 
 		er.Run(ctx)
-		er.RegisterEventHandler("test_event", handler)
+		er.RegisterEventHandler("test_event", EventHandlerFunc(handler))
 		er.PushEvent(NewTestEvent("test_event"))
 
 		time.Sleep(10 * time.Millisecond) // Allow some time for the event to be processed
