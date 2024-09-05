@@ -1,11 +1,12 @@
 package access
 
 import (
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+
+	"github.wdf.sap.corp/cc/heureka/internal/util"
 )
 
 type Logger interface {
@@ -17,12 +18,12 @@ type Auth interface {
 	GetMiddleware() gin.HandlerFunc
 }
 
-func NewAuth() Auth {
+func NewAuth(cfg util.Config) Auth {
 	l := newLogger()
 
-	authType := strings.ToLower(os.Getenv("AUTH_TYPE"))
+	authType := strings.ToLower(cfg.AuthType)
 	if authType == "token" {
-		return NewTokenAuth(l)
+		return NewTokenAuth(l, cfg)
 	} else if authType == "none" {
 		return NewNoAuth()
 	}

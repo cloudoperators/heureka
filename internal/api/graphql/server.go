@@ -11,6 +11,7 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph"
 	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/resolver"
 	"github.wdf.sap.corp/cc/heureka/internal/app"
+	"github.wdf.sap.corp/cc/heureka/internal/util"
 )
 
 type GraphQLAPI struct {
@@ -20,11 +21,11 @@ type GraphQLAPI struct {
 	auth access.Auth
 }
 
-func NewGraphQLAPI(a app.Heureka) *GraphQLAPI {
+func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 	graphQLAPI := GraphQLAPI{
 		Server: handler.NewDefaultServer(graph.NewExecutableSchema(resolver.NewResolver(a))),
 		App:    a,
-		auth:   access.NewAuth(),
+		auth:   access.NewAuth(cfg),
 	}
 	return &graphQLAPI
 }

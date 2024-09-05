@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.wdf.sap.corp/cc/heureka/internal/util"
 )
 
 const (
@@ -23,8 +24,8 @@ type TokenAuth struct {
 	secret []byte
 }
 
-func NewTokenAuth(l Logger) *TokenAuth {
-	return &TokenAuth{logger: l, secret: []byte(os.Getenv("AUTH_TOKEN_SECRET"))}
+func NewTokenAuth(l Logger, cfg util.Config) *TokenAuth {
+	return &TokenAuth{logger: l, secret: []byte(cfg.AuthTokenSecret)}
 }
 
 type TokenClaims struct {
