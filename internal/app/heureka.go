@@ -74,6 +74,11 @@ func (h *HeurekaApp) SubscribeHandlers() {
 		component_instance.CreateComponentInstanceEventName,
 		event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
 	)
+	h.eventRegistry.RegisterEventHandler(
+		service.CreateServiceEventName,
+		event.EventHandlerFunc(service.OnServiceCreate),
+	)
+
 }
 
 func (h *HeurekaApp) Shutdown() error {

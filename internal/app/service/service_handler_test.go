@@ -144,6 +144,60 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 			Expect(newService.Name).To(BeEquivalentTo(service.Name))
 		})
 	})
+
+	Context("when handling a valid CreateServiceEvent", func() {
+		It("should add the default issue repository to the service", func() {
+			event := service.CreateServiceEvent{
+				Service: &entity.Service{Id: 123},
+			}
+
+			defaultRepoName := "nvd"
+			defaultPrio := 100
+			repo := &entity.IssueRepository{
+				Id:   456,
+				Name: defaultRepoName,
+			}
+			db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
+				Name: []*string{&defaultRepoName},
+			}).Return([]*entity.IssueRepository{repo}, nil)
+			db.On("AddIssueRepositoryToService", event.Service.Id, repo.Id, int64(defaultPrio)).Return(nil)
+
+			// Simulate event
+			service.OnServiceCreate(db, event)
+
+			// Check AddIssueRepositoryToService was called
+			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", event.Service.Id, repo.Id, int64(defaultPrio))
+		})
+	})
+
+	Context("when handling an invalid event type", func() {
+		It("should not perform any database operations", func() {
+			invalidEvent := &service.UpdateServiceEvent{}
+
+			service.OnServiceCreate(db, invalidEvent)
+
+			// These functions should not be called in case of a different event
+			db.AssertNotCalled(GinkgoT(), "GetIssueRepositories")
+			db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
+		})
+	})
+
+	Context("when no issue repository is found", func() {
+		It("should not add any repository to the service", func() {
+			event := &service.CreateServiceEvent{
+				Service: &entity.Service{Id: 123},
+			}
+			defaultRepoName := "nvd"
+			db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
+				Name: []*string{&defaultRepoName},
+			}).Return([]*entity.IssueRepository{}, nil)
+
+			service.OnServiceCreate(db, event)
+
+			db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
+			// TODO: we could also check for the error message here
+		})
+	})
 })
 
 var _ = Describe("When updating Service", Label("app", "UpdateService"), func() {
