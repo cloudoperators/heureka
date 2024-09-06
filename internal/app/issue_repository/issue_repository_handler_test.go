@@ -123,10 +123,9 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 				After: &after,
 			},
 		}
+		issueRepository = test.NewFakeIssueRepositoryEntity()
 		event = &ir.CreateIssueRepositoryEvent{
-			IssueRepository: &entity.IssueRepository{
-				Id: 1,
-			},
+			IssueRepository: &issueRepository,
 		}
 	})
 
@@ -145,7 +144,14 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 
 	Context("when services are found", func() {
 		BeforeEach(func() {
-			services := []entity.Service{{Id: 1}, {Id: 2}}
+			service1 := test.NewFakeServiceEntity()
+			service2 := test.NewFakeServiceEntity()
+			service1.Id = int64(1)
+			service2.Id = int64(2)
+
+			issueRepository.Id = int64(1)
+
+			services := []entity.Service{service1, service2}
 			db.On("GetServices", &entity.ServiceFilter{}).Return(services, nil)
 			db.On("AddIssueRepositoryToService", int64(1), int64(1), int64(100)).Return(nil)
 			db.On("AddIssueRepositoryToService", int64(2), int64(1), int64(100)).Return(nil)
