@@ -108,6 +108,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		issueRepositoryHandler ir.IssueRepositoryHandler
 		issueRepository        entity.IssueRepository
 		filter                 *entity.IssueRepositoryFilter
+		event                  *ir.CreateIssueRepositoryEvent
 	)
 
 	BeforeEach(func() {
@@ -122,6 +123,11 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 				After: &after,
 			},
 		}
+		event = &ir.CreateIssueRepositoryEvent{
+			IssueRepository: &entity.IssueRepository{
+				Id: 1,
+			},
+		}
 	})
 
 	It("creates issueRepository", func() {
@@ -134,6 +140,22 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		Expect(newIssueRepository.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
 			Expect(newIssueRepository.Name).To(BeEquivalentTo(issueRepository.Name))
+		})
+	})
+
+	Context("when services are found", func() {
+		BeforeEach(func() {
+			services := []entity.Service{{Id: 1}, {Id: 2}}
+			db.On("GetServices", &entity.ServiceFilter{}).Return(services, nil)
+			db.On("AddIssueRepositoryToService", int64(1), int64(1), int64(100)).Return(nil)
+			db.On("AddIssueRepositoryToService", int64(2), int64(1), int64(100)).Return(nil)
+		})
+
+		It("adds the issue repository to all services", func() {
+			ir.OnIssueRepositoryCreate(db, event)
+
+			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", int64(1), int64(1), int64(100))
+			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", int64(2), int64(1), int64(100))
 		})
 	})
 })
