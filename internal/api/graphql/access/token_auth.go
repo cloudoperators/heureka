@@ -50,7 +50,7 @@ func (ta *TokenAuth) GetMiddleware() gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token parsing error"})
 			c.Abort()
 			return
-		} else if !token.Valid {
+		} else if !token.Valid || claims.ExpiresAt == nil {
 			ta.logger.Error("Invalid token")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
