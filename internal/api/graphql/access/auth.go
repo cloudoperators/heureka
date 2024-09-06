@@ -18,7 +18,7 @@ type Auth interface {
 	GetMiddleware() gin.HandlerFunc
 }
 
-func NewAuth(cfg util.Config) Auth {
+func NewAuth(cfg *util.Config) Auth {
 	l := newLogger()
 
 	authType := strings.ToLower(cfg.AuthType)
