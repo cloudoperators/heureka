@@ -147,34 +147,42 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 	Context("when handling a valid CreateServiceEvent", func() {
 		It("should add the default issue repository to the service", func() {
-			event := service.CreateServiceEvent{
-				Service: &entity.Service{Id: 123},
+			srv := test.NewFakeServiceEntity()
+			createEvent := &s.CreateServiceEvent{
+				Service: &srv,
 			}
 
+			// Use type assertion to convert a CreateServiceEvent into an Event
+			var event event.Event = createEvent
+
+			// Create IssueRepository
 			defaultRepoName := "nvd"
 			defaultPrio := 100
-			repo := &entity.IssueRepository{
-				Id:   456,
-				Name: defaultRepoName,
-			}
+			repo := test.NewFakeIssueRepositoryEntity()
+			repo.Id = 456
+			repo.Name = defaultRepoName
+
 			db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
 				Name: []*string{&defaultRepoName},
-			}).Return([]*entity.IssueRepository{repo}, nil)
-			db.On("AddIssueRepositoryToService", event.Service.Id, repo.Id, int64(defaultPrio)).Return(nil)
+			}).Return([]entity.IssueRepository{repo}, nil)
+			db.On("AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio)).Return(nil)
 
 			// Simulate event
-			service.OnServiceCreate(db, event)
+			s.OnServiceCreate(db, event)
 
 			// Check AddIssueRepositoryToService was called
-			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", event.Service.Id, repo.Id, int64(defaultPrio))
+			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio))
 		})
 	})
 
 	Context("when handling an invalid event type", func() {
 		It("should not perform any database operations", func() {
-			invalidEvent := &service.UpdateServiceEvent{}
+			invalidEvent := &s.UpdateServiceEvent{}
 
-			service.OnServiceCreate(db, invalidEvent)
+			// Use type assertion to convert
+			var event event.Event = invalidEvent
+
+			s.OnServiceCreate(db, event)
 
 			// These functions should not be called in case of a different event
 			db.AssertNotCalled(GinkgoT(), "GetIssueRepositories")
@@ -184,15 +192,20 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 	Context("when no issue repository is found", func() {
 		It("should not add any repository to the service", func() {
-			event := &service.CreateServiceEvent{
-				Service: &entity.Service{Id: 123},
+			srv := test.NewFakeServiceEntity()
+			createEvent := &s.CreateServiceEvent{
+				Service: &srv,
 			}
+
+			// Use type assertion to convert a CreateServiceEvent into an Event
+			var event event.Event = createEvent
+
 			defaultRepoName := "nvd"
 			db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
 				Name: []*string{&defaultRepoName},
-			}).Return([]*entity.IssueRepository{}, nil)
+			}).Return([]entity.IssueRepository{}, nil)
 
-			service.OnServiceCreate(db, event)
+			s.OnServiceCreate(db, event)
 
 			db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
 			// TODO: we could also check for the error message here
