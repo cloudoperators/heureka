@@ -145,6 +145,7 @@ func BuildIssueVariantMap(db database.Database, componentInstanceID int64, compo
 		IssueId:           lo.Map(issues, func(i entity.Issue, _ int) *int64 { return &i.Id }),
 		IssueRepositoryId: []*int64{&maxPriorityIr.Id},
 	})
+
 	if err != nil {
 		l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants related to issue repositories")
 		return nil, err

@@ -15,7 +15,6 @@ import (
 	"github.wdf.sap.corp/cc/heureka/internal/app/issue_variant"
 	"github.wdf.sap.corp/cc/heureka/internal/app/severity"
 
-	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -441,43 +440,53 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 		})
 
 		When("multiple variants exist for the same issue", func() {
+			var (
+				issue         entity.Issue
+				service       entity.Service
+				ir1           entity.IssueRepository
+				ir2           entity.IssueRepository
+				issueVariant1 entity.IssueVariant
+				issueVariant2 entity.IssueVariant
+			)
 			BeforeEach(func() {
 				// Fake issue
-				issue := test.NewFakeIssueEntity()
+				issue = test.NewFakeIssueEntity()
 				issue.Id = 1
 
 				// Fake service
-				service := test.NewFakeServiceEntity()
+				service = test.NewFakeServiceEntity()
 				service.Id = 1
 
 				// Fake issue repositories
-				ir1 := test.NewFakeIssueRepositoryEntity()
+				ir1 = test.NewFakeIssueRepositoryEntity()
 				ir1.Id = 1
-				ir1.Priority = 1
 
-				ir2 := test.NewFakeIssueRepositoryEntity()
-				ir2.Id = 1
-				ir2.Priority = 2 // This one should be higher prioritized
+				ir2 = test.NewFakeIssueRepositoryEntity()
+				ir2.Id = 2
 
 				// Fake issue variants (with same IssueId)
-				iv1 := test.NewFakeIssueVariantEntity()
-				iv1.Id = 1
-				iv1.IssueId = 1
-				iv1.IssueRepositoryId = 1
+				issueVariant1 = test.NewFakeIssueVariantEntity()
+				issueVariant1.Id = 1
+				issueVariant1.IssueId = issue.Id
+				issueVariant1.IssueRepositoryId = ir1.Id
+				issueVariant1.SecondaryName = "IV1"
+				issueVariant1.Severity.Score = 7.7
 
-				iv2 := test.NewFakeIssueVariantEntity()
-				iv2.Id = 2
-				iv2.IssueId = 1 // Same issue id
-				iv2.IssueRepositoryId = 2
+				issueVariant2 = test.NewFakeIssueVariantEntity()
+				issueVariant2.Id = 2
+				issueVariant2.IssueId = issue.Id // Same issue id
+				issueVariant2.IssueRepositoryId = ir2.Id
+				issueVariant2.SecondaryName = "IV2"
+				issueVariant2.Severity.Score = 6.6
 
 				issues := []entity.Issue{issue}
 				services := []entity.Service{service}
 				repositories := []entity.IssueRepository{ir1, ir2}
-				variants := []entity.IssueVariant{iv1, iv2}
+				variants := []entity.IssueVariant{issueVariant1, issueVariant2}
 
 				db.On("GetIssues", &entity.IssueFilter{ComponentVersionId: []*int64{&componentVersionID}}).Return(issues, nil)
 				db.On("GetServices", &entity.ServiceFilter{ComponentInstanceId: []*int64{&componentInstanceID}}).Return(services, nil)
-				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{ServiceId: []*int64{lo.ToPtr(int64(1))}}).Return(repositories, nil)
+				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{ServiceId: []*int64{&service.Id}}).Return(repositories, nil)
 				db.On("GetIssueVariants", mock.MatchedBy(func(filter *entity.IssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.IssueId != nil && filter.IssueRepositoryId != nil
@@ -487,16 +496,15 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 			It("should choose the highest severity variant", func() {
 				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
 
-				fmt.Printf("reults: %v\n", result)
 				Expect(err).To(BeNil())
 				Expect(result).To(HaveLen(1))
-				Expect(result[0].Id).To(Equal(1))
+
+				Expect(issueVariant1.Id).To(Equal(int64(1)))
+				Expect(issueVariant2.Id).To(Equal(int64(2)))
+
+				Expect(result[issue.Id].Id).To(Equal(issueVariant1.Id))
+				Expect(result[issue.Id].IssueRepositoryId).To(Equal(ir1.Id))
 			})
 		})
-
-	})
-
-	It("should handle component instance creation correctly", func() {
-		Skip("Test not implemented yet")
 	})
 })
