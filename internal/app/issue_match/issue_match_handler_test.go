@@ -5,19 +5,21 @@ package issue_match_test
 
 import (
 	"errors"
+	"math"
+	"testing"
+	"time"
+
 	"github.wdf.sap.corp/cc/heureka/internal/app/event"
 	im "github.wdf.sap.corp/cc/heureka/internal/app/issue_match"
 	"github.wdf.sap.corp/cc/heureka/internal/app/issue_repository"
 	"github.wdf.sap.corp/cc/heureka/internal/app/issue_variant"
 	"github.wdf.sap.corp/cc/heureka/internal/app/severity"
-	"math"
-	"testing"
-	"time"
 
-	"github.com/samber/lo"
-
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/mock"
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
 	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
 	"github.wdf.sap.corp/cc/heureka/internal/mocks"
@@ -340,5 +342,161 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 		issueMatch, err := issueMatchHandler.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
+	})
+})
+
+var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceCreate"), func() {
+	var (
+		db                  *mocks.MockDatabase
+		componentInstanceID int64
+		componentVersionID  int64
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		componentInstanceID = 1
+		componentVersionID = 1
+	})
+
+	// Tests for BuildIssueVariantMap
+	Context("BuildIssueVariantMap", func() {
+		When("no issues are found", func() {
+			BeforeEach(func() {
+				// Fake IssueRepository
+				ir := test.NewFakeIssueRepositoryEntity()
+				ir.Id = 1
+				ir.Priority = 1
+
+				// Fake Service
+				service := test.NewFakeServiceEntity()
+				service.Id = 1
+
+				// Mocks
+				db.On("GetIssues", &entity.IssueFilter{ComponentVersionId: []*int64{&componentVersionID}}).Return([]entity.Issue{}, nil)
+				db.On("GetServices", &entity.ServiceFilter{ComponentInstanceId: []*int64{&componentInstanceID}}).Return([]entity.Service{service}, nil)
+				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{ServiceId: []*int64{lo.ToPtr(int64(1))}}).Return([]entity.IssueRepository{ir}, nil)
+				db.On("GetIssueVariants", &entity.IssueVariantFilter{
+					IssueId:           []*int64{},
+					IssueRepositoryId: []*int64{lo.ToPtr(int64(1))},
+				}).Return([]entity.IssueVariant{}, nil)
+			})
+
+			It("should return an empty map", func() {
+				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
+
+				Expect(err).NotTo(BeNil())
+				Expect(result).To(BeEmpty())
+			})
+		})
+
+		When("all data is retrieved successfully", func() {
+			BeforeEach(func() {
+				// Fake issues
+				issue1 := test.NewFakeIssueEntity()
+				issue1.Id = 1
+				issue2 := test.NewFakeIssueEntity()
+				issue2.Id = 2
+
+				// Fake service
+				service := test.NewFakeServiceEntity()
+				service.Id = 1
+
+				// Fake issue repository
+				ir := test.NewFakeIssueRepositoryEntity()
+				ir.Id = 1
+				ir.Priority = 1
+
+				// Fake issue variants
+				iv1 := test.NewFakeIssueVariantEntity()
+				iv1.Id = 1
+				iv1.IssueId = 1
+				iv1.IssueRepositoryId = 1
+
+				iv2 := test.NewFakeIssueVariantEntity()
+				iv2.Id = 1
+				iv2.IssueId = 2
+				iv2.IssueRepositoryId = 2
+
+				issues := []entity.Issue{issue1, issue2}
+				services := []entity.Service{service}
+				repositories := []entity.IssueRepository{ir}
+				variants := []entity.IssueVariant{iv1, iv2}
+
+				// Mocks
+				db.On("GetIssues", &entity.IssueFilter{ComponentVersionId: []*int64{&componentVersionID}}).Return(issues, nil)
+				db.On("GetServices", &entity.ServiceFilter{ComponentInstanceId: []*int64{&componentInstanceID}}).Return(services, nil)
+				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{ServiceId: []*int64{lo.ToPtr(int64(1))}}).Return(repositories, nil)
+				db.On("GetIssueVariants", mock.MatchedBy(func(filter *entity.IssueVariantFilter) bool {
+					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
+					return filter.IssueId != nil && filter.IssueRepositoryId != nil
+				})).Return(variants, nil)
+			})
+
+			It("should return the correct issue variant map", func() {
+				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
+
+				Expect(err).To(BeNil())
+				Expect(result).To(HaveLen(2))
+			})
+		})
+
+		When("multiple variants exist for the same issue", func() {
+			BeforeEach(func() {
+				// Fake issue
+				issue := test.NewFakeIssueEntity()
+				issue.Id = 1
+
+				// Fake service
+				service := test.NewFakeServiceEntity()
+				service.Id = 1
+
+				// Fake issue repositories
+				ir1 := test.NewFakeIssueRepositoryEntity()
+				ir1.Id = 1
+				ir1.Priority = 1
+
+				ir2 := test.NewFakeIssueRepositoryEntity()
+				ir2.Id = 1
+				ir2.Priority = 2 // This one should be higher prioritized
+
+				// Fake issue variants (with same IssueId)
+				iv1 := test.NewFakeIssueVariantEntity()
+				iv1.Id = 1
+				iv1.IssueId = 1
+				iv1.IssueRepositoryId = 1
+
+				iv2 := test.NewFakeIssueVariantEntity()
+				iv2.Id = 2
+				iv2.IssueId = 1 // Same issue id
+				iv2.IssueRepositoryId = 2
+
+				issues := []entity.Issue{issue}
+				services := []entity.Service{service}
+				repositories := []entity.IssueRepository{ir1, ir2}
+				variants := []entity.IssueVariant{iv1, iv2}
+
+				db.On("GetIssues", &entity.IssueFilter{ComponentVersionId: []*int64{&componentVersionID}}).Return(issues, nil)
+				db.On("GetServices", &entity.ServiceFilter{ComponentInstanceId: []*int64{&componentInstanceID}}).Return(services, nil)
+				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{ServiceId: []*int64{lo.ToPtr(int64(1))}}).Return(repositories, nil)
+				db.On("GetIssueVariants", mock.MatchedBy(func(filter *entity.IssueVariantFilter) bool {
+					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
+					return filter.IssueId != nil && filter.IssueRepositoryId != nil
+				})).Return(variants, nil)
+			})
+
+			It("should choose the highest severity variant", func() {
+				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
+
+				fmt.Printf("reults: %v\n", result)
+				Expect(err).To(BeNil())
+				Expect(result).To(HaveLen(1))
+				Expect(result[0].Id).To(Equal(1))
+			})
+		})
+
+	})
+
+	It("should handle component instance creation correctly", func() {
+		Skip("Test not implemented yet")
 	})
 })

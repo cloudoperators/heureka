@@ -4,13 +4,14 @@
 package issue_match
 
 import (
+	"time"
+
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.wdf.sap.corp/cc/heureka/internal/app/component_instance"
 	"github.wdf.sap.corp/cc/heureka/internal/app/event"
 	"github.wdf.sap.corp/cc/heureka/internal/database"
 	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"time"
 )
 
 const (
@@ -108,27 +109,23 @@ func BuildIssueVariantMap(db database.Database, componentInstanceID int64, compo
 		"componentInstanceID": componentInstanceID,
 		"componentVersionID":  componentVersionID,
 	})
-	// Get Issues
+	// Get Issues based on ComponentVersion ID
 	issues, err := db.GetIssues(&entity.IssueFilter{ComponentVersionId: []*int64{&componentVersionID}})
-
 	if err != nil {
 		l.WithField("event-step", "FetchIssues").WithError(err).Error("Error while fetching issues related to component Version")
 		return nil, err
 	}
 
-	//Get Service
+	// Get Services based on ComponentInstance ID
 	services, err := db.GetServices(&entity.ServiceFilter{ComponentInstanceId: []*int64{&componentInstanceID}})
-
 	if err != nil {
 		l.WithField("event-step", "FetchServices").WithError(err).Error("Error while fetching services related to Component Instance")
 		return nil, err
 	}
 
+	// Get Issue Repositories
 	serviceIds := lo.Map(services, func(service entity.Service, _ int) *int64 { return &service.Id })
-
-	//Get Issue Repository
 	repositories, err := db.GetIssueRepositories(&entity.IssueRepositoryFilter{ServiceId: serviceIds})
-
 	if err != nil {
 		l.WithField("event-step", "FetchIssueRepositories").WithField("serviceIds", serviceIds).WithError(err).Error("Error while fetching issue repositories related to services that are related to the component instance")
 		return nil, err
@@ -138,34 +135,31 @@ func BuildIssueVariantMap(db database.Database, componentInstanceID int64, compo
 		l.WithField("event-step", "FetchIssueRepositories").WithField("serviceIds", serviceIds).Error("No issue repositories found that are related to the services")
 		return nil, NewIssueMatchHandlerError("No issue repositories found that are related to the services")
 	}
-	//Get variants
 
-	//getting high prio
+	// Get Issue Variants
+	// - getting high prio
 	maxPriorityIr := lo.MaxBy(repositories, func(item entity.IssueRepository, max entity.IssueRepository) bool {
 		return item.Priority > max.Priority
 	})
-
-	variants, err := db.GetIssueVariants(&entity.IssueVariantFilter{
-		Paginated:         entity.Paginated{},
+	issueVariants, err := db.GetIssueVariants(&entity.IssueVariantFilter{
 		IssueId:           lo.Map(issues, func(i entity.Issue, _ int) *int64 { return &i.Id }),
 		IssueRepositoryId: []*int64{&maxPriorityIr.Id},
 	})
-
 	if err != nil {
 		l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants related to issue repositories")
 		return nil, err
 	}
 
-	if len(variants) < 1 {
+	if len(issueVariants) < 1 {
 		l.WithField("event-step", "FetchIssueVariants").Error("No issue variants found that are related to the issue repository")
 		return nil, NewIssueMatchHandlerError("No issue variants found that are related to the issue repository")
 	}
 
-	//create a map of issue id to variants for easy access
+	// create a map of issue id to variants for easy access
 	var issueVariantMap = make(map[int64]entity.IssueVariant)
 
-	for _, variant := range variants {
-		//if there are multiple variants with the same priority on their repositories we take the highest severity one
+	for _, variant := range issueVariants {
+		// if there are multiple variants with the same priority on their repositories we take the highest severity one
 		if _, ok := issueVariantMap[variant.IssueId]; ok {
 			if issueVariantMap[variant.IssueId].Severity.Score < variant.Severity.Score {
 				issueVariantMap[variant.IssueId] = variant
