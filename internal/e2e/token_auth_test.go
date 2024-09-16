@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.wdf.sap.corp/cc/heureka/internal/server"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
+	"github.com/cloudoperators/heureka/internal/server"
+	"github.com/cloudoperators/heureka/internal/util"
 
-	. "github.wdf.sap.corp/cc/heureka/internal/api/graphql/access/test"
-	util2 "github.wdf.sap.corp/cc/heureka/pkg/util"
+	. "github.com/cloudoperators/heureka/internal/api/graphql/access/test"
+	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

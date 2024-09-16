@@ -6,12 +6,12 @@ package mariadb_test
 import (
 	"math/rand"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
+	"github.com/cloudoperators/heureka/internal/entity"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb/test"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
 var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func() {

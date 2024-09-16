@@ -6,9 +6,9 @@ dir: ./internal/mocks
 filename: "mock_{{.InterfaceName}}.go"
 outpkg: "mocks"
 packages:
-  github.wdf.sap.corp/cc/heureka/internal/database:
+  github.com/cloudoperators/heureka/internal/database:
     interfaces:
       Database:
-  github.wdf.sap.corp/cc/heureka/internal/app:
+  github.com/cloudoperators/heureka/internal/app:
     interfaces:
       Heureka:

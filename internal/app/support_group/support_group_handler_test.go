@@ -4,16 +4,17 @@
 package support_group_test
 
 import (
+	"math"
+	"testing"
+
+	"github.com/cloudoperators/heureka/internal/app/event"
+	sg "github.com/cloudoperators/heureka/internal/app/support_group"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	sg "github.wdf.sap.corp/cc/heureka/internal/app/support_group"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
-	"math"
-	"testing"
 )
 
 func TestSupportGroupHandler(t *testing.T) {

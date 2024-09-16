@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
 var (

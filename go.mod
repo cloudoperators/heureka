@@ -1,4 +1,4 @@
-module github.wdf.sap.corp/cc/heureka
+module github.com/cloudoperators/heureka
 
 go 1.22.6
 

@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 func GetInt64Value(v sql.NullInt64) int64 {

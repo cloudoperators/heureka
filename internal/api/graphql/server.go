@@ -6,12 +6,12 @@ package graphqlapi
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
+	"github.com/cloudoperators/heureka/internal/app"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/gin-gonic/gin"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/access"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/resolver"
-	"github.wdf.sap.corp/cc/heureka/internal/app"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
 )
 
 type GraphQLAPI struct {
