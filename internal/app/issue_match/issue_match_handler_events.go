@@ -6,6 +6,7 @@ package issue_match
 import (
 	"time"
 
+	"fmt"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.wdf.sap.corp/cc/heureka/internal/app/component_instance"
@@ -184,15 +185,15 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 	})
 
 	l.WithField("event-step", "BuildIssueVariants").Debug("Building map of IssueVariants for issues related to assigned Component Version")
-
 	issueVariantMap, err := BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
 
+	fmt.Printf("\n\nissueVariantMap: %#v\n", issueVariantMap)
 	if err != nil {
 		l.WithField("event-step", "BuildIssueVariants").WithError(err).Error("Error while fetching issues related to component Version")
 		return
 	}
 
-	//for each issue create issue Match if not already exists
+	// For each issue create issue Match if not already exists
 	for issueId, issueVariant := range issueVariantMap {
 		l = l.WithFields(logrus.Fields{
 			"issue": issueVariant,
@@ -203,18 +204,19 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceID},
 		})
-
 		if err != nil {
 			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
 			return
 		}
+		fmt.Printf("issue Matches: %d\n\n\n", len(issue_matches))
 
-		//if the match already created we ignore it as we do not associate with a version change a severity change
+		// If the issue match is already created, we ignore it, as we do not associate with a version change a severity change
 		if len(issue_matches) != 0 {
 			l.WithField("event-step", "Skipping").Debug("The issue match does already exist. Skipping")
 			return
 		}
 
+		// Create new issue match
 		issue_match := &entity.IssueMatch{
 			Status:                entity.IssueMatchStatusValuesNew,
 			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
@@ -225,7 +227,6 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 		l.WithField("event-step", "CreateIssueMatch").WithField("issueMatch", issue_match).Debug("Creating Issue Match")
 
 		_, err = db.CreateIssueMatch(issue_match)
-
 		if err != nil {
 			l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
 			return

@@ -507,4 +507,96 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 			})
 		})
 	})
+
+	// Tests for OnComponentVersionAssignmentToComponentInstance
+	Context("OnComponentVersionAssignmentToComponentInstance", func() {
+		Context("when BuildIssueVariantMap succeeds", func() {
+			BeforeEach(func() {
+				// Fake issues
+				issue1 := test.NewFakeIssueEntity()
+				issue1.Id = 1
+				issue2 := test.NewFakeIssueEntity()
+				issue2.Id = 2
+
+				// Fake IssueRepository
+				ir := test.NewFakeIssueRepositoryEntity()
+				ir.Id = 1
+				ir.Priority = 1
+
+				// Fake service
+				service := test.NewFakeServiceEntity()
+				service.Id = 1
+
+				// Fake issue variants
+				// - Issue Variant 1
+				iv1 := test.NewFakeIssueVariantEntity()
+				iv1.Id = 1
+				iv1.IssueId = issue1.Id
+				iv1.IssueRepositoryId = ir.Id
+				iv1.Severity.Score = 7.7
+
+				// - Issue Variant 2
+				iv2 := test.NewFakeIssueVariantEntity()
+				iv2.Id = 2
+				iv2.IssueId = issue1.Id
+				iv2.IssueRepositoryId = ir.Id
+				iv2.Severity.Score = 9.1
+
+				// - Issue Variant 3
+				iv3 := test.NewFakeIssueVariantEntity()
+				iv3.Id = 3
+				iv3.IssueId = issue2.Id
+				iv3.IssueRepositoryId = ir.Id
+				iv3.Severity.Score = 1.8
+
+				variants := []entity.IssueVariant{iv1, iv2, iv3}
+
+				// Mock the necessary database calls for BuildIssueVariantMap
+				db.On("GetIssues", mock.Anything).Return([]entity.Issue{issue1, issue2}, nil)
+				db.On("GetServices", mock.Anything).Return([]entity.Service{service}, nil)
+				db.On("GetIssueRepositories", mock.Anything).Return([]entity.IssueRepository{ir}, nil)
+				db.On("GetIssueVariants", mock.MatchedBy(func(filter *entity.IssueVariantFilter) bool {
+					return filter.IssueId != nil && filter.IssueRepositoryId != nil
+				})).Return(variants, nil)
+				db.On("GetIssueMatches", mock.Anything).Return([]entity.IssueMatch{}, nil)
+			})
+
+			It("should create issue matches for each issue", func() {
+				// Mock CreateIssueMatch
+				db.On("CreateIssueMatch", mock.AnythingOfType("*entity.IssueMatch")).Return(&entity.IssueMatch{}, nil).Twice()
+				im.OnComponentVersionAssignmentToComponentInstance(db, componentInstanceID, componentVersionID)
+
+				// Verify that CreateIssueMatch was called twice (once for each issue)
+				db.AssertNumberOfCalls(GinkgoT(), "CreateIssueMatch", 2)
+			})
+
+			Context("when some issue matches already exist", func() {
+				BeforeEach(func() {
+					// Fake issues
+					issueMatch := test.NewFakeIssueMatch()
+					issueMatch.IssueId = 2 // issue2.Id
+					db.On("GetIssueMatches", mock.MatchedBy(func(filter *entity.IssueMatchFilter) bool {
+						return *filter.IssueId[0] == int64(2)
+					})).Return([]entity.IssueMatch{issueMatch}, nil)
+				})
+
+				It("should only create issue matches for new issues", func() {
+					// Mock CreateIssueMatch
+					db.On("CreateIssueMatch", mock.AnythingOfType("*entity.IssueMatch")).Return(&entity.IssueMatch{}, nil)
+					im.OnComponentVersionAssignmentToComponentInstance(db, componentInstanceID, componentVersionID)
+
+					// Verify that CreateIssueMatch was called only once (for the new issue)
+					db.AssertNumberOfCalls(GinkgoT(), "CreateIssueMatch", 1)
+				})
+			})
+
+		})
+	})
+
+	// Context("when BuildIssueVariantMap returns an error", func() {
+	// 	BeforeEach(func() {
+	// 		// Mock to simulate an error in BuildIssueVariantMap
+	// 		db.On("GetIssues", mock.Anything).Return(nil, fmt.Errorf("database
+	// 	})
+	// })
 })
