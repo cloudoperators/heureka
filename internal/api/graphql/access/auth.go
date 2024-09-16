@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
-	"github.wdf.sap.corp/cc/heureka/internal/util"
+	"github.com/cloudoperators/heureka/internal/util"
 )
 
 type Logger interface {

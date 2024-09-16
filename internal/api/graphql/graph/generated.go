@@ -22,7 +22,7 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
-// region    ************************** generated!.gotpl *******github.wdf.sap.corp/ccewExecutableSchema creates an ExecutableSchema from the ResolverRoot interface.
+// region    ************************** generated!.gotpl *******github.com/cloudoperatorsewExecutableSchema creates an ExecutableSchema from the ResolverRoot interface.
 func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
 	return &executableSchema{
 		schema:     cfg.Schema,
