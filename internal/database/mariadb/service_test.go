@@ -177,7 +177,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter by a random non existing service name", func() {
-					nonExistingName := util.GenerateRandomString(40)
+					nonExistingName := util.GenerateRandomString(40, nil)
 					filter := &entity.ServiceFilter{Name: []*string{&nonExistingName}}
 
 					entries, err := db.GetServices(filter)

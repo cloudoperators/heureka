@@ -187,7 +187,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter a non existing service name", func() {
-					nonExistingName := util.GenerateRandomString(40)
+					nonExistingName := util.GenerateRandomString(40, nil)
 					filter := &entity.IssueFilter{ServiceName: []*string{&nonExistingName}}
 
 					entries, err := db.GetIssues(filter)

@@ -194,7 +194,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					})
 				})
 				It("can filter by a random non existing component name", func() {
-					nonExistingName := util.GenerateRandomString(40)
+					nonExistingName := util.GenerateRandomString(40, nil)
 					filter := &entity.ComponentFilter{Name: []*string{&nonExistingName}}
 
 					entries, err := db.GetComponents(filter)
