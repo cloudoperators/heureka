@@ -8,9 +8,14 @@ import (
 	"math/big"
 )
 
-func GenerateRandomString(length int) string {
+func GenerateRandomString(length int, cs *string) string {
 	//charset for random string
-	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	var charset string
+	if cs == nil {
+		charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	} else {
+		charset = *cs
+	}
 	// Create a byte slice to store the random string
 	randomBytes := make([]byte, length)
 	// Calculate the maximum index in the charset
