@@ -27,7 +27,7 @@ type TokenAuth struct {
 	secret []byte
 }
 
-func NewTokenAuth(l Logger, cfg util.Config) *TokenAuth {
+func NewTokenAuth(l Logger, cfg *util.Config) *TokenAuth {
 	return &TokenAuth{logger: l, secret: []byte(cfg.AuthTokenSecret)}
 }
 
