@@ -17,10 +17,13 @@ import (
 
 type HeurekaEntity interface {
 	Activity |
+		ActivityAggregations |
 		ActivityHasIssue |
 		IssueVariant |
+		IssueVariantAggregations |
 		BaseIssueRepository |
 		IssueRepository |
+		IssueRepositoryAggregations |
 		ResultList |
 		ListOptions |
 		PageInfo |
@@ -28,24 +31,30 @@ type HeurekaEntity interface {
 		Severity |
 		Cvss |
 		Component |
-		ComponentInstanceAggregations |
+		ComponentAggregations |
 		ComponentInstance |
+		ComponentInstanceAggregations |
 		ComponentVersion |
+		ComponentVersionAggregations |
 		Evidence |
+		EvidenceAggregations |
 		BaseService |
 		Service |
 		ServiceAggregations |
 		SupportGroup |
+		SupportGroupAggregations |
 		SupportGroupService |
 		SupportGroupUser |
 		User |
+		UserAggregations |
 		IssueWithAggregations |
 		IssueAggregations |
 		Issue |
 		IssueMatch |
 		IssueMatchChange |
 		HeurekaFilter |
-		IssueCount
+		IssueCount |
+		IssueTypeCounts
 }
 
 type HeurekaFilter interface {
@@ -62,7 +71,8 @@ type HeurekaFilter interface {
 		EvidenceFilter |
 		ComponentFilter |
 		ComponentVersionFilter |
-		IssueRepositoryFilter
+		IssueRepositoryFilter |
+		SeverityFilter
 }
 
 type HasCursor interface {
@@ -83,6 +93,7 @@ type ResultList struct {
 }
 
 type ListOptions struct {
+	Info
 	ShowTotalCount      bool `json:"show_total_count"`
 	ShowPageInfo        bool `json:"show_page_info"`
 	IncludeAggregations bool `json:"include_aggregations"`
@@ -97,6 +108,7 @@ func NewListOptions() *ListOptions {
 }
 
 type PageInfo struct {
+	Info
 	HasNextPage     *bool   `json:"has_next_page,omitempty"`
 	HasPreviousPage *bool   `json:"has_previous_page,omitempty"`
 	IsValidPage     *bool   `json:"is_valid_page,omitempty"`
@@ -108,6 +120,7 @@ type PageInfo struct {
 }
 
 type Page struct {
+	Info
 	After      *string `json:"after,omitempty"`
 	PageNumber *int    `json:"page_number,omitempty"`
 	IsCurrent  bool    `json:"is_current,omitempty"`
@@ -121,11 +134,13 @@ type List[T interface{}] struct {
 }
 
 type TimeFilter struct {
+	Info
 	After  time.Time `json:"after"`
 	Before time.Time `json:"before"`
 }
 
 type Paginated struct {
+	Info
 	First *int   `json:"first"`
 	After *int64 `json:"from"`
 }
@@ -137,6 +152,7 @@ func MaxPaginated() Paginated {
 }
 
 type Severity struct {
+	Info
 	Value string
 	Score float64
 	Cvss  Cvss
@@ -178,8 +194,17 @@ func NewSeverity(url string) Severity {
 }
 
 type Cvss struct {
+	Info
 	Vector        string
 	Base          *metric.Base
 	Temporal      *metric.Temporal
 	Environmental *metric.Environmental
+}
+
+type Info struct {
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy string    `json:"created_by"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedBy string    `json:"updated_by"`
+	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }

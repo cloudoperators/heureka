@@ -15,9 +15,11 @@ func NewFakeIssueMatchChange() entity.IssueMatchChange {
 		Action:     gofakeit.RandomString(actions),
 		IssueMatch: nil,
 		Activity:   nil,
-		CreatedAt:  gofakeit.Date(),
-		DeletedAt:  gofakeit.Date(),
-		UpdatedAt:  gofakeit.Date(),
+		Info: entity.Info{
+			CreatedAt: gofakeit.Date(),
+			DeletedAt: gofakeit.Date(),
+			UpdatedAt: gofakeit.Date(),
+		},
 	}
 }
 

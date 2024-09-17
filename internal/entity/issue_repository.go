@@ -3,20 +3,17 @@
 
 package entity
 
-import "time"
-
 type BaseIssueRepository struct {
+	Info
 	Id            int64          `json:"id"`
 	Name          string         `json:"name"`
 	Url           string         `json:"url"`
 	IssueVariants []IssueVariant `json:"issue_variants,omitempty"`
 	Services      []Service      `json:"services,omitempty"`
-	CreatedAt     time.Time      `json:"created_at"`
-	DeletedAt     time.Time      `json:"deleted_at,omitempty"`
-	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
 type IssueRepositoryFilter struct {
+	Info
 	Paginated
 	Id          []*int64  `json:"id"`
 	ServiceId   []*int64  `json:"service_id"`
@@ -38,9 +35,11 @@ func NewIssueRepositoryFilter() *IssueRepositoryFilter {
 }
 
 type IssueRepositoryAggregations struct {
+	Info
 }
 
 type IssueRepository struct {
+	Info
 	BaseIssueRepository
 	IssueRepositoryService
 }

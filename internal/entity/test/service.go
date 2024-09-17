@@ -16,9 +16,11 @@ func NewFakeServiceEntity() entity.Service {
 			SupportGroup: nil,
 			Activities:   nil,
 			Owners:       nil,
-			CreatedAt:    gofakeit.Date(),
-			DeletedAt:    gofakeit.Date(),
-			UpdatedAt:    gofakeit.Date(),
+			Info: entity.Info{
+				CreatedAt: gofakeit.Date(),
+				DeletedAt: gofakeit.Date(),
+				UpdatedAt: gofakeit.Date(),
+			},
 		},
 	}
 }

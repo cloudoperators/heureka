@@ -3,9 +3,8 @@
 
 package entity
 
-import "time"
-
 type BaseService struct {
+	Info
 	Id             int64         `json:"id"`
 	Name           string        `json:"name"`
 	SupportGroup   *SupportGroup `json:"support_group,omitempty"`
@@ -13,15 +12,14 @@ type BaseService struct {
 	Owners         []User        `json:"owners,omitempty"`
 	Activities     []Activity    `json:"activities,omitempty"`
 	Priority       int64         `json:"priority"`
-	CreatedAt      time.Time     `json:"created_at"`
-	DeletedAt      time.Time     `json:"deleted_at,omitempty"`
-	UpdatedAt      time.Time     `json:"updated_at"`
 }
 
 type ServiceAggregations struct {
+	Info
 }
 
 type ServiceFilter struct {
+	Info
 	Paginated
 	SupportGroupName    []*string `json:"support_group_name"`
 	Id                  []*int64  `json:"id"`
@@ -36,6 +34,7 @@ type ServiceFilter struct {
 }
 
 type Service struct {
+	Info
 	BaseService
 	IssueRepositoryService
 }

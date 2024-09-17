@@ -219,7 +219,7 @@ func NewIssueMatchEntity(im *IssueMatchInput) entity.IssueMatch {
 		IssueId:               issueId,
 		ComponentInstanceId:   ciId,
 		UserId:                userId,
-		CreatedAt:             createdAt,
+		Info:                  entity.Info{CreatedAt: createdAt},
 	}
 }
 

@@ -25,9 +25,11 @@ func NewFakeIssueMatch() entity.IssueMatch {
 		Issue:                 nil,
 		RemediationDate:       gofakeit.Date(),
 		TargetRemediationDate: gofakeit.Date(),
-		CreatedAt:             gofakeit.Date(),
-		DeletedAt:             gofakeit.Date(),
-		UpdatedAt:             gofakeit.Date(),
+		Info: entity.Info{
+			CreatedAt: gofakeit.Date(),
+			DeletedAt: gofakeit.Date(),
+			UpdatedAt: gofakeit.Date(),
+		},
 	}
 }
 

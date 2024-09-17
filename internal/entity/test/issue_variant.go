@@ -21,9 +21,11 @@ func NewFakeIssueVariantEntity() entity.IssueVariant {
 		Issue:             nil,
 		IssueRepositoryId: 0,
 		IssueRepository:   nil,
-		CreatedAt:         gofakeit.Date(),
-		DeletedAt:         gofakeit.Date(),
-		UpdatedAt:         gofakeit.Date(),
+		Info: entity.Info{
+			CreatedAt: gofakeit.Date(),
+			DeletedAt: gofakeit.Date(),
+			UpdatedAt: gofakeit.Date(),
+		},
 	}
 }
 
