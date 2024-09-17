@@ -439,6 +439,54 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 			})
 		})
 
+		When("multiple issue repository with different priority", func() {
+			var (
+				issues        []entity.Issue
+				issueVariants []entity.IssueVariant
+				repositories  []entity.IssueRepository
+				services      []entity.Service
+			)
+
+			BeforeEach(func() {
+				issues = test.NNewFakeIssueEntities(1)
+				issues[0].Id = 1
+
+				issueVariants = test.NNewFakeIssueVariants(2)
+				repositories = test.NNewFakeIssueRepositories(2)
+				repositories[0].Id = 111
+				repositories[1].Id = 222
+				repositories[0].Priority = 1
+				repositories[1].Priority = 2
+
+				services = test.NNewFakeServiceEntities(1)
+
+				// 2 Issue Variants from different issue repositories
+				issueVariants[0].IssueRepositoryId = repositories[0].Id
+				issueVariants[0].IssueId = issues[0].Id
+				issueVariants[1].IssueRepositoryId = repositories[1].Id
+				issueVariants[1].IssueId = issues[0].Id
+
+				// Mocks
+				db.On("GetIssues", &entity.IssueFilter{ComponentVersionId: []*int64{&componentVersionID}}).Return(issues, nil)
+				db.On("GetServices", &entity.ServiceFilter{ComponentInstanceId: []*int64{&componentInstanceID}}).Return(services, nil)
+				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{ServiceId: []*int64{&services[0].Id}}).Return(repositories, nil)
+				db.On("GetIssueVariants", mock.MatchedBy(func(filter *entity.IssueVariantFilter) bool {
+					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
+					return filter.IssueId != nil && filter.IssueRepositoryId != nil
+				})).Return(issueVariants, nil)
+			})
+			It("it should chose the issue repository with the hightest priority", func() {
+				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
+
+				Expect(err).To(BeNil())
+				Expect(result).To(HaveLen(1))
+
+				// Expect issue variants from repository with the id 222
+				Expect(result[int64(issues[0].Id)].IssueRepositoryId).To(Equal(repositories[1].Id))
+
+			})
+		})
+
 		When("multiple variants exist for the same issue", func() {
 			var (
 				issue         entity.Issue
