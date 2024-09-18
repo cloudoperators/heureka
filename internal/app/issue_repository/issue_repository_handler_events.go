@@ -4,10 +4,10 @@
 package issue_repository
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -56,13 +56,11 @@ func (e *DeleteIssueRepositoryEvent) Name() event.EventName {
 func OnIssueRepositoryCreate(db database.Database, e event.Event) {
 	// TODO: make this configureable
 	var defaultPrio int64 = 100
-	var defaultRepoName string = "nvd"
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnIssueRepositoryCreate",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":            "OnIssueRepositoryCreate",
+		"payload":          e,
+		"default_priority": defaultPrio,
 	})
 
 	if createEvent, ok := e.(*CreateIssueRepositoryEvent); ok {
