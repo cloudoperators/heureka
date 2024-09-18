@@ -156,6 +156,8 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 			db.On("GetServices", &entity.ServiceFilter{}).Return(services, nil)
 			db.On("AddIssueRepositoryToService", int64(1), int64(1), int64(100)).Return(nil)
 			db.On("AddIssueRepositoryToService", int64(2), int64(1), int64(100)).Return(nil)
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+
 		})
 
 		It("adds the issue repository to all services", func() {
