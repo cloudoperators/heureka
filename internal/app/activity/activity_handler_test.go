@@ -4,18 +4,19 @@
 package activity_test
 
 import (
-	"github.wdf.sap.corp/cc/heureka/internal/app/activity"
-	a "github.wdf.sap.corp/cc/heureka/internal/app/activity"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
 	"math"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/activity"
+	a "github.com/cloudoperators/heureka/internal/app/activity"
+	"github.com/cloudoperators/heureka/internal/app/event"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 )
 
 func TestActivityHandler(t *testing.T) {

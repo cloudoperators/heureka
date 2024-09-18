@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
+	util2 "github.com/cloudoperators/heureka/pkg/util"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
-	util2 "github.wdf.sap.corp/cc/heureka/pkg/util"
 )
 
 const (

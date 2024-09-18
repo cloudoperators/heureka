@@ -13,13 +13,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	. "github.wdf.sap.corp/cc/heureka/internal/api/graphql/access/test"
-	util2 "github.wdf.sap.corp/cc/heureka/pkg/util"
+	. "github.com/cloudoperators/heureka/internal/api/graphql/access/test"
+	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/gin-gonic/gin"
 
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/access"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access"
+	"github.com/cloudoperators/heureka/internal/util"
 )
 
 const (

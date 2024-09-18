@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/access"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access"
 
 	"github.com/golang-jwt/jwt/v5"
 

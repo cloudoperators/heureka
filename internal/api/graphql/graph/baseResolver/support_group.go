@@ -6,11 +6,11 @@ package baseResolver
 import (
 	"context"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/app"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/model"
-	"github.wdf.sap.corp/cc/heureka/internal/app"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
 )
 
 func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string, parent *model.NodeParent) (*model.SupportGroupConnection, error) {

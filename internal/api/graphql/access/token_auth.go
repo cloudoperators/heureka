@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.wdf.sap.corp/cc/heureka/internal/util"
+	"github.com/cloudoperators/heureka/internal/util"
 )
 
 const (

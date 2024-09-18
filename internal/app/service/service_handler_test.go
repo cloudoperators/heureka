@@ -4,17 +4,18 @@
 package service_test
 
 import (
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	s "github.wdf.sap.corp/cc/heureka/internal/app/service"
 	"math"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/event"
+	s "github.com/cloudoperators/heureka/internal/app/service"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 )
 
 func TestServiceHandler(t *testing.T) {

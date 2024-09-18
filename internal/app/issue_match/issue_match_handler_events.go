@@ -4,13 +4,14 @@
 package issue_match
 
 import (
+  "time"
+  
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/app/component_instance"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	"github.wdf.sap.corp/cc/heureka/internal/database"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"time"
+	"github.com/cloudoperators/heureka/internal/app/component_instance"
+	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 const (

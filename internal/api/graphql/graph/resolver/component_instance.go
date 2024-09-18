@@ -10,11 +10,11 @@ package resolver
 import (
 	"context"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/baseResolver"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/model"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
 )
 
 // ComponentVersion is the resolver for the componentVersion field.

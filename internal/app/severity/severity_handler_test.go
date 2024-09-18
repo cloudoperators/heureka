@@ -6,17 +6,18 @@
 package severity_test
 
 import (
+	"testing"
+
+	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/issue_repository"
+	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	ss "github.com/cloudoperators/heureka/internal/app/severity"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_repository"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_variant"
-	ss "github.wdf.sap.corp/cc/heureka/internal/app/severity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
-	"testing"
 )
 
 func TestSeverityHandler(t *testing.T) {

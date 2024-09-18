@@ -12,6 +12,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/util"
+	util2 "github.com/cloudoperators/heureka/pkg/util"
 	osx "github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -21,9 +24,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
-	util2 "github.wdf.sap.corp/cc/heureka/pkg/util"
 )
 
 const (

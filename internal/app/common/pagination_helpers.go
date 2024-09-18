@@ -5,8 +5,9 @@ package common
 
 import (
 	"fmt"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/pkg/util"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/pkg/util"
 )
 
 func PreparePagination(filter *entity.Paginated, options *entity.ListOptions) {

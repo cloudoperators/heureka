@@ -4,16 +4,17 @@
 package evidence_test
 
 import (
+	"math"
+	"testing"
+
+	"github.com/cloudoperators/heureka/internal/app/event"
+	es "github.com/cloudoperators/heureka/internal/app/evidence"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	es "github.wdf.sap.corp/cc/heureka/internal/app/evidence"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
-	"math"
-	"testing"
 )
 
 func TestEvidenceHandler(t *testing.T) {

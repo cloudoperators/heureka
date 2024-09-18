@@ -4,9 +4,10 @@
 package entity
 
 import (
-	"github.wdf.sap.corp/cc/heureka/pkg/util"
 	"math"
 	"time"
+
+	"github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/onsi/ginkgo/v2/dsl/core"
 
