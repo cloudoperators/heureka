@@ -4,10 +4,10 @@
 package service
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -115,8 +115,7 @@ func (e *RemoveIssueRepositoryFromServiceEvent) Name() event.EventName {
 // OnServiceCreate is a handler for the CreateServiceEvent
 // Is creating a single default priority for the default issue repository
 func OnServiceCreate(db database.Database, e event.Event) {
-	//@todo configure somewhere
-	var defaultPrio int64 = 100
+	defaultPrio := db.GetDefaultIssuePriority()
 	var defaultRepoName string = "nvd"
 
 	l := logrus.WithFields(logrus.Fields{

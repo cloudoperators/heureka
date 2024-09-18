@@ -54,8 +54,7 @@ func (e *DeleteIssueRepositoryEvent) Name() event.EventName {
 // OnIssueRepositoryCreate is a handler for the CreateIssueRepositoryEvent
 // Is adding the default priority  for the default issue repository
 func OnIssueRepositoryCreate(db database.Database, e event.Event) {
-	// TODO: make this configureable
-	var defaultPrio int64 = 100
+	defaultPrio := db.GetDefaultIssuePriority()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":            "OnIssueRepositoryCreate",
