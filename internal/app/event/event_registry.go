@@ -5,7 +5,7 @@ package event
 
 import (
 	"context"
-	"github.wdf.sap.corp/cc/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/database"
 )
 
 // Implement same logic as in the net/http std lib

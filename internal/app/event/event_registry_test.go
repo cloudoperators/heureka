@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"fmt"
+	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.wdf.sap.corp/cc/heureka/internal/database"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
 	"sync"
 )
 
