@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/brianvoe/gofakeit/v7"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 func NewFakeIssueEntity() entity.Issue {

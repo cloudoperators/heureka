@@ -9,19 +9,21 @@ import (
 	"testing"
 	"time"
 
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	im "github.wdf.sap.corp/cc/heureka/internal/app/issue_match"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_repository"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_variant"
-	"github.wdf.sap.corp/cc/heureka/internal/app/severity"
+	"github.com/cloudoperators/heureka/internal/app/event"
+	im "github.com/cloudoperators/heureka/internal/app/issue_match"
+	"github.com/cloudoperators/heureka/internal/app/issue_repository"
+	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/severity"
 
+	"github.com/samber/lo"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/mock"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
-	"github.wdf.sap.corp/cc/heureka/internal/entity/test"
-	"github.wdf.sap.corp/cc/heureka/internal/mocks"
+  "github.com/stretchr/testify/mock"
+
 )
 
 func TestIssueMatchHandler(t *testing.T) {

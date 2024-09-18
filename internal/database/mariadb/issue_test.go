@@ -4,16 +4,16 @@
 package mariadb_test
 
 import (
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
+	"github.com/cloudoperators/heureka/internal/entity"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb/test"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
 
 	"math/rand"
 
-	"github.wdf.sap.corp/cc/heureka/pkg/util"
+	"github.com/cloudoperators/heureka/pkg/util"
 )
 
 var _ = Describe("Issue", Label("database", "Issue"), func() {
@@ -187,7 +187,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter a non existing service name", func() {
-					nonExistingName := util.GenerateRandomString(40)
+					nonExistingName := util.GenerateRandomString(40, nil)
 					filter := &entity.IssueFilter{ServiceName: []*string{&nonExistingName}}
 
 					entries, err := db.GetIssues(filter)

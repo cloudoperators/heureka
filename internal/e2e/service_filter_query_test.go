@@ -8,19 +8,19 @@ import (
 	"fmt"
 	"os"
 
-	"github.wdf.sap.corp/cc/heureka/internal/util"
-	util2 "github.wdf.sap.corp/cc/heureka/pkg/util"
+	"github.com/cloudoperators/heureka/internal/util"
+	util2 "github.com/cloudoperators/heureka/pkg/util"
 
-	"github.wdf.sap.corp/cc/heureka/internal/server"
+	"github.com/cloudoperators/heureka/internal/server"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/model"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb/test"
 )
 
 var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFilterValues"), func() {

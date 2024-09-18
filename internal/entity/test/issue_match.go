@@ -5,8 +5,8 @@ package test
 
 import (
 	"github.com/brianvoe/gofakeit/v7"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb/test"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 func NewFakeIssueMatch() entity.IssueMatch {

@@ -12,6 +12,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/util"
+	util2 "github.com/cloudoperators/heureka/pkg/util"
 	osx "github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -21,9 +24,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
-	util2 "github.wdf.sap.corp/cc/heureka/pkg/util"
 )
 
 const (
@@ -144,7 +144,8 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 		dbm.loadDBClient()
 	}
 
-	schemaName := fmt.Sprintf("heureka%s", util2.GenerateRandomString(10))
+	// using only lowercase characters as in local scenarios the schema name is case-insensitive but the db file names are not leading to errors
+	schemaName := fmt.Sprintf("heureka%s", util2.GenerateRandomString(15, util2.Ptr("abcdefghijklmnopqrstuvwxyz0123456789")))
 	dbm.Schemas = append(dbm.Schemas, schemaName)
 	dbm.CurrentSchema = schemaName
 	dbm.Config.DBName = schemaName
@@ -229,7 +230,7 @@ func (dbm *ContainerizedTestDataBaseManager) getDockerAuthString() (string, erro
 }
 
 func (dbm *ContainerizedTestDataBaseManager) Setup() error {
-	name := util2.GenerateRandomString(10)
+	name := util2.GenerateRandomString(10, nil)
 	l := logrus.WithField("name", name)
 	authStr, err := dbm.getDockerAuthString()
 	if err != nil {

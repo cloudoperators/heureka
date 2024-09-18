@@ -3,7 +3,7 @@
 
 package activity
 
-import "github.wdf.sap.corp/cc/heureka/internal/entity"
+import "github.com/cloudoperators/heureka/internal/entity"
 
 type ActivityHandler interface {
 	ListActivities(*entity.ActivityFilter, *entity.ListOptions) (*entity.List[entity.ActivityResult], error)

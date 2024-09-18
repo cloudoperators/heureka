@@ -3,7 +3,7 @@
 
 package issue_variant
 
-import "github.wdf.sap.corp/cc/heureka/internal/entity"
+import "github.com/cloudoperators/heureka/internal/entity"
 
 type IssueVariantHandler interface {
 	ListIssueVariants(*entity.IssueVariantFilter, *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error)

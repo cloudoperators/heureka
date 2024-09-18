@@ -3,7 +3,7 @@
 
 package issue
 
-import "github.wdf.sap.corp/cc/heureka/internal/entity"
+import "github.com/cloudoperators/heureka/internal/entity"
 
 type IssueHandler interface {
 	ListIssues(*entity.IssueFilter, *entity.IssueListOptions) (*entity.IssueList, error)

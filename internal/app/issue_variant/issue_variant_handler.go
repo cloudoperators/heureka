@@ -5,14 +5,15 @@ package issue_variant
 
 import (
 	"fmt"
-	"github.wdf.sap.corp/cc/heureka/internal/app/common"
-	"github.wdf.sap.corp/cc/heureka/internal/app/event"
-	"github.wdf.sap.corp/cc/heureka/internal/app/issue_repository"
-	"github.wdf.sap.corp/cc/heureka/internal/database"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
+	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/issue_repository"
+	"github.com/cloudoperators/heureka/internal/database"
+
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
 type issueVariantHandler struct {

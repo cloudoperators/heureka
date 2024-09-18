@@ -5,13 +5,14 @@ package mariadb_test
 
 import (
 	"fmt"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb/test"
-	"github.wdf.sap.corp/cc/heureka/pkg/util"
 	"os"
 	"testing"
+
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
+	"github.com/cloudoperators/heureka/pkg/util"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var dbm test.TestDatabaseManager

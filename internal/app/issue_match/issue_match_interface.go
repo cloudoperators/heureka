@@ -3,7 +3,7 @@
 
 package issue_match
 
-import "github.wdf.sap.corp/cc/heureka/internal/entity"
+import "github.com/cloudoperators/heureka/internal/entity"
 
 type IssueMatchHandler interface {
 	ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error)

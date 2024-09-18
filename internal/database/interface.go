@@ -3,7 +3,7 @@
 
 package database
 
-import "github.wdf.sap.corp/cc/heureka/internal/entity"
+import "github.com/cloudoperators/heureka/internal/entity"
 
 type Database interface {
 	GetIssues(*entity.IssueFilter) ([]entity.Issue, error)

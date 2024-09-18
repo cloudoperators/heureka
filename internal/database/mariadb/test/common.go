@@ -4,8 +4,8 @@
 package test
 
 import (
+	"github.com/cloudoperators/heureka/internal/entity"
 	. "github.com/onsi/gomega"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
 func TestPaginationOfList[F entity.HeurekaFilter, E entity.HeurekaEntity](

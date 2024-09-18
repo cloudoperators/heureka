@@ -6,19 +6,20 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.wdf.sap.corp/cc/heureka/internal/app"
-	"github.wdf.sap.corp/cc/heureka/internal/database/mariadb"
 	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/app"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+
+	graphqlapi "github.com/cloudoperators/heureka/internal/api/graphql"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/onuryilmaz/ginprom"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	graphqlapi "github.wdf.sap.corp/cc/heureka/internal/api/graphql"
-	"github.wdf.sap.corp/cc/heureka/internal/util"
 
 	"github.com/gin-contrib/cors"
 
@@ -44,7 +45,7 @@ func NewServer(cfg util.Config) *Server {
 
 	s := Server{
 		router:     &gin.Engine{},
-		graphQLAPI: graphqlapi.NewGraphQLAPI(application),
+		graphQLAPI: graphqlapi.NewGraphQLAPI(application, cfg),
 		config:     cfg,
 	}
 

@@ -6,10 +6,10 @@ package baseResolver
 import (
 	"context"
 
+	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/app"
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
-	"github.wdf.sap.corp/cc/heureka/internal/api/graphql/graph/model"
-	"github.wdf.sap.corp/cc/heureka/internal/app"
-	"github.wdf.sap.corp/cc/heureka/internal/entity"
 )
 
 func EvidenceBaseResolver(app app.Heureka, ctx context.Context, filter *model.EvidenceFilter, first *int, after *string, parent *model.NodeParent) (*model.EvidenceConnection, error) {
