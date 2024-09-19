@@ -27,8 +27,9 @@ const (
 )
 
 type SqlDatabase struct {
-	db     *sqlx.DB
-	config *util.Config
+	db                   *sqlx.DB
+	defaultIssuePriority int64
+	config               *util.Config
 }
 
 func (s *SqlDatabase) CloseConnection() error {
@@ -74,8 +75,8 @@ func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
 	}
 	db.Exec(fmt.Sprintf("USE %s", cfg.DBName))
 	return &SqlDatabase{
-		db:     db,
-		config: &cfg,
+		db:                   db,
+		defaultIssuePriority: cfg.DefaultIssuePriority,
 	}, nil
 }
 
@@ -129,7 +130,7 @@ func (s *SqlDatabase) SetupSchema(cfg util.Config) error {
 
 // GetDefaultIssuePriority ...
 func (s *SqlDatabase) GetDefaultIssuePriority() int64 {
-	return s.config.DefaultIssuePriority
+	return s.defaultIssuePriority
 }
 
 func combineFilterQueries(filterQueries []string, op string) string {
