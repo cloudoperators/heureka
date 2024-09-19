@@ -114,38 +114,44 @@ func (e *RemoveIssueRepositoryFromServiceEvent) Name() event.EventName {
 
 // OnServiceCreate is a handler for the CreateServiceEvent
 // Is creating a single default priority for the default issue repository
-func OnServiceCreate(db database.Database, event CreateServiceEvent) {
+func OnServiceCreate(db database.Database, e event.Event) {
 	//@todo configure somewhere
 	var defaultPrio int64 = 100
 	var defaultRepoName string = "nvd"
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnServiceCreate",
-		"payload":           event,
+		"payload":           e,
 		"default_priority":  defaultPrio,
 		"default_repo_name": defaultRepoName,
 	})
 
-	serviceId := event.Service.Id
+	if createEvent, ok := e.(*CreateServiceEvent); ok {
+		serviceId := createEvent.Service.Id
+		l.WithField("event-step", "GetIssueRepository").Debug("Fetching Issue Repository by name")
 
-	l.WithField("event-step", "GetIssueRepository").Debug("Fetching Issue Repository by name")
+		// Fetch IssueRepositories
+		issueRepositories, err := db.GetIssueRepositories(&entity.IssueRepositoryFilter{
+			Name: []*string{&defaultRepoName},
+		})
 
-	issueRepositories, err := db.GetIssueRepositories(&entity.IssueRepositoryFilter{Name: []*string{&defaultRepoName}})
+		if err != nil {
+			l.WithField("event-step", "GetIssueRepository").WithError(err).Error("Error while fetching issue repository by name")
+			return
+		}
 
-	if err != nil {
-		l.WithField("event-step", "GetIssueRepository").WithError(err).Error("Error while fetching issue repository by name")
-		return
-	}
+		if len(issueRepositories) == 0 {
+			l.WithField("event-step", "GetIssueRepository").Error("No Issue Repository found by name")
+			return
+		}
 
-	if len(issueRepositories) == 0 {
-		l.WithField("event-step", "GetIssueRepository").Error("No Issue Repository found by name")
-		return
-	}
+		l.WithField("event-step", "AddIssueRepositoryToService").Debug("Adding Issue Repository to Service")
 
-	l.WithField("event-step", "AddIssueRepositoryToService").Debug("Adding Issue Repository to Service")
-
-	err = db.AddIssueRepositoryToService(serviceId, issueRepositories[0].Id, defaultPrio)
-	if err != nil {
-		l.WithField("event-step", "AddIssueRepositoryToService").WithError(err).Error("Error while adding issue repository to service")
+		err = db.AddIssueRepositoryToService(serviceId, issueRepositories[0].Id, defaultPrio)
+		if err != nil {
+			l.WithField("event-step", "AddIssueRepositoryToService").WithError(err).Error("Error while adding issue repository to service")
+		}
+	} else {
+		l.Error("Wrong event")
 	}
 }

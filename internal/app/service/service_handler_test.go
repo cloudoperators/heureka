@@ -145,6 +145,73 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 			Expect(newService.Name).To(BeEquivalentTo(service.Name))
 		})
 	})
+
+	Context("when handling a valid CreateServiceEvent", func() {
+		It("should add the default issue repository to the service", func() {
+			srv := test.NewFakeServiceEntity()
+			createEvent := &s.CreateServiceEvent{
+				Service: &srv,
+			}
+
+			// Use type assertion to convert a CreateServiceEvent into an Event
+			var event event.Event = createEvent
+
+			// Create IssueRepository
+			defaultRepoName := "nvd"
+			defaultPrio := 100
+			repo := test.NewFakeIssueRepositoryEntity()
+			repo.Id = 456
+			repo.Name = defaultRepoName
+
+			db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
+				Name: []*string{&defaultRepoName},
+			}).Return([]entity.IssueRepository{repo}, nil)
+			db.On("AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio)).Return(nil)
+
+			// Simulate event
+			s.OnServiceCreate(db, event)
+
+			// Check AddIssueRepositoryToService was called
+			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio))
+		})
+	})
+
+	Context("when handling an invalid event type", func() {
+		It("should not perform any database operations", func() {
+			invalidEvent := &s.UpdateServiceEvent{}
+
+			// Use type assertion to convert
+			var event event.Event = invalidEvent
+
+			s.OnServiceCreate(db, event)
+
+			// These functions should not be called in case of a different event
+			db.AssertNotCalled(GinkgoT(), "GetIssueRepositories")
+			db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
+		})
+	})
+
+	Context("when no issue repository is found", func() {
+		It("should not add any repository to the service", func() {
+			srv := test.NewFakeServiceEntity()
+			createEvent := &s.CreateServiceEvent{
+				Service: &srv,
+			}
+
+			// Use type assertion to convert a CreateServiceEvent into an Event
+			var event event.Event = createEvent
+
+			defaultRepoName := "nvd"
+			db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
+				Name: []*string{&defaultRepoName},
+			}).Return([]entity.IssueRepository{}, nil)
+
+			s.OnServiceCreate(db, event)
+
+			db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
+			// TODO: we could also check for the error message here
+		})
+	})
 })
 
 var _ = Describe("When updating Service", Label("app", "UpdateService"), func() {
