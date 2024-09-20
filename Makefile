@@ -96,3 +96,74 @@ compose-restart: compose-down compose-up
 
 compose-build:
 	$(DOCKER_COMPOSE) build $(DOCKER_COMPOSE_SERVICES)
+
+##@ Deployment
+
+ifndef ignore-not-found
+  ignore-not-found = false
+endif
+
+.PHONY: kustomize-build-crds
+kustomize-build-crds: generate-manifests kustomize
+	$(KUSTOMIZE) build $(CRD_MANIFESTS_PATH)
+	
+##@ Build Dependencies
+
+## Tool Binaries
+KUSTOMIZE ?= $(LOCALBIN)/kustomize
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+GOIMPORTS ?= $(LOCALBIN)/goimports
+GOLINT ?= $(LOCALBIN)/golangci-lint
+ENVTEST ?= $(LOCALBIN)/setup-envtest
+HELMIFY ?= $(LOCALBIN)/helmify
+
+## Tool Versions
+KUSTOMIZE_VERSION ?= v5.4.2
+CONTROLLER_TOOLS_VERSION ?= v0.15.0
+GOLINT_VERSION ?= v1.60.2
+GINKGOLINTER_VERSION ?= v0.16.2
+
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
+
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
+.PHONY: controller-gen-docker
+controller-gen-docker: $(CONTROLLER_GEN_DOCKER) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN_DOCKER): $(LOCALBIN)
+	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
+.PHONY: envtest
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: envtest-docker
+envtest-docker: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST_DOCKER): $(LOCALBIN)
+	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: goimports
+goimports: $(GOIMPORTS)
+$(GOIMPORTS): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install golang.org/x/tools/cmd/goimports@latest
+
+.PHONY: golint
+golint: $(GOLINT)
+$(GOLINT): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+
+.PHONY: serve-docs
+serve-docs: generate-manifests
+ifeq (, $(shell which hugo))
+	@echo "Hugo is not installed in your machine. Please install it to serve the documentation locally. Please refer to https://gohugo.io/installation/ for installation instructions."
+else
+	cd website && hugo server
+endif

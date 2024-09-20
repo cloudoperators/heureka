@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ template "heureka.fullname" . }}
+  labels:
+    prometheus: kubernetes
+spec:
+  jobLabel: {{ template "heureka.fullname" . }}
+
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "heureka.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      component: server
+
+  podMetricsEndpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+    metricRelabelings:
+    - sourceLabels: [cluster]
+      targetLabel: heureka_cluster
+    - action: labeldrop
+      regex: "cluster"
