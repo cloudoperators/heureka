@@ -22,6 +22,24 @@ Should you wish to work on an issue, please claim it first by commenting on the 
 
 If you have questions about one of the issues, please comment on them, and one of the maintainers will clarify.
 
+### Branch Naming Convention
+
+When creating a branch to work on an issue, please follow this naming convention:
+
+```
+{username}/{issue_id}/description
+```
+
+Where:
+- `{username}` is your GitHub username
+- `{issue_id}` is the ID of the issue you're working on
+- `description` is a brief description of the issue
+
+Example: `username/issue_188/fix-login-bug`
+
+This naming convention helps us easily identify the purpose of each branch, who is working on it, and which issue it relates to. It streamlines our workflow and improves collaboration among team members.
+
+
 ## Contributing Code or Documentation
 
 You are welcome to contribute code in order to fix a bug or to implement a new feature that is logged as an issue.
