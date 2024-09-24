@@ -116,7 +116,7 @@ func (e *RemoveIssueRepositoryFromServiceEvent) Name() event.EventName {
 // Is creating a single default priority for the default issue repository
 func OnServiceCreate(db database.Database, e event.Event) {
 	defaultPrio := db.GetDefaultIssuePriority()
-	var defaultRepoName string = "nvd"
+	defaultRepoName := db.GetDefaultRepositoryName()
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnServiceCreate",
