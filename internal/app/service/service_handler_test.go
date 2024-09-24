@@ -150,6 +150,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 	Context("when handling a CreateServiceEvent", func() {
 		BeforeEach(func() {
 			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
 		})
 		Context("that is valid", func() {
 			It("should add the default issue repository to the service", func() {
