@@ -26,7 +26,8 @@ func TestServiceHandler(t *testing.T) {
 var er event.EventRegistry
 
 var _ = BeforeSuite(func() {
-	er = event.NewEventRegistry()
+	db := mocks.NewMockDatabase(GinkgoT())
+	er = event.NewEventRegistry(db)
 })
 
 func GetListOptions() *entity.ListOptions {
@@ -136,12 +137,87 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		filter.Name = []*string{&service.Name}
 		db.On("CreateService", &service).Return(&service, nil)
 		db.On("GetServices", filter).Return([]entity.Service{}, nil)
+
 		serviceHandler = s.NewServiceHandler(db, er)
 		newService, err := serviceHandler.CreateService(&service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newService.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
 			Expect(newService.Name).To(BeEquivalentTo(service.Name))
+		})
+	})
+
+	Context("when handling a CreateServiceEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+		Context("that is valid", func() {
+			It("should add the default issue repository to the service", func() {
+				srv := test.NewFakeServiceEntity()
+				createEvent := &s.CreateServiceEvent{
+					Service: &srv,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+
+				// Create IssueRepository
+				defaultRepoName := "nvd"
+				defaultPrio := 100
+				repo := test.NewFakeIssueRepositoryEntity()
+				repo.Id = 456
+				repo.Name = defaultRepoName
+
+				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
+					Name: []*string{&defaultRepoName},
+				}).Return([]entity.IssueRepository{repo}, nil)
+				db.On("AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio)).Return(nil)
+
+				// Simulate event
+				s.OnServiceCreate(db, event)
+
+				// Check AddIssueRepositoryToService was called
+				db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio))
+			})
+		})
+
+		Context("that as an invalid event", func() {
+			It("should not perform any database operations", func() {
+				invalidEvent := &s.UpdateServiceEvent{}
+
+				// Use type assertion to convert
+				var event event.Event = invalidEvent
+
+				s.OnServiceCreate(db, event)
+
+				// These functions should not be called in case of a different event
+				db.AssertNotCalled(GinkgoT(), "GetIssueRepositories")
+				db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
+			})
+
+		})
+
+		Context("when no issue repository is found", func() {
+			It("should not add any repository to the service", func() {
+				srv := test.NewFakeServiceEntity()
+				createEvent := &s.CreateServiceEvent{
+					Service: &srv,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+
+				defaultRepoName := "nvd"
+				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
+					Name: []*string{&defaultRepoName},
+				}).Return([]entity.IssueRepository{}, nil)
+
+				s.OnServiceCreate(db, event)
+
+				db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
+				// TODO: we could also check for the error message here
+			})
 		})
 	})
 })

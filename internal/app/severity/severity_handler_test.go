@@ -28,7 +28,8 @@ func TestSeverityHandler(t *testing.T) {
 var er event.EventRegistry
 
 var _ = BeforeSuite(func() {
-	er = event.NewEventRegistry()
+	db := mocks.NewMockDatabase(GinkgoT())
+	er = event.NewEventRegistry(db)
 })
 
 func severityFilter() *entity.SeverityFilter {

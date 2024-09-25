@@ -5,7 +5,9 @@ package service
 
 import (
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -108,4 +110,47 @@ type RemoveIssueRepositoryFromServiceEvent struct {
 
 func (e *RemoveIssueRepositoryFromServiceEvent) Name() event.EventName {
 	return RemoveIssueRepositoryFromServiceEventName
+}
+
+// OnServiceCreate is a handler for the CreateServiceEvent
+// Is creating a single default priority for the default issue repository
+func OnServiceCreate(db database.Database, e event.Event) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnServiceCreate",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if createEvent, ok := e.(*CreateServiceEvent); ok {
+		serviceId := createEvent.Service.Id
+		l.WithField("event-step", "GetIssueRepository").Debug("Fetching Issue Repository by name")
+
+		// Fetch IssueRepositories
+		issueRepositories, err := db.GetIssueRepositories(&entity.IssueRepositoryFilter{
+			Name: []*string{&defaultRepoName},
+		})
+
+		if err != nil {
+			l.WithField("event-step", "GetIssueRepository").WithError(err).Error("Error while fetching issue repository by name")
+			return
+		}
+
+		if len(issueRepositories) == 0 {
+			l.WithField("event-step", "GetIssueRepository").Error("No Issue Repository found by name")
+			return
+		}
+
+		l.WithField("event-step", "AddIssueRepositoryToService").Debug("Adding Issue Repository to Service")
+
+		err = db.AddIssueRepositoryToService(serviceId, issueRepositories[0].Id, defaultPrio)
+		if err != nil {
+			l.WithField("event-step", "AddIssueRepositoryToService").WithError(err).Error("Error while adding issue repository to service")
+		}
+	} else {
+		l.Error("Wrong event")
+	}
 }
