@@ -3,6 +3,16 @@
 
 package entity
 
+type SeverityValues string
+
+const (
+	SeverityValuesNone     SeverityValues = "None"
+	SeverityValuesLow      SeverityValues = "Low"
+	SeverityValuesMedium   SeverityValues = "Medium"
+	SeverityValuesHigh     SeverityValues = "High"
+	SeverityValuesCritical SeverityValues = "Critical"
+)
+
 type SeverityFilter struct {
 	IssueMatchId []*int64 `json:"issue_match_id"`
 	IssueId      []*int64 `json:"issue_id"`
