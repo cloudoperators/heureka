@@ -31,6 +31,8 @@ type Database interface {
 	CreateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
 	UpdateIssueRepository(*entity.IssueRepository) error
 	DeleteIssueRepository(int64) error
+	GetDefaultIssuePriority() int64
+	GetDefaultRepositoryName() string
 
 	GetIssueMatches(*entity.IssueMatchFilter) ([]entity.IssueMatch, error)
 	GetAllIssueMatchIds(*entity.IssueMatchFilter) ([]int64, error)
