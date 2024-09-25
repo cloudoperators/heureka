@@ -62,7 +62,7 @@ func NewEventRegistry(db database.Database) EventRegistry {
 func NewEventRegistry(db database.Database) EventRegistry {
 	return &eventRegistry{
 		handlers: make(map[EventName][]EventHandler),
-		ch:       make(chan Event, 100),
+		ch:       make(chan Event, 1000),
 		db:       db,
 	}
 }

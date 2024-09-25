@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+
 	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -78,26 +79,6 @@ func (h *HeurekaApp) SubscribeHandlers() {
 		component_instance.CreateComponentInstanceEventName,
 		event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
 	)
-
-	// Event handlers for Services
-	h.eventRegistry.RegisterEventHandler(
-		service.CreateServiceEventName,
-		event.EventHandlerFunc(service.OnServiceCreate),
-	)
-
-	// Event handlers for IssueRepositories
-	h.eventRegistry.RegisterEventHandler(
-		issue_repository.CreateIssueRepositoryEventName,
-		event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate),
-	)
-}
-
-func (h *HeurekaApp) SubscribeHandlers() {
-
-	h.eventRegistry.RegisterEventHandler(
-		component_instance.CreateComponentInstanceEventName,
-		event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
-  )
 
 	// Event handlers for Services
 	h.eventRegistry.RegisterEventHandler(
