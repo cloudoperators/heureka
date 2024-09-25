@@ -21,9 +21,10 @@ func (s *SqlDatabase) ensureComponentVersionFilter(f *entity.ComponentVersionFil
 				First: &first,
 				After: &after,
 			},
-			Id:          nil,
-			IssueId:     nil,
-			ComponentId: nil,
+			Id:            nil,
+			IssueId:       nil,
+			ComponentName: nil,
+			ComponentId:   nil,
 		}
 	}
 	if f.First == nil {
@@ -39,6 +40,9 @@ func (s *SqlDatabase) getComponentVersionJoins(filter *entity.ComponentVersionFi
 	joins := ""
 	if len(filter.IssueId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, "LEFT JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id")
+	}
+	if len(filter.ComponentName) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, "LEFT JOIN Component C on CV.componentversion_component_id = C.component_id")
 	}
 	return joins
 }
@@ -60,6 +64,7 @@ func (s *SqlDatabase) getComponentVersionFilterString(filter *entity.ComponentVe
 	fl = append(fl, buildFilterQuery(filter.IssueId, "CVI.componentversionissue_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Version, "CV.componentversion_version = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ComponentName, "C.component_name = ?", OP_OR))
 	fl = append(fl, "CV.componentversion_deleted_at IS NULL")
 
 	return combineFilterQueries(fl, OP_AND)
@@ -108,6 +113,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Version)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentName)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
 		filterParameters = append(filterParameters, cursor.Limit)

@@ -242,6 +242,34 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						}
 					})
 				})
+				It("can filter by a version and component", func() {
+					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+
+					componentName := ""
+					for _, cr := range seedCollection.ComponentRows {
+						if cr.Id.Int64 == cv.ComponentId.Int64 {
+							componentName = cr.Name.String
+						}
+					}
+
+					filter := &entity.ComponentVersionFilter{
+						Version:       []*string{&cv.Version.String},
+						ComponentName: []*string{&componentName},
+					}
+
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(entry.Version).To(BeEquivalentTo(cv.Version.String))
+							Expect(entry.ComponentId).To(BeEquivalentTo(cv.ComponentId.Int64))
+						}
+					})
+				})
 			})
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {

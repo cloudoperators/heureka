@@ -450,7 +450,11 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 
 	_, err := performExec(s, query, args, l)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVersionId int64) error {
