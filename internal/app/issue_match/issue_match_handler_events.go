@@ -6,12 +6,11 @@ package issue_match
 import (
 	"time"
 
-	"fmt"
-	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -186,7 +185,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 	l.WithField("event-step", "BuildIssueVariants").Debug("Building map of IssueVariants for issues related to assigned Component Version")
 	issueVariantMap, err := BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
 
-	fmt.Printf("\n\nissueVariantMap: %#v\n", issueVariantMap)
+	l.WithField("issueVariantMap", issueVariantMap)
 	if err != nil {
 		l.WithField("event-step", "BuildIssueVariants").WithError(err).Error("Error while fetching issues related to component Version")
 		return
@@ -207,7 +206,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
 			return
 		}
-		fmt.Printf("issue Matches: %d\n\n\n", len(issue_matches))
+		l.WithField("issueMatchesCount", len(issue_matches))
 
 		// If the issue match is already created, we ignore it, as we do not associate with a version change a severity change
 		if len(issue_matches) != 0 {
@@ -232,35 +231,6 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 		}
 	}
 }
-
-//func ComponentVersionDelta(db database.Database, oldComponentVersionID int64, newComponentVersionID int64) ([]*int64, []*int64) {
-//
-//	oldIssues, err := db.GetIssues(&entity.IssueFilter{
-//		Paginated:          entity.Paginated{},
-//		ComponentVersionId: []*int64{&oldComponentVersionID},
-//	})
-//
-//	if err != nil {
-//		//log error
-//		return make([]*int64, 0), make([]*int64, 0)
-//	}
-//	newIssues, err := db.GetIssues(&entity.IssueFilter{
-//		Paginated:          entity.Paginated{},
-//		ComponentVersionId: []*int64{&newComponentVersionID},
-//	})
-//
-//	if err != nil {
-//		//log error
-//		return make([]*int64, 0), make([]*int64, 0)
-//	}
-//
-//	oldIssueIds := lo.Map(oldIssues, func(i entity.Issue, _ int) *int64 { return &i.Id })
-//	newIssueIds := lo.Map(newIssues, func(i entity.Issue, _ int) *int64 { return &i.Id })
-//
-//	added, removed := lo.Difference(oldIssueIds, newIssueIds)
-//
-//	return added, removed
-//}
 
 func GetTargetRemediationTimeline(severity entity.Severity, creationDate time.Time) time.Time {
 	//@todo get the configuration from environment variables or configuration file
