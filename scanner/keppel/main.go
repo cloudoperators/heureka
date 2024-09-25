@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"sync"
 
@@ -52,6 +53,7 @@ func main() {
 	}
 
 	var processorCfg processor.Config
+	var fqdn = scannerCfg.KeppelFQDN
 	err = envconfig.Process("heureka", &processorCfg)
 	if err != nil {
 		log.WithError(err).Fatal("Error while reading env config for processor")
@@ -72,13 +74,13 @@ func main() {
 	wg.Add(len(accounts))
 
 	for _, account := range accounts {
-		go HandleAccount(account, keppelScanner, keppelProcessor, &wg)
+		go HandleAccount(fqdn, account, keppelScanner, keppelProcessor, &wg)
 	}
 
 	wg.Wait()
 }
 
-func HandleAccount(account models.Account, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor, wg *sync.WaitGroup) error {
+func HandleAccount(fqdn string, account models.Account, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	repositories, err := keppelScanner.ListRepositories(account.Name)
 	if err != nil {
@@ -89,20 +91,20 @@ func HandleAccount(account models.Account, keppelScanner *scanner.Scanner, keppe
 	}
 
 	for _, repository := range repositories {
-		HandleRepository(account, repository, keppelScanner, keppelProcessor)
+		HandleRepository(fqdn, account, repository, keppelScanner, keppelProcessor)
 	}
 
 	return nil
 }
 
-func HandleRepository(account models.Account, repository models.Repository, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
-	component, err := keppelProcessor.ProcessRepository(repository)
+func HandleRepository(fqdn string, account models.Account, repository models.Repository, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+	component, err := keppelProcessor.ProcessRepository(fqdn, account, repository)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"account:":   account.Name,
 			"repository": repository.Name,
 		}).WithError(err).Error("Error during ProcessRepository")
-		component, err = keppelProcessor.GetComponent(repository.Name)
+		component, err = keppelProcessor.GetComponent(fmt.Sprintf("%s/%s/%s", fqdn, account.Name, repository.Name))
 		if err != nil {
 			log.WithFields(log.Fields{
 				"account:":   account.Name,
@@ -120,6 +122,13 @@ func HandleRepository(account models.Account, repository models.Repository, kepp
 		return
 	}
 	for _, manifest := range manifests {
+		if component == nil {
+			log.WithFields(log.Fields{
+				"account:":   account.Name,
+				"repository": repository.Name,
+			}).Error("Component not found")
+			return
+		}
 		HandleManifest(account, repository, manifest, component, keppelScanner, keppelProcessor)
 	}
 }
@@ -147,5 +156,10 @@ func HandleManifest(account models.Account, repository models.Repository, manife
 		}).WithError(err).Error("Error during GetTrivyReport")
 		return
 	}
+
+	if trivyReport == nil {
+		return
+	}
+
 	keppelProcessor.ProcessReport(*trivyReport, componentVersion.Id)
 }
