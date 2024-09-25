@@ -14,6 +14,12 @@ type EventHandler interface {
 }
 
 type EventHandlerFunc func(database.Database, Event)
+// Implement same logic as in the net/http std lib
+type EventHandler interface {
+	HandleEvent(database.Database, Event)
+}
+
+type EventHandlerFunc func(database.Database, Event)
 
 func (f EventHandlerFunc) HandleEvent(db database.Database, e Event) {
 	f(db, e)
@@ -51,9 +57,12 @@ func (er *eventRegistry) PushEvent(event Event) {
 // NewEventRegistry returns an event registry where for each incoming event a list of
 // handlers is called. We use a buffered channel for the worker go routines.
 func NewEventRegistry(db database.Database) EventRegistry {
+// NewEventRegistry returns an event registry where for each incoming event a list of
+// handlers is called. We use a buffered channel for the worker go routines.
+func NewEventRegistry(db database.Database) EventRegistry {
 	return &eventRegistry{
 		handlers: make(map[EventName][]EventHandler),
-		ch:       make(chan Event, 1000),
+		ch:       make(chan Event, 100),
 		db:       db,
 	}
 }

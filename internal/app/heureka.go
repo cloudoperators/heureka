@@ -92,6 +92,20 @@ func (h *HeurekaApp) SubscribeHandlers() {
 	)
 }
 
+func (h *HeurekaApp) SubscribeHandlers() {
+	// Event handlers for Services
+	h.eventRegistry.RegisterEventHandler(
+		service.CreateServiceEventName,
+		event.EventHandlerFunc(service.OnServiceCreate),
+	)
+
+	// Event handlers for IssueRepositories
+	h.eventRegistry.RegisterEventHandler(
+		issue_repository.CreateIssueRepositoryEventName,
+		event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate),
+	)
+}
+
 func (h *HeurekaApp) Shutdown() error {
 	return h.database.CloseConnection()
 }
