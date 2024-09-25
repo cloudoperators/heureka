@@ -3,11 +3,17 @@
 
 package scanner
 
+import "fmt"
+
 type Config struct {
-	KeppelBaseUrl    string `envconfig:"KEPPEL_BASE_URL" required:"true" json:"-"`
+	KeppelFQDN       string `envconfig:"KEPPEL_FQDN" required:"true" json:"-"`
 	KeppelUsername   string `envconfig:"KEPPEL_USERNAME" required:"true" json:"-"`
 	KeppelPassword   string `envconfig:"KEPPEL_PASSWORD" required:"true" json:"-"`
 	Domain           string `envconfig:"KEPPEL_DOMAIN" required:"true" json:"-"`
 	Project          string `envconfig:"KEPPEL_PROJECT" required:"true" json:"-"`
 	IdentityEndpoint string `envconfig:"IDENTITY_ENDPOINT" required:"true" json:"-"`
+}
+
+func (c *Config) KeppelBaseUrl() string {
+	return fmt.Sprintf("https://%s", c.KeppelFQDN)
 }
