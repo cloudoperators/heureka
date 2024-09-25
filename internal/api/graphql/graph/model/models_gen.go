@@ -230,8 +230,10 @@ func (this ComponentVersionEdge) GetNode() Node      { return *this.Node }
 func (this ComponentVersionEdge) GetCursor() *string { return this.Cursor }
 
 type ComponentVersionFilter struct {
-	IssueID []*string `json:"issueId,omitempty"`
-	Version []*string `json:"version,omitempty"`
+	ComponentID   []*string `json:"componentId,omitempty"`
+	ComponentName []*string `json:"componentName,omitempty"`
+	IssueID       []*string `json:"issueId,omitempty"`
+	Version       []*string `json:"version,omitempty"`
 }
 
 type ComponentVersionInput struct {

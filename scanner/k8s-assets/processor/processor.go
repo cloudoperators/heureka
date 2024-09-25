@@ -73,8 +73,12 @@ func NewProcessor(cfg Config) *Processor {
 }
 
 // ProcessService creates a service and processes all its pods
-func (p *Processor) ProcessService(ctx context.Context, namespace string, serviceInfo scanner.ServiceInfo) (string, error) {
+func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.ServiceInfo) (string, error) {
 	var serviceId string
+
+	if serviceInfo.Name == "" {
+		serviceInfo.Name = "none"
+	}
 
 	// The Service might already exist in the DB
 	// Let's try to fetch one Service by name
@@ -83,23 +87,67 @@ func (p *Processor) ProcessService(ctx context.Context, namespace string, servic
 		log.WithError(err).WithFields(log.Fields{
 			"serviceName": serviceInfo.Name,
 		}).Error("failed to fetch service")
+
+		// Create new Service
+		createServiceInput := &client.ServiceInput{
+			Name: serviceInfo.Name,
+		}
+
+		createServiceResp, err := client.CreateService(ctx, *p.Client, createServiceInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create Service %s: %w", serviceInfo.Name, err)
+		} else {
+			serviceId = createServiceResp.CreateService.Id
+		}
 	} else {
 		serviceId = _serviceId
-		return serviceId, nil
 	}
 
-	// Create new Service
-	createServiceInput := &client.ServiceInput{
-		Name: serviceInfo.Name,
-	}
-
-	createServiceResp, err := client.CreateService(ctx, *p.Client, createServiceInput)
+	var supportGroupId string
+	_supportGroupId, err := p.getSupportGroup(ctx, serviceInfo)
 	if err != nil {
-		return "", fmt.Errorf("failed to create Service %s: %w", serviceInfo.Name, err)
+		log.WithError(err).WithFields(log.Fields{
+			"serviceName": serviceInfo.Name,
+		}).Error("failed to fetch service")
+
+		// Create new SupportGroup
+		createSupportGroupInput := &client.SupportGroupInput{
+			Name: serviceInfo.SupportGroup,
+		}
+		createSupportGroupResp, err := client.CreateSupportGroup(ctx, *p.Client, createSupportGroupInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create SupportGroup %s: %w", serviceInfo.SupportGroup, err)
+		} else {
+			supportGroupId = createSupportGroupResp.CreateSupportGroup.Id
+		}
 	} else {
-		serviceId = createServiceResp.CreateService.Id
+		supportGroupId = _supportGroupId
 	}
+
+	_, _ = client.AddServiceToSupportGroup(ctx, *p.Client, serviceId, supportGroupId)
+
 	return serviceId, nil
+}
+
+func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.ServiceInfo) (string, error) {
+	var supportGroupId string
+
+	listSupportGroupsFilter := client.SupportGroupFilter{
+		SupportGroupName: []string{serviceInfo.SupportGroup},
+	}
+	listSupportGroupsResp, err := client.ListSupportGroups(ctx, *p.Client, &listSupportGroupsFilter)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't list support groups")
+	}
+
+	// Return the first item
+	if listSupportGroupsResp.SupportGroups.TotalCount > 0 {
+		supportGroupId = listSupportGroupsResp.SupportGroups.Edges[0].Node.Id
+	} else {
+		return "", fmt.Errorf("ListSupportGroups returned no SupportGroupID")
+	}
+
+	return supportGroupId, nil
 }
 
 // getService returns (if any) a ServiceID
@@ -186,8 +234,17 @@ func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, 
 func (p *Processor) getComponentVersion(ctx context.Context, versionHash string) (string, error) {
 	var componentVersionId string
 
+	//separating image name and version hash
+	imageAndVersion := strings.SplitN(versionHash, "@", 2)
+	if len(imageAndVersion) < 2 {
+		return "", fmt.Errorf("Couldn't split image and version")
+	}
+	image := imageAndVersion[0]
+	version := imageAndVersion[1]
+
 	listComponentVersionFilter := client.ComponentVersionFilter{
-		Version: []string{versionHash},
+		ComponentName: []string{image},
+		Version:       []string{version},
 	}
 	listCompoVersResp, err := client.ListComponentVersions(ctx, *p.Client, &listComponentVersionFilter)
 	if err != nil {
