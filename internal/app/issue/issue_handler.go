@@ -3,9 +3,8 @@
 package issue
 
 import (
+	"errors"
 	"fmt"
-	"strings"
-
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
@@ -248,10 +247,11 @@ func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId i
 	err := is.database.AddComponentVersionToIssue(issueId, componentVersionId)
 
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "Error 1062") {
+		l.Error(err)
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
 			return nil, NewIssueHandlerError("Entry already Exists")
 		}
-		l.Error(err)
 		return nil, NewIssueHandlerError("Internal error while adding component version to issue.")
 	}
 

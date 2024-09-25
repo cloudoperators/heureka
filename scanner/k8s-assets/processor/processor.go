@@ -142,10 +142,7 @@ func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.Ser
 
 	// Return the first item
 	if listSupportGroupsResp.SupportGroups.TotalCount > 0 {
-		for _, sg := range listSupportGroupsResp.SupportGroups.Edges {
-			supportGroupId = sg.Node.Id
-			break
-		}
+		supportGroupId = listSupportGroupsResp.SupportGroups.Edges[0].Node.Id
 	} else {
 		return "", fmt.Errorf("ListSupportGroups returned no SupportGroupID")
 	}

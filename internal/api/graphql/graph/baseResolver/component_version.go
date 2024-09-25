@@ -8,7 +8,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -86,14 +86,11 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 			componentId = []*int64{pid}
 		}
 	} else {
-		componentId = lo.Map(filter.ComponentID, func(id *string, _ int) *int64 {
-			i, err := ParseCursor(id)
-			if err != nil {
-				logrus.WithField("componentId", filter.ComponentID).Error("ComponentVersionBaseResolver: Error while parsing parameter 'componentId'")
-				return nil
-			}
-			return i
-		})
+		componentId, err = util.ConvertStrToIntSlice(filter.ComponentID)
+
+		if err != nil {
+			return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter component ID")
+		}
 	}
 
 	f := &entity.ComponentVersionFilter{
