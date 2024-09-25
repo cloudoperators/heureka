@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"fmt"
+	"github.com/cloudoperators/heureka/internal/database"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -220,6 +221,9 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 	id, err := performInsert(s, query, componentVersionRow, l)
 
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return nil, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("for ComponentVersion: %s ", componentVersion.Version))
+		}
 		return nil, err
 	}
 

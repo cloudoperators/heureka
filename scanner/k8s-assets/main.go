@@ -75,7 +75,7 @@ func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Proc
 		// TODO
 		serviceInfo := s.GetServiceInfo(podReplica.Pods[0])
 
-		serviceId, err := p.ProcessService(ctx, namespace, serviceInfo)
+		serviceId, err := p.ProcessService(ctx, serviceInfo)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error":       err,
