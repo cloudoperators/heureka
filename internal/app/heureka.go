@@ -93,6 +93,12 @@ func (h *HeurekaApp) SubscribeHandlers() {
 }
 
 func (h *HeurekaApp) SubscribeHandlers() {
+
+	h.eventRegistry.RegisterEventHandler(
+		component_instance.CreateComponentInstanceEventName,
+		event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
+  )
+
 	// Event handlers for Services
 	h.eventRegistry.RegisterEventHandler(
 		service.CreateServiceEventName,
