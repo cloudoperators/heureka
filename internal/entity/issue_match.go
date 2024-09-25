@@ -39,6 +39,7 @@ var AllIssueMatchStatusValues = []string{
 }
 
 type IssueMatch struct {
+	Metadata
 	Id                    int64                 `json:"id"`
 	Status                IssueMatchStatusValue `json:"status"`
 	User                  *User                 `json:"user,omitempty"`
@@ -51,12 +52,10 @@ type IssueMatch struct {
 	IssueId               int64                 `json:"issue_id"`
 	RemediationDate       time.Time             `json:"remediation_date"`
 	TargetRemediationDate time.Time             `json:"target_remediation_date"`
-	CreatedAt             time.Time             `json:"created_at"`
-	DeletedAt             time.Time             `json:"deleted_at,omitempty"`
-	UpdatedAt             time.Time             `json:"updated_at"`
 }
 
 type IssueMatchFilter struct {
+	Metadata
 	Paginated
 	Id                  []*int64  `json:"id"`
 	AffectedServiceName []*string `json:"affected_service_name"`

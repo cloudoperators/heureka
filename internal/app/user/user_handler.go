@@ -103,6 +103,7 @@ func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListO
 }
 
 func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
+	user.CreatedBy = "Creator"
 	f := &entity.UserFilter{
 		UniqueUserID: []*string{&user.UniqueUserID},
 	}
@@ -136,6 +137,7 @@ func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 }
 
 func (u *userHandler) UpdateUser(user *entity.User) (*entity.User, error) {
+	user.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateUserEventName,
 		"object": user,

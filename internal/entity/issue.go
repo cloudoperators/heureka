@@ -8,6 +8,7 @@ import (
 )
 
 type IssueWithAggregations struct {
+	Metadata
 	IssueAggregations
 	Issue
 }
@@ -50,6 +51,7 @@ type IssueResult struct {
 }
 
 type IssueFilter struct {
+	Metadata
 	Paginated
 	PrimaryName                     []*string   `json:"primary_name"`
 	ServiceName                     []*string   `json:"service_name"`
@@ -66,6 +68,7 @@ type IssueFilter struct {
 }
 
 type IssueAggregations struct {
+	Metadata
 	Activites                     int64
 	IssueMatches                  int64
 	AffectedServices              int64
@@ -76,6 +79,7 @@ type IssueAggregations struct {
 }
 
 type Issue struct {
+	Metadata
 	Id                int64              `json:"id"`
 	Type              IssueType          `json:"type"`
 	PrimaryName       string             `json:"primary_name"`
@@ -84,17 +88,16 @@ type Issue struct {
 	IssueMatches      []IssueMatch       `json:"issue_matches,omitempty"`
 	ComponentVersions []ComponentVersion `json:"component_versions,omitempty"`
 	Activity          []Activity         `json:"activity,omitempty"`
-	CreatedAt         time.Time          `json:"created_at"`
-	DeletedAt         time.Time          `json:"deleted_at,omitempty"`
-	UpdatedAt         time.Time          `json:"updated_lsat"`
 }
 
 type IssueCount struct {
+	Metadata
 	Count int64     `json:"count"`
 	Type  IssueType `json:"type"`
 }
 
 type IssueTypeCounts struct {
+	Metadata
 	VulnerabilityCount   int64 `json:"vulnerability_count"`
 	PolicyViolationCount int64 `json:"policy_violation_count"`
 	SecurityEventCount   int64 `json:"security_event_count"`

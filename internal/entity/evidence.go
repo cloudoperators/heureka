@@ -42,6 +42,7 @@ var AllEvidenceTypeValues = []string{
 }
 
 type Evidence struct {
+	Metadata
 	Id          int64        `json:"id"`
 	Description string       `json:"description"`
 	Type        EvidenceType `json:"type"`
@@ -51,19 +52,19 @@ type Evidence struct {
 	UserId      int64        `db:"evidence_author_id"`
 	Activity    *Activity    `json:"activity,omitempty"`
 	ActivityId  int64        `db:"evidence_activity_id"`
-	CreatedAt   time.Time    `json:"created_at"`
-	DeletedAt   time.Time    `json:"deleted_at,omitempty"`
-	UpdatedAt   time.Time    `json:"updated_at"`
 }
 
 type EvidenceFilter struct {
+	Metadata
 	Paginated
 	Id           []*int64 `json:"id"`
 	ActivityId   []*int64 `json:"activity_id"`
 	IssueMatchId []*int64 `json:"issue_match_id"`
 	UserId       []*int64 `json:"user_id"`
 }
-type EvidenceAggregations struct{}
+type EvidenceAggregations struct {
+	Metadata
+}
 
 type EvidenceResult struct {
 	WithCursor

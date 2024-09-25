@@ -3,8 +3,6 @@
 
 package entity
 
-import "time"
-
 type UserType int
 
 const (
@@ -14,16 +12,15 @@ const (
 )
 
 type User struct {
-	Id           int64     `json:"id"`
-	Name         string    `json:"name"`
-	UniqueUserID string    `json:"uniqueUserId"`
-	Type         UserType  `json:"type"`
-	CreatedAt    time.Time `json:"created_at"`
-	DeletedAt    time.Time `json:"deleted_at,omitempty"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	Metadata
+	Id           int64    `json:"id"`
+	Name         string   `json:"name"`
+	UniqueUserID string   `json:"uniqueUserId"`
+	Type         UserType `json:"type"`
 }
 
 type UserFilter struct {
+	Metadata
 	Paginated
 	Name           []*string  `json:"name"`
 	UniqueUserID   []*string  `json:"uniqueUserId"`
@@ -34,6 +31,7 @@ type UserFilter struct {
 }
 
 type UserAggregations struct {
+	Metadata
 }
 
 type UserResult struct {

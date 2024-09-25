@@ -569,6 +569,14 @@ type IssueVariantInput struct {
 	Severity          *SeverityInput `json:"severity,omitempty"`
 }
 
+type Metadata struct {
+	CreatedAt *string `json:"created_at,omitempty"`
+	CreatedBy *string `json:"created_by,omitempty"`
+	DeletedAt *string `json:"deleted_at,omitempty"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
+	UpdatedBy *string `json:"updated_by,omitempty"`
+}
+
 type Mutation struct {
 }
 
@@ -699,6 +707,7 @@ type User struct {
 	Name          *string                 `json:"name,omitempty"`
 	SupportGroups *SupportGroupConnection `json:"supportGroups,omitempty"`
 	Services      *ServiceConnection      `json:"services,omitempty"`
+	Metadata      *Metadata               `json:"metadata,omitempty"`
 }
 
 func (User) IsNode()            {}

@@ -14,6 +14,7 @@ const (
 )
 
 type SeverityFilter struct {
+	Metadata
 	IssueMatchId []*int64 `json:"issue_match_id"`
 	IssueId      []*int64 `json:"issue_id"`
 }

@@ -17,9 +17,11 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 		ComponentVersionId: int64(gofakeit.Number(1, 10000000)),
 		Service:            nil,
 		ServiceId:          int64(gofakeit.Number(1, 10000000)),
-		CreatedAt:          gofakeit.Date(),
-		DeletedAt:          gofakeit.Date(),
-		UpdatedAt:          gofakeit.Date(),
+		Metadata: entity.Metadata{
+			CreatedAt: gofakeit.Date(),
+			DeletedAt: gofakeit.Date(),
+			UpdatedAt: gofakeit.Date(),
+		},
 	}
 }
 

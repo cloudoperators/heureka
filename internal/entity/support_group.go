@@ -3,17 +3,14 @@
 
 package entity
 
-import "time"
-
 type SupportGroup struct {
-	Id        int64     `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Metadata
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
 }
 
 type SupportGroupFilter struct {
+	Metadata
 	Paginated
 	Id        []*int64  `json:"id"`
 	ServiceId []*int64  `json:"service_id"`
@@ -22,6 +19,7 @@ type SupportGroupFilter struct {
 }
 
 type SupportGroupAggregations struct {
+	Metadata
 }
 
 type SupportGroupResult struct {
