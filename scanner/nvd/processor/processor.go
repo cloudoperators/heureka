@@ -60,7 +60,6 @@ func (p *Processor) Setup() error {
 			"issueRepositoryId": p.IssueRepositoryId,
 		}).Info("Created new IssueRepository")
 	} else {
-
 		// Extract IssueRepositoryId
 		for _, ir := range listRepositoriesResp.IssueRepositories.Edges {
 			log.Debugf("nodeId: %s", ir.Node.Id)
