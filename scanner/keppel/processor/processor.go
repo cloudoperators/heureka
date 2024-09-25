@@ -5,6 +5,7 @@ package processor
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/Khan/genqlient/graphql"
@@ -25,9 +26,9 @@ func NewProcessor(cfg Config) *Processor {
 	}
 }
 
-func (p *Processor) ProcessRepository(repository models.Repository) (*client.Component, error) {
+func (p *Processor) ProcessRepository(registry string, account models.Account, repository models.Repository) (*client.Component, error) {
 	r, err := client.CreateComponent(context.Background(), *p.Client, &client.ComponentInput{
-		Name: repository.Name,
+		Name: fmt.Sprintf("%s/%s/%s", registry, account.Name, repository.Name),
 		Type: client.ComponentTypeValuesContainerimage,
 	})
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/gophercloud/gophercloud"
@@ -28,7 +29,7 @@ type Scanner struct {
 
 func NewScanner(cfg Config) *Scanner {
 	return &Scanner{
-		KeppelBaseUrl:    cfg.KeppelBaseUrl,
+		KeppelBaseUrl:    cfg.KeppelBaseUrl(),
 		Username:         cfg.KeppelUsername,
 		Password:         cfg.KeppelPassword,
 		Domain:           cfg.Domain,
@@ -163,6 +164,10 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 			"url": url}).
 			WithError(err).Error("Error during GetTrivyReport")
 		return nil, err
+	}
+
+	if strings.Contains(string(body), "no vulnerability report found") {
+		return nil, nil
 	}
 
 	var trivyReport models.TrivyReport
