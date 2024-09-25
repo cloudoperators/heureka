@@ -15,6 +15,18 @@ import (
 )
 
 // add custom models here
+func getModelMetadata(em entity.Metadata) *Metadata {
+	createdAt := em.CreatedAt.String()
+	deletedAt := em.DeletedAt.String()
+	updatedAt := em.UpdatedAt.String()
+	return &Metadata{
+		CreatedAt: &createdAt,
+		CreatedBy: &em.CreatedBy,
+		DeletedAt: &deletedAt,
+		UpdatedAt: &updatedAt,
+		UpdatedBy: &em.UpdatedBy,
+	}
+}
 
 func NewPageInfo(p *entity.PageInfo) *PageInfo {
 	if p == nil {
@@ -219,7 +231,7 @@ func NewIssueMatchEntity(im *IssueMatchInput) entity.IssueMatch {
 		IssueId:               issueId,
 		ComponentInstanceId:   ciId,
 		UserId:                userId,
-		Info:                  entity.Info{CreatedAt: createdAt},
+		Metadata:              entity.Metadata{CreatedAt: createdAt},
 	}
 }
 
@@ -320,6 +332,7 @@ func NewUser(user *entity.User) User {
 		UniqueUserID: &user.UniqueUserID,
 		Name:         &user.Name,
 		Type:         int(user.Type),
+		Metadata:     getModelMetadata(user.Metadata),
 	}
 }
 
@@ -364,6 +377,7 @@ func NewActivity(activity *entity.Activity) Activity {
 	return Activity{
 		ID:     fmt.Sprintf("%d", activity.Id),
 		Status: &status,
+		//Metadata: activity.getModelMetadata(activitiy),
 	}
 }
 

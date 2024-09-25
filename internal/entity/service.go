@@ -4,7 +4,7 @@
 package entity
 
 type BaseService struct {
-	Info
+	Metadata
 	Id             int64         `json:"id"`
 	Name           string        `json:"name"`
 	SupportGroup   *SupportGroup `json:"support_group,omitempty"`
@@ -15,11 +15,11 @@ type BaseService struct {
 }
 
 type ServiceAggregations struct {
-	Info
+	Metadata
 }
 
 type ServiceFilter struct {
-	Info
+	Metadata
 	Paginated
 	SupportGroupName    []*string `json:"support_group_name"`
 	Id                  []*int64  `json:"id"`
@@ -34,7 +34,7 @@ type ServiceFilter struct {
 }
 
 type Service struct {
-	Info
+	Metadata
 	BaseService
 	IssueRepositoryService
 }

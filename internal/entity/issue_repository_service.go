@@ -4,7 +4,7 @@
 package entity
 
 type IssueRepositoryService struct {
-	Info
+	Metadata
 	ServiceId         int64 `json:"service_id"`
 	IssueRepositoryId int64 `json:"issue_repository_id"`
 	Priority          int64 `json:"priority"`

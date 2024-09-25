@@ -4,7 +4,7 @@
 package entity
 
 type BaseIssueRepository struct {
-	Info
+	Metadata
 	Id            int64          `json:"id"`
 	Name          string         `json:"name"`
 	Url           string         `json:"url"`
@@ -13,7 +13,7 @@ type BaseIssueRepository struct {
 }
 
 type IssueRepositoryFilter struct {
-	Info
+	Metadata
 	Paginated
 	Id          []*int64  `json:"id"`
 	ServiceId   []*int64  `json:"service_id"`
@@ -35,11 +35,11 @@ func NewIssueRepositoryFilter() *IssueRepositoryFilter {
 }
 
 type IssueRepositoryAggregations struct {
-	Info
+	Metadata
 }
 
 type IssueRepository struct {
-	Info
+	Metadata
 	BaseIssueRepository
 	IssueRepositoryService
 }

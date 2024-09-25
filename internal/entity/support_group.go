@@ -4,13 +4,13 @@
 package entity
 
 type SupportGroup struct {
-	Info
+	Metadata
 	Id   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
 type SupportGroupFilter struct {
-	Info
+	Metadata
 	Paginated
 	Id        []*int64  `json:"id"`
 	ServiceId []*int64  `json:"service_id"`
@@ -19,7 +19,7 @@ type SupportGroupFilter struct {
 }
 
 type SupportGroupAggregations struct {
-	Info
+	Metadata
 }
 
 type SupportGroupResult struct {

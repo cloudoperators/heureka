@@ -42,7 +42,7 @@ var AllEvidenceTypeValues = []string{
 }
 
 type Evidence struct {
-	Info
+	Metadata
 	Id          int64        `json:"id"`
 	Description string       `json:"description"`
 	Type        EvidenceType `json:"type"`
@@ -55,7 +55,7 @@ type Evidence struct {
 }
 
 type EvidenceFilter struct {
-	Info
+	Metadata
 	Paginated
 	Id           []*int64 `json:"id"`
 	ActivityId   []*int64 `json:"activity_id"`
@@ -63,7 +63,7 @@ type EvidenceFilter struct {
 	UserId       []*int64 `json:"user_id"`
 }
 type EvidenceAggregations struct {
-	Info
+	Metadata
 }
 
 type EvidenceResult struct {

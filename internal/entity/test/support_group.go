@@ -12,7 +12,7 @@ func NewFakeSupportGroupEntity() entity.SupportGroup {
 	return entity.SupportGroup{
 		Id:   int64(gofakeit.Number(1, 10000000)),
 		Name: gofakeit.AppName(),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: gofakeit.Date(),
 			DeletedAt: gofakeit.Date(),
 			UpdatedAt: gofakeit.Date(),

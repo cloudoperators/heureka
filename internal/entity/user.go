@@ -12,7 +12,7 @@ const (
 )
 
 type User struct {
-	Info
+	Metadata
 	Id           int64    `json:"id"`
 	Name         string   `json:"name"`
 	UniqueUserID string   `json:"uniqueUserId"`
@@ -20,7 +20,7 @@ type User struct {
 }
 
 type UserFilter struct {
-	Info
+	Metadata
 	Paginated
 	Name           []*string  `json:"name"`
 	UniqueUserID   []*string  `json:"uniqueUserId"`
@@ -31,7 +31,7 @@ type UserFilter struct {
 }
 
 type UserAggregations struct {
-	Info
+	Metadata
 }
 
 type UserResult struct {

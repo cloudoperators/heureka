@@ -4,7 +4,7 @@
 package entity
 
 type SupportGroupUser struct {
-	Info
+	Metadata
 	SupportGroupId int64 `json:"support_group_id"`
 	UserId         int64 `json:"user_id"`
 }

@@ -4,7 +4,7 @@
 package entity
 
 type Component struct {
-	Info
+	Metadata
 	Id   int64  `json:"id"`
 	Name string `json:"name"`
 	Type string `json:"type"`
@@ -17,7 +17,7 @@ type ComponentResult struct {
 }
 
 type ComponentFilter struct {
-	Info
+	Metadata
 	Paginated
 	Name               []*string `json:"name"`
 	Id                 []*int64  `json:"id"`
@@ -25,4 +25,5 @@ type ComponentFilter struct {
 }
 
 type ComponentAggregations struct {
+	Metadata
 }

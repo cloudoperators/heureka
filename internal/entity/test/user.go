@@ -17,7 +17,7 @@ func NewFakeUserEntity() entity.User {
 		Name:         gofakeit.Name(),
 		UniqueUserID: uniqueUserId,
 		Type:         entity.HumanUserType,
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: gofakeit.Date(),
 			DeletedAt: gofakeit.Date(),
 			UpdatedAt: gofakeit.Date(),

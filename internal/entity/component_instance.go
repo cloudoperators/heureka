@@ -4,7 +4,7 @@
 package entity
 
 type ComponentInstanceFilter struct {
-	Info
+	Metadata
 	Paginated
 	IssueMatchId       []*int64 `json:"issue_match_id"`
 	ServiceId          []*int64 `json:"service_id"`
@@ -13,7 +13,7 @@ type ComponentInstanceFilter struct {
 }
 
 type ComponentInstanceAggregations struct {
-	Info
+	Metadata
 }
 
 type ComponentInstanceResult struct {
@@ -23,7 +23,7 @@ type ComponentInstanceResult struct {
 }
 
 type ComponentInstance struct {
-	Info
+	Metadata
 	Id                 int64             `json:"id"`
 	CCRN               string            `json:"ccrn"`
 	Count              int16             `json:"count"`
