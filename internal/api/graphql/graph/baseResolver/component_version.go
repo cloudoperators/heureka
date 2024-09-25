@@ -5,10 +5,10 @@ package baseResolver
 
 import (
 	"context"
-
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,6 +65,10 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - unable to parse cursor 'after'")
 	}
 
+	if filter == nil {
+		filter = &model.ComponentVersionFilter{}
+	}
+
 	var issueId []*int64
 	var componentId []*int64
 	if parent != nil {
@@ -81,17 +85,23 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		case model.ComponentNodeName:
 			componentId = []*int64{pid}
 		}
-	}
-
-	if filter == nil {
-		filter = &model.ComponentVersionFilter{}
+	} else {
+		componentId = lo.Map(filter.ComponentID, func(id *string, _ int) *int64 {
+			i, err := ParseCursor(id)
+			if err != nil {
+				logrus.WithField("componentId", filter.ComponentID).Error("ComponentVersionBaseResolver: Error while parsing parameter 'componentId'")
+				return nil
+			}
+			return i
+		})
 	}
 
 	f := &entity.ComponentVersionFilter{
-		Paginated:   entity.Paginated{First: first, After: afterId},
-		IssueId:     issueId,
-		ComponentId: componentId,
-		Version:     filter.Version,
+		Paginated:     entity.Paginated{First: first, After: afterId},
+		IssueId:       issueId,
+		ComponentId:   componentId,
+		ComponentName: filter.ComponentName,
+		Version:       filter.Version,
 	}
 
 	opt := GetListOptions(requestedFields)

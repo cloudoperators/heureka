@@ -49,7 +49,7 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
 	sh := severity.NewSeverityHandler(db, er, ivh)
 	er.Run(context.Background())
-	return &HeurekaApp{
+	heureka := &HeurekaApp{
 		ActivityHandler:          activity.NewActivityHandler(db, er),
 		ComponentHandler:         component.NewComponentHandler(db, er),
 		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er),
@@ -67,14 +67,17 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 		eventRegistry:            er,
 		database:                 db,
 	}
+	heureka.SubscribeHandlers()
+	return heureka
 }
 
 func (h *HeurekaApp) SubscribeHandlers() {
 
+	// Event handlers for Components
 	h.eventRegistry.RegisterEventHandler(
 		component_instance.CreateComponentInstanceEventName,
 		event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
-  )
+	)
 
 	// Event handlers for Services
 	h.eventRegistry.RegisterEventHandler(

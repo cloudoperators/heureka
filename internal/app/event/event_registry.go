@@ -42,7 +42,7 @@ func (er *eventRegistry) RegisterEventHandler(event EventName, handler EventHand
 
 func (er *eventRegistry) PushEvent(event Event) {
 	if er.ch == nil {
-		er.ch = make(chan Event, 100)
+		er.ch = make(chan Event, 1000)
 	}
 
 	er.ch <- event
@@ -53,7 +53,7 @@ func (er *eventRegistry) PushEvent(event Event) {
 func NewEventRegistry(db database.Database) EventRegistry {
 	return &eventRegistry{
 		handlers: make(map[EventName][]EventHandler),
-		ch:       make(chan Event, 100),
+		ch:       make(chan Event, 1000),
 		db:       db,
 	}
 }

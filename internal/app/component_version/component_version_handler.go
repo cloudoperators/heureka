@@ -5,6 +5,7 @@ package component_version
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -117,6 +118,9 @@ func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *enti
 	newComponent, err := cv.database.CreateComponentVersion(componentVersion)
 
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return nil, NewComponentVersionHandlerError("Entry already Exists")
+		}
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion.")
 	}
