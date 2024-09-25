@@ -4,7 +4,8 @@
 package scanner
 
 type Config struct {
-	AllTime   bool   `envconfig:"NVD_ALL_TIME" default:"false" json:"-"`
+	StartDate string `envconfig:"NVD_START_DATE" default:"" json:"-"`
+	EndDate   string `envconfig:"NVD_END_DATE" default:"" json:"-"`
 	NvdApiUrl string `envconfig:"NVD_API_URL" required:"true" json:"-"`
 	NvdApiKey string `envconfig:"NVD_API_KEY" required:"true" json:"-"`
 	// default value and maximum allowable limit is 2,000

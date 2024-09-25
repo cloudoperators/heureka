@@ -29,11 +29,22 @@ func init() {
 	log.SetReportCaller(true)
 }
 
-func startAllTime(scanner *s.Scanner, processor *p.Processor) {
-	startTime := time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC)
-	endTime := time.Date(2002, 03, 01, 0, 0, 0, 0, time.UTC)
+func startTimeWindow(scanner *s.Scanner, processor *p.Processor, config s.Config) error {
 
-	for endTime.Before(time.Now()) {
+	startTime, err := time.Parse("2006-01-02", config.StartDate)
+
+	absoluteEnd := time.Now()
+	if config.EndDate != "" {
+		absoluteEnd, err = time.Parse("2006-01-02", config.EndDate)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	endTime := startTime.AddDate(0, 2, 0)
+
+	for endTime.Before(absoluteEnd) {
 		startYear, startMonth, startDay := startTime.Date()
 		endYear, endMonth, endDay := endTime.Date()
 		start := fmt.Sprintf("%d-%02d-%02dT23:59:59.000", startYear, startMonth, startDay)
@@ -44,6 +55,7 @@ func startAllTime(scanner *s.Scanner, processor *p.Processor) {
 		startTime = startTime.AddDate(0, 2, 0)
 		endTime = endTime.AddDate(0, 2, 0)
 	}
+	return nil
 }
 
 func scanAndProcess(scanner *s.Scanner, processor *p.Processor, yesterday string, today string) {
@@ -97,8 +109,13 @@ func main() {
 		}).Error("Couldn't setup new processor")
 	}
 
-	if scannerCfg.AllTime {
-		startAllTime(scanner, processor)
+	if scannerCfg.StartDate != "" {
+		err = startTimeWindow(scanner, processor, scannerCfg)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Couldn't fetch CVEs for time window")
+		}
 	} else {
 		t := time.Now()
 		yearToday, monthToday, dayToday := time.Now().Date()
