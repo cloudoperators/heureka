@@ -4,7 +4,7 @@
 package entity
 
 type ComponentVersionFilter struct {
-	Info
+	Metadata
 	Paginated
 	Id          []*int64  `json:"id"`
 	IssueId     []*int64  `json:"issue_id"`
@@ -13,7 +13,7 @@ type ComponentVersionFilter struct {
 }
 
 type ComponentVersionAggregations struct {
-	Info
+	Metadata
 }
 
 type ComponentVersionResult struct {
@@ -23,7 +23,7 @@ type ComponentVersionResult struct {
 }
 
 type ComponentVersion struct {
-	Info
+	Metadata
 	Id                 int64               `json:"id"`
 	Version            string              `json:"version"`
 	Component          *Component          `json:"component,omitempty"`

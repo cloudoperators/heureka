@@ -34,7 +34,7 @@ var AllActivityStatusValues = []string{
 }
 
 type Activity struct {
-	Info
+	Metadata
 	Id        int64               `json:"id"`
 	Status    ActivityStatusValue `json:"status"`
 	Service   *Service            `json:"service,omitempty"`
@@ -47,17 +47,17 @@ func (a *Activity) GetId() int64 {
 }
 
 type ActivityHasIssue struct {
-	Info
+	Metadata
 	ActivityId int64 `json:"activity_id"`
 	IssueId    int64 `json:"issue_id"`
 }
 
 type ActivityAggregations struct {
-	Info
+	Metadata
 }
 
 type ActivityFilter struct {
-	Info
+	Metadata
 	Paginated
 	Status      []*string `json:"status"`
 	ServiceName []*string `json:"service_name"`

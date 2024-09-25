@@ -11,5 +11,12 @@ mutation ($id: ID!, $input: UserInput!) {
         uniqueUserId
         type
         name
+        metadata {
+            created_at
+            created_by
+            deleted_at
+            updated_at
+            updated_by
+        }
     }
 }

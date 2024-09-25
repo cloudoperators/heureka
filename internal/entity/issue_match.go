@@ -39,7 +39,7 @@ var AllIssueMatchStatusValues = []string{
 }
 
 type IssueMatch struct {
-	Info
+	Metadata
 	Id                    int64                 `json:"id"`
 	Status                IssueMatchStatusValue `json:"status"`
 	User                  *User                 `json:"user,omitempty"`
@@ -55,7 +55,7 @@ type IssueMatch struct {
 }
 
 type IssueMatchFilter struct {
-	Info
+	Metadata
 	Paginated
 	Id                  []*int64  `json:"id"`
 	AffectedServiceName []*string `json:"affected_service_name"`

@@ -22,7 +22,7 @@ func NewFakeIssueEntity() entity.Issue {
 		IssueMatches:      nil,
 		ComponentVersions: nil,
 		Activity:          nil,
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: gofakeit.Date(),
 			DeletedAt: gofakeit.Date(),
 			UpdatedAt: gofakeit.Date(),

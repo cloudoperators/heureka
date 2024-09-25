@@ -15,7 +15,7 @@ func NewFakeComponentVersionEntity() entity.ComponentVersion {
 		ComponentId:        0,
 		ComponentInstances: nil,
 		Issues:             nil,
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: gofakeit.Date(),
 			DeletedAt: gofakeit.Date(),
 			UpdatedAt: gofakeit.Date(),

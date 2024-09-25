@@ -30,7 +30,7 @@ var AllIssueMatchChangeActions = []string{
 }
 
 type IssueMatchChange struct {
-	Info
+	Metadata
 	Id           int64 `json:"id"`
 	ActivityId   int64 `json:"activity_id"`
 	Activity     *Activity
@@ -40,7 +40,7 @@ type IssueMatchChange struct {
 }
 
 type IssueMatchChangeFilter struct {
-	Info
+	Metadata
 	Paginated
 	Id           []*int64  `json:"id"`
 	ActivityId   []*int64  `json:"activity_id"`

@@ -16,7 +16,7 @@ func NewFakeServiceEntity() entity.Service {
 			SupportGroup: nil,
 			Activities:   nil,
 			Owners:       nil,
-			Info: entity.Info{
+			Metadata: entity.Metadata{
 				CreatedAt: gofakeit.Date(),
 				DeletedAt: gofakeit.Date(),
 				UpdatedAt: gofakeit.Date(),

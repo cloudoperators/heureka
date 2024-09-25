@@ -219,7 +219,7 @@ func NewIssueMatchEntity(im *IssueMatchInput) entity.IssueMatch {
 		IssueId:               issueId,
 		ComponentInstanceId:   ciId,
 		UserId:                userId,
-		Info:                  entity.Info{CreatedAt: createdAt},
+		Metadata:              entity.Metadata{CreatedAt: createdAt},
 	}
 }
 
@@ -315,11 +315,21 @@ func NewIssueVariantEntity(issueVariant *IssueVariantInput) entity.IssueVariant 
 }
 
 func NewUser(user *entity.User) User {
+	createdAt := user.CreatedAt.String()
+	deletedAt := user.DeletedAt.String()
+	updatedAt := user.UpdatedAt.String()
 	return User{
 		ID:           fmt.Sprintf("%d", user.Id),
 		UniqueUserID: &user.UniqueUserID,
 		Name:         &user.Name,
 		Type:         int(user.Type),
+		Metadata: &Metadata{
+			CreatedAt: &createdAt,
+			CreatedBy: &user.CreatedBy,
+			DeletedAt: &deletedAt,
+			UpdatedAt: &updatedAt,
+			UpdatedBy: &user.UpdatedBy,
+		},
 	}
 }
 

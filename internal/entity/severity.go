@@ -4,7 +4,7 @@
 package entity
 
 type SeverityFilter struct {
-	Info
+	Metadata
 	IssueMatchId []*int64 `json:"issue_match_id"`
 	IssueId      []*int64 `json:"issue_id"`
 }

@@ -96,7 +96,7 @@ func (ir *IssueRow) AsIssue() entity.Issue {
 		IssueVariants: []entity.IssueVariant{},
 		IssueMatches:  []entity.IssueMatch{},
 		Activity:      []entity.Activity{},
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ir.CreatedAt),
 			DeletedAt: GetTimeValue(ir.DeletedAt),
 			UpdatedAt: GetTimeValue(ir.UpdatedAt),
@@ -138,7 +138,7 @@ func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregation
 			IssueVariants: []entity.IssueVariant{},
 			IssueMatches:  []entity.IssueMatch{},
 			Activity:      []entity.Activity{},
-			Info: entity.Info{
+			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(ibr.IssueRow.CreatedAt),
 				DeletedAt: GetTimeValue(ibr.IssueRow.DeletedAt),
 				UpdatedAt: GetTimeValue(ibr.IssueRow.UpdatedAt),
@@ -156,7 +156,7 @@ func (ibr *GetIssuesByRow) AsIssue() entity.Issue {
 		IssueVariants: []entity.IssueVariant{},
 		IssueMatches:  []entity.IssueMatch{},
 		Activity:      []entity.Activity{},
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ibr.IssueRow.CreatedAt),
 			DeletedAt: GetTimeValue(ibr.IssueRow.DeletedAt),
 			UpdatedAt: GetTimeValue(ibr.IssueRow.UpdatedAt),
@@ -214,7 +214,7 @@ func (imr IssueMatchRow) AsIssueMatch() entity.IssueMatch {
 		RemediationDate:       GetTimeValue(imr.RemediationDate),
 		TargetRemediationDate: GetTimeValue(imr.TargetRemediationDate),
 		Severity:              entity.NewSeverity(GetStringValue(imr.Vector)),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(imr.CreatedAt),
 			DeletedAt: GetTimeValue(imr.DeletedAt),
 			UpdatedAt: GetTimeValue(imr.UpdatedAt),
@@ -267,7 +267,7 @@ func (birr *BaseIssueRepositoryRow) AsBaseIssueRepository() entity.BaseIssueRepo
 		Url:           GetStringValue(birr.Url),
 		IssueVariants: nil,
 		Services:      nil,
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(birr.CreatedAt),
 			DeletedAt: GetTimeValue(birr.DeletedAt),
 			UpdatedAt: GetTimeValue(birr.UpdatedAt),
@@ -283,7 +283,7 @@ func (barr *BaseIssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 			Url:           GetStringValue(barr.Url),
 			IssueVariants: nil,
 			Services:      nil,
-			Info: entity.Info{
+			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(barr.CreatedAt),
 				DeletedAt: GetTimeValue(barr.DeletedAt),
 				UpdatedAt: GetTimeValue(barr.UpdatedAt),
@@ -300,7 +300,7 @@ func (irr *IssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 			Url:           GetStringValue(irr.Url),
 			IssueVariants: nil,
 			Services:      nil,
-			Info: entity.Info{
+			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(irr.BaseIssueRepositoryRow.CreatedAt),
 				DeletedAt: GetTimeValue(irr.BaseIssueRepositoryRow.DeletedAt),
 				UpdatedAt: GetTimeValue(irr.BaseIssueRepositoryRow.UpdatedAt),
@@ -336,7 +336,7 @@ func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) e
 		Issue:             nil,
 		Severity:          entity.NewSeverity(GetStringValue(ivr.Vector)),
 		Description:       GetStringValue(ivr.Description),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ivr.CreatedAt),
 			DeletedAt: GetTimeValue(ivr.DeletedAt),
 			UpdatedAt: GetTimeValue(ivr.UpdatedAt),
@@ -373,7 +373,7 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 		Issue:             nil,
 		Severity:          entity.NewSeverity(GetStringValue(ivwr.Vector)),
 		Description:       GetStringValue(ivwr.Description),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ivwr.IssueVariantRow.CreatedAt),
 			DeletedAt: GetTimeValue(ivwr.IssueVariantRow.DeletedAt),
 			UpdatedAt: GetTimeValue(ivwr.IssueVariantRow.UpdatedAt),
@@ -395,7 +395,7 @@ func (cr *ComponentRow) AsComponent() entity.Component {
 		Id:   GetInt64Value(cr.Id),
 		Name: GetStringValue(cr.Name),
 		Type: GetStringValue(cr.Type),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cr.CreatedAt),
 			DeletedAt: GetTimeValue(cr.DeletedAt),
 			UpdatedAt: GetTimeValue(cr.UpdatedAt),
@@ -426,7 +426,7 @@ func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 		Id:          GetInt64Value(cvr.Id),
 		Version:     GetStringValue(cvr.Version),
 		ComponentId: GetInt64Value(cvr.ComponentId),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cvr.CreatedAt),
 			DeletedAt: GetTimeValue(cvr.DeletedAt),
 			UpdatedAt: GetTimeValue(cvr.UpdatedAt),
@@ -455,7 +455,7 @@ func (sgr *SupportGroupRow) AsSupportGroup() entity.SupportGroup {
 	return entity.SupportGroup{
 		Id:   GetInt64Value(sgr.Id),
 		Name: GetStringValue(sgr.Name),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(sgr.CreatedAt),
 			DeletedAt: GetTimeValue(sgr.DeletedAt),
 			UpdatedAt: GetTimeValue(sgr.UpdatedAt),
@@ -490,7 +490,7 @@ func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
 		Name:       GetStringValue(bsr.Name),
 		Owners:     []entity.User{},
 		Activities: []entity.Activity{},
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(bsr.CreatedAt),
 			DeletedAt: GetTimeValue(bsr.DeletedAt),
 			UpdatedAt: GetTimeValue(bsr.UpdatedAt),
@@ -512,7 +512,7 @@ func (sr *ServiceRow) AsService() entity.Service {
 			Name:       GetStringValue(sr.Name),
 			Owners:     []entity.User{},
 			Activities: []entity.Activity{},
-			Info: entity.Info{
+			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(sr.BaseServiceRow.CreatedAt),
 				DeletedAt: GetTimeValue(sr.BaseServiceRow.DeletedAt),
 				UpdatedAt: GetTimeValue(sr.BaseServiceRow.UpdatedAt),
@@ -547,7 +547,7 @@ func (ar *ActivityRow) AsActivity() entity.Activity {
 		Status:    entity.ActivityStatusValue(GetStringValue(ar.Status)),
 		Issues:    []entity.Issue{},
 		Evidences: []entity.Evidence{},
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ar.CreatedAt),
 			DeletedAt: GetTimeValue(ar.DeletedAt),
 			UpdatedAt: GetTimeValue(ar.UpdatedAt),
@@ -583,7 +583,7 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 		ComponentVersionId: GetInt64Value(cir.ComponentVersionId),
 		Service:            nil,
 		ServiceId:          GetInt64Value(cir.ServiceId),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cir.CreatedAt),
 			DeletedAt: GetTimeValue(cir.DeletedAt),
 			UpdatedAt: GetTimeValue(cir.UpdatedAt),
@@ -608,8 +608,10 @@ type UserRow struct {
 	UniqueUserID sql.NullString `db:"user_unique_user_id" json:"unique_user_id"`
 	Type         sql.NullInt64  `db:"user_type" json:"type"`
 	CreatedAt    sql.NullTime   `db:"user_created_at" json:"created_at"`
+	CreatedBy    sql.NullString `db:"user_created_by" json:"created_by"`
 	DeletedAt    sql.NullTime   `db:"user_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt    sql.NullTime   `db:"user_updated_at" json:"updated_at"`
+	UpdatedBy    sql.NullString `db:"user_updated_by" json:"Updated_by"`
 }
 
 func (ur *UserRow) AsUser() entity.User {
@@ -618,10 +620,12 @@ func (ur *UserRow) AsUser() entity.User {
 		Name:         GetStringValue(ur.Name),
 		UniqueUserID: GetStringValue(ur.UniqueUserID),
 		Type:         GetUserTypeValue(ur.Type),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ur.CreatedAt),
+			CreatedBy: GetStringValue(ur.CreatedBy),
 			DeletedAt: GetTimeValue(ur.DeletedAt),
 			UpdatedAt: GetTimeValue(ur.UpdatedAt),
+			UpdatedBy: GetStringValue(ur.UpdatedBy),
 		},
 	}
 }
@@ -632,8 +636,10 @@ func (ur *UserRow) FromUser(u *entity.User) {
 	ur.UniqueUserID = sql.NullString{String: u.UniqueUserID, Valid: true}
 	ur.Type = sql.NullInt64{Int64: int64(u.Type), Valid: true}
 	ur.CreatedAt = sql.NullTime{Time: u.CreatedAt, Valid: true}
+	ur.CreatedBy = sql.NullString{String: u.CreatedBy, Valid: true}
 	ur.DeletedAt = sql.NullTime{Time: u.DeletedAt, Valid: true}
 	ur.UpdatedAt = sql.NullTime{Time: u.UpdatedAt, Valid: true}
+	ur.UpdatedBy = sql.NullString{String: u.UpdatedBy, Valid: true}
 }
 
 type EvidenceRow struct {
@@ -663,7 +669,7 @@ func (er *EvidenceRow) AsEvidence() entity.Evidence {
 		UserId:      GetInt64Value(er.UserId),
 		Activity:    nil,
 		ActivityId:  GetInt64Value(er.ActivityId),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(er.CreatedAt),
 			DeletedAt: GetTimeValue(er.DeletedAt),
 			UpdatedAt: GetTimeValue(er.UpdatedAt),
@@ -701,7 +707,7 @@ func (imcr *IssueMatchChangeRow) AsIssueMatchChange() entity.IssueMatchChange {
 		IssueMatchId: GetInt64Value(imcr.IssueMatchId),
 		ActivityId:   GetInt64Value(imcr.ActivityId),
 		Action:       GetStringValue(imcr.Action),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(imcr.CreatedAt),
 			DeletedAt: GetTimeValue(imcr.DeletedAt),
 			UpdatedAt: GetTimeValue(imcr.UpdatedAt),

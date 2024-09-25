@@ -93,7 +93,7 @@ type ResultList struct {
 }
 
 type ListOptions struct {
-	Info
+	Metadata
 	ShowTotalCount      bool `json:"show_total_count"`
 	ShowPageInfo        bool `json:"show_page_info"`
 	IncludeAggregations bool `json:"include_aggregations"`
@@ -108,7 +108,7 @@ func NewListOptions() *ListOptions {
 }
 
 type PageInfo struct {
-	Info
+	Metadata
 	HasNextPage     *bool   `json:"has_next_page,omitempty"`
 	HasPreviousPage *bool   `json:"has_previous_page,omitempty"`
 	IsValidPage     *bool   `json:"is_valid_page,omitempty"`
@@ -120,7 +120,7 @@ type PageInfo struct {
 }
 
 type Page struct {
-	Info
+	Metadata
 	After      *string `json:"after,omitempty"`
 	PageNumber *int    `json:"page_number,omitempty"`
 	IsCurrent  bool    `json:"is_current,omitempty"`
@@ -134,13 +134,13 @@ type List[T interface{}] struct {
 }
 
 type TimeFilter struct {
-	Info
+	Metadata
 	After  time.Time `json:"after"`
 	Before time.Time `json:"before"`
 }
 
 type Paginated struct {
-	Info
+	Metadata
 	First *int   `json:"first"`
 	After *int64 `json:"from"`
 }
@@ -152,7 +152,7 @@ func MaxPaginated() Paginated {
 }
 
 type Severity struct {
-	Info
+	Metadata
 	Value string
 	Score float64
 	Cvss  Cvss
@@ -194,14 +194,14 @@ func NewSeverity(url string) Severity {
 }
 
 type Cvss struct {
-	Info
+	Metadata
 	Vector        string
 	Base          *metric.Base
 	Temporal      *metric.Temporal
 	Environmental *metric.Environmental
 }
 
-type Info struct {
+type Metadata struct {
 	CreatedAt time.Time `json:"created_at"`
 	CreatedBy string    `json:"created_by"`
 	UpdatedAt time.Time `json:"updated_at"`

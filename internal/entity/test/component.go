@@ -13,7 +13,7 @@ func NewFakeComponentEntity() entity.Component {
 		Id:   int64(gofakeit.Number(1, 10000000)),
 		Name: gofakeit.Name(),
 		Type: gofakeit.Word(),
-		Info: entity.Info{
+		Metadata: entity.Metadata{
 			CreatedAt: gofakeit.Date(),
 			DeletedAt: gofakeit.Date(),
 			UpdatedAt: gofakeit.Date(),
