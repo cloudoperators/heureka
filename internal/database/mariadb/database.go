@@ -232,7 +232,7 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 	defer stmt.Close()
 	res, err := stmt.Exec(item)
 	if err != nil {
-		msg := "Error while performing exec"
+		msg := err.Error()
 		l.WithFields(
 			logrus.Fields{
 				"error": err,
@@ -248,7 +248,7 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity](stmt *sqlx.Stmt, fil
 		msg := "Error while performing Query from prepared Statement"
 		l.WithFields(
 			logrus.Fields{
-				"error":      err,
+				"error":      err.Error(),
 				"parameters": filterParameters,
 			}).Error(msg)
 		return nil, fmt.Errorf("%s", msg)
@@ -260,11 +260,11 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity](stmt *sqlx.Stmt, fil
 		var row T
 		err := rows.StructScan(&row)
 		if err != nil {
-			msg := "Error while scanning struct from SupportGroups"
+			msg := "Error while scanning struct"
 			cols, _ := rows.Columns()
 			l.WithFields(
 				logrus.Fields{
-					"error":           err,
+					"error":           err.Error(),
 					"returnedColumns": cols,
 				}).Error(msg)
 			return nil, fmt.Errorf("%s", msg)
@@ -276,7 +276,7 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity](stmt *sqlx.Stmt, fil
 	rows.Close()
 	l.WithFields(
 		logrus.Fields{
-			"listEntries": listEntries,
+			"count": len(listEntries),
 		}).Debug("Successfully performed list scan")
 
 	return listEntries, nil

@@ -7,10 +7,11 @@ import "time"
 
 type ComponentVersionFilter struct {
 	Paginated
-	Id          []*int64  `json:"id"`
-	IssueId     []*int64  `json:"issue_id"`
-	ComponentId []*int64  `json:"component_id"`
-	Version     []*string `json:"version"`
+	Id            []*int64  `json:"id"`
+	IssueId       []*int64  `json:"issue_id"`
+	ComponentName []*string `json:"component_name"`
+	ComponentId   []*int64  `json:"component_id"`
+	Version       []*string `json:"version"`
 }
 
 type ComponentVersionAggregations struct{}

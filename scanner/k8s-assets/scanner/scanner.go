@@ -9,7 +9,6 @@ import (
 
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -100,7 +99,13 @@ func (s *Scanner) ParseImageHash(image string) (string, error) {
 // fetchImageId fetches the right imageId for a specific container
 func (s *Scanner) fetchImageId(pod v1.Pod, container v1.Container) string {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
-		if containerStatus.Image == container.Image {
+		statusI := strings.SplitN(containerStatus.Image, "/", 2)
+		containerI := strings.SplitN(container.Image, "/", 2)
+		if len(statusI) > 1 && len(containerI) > 1 {
+			if statusI[1] == containerI[1] {
+				return containerStatus.ImageID
+			}
+		} else if containerStatus.Image == container.Image {
 			return containerStatus.ImageID
 		}
 	}
@@ -117,27 +122,11 @@ func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 		Containers:   make([]ContainerInfo, 0, len(pod.Spec.Containers)),
 	}
 
-	for _, container := range pod.Spec.Containers {
-		var imageHash, imageId string
-
-		imageId = s.fetchImageId(pod, container)
-		if imageId == "" {
-			log.WithFields(log.Fields{
-				"containerName": container.Name,
-				"podName":       pod.Name,
-				"namespace":     pod.Namespace,
-			}).Error("Couldn't find imageId")
-		} else {
-			hash, err := s.ParseImageHash(imageId)
-			if err != nil {
-				log.WithError(err).Error("Couldn't parse image hash in the image ID")
-			}
-			imageHash = hash
-		}
+	for _, containerStatus := range pod.Status.ContainerStatuses {
 		podInfo.Containers = append(podInfo.Containers, ContainerInfo{
-			Name:      container.Name,
-			Image:     container.Image,
-			ImageHash: imageHash,
+			Name:      containerStatus.Name,
+			Image:     containerStatus.Image,
+			ImageHash: containerStatus.ImageID,
 		})
 	}
 

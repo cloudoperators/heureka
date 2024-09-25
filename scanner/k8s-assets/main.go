@@ -5,10 +5,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 	"time"
-	"fmt"
 
 	kubeconfig "github.com/cloudoperators/heureka/scanners/k8s-assets/config"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/processor"
@@ -75,14 +75,13 @@ func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Proc
 		// TODO
 		serviceInfo := s.GetServiceInfo(podReplica.Pods[0])
 
-		serviceId, err := p.ProcessService(ctx, namespace, serviceInfo)
+		serviceId, err := p.ProcessService(ctx, serviceInfo)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error":       err,
 				"namespace":   namespace,
 				"serviceName": serviceInfo.Name,
 			}).Error("Failed to process service")
-			continue
 		}
 
 		err = p.ProcessPodReplicaSet(ctx, namespace, serviceId, podReplica)
@@ -190,8 +189,12 @@ func main() {
 	processor := processor.NewProcessor(cfg)
 
 	// Create context with timeout (30min should be ok)
-	scanTimeout, _ := time.ParseDuration(scannerCfg.ScannerTimeout)
-	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout*time.Minute)
+	scanTimeout, err := time.ParseDuration(scannerCfg.ScannerTimeout)
+	if err != nil {
+		log.WithError(err).Fatal("couldn't parse scanner timeout, setting it to 30 minutes")
+		scanTimeout = 30 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
 	defer cancel()
 
 	// Get namespaces

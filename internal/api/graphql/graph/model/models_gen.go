@@ -188,7 +188,6 @@ func (this ComponentInstanceEdge) GetNode() Node      { return *this.Node }
 func (this ComponentInstanceEdge) GetCursor() *string { return this.Cursor }
 
 type ComponentInstanceFilter struct {
-	IssueMatchID []*string `json:"issueMatchId,omitempty"`
 	ServiceName  []*string `json:"serviceName,omitempty"`
 	Ccrn         []*string `json:"ccrn,omitempty"`
 	SupportGroup []*string `json:"supportGroup,omitempty"`
@@ -196,7 +195,6 @@ type ComponentInstanceFilter struct {
 }
 
 type ComponentInstanceFilterValue struct {
-	IssueMatchID     *FilterItem `json:"issueMatchId,omitempty"`
 	ServiceName      *FilterItem `json:"serviceName,omitempty"`
 	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
 	Ccrn             *FilterItem `json:"ccrn,omitempty"`
@@ -241,8 +239,10 @@ func (this ComponentVersionEdge) GetNode() Node      { return *this.Node }
 func (this ComponentVersionEdge) GetCursor() *string { return this.Cursor }
 
 type ComponentVersionFilter struct {
-	IssueID []*string `json:"issueId,omitempty"`
-	Version []*string `json:"version,omitempty"`
+	ComponentID   []*string `json:"componentId,omitempty"`
+	ComponentName []*string `json:"componentName,omitempty"`
+	IssueID       []*string `json:"issueId,omitempty"`
+	Version       []*string `json:"version,omitempty"`
 }
 
 type ComponentVersionInput struct {

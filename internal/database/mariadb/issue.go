@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"fmt"
+	"github.com/cloudoperators/heureka/internal/database"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -449,6 +450,12 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 	}
 
 	_, err := performExec(s, query, args, l)
+
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("for adding ComponentVersion %d to Issue %d ", componentVersionId, issueId))
+		}
+	}
 
 	return err
 }
