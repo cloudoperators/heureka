@@ -181,3 +181,20 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
 
 	return nil
 }
+func (s *componentInstanceHandler) ListCcrn(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListCcrnEventName,
+		"filter": filter,
+	})
+
+	ccrn, err := s.database.GetCcrn(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Ccrn.")
+	}
+
+	s.eventRegistry.PushEvent(&ListCcrnEvent{Filter: filter, Ccrn: ccrn})
+
+	return ccrn, nil
+}

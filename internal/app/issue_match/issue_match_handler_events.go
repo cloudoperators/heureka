@@ -16,6 +16,7 @@ const (
 	DeleteIssueMatchEventName             event.EventName = "DeleteIssueMatch"
 	AddEvidenceToIssueMatchEventName      event.EventName = "AddEvidenceToIssueMatch"
 	RemoveEvidenceFromIssueMatchEventName event.EventName = "RemoveEvidenceFromIssueMatch"
+	ListIssueMatchIDsEventName            event.EventName = "ListIssueMatchIDs"
 )
 
 type ListIssueMatchesEvent struct {
