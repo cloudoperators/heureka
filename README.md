@@ -3,11 +3,9 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/cloudoperators/heureka)](https://api.reuse.software/info/github.com/cloudoperators/heureka)
 
 
-**Heureka** is a Security Posture Management tool designed to manage security issues in a complex technology landscape.
+**Heureka** is a Security Posture Management tool designed to manage security issues in a cloud operating system. 
 
-It aims to empower service owners with a central platform for proactive security management by integrating key components such as advanced patch management, intelligent SIEM analysis, and automated policy enforcement.
-
-It is also designed to address the critical compliance aspect as it is equipped with capabilities to track the end-to-end remediation processes, thereby providing tangible compliance evidence. This approach to security posture management ensures a comprehensive and professional approach to maintaining robust security standards.
+Its primary focus is remediation management of security issues such as vulnerabilities, security events, and policy violations while ensuring compliance and audit-ability.
 
 
 ## Value Propositions
