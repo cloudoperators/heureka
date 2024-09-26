@@ -189,6 +189,17 @@ func (this ComponentInstanceEdge) GetCursor() *string { return this.Cursor }
 
 type ComponentInstanceFilter struct {
 	IssueMatchID []*string `json:"issueMatchId,omitempty"`
+	ServiceName  []*string `json:"serviceName,omitempty"`
+	Ccrn         []*string `json:"ccrn,omitempty"`
+	SupportGroup []*string `json:"supportGroup,omitempty"`
+	Search       []*string `json:"search,omitempty"`
+}
+
+type ComponentInstanceFilterValue struct {
+	IssueMatchID     *FilterItem `json:"issueMatchId,omitempty"`
+	ServiceName      *FilterItem `json:"serviceName,omitempty"`
+	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
+	Ccrn             *FilterItem `json:"ccrn,omitempty"`
 }
 
 type ComponentInstanceInput struct {

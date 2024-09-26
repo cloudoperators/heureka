@@ -129,3 +129,39 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 
 	return &connection, nil
 }
+
+func CcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called CcrnBaseResolver")
+
+	if filter == nil {
+		filter = &model.ComponentInstanceFilter{}
+	}
+
+	f := &entity.ComponentInstanceFilter{
+		CCRN: filter.Ccrn,
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, err := app.ListCcrn(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("CcrnBaseResolver", err.Error())
+	}
+
+	var pointerNames []*string
+
+	for _, name := range names {
+		pointerNames = append(pointerNames, &name)
+	}
+
+	filterItem := model.FilterItem{
+		DisplayName: &FilterDisplayCcrn,
+		Values:      pointerNames,
+	}
+
+	return &filterItem, nil
+}

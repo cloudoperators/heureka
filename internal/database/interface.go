@@ -88,6 +88,7 @@ type Database interface {
 	UpdateComponentInstance(*entity.ComponentInstance) error
 	DeleteComponentInstance(int64) error
 	GetComponentNames(filter *entity.ComponentFilter) ([]string, error)
+	GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
 	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)

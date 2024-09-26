@@ -21,8 +21,10 @@ var (
 	FilterDisplayComponentName    string = "Component Name"
 	FilterDisplayIssueType        string = "Issue Type"
 	FilterDisplayIssueMatchStatus string = "Issue Match Status"
+	FilterDisplayIssueMatchID     string = "Issue Match ID"
 	FilterDisplayIssuePrimaryName string = "Issue Name"
 	FilterDisplayIssueSeverity    string = "Severity"
+	FilterDisplayCcrn             string = "CCRN"
 
 	ServiceFilterServiceName      string = "serviceName"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"
