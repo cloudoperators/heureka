@@ -102,6 +102,7 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 }
 
 func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+	issueRepository.CreatedBy = "Creator"
 	f := &entity.IssueRepositoryFilter{
 		Name: []*string{&issueRepository.Name},
 	}
@@ -137,6 +138,7 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 }
 
 func (ir *issueRepositoryHandler) UpdateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+	issueRepository.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueRepositoryEventName,
 		"object": issueRepository,

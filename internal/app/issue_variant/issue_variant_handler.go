@@ -168,6 +168,7 @@ func (iv *issueVariantHandler) ListEffectiveIssueVariants(filter *entity.IssueVa
 }
 
 func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
+	issueVariant.CreatedBy = "Creator"
 	f := &entity.IssueVariantFilter{
 		SecondaryName: []*string{&issueVariant.SecondaryName},
 	}
@@ -203,6 +204,7 @@ func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVari
 }
 
 func (iv *issueVariantHandler) UpdateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
+	issueVariant.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueVariantEventName,
 		"object": issueVariant,

@@ -88,8 +88,10 @@ create table if not exists Activity
         primary key,
     activity_status enum('open','closed','in_progress') not null,
     activity_created_at timestamp default current_timestamp() not null,
+    activity_created_by varchar(256)                          null,
     activity_deleted_at timestamp                             null,
     activity_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
+    activity_updated_by varchar(256)                          null,
     constraint id_UNIQUE
         unique (activity_id)
 );
@@ -201,9 +203,11 @@ create table if not exists IssueRepository
     issuerepository_id         int unsigned auto_increment primary key,
     issuerepository_name       varchar(2048)                         not null,
     issuerepository_url        varchar(2048)                         not null,
+    issuerepository_created_by varchar(256)                          null,
     issuerepository_created_at timestamp default current_timestamp() not null,
     issuerepository_deleted_at timestamp                             null,
     issuerepository_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
+    issuerepository_updated_by varchar(256)                          null,
     constraint id_UNIQUE
         unique (issuerepository_id),
     constraint name_UNIQUE
@@ -237,8 +241,10 @@ create table if not exists IssueVariant
     issuevariant_secondary_name              varchar(256)                          not null,
     issuevariant_description                 longtext                              not null,
     issuevariant_created_at                  timestamp default current_timestamp() not null,
+    issuevariant_created_by                  varchar(256)                          null,
     issuevariant_deleted_at                  timestamp                             null,
     issuevariant_updated_at                  timestamp default current_timestamp() not null on update current_timestamp(),
+    issuevariant_updated_by                  varchar(256)                          null,
     constraint id_UNIQUE
         unique (issuevariant_id),
     constraint name_UNIQUE

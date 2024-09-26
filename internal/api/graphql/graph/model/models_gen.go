@@ -32,6 +32,7 @@ type Activity struct {
 	Issues            *IssueConnection            `json:"issues,omitempty"`
 	Evidences         *EvidenceConnection         `json:"evidences,omitempty"`
 	IssueMatchChanges *IssueMatchChangeConnection `json:"issueMatchChanges,omitempty"`
+	Metadata          *Metadata                   `json:"metadata,omitempty"`
 }
 
 func (Activity) IsNode()            {}
@@ -48,8 +49,9 @@ func (this ActivityConnection) GetTotalCount() int     { return this.TotalCount 
 func (this ActivityConnection) GetPageInfo() *PageInfo { return this.PageInfo }
 
 type ActivityEdge struct {
-	Node   *Activity `json:"node"`
-	Cursor *string   `json:"cursor,omitempty"`
+	Node     *Activity `json:"node"`
+	Cursor   *string   `json:"cursor,omitempty"`
+	Metadata *Metadata `json:"metadata,omitempty"`
 }
 
 func (ActivityEdge) IsEdge()                 {}
@@ -477,8 +479,7 @@ type IssueRepository struct {
 	URL           *string                 `json:"url,omitempty"`
 	IssueVariants *IssueVariantConnection `json:"issueVariants,omitempty"`
 	Services      *ServiceConnection      `json:"services,omitempty"`
-	CreatedAt     *string                 `json:"created_at,omitempty"`
-	UpdatedAt     *string                 `json:"updated_at,omitempty"`
+	Metadata      *Metadata               `json:"metadata,omitempty"`
 }
 
 func (IssueRepository) IsNode()            {}
@@ -495,11 +496,10 @@ func (this IssueRepositoryConnection) GetTotalCount() int     { return this.Tota
 func (this IssueRepositoryConnection) GetPageInfo() *PageInfo { return this.PageInfo }
 
 type IssueRepositoryEdge struct {
-	Node      *IssueRepository `json:"node"`
-	Cursor    *string          `json:"cursor,omitempty"`
-	Priority  *int             `json:"priority,omitempty"`
-	CreatedAt *string          `json:"created_at,omitempty"`
-	UpdatedAt *string          `json:"updated_at,omitempty"`
+	Node     *IssueRepository `json:"node"`
+	Cursor   *string          `json:"cursor,omitempty"`
+	Priority *int             `json:"priority,omitempty"`
+	Metadata *Metadata        `json:"metadata,omitempty"`
 }
 
 func (IssueRepositoryEdge) IsEdge()                 {}
@@ -526,8 +526,7 @@ type IssueVariant struct {
 	IssueRepository   *IssueRepository `json:"issueRepository,omitempty"`
 	IssueID           *string          `json:"issueId,omitempty"`
 	Issue             *Issue           `json:"issue,omitempty"`
-	CreatedAt         *string          `json:"created_at,omitempty"`
-	UpdatedAt         *string          `json:"updated_at,omitempty"`
+	Metadata          *Metadata        `json:"metadata,omitempty"`
 }
 
 func (IssueVariant) IsNode()            {}
@@ -544,10 +543,9 @@ func (this IssueVariantConnection) GetTotalCount() int     { return this.TotalCo
 func (this IssueVariantConnection) GetPageInfo() *PageInfo { return this.PageInfo }
 
 type IssueVariantEdge struct {
-	Node      *IssueVariant `json:"node"`
-	Cursor    *string       `json:"cursor,omitempty"`
-	CreatedAt *string       `json:"created_at,omitempty"`
-	UpdatedAt *string       `json:"updated_at,omitempty"`
+	Node     *IssueVariant `json:"node"`
+	Cursor   *string       `json:"cursor,omitempty"`
+	Metadata *Metadata     `json:"metadata,omitempty"`
 }
 
 func (IssueVariantEdge) IsEdge()                 {}

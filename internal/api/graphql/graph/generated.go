@@ -67,6 +67,7 @@ type ComplexityRoot struct {
 		ID                func(childComplexity int) int
 		IssueMatchChanges func(childComplexity int, filter *model.IssueMatchChangeFilter, first *int, after *string) int
 		Issues            func(childComplexity int, filter *model.IssueFilter, first *int, after *string) int
+		Metadata          func(childComplexity int) int
 		Services          func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
 		Status            func(childComplexity int) int
 	}
@@ -78,8 +79,9 @@ type ComplexityRoot struct {
 	}
 
 	ActivityEdge struct {
-		Cursor func(childComplexity int) int
-		Node   func(childComplexity int) int
+		Cursor   func(childComplexity int) int
+		Metadata func(childComplexity int) int
+		Node     func(childComplexity int) int
 	}
 
 	CVSS struct {
@@ -317,13 +319,12 @@ type ComplexityRoot struct {
 	}
 
 	IssueRepository struct {
-		CreatedAt     func(childComplexity int) int
 		ID            func(childComplexity int) int
 		IssueVariants func(childComplexity int, filter *model.IssueVariantFilter, first *int, after *string) int
+		Metadata      func(childComplexity int) int
 		Name          func(childComplexity int) int
 		Services      func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
 		URL           func(childComplexity int) int
-		UpdatedAt     func(childComplexity int) int
 	}
 
 	IssueRepositoryConnection struct {
@@ -333,24 +334,22 @@ type ComplexityRoot struct {
 	}
 
 	IssueRepositoryEdge struct {
-		CreatedAt func(childComplexity int) int
-		Cursor    func(childComplexity int) int
-		Node      func(childComplexity int) int
-		Priority  func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
+		Cursor   func(childComplexity int) int
+		Metadata func(childComplexity int) int
+		Node     func(childComplexity int) int
+		Priority func(childComplexity int) int
 	}
 
 	IssueVariant struct {
-		CreatedAt         func(childComplexity int) int
 		Description       func(childComplexity int) int
 		ID                func(childComplexity int) int
 		Issue             func(childComplexity int) int
 		IssueID           func(childComplexity int) int
 		IssueRepository   func(childComplexity int) int
 		IssueRepositoryID func(childComplexity int) int
+		Metadata          func(childComplexity int) int
 		SecondaryName     func(childComplexity int) int
 		Severity          func(childComplexity int) int
-		UpdatedAt         func(childComplexity int) int
 	}
 
 	IssueVariantConnection struct {
@@ -360,10 +359,9 @@ type ComplexityRoot struct {
 	}
 
 	IssueVariantEdge struct {
-		CreatedAt func(childComplexity int) int
-		Cursor    func(childComplexity int) int
-		Node      func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
+		Cursor   func(childComplexity int) int
+		Metadata func(childComplexity int) int
+		Node     func(childComplexity int) int
 	}
 
 	Metadata struct {
@@ -761,6 +759,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Activity.Issues(childComplexity, args["filter"].(*model.IssueFilter), args["first"].(*int), args["after"].(*string)), true
 
+	case "Activity.metadata":
+		if e.complexity.Activity.Metadata == nil {
+			break
+		}
+
+		return e.complexity.Activity.Metadata(childComplexity), true
+
 	case "Activity.services":
 		if e.complexity.Activity.Services == nil {
 			break
@@ -807,6 +812,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ActivityEdge.Cursor(childComplexity), true
+
+	case "ActivityEdge.metadata":
+		if e.complexity.ActivityEdge.Metadata == nil {
+			break
+		}
+
+		return e.complexity.ActivityEdge.Metadata(childComplexity), true
 
 	case "ActivityEdge.node":
 		if e.complexity.ActivityEdge.Node == nil {
@@ -1924,13 +1936,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueMetadata.ServiceCount(childComplexity), true
 
-	case "IssueRepository.created_at":
-		if e.complexity.IssueRepository.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.IssueRepository.CreatedAt(childComplexity), true
-
 	case "IssueRepository.id":
 		if e.complexity.IssueRepository.ID == nil {
 			break
@@ -1949,6 +1954,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.IssueRepository.IssueVariants(childComplexity, args["filter"].(*model.IssueVariantFilter), args["first"].(*int), args["after"].(*string)), true
+
+	case "IssueRepository.metadata":
+		if e.complexity.IssueRepository.Metadata == nil {
+			break
+		}
+
+		return e.complexity.IssueRepository.Metadata(childComplexity), true
 
 	case "IssueRepository.name":
 		if e.complexity.IssueRepository.Name == nil {
@@ -1976,13 +1988,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueRepository.URL(childComplexity), true
 
-	case "IssueRepository.updated_at":
-		if e.complexity.IssueRepository.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.IssueRepository.UpdatedAt(childComplexity), true
-
 	case "IssueRepositoryConnection.edges":
 		if e.complexity.IssueRepositoryConnection.Edges == nil {
 			break
@@ -2004,19 +2009,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueRepositoryConnection.TotalCount(childComplexity), true
 
-	case "IssueRepositoryEdge.created_at":
-		if e.complexity.IssueRepositoryEdge.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.IssueRepositoryEdge.CreatedAt(childComplexity), true
-
 	case "IssueRepositoryEdge.cursor":
 		if e.complexity.IssueRepositoryEdge.Cursor == nil {
 			break
 		}
 
 		return e.complexity.IssueRepositoryEdge.Cursor(childComplexity), true
+
+	case "IssueRepositoryEdge.metadata":
+		if e.complexity.IssueRepositoryEdge.Metadata == nil {
+			break
+		}
+
+		return e.complexity.IssueRepositoryEdge.Metadata(childComplexity), true
 
 	case "IssueRepositoryEdge.node":
 		if e.complexity.IssueRepositoryEdge.Node == nil {
@@ -2031,20 +2036,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.IssueRepositoryEdge.Priority(childComplexity), true
-
-	case "IssueRepositoryEdge.updated_at":
-		if e.complexity.IssueRepositoryEdge.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.IssueRepositoryEdge.UpdatedAt(childComplexity), true
-
-	case "IssueVariant.created_at":
-		if e.complexity.IssueVariant.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.IssueVariant.CreatedAt(childComplexity), true
 
 	case "IssueVariant.description":
 		if e.complexity.IssueVariant.Description == nil {
@@ -2088,6 +2079,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueVariant.IssueRepositoryID(childComplexity), true
 
+	case "IssueVariant.metadata":
+		if e.complexity.IssueVariant.Metadata == nil {
+			break
+		}
+
+		return e.complexity.IssueVariant.Metadata(childComplexity), true
+
 	case "IssueVariant.secondaryName":
 		if e.complexity.IssueVariant.SecondaryName == nil {
 			break
@@ -2101,13 +2099,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.IssueVariant.Severity(childComplexity), true
-
-	case "IssueVariant.updated_at":
-		if e.complexity.IssueVariant.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.IssueVariant.UpdatedAt(childComplexity), true
 
 	case "IssueVariantConnection.edges":
 		if e.complexity.IssueVariantConnection.Edges == nil {
@@ -2130,13 +2121,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueVariantConnection.TotalCount(childComplexity), true
 
-	case "IssueVariantEdge.created_at":
-		if e.complexity.IssueVariantEdge.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.IssueVariantEdge.CreatedAt(childComplexity), true
-
 	case "IssueVariantEdge.cursor":
 		if e.complexity.IssueVariantEdge.Cursor == nil {
 			break
@@ -2144,19 +2128,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueVariantEdge.Cursor(childComplexity), true
 
+	case "IssueVariantEdge.metadata":
+		if e.complexity.IssueVariantEdge.Metadata == nil {
+			break
+		}
+
+		return e.complexity.IssueVariantEdge.Metadata(childComplexity), true
+
 	case "IssueVariantEdge.node":
 		if e.complexity.IssueVariantEdge.Node == nil {
 			break
 		}
 
 		return e.complexity.IssueVariantEdge.Node(childComplexity), true
-
-	case "IssueVariantEdge.updated_at":
-		if e.complexity.IssueVariantEdge.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.IssueVariantEdge.UpdatedAt(childComplexity), true
 
 	case "Metadata.created_at":
 		if e.complexity.Metadata.CreatedAt == nil {
@@ -10261,6 +10245,59 @@ func (ec *executionContext) fieldContext_Activity_issueMatchChanges(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Activity_metadata(ctx context.Context, field graphql.CollectedField, obj *model.Activity) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Activity_metadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Metadata)
+	fc.Result = res
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Activity_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Activity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ActivityConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ActivityConnection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ActivityConnection_totalCount(ctx, field)
 	if err != nil {
@@ -10345,6 +10382,8 @@ func (ec *executionContext) fieldContext_ActivityConnection_edges(_ context.Cont
 				return ec.fieldContext_ActivityEdge_node(ctx, field)
 			case "cursor":
 				return ec.fieldContext_ActivityEdge_cursor(ctx, field)
+			case "metadata":
+				return ec.fieldContext_ActivityEdge_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ActivityEdge", field.Name)
 		},
@@ -10458,6 +10497,8 @@ func (ec *executionContext) fieldContext_ActivityEdge_node(_ context.Context, fi
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -10501,6 +10542,59 @@ func (ec *executionContext) fieldContext_ActivityEdge_cursor(_ context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ActivityEdge_metadata(ctx context.Context, field graphql.CollectedField, obj *model.ActivityEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ActivityEdge_metadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Metadata)
+	fc.Result = res
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ActivityEdge_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ActivityEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
 		},
 	}
 	return fc, nil
@@ -13924,6 +14018,8 @@ func (ec *executionContext) fieldContext_Evidence_activity(_ context.Context, fi
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -16303,6 +16399,8 @@ func (ec *executionContext) fieldContext_IssueMatchChange_activity(_ context.Con
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -17759,8 +17857,8 @@ func (ec *executionContext) fieldContext_IssueRepository_services(ctx context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _IssueRepository_created_at(ctx context.Context, field graphql.CollectedField, obj *model.IssueRepository) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueRepository_created_at(ctx, field)
+func (ec *executionContext) _IssueRepository_metadata(ctx context.Context, field graphql.CollectedField, obj *model.IssueRepository) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueRepository_metadata(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17773,7 +17871,7 @@ func (ec *executionContext) _IssueRepository_created_at(ctx context.Context, fie
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
+		return obj.Metadata, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17782,60 +17880,31 @@ func (ec *executionContext) _IssueRepository_created_at(ctx context.Context, fie
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.Metadata)
 	fc.Result = res
-	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_IssueRepository_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_IssueRepository_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IssueRepository",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _IssueRepository_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.IssueRepository) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueRepository_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_IssueRepository_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IssueRepository",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
 		},
 	}
 	return fc, nil
@@ -17927,10 +17996,8 @@ func (ec *executionContext) fieldContext_IssueRepositoryConnection_edges(_ conte
 				return ec.fieldContext_IssueRepositoryEdge_cursor(ctx, field)
 			case "priority":
 				return ec.fieldContext_IssueRepositoryEdge_priority(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueRepositoryEdge_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueRepositoryEdge_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueRepositoryEdge_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueRepositoryEdge", field.Name)
 		},
@@ -18042,10 +18109,8 @@ func (ec *executionContext) fieldContext_IssueRepositoryEdge_node(_ context.Cont
 				return ec.fieldContext_IssueRepository_issueVariants(ctx, field)
 			case "services":
 				return ec.fieldContext_IssueRepository_services(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueRepository_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueRepository_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueRepository_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueRepository", field.Name)
 		},
@@ -18135,8 +18200,8 @@ func (ec *executionContext) fieldContext_IssueRepositoryEdge_priority(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _IssueRepositoryEdge_created_at(ctx context.Context, field graphql.CollectedField, obj *model.IssueRepositoryEdge) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueRepositoryEdge_created_at(ctx, field)
+func (ec *executionContext) _IssueRepositoryEdge_metadata(ctx context.Context, field graphql.CollectedField, obj *model.IssueRepositoryEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueRepositoryEdge_metadata(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -18149,7 +18214,7 @@ func (ec *executionContext) _IssueRepositoryEdge_created_at(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
+		return obj.Metadata, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -18158,60 +18223,31 @@ func (ec *executionContext) _IssueRepositoryEdge_created_at(ctx context.Context,
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.Metadata)
 	fc.Result = res
-	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_IssueRepositoryEdge_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_IssueRepositoryEdge_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IssueRepositoryEdge",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _IssueRepositoryEdge_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.IssueRepositoryEdge) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueRepositoryEdge_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_IssueRepositoryEdge_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IssueRepositoryEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
 		},
 	}
 	return fc, nil
@@ -18479,10 +18515,8 @@ func (ec *executionContext) fieldContext_IssueVariant_issueRepository(_ context.
 				return ec.fieldContext_IssueRepository_issueVariants(ctx, field)
 			case "services":
 				return ec.fieldContext_IssueRepository_services(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueRepository_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueRepository_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueRepository_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueRepository", field.Name)
 		},
@@ -18594,8 +18628,8 @@ func (ec *executionContext) fieldContext_IssueVariant_issue(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _IssueVariant_created_at(ctx context.Context, field graphql.CollectedField, obj *model.IssueVariant) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueVariant_created_at(ctx, field)
+func (ec *executionContext) _IssueVariant_metadata(ctx context.Context, field graphql.CollectedField, obj *model.IssueVariant) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueVariant_metadata(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -18608,7 +18642,7 @@ func (ec *executionContext) _IssueVariant_created_at(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
+		return obj.Metadata, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -18617,60 +18651,31 @@ func (ec *executionContext) _IssueVariant_created_at(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.Metadata)
 	fc.Result = res
-	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_IssueVariant_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_IssueVariant_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IssueVariant",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _IssueVariant_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.IssueVariant) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueVariant_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_IssueVariant_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IssueVariant",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
 		},
 	}
 	return fc, nil
@@ -18760,10 +18765,8 @@ func (ec *executionContext) fieldContext_IssueVariantConnection_edges(_ context.
 				return ec.fieldContext_IssueVariantEdge_node(ctx, field)
 			case "cursor":
 				return ec.fieldContext_IssueVariantEdge_cursor(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueVariantEdge_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueVariantEdge_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueVariantEdge_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueVariantEdge", field.Name)
 		},
@@ -18881,10 +18884,8 @@ func (ec *executionContext) fieldContext_IssueVariantEdge_node(_ context.Context
 				return ec.fieldContext_IssueVariant_issueId(ctx, field)
 			case "issue":
 				return ec.fieldContext_IssueVariant_issue(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueVariant_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueVariant_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueVariant_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueVariant", field.Name)
 		},
@@ -18933,8 +18934,8 @@ func (ec *executionContext) fieldContext_IssueVariantEdge_cursor(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _IssueVariantEdge_created_at(ctx context.Context, field graphql.CollectedField, obj *model.IssueVariantEdge) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueVariantEdge_created_at(ctx, field)
+func (ec *executionContext) _IssueVariantEdge_metadata(ctx context.Context, field graphql.CollectedField, obj *model.IssueVariantEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueVariantEdge_metadata(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -18947,7 +18948,7 @@ func (ec *executionContext) _IssueVariantEdge_created_at(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
+		return obj.Metadata, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -18956,60 +18957,31 @@ func (ec *executionContext) _IssueVariantEdge_created_at(ctx context.Context, fi
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.Metadata)
 	fc.Result = res
-	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_IssueVariantEdge_created_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_IssueVariantEdge_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IssueVariantEdge",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _IssueVariantEdge_updated_at(ctx context.Context, field graphql.CollectedField, obj *model.IssueVariantEdge) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueVariantEdge_updated_at(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalODateTime2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_IssueVariantEdge_updated_at(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IssueVariantEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
 		},
 	}
 	return fc, nil
@@ -20979,10 +20951,8 @@ func (ec *executionContext) fieldContext_Mutation_createIssueRepository(ctx cont
 				return ec.fieldContext_IssueRepository_issueVariants(ctx, field)
 			case "services":
 				return ec.fieldContext_IssueRepository_services(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueRepository_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueRepository_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueRepository_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueRepository", field.Name)
 		},
@@ -21050,10 +21020,8 @@ func (ec *executionContext) fieldContext_Mutation_updateIssueRepository(ctx cont
 				return ec.fieldContext_IssueRepository_issueVariants(ctx, field)
 			case "services":
 				return ec.fieldContext_IssueRepository_services(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueRepository_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueRepository_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueRepository_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueRepository", field.Name)
 		},
@@ -21545,10 +21513,8 @@ func (ec *executionContext) fieldContext_Mutation_createIssueVariant(ctx context
 				return ec.fieldContext_IssueVariant_issueId(ctx, field)
 			case "issue":
 				return ec.fieldContext_IssueVariant_issue(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueVariant_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueVariant_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueVariant_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueVariant", field.Name)
 		},
@@ -21622,10 +21588,8 @@ func (ec *executionContext) fieldContext_Mutation_updateIssueVariant(ctx context
 				return ec.fieldContext_IssueVariant_issueId(ctx, field)
 			case "issue":
 				return ec.fieldContext_IssueVariant_issue(ctx, field)
-			case "created_at":
-				return ec.fieldContext_IssueVariant_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_IssueVariant_updated_at(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueVariant_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueVariant", field.Name)
 		},
@@ -22555,6 +22519,8 @@ func (ec *executionContext) fieldContext_Mutation_createActivity(ctx context.Con
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -22624,6 +22590,8 @@ func (ec *executionContext) fieldContext_Mutation_updateActivity(ctx context.Con
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -22748,6 +22716,8 @@ func (ec *executionContext) fieldContext_Mutation_addServiceToActivity(ctx conte
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -22817,6 +22787,8 @@ func (ec *executionContext) fieldContext_Mutation_removeServiceFromActivity(ctx 
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -22886,6 +22858,8 @@ func (ec *executionContext) fieldContext_Mutation_addIssueToActivity(ctx context
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -22955,6 +22929,8 @@ func (ec *executionContext) fieldContext_Mutation_removeIssueFromActivity(ctx co
 				return ec.fieldContext_Activity_evidences(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_Activity_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Activity_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Activity", field.Name)
 		},
@@ -30088,6 +30064,28 @@ func (ec *executionContext) _Activity(ctx context.Context, sel ast.SelectionSet,
 				continue
 			}
 			out.Values[i] = ec._Activity_issueMatchChanges(ctx, field, obj)
+		case "metadata":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._Activity_metadata(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._Activity_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -30272,6 +30270,28 @@ func (ec *executionContext) _ActivityEdge(ctx context.Context, sel ast.Selection
 				continue
 			}
 			out.Values[i] = ec._ActivityEdge_cursor(ctx, field, obj)
+		case "metadata":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._ActivityEdge_metadata(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._ActivityEdge_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -34753,7 +34773,7 @@ func (ec *executionContext) _IssueRepository(ctx context.Context, sel ast.Select
 				continue
 			}
 			out.Values[i] = ec._IssueRepository_services(ctx, field, obj)
-		case "created_at":
+		case "metadata":
 			field := field
 
 			if field.Deferrable != nil {
@@ -34767,36 +34787,14 @@ func (ec *executionContext) _IssueRepository(ctx context.Context, sel ast.Select
 					deferred[field.Deferrable.Label] = dfs
 				}
 				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._IssueRepository_created_at(ctx, field, obj)
+					return ec._IssueRepository_metadata(ctx, field, obj)
 				})
 
 				// don't run the out.Concurrently() call below
 				out.Values[i] = graphql.Null
 				continue
 			}
-			out.Values[i] = ec._IssueRepository_created_at(ctx, field, obj)
-		case "updated_at":
-			field := field
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._IssueRepository_updated_at(ctx, field, obj)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-			out.Values[i] = ec._IssueRepository_updated_at(ctx, field, obj)
+			out.Values[i] = ec._IssueRepository_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -35003,7 +35001,7 @@ func (ec *executionContext) _IssueRepositoryEdge(ctx context.Context, sel ast.Se
 				continue
 			}
 			out.Values[i] = ec._IssueRepositoryEdge_priority(ctx, field, obj)
-		case "created_at":
+		case "metadata":
 			field := field
 
 			if field.Deferrable != nil {
@@ -35017,36 +35015,14 @@ func (ec *executionContext) _IssueRepositoryEdge(ctx context.Context, sel ast.Se
 					deferred[field.Deferrable.Label] = dfs
 				}
 				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._IssueRepositoryEdge_created_at(ctx, field, obj)
+					return ec._IssueRepositoryEdge_metadata(ctx, field, obj)
 				})
 
 				// don't run the out.Concurrently() call below
 				out.Values[i] = graphql.Null
 				continue
 			}
-			out.Values[i] = ec._IssueRepositoryEdge_created_at(ctx, field, obj)
-		case "updated_at":
-			field := field
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._IssueRepositoryEdge_updated_at(ctx, field, obj)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-			out.Values[i] = ec._IssueRepositoryEdge_updated_at(ctx, field, obj)
+			out.Values[i] = ec._IssueRepositoryEdge_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -35260,7 +35236,7 @@ func (ec *executionContext) _IssueVariant(ctx context.Context, sel ast.Selection
 				continue
 			}
 			out.Values[i] = ec._IssueVariant_issue(ctx, field, obj)
-		case "created_at":
+		case "metadata":
 			field := field
 
 			if field.Deferrable != nil {
@@ -35274,36 +35250,14 @@ func (ec *executionContext) _IssueVariant(ctx context.Context, sel ast.Selection
 					deferred[field.Deferrable.Label] = dfs
 				}
 				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._IssueVariant_created_at(ctx, field, obj)
+					return ec._IssueVariant_metadata(ctx, field, obj)
 				})
 
 				// don't run the out.Concurrently() call below
 				out.Values[i] = graphql.Null
 				continue
 			}
-			out.Values[i] = ec._IssueVariant_created_at(ctx, field, obj)
-		case "updated_at":
-			field := field
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._IssueVariant_updated_at(ctx, field, obj)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-			out.Values[i] = ec._IssueVariant_updated_at(ctx, field, obj)
+			out.Values[i] = ec._IssueVariant_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -35488,7 +35442,7 @@ func (ec *executionContext) _IssueVariantEdge(ctx context.Context, sel ast.Selec
 				continue
 			}
 			out.Values[i] = ec._IssueVariantEdge_cursor(ctx, field, obj)
-		case "created_at":
+		case "metadata":
 			field := field
 
 			if field.Deferrable != nil {
@@ -35502,36 +35456,14 @@ func (ec *executionContext) _IssueVariantEdge(ctx context.Context, sel ast.Selec
 					deferred[field.Deferrable.Label] = dfs
 				}
 				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._IssueVariantEdge_created_at(ctx, field, obj)
+					return ec._IssueVariantEdge_metadata(ctx, field, obj)
 				})
 
 				// don't run the out.Concurrently() call below
 				out.Values[i] = graphql.Null
 				continue
 			}
-			out.Values[i] = ec._IssueVariantEdge_created_at(ctx, field, obj)
-		case "updated_at":
-			field := field
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._IssueVariantEdge_updated_at(ctx, field, obj)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-			out.Values[i] = ec._IssueVariantEdge_updated_at(ctx, field, obj)
+			out.Values[i] = ec._IssueVariantEdge_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

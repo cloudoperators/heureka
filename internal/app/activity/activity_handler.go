@@ -132,6 +132,7 @@ func (a *activityHandler) ListActivities(filter *entity.ActivityFilter, options 
 }
 
 func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Activity, error) {
+	activity.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ActivityCreateEventName,
 		"object": activity,
@@ -152,6 +153,7 @@ func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Act
 }
 
 func (a *activityHandler) UpdateActivity(activity *entity.Activity) (*entity.Activity, error) {
+	activity.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ActivityUpdateEventName,
 		"object": activity,

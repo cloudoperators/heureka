@@ -23,12 +23,16 @@ query ($filter: IssueRepositoryFilter, $first: Int, $after: String) {
                             description
                             issueRepositoryId
                             issueId
+                            metadata {
+                                created_at
+                                updated_at
+                            }
+                        }
+                        cursor
+                        metadata {
                             created_at
                             updated_at
                         }
-                        cursor
-                        created_at
-                        updated_at
                     }
                     pageInfo { 
                         hasNextPage
@@ -50,12 +54,16 @@ query ($filter: IssueRepositoryFilter, $first: Int, $after: String) {
                         nextPageAfter
                     }
                 }
+                metadata {
+                    created_at
+                    updated_at
+                }
+            }
+            cursor
+            metadata {
                 created_at
                 updated_at
             }
-            cursor
-            created_at
-            updated_at
         }
         pageInfo {
             hasNextPage

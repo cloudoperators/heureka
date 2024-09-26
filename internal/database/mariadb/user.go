@@ -62,7 +62,7 @@ func (s *SqlDatabase) getUserUpdateFields(user *entity.User) string {
 	if user.Type != entity.InvalidUserType {
 		fl = append(fl, "user_type = :user_type")
 	}
-	if user.Metadata.UpdatedBy != "" {
+	if user.UpdatedBy != "" {
 		fl = append(fl, "user_updated_by = :user_updated_by")
 	}
 

@@ -259,16 +259,13 @@ func NewIssueMatchChangeEntity(imc *IssueMatchChangeInput) entity.IssueMatchChan
 }
 
 func NewIssueRepository(repo *entity.IssueRepository) IssueRepository {
-	createdAt := repo.BaseIssueRepository.CreatedAt.String()
-	updatedAt := repo.BaseIssueRepository.UpdatedAt.String()
 	return IssueRepository{
 		ID:            fmt.Sprintf("%d", repo.Id),
 		Name:          &repo.Name,
 		URL:           &repo.Url,
 		Services:      nil,
 		IssueVariants: nil,
-		CreatedAt:     &createdAt,
-		UpdatedAt:     &updatedAt,
+		Metadata:      getModelMetadata(repo.Metadata),
 	}
 }
 
@@ -286,8 +283,6 @@ func NewIssueVariant(issueVariant *entity.IssueVariant) IssueVariant {
 	if issueVariant.IssueRepository != nil {
 		repo = NewIssueRepository(issueVariant.IssueRepository)
 	}
-	createdAt := issueVariant.CreatedAt.String()
-	updatedAt := issueVariant.UpdatedAt.String()
 	return IssueVariant{
 		ID:                fmt.Sprintf("%d", issueVariant.Id),
 		SecondaryName:     &issueVariant.SecondaryName,
@@ -296,20 +291,16 @@ func NewIssueVariant(issueVariant *entity.IssueVariant) IssueVariant {
 		IssueID:           util.Ptr(fmt.Sprintf("%d", issueVariant.IssueId)),
 		IssueRepositoryID: util.Ptr(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)),
 		IssueRepository:   &repo,
-		CreatedAt:         &createdAt,
-		UpdatedAt:         &updatedAt,
+		Metadata:          getModelMetadata(issueVariant.Metadata),
 	}
 }
 
 func NewIssueVariantEdge(issueVariant *entity.IssueVariant) IssueVariantEdge {
 	iv := NewIssueVariant(issueVariant)
-	edgeCreationDate := issueVariant.CreatedAt.String()
-	edgeUpdateDate := issueVariant.UpdatedAt.String()
 	issueVariantEdge := IssueVariantEdge{
 		Node:      &iv,
 		Cursor:    &iv.ID,
-		CreatedAt: &edgeCreationDate,
-		UpdatedAt: &edgeUpdateDate,
+		Metadata:  getModelMetadata(issueVariant.Metadata),
 	}
 	return issueVariantEdge
 }
@@ -375,9 +366,9 @@ func NewSupportGroupEntity(supportGroup *SupportGroupInput) entity.SupportGroup 
 func NewActivity(activity *entity.Activity) Activity {
 	status := ActivityStatusValues(activity.Status.String())
 	return Activity{
-		ID:     fmt.Sprintf("%d", activity.Id),
-		Status: &status,
-		//Metadata: activity.getModelMetadata(activitiy),
+		ID:       fmt.Sprintf("%d", activity.Id),
+		Status:   &status,
+		Metadata: getModelMetadata(activity.Metadata),
 	}
 }
 

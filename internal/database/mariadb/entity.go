@@ -1,6 +1,10 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
+//TODO: add Metadata type for mariadb package
+//TODO: add Metadata converter mariadb - entity
+//TODO: add Metadata converter entity - mariadb
+
 package mariadb
 
 import (
@@ -247,8 +251,10 @@ type BaseIssueRepositoryRow struct {
 	Name      sql.NullString `db:"issuerepository_name"`
 	Url       sql.NullString `db:"issuerepository_url"`
 	CreatedAt sql.NullTime   `db:"issuerepository_created_at" json:"created_at"`
+	CreatedBy sql.NullString `db:"issuerepository_created_by" json:"created_by"`
 	DeletedAt sql.NullTime   `db:"issuerepository_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"issuerepository_updated_at" json:"updated_at"`
+	UpdatedBy sql.NullString `db:"issuerepository_updated_by" json:"updated_by"`
 }
 
 func (irr *IssueRepositoryRow) FromIssueRepository(ir *entity.IssueRepository) {
@@ -258,6 +264,11 @@ func (irr *IssueRepositoryRow) FromIssueRepository(ir *entity.IssueRepository) {
 	irr.Priority = sql.NullInt64{Int64: ir.Priority, Valid: true}
 	irr.ServiceId = sql.NullInt64{Int64: ir.ServiceId, Valid: true}
 	irr.IssueRepositoryId = sql.NullInt64{Int64: ir.IssueRepositoryId, Valid: true}
+	irr.BaseIssueRepositoryRow.CreatedAt = sql.NullTime{Time: ir.CreatedAt, Valid: true}
+	irr.BaseIssueRepositoryRow.CreatedBy = sql.NullString{String: ir.CreatedBy, Valid: true}
+	irr.BaseIssueRepositoryRow.DeletedAt = sql.NullTime{Time: ir.DeletedAt, Valid: true}
+	irr.BaseIssueRepositoryRow.UpdatedAt = sql.NullTime{Time: ir.UpdatedAt, Valid: true}
+	irr.BaseIssueRepositoryRow.UpdatedBy = sql.NullString{String: ir.UpdatedBy, Valid: true}
 }
 
 func (birr *BaseIssueRepositoryRow) AsBaseIssueRepository() entity.BaseIssueRepository {
@@ -269,8 +280,10 @@ func (birr *BaseIssueRepositoryRow) AsBaseIssueRepository() entity.BaseIssueRepo
 		Services:      nil,
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(birr.CreatedAt),
+			CreatedBy: GetStringValue(birr.CreatedBy),
 			DeletedAt: GetTimeValue(birr.DeletedAt),
 			UpdatedAt: GetTimeValue(birr.UpdatedAt),
+			UpdatedBy: GetStringValue(birr.UpdatedBy),
 		},
 	}
 }
@@ -285,8 +298,10 @@ func (barr *BaseIssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 			Services:      nil,
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(barr.CreatedAt),
+				CreatedBy: GetStringValue(barr.CreatedBy),
 				DeletedAt: GetTimeValue(barr.DeletedAt),
 				UpdatedAt: GetTimeValue(barr.UpdatedAt),
+				UpdatedBy: GetStringValue(barr.UpdatedBy),
 			},
 		},
 	}
@@ -302,8 +317,10 @@ func (irr *IssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 			Services:      nil,
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(irr.BaseIssueRepositoryRow.CreatedAt),
+				CreatedBy: GetStringValue(irr.BaseIssueRepositoryRow.CreatedBy),
 				DeletedAt: GetTimeValue(irr.BaseIssueRepositoryRow.DeletedAt),
 				UpdatedAt: GetTimeValue(irr.BaseIssueRepositoryRow.UpdatedAt),
+				UpdatedBy: GetStringValue(irr.BaseIssueRepositoryRow.UpdatedBy),
 			},
 		},
 		IssueRepositoryService: entity.IssueRepositoryService{
@@ -322,8 +339,10 @@ type IssueVariantRow struct {
 	Rating            sql.NullString `db:"issuevariant_rating" json:"rating"`
 	Description       sql.NullString `db:"issuevariant_description" json:"description"`
 	CreatedAt         sql.NullTime   `db:"issuevariant_created_at" json:"created_at"`
+	CreatedBy         sql.NullString `db:"issuevariant_created_by" json:"created_by"`
 	DeletedAt         sql.NullTime   `db:"issuevariant_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt         sql.NullTime   `db:"issuevariant_updated_at" json:"updated_at"`
+	UpdatedBy         sql.NullString `db:"issuevariant_updated_by" json:"updated_by"`
 }
 
 func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) entity.IssueVariant {
@@ -338,8 +357,10 @@ func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) e
 		Description:       GetStringValue(ivr.Description),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ivr.CreatedAt),
+			CreatedBy: GetStringValue(ivr.CreatedBy),
 			DeletedAt: GetTimeValue(ivr.DeletedAt),
 			UpdatedAt: GetTimeValue(ivr.UpdatedAt),
+			UpdatedBy: GetStringValue(ivr.UpdatedBy),
 		},
 	}
 }
@@ -353,8 +374,10 @@ func (ivr *IssueVariantRow) FromIssueVariant(iv *entity.IssueVariant) {
 	ivr.Rating = sql.NullString{String: iv.Severity.Value, Valid: true}
 	ivr.Description = sql.NullString{String: iv.Description, Valid: true}
 	ivr.CreatedAt = sql.NullTime{Time: iv.CreatedAt, Valid: true}
+	ivr.CreatedBy = sql.NullString{String: iv.CreatedBy, Valid: true}
 	ivr.DeletedAt = sql.NullTime{Time: iv.DeletedAt, Valid: true}
 	ivr.UpdatedAt = sql.NullTime{Time: iv.UpdatedAt, Valid: true}
+	ivr.UpdatedBy = sql.NullString{String: iv.UpdatedBy, Valid: true}
 }
 
 type IssueVariantWithRepository struct {
@@ -537,8 +560,10 @@ type ActivityRow struct {
 	Id        sql.NullInt64  `db:"activity_id" json:"id"`
 	Status    sql.NullString `db:"activity_status" json:"status"`
 	CreatedAt sql.NullTime   `db:"activity_created_at" json:"created_at"`
+	CreatedBy sql.NullString `db:"activity_created_by" json:"created_by"`
 	DeletedAt sql.NullTime   `db:"activity_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"activity_updated_at" json:"updated_at"`
+	UpdatedBy sql.NullString `db:"activity_updated_by" json:"updated_by"`
 }
 
 func (ar *ActivityRow) AsActivity() entity.Activity {
@@ -549,8 +574,10 @@ func (ar *ActivityRow) AsActivity() entity.Activity {
 		Evidences: []entity.Evidence{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ar.CreatedAt),
+			CreatedBy: GetStringValue(ar.CreatedBy),
 			DeletedAt: GetTimeValue(ar.DeletedAt),
 			UpdatedAt: GetTimeValue(ar.UpdatedAt),
+			UpdatedBy: GetStringValue(ar.UpdatedBy),
 		},
 	}
 }
@@ -559,8 +586,10 @@ func (ar *ActivityRow) FromActivity(a *entity.Activity) {
 	ar.Id = sql.NullInt64{Int64: a.Id, Valid: true}
 	ar.Status = sql.NullString{String: a.Status.String(), Valid: true}
 	ar.CreatedAt = sql.NullTime{Time: a.CreatedAt, Valid: true}
+	ar.CreatedBy = sql.NullString{String: a.CreatedBy, Valid: true}
 	ar.DeletedAt = sql.NullTime{Time: a.DeletedAt, Valid: true}
 	ar.UpdatedAt = sql.NullTime{Time: a.UpdatedAt, Valid: true}
+	ar.UpdatedBy = sql.NullString{String: a.UpdatedBy, Valid: true}
 }
 
 type ComponentInstanceRow struct {
