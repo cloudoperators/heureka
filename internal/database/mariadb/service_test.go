@@ -436,6 +436,61 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 		})
 	})
+	When("Getting Services with Aggregations", Label("GetServicesWithAggregations"), func() {
+		BeforeEach(func() {
+			_ = seeder.SeedDbWithNFakeData(10)
+		})
+		Context("and and we have 10 elements in the database", func() {
+			It("returns the services with componentInstance count", func() {
+				entriesWithAggregations, err := db.GetServicesWithComponentInstanceCount(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				By("returning some aggregations", func() {
+					for _, entryWithAggregations := range entriesWithAggregations {
+						Expect(entryWithAggregations).NotTo(
+							BeEquivalentTo(entity.ServiceAggregations{}))
+					}
+				})
+			})
+			It("returns correct aggregation values", func() {
+				//Should be filled with a check for each aggregation value,
+				// this is currently skipped due to the complexity of the test implementation
+				// as we would need to implement for each of the aggregations a manual aggregation
+				// based on the seederCollection.
+				//
+				// This tests should therefore only get implemented in case we encourage errors in this area to test against
+				// possible regressions
+			})
+		})
+		Context("and and we have 10 elements in the database", func() {
+			It("returns the services with issueMatch count", func() {
+				entriesWithAggregations, err := db.GetServicesWithIssueMatchCount(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				By("returning some aggregations", func() {
+					for _, entryWithAggregations := range entriesWithAggregations {
+						Expect(entryWithAggregations).NotTo(
+							BeEquivalentTo(entity.ServiceAggregations{}))
+					}
+				})
+			})
+			It("returns correct aggregation values", func() {
+				//Should be filled with a check for each aggregation value,
+				// this is currently skipped due to the complexity of the test implementation
+				// as we would need to implement for each of the aggregations a manual aggregation
+				// based on the seederCollection.
+				//
+				// This tests should therefore only get implemented in case we encourage errors in this area to test against
+				// possible regressions
+			})
+		})
+	})
 	When("Counting Services", Label("CountServices"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {

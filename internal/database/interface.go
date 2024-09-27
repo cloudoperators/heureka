@@ -51,6 +51,8 @@ type Database interface {
 	RemoveEvidenceFromIssueMatch(int64, int64) error
 
 	GetServices(*entity.ServiceFilter) ([]entity.Service, error)
+	GetServicesWithComponentInstanceCount(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)
+	GetServicesWithIssueMatchCount(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)
 	GetAllServiceIds(*entity.ServiceFilter) ([]int64, error)
 	CountServices(*entity.ServiceFilter) (int64, error)
 	CreateService(*entity.Service) (*entity.Service, error)

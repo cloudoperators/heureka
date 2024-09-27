@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -36,6 +37,36 @@ func (e *ServiceHandlerError) Error() string {
 
 func NewServiceHandlerError(msg string) *ServiceHandlerError {
 	return &ServiceHandlerError{msg: msg}
+}
+
+func (s *serviceHandler) getServiceResultsWithAggregations(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
+	var serviceResults []entity.ServiceResult
+	servicesCiCount, err := s.database.GetServicesWithComponentInstanceCount(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	servicesImCount, err := s.database.GetServicesWithIssueMatchCount(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(servicesCiCount); i++ {
+		serviceCi := servicesCiCount[i]
+		serviceIm := servicesImCount[i]
+		cursor := fmt.Sprintf("%d", serviceCi.Id)
+		serviceResults = append(serviceResults, entity.ServiceResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			ServiceAggregations: &entity.ServiceAggregations{
+				IssueMatches:       serviceIm.IssueMatches,
+				ComponentInstances: serviceCi.ComponentInstances,
+			},
+			Service: util.Ptr(serviceCi.Service),
+		})
+
+	}
+
+	return serviceResults, nil
 }
 
 func (s *serviceHandler) getServiceResults(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
@@ -81,6 +112,8 @@ func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
+	var res []entity.ServiceResult
+	var err error
 
 	common.EnsurePaginated(&filter.Paginated)
 
@@ -89,11 +122,18 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 		"filter": filter,
 	})
 
-	res, err := s.getServiceResults(filter)
-
-	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Error while filtering for Services")
+	if options.IncludeAggregations {
+		res, err = s.getServiceResultsWithAggregations(filter)
+		if err != nil {
+			l.Error(err)
+			return nil, NewServiceHandlerError("Internal error while retrieving list results with aggregations")
+		}
+	} else {
+		res, err = s.getServiceResults(filter)
+		if err != nil {
+			l.Error(err)
+			return nil, NewServiceHandlerError("Internal error while retrieving list results.")
+		}
 	}
 
 	if options.ShowPageInfo {
