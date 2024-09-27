@@ -3968,6 +3968,102 @@ func (ec *executionContext) field_Activity_services_argsAfter(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_ComponentInstanceFilterValue_ccrn_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_ComponentInstanceFilterValue_ccrn_argsFilter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_ComponentInstanceFilterValue_ccrn_argsFilter(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*model.ComponentInstanceFilter, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["filter"]
+	if !ok {
+		var zeroVal *model.ComponentInstanceFilter
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+	if tmp, ok := rawArgs["filter"]; ok {
+		return ec.unmarshalOComponentInstanceFilter2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐComponentInstanceFilter(ctx, tmp)
+	}
+
+	var zeroVal *model.ComponentInstanceFilter
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_ComponentInstanceFilterValue_serviceName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_ComponentInstanceFilterValue_serviceName_argsFilter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_ComponentInstanceFilterValue_serviceName_argsFilter(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*model.ServiceFilter, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["filter"]
+	if !ok {
+		var zeroVal *model.ServiceFilter
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+	if tmp, ok := rawArgs["filter"]; ok {
+		return ec.unmarshalOServiceFilter2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐServiceFilter(ctx, tmp)
+	}
+
+	var zeroVal *model.ServiceFilter
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_ComponentInstanceFilterValue_supportGroupName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_ComponentInstanceFilterValue_supportGroupName_argsFilter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_ComponentInstanceFilterValue_supportGroupName_argsFilter(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*model.SupportGroupFilter, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["filter"]
+	if !ok {
+		var zeroVal *model.SupportGroupFilter
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+	if tmp, ok := rawArgs["filter"]; ok {
+		return ec.unmarshalOSupportGroupFilter2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐSupportGroupFilter(ctx, tmp)
+	}
+
+	var zeroVal *model.SupportGroupFilter
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_ComponentInstance_issueMatches_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
