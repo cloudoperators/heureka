@@ -383,7 +383,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					const charactersToRemoveFromBeginning = 2
 					const charactersToRemoveFromEnd = 2
-					const minimalCharactersToKeep = 1
+					const minimalCharactersToKeep = 2
 
 					start := charactersToRemoveFromBeginning
 					end := len(row.Name.String) - charactersToRemoveFromEnd
