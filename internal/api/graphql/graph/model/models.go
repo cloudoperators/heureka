@@ -418,9 +418,10 @@ func NewEvidenceEntity(evidence *EvidenceInput) entity.Evidence {
 func NewComponent(component *entity.Component) Component {
 	componentType, _ := ComponentTypeValue(component.Type)
 	return Component{
-		ID:   fmt.Sprintf("%d", component.Id),
-		Name: &component.Name,
-		Type: &componentType,
+		ID:       fmt.Sprintf("%d", component.Id),
+		Name:     &component.Name,
+		Type:     &componentType,
+		Metadata: getModelMetadata(component.Metadata),
 	}
 }
 

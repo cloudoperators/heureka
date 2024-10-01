@@ -118,6 +118,7 @@ type Component struct {
 	Name              *string                     `json:"name,omitempty"`
 	Type              *ComponentTypeValues        `json:"type,omitempty"`
 	ComponentVersions *ComponentVersionConnection `json:"componentVersions,omitempty"`
+	Metadata          *Metadata                   `json:"metadata,omitempty"`
 }
 
 func (Component) IsNode()            {}

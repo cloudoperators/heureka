@@ -12,8 +12,10 @@ create table if not exists Component
     component_name       varchar(256)                          not null,
     component_type       varchar(256)                          not null,
     component_created_at timestamp default current_timestamp() not null,
+    component_created_by varchar(256)                          null,
     component_deleted_at timestamp                             null,
     component_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
+    component_updated_by varchar(256)                          null,
     constraint id_UNIQUE
         unique (component_id),
     constraint name_UNIQUE

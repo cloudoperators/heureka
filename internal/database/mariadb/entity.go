@@ -409,8 +409,10 @@ type ComponentRow struct {
 	Name      sql.NullString `db:"component_name" json:"name"`
 	Type      sql.NullString `db:"component_type" json:"type"`
 	CreatedAt sql.NullTime   `db:"component_created_at" json:"created_at"`
+	CreatedBy sql.NullString `db:"component_created_by" json:"created_by"`
 	DeletedAt sql.NullTime   `db:"component_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"component_updated_at" json:"updated_at"`
+	UpdatedBy sql.NullString `db:"component_updated_by" json:"updated_by"`
 }
 
 func (cr *ComponentRow) AsComponent() entity.Component {
@@ -420,8 +422,10 @@ func (cr *ComponentRow) AsComponent() entity.Component {
 		Type: GetStringValue(cr.Type),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cr.CreatedAt),
+			CreatedBy: GetStringValue(cr.CreatedBy),
 			DeletedAt: GetTimeValue(cr.DeletedAt),
 			UpdatedAt: GetTimeValue(cr.UpdatedAt),
+			UpdatedBy: GetStringValue(cr.UpdatedBy),
 		},
 	}
 }
@@ -431,8 +435,10 @@ func (cr *ComponentRow) FromComponent(c *entity.Component) {
 	cr.Name = sql.NullString{String: c.Name, Valid: true}
 	cr.Type = sql.NullString{String: c.Type, Valid: true}
 	cr.CreatedAt = sql.NullTime{Time: c.CreatedAt, Valid: true}
+	cr.CreatedBy = sql.NullString{String: c.CreatedBy, Valid: true}
 	cr.DeletedAt = sql.NullTime{Time: c.DeletedAt, Valid: true}
 	cr.UpdatedAt = sql.NullTime{Time: c.UpdatedAt, Valid: true}
+	cr.UpdatedBy = sql.NullString{String: c.UpdatedBy, Valid: true}
 }
 
 type ComponentVersionRow struct {

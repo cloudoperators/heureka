@@ -133,6 +133,7 @@ type ComplexityRoot struct {
 	Component struct {
 		ComponentVersions func(childComplexity int, filter *model.ComponentVersionFilter, first *int, after *string) int
 		ID                func(childComplexity int) int
+		Metadata          func(childComplexity int) int
 		Name              func(childComplexity int) int
 		Type              func(childComplexity int) int
 	}
@@ -1062,6 +1063,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Component.ID(childComplexity), true
+
+	case "Component.metadata":
+		if e.complexity.Component.Metadata == nil {
+			break
+		}
+
+		return e.complexity.Component.Metadata(childComplexity), true
 
 	case "Component.name":
 		if e.complexity.Component.Name == nil {
@@ -12113,6 +12121,59 @@ func (ec *executionContext) fieldContext_Component_componentVersions(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Component_metadata(ctx context.Context, field graphql.CollectedField, obj *model.Component) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Component_metadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Metadata)
+	fc.Result = res
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Component_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Component",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ComponentConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ComponentConnection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ComponentConnection_totalCount(ctx, field)
 	if err != nil {
@@ -12306,6 +12367,8 @@ func (ec *executionContext) fieldContext_ComponentEdge_node(_ context.Context, f
 				return ec.fieldContext_Component_type(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Component_componentVersions(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Component_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Component", field.Name)
 		},
@@ -13242,6 +13305,8 @@ func (ec *executionContext) fieldContext_ComponentVersion_component(_ context.Co
 				return ec.fieldContext_Component_type(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Component_componentVersions(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Component_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Component", field.Name)
 		},
@@ -19881,6 +19946,8 @@ func (ec *executionContext) fieldContext_Mutation_createComponent(ctx context.Co
 				return ec.fieldContext_Component_type(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Component_componentVersions(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Component_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Component", field.Name)
 		},
@@ -19946,6 +20013,8 @@ func (ec *executionContext) fieldContext_Mutation_updateComponent(ctx context.Co
 				return ec.fieldContext_Component_type(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Component_componentVersions(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Component_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Component", field.Name)
 		},
@@ -31269,6 +31338,28 @@ func (ec *executionContext) _Component(ctx context.Context, sel ast.SelectionSet
 				continue
 			}
 			out.Values[i] = ec._Component_componentVersions(ctx, field, obj)
+		case "metadata":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._Component_metadata(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._Component_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

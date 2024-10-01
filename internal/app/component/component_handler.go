@@ -105,6 +105,7 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 }
 
 func (cs *componentHandler) CreateComponent(component *entity.Component) (*entity.Component, error) {
+	component.CreatedBy = "Creator"
 	f := &entity.ComponentFilter{
 		Name: []*string{&component.Name},
 	}
@@ -139,6 +140,7 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 }
 
 func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entity.Component, error) {
+	component.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentEventName,
 		"object": component,
