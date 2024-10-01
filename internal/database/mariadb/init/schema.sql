@@ -29,8 +29,10 @@ create table if not exists ComponentVersion
     componentversion_version      varchar(256)                          not null,
     componentversion_component_id int unsigned                          not null,
     componentversion_created_at   timestamp default current_timestamp() not null,
+    componentversion_created_by   varchar(256)                          null,
     componentversion_deleted_at   timestamp                             null,
     componentversion_updated_at   timestamp default current_timestamp() not null on update current_timestamp(),
+    componentversion_updated_by   varchar(256)                          null,
     constraint id_UNIQUE
         unique (componentversion_id),
     constraint version_component_unique
@@ -108,8 +110,10 @@ create table if not exists ComponentInstance
     componentinstance_component_version_id int unsigned                          not null,
     componentinstance_service_id           int unsigned                          not null,
     componentinstance_created_at           timestamp default current_timestamp() not null,
+    componentinstance_created_by           varchar(256)                          null,
     componentinstance_deleted_at           timestamp                             null,
     componentinstance_updated_at           timestamp default current_timestamp() not null on update current_timestamp(),
+    componentinstance_updated_by           varchar(256)                          null,
     constraint id_UNIQUE
         unique (componentinstance_id),
     constraint name_service_unique

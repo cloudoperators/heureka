@@ -161,8 +161,7 @@ type ComponentInstance struct {
 	IssueMatches       *IssueMatchConnection `json:"issueMatches,omitempty"`
 	ServiceID          *string               `json:"serviceId,omitempty"`
 	Service            *Service              `json:"service,omitempty"`
-	CreatedAt          *string               `json:"createdAt,omitempty"`
-	UpdatedAt          *string               `json:"updatedAt,omitempty"`
+	Metadata           *Metadata             `json:"metadata,omitempty"`
 }
 
 func (ComponentInstance) IsNode()            {}
@@ -205,6 +204,7 @@ type ComponentVersion struct {
 	Component          *Component                   `json:"component,omitempty"`
 	Issues             *IssueConnection             `json:"issues,omitempty"`
 	ComponentInstances *ComponentInstanceConnection `json:"componentInstances,omitempty"`
+	Metadata           *Metadata                    `json:"metadata,omitempty"`
 }
 
 func (ComponentVersion) IsNode()            {}

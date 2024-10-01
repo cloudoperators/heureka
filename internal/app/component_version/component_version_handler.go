@@ -109,6 +109,7 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 }
 
 func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
+	componentVersion.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentVersionEventName,
 		"object": componentVersion,
@@ -129,6 +130,7 @@ func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *enti
 }
 
 func (cv *componentVersionHandler) UpdateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
+	componentVersion.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentVersionEventName,
 		"object": componentVersion,

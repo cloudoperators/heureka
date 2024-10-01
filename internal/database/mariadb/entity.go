@@ -446,8 +446,10 @@ type ComponentVersionRow struct {
 	Version     sql.NullString `db:"componentversion_version" json:"version"`
 	ComponentId sql.NullInt64  `db:"componentversion_component_id"`
 	CreatedAt   sql.NullTime   `db:"componentversion_created_at" json:"created_at"`
+	CreatedBy   sql.NullString `db:"componentversion_created_by" json:"created_by"`
 	DeletedAt   sql.NullTime   `db:"componentversion_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt   sql.NullTime   `db:"componentversion_updated_at" json:"updated_at"`
+	UpdatedBy   sql.NullString `db:"componentversion_updated_by" json:"updated_by"`
 }
 
 func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
@@ -457,8 +459,10 @@ func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 		ComponentId: GetInt64Value(cvr.ComponentId),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cvr.CreatedAt),
+			CreatedBy: GetStringValue(cvr.CreatedBy),
 			DeletedAt: GetTimeValue(cvr.DeletedAt),
 			UpdatedAt: GetTimeValue(cvr.UpdatedAt),
+			UpdatedBy: GetStringValue(cvr.UpdatedBy),
 		},
 	}
 }
@@ -468,8 +472,10 @@ func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion
 	cvr.Version = sql.NullString{String: cv.Version, Valid: true}
 	cvr.ComponentId = sql.NullInt64{Int64: cv.ComponentId, Valid: true}
 	cvr.CreatedAt = sql.NullTime{Time: cv.CreatedAt, Valid: true}
+	cvr.CreatedBy = sql.NullString{String: cv.CreatedBy, Valid: true}
 	cvr.DeletedAt = sql.NullTime{Time: cv.DeletedAt, Valid: true}
 	cvr.UpdatedAt = sql.NullTime{Time: cv.UpdatedAt, Valid: true}
+	cvr.UpdatedBy = sql.NullString{String: cv.UpdatedBy, Valid: true}
 }
 
 type SupportGroupRow struct {
@@ -605,8 +611,10 @@ type ComponentInstanceRow struct {
 	ComponentVersionId sql.NullInt64  `db:"componentinstance_component_version_id"`
 	ServiceId          sql.NullInt64  `db:"componentinstance_service_id"`
 	CreatedAt          sql.NullTime   `db:"componentinstance_created_at" json:"created_at"`
+	CreatedBy          sql.NullString `db:"componentinstance_created_by" json:"created_by"`
 	DeletedAt          sql.NullTime   `db:"componentinstance_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt          sql.NullTime   `db:"componentinstance_updated_at" json:"updated_at"`
+	UpdatedBy          sql.NullString `db:"componentinstance_updated_by" json:"udpated_by"`
 }
 
 func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance {
@@ -620,8 +628,10 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 		ServiceId:          GetInt64Value(cir.ServiceId),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cir.CreatedAt),
+			CreatedBy: GetStringValue(cir.CreatedBy),
 			DeletedAt: GetTimeValue(cir.DeletedAt),
 			UpdatedAt: GetTimeValue(cir.UpdatedAt),
+			UpdatedBy: GetStringValue(cir.UpdatedBy),
 		},
 	}
 }
@@ -633,8 +643,10 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}
 	cir.CreatedAt = sql.NullTime{Time: ci.CreatedAt, Valid: true}
+	cir.CreatedBy = sql.NullString{String: ci.CreatedBy, Valid: true}
 	cir.DeletedAt = sql.NullTime{Time: ci.DeletedAt, Valid: true}
 	cir.UpdatedAt = sql.NullTime{Time: ci.UpdatedAt, Valid: true}
+	cir.UpdatedBy = sql.NullString{String: ci.UpdatedBy, Valid: true}
 }
 
 type UserRow struct {

@@ -111,6 +111,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 }
 
 func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
+	componentInstance.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentInstanceEventName,
 		"object": componentInstance,
@@ -131,6 +132,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 }
 
 func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
+	componentInstance.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentInstanceEventName,
 		"object": componentInstance,

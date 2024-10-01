@@ -298,9 +298,9 @@ func NewIssueVariant(issueVariant *entity.IssueVariant) IssueVariant {
 func NewIssueVariantEdge(issueVariant *entity.IssueVariant) IssueVariantEdge {
 	iv := NewIssueVariant(issueVariant)
 	issueVariantEdge := IssueVariantEdge{
-		Node:      &iv,
-		Cursor:    &iv.ID,
-		Metadata:  getModelMetadata(issueVariant.Metadata),
+		Node:     &iv,
+		Cursor:   &iv.ID,
+		Metadata: getModelMetadata(issueVariant.Metadata),
 	}
 	return issueVariantEdge
 }
@@ -441,6 +441,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		ID:          fmt.Sprintf("%d", componentVersion.Id),
 		Version:     &componentVersion.Version,
 		ComponentID: util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
+		Metadata:    getModelMetadata(componentVersion.Metadata),
 	}
 }
 
@@ -463,6 +464,7 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 		Count:              &count,
 		ComponentVersionID: util.Ptr(fmt.Sprintf("%d", componentInstance.ComponentVersionId)),
 		ServiceID:          util.Ptr(fmt.Sprintf("%d", componentInstance.ServiceId)),
+		Metadata:           getModelMetadata(componentInstance.Metadata),
 	}
 }
 

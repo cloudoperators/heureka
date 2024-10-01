@@ -67,8 +67,10 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                             componentInstance {
                                 id
                                 count
-                                createdAt
-                                updatedAt
+                                metadata {
+                                    created_at
+                                    updated_at
+                                }
                                 ccrn
                             }
                         }
