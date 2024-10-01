@@ -201,6 +201,7 @@ type ComplexityRoot struct {
 		Description  func(childComplexity int) int
 		ID           func(childComplexity int) int
 		IssueMatches func(childComplexity int, filter *model.IssueMatchFilter, first *int, after *string) int
+		Metadata     func(childComplexity int) int
 		RaaEnd       func(childComplexity int) int
 		Type         func(childComplexity int) int
 		Vector       func(childComplexity int) int
@@ -1370,6 +1371,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Evidence.IssueMatches(childComplexity, args["filter"].(*model.IssueMatchFilter), args["first"].(*int), args["after"].(*string)), true
+
+	case "Evidence.metadata":
+		if e.complexity.Evidence.Metadata == nil {
+			break
+		}
+
+		return e.complexity.Evidence.Metadata(childComplexity), true
 
 	case "Evidence.raaEnd":
 		if e.complexity.Evidence.RaaEnd == nil {
@@ -14178,6 +14186,59 @@ func (ec *executionContext) fieldContext_Evidence_issueMatches(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Evidence_metadata(ctx context.Context, field graphql.CollectedField, obj *model.Evidence) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Evidence_metadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Metadata)
+	fc.Result = res
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Evidence_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Evidence",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _EvidenceConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.EvidenceConnection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_EvidenceConnection_totalCount(ctx, field)
 	if err != nil {
@@ -14383,6 +14444,8 @@ func (ec *executionContext) fieldContext_EvidenceEdge_node(_ context.Context, fi
 				return ec.fieldContext_Evidence_activity(ctx, field)
 			case "issueMatches":
 				return ec.fieldContext_Evidence_issueMatches(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Evidence_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Evidence", field.Name)
 		},
@@ -21815,6 +21878,8 @@ func (ec *executionContext) fieldContext_Mutation_createEvidence(ctx context.Con
 				return ec.fieldContext_Evidence_activity(ctx, field)
 			case "issueMatches":
 				return ec.fieldContext_Evidence_issueMatches(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Evidence_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Evidence", field.Name)
 		},
@@ -21892,6 +21957,8 @@ func (ec *executionContext) fieldContext_Mutation_updateEvidence(ctx context.Con
 				return ec.fieldContext_Evidence_activity(ctx, field)
 			case "issueMatches":
 				return ec.fieldContext_Evidence_issueMatches(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Evidence_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Evidence", field.Name)
 		},
@@ -32625,6 +32692,28 @@ func (ec *executionContext) _Evidence(ctx context.Context, sel ast.SelectionSet,
 				continue
 			}
 			out.Values[i] = ec._Evidence_issueMatches(ctx, field, obj)
+		case "metadata":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._Evidence_metadata(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._Evidence_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

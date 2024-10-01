@@ -396,6 +396,7 @@ func NewEvidence(evidence *entity.Evidence) Evidence {
 		Vector:      severity.Cvss.Vector,
 		Type:        &t,
 		RaaEnd:      &raaEnd,
+		Metadata:    getModelMetadata(evidence.Metadata),
 	}
 }
 

@@ -255,6 +255,7 @@ type Evidence struct {
 	ActivityID   *string               `json:"activityId,omitempty"`
 	Activity     *Activity             `json:"activity,omitempty"`
 	IssueMatches *IssueMatchConnection `json:"issueMatches,omitempty"`
+	Metadata     *Metadata             `json:"metadata,omitempty"`
 }
 
 func (Evidence) IsNode()            {}

@@ -701,8 +701,10 @@ type EvidenceRow struct {
 	Activity    *ActivityRow   `json:"activity,omitempty"`
 	ActivityId  sql.NullInt64  `db:"evidence_activity_id"`
 	CreatedAt   sql.NullTime   `db:"evidence_created_at" json:"created_at"`
+	CreatedBy   sql.NullString `db:"evidence_created_by" json:"created_by"`
 	DeletedAt   sql.NullTime   `db:"evidence_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt   sql.NullTime   `db:"evidence_updated_at" json:"updated_at"`
+	UpdatedBy   sql.NullString `db:"evidence_updated_by" json:"updated_by"`
 }
 
 func (er *EvidenceRow) AsEvidence() entity.Evidence {
@@ -718,8 +720,10 @@ func (er *EvidenceRow) AsEvidence() entity.Evidence {
 		ActivityId:  GetInt64Value(er.ActivityId),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(er.CreatedAt),
+			CreatedBy: GetStringValue(er.CreatedBy),
 			DeletedAt: GetTimeValue(er.DeletedAt),
 			UpdatedAt: GetTimeValue(er.UpdatedAt),
+			UpdatedBy: GetStringValue(er.UpdatedBy),
 		},
 	}
 }
@@ -734,8 +738,10 @@ func (er *EvidenceRow) FromEvidence(e *entity.Evidence) {
 	er.UserId = sql.NullInt64{Int64: e.UserId, Valid: true}
 	er.ActivityId = sql.NullInt64{Int64: e.ActivityId, Valid: true}
 	er.CreatedAt = sql.NullTime{Time: e.CreatedAt, Valid: true}
+	er.CreatedBy = sql.NullString{String: e.CreatedBy, Valid: true}
 	er.DeletedAt = sql.NullTime{Time: e.DeletedAt, Valid: true}
 	er.UpdatedAt = sql.NullTime{Time: e.UpdatedAt, Valid: true}
+	er.UpdatedBy = sql.NullString{String: e.UpdatedBy, Valid: true}
 }
 
 type IssueMatchChangeRow struct {

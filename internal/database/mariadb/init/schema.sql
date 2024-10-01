@@ -156,8 +156,10 @@ create table if not exists Evidence
     evidence_rating      enum('None','Low','Medium','High','Critical') null,
     evidence_raa_end     datetime                              null,
     evidence_created_at  timestamp default current_timestamp() not null,
+    evidence_created_by  varchar(256)                          null,
     evidence_deleted_at  timestamp                             null,
     evidence_updated_at  timestamp default current_timestamp() not null on update current_timestamp(),
+    evidence_updated_by  varchar(256)                          null,
     constraint id_UNIQUE
         unique (evidence_id),
     constraint fk_evidence_user

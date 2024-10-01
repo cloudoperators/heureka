@@ -104,6 +104,7 @@ func (e *evidenceHandler) ListEvidences(filter *entity.EvidenceFilter, options *
 }
 
 func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
+	evidence.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateEvidenceEventName,
 		"object": evidence,
@@ -122,6 +123,7 @@ func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evi
 }
 
 func (e *evidenceHandler) UpdateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
+	evidence.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateEvidenceEventName,
 		"object": evidence,
