@@ -309,7 +309,8 @@ type Issue struct {
 	Activities        *ActivityConnection         `json:"activities,omitempty"`
 	IssueMatches      *IssueMatchConnection       `json:"issueMatches,omitempty"`
 	ComponentVersions *ComponentVersionConnection `json:"componentVersions,omitempty"`
-	Metadata          *IssueMetadata              `json:"metadata,omitempty"`
+	IssueMetadata     *IssueMetadata              `json:"issueMetadata,omitempty"`
+	Metadata          *Metadata                   `json:"metadata,omitempty"`
 }
 
 func (Issue) IsNode()            {}

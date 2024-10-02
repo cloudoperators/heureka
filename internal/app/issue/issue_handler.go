@@ -160,6 +160,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 }
 
 func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
+	issue.CreatedBy = "Creator"
 	f := &entity.IssueFilter{
 		PrimaryName: []*string{&issue.PrimaryName},
 	}
@@ -193,6 +194,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 }
 
 func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) {
+	issue.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueEventName,
 		"object": issue,

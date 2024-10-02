@@ -81,7 +81,7 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                         nextPageAfter
                     }
                 }
-                metadata {
+                issueMetadata {
                     serviceCount
                     activityCount
                     issueMatchCount

@@ -151,6 +151,7 @@ func NewIssue(issue *entity.Issue) Issue {
 		Type:         &issueType,
 		Description:  &issue.Description,
 		LastModified: &lastModified,
+		Metadata:     getModelMetadata(issue.Metadata),
 	}
 }
 
@@ -158,10 +159,10 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	lastModified := issue.Issue.UpdatedAt.String()
 	issueType := IssueTypes(issue.Type.String())
 
-	var metadata IssueMetadata
+	var issueMetadata IssueMetadata
 
 	if issue.IssueAggregations != nil {
-		metadata = IssueMetadata{
+		issueMetadata = IssueMetadata{
 			ServiceCount:                  int(issue.IssueAggregations.AffectedServices),
 			ActivityCount:                 int(issue.IssueAggregations.Activites),
 			IssueMatchCount:               int(issue.IssueAggregations.IssueMatches),
@@ -173,11 +174,12 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	}
 
 	return Issue{
-		ID:           fmt.Sprintf("%d", issue.Issue.Id),
-		PrimaryName:  &issue.Issue.PrimaryName,
-		Type:         &issueType,
-		LastModified: &lastModified,
-		Metadata:     &metadata,
+		ID:            fmt.Sprintf("%d", issue.Issue.Id),
+		PrimaryName:   &issue.Issue.PrimaryName,
+		Type:          &issueType,
+		LastModified:  &lastModified,
+		IssueMetadata: &issueMetadata,
+		Metadata:      getModelMetadata(issue.Issue.Metadata),
 	}
 }
 

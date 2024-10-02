@@ -211,8 +211,8 @@ create table if not exists IssueRepository
     issuerepository_id         int unsigned auto_increment primary key,
     issuerepository_name       varchar(2048)                         not null,
     issuerepository_url        varchar(2048)                         not null,
-    issuerepository_created_by varchar(256)                          null,
     issuerepository_created_at timestamp default current_timestamp() not null,
+    issuerepository_created_by varchar(256)                          null,
     issuerepository_deleted_at timestamp                             null,
     issuerepository_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     issuerepository_updated_by varchar(256)                          null,
@@ -230,8 +230,10 @@ create table if not exists Issue
     issue_primary_name  varchar(256)                          not null,
     issue_description   longtext                              not null,
     issue_created_at    timestamp default current_timestamp() not null,
+    issue_created_by    varchar(256)                          null,
     issue_deleted_at    timestamp                             null,
     issue_updated_at    timestamp default current_timestamp() not null on update current_timestamp(),
+    issue_updated_by    varchar(256)                          null,
     constraint id_UNIQUE
         unique (issue_id),
     constraint name_UNIQUE

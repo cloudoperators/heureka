@@ -87,8 +87,10 @@ type IssueRow struct {
 	PrimaryName sql.NullString `db:"issue_primary_name" json:"primary_name"`
 	Description sql.NullString `db:"issue_description" json:"description"`
 	CreatedAt   sql.NullTime   `db:"issue_created_at" json:"created_at"`
+	CreatedBy   sql.NullString `db:"issue_created_by" json:"created_by"`
 	DeletedAt   sql.NullTime   `db:"issue_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt   sql.NullTime   `db:"issue_updated_at" json:"updated_at"`
+	UpdatedBy   sql.NullString `db:"issue_updated_by" json:"updated_by"`
 }
 
 func (ir *IssueRow) AsIssue() entity.Issue {
@@ -102,8 +104,10 @@ func (ir *IssueRow) AsIssue() entity.Issue {
 		Activity:      []entity.Activity{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ir.CreatedAt),
+			CreatedBy: GetStringValue(ir.CreatedBy),
 			DeletedAt: GetTimeValue(ir.DeletedAt),
 			UpdatedAt: GetTimeValue(ir.UpdatedAt),
+			UpdatedBy: GetStringValue(ir.UpdatedBy),
 		},
 	}
 }
@@ -144,8 +148,10 @@ func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregation
 			Activity:      []entity.Activity{},
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(ibr.IssueRow.CreatedAt),
+				CreatedBy: GetStringValue(ibr.IssueRow.CreatedBy),
 				DeletedAt: GetTimeValue(ibr.IssueRow.DeletedAt),
 				UpdatedAt: GetTimeValue(ibr.IssueRow.UpdatedAt),
+				UpdatedBy: GetStringValue(ibr.IssueRow.UpdatedBy),
 			},
 		},
 	}
@@ -162,8 +168,10 @@ func (ibr *GetIssuesByRow) AsIssue() entity.Issue {
 		Activity:      []entity.Activity{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ibr.IssueRow.CreatedAt),
+			CreatedBy: GetStringValue(ibr.IssueRow.CreatedBy),
 			DeletedAt: GetTimeValue(ibr.IssueRow.DeletedAt),
 			UpdatedAt: GetTimeValue(ibr.IssueRow.UpdatedAt),
+			UpdatedBy: GetStringValue(ibr.IssueRow.UpdatedBy),
 		},
 	}
 }
@@ -186,8 +194,10 @@ func (ir *IssueRow) FromIssue(i *entity.Issue) {
 	ir.Type = sql.NullString{String: i.Type.String(), Valid: true}
 	ir.Description = sql.NullString{String: i.Description, Valid: true}
 	ir.CreatedAt = sql.NullTime{Time: i.CreatedAt, Valid: true}
+	ir.CreatedBy = sql.NullString{String: i.CreatedBy, Valid: true}
 	ir.DeletedAt = sql.NullTime{Time: i.DeletedAt, Valid: true}
 	ir.UpdatedAt = sql.NullTime{Time: i.UpdatedAt, Valid: true}
+	ir.UpdatedBy = sql.NullString{String: i.UpdatedBy, Valid: true}
 }
 
 type IssueMatchRow struct {

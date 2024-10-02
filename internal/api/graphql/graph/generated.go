@@ -230,6 +230,7 @@ type ComplexityRoot struct {
 		Description       func(childComplexity int) int
 		ID                func(childComplexity int) int
 		IssueMatches      func(childComplexity int, filter *model.IssueMatchFilter, first *int, after *string) int
+		IssueMetadata     func(childComplexity int) int
 		IssueVariants     func(childComplexity int, filter *model.IssueVariantFilter, first *int, after *string) int
 		LastModified      func(childComplexity int) int
 		Metadata          func(childComplexity int) int
@@ -1505,6 +1506,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Issue.IssueMatches(childComplexity, args["filter"].(*model.IssueMatchFilter), args["first"].(*int), args["after"].(*string)), true
+
+	case "Issue.issueMetadata":
+		if e.complexity.Issue.IssueMetadata == nil {
+			break
+		}
+
+		return e.complexity.Issue.IssueMetadata(childComplexity), true
 
 	case "Issue.issueVariants":
 		if e.complexity.Issue.IssueVariants == nil {
@@ -15065,8 +15073,8 @@ func (ec *executionContext) fieldContext_Issue_componentVersions(ctx context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _Issue_metadata(ctx context.Context, field graphql.CollectedField, obj *model.Issue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Issue_metadata(ctx, field)
+func (ec *executionContext) _Issue_issueMetadata(ctx context.Context, field graphql.CollectedField, obj *model.Issue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Issue_issueMetadata(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -15079,7 +15087,7 @@ func (ec *executionContext) _Issue_metadata(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Metadata, nil
+		return obj.IssueMetadata, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -15093,7 +15101,7 @@ func (ec *executionContext) _Issue_metadata(ctx context.Context, field graphql.C
 	return ec.marshalOIssueMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐIssueMetadata(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Issue_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Issue_issueMetadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Issue",
 		Field:      field,
@@ -15117,6 +15125,59 @@ func (ec *executionContext) fieldContext_Issue_metadata(_ context.Context, field
 				return ec.fieldContext_IssueMetadata_earliestTargetRemediationDate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueMetadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Issue_metadata(ctx context.Context, field graphql.CollectedField, obj *model.Issue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Issue_metadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Metadata)
+	fc.Result = res
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Issue_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Issue",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
 		},
 	}
 	return fc, nil
@@ -15460,6 +15521,8 @@ func (ec *executionContext) fieldContext_IssueEdge_node(_ context.Context, field
 				return ec.fieldContext_Issue_issueMatches(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Issue_componentVersions(ctx, field)
+			case "issueMetadata":
+				return ec.fieldContext_Issue_issueMetadata(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Issue_metadata(ctx, field)
 			}
@@ -15985,6 +16048,8 @@ func (ec *executionContext) fieldContext_IssueMatch_issue(_ context.Context, fie
 				return ec.fieldContext_Issue_issueMatches(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Issue_componentVersions(ctx, field)
+			case "issueMetadata":
+				return ec.fieldContext_Issue_issueMetadata(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Issue_metadata(ctx, field)
 			}
@@ -18771,6 +18836,8 @@ func (ec *executionContext) fieldContext_IssueVariant_issue(_ context.Context, f
 				return ec.fieldContext_Issue_issueMatches(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Issue_componentVersions(ctx, field)
+			case "issueMetadata":
+				return ec.fieldContext_Issue_issueMetadata(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Issue_metadata(ctx, field)
 			}
@@ -21308,6 +21375,8 @@ func (ec *executionContext) fieldContext_Mutation_createIssue(ctx context.Contex
 				return ec.fieldContext_Issue_issueMatches(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Issue_componentVersions(ctx, field)
+			case "issueMetadata":
+				return ec.fieldContext_Issue_issueMetadata(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Issue_metadata(ctx, field)
 			}
@@ -21385,6 +21454,8 @@ func (ec *executionContext) fieldContext_Mutation_updateIssue(ctx context.Contex
 				return ec.fieldContext_Issue_issueMatches(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Issue_componentVersions(ctx, field)
+			case "issueMetadata":
+				return ec.fieldContext_Issue_issueMetadata(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Issue_metadata(ctx, field)
 			}
@@ -21517,6 +21588,8 @@ func (ec *executionContext) fieldContext_Mutation_addComponentVersionToIssue(ctx
 				return ec.fieldContext_Issue_issueMatches(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Issue_componentVersions(ctx, field)
+			case "issueMetadata":
+				return ec.fieldContext_Issue_issueMetadata(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Issue_metadata(ctx, field)
 			}
@@ -21594,6 +21667,8 @@ func (ec *executionContext) fieldContext_Mutation_removeComponentVersionFromIssu
 				return ec.fieldContext_Issue_issueMatches(ctx, field)
 			case "componentVersions":
 				return ec.fieldContext_Issue_componentVersions(ctx, field)
+			case "issueMetadata":
+				return ec.fieldContext_Issue_issueMetadata(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Issue_metadata(ctx, field)
 			}
@@ -33233,6 +33308,28 @@ func (ec *executionContext) _Issue(ctx context.Context, sel ast.SelectionSet, ob
 				continue
 			}
 			out.Values[i] = ec._Issue_componentVersions(ctx, field, obj)
+		case "issueMetadata":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._Issue_issueMetadata(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._Issue_issueMetadata(ctx, field, obj)
 		case "metadata":
 			field := field
 
