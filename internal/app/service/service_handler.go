@@ -5,11 +5,14 @@ package service
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/pkg/util"
+	"github.com/samber/lo"
+	"golang.org/x/exp/maps"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -51,19 +54,45 @@ func (s *serviceHandler) getServiceResultsWithAggregations(filter *entity.Servic
 		return nil, err
 	}
 
-	for i := 0; i < len(servicesCiCount); i++ {
-		serviceCi := servicesCiCount[i]
-		serviceIm := servicesImCount[i]
-		cursor := fmt.Sprintf("%d", serviceCi.Id)
+	if len(servicesImCount) != len(servicesCiCount) {
+		return nil, fmt.Errorf("Error")
+	}
+
+	// don't assume that results have some order
+	// create map with id -> service
+	ciCounts := map[int64]entity.ServiceWithAggregations{}
+	imCounts := map[int64]entity.ServiceWithAggregations{}
+
+	lo.ForEach(servicesCiCount, func(s entity.ServiceWithAggregations, _ int) {
+		ciCounts[s.Id] = s
+	})
+
+	lo.ForEach(servicesImCount, func(s entity.ServiceWithAggregations, _ int) {
+		imCounts[s.Id] = s
+	})
+
+	ciIds := maps.Keys(ciCounts)
+	imIds := maps.Keys(imCounts)
+
+	slices.Sort(ciIds)
+	slices.Sort(imIds)
+
+	// check if same services were returned by the aggregation queries
+	if !slices.Equal(ciIds, imIds) {
+		return nil, fmt.Errorf("aggregation queries returned different services")
+	}
+
+	for id := range ciIds {
+		cursor := fmt.Sprintf("%d", id)
+		service := ciCounts[int64(id)].Service
 		serviceResults = append(serviceResults, entity.ServiceResult{
 			WithCursor: entity.WithCursor{Value: cursor},
 			ServiceAggregations: &entity.ServiceAggregations{
-				IssueMatches:       serviceIm.IssueMatches,
-				ComponentInstances: serviceCi.ComponentInstances,
+				IssueMatches:       imCounts[int64(id)].IssueMatches,
+				ComponentInstances: ciCounts[int64(id)].ComponentInstances,
 			},
-			Service: util.Ptr(serviceCi.Service),
+			Service: util.Ptr(service),
 		})
-
 	}
 
 	return serviceResults, nil
