@@ -211,6 +211,7 @@ func NewIssueMatch(im *entity.IssueMatch) IssueMatch {
 		IssueID:               util.Ptr(fmt.Sprintf("%d", im.IssueId)),
 		ComponentInstanceID:   util.Ptr(fmt.Sprintf("%d", im.ComponentInstanceId)),
 		UserID:                util.Ptr(fmt.Sprintf("%d", im.UserId)),
+		Metadata:              getModelMetadata(im.Metadata),
 	}
 }
 

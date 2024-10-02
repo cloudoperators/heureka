@@ -369,6 +369,7 @@ type IssueMatch struct {
 	ComponentInstanceID    *string                     `json:"componentInstanceId,omitempty"`
 	ComponentInstance      *ComponentInstance          `json:"componentInstance"`
 	IssueMatchChanges      *IssueMatchChangeConnection `json:"issueMatchChanges,omitempty"`
+	Metadata               *Metadata                   `json:"metadata,omitempty"`
 }
 
 func (IssueMatch) IsNode()            {}

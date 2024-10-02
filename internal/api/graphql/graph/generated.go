@@ -262,6 +262,7 @@ type ComplexityRoot struct {
 		Issue                  func(childComplexity int) int
 		IssueID                func(childComplexity int) int
 		IssueMatchChanges      func(childComplexity int, filter *model.IssueMatchChangeFilter, first *int, after *string) int
+		Metadata               func(childComplexity int) int
 		RemediationDate        func(childComplexity int) int
 		Severity               func(childComplexity int) int
 		Status                 func(childComplexity int) int
@@ -1687,6 +1688,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.IssueMatch.IssueMatchChanges(childComplexity, args["filter"].(*model.IssueMatchChangeFilter), args["first"].(*int), args["after"].(*string)), true
+
+	case "IssueMatch.metadata":
+		if e.complexity.IssueMatch.Metadata == nil {
+			break
+		}
+
+		return e.complexity.IssueMatch.Metadata(childComplexity), true
 
 	case "IssueMatch.remediationDate":
 		if e.complexity.IssueMatch.RemediationDate == nil {
@@ -16322,6 +16330,59 @@ func (ec *executionContext) fieldContext_IssueMatch_issueMatchChanges(ctx contex
 	return fc, nil
 }
 
+func (ec *executionContext) _IssueMatch_metadata(ctx context.Context, field graphql.CollectedField, obj *model.IssueMatch) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueMatch_metadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Metadata)
+	fc.Result = res
+	return ec.marshalOMetadata2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐMetadata(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_IssueMatch_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IssueMatch",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "created_at":
+				return ec.fieldContext_Metadata_created_at(ctx, field)
+			case "created_by":
+				return ec.fieldContext_Metadata_created_by(ctx, field)
+			case "deleted_at":
+				return ec.fieldContext_Metadata_deleted_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Metadata_updated_at(ctx, field)
+			case "updated_by":
+				return ec.fieldContext_Metadata_updated_by(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Metadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _IssueMatchChange_id(ctx context.Context, field graphql.CollectedField, obj *model.IssueMatchChange) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_IssueMatchChange_id(ctx, field)
 	if err != nil {
@@ -16517,6 +16578,8 @@ func (ec *executionContext) fieldContext_IssueMatchChange_issueMatch(_ context.C
 				return ec.fieldContext_IssueMatch_componentInstance(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_IssueMatch_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueMatch_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueMatch", field.Name)
 		},
@@ -17085,6 +17148,8 @@ func (ec *executionContext) fieldContext_IssueMatchEdge_node(_ context.Context, 
 				return ec.fieldContext_IssueMatch_componentInstance(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_IssueMatch_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueMatch_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueMatch", field.Name)
 		},
@@ -22176,6 +22241,8 @@ func (ec *executionContext) fieldContext_Mutation_createIssueMatch(ctx context.C
 				return ec.fieldContext_IssueMatch_componentInstance(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_IssueMatch_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueMatch_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueMatch", field.Name)
 		},
@@ -22263,6 +22330,8 @@ func (ec *executionContext) fieldContext_Mutation_updateIssueMatch(ctx context.C
 				return ec.fieldContext_IssueMatch_componentInstance(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_IssueMatch_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueMatch_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueMatch", field.Name)
 		},
@@ -22405,6 +22474,8 @@ func (ec *executionContext) fieldContext_Mutation_addEvidenceToIssueMatch(ctx co
 				return ec.fieldContext_IssueMatch_componentInstance(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_IssueMatch_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueMatch_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueMatch", field.Name)
 		},
@@ -22492,6 +22563,8 @@ func (ec *executionContext) fieldContext_Mutation_removeEvidenceFromIssueMatch(c
 				return ec.fieldContext_IssueMatch_componentInstance(ctx, field)
 			case "issueMatchChanges":
 				return ec.fieldContext_IssueMatch_issueMatchChanges(ctx, field)
+			case "metadata":
+				return ec.fieldContext_IssueMatch_metadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueMatch", field.Name)
 		},
@@ -33987,6 +34060,28 @@ func (ec *executionContext) _IssueMatch(ctx context.Context, sel ast.SelectionSe
 				continue
 			}
 			out.Values[i] = ec._IssueMatch_issueMatchChanges(ctx, field, obj)
+		case "metadata":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._IssueMatch_metadata(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._IssueMatch_metadata(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

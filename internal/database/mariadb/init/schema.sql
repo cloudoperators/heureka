@@ -310,8 +310,10 @@ create table if not exists IssueMatch
     issuematch_component_instance_id       int unsigned                          not null,
 
     issuematch_created_at                  timestamp default current_timestamp() not null,
+    issuematch_created_by                  varchar(256)                          null,
     issuematch_deleted_at                  timestamp                             null,
     issuematch_updated_at                  timestamp default current_timestamp() not null on update current_timestamp(),
+    issuematch_updated_by                  varchar(256)                          null,
     constraint id_UNIQUE
         unique (issuematch_id),
     constraint fk_issue_match_user_id

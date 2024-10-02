@@ -211,8 +211,10 @@ type IssueMatchRow struct {
 	RemediationDate       sql.NullTime   `db:"issuematch_remediation_date" json:"remediation_date"`
 	TargetRemediationDate sql.NullTime   `db:"issuematch_target_remediation_date" json:"target_remediation_date"`
 	CreatedAt             sql.NullTime   `db:"issuematch_created_at" json:"created_at"`
+	CreatedBy             sql.NullString `db:"issuematch_created_by" json:"created_by"`
 	DeletedAt             sql.NullTime   `db:"issuematch_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt             sql.NullTime   `db:"issuematch_updated_at" json:"updated_at"`
+	UpdatedBy             sql.NullString `db:"issuematch_updated_by" json:"updated_by"`
 }
 
 func (imr IssueMatchRow) AsIssueMatch() entity.IssueMatch {
@@ -230,8 +232,10 @@ func (imr IssueMatchRow) AsIssueMatch() entity.IssueMatch {
 		Severity:              entity.NewSeverity(GetStringValue(imr.Vector)),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(imr.CreatedAt),
+			CreatedBy: GetStringValue(imr.CreatedBy),
 			DeletedAt: GetTimeValue(imr.DeletedAt),
 			UpdatedAt: GetTimeValue(imr.UpdatedAt),
+			UpdatedBy: GetStringValue(imr.UpdatedBy),
 		},
 	}
 }
@@ -247,8 +251,10 @@ func (imr *IssueMatchRow) FromIssueMatch(im *entity.IssueMatch) {
 	imr.RemediationDate = sql.NullTime{Time: im.RemediationDate, Valid: true}
 	imr.TargetRemediationDate = sql.NullTime{Time: im.TargetRemediationDate, Valid: true}
 	imr.CreatedAt = sql.NullTime{Time: im.CreatedAt, Valid: true}
+	imr.CreatedBy = sql.NullString{String: im.CreatedBy, Valid: true}
 	imr.DeletedAt = sql.NullTime{Time: im.DeletedAt, Valid: true}
 	imr.UpdatedAt = sql.NullTime{Time: im.UpdatedAt, Valid: true}
+	imr.UpdatedBy = sql.NullString{String: im.UpdatedBy, Valid: true}
 }
 
 type IssueRepositoryRow struct {
