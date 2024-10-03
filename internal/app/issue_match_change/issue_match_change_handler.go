@@ -108,6 +108,7 @@ func (imc *issueMatchChangeHandler) ListIssueMatchChanges(filter *entity.IssueMa
 }
 
 func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+	issueMatchChange.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateIssueMatchChangeEventName,
 		"object": issueMatchChange,
@@ -128,6 +129,7 @@ func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *ent
 }
 
 func (imc *issueMatchChangeHandler) UpdateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+	issueMatchChange.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueMatchChangeEventName,
 		"object": issueMatchChange,

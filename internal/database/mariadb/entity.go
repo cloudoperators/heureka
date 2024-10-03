@@ -498,8 +498,10 @@ type SupportGroupRow struct {
 	Id        sql.NullInt64  `db:"supportgroup_id" json:"id"`
 	Name      sql.NullString `db:"supportgroup_name" json:"name"`
 	CreatedAt sql.NullTime   `db:"supportgroup_created_at" json:"created_at"`
+	CreatedBy sql.NullString `db:"supportgroup_created_by" json:"created_by"`
 	DeletedAt sql.NullTime   `db:"supportgroup_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"supportgroup_updated_at" json:"updated_at"`
+	UpdatedBy sql.NullString `db:"supportgroup_updated_by" json:"updated_by"`
 }
 
 func (sgr *SupportGroupRow) AsSupportGroup() entity.SupportGroup {
@@ -508,8 +510,10 @@ func (sgr *SupportGroupRow) AsSupportGroup() entity.SupportGroup {
 		Name: GetStringValue(sgr.Name),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(sgr.CreatedAt),
+			CreatedBy: GetStringValue(sgr.CreatedBy),
 			DeletedAt: GetTimeValue(sgr.DeletedAt),
 			UpdatedAt: GetTimeValue(sgr.UpdatedAt),
+			UpdatedBy: GetStringValue(sgr.UpdatedBy),
 		},
 	}
 }
@@ -518,8 +522,10 @@ func (sgr *SupportGroupRow) FromSupportGroup(sg *entity.SupportGroup) {
 	sgr.Id = sql.NullInt64{Int64: sg.Id, Valid: true}
 	sgr.Name = sql.NullString{String: sg.Name, Valid: true}
 	sgr.CreatedAt = sql.NullTime{Time: sg.CreatedAt, Valid: true}
+	sgr.CreatedBy = sql.NullString{String: sg.CreatedBy, Valid: true}
 	sgr.DeletedAt = sql.NullTime{Time: sg.DeletedAt, Valid: true}
 	sgr.UpdatedAt = sql.NullTime{Time: sg.UpdatedAt, Valid: true}
+	sgr.UpdatedBy = sql.NullString{String: sg.UpdatedBy, Valid: true}
 }
 
 type ServiceRow struct {
@@ -531,8 +537,10 @@ type BaseServiceRow struct {
 	Id        sql.NullInt64  `db:"service_id" json:"id"`
 	Name      sql.NullString `db:"service_name" json:"name"`
 	CreatedAt sql.NullTime   `db:"service_created_at" json:"created_at"`
+	CreatedBy sql.NullString `db:"service_created_by" json:"created_by"`
 	DeletedAt sql.NullTime   `db:"service_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"service_updated_at" json:"updated_at"`
+	UpdatedBy sql.NullString `db:"service_updated_by" json:"updated_by"`
 }
 
 func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
@@ -543,8 +551,10 @@ func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
 		Activities: []entity.Activity{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(bsr.CreatedAt),
+			CreatedBy: GetStringValue(bsr.CreatedBy),
 			DeletedAt: GetTimeValue(bsr.DeletedAt),
 			UpdatedAt: GetTimeValue(bsr.UpdatedAt),
+			UpdatedBy: GetStringValue(bsr.UpdatedBy),
 		},
 	}
 }
@@ -565,8 +575,10 @@ func (sr *ServiceRow) AsService() entity.Service {
 			Activities: []entity.Activity{},
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(sr.BaseServiceRow.CreatedAt),
+				CreatedBy: GetStringValue(sr.BaseServiceRow.CreatedBy),
 				DeletedAt: GetTimeValue(sr.BaseServiceRow.DeletedAt),
 				UpdatedAt: GetTimeValue(sr.BaseServiceRow.UpdatedAt),
+				UpdatedBy: GetStringValue(sr.BaseServiceRow.UpdatedBy),
 			},
 		},
 		IssueRepositoryService: entity.IssueRepositoryService{
@@ -580,8 +592,10 @@ func (sr *ServiceRow) FromService(s *entity.Service) {
 	sr.Id = sql.NullInt64{Int64: s.Id, Valid: true}
 	sr.Name = sql.NullString{String: s.Name, Valid: true}
 	sr.BaseServiceRow.CreatedAt = sql.NullTime{Time: s.BaseService.CreatedAt, Valid: true}
+	sr.BaseServiceRow.CreatedBy = sql.NullString{String: s.BaseService.CreatedBy, Valid: true}
 	sr.BaseServiceRow.DeletedAt = sql.NullTime{Time: s.BaseService.DeletedAt, Valid: true}
 	sr.BaseServiceRow.UpdatedAt = sql.NullTime{Time: s.BaseService.UpdatedAt, Valid: true}
+	sr.BaseServiceRow.UpdatedBy = sql.NullString{String: s.BaseService.UpdatedBy, Valid: true}
 }
 
 type ActivityRow struct {
@@ -766,8 +780,10 @@ type IssueMatchChangeRow struct {
 	ActivityId   sql.NullInt64  `db:"issuematchchange_activity_id" json:"activity_id"`
 	Action       sql.NullString `db:"issuematchchange_action" json:"action"`
 	CreatedAt    sql.NullTime   `db:"issuematchchange_created_at" json:"created_at"`
+	CreatedBy    sql.NullString `db:"issuematchchange_created_by" json:"created_by"`
 	DeletedAt    sql.NullTime   `db:"issuematchchange_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt    sql.NullTime   `db:"issuematchchange_updated_at" json:"updated_at"`
+	UpdatedBy    sql.NullString `db:"issuematchchange_updated_by" json:"updated_by"`
 }
 
 func (imcr *IssueMatchChangeRow) AsIssueMatchChange() entity.IssueMatchChange {
@@ -778,8 +794,10 @@ func (imcr *IssueMatchChangeRow) AsIssueMatchChange() entity.IssueMatchChange {
 		Action:       GetStringValue(imcr.Action),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(imcr.CreatedAt),
+			CreatedBy: GetStringValue(imcr.CreatedBy),
 			DeletedAt: GetTimeValue(imcr.DeletedAt),
 			UpdatedAt: GetTimeValue(imcr.UpdatedAt),
+			UpdatedBy: GetStringValue(imcr.UpdatedBy),
 		},
 	}
 }
@@ -790,8 +808,10 @@ func (imcr *IssueMatchChangeRow) FromIssueMatchChange(imc *entity.IssueMatchChan
 	imcr.ActivityId = sql.NullInt64{Int64: imc.ActivityId, Valid: true}
 	imcr.Action = sql.NullString{String: imc.Action, Valid: true}
 	imcr.CreatedAt = sql.NullTime{Time: imc.CreatedAt, Valid: true}
+	imcr.CreatedBy = sql.NullString{String: imc.CreatedBy, Valid: true}
 	imcr.DeletedAt = sql.NullTime{Time: imc.DeletedAt, Valid: true}
 	imcr.UpdatedAt = sql.NullTime{Time: imc.UpdatedAt, Valid: true}
+	imcr.UpdatedBy = sql.NullString{String: imc.UpdatedBy, Valid: true}
 }
 
 type OwnerRow struct {

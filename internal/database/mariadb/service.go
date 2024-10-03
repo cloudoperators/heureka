@@ -115,6 +115,9 @@ func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 	if service.Name != "" {
 		fl = append(fl, "service_name = :service_name")
 	}
+	if service.UpdatedBy != "" {
+		fl = append(fl, "service_updated_by = :service_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -260,9 +263,11 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 
 	query := `
 		INSERT INTO Service (
-			service_name
+			service_name,
+			service_created_by
 		) VALUES (
-			:service_name
+			:service_name,
+			:service_created_by
 		)
 	`
 

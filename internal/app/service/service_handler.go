@@ -125,6 +125,7 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 }
 
 func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service, error) {
+	service.CreatedBy = "Creator"
 	f := &entity.ServiceFilter{
 		Name: []*string{&service.Name},
 	}
@@ -159,6 +160,7 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 }
 
 func (s *serviceHandler) UpdateService(service *entity.Service) (*entity.Service, error) {
+	service.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateServiceEventName,
 		"object": service,

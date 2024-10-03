@@ -28,6 +28,9 @@ func (s *SqlDatabase) getSupportGroupUpdateFields(supportGroup *entity.SupportGr
 	if supportGroup.Name != "" {
 		fl = append(fl, "supportgroup_name = :supportgroup_name")
 	}
+	if supportGroup.UpdatedBy != "" {
+		fl = append(fl, "supportgroup_updated_by = :supportgroup_updated_by")
+	}
 
 	return strings.Join(fl, ", ")
 }
@@ -206,9 +209,11 @@ func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*en
 
 	query := `
 		INSERT INTO SupportGroup (
-			supportgroup_name
+			supportgroup_name,
+			supportgroup_created_by
 		) VALUES (
-			:supportgroup_name
+			:supportgroup_name,
+			:supportgroup_created_by
 		)
 	`
 

@@ -48,8 +48,10 @@ create table if not exists SupportGroup
         primary key,
     supportgroup_name       varchar(256)                          not null,
     supportgroup_created_at timestamp default current_timestamp() not null,
+    supportgroup_created_by varchar(256)                          null,
     supportgroup_deleted_at timestamp                             null,
     supportgroup_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
+    supportgroup_updated_by varchar(256)                          null,
     constraint id_UNIQUE
         unique (supportgroup_id),
     constraint name_UNIQUE
@@ -62,8 +64,10 @@ create table if not exists Service
         primary key,
     service_name       varchar(256)                          not null,
     service_created_at timestamp default current_timestamp() not null,
+    service_created_by varchar(256)                          null,
     service_deleted_at timestamp                             null,
     service_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
+    service_updated_by varchar(256)                          null,
     constraint id_UNIQUE
         unique (service_id),
     constraint name_UNIQUE
@@ -335,8 +339,10 @@ create table if not exists IssueMatchChange
     issuematchchange_issue_match_id               int unsigned                          not null,
     issuematchchange_action                               enum('add','remove')                  not null,
     issuematchchange_created_at                           timestamp default current_timestamp() not null,
+    issuematchchange_created_by                           varchar(256)                          null,
     issuematchchange_deleted_at                           timestamp                             null,
     issuematchchange_updated_at                           timestamp default current_timestamp() not null on update current_timestamp(),
+    issuematchchange_updated_by                           varchar(256)                          null,
     constraint fk_issuematchchange_activity
         foreign key (issuematchchange_activity_id) references Activity (activity_id),
     constraint fk_issuematchchange_issue_match

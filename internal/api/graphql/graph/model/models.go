@@ -247,6 +247,7 @@ func NewIssueMatchChange(imc *entity.IssueMatchChange) IssueMatchChange {
 		IssueMatch:   nil,
 		ActivityID:   util.Ptr(fmt.Sprintf("%d", imc.ActivityId)),
 		Activity:     nil,
+		Metadata:     getModelMetadata(imc.Metadata),
 	}
 }
 
@@ -340,8 +341,9 @@ func NewUserEntity(user *UserInput) entity.User {
 
 func NewService(s *entity.Service) Service {
 	return Service{
-		ID:   fmt.Sprintf("%d", s.Id),
-		Name: &s.Name,
+		ID:       fmt.Sprintf("%d", s.Id),
+		Name:     &s.Name,
+		Metadata: getModelMetadata(s.Metadata),
 	}
 }
 
@@ -355,8 +357,9 @@ func NewServiceEntity(service *ServiceInput) entity.Service {
 
 func NewSupportGroup(supportGroup *entity.SupportGroup) SupportGroup {
 	return SupportGroup{
-		ID:   fmt.Sprintf("%d", supportGroup.Id),
-		Name: &supportGroup.Name,
+		ID:       fmt.Sprintf("%d", supportGroup.Id),
+		Name:     &supportGroup.Name,
+		Metadata: getModelMetadata(supportGroup.Metadata),
 	}
 }
 

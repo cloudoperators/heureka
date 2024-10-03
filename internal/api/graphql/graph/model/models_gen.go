@@ -382,6 +382,7 @@ type IssueMatchChange struct {
 	IssueMatch   *IssueMatch              `json:"issueMatch"`
 	ActivityID   *string                  `json:"activityId,omitempty"`
 	Activity     *Activity                `json:"activity"`
+	Metadata     *Metadata                `json:"metadata,omitempty"`
 }
 
 func (IssueMatchChange) IsNode()            {}
@@ -606,6 +607,7 @@ type Service struct {
 	Activities         *ActivityConnection          `json:"activities,omitempty"`
 	IssueRepositories  *IssueRepositoryConnection   `json:"issueRepositories,omitempty"`
 	ComponentInstances *ComponentInstanceConnection `json:"componentInstances,omitempty"`
+	Metadata           *Metadata                    `json:"metadata,omitempty"`
 }
 
 func (Service) IsNode()            {}
@@ -666,6 +668,7 @@ type SupportGroup struct {
 	Name     *string            `json:"name,omitempty"`
 	Users    *UserConnection    `json:"users,omitempty"`
 	Services *ServiceConnection `json:"services,omitempty"`
+	Metadata *Metadata          `json:"metadata,omitempty"`
 }
 
 func (SupportGroup) IsNode()            {}
