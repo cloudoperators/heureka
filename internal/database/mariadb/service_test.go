@@ -437,10 +437,36 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		})
 	})
 	When("Getting Services with Aggregations", Label("GetServicesWithAggregations"), func() {
-		BeforeEach(func() {
-			_ = seeder.SeedDbWithNFakeData(10)
+		Context("and the database contains service without aggregations", func() {
+			BeforeEach(func() {
+				newServiceRow := test.NewFakeService()
+				newService := newServiceRow.AsService()
+				db.CreateService(&newService)
+			})
+			It("returns the services with componentInstance count", func() {
+				entriesWithAggregations, err := db.GetServicesWithComponentInstanceCount(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				By("returning some aggregations", func() {
+					for _, entryWithAggregations := range entriesWithAggregations {
+						Expect(entryWithAggregations).NotTo(
+							BeEquivalentTo(entity.ServiceAggregations{}))
+						Expect(entryWithAggregations.ServiceAggregations.ComponentInstances).To(BeEquivalentTo(0))
+						Expect(entryWithAggregations.ServiceAggregations.IssueMatches).To(BeEquivalentTo(0))
+					}
+				})
+				By("returning all services", func() {
+					Expect(len(entriesWithAggregations)).To(BeEquivalentTo(1))
+				})
+			})
 		})
-		Context("and and we have 10 elements in the database", func() {
+		Context("and we have 10 services in the database", func() {
+			BeforeEach(func() {
+				_ = seeder.SeedDbWithNFakeData(10)
+			})
 			It("returns the services with componentInstance count", func() {
 				entriesWithAggregations, err := db.GetServicesWithComponentInstanceCount(nil)
 
@@ -454,6 +480,9 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 							BeEquivalentTo(entity.ServiceAggregations{}))
 					}
 				})
+				By("returning all services", func() {
+					Expect(len(entriesWithAggregations)).To(BeEquivalentTo(10))
+				})
 			})
 			It("returns correct aggregation values", func() {
 				//Should be filled with a check for each aggregation value,
@@ -466,6 +495,9 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 		})
 		Context("and and we have 10 elements in the database", func() {
+			BeforeEach(func() {
+				_ = seeder.SeedDbWithNFakeData(10)
+			})
 			It("returns the services with issueMatch count", func() {
 				entriesWithAggregations, err := db.GetServicesWithIssueMatchCount(nil)
 
@@ -478,6 +510,9 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						Expect(entryWithAggregations).NotTo(
 							BeEquivalentTo(entity.ServiceAggregations{}))
 					}
+				})
+				By("returning all services", func() {
+					Expect(len(entriesWithAggregations)).To(BeEquivalentTo(10))
 				})
 			})
 			It("returns correct aggregation values", func() {
