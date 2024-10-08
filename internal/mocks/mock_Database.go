@@ -4355,6 +4355,122 @@ func (_c *MockDatabase_GetServices_Call) RunAndReturn(run func(*entity.ServiceFi
 	return _c
 }
 
+// GetServicesWithComponentInstanceCount provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetServicesWithComponentInstanceCount(_a0 *entity.ServiceFilter) ([]entity.ServiceWithAggregations, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServicesWithComponentInstanceCount")
+	}
+
+	var r0 []entity.ServiceWithAggregations
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter) []entity.ServiceWithAggregations); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.ServiceWithAggregations)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ServiceFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetServicesWithComponentInstanceCount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServicesWithComponentInstanceCount'
+type MockDatabase_GetServicesWithComponentInstanceCount_Call struct {
+	*mock.Call
+}
+
+// GetServicesWithComponentInstanceCount is a helper method to define mock.On call
+//   - _a0 *entity.ServiceFilter
+func (_e *MockDatabase_Expecter) GetServicesWithComponentInstanceCount(_a0 interface{}) *MockDatabase_GetServicesWithComponentInstanceCount_Call {
+	return &MockDatabase_GetServicesWithComponentInstanceCount_Call{Call: _e.mock.On("GetServicesWithComponentInstanceCount", _a0)}
+}
+
+func (_c *MockDatabase_GetServicesWithComponentInstanceCount_Call) Run(run func(_a0 *entity.ServiceFilter)) *MockDatabase_GetServicesWithComponentInstanceCount_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ServiceFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetServicesWithComponentInstanceCount_Call) Return(_a0 []entity.ServiceWithAggregations, _a1 error) *MockDatabase_GetServicesWithComponentInstanceCount_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetServicesWithComponentInstanceCount_Call) RunAndReturn(run func(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)) *MockDatabase_GetServicesWithComponentInstanceCount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetServicesWithIssueMatchCount provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetServicesWithIssueMatchCount(_a0 *entity.ServiceFilter) ([]entity.ServiceWithAggregations, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServicesWithIssueMatchCount")
+	}
+
+	var r0 []entity.ServiceWithAggregations
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter) []entity.ServiceWithAggregations); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.ServiceWithAggregations)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ServiceFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetServicesWithIssueMatchCount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServicesWithIssueMatchCount'
+type MockDatabase_GetServicesWithIssueMatchCount_Call struct {
+	*mock.Call
+}
+
+// GetServicesWithIssueMatchCount is a helper method to define mock.On call
+//   - _a0 *entity.ServiceFilter
+func (_e *MockDatabase_Expecter) GetServicesWithIssueMatchCount(_a0 interface{}) *MockDatabase_GetServicesWithIssueMatchCount_Call {
+	return &MockDatabase_GetServicesWithIssueMatchCount_Call{Call: _e.mock.On("GetServicesWithIssueMatchCount", _a0)}
+}
+
+func (_c *MockDatabase_GetServicesWithIssueMatchCount_Call) Run(run func(_a0 *entity.ServiceFilter)) *MockDatabase_GetServicesWithIssueMatchCount_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ServiceFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetServicesWithIssueMatchCount_Call) Return(_a0 []entity.ServiceWithAggregations, _a1 error) *MockDatabase_GetServicesWithIssueMatchCount_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetServicesWithIssueMatchCount_Call) RunAndReturn(run func(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)) *MockDatabase_GetServicesWithIssueMatchCount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetSupportGroupNames provides a mock function with given fields: _a0
 func (_m *MockDatabase) GetSupportGroupNames(_a0 *entity.SupportGroupFilter) ([]string, error) {
 	ret := _m.Called(_a0)

@@ -116,7 +116,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 
 	edges := []*model.ServiceEdge{}
 	for _, result := range services.Elements {
-		s := model.NewService(result.Service)
+		s := model.NewServiceWithAggregations(&result)
 		edge := model.ServiceEdge{
 			Node:   &s,
 			Cursor: result.Cursor(),

@@ -114,6 +114,45 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			})
 
 		})
+		Context("and we request metadata", func() {
+			It("returns correct metadata counts", func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withMetadata.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Var("filter", map[string]string{})
+				req.Var("first", 5)
+				req.Var("after", "0")
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Services model.ServiceConnection `json:"Services"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				for _, serviceEdge := range respData.Services.Edges {
+					imCount := 0
+					ciCount := 0
+					for _, ciEdge := range serviceEdge.Node.ComponentInstances.Edges {
+						imCount += ciEdge.Node.IssueMatches.TotalCount
+						ciCount += *ciEdge.Node.Count
+					}
+					Expect(serviceEdge.Node.Metadata.IssueMatchCount).To(Equal(imCount))
+					Expect(serviceEdge.Node.Metadata.ComponentInstanceCount).To(Equal(ciCount))
+				}
+			})
+
+		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
 
 			var respData struct {
