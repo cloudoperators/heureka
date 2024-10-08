@@ -601,6 +601,7 @@ type Service struct {
 	Activities         *ActivityConnection          `json:"activities,omitempty"`
 	IssueRepositories  *IssueRepositoryConnection   `json:"issueRepositories,omitempty"`
 	ComponentInstances *ComponentInstanceConnection `json:"componentInstances,omitempty"`
+	Metadata           *ServiceMetadata             `json:"metadata,omitempty"`
 }
 
 func (Service) IsNode()            {}
@@ -644,6 +645,11 @@ type ServiceFilterValue struct {
 
 type ServiceInput struct {
 	Name *string `json:"name,omitempty"`
+}
+
+type ServiceMetadata struct {
+	IssueMatchCount        int `json:"issueMatchCount"`
+	ComponentInstanceCount int `json:"componentInstanceCount"`
 }
 
 type Severity struct {
