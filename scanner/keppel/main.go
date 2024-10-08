@@ -86,7 +86,7 @@ func HandleAccount(fqdn string, account models.Account, keppelScanner *scanner.S
 	if err != nil {
 		log.WithFields(log.Fields{
 			"account:": account.Name,
-		}).WithError(err).Error("Error during ProcessRepository")
+		}).WithError(err).Error("Error during listing ProcessRepository")
 		return err
 	}
 
@@ -129,11 +129,34 @@ func HandleRepository(fqdn string, account models.Account, repository models.Rep
 			}).Error("Component not found")
 			return
 		}
+		if manifest.VulnerabilityStatus == "Unsupported" {
+			log.WithFields(log.Fields{
+				"account:":   account.Name,
+				"repository": repository.Name,
+			}).Warn("Manifest has UNSUPPORTED type: " + manifest.MediaType)
+			continue
+		}
+		if manifest.VulnerabilityStatus == "Clean" {
+			log.WithFields(log.Fields{
+				"account:":   account.Name,
+				"repository": repository.Name,
+			}).Info("Manifest has no Vulnerabilities")
+			continue
+		}
 		HandleManifest(account, repository, manifest, component, keppelScanner, keppelProcessor)
 	}
 }
 
 func HandleManifest(account models.Account, repository models.Repository, manifest models.Manifest, component *client.Component, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+	childManifests, err := keppelScanner.ListManifestsOfManifest(account.Name, repository.Name, manifest.Digest)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"account:":   account.Name,
+			"repository": repository.Name,
+		}).WithError(err).Error("Error during ListManifestsOfManifest")
+	}
+
 	componentVersion, err := keppelProcessor.ProcessManifest(manifest, component.Id)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -146,20 +169,33 @@ func HandleManifest(account models.Account, repository models.Repository, manife
 				"account:":   account.Name,
 				"repository": repository.Name,
 			}).WithError(err).Error("Error during GetComponentVersion")
+			return
+		}
+		if componentVersion == nil {
+			log.WithFields(log.Fields{
+				"account:":   account.Name,
+				"repository": repository.Name,
+			}).WithError(err).Error("Error during GetComponentVersion")
+			return
 		}
 	}
-	trivyReport, err := keppelScanner.GetTrivyReport(account.Name, repository.Name, manifest.Digest)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"account:":   account.Name,
-			"repository": repository.Name,
-		}).WithError(err).Error("Error during GetTrivyReport")
-		return
-	}
 
-	if trivyReport == nil {
-		return
-	}
+	childManifests = append(childManifests, manifest)
 
-	keppelProcessor.ProcessReport(*trivyReport, componentVersion.Id)
+	for _, m := range childManifests {
+		trivyReport, err := keppelScanner.GetTrivyReport(account.Name, repository.Name, m.Digest)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"account:":   account.Name,
+				"repository": repository.Name,
+			}).WithError(err).Error("Error during GetTrivyReport")
+			return
+		}
+
+		if trivyReport == nil {
+			return
+		}
+
+		keppelProcessor.ProcessReport(*trivyReport, componentVersion.Id)
+	}
 }

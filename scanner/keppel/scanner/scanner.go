@@ -156,6 +156,28 @@ func (s *Scanner) ListManifests(account string, repository string) ([]models.Man
 	return manifestResponse.Manifests, nil
 }
 
+func (s *Scanner) ListManifestsOfManifest(account string, repository string, manifest string) ([]models.Manifest, error) {
+	url := fmt.Sprintf("%s/v2/%s/%s/manifests/%s", s.KeppelBaseUrl, account, repository, manifest)
+	body, err := s.sendRequest(url, s.AuthToken)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"url": url,
+		}).WithError(err).Error("Error during request in ListManifests")
+		return nil, err
+	}
+
+	var manifestResponse models.ManifestResponse
+	if err = json.Unmarshal(body, &manifestResponse); err != nil {
+		log.WithFields(log.Fields{
+			"url":  url,
+			"body": body,
+		}).WithError(err).Error("Error during unmarshal in ListManifests")
+		return nil, err
+	}
+
+	return manifestResponse.Manifests, nil
+}
+
 func (s *Scanner) GetTrivyReport(account string, repository string, manifest string) (*models.TrivyReport, error) {
 	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories/%s/_manifests/%s/trivy_report", s.KeppelBaseUrl, account, repository, manifest)
 	body, err := s.sendRequest(url, s.AuthToken)
@@ -172,6 +194,14 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 
 	var trivyReport models.TrivyReport
 	if err = json.Unmarshal(body, &trivyReport); err != nil {
+		if strings.Contains(string(body), "not") {
+			log.WithFields(log.Fields{
+				"url":  url,
+				"body": body,
+			}).Info("Trivy report not found")
+			return nil, fmt.Errorf("Trivy report not found")
+		}
+
 		log.WithFields(log.Fields{
 			"url":  url,
 			"body": body,
@@ -195,6 +225,7 @@ func (s *Scanner) sendRequest(url string, token string) ([]byte, error) {
 	}
 
 	resp, err := client.Do(req)
+
 	if err != nil {
 		return nil, err
 	}
