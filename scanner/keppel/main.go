@@ -148,13 +148,13 @@ func HandleRepository(fqdn string, account models.Account, repository models.Rep
 }
 
 func HandleManifest(account models.Account, repository models.Repository, manifest models.Manifest, component *client.Component, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
-	childManifests, err := keppelScanner.ListManifestsOfManifest(account.Name, repository.Name, manifest.Digest)
+	childManifests, err := keppelScanner.ListChildManifests(account.Name, repository.Name, manifest.Digest)
 
 	if err != nil {
 		log.WithFields(log.Fields{
 			"account:":   account.Name,
 			"repository": repository.Name,
-		}).WithError(err).Error("Error during ListManifestsOfManifest")
+		}).WithError(err).Error("Error during ListChildManifests")
 	}
 
 	componentVersion, err := keppelProcessor.ProcessManifest(manifest, component.Id)

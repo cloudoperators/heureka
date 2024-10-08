@@ -156,7 +156,15 @@ func (s *Scanner) ListManifests(account string, repository string) ([]models.Man
 	return manifestResponse.Manifests, nil
 }
 
-func (s *Scanner) ListManifestsOfManifest(account string, repository string, manifest string) ([]models.Manifest, error) {
+// ListChildManifests is requred asa on Keppel not all Images are including vulnerability scan results directly on the
+// top layer of the image and rather have the scan results on the child manifests. An prime example of this are multi-arch
+// images where the scan results are  available on the child manifests with the respective concrete architecture.
+// This method is using the v2 API endpoint as on the v1 of the API the child manifests listing is not available.
+//
+// Note: The v2 API does return slightly different results and therefore some of the fileds of models.Manifest are unset.
+// This fact is accepted and no additional struct for parsing all information is implemented at this point in time
+// as the additional available information is currently not utilized.
+func (s *Scanner) ListChildManifests(account string, repository string, manifest string) ([]models.Manifest, error) {
 	url := fmt.Sprintf("%s/v2/%s/%s/manifests/%s", s.KeppelBaseUrl, account, repository, manifest)
 	body, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
