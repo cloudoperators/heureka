@@ -10,5 +10,5 @@ type ComponentInstanceHandler interface {
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
 	UpdateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
 	DeleteComponentInstance(int64) error
-	ListCcrn(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
+	ListCcrns(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 }

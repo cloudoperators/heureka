@@ -234,7 +234,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 
 		It("it return the results", func() {
 			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
-			res, err := componentInstanceHandler.ListCcrn(filter, options)
+			res, err := componentInstanceHandler.ListCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -249,7 +249,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 		})
 		It("returns filtered CCRN according to the CCRN type", func() {
 			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
-			res, err := componentInstanceHandler.ListCcrn(filter, options)
+			res, err := componentInstanceHandler.ListCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(CCRN), "should only consist of CCRN")
 		})

@@ -181,7 +181,7 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
 
 	return nil
 }
-func (s *componentInstanceHandler) ListCcrn(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (s *componentInstanceHandler) ListCcrns(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListCcrnEventName,
 		"filter": filter,

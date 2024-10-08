@@ -146,7 +146,7 @@ func CcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.Compon
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListCcrn(f, opt)
+	names, err := app.ListCcrns(f, opt)
 
 	if err != nil {
 		return nil, NewResolverError("CcrnBaseResolver", err.Error())
