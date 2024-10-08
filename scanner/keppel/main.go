@@ -164,14 +164,7 @@ func HandleManifest(account models.Account, repository models.Repository, manife
 			"repository": repository.Name,
 		}).WithError(err).Error("Error during ProcessManifest")
 		componentVersion, err = keppelProcessor.GetComponentVersion(manifest.Digest)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"account:":   account.Name,
-				"repository": repository.Name,
-			}).WithError(err).Error("Error during GetComponentVersion")
-			return
-		}
-		if componentVersion == nil {
+		if err != nil || componentVersion == nil {
 			log.WithFields(log.Fields{
 				"account:":   account.Name,
 				"repository": repository.Name,
