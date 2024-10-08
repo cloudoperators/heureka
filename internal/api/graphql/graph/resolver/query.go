@@ -108,6 +108,11 @@ func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.Issu
 	}, nil
 }
 
+// ComponentInstanceFilterValues is the resolver for the ComponentInstanceFilterValues field.
+func (r *queryResolver) ComponentInstanceFilterValues(ctx context.Context) (*model.ComponentInstanceFilterValue, error) {
+	return &model.ComponentInstanceFilterValue{}, nil
+}
+
 // Query returns graph.QueryResolver implementation.
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 

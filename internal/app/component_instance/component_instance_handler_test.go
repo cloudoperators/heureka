@@ -36,6 +36,7 @@ func componentInstanceFilter() *entity.ComponentInstanceFilter {
 			After: nil,
 		},
 		IssueMatchId: nil,
+		CCRN:         nil,
 	}
 }
 
@@ -206,5 +207,51 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(componentInstances.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+})
+
+var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
+	var (
+		db                       *mocks.MockDatabase
+		componentInstanceHandler ci.ComponentInstanceHandler
+		filter                   *entity.ComponentInstanceFilter
+		options                  *entity.ListOptions
+		CCRN                     string
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = componentInstanceListOptions()
+		filter = componentInstanceFilter()
+		CCRN = "ca9d963d-b441-4167-b08d-086e76186653"
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetCcrn", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
+			res, err := componentInstanceHandler.ListCcrns(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific CCRN filter is applied", func() {
+		BeforeEach(func() {
+			filter = &entity.ComponentInstanceFilter{
+				CCRN: []*string{&CCRN},
+			}
+
+			db.On("GetCcrn", filter).Return([]string{CCRN}, nil)
+		})
+		It("returns filtered CCRN according to the CCRN type", func() {
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
+			res, err := componentInstanceHandler.ListCcrns(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf(CCRN), "should only consist of CCRN")
+		})
 	})
 })

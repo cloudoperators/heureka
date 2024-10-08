@@ -3395,6 +3395,64 @@ func (_c *MockDatabase_GetAllUserIds_Call) RunAndReturn(run func(*entity.UserFil
 	return _c
 }
 
+// GetCcrn provides a mock function with given fields: filter
+func (_m *MockDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	ret := _m.Called(filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCcrn")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ComponentInstanceFilter) ([]string, error)); ok {
+		return rf(filter)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ComponentInstanceFilter) []string); ok {
+		r0 = rf(filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ComponentInstanceFilter) error); ok {
+		r1 = rf(filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetCcrn_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetCcrn'
+type MockDatabase_GetCcrn_Call struct {
+	*mock.Call
+}
+
+// GetCcrn is a helper method to define mock.On call
+//   - filter *entity.ComponentInstanceFilter
+func (_e *MockDatabase_Expecter) GetCcrn(filter interface{}) *MockDatabase_GetCcrn_Call {
+	return &MockDatabase_GetCcrn_Call{Call: _e.mock.On("GetCcrn", filter)}
+}
+
+func (_c *MockDatabase_GetCcrn_Call) Run(run func(filter *entity.ComponentInstanceFilter)) *MockDatabase_GetCcrn_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ComponentInstanceFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetCcrn_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetCcrn_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetCcrn_Call) RunAndReturn(run func(*entity.ComponentInstanceFilter) ([]string, error)) *MockDatabase_GetCcrn_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetComponentInstances provides a mock function with given fields: _a0
 func (_m *MockDatabase) GetComponentInstances(_a0 *entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error) {
 	ret := _m.Called(_a0)
