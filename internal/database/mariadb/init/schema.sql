@@ -5,6 +5,24 @@ create schema if not exists heureka;
 
 use heureka;
 
+create table if not exists User
+(
+    user_id         int unsigned auto_increment
+        primary key,
+    user_name       varchar(256)                          not null,
+    user_unique_user_id varchar(64)                       not null,
+    user_type       int unsigned,
+    user_created_at timestamp default current_timestamp() not null,
+    user_created_by varchar(256)                          null,
+    user_deleted_at timestamp                             null,
+    user_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
+    user_updated_by varchar(256)                          null,
+    constraint id_UNIQUE
+        unique (user_id),
+    constraint unique_user_id_UNIQUE
+        unique (user_unique_user_id)
+);
+
 create table if not exists Component
 (
     component_id         int unsigned auto_increment
@@ -19,7 +37,13 @@ create table if not exists Component
     constraint id_UNIQUE
         unique (component_id),
     constraint name_UNIQUE
-        unique (component_name)
+        unique (component_name),
+    constraint fk_component_created_by
+        foreign key (component_created_by) references User (user_unique_user_id)
+            on update cascade,
+    constraint fk_component_updated_by
+        foreign key (component_updated_by) references User (user_unique_user_id)
+            on update cascade
 );
 
 create table if not exists ComponentVersion
@@ -128,24 +152,6 @@ create table if not exists ComponentInstance
     constraint fk_component_instance_service
         foreign key (componentinstance_service_id) references Service (service_id)
             on update cascade
-);
-
-create table if not exists User
-(
-    user_id         int unsigned auto_increment
-        primary key,
-    user_name       varchar(256)                          not null,
-    user_unique_user_id varchar(64)                       not null,
-    user_type       int unsigned,
-    user_created_at timestamp default current_timestamp() not null,
-    user_created_by varchar(256)                          null,
-    user_deleted_at timestamp                             null,
-    user_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
-    user_updated_by varchar(256)                          null,
-    constraint id_UNIQUE
-        unique (user_id),
-    constraint unique_user_id_UNIQUE
-        unique (user_unique_user_id)
 );
 
 create table if not exists Evidence
