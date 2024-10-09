@@ -124,7 +124,14 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 		supportGroupId = _supportGroupId
 	}
 
-	_, _ = client.AddServiceToSupportGroup(ctx, *p.Client, serviceId, supportGroupId)
+	_, err = client.AddServiceToSupportGroup(ctx, *p.Client, supportGroupId, serviceId)
+
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"serviceName":  serviceInfo.Name,
+			"supportGroup": serviceInfo.SupportGroup,
+		}).Warning("Failed adding service to support group")
+	}
 
 	return serviceId, nil
 }
@@ -141,7 +148,7 @@ func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.Ser
 	}
 
 	// Return the first item
-	if listSupportGroupsResp.SupportGroups.TotalCount > 0 {
+	if listSupportGroupsResp.SupportGroups.TotalCount > 0 && len(listSupportGroupsResp.SupportGroups.Edges) > 0 {
 		supportGroupId = listSupportGroupsResp.SupportGroups.Edges[0].Node.Id
 	} else {
 		return "", fmt.Errorf("ListSupportGroups returned no SupportGroupID")
@@ -152,8 +159,6 @@ func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.Ser
 
 // getService returns (if any) a ServiceID
 func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceInfo) (string, error) {
-	var serviceId string
-
 	listServicesFilter := client.ServiceFilter{
 		ServiceName: []string{serviceInfo.Name},
 	}
@@ -164,15 +169,10 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 
 	// Return the first item
 	if listServicesResp.Services.TotalCount > 0 {
-		for _, s := range listServicesResp.Services.Edges {
-			serviceId = s.Node.Id
-			break
-		}
-	} else {
-		return "", fmt.Errorf("ListServices returned no ServiceID")
+		return listServicesResp.Services.Edges[0].Node.Id, nil
 	}
 
-	return serviceId, nil
+	return "", fmt.Errorf("ListServices returned no ServiceID")
 }
 
 // CollectUniqueContainers processes a PodReplicaSet and returns a slice of
@@ -232,8 +232,6 @@ func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, 
 }
 
 func (p *Processor) getComponentVersion(ctx context.Context, versionHash string) (string, error) {
-	var componentVersionId string
-
 	//separating image name and version hash
 	imageAndVersion := strings.SplitN(versionHash, "@", 2)
 	if len(imageAndVersion) < 2 {
@@ -241,6 +239,39 @@ func (p *Processor) getComponentVersion(ctx context.Context, versionHash string)
 	}
 	image := imageAndVersion[0]
 	version := imageAndVersion[1]
+
+	//@todo Temporary Start
+	// AS we do not scan all the individual registries, we replace the registry string
+	// this is a temporary "hack" we need to move this to the heureka core with a registry configuration
+	//so that the respective versions are created correctly during version creation
+
+	var myMap map[string]string = make(map[string]string)
+	myMap["keppel.global.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.qa-de-1.cloud.sap/ccloud-mirror"] = "keppel.eu-de-1.cloud.sap/ccloud"
+	myMap["keppel.eu-de-2.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.s-eu-de-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.na-us-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.na-us-2.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.ap-jp-2.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.ap-jp-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.na-us-3.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.na-ca-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.eu-nl-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.ap-ae-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.ap-sa-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.ap-sa-2.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.ap-cn-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	myMap["keppel.ap-au-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
+	var images []string = make([]string, 1)
+
+	for replace, with := range myMap {
+		if strings.Contains(image, replace) {
+			image = strings.Replace(image, replace, with, 1)
+		}
+	}
+	//@todo Temporary End
+
+	images[0] = image
 
 	listComponentVersionFilter := client.ComponentVersionFilter{
 		ComponentName: []string{image},
@@ -252,14 +283,10 @@ func (p *Processor) getComponentVersion(ctx context.Context, versionHash string)
 	}
 
 	if listCompoVersResp.ComponentVersions.TotalCount > 0 {
-		for _, cv := range listCompoVersResp.ComponentVersions.Edges {
-			componentVersionId = cv.Node.Id
-			break
-		}
-	} else {
-		return "", fmt.Errorf("ListComponentVersion returned no ComponentVersion objects")
+		return listCompoVersResp.ComponentVersions.Edges[0].Node.Id, nil
 	}
-	return componentVersionId, nil
+
+	return "", fmt.Errorf("ListComponentVersion returned no ComponentVersion objects")
 }
 
 // ProcessContainer creates a ComponentVersion and ComponentInstance for a container
