@@ -10,7 +10,7 @@ type IssueVariant implements Node {
     issueRepository: IssueRepository
     issueId: String
     issue: Issue
-	metadata: Metadata
+    metadata: Metadata
 }
 
 input IssueVariantInput {
@@ -30,7 +30,7 @@ type IssueVariantConnection implements Connection {
 type IssueVariantEdge implements Edge {
     node: IssueVariant!
     cursor: String
-	metadata: Metadata
+    metadata: Metadata
 }
 
 input IssueVariantFilter {

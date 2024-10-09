@@ -24,7 +24,7 @@ type ActivityConnection implements Connection {
 type ActivityEdge implements Edge {
     node: Activity!
     cursor: String
-	metadata: Metadata
+    metadata: Metadata
 }
 
 input ActivityFilter {
