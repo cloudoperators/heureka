@@ -116,7 +116,7 @@ type CVSSTemporal struct {
 
 type Component struct {
 	ID                string                      `json:"id"`
-	Name              *string                     `json:"name,omitempty"`
+	Ccrn              *string                     `json:"ccrn,omitempty"`
 	Type              *ComponentTypeValues        `json:"type,omitempty"`
 	ComponentVersions *ComponentVersionConnection `json:"componentVersions,omitempty"`
 }
@@ -144,11 +144,11 @@ func (this ComponentEdge) GetNode() Node      { return *this.Node }
 func (this ComponentEdge) GetCursor() *string { return this.Cursor }
 
 type ComponentFilter struct {
-	ComponentName []*string `json:"componentName,omitempty"`
+	ComponentCcrn []*string `json:"componentCcrn,omitempty"`
 }
 
 type ComponentInput struct {
-	Name *string              `json:"name,omitempty"`
+	Ccrn *string              `json:"ccrn,omitempty"`
 	Type *ComponentTypeValues `json:"type,omitempty"`
 }
 
@@ -231,7 +231,7 @@ func (this ComponentVersionEdge) GetCursor() *string { return this.Cursor }
 
 type ComponentVersionFilter struct {
 	ComponentID   []*string `json:"componentId,omitempty"`
-	ComponentName []*string `json:"componentName,omitempty"`
+	ComponentCcrn []*string `json:"componentCcrn,omitempty"`
 	IssueID       []*string `json:"issueId,omitempty"`
 	Version       []*string `json:"version,omitempty"`
 }
@@ -438,7 +438,7 @@ type IssueMatchFilter struct {
 	ID               []*string                 `json:"id,omitempty"`
 	Search           []*string                 `json:"search,omitempty"`
 	PrimaryName      []*string                 `json:"primaryName,omitempty"`
-	ComponentName    []*string                 `json:"componentName,omitempty"`
+	ComponentCcrn    []*string                 `json:"componentCcrn,omitempty"`
 	IssueType        []*IssueTypes             `json:"issueType,omitempty"`
 	Status           []*IssueMatchStatusValues `json:"status,omitempty"`
 	Severity         []*SeverityValues         `json:"severity,omitempty"`
@@ -452,7 +452,7 @@ type IssueMatchFilterValue struct {
 	IssueType        *FilterItem `json:"issueType,omitempty"`
 	PrimaryName      *FilterItem `json:"primaryName,omitempty"`
 	AffectedService  *FilterItem `json:"affectedService,omitempty"`
-	ComponentName    *FilterItem `json:"componentName,omitempty"`
+	ComponentCcrn    *FilterItem `json:"componentCcrn,omitempty"`
 	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
 }
 

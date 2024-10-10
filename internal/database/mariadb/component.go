@@ -14,7 +14,7 @@ import (
 
 func (s *SqlDatabase) getComponentFilterString(filter *entity.ComponentFilter) string {
 	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Name, "C.component_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.CCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "C.component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CV.componentversion_id = ?", OP_OR))
 	fl = append(fl, "C.component_deleted_at IS NULL")
@@ -31,7 +31,7 @@ func (s *SqlDatabase) ensureComponentFilter(f *entity.ComponentFilter) *entity.C
 				First: &first,
 				After: &after,
 			},
-			Name:               nil,
+			CCRN:               nil,
 			Id:                 nil,
 			ComponentVersionId: nil,
 		}
@@ -58,8 +58,8 @@ func (s *SqlDatabase) getComponentJoins(filter *entity.ComponentFilter) string {
 
 func (s *SqlDatabase) getComponentUpdateFields(component *entity.Component) string {
 	fl := []string{}
-	if component.Name != "" {
-		fl = append(fl, "component_name = :component_name")
+	if component.CCRN != "" {
+		fl = append(fl, "component_ccrn = :component_ccrn")
 	}
 	if component.Type != "" {
 		fl = append(fl, "component_type = :component_type")
@@ -106,7 +106,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 
 	//adding parameters
 	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Name)
+	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	if withCursor {
@@ -201,10 +201,10 @@ func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Comp
 
 	query := `
 		INSERT INTO Component (
-			component_name,
+			component_ccrn,
 			component_type
 		) VALUES (
-			:component_name,
+			:component_ccrn,
 			:component_type
 		)
 	`
@@ -268,14 +268,14 @@ func (s *SqlDatabase) DeleteComponent(id int64) error {
 	return err
 }
 
-func (s *SqlDatabase) GetComponentNames(filter *entity.ComponentFilter) ([]string, error) {
+func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetComponentNames",
+		"event":  "database.GetComponentCcrns",
 	})
 
 	baseQuery := `
-    SELECT C.component_name FROM Component C
+    SELECT C.component_ccrn FROM Component C
     %s
     %s
     `
@@ -300,19 +300,19 @@ func (s *SqlDatabase) GetComponentNames(filter *entity.ComponentFilter) ([]strin
 	defer rows.Close()
 
 	// Collect the results
-	componentNames := []string{}
+	componentCcrns := []string{}
 	var name string
 	for rows.Next() {
 		if err := rows.Scan(&name); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
-		componentNames = append(componentNames, name)
+		componentCcrns = append(componentCcrns, name)
 	}
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
 	}
 
-	return componentNames, nil
+	return componentCcrns, nil
 }

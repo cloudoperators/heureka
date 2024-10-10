@@ -365,7 +365,7 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 
 type ComponentRow struct {
 	Id        sql.NullInt64  `db:"component_id" json:"id"`
-	Name      sql.NullString `db:"component_name" json:"name"`
+	CCRN      sql.NullString `db:"component_ccrn" json:"ccrn"`
 	Type      sql.NullString `db:"component_type" json:"type"`
 	CreatedAt sql.NullTime   `db:"component_created_at" json:"created_at"`
 	DeletedAt sql.NullTime   `db:"component_deleted_at" json:"deleted_at,omitempty"`
@@ -375,7 +375,7 @@ type ComponentRow struct {
 func (cr *ComponentRow) AsComponent() entity.Component {
 	return entity.Component{
 		Id:        GetInt64Value(cr.Id),
-		Name:      GetStringValue(cr.Name),
+		CCRN:      GetStringValue(cr.CCRN),
 		Type:      GetStringValue(cr.Type),
 		CreatedAt: GetTimeValue(cr.CreatedAt),
 		DeletedAt: GetTimeValue(cr.DeletedAt),
@@ -385,7 +385,7 @@ func (cr *ComponentRow) AsComponent() entity.Component {
 
 func (cr *ComponentRow) FromComponent(c *entity.Component) {
 	cr.Id = sql.NullInt64{Int64: c.Id, Valid: true}
-	cr.Name = sql.NullString{String: c.Name, Valid: true}
+	cr.CCRN = sql.NullString{String: c.CCRN, Valid: true}
 	cr.Type = sql.NullString{String: c.Type, Valid: true}
 	cr.CreatedAt = sql.NullTime{Time: c.CreatedAt, Valid: true}
 	cr.DeletedAt = sql.NullTime{Time: c.DeletedAt, Valid: true}

@@ -18,7 +18,7 @@ var (
 	FilterDisplaySupportGroupName string = "Support Group Name"
 	FilterDisplayUserName         string = "User Name"
 	FilterDisplayUniqueUserId     string = "Unique User ID"
-	FilterDisplayComponentName    string = "Component Name"
+	FilterDisplayComponentCcrn    string = "Component CCRN"
 	FilterDisplayIssueType        string = "Issue Type"
 	FilterDisplayIssueMatchStatus string = "Issue Match Status"
 	FilterDisplayIssuePrimaryName string = "Issue Name"
@@ -31,7 +31,7 @@ var (
 	ServiceFilterSupportGroupName string = "supportGroupName"
 
 	IssueMatchFilterPrimaryName      string = "primaryName"
-	IssueMatchFilterComponentName    string = "componentName"
+	IssueMatchFilterComponentCcrn    string = "componentCcrn"
 	IssueMatchFilterIssueType        string = "issueType"
 	IssueMatchFilterStatus           string = "status"
 	IssueMatchFilterSeverity         string = "severity"

@@ -928,9 +928,9 @@ func (s *DatabaseSeeder) InsertFakeSupportGroup(sg mariadb.SupportGroupRow) (int
 func (s *DatabaseSeeder) InsertFakeComponent(component mariadb.ComponentRow) (int64, error) {
 	query := `
 		INSERT INTO Component (
-			component_name, component_type
+			component_ccrn, component_type
 		) VALUES (
-			:component_name,
+			:component_ccrn,
 			:component_type
 		)`
 	return s.ExecPreparedNamed(query, component)
@@ -1187,9 +1187,9 @@ func NewFakeSupportGroup() mariadb.SupportGroupRow {
 
 func NewFakeComponent() mariadb.ComponentRow {
 	types := []string{"containerImage", "virtualMachineImage", "repository"}
-	name := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.Number(0, 99999))
+	ccrn := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.Number(0, 99999))
 	return mariadb.ComponentRow{
-		Name: sql.NullString{String: name, Valid: true},
+		CCRN: sql.NullString{String: ccrn, Valid: true},
 		Type: sql.NullString{String: gofakeit.RandomString(types), Valid: true},
 	}
 }

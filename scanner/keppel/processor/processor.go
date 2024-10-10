@@ -28,7 +28,7 @@ func NewProcessor(cfg Config) *Processor {
 
 func (p *Processor) ProcessRepository(registry string, account models.Account, repository models.Repository) (*client.Component, error) {
 	r, err := client.CreateComponent(context.Background(), *p.Client, &client.ComponentInput{
-		Name: fmt.Sprintf("%s/%s/%s", registry, account.Name, repository.Name),
+		Ccrn: fmt.Sprintf("%s/%s/%s", registry, account.Name, repository.Name),
 		Type: client.ComponentTypeValuesContainerimage,
 	})
 
@@ -111,9 +111,9 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 	}
 }
 
-func (p *Processor) GetComponent(name string) (*client.Component, error) {
+func (p *Processor) GetComponent(ccrn string) (*client.Component, error) {
 	r, err := client.ListComponents(context.Background(), *p.Client, &client.ComponentFilter{
-		ComponentName: []string{name},
+		ComponentCcrn: []string{ccrn},
 	}, 1)
 
 	if err != nil {

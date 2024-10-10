@@ -35,13 +35,13 @@ func (r *issueMatchFilterValueResolver) AffectedService(ctx context.Context, obj
 	return item, nil
 }
 
-// ComponentName is the resolver for the componentName field.
-func (r *issueMatchFilterValueResolver) ComponentName(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.ComponentNameBaseResolver(r.App, ctx, filter)
+// ComponentCcrn is the resolver for the componentCcrn field.
+func (r *issueMatchFilterValueResolver) ComponentCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ComponentCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.IssueMatchFilterComponentName
+	item.FilterName = &baseResolver.IssueMatchFilterComponentCcrn
 	return item, nil
 }
 

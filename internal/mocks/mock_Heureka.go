@@ -2197,6 +2197,65 @@ func (_c *MockHeureka_ListActivities_Call) RunAndReturn(run func(*entity.Activit
 	return _c
 }
 
+// ListComponentCcrns provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) ListComponentCcrns(_a0 *entity.ComponentFilter, _a1 *entity.ListOptions) ([]string, error) {
+	ret := _m.Called(_a0, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListComponentCcrns")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ComponentFilter, *entity.ListOptions) ([]string, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ComponentFilter, *entity.ListOptions) []string); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ComponentFilter, *entity.ListOptions) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockHeureka_ListComponentCcrns_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListComponentCcrns'
+type MockHeureka_ListComponentCcrns_Call struct {
+	*mock.Call
+}
+
+// ListComponentCcrns is a helper method to define mock.On call
+//   - _a0 *entity.ComponentFilter
+//   - _a1 *entity.ListOptions
+func (_e *MockHeureka_Expecter) ListComponentCcrns(_a0 interface{}, _a1 interface{}) *MockHeureka_ListComponentCcrns_Call {
+	return &MockHeureka_ListComponentCcrns_Call{Call: _e.mock.On("ListComponentCcrns", _a0, _a1)}
+}
+
+func (_c *MockHeureka_ListComponentCcrns_Call) Run(run func(_a0 *entity.ComponentFilter, _a1 *entity.ListOptions)) *MockHeureka_ListComponentCcrns_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ComponentFilter), args[1].(*entity.ListOptions))
+	})
+	return _c
+}
+
+func (_c *MockHeureka_ListComponentCcrns_Call) Return(_a0 []string, _a1 error) *MockHeureka_ListComponentCcrns_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockHeureka_ListComponentCcrns_Call) RunAndReturn(run func(*entity.ComponentFilter, *entity.ListOptions) ([]string, error)) *MockHeureka_ListComponentCcrns_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListComponentInstances provides a mock function with given fields: _a0, _a1
 func (_m *MockHeureka) ListComponentInstances(_a0 *entity.ComponentInstanceFilter, _a1 *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
 	ret := _m.Called(_a0, _a1)
@@ -2252,65 +2311,6 @@ func (_c *MockHeureka_ListComponentInstances_Call) Return(_a0 *entity.List[entit
 }
 
 func (_c *MockHeureka_ListComponentInstances_Call) RunAndReturn(run func(*entity.ComponentInstanceFilter, *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error)) *MockHeureka_ListComponentInstances_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ListComponentNames provides a mock function with given fields: _a0, _a1
-func (_m *MockHeureka) ListComponentNames(_a0 *entity.ComponentFilter, _a1 *entity.ListOptions) ([]string, error) {
-	ret := _m.Called(_a0, _a1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ListComponentNames")
-	}
-
-	var r0 []string
-	var r1 error
-	if rf, ok := ret.Get(0).(func(*entity.ComponentFilter, *entity.ListOptions) ([]string, error)); ok {
-		return rf(_a0, _a1)
-	}
-	if rf, ok := ret.Get(0).(func(*entity.ComponentFilter, *entity.ListOptions) []string); ok {
-		r0 = rf(_a0, _a1)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]string)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(*entity.ComponentFilter, *entity.ListOptions) error); ok {
-		r1 = rf(_a0, _a1)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockHeureka_ListComponentNames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListComponentNames'
-type MockHeureka_ListComponentNames_Call struct {
-	*mock.Call
-}
-
-// ListComponentNames is a helper method to define mock.On call
-//   - _a0 *entity.ComponentFilter
-//   - _a1 *entity.ListOptions
-func (_e *MockHeureka_Expecter) ListComponentNames(_a0 interface{}, _a1 interface{}) *MockHeureka_ListComponentNames_Call {
-	return &MockHeureka_ListComponentNames_Call{Call: _e.mock.On("ListComponentNames", _a0, _a1)}
-}
-
-func (_c *MockHeureka_ListComponentNames_Call) Run(run func(_a0 *entity.ComponentFilter, _a1 *entity.ListOptions)) *MockHeureka_ListComponentNames_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*entity.ComponentFilter), args[1].(*entity.ListOptions))
-	})
-	return _c
-}
-
-func (_c *MockHeureka_ListComponentNames_Call) Return(_a0 []string, _a1 error) *MockHeureka_ListComponentNames_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockHeureka_ListComponentNames_Call) RunAndReturn(run func(*entity.ComponentFilter, *entity.ListOptions) ([]string, error)) *MockHeureka_ListComponentNames_Call {
 	_c.Call.Return(run)
 	return _c
 }

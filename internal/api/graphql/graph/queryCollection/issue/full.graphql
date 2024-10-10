@@ -95,7 +95,7 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                                     version
                                     component {
                                         id
-                                        name
+                                        ccrn
                                         type
                                     }
                                 }

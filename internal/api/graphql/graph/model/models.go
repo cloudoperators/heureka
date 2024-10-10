@@ -414,7 +414,7 @@ func NewComponent(component *entity.Component) Component {
 	componentType, _ := ComponentTypeValue(component.Type)
 	return Component{
 		ID:   fmt.Sprintf("%d", component.Id),
-		Name: &component.Name,
+		Ccrn: &component.CCRN,
 		Type: &componentType,
 	}
 }
@@ -425,7 +425,7 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 		componentType = component.Type.String()
 	}
 	return entity.Component{
-		Name: lo.FromPtr(component.Name),
+		CCRN: lo.FromPtr(component.Ccrn),
 		Type: componentType,
 	}
 }

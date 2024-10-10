@@ -113,7 +113,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		EvidenceId:          eId,
 		ComponentInstanceId: ciId,
 		Search:              filter.Search,
-		ComponentName:       filter.ComponentName,
+		ComponentCCRN:       filter.ComponentCcrn,
 		PrimaryName:         filter.PrimaryName,
 		IssueType:           lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 	}

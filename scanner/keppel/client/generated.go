@@ -24,15 +24,15 @@ func (v *AddComponentVersionToIssueResponse) GetAddComponentVersionToIssue() *Is
 // Component includes the requested fields of the GraphQL type Component.
 type Component struct {
 	Id   string              `json:"id"`
-	Name string              `json:"name"`
+	Ccrn string              `json:"ccrn"`
 	Type ComponentTypeValues `json:"type"`
 }
 
 // GetId returns Component.Id, and is useful for accessing the field via an interface.
 func (v *Component) GetId() string { return v.Id }
 
-// GetName returns Component.Name, and is useful for accessing the field via an interface.
-func (v *Component) GetName() string { return v.Name }
+// GetCcrn returns Component.Ccrn, and is useful for accessing the field via an interface.
+func (v *Component) GetCcrn() string { return v.Ccrn }
 
 // GetType returns Component.Type, and is useful for accessing the field via an interface.
 func (v *Component) GetType() ComponentTypeValues { return v.Type }
@@ -54,19 +54,19 @@ type ComponentConnectionEdgesComponentEdge struct {
 func (v *ComponentConnectionEdgesComponentEdge) GetNode() *Component { return v.Node }
 
 type ComponentFilter struct {
-	ComponentName []string `json:"componentName"`
+	ComponentCcrn []string `json:"componentCcrn"`
 }
 
-// GetComponentName returns ComponentFilter.ComponentName, and is useful for accessing the field via an interface.
-func (v *ComponentFilter) GetComponentName() []string { return v.ComponentName }
+// GetComponentCcrn returns ComponentFilter.ComponentCcrn, and is useful for accessing the field via an interface.
+func (v *ComponentFilter) GetComponentCcrn() []string { return v.ComponentCcrn }
 
 type ComponentInput struct {
-	Name string              `json:"name"`
+	Ccrn string              `json:"ccrn"`
 	Type ComponentTypeValues `json:"type"`
 }
 
-// GetName returns ComponentInput.Name, and is useful for accessing the field via an interface.
-func (v *ComponentInput) GetName() string { return v.Name }
+// GetCcrn returns ComponentInput.Ccrn, and is useful for accessing the field via an interface.
+func (v *ComponentInput) GetCcrn() string { return v.Ccrn }
 
 // GetType returns ComponentInput.Type, and is useful for accessing the field via an interface.
 func (v *ComponentInput) GetType() ComponentTypeValues { return v.Type }
@@ -116,9 +116,17 @@ func (v *ComponentVersionConnectionEdgesComponentVersionEdge) GetNode() *Compone
 }
 
 type ComponentVersionFilter struct {
-	IssueId []string `json:"issueId"`
-	Version []string `json:"version"`
+	ComponentId   []string `json:"componentId"`
+	ComponentCcrn []string `json:"componentCcrn"`
+	IssueId       []string `json:"issueId"`
+	Version       []string `json:"version"`
 }
+
+// GetComponentId returns ComponentVersionFilter.ComponentId, and is useful for accessing the field via an interface.
+func (v *ComponentVersionFilter) GetComponentId() []string { return v.ComponentId }
+
+// GetComponentCcrn returns ComponentVersionFilter.ComponentCcrn, and is useful for accessing the field via an interface.
+func (v *ComponentVersionFilter) GetComponentCcrn() []string { return v.ComponentCcrn }
 
 // GetIssueId returns ComponentVersionFilter.IssueId, and is useful for accessing the field via an interface.
 func (v *ComponentVersionFilter) GetIssueId() []string { return v.IssueId }
@@ -403,7 +411,7 @@ const CreateComponent_Operation = `
 mutation CreateComponent ($input: ComponentInput!) {
 	createComponent(input: $input) {
 		id
-		name
+		ccrn
 		type
 	}
 }
@@ -560,7 +568,7 @@ query ListComponents ($filter: ComponentFilter, $first: Int) {
 		edges {
 			node {
 				id
-				name
+				ccrn
 				type
 			}
 		}

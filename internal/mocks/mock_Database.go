@@ -3395,6 +3395,64 @@ func (_c *MockDatabase_GetAllUserIds_Call) RunAndReturn(run func(*entity.UserFil
 	return _c
 }
 
+// GetComponentCcrns provides a mock function with given fields: filter
+func (_m *MockDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error) {
+	ret := _m.Called(filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetComponentCcrns")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ComponentFilter) ([]string, error)); ok {
+		return rf(filter)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ComponentFilter) []string); ok {
+		r0 = rf(filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ComponentFilter) error); ok {
+		r1 = rf(filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetComponentCcrns_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetComponentCcrns'
+type MockDatabase_GetComponentCcrns_Call struct {
+	*mock.Call
+}
+
+// GetComponentCcrns is a helper method to define mock.On call
+//   - filter *entity.ComponentFilter
+func (_e *MockDatabase_Expecter) GetComponentCcrns(filter interface{}) *MockDatabase_GetComponentCcrns_Call {
+	return &MockDatabase_GetComponentCcrns_Call{Call: _e.mock.On("GetComponentCcrns", filter)}
+}
+
+func (_c *MockDatabase_GetComponentCcrns_Call) Run(run func(filter *entity.ComponentFilter)) *MockDatabase_GetComponentCcrns_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ComponentFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetComponentCcrns_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetComponentCcrns_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetComponentCcrns_Call) RunAndReturn(run func(*entity.ComponentFilter) ([]string, error)) *MockDatabase_GetComponentCcrns_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetComponentInstances provides a mock function with given fields: _a0
 func (_m *MockDatabase) GetComponentInstances(_a0 *entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error) {
 	ret := _m.Called(_a0)
@@ -3449,64 +3507,6 @@ func (_c *MockDatabase_GetComponentInstances_Call) Return(_a0 []entity.Component
 }
 
 func (_c *MockDatabase_GetComponentInstances_Call) RunAndReturn(run func(*entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error)) *MockDatabase_GetComponentInstances_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetComponentNames provides a mock function with given fields: filter
-func (_m *MockDatabase) GetComponentNames(filter *entity.ComponentFilter) ([]string, error) {
-	ret := _m.Called(filter)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetComponentNames")
-	}
-
-	var r0 []string
-	var r1 error
-	if rf, ok := ret.Get(0).(func(*entity.ComponentFilter) ([]string, error)); ok {
-		return rf(filter)
-	}
-	if rf, ok := ret.Get(0).(func(*entity.ComponentFilter) []string); ok {
-		r0 = rf(filter)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]string)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(*entity.ComponentFilter) error); ok {
-		r1 = rf(filter)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockDatabase_GetComponentNames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetComponentNames'
-type MockDatabase_GetComponentNames_Call struct {
-	*mock.Call
-}
-
-// GetComponentNames is a helper method to define mock.On call
-//   - filter *entity.ComponentFilter
-func (_e *MockDatabase_Expecter) GetComponentNames(filter interface{}) *MockDatabase_GetComponentNames_Call {
-	return &MockDatabase_GetComponentNames_Call{Call: _e.mock.On("GetComponentNames", filter)}
-}
-
-func (_c *MockDatabase_GetComponentNames_Call) Run(run func(filter *entity.ComponentFilter)) *MockDatabase_GetComponentNames_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*entity.ComponentFilter))
-	})
-	return _c
-}
-
-func (_c *MockDatabase_GetComponentNames_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetComponentNames_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockDatabase_GetComponentNames_Call) RunAndReturn(run func(*entity.ComponentFilter) ([]string, error)) *MockDatabase_GetComponentNames_Call {
 	_c.Call.Return(run)
 	return _c
 }

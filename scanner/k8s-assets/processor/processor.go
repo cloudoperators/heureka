@@ -243,7 +243,7 @@ func (p *Processor) getComponentVersion(ctx context.Context, versionHash string)
 	version := imageAndVersion[1]
 
 	listComponentVersionFilter := client.ComponentVersionFilter{
-		ComponentName: []string{image},
+		ComponentCcrn: []string{image},
 		Version:       []string{version},
 	}
 	listCompoVersResp, err := client.ListComponentVersions(ctx, *p.Client, &listComponentVersionFilter)
