@@ -172,7 +172,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						issueRows = seedCollection.GetIssueByService(&row)
 						searchingRow = len(issueRows) == 0
 					}
-					filter := &entity.IssueFilter{ServiceName: []*string{&row.Name.String}}
+					filter := &entity.IssueFilter{ServiceCCRN: []*string{&row.CCRN.String}}
 
 					entries, err := db.GetIssues(filter)
 
@@ -188,7 +188,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("can filter a non existing service name", func() {
 					nonExistingName := util.GenerateRandomString(40, nil)
-					filter := &entity.IssueFilter{ServiceName: []*string{&nonExistingName}}
+					filter := &entity.IssueFilter{ServiceCCRN: []*string{&nonExistingName}}
 
 					entries, err := db.GetIssues(filter)
 
@@ -200,15 +200,15 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter by multiple existing service names", func() {
-					serviceNames := make([]*string, len(seedCollection.ServiceRows))
+					serviceCcrns := make([]*string, len(seedCollection.ServiceRows))
 					var expectedIssues []mariadb.IssueRow
 					for i, row := range seedCollection.ServiceRows {
-						x := row.Name.String
+						x := row.CCRN.String
 						expectedIssues = append(expectedIssues, seedCollection.GetIssueByService(&row)...)
-						serviceNames[i] = &x
+						serviceCcrns[i] = &x
 					}
 					expectedIssues = lo.Uniq(expectedIssues)
-					filter := &entity.IssueFilter{ServiceName: serviceNames}
+					filter := &entity.IssueFilter{ServiceCCRN: serviceCcrns}
 
 					entries, err := db.GetIssues(filter)
 
@@ -501,7 +501,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						issueRows = seedCollection.GetIssueByService(&row)
 						searchingRow = len(issueRows) > 0
 					}
-					filter := &entity.IssueFilter{ServiceName: []*string{&row.Name.String}}
+					filter := &entity.IssueFilter{ServiceCCRN: []*string{&row.CCRN.String}}
 
 					count, err := db.CountIssues(filter)
 

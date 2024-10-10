@@ -45,7 +45,7 @@ func getServiceFilter() *entity.ServiceFilter {
 			First: nil,
 			After: nil,
 		},
-		Name:             nil,
+		CCRN:             nil,
 		Id:               nil,
 		SupportGroupName: []*string{&sgName},
 	}
@@ -134,7 +134,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 	})
 
 	It("creates service", func() {
-		filter.Name = []*string{&service.Name}
+		filter.CCRN = []*string{&service.CCRN}
 		db.On("CreateService", &service).Return(&service, nil)
 		db.On("GetServices", filter).Return([]entity.Service{}, nil)
 
@@ -143,7 +143,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newService.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
-			Expect(newService.Name).To(BeEquivalentTo(service.Name))
+			Expect(newService.CCRN).To(BeEquivalentTo(service.CCRN))
 		})
 	})
 
@@ -247,13 +247,13 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 	It("updates service", func() {
 		db.On("UpdateService", &service).Return(nil)
 		serviceHandler = s.NewServiceHandler(db, er)
-		service.Name = "SecretService"
+		service.CCRN = "SecretService"
 		filter.Id = []*int64{&service.Id}
 		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
 		updatedService, err := serviceHandler.UpdateService(&service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
-			Expect(updatedService.Name).To(BeEquivalentTo(service.Name))
+			Expect(updatedService.CCRN).To(BeEquivalentTo(service.CCRN))
 		})
 	})
 })
@@ -384,7 +384,7 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 	})
 })
 
-var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"), func() {
+var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"), func() {
 	var (
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
@@ -403,29 +403,29 @@ var _ = Describe("When listing serviceNames", Label("app", "ListServicesNames"),
 	When("no filters are used", func() {
 
 		BeforeEach(func() {
-			db.On("GetServiceNames", filter).Return([]string{}, nil)
+			db.On("GetServiceCcrns", filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			serviceHandler = s.NewServiceHandler(db, er)
-			res, err := serviceHandler.ListServiceNames(filter, options)
+			res, err := serviceHandler.ListServiceCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
 	})
-	When("specific serviceNames filter is applied", func() {
+	When("specific serviceCcrns filter is applied", func() {
 		BeforeEach(func() {
 			filter = &entity.ServiceFilter{
-				Name: []*string{&name},
+				CCRN: []*string{&name},
 			}
 
-			db.On("GetServiceNames", filter).Return([]string{name}, nil)
+			db.On("GetServiceCcrns", filter).Return([]string{name}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
 			serviceHandler = s.NewServiceHandler(db, er)
-			res, err := serviceHandler.ListServiceNames(filter, options)
+			res, err := serviceHandler.ListServiceCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(res).Should(ConsistOf(name), "should only consist of serviceName")
+			Expect(res).Should(ConsistOf(name), "should only consist of serviceCcrn")
 		})
 	})
 })

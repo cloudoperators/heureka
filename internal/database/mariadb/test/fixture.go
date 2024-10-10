@@ -908,9 +908,9 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 func (s *DatabaseSeeder) InsertFakeBaseService(service mariadb.BaseServiceRow) (int64, error) {
 	query := `
 		INSERT INTO Service (
-			service_name
+			service_ccrn
 		) VALUES (
-			:service_name
+			:service_ccrn
 		)`
 	return s.ExecPreparedNamed(query, service)
 }
@@ -1166,7 +1166,7 @@ func NewFakeIssueRepository() mariadb.IssueRepositoryRow {
 
 func NewFakeBaseService() mariadb.BaseServiceRow {
 	return mariadb.BaseServiceRow{
-		Name: sql.NullString{String: gofakeit.AppName(), Valid: true},
+		CCRN: sql.NullString{String: gofakeit.AppName(), Valid: true},
 	}
 }
 
@@ -1394,7 +1394,7 @@ func (s *DatabaseSeeder) SeedRealServices() map[string]mariadb.BaseServiceRow {
 
 	for _, sv := range svs {
 		service := mariadb.BaseServiceRow{
-			Name: sql.NullString{String: sv, Valid: true},
+			CCRN: sql.NullString{String: sv, Valid: true},
 		}
 		serviceId, err := s.InsertFakeBaseService(service)
 		if err != nil {

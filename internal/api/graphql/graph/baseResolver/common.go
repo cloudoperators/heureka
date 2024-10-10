@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	FilterDisplayServiceName      string = "Service Name"
+	FilterDisplayServiceCcrn      string = "Service CCRN"
 	FilterDisplaySupportGroupName string = "Support Group Name"
 	FilterDisplayUserName         string = "User Name"
 	FilterDisplayUniqueUserId     string = "Unique User ID"
@@ -24,7 +24,7 @@ var (
 	FilterDisplayIssuePrimaryName string = "Issue Name"
 	FilterDisplayIssueSeverity    string = "Severity"
 
-	ServiceFilterServiceName      string = "serviceName"
+	ServiceFilterServiceCcrn      string = "serviceCcrn"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"
 	ServiceFilterType             string = "type"
 	ServiceFilterUserName         string = "userName"

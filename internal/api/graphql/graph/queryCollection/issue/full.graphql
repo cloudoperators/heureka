@@ -101,7 +101,7 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                                 }
                                 service {
                                     id
-                                    name
+                                    ccrn
                                     owners {
                                         totalCount
                                         edges {

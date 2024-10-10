@@ -12,7 +12,7 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
         edges { 
             node { 
                 id
-                name
+                ccrn
                 owners { 
                     totalCount
                     edges { 

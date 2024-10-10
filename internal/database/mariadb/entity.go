@@ -454,7 +454,7 @@ type ServiceRow struct {
 
 type BaseServiceRow struct {
 	Id        sql.NullInt64  `db:"service_id" json:"id"`
-	Name      sql.NullString `db:"service_name" json:"name"`
+	CCRN      sql.NullString `db:"service_ccrn" json:"ccrn"`
 	CreatedAt sql.NullTime   `db:"service_created_at" json:"created_at"`
 	DeletedAt sql.NullTime   `db:"service_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"service_updated_at" json:"updated_at"`
@@ -463,7 +463,7 @@ type BaseServiceRow struct {
 func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
 	return entity.BaseService{
 		Id:         GetInt64Value(bsr.Id),
-		Name:       GetStringValue(bsr.Name),
+		CCRN:       GetStringValue(bsr.CCRN),
 		Owners:     []entity.User{},
 		Activities: []entity.Activity{},
 		CreatedAt:  GetTimeValue(bsr.CreatedAt),
@@ -483,7 +483,7 @@ func (sr *ServiceRow) AsService() entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
 			Id:         GetInt64Value(sr.Id),
-			Name:       GetStringValue(sr.Name),
+			CCRN:       GetStringValue(sr.CCRN),
 			Owners:     []entity.User{},
 			Activities: []entity.Activity{},
 			CreatedAt:  GetTimeValue(sr.BaseServiceRow.CreatedAt),
@@ -499,7 +499,7 @@ func (sr *ServiceRow) AsService() entity.Service {
 
 func (sr *ServiceRow) FromService(s *entity.Service) {
 	sr.Id = sql.NullInt64{Int64: s.Id, Valid: true}
-	sr.Name = sql.NullString{String: s.Name, Valid: true}
+	sr.CCRN = sql.NullString{String: s.CCRN, Valid: true}
 	sr.BaseServiceRow.CreatedAt = sql.NullTime{Time: s.BaseService.CreatedAt, Valid: true}
 	sr.BaseServiceRow.DeletedAt = sql.NullTime{Time: s.BaseService.DeletedAt, Valid: true}
 	sr.BaseServiceRow.UpdatedAt = sql.NullTime{Time: s.BaseService.UpdatedAt, Valid: true}

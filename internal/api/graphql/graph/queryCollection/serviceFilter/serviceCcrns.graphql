@@ -3,7 +3,7 @@
 
 query($filter: ServiceFilter){
     ServiceFilterValues{
-        serviceName(filter: $filter){
+        serviceCcrn(filter: $filter){
             filterName
             values
         }

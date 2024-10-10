@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	serviceWildCardFilterQuery = "S.service_name LIKE Concat('%',?,'%')"
+	serviceWildCardFilterQuery = "S.service_ccrn LIKE Concat('%',?,'%')"
 )
 
 func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) string {
 	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Name, "S.service_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.CCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "S.service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupName, "SG.supportgroup_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerName, "U.user_name = ?", OP_OR))
@@ -92,7 +92,7 @@ func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.Servi
 				After: &after,
 			},
 			SupportGroupName:  nil,
-			Name:              nil,
+			CCRN:              nil,
 			Id:                nil,
 			OwnerName:         nil,
 			SupportGroupId:    nil,
@@ -112,8 +112,8 @@ func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.Servi
 
 func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 	fl := []string{}
-	if service.Name != "" {
-		fl = append(fl, "service_name = :service_name")
+	if service.CCRN != "" {
+		fl = append(fl, "service_ccrn = :service_ccrn")
 	}
 	return strings.Join(fl, ", ")
 }
@@ -158,7 +158,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	//adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)
-	filterParameters = buildQueryParameters(filterParameters, filter.Name)
+	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
@@ -260,9 +260,9 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 
 	query := `
 		INSERT INTO Service (
-			service_name
+			service_ccrn
 		) VALUES (
-			:service_name
+			:service_ccrn
 		)
 	`
 
@@ -428,14 +428,14 @@ func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRep
 	return err
 }
 
-func (s *SqlDatabase) GetServiceNames(filter *entity.ServiceFilter) ([]string, error) {
+func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetServiceNames",
+		"event":  "database.GetServiceCcrns",
 	})
 
 	baseQuery := `
-    SELECT service_name FROM Service S
+    SELECT service_ccrn FROM Service S
     %s
     %s
     `
@@ -460,19 +460,19 @@ func (s *SqlDatabase) GetServiceNames(filter *entity.ServiceFilter) ([]string, e
 	defer rows.Close()
 
 	// Collect the results
-	serviceNames := []string{}
-	var name string
+	serviceCcrns := []string{}
+	var ccrn string
 	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
+		if err := rows.Scan(&ccrn); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
-		serviceNames = append(serviceNames, name)
+		serviceCcrns = append(serviceCcrns, ccrn)
 	}
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
 	}
 
-	return serviceNames, nil
+	return serviceCcrns, nil
 }

@@ -209,7 +209,7 @@ models:
         resolver: true
   ServiceFilterValue:
     fields:
-      serviceName: 
+      serviceCcrn:
         resolver: true
       uniqueUserId:
         resolver: true

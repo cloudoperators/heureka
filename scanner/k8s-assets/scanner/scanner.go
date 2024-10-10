@@ -23,7 +23,7 @@ type Scanner struct {
 }
 
 type ServiceInfo struct {
-	Name         string
+	CCRN         string
 	SupportGroup string
 	Pods         []PodInfo
 }
@@ -51,7 +51,7 @@ type ContainerInfo struct {
 type PodLabels struct {
 	SupportGroup string
 	Owner        string
-	ServiceName  string
+	ServiceCCRN  string
 }
 
 func NewScanner(kubeConfig *rest.Config, clientSet *kubernetes.Clientset, cfg Config) Scanner {
@@ -76,8 +76,8 @@ func (s *Scanner) GetRelevantLabels(pod v1.Pod) PodLabels {
 	podLabels := PodLabels{}
 	for labelName, labelValue := range pod.Labels {
 		switch labelName {
-		case s.Config.ServiceNameLabel:
-			podLabels.ServiceName = labelValue
+		case s.Config.ServiceCCRNLabel:
+			podLabels.ServiceCCRN = labelValue
 		case s.Config.SupportGroupLabel:
 			podLabels.SupportGroup = labelValue
 		default:
@@ -161,7 +161,7 @@ func (s *Scanner) GroupPodsByGenerateName(pods []v1.Pod) []PodReplicaSet {
 // GetServiceInfo extracts meta information from a PodInfo object
 func (s *Scanner) GetServiceInfo(podInfo PodInfo) ServiceInfo {
 	return ServiceInfo{
-		Name:         podInfo.Labels.ServiceName,
+		CCRN:         podInfo.Labels.ServiceCCRN,
 		SupportGroup: podInfo.Labels.SupportGroup,
 	}
 }

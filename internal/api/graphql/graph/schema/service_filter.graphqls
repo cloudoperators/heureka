@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 type ServiceFilterValue {
-    serviceName(filter: ServiceFilter): FilterItem
+    serviceCcrn(filter: ServiceFilter): FilterItem
     uniqueUserId(filter: UserFilter): FilterItem
     userName(filter: UserFilter): FilterItem
     supportGroupName(filter: SupportGroupFilter): FilterItem

@@ -12,7 +12,7 @@ mutation ($supportGroupId: ID!, $serviceId: ID!) {
             edges {
                 node {
                     id
-                    name
+                    ccrn
                 }
             }
         }

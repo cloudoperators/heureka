@@ -56,14 +56,14 @@ create table if not exists Service
 (
     service_id         int unsigned auto_increment
         primary key,
-    service_name       varchar(256)                          not null,
+    service_ccrn       varchar(256)                          not null,
     service_created_at timestamp default current_timestamp() not null,
     service_deleted_at timestamp                             null,
     service_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     constraint id_UNIQUE
         unique (service_id),
-    constraint name_UNIQUE
-        unique (service_name)
+    constraint ccrn_UNIQUE
+        unique (service_ccrn)
 );
 
 create table if not exists SupportGroupService

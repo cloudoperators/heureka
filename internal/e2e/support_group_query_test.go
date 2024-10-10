@@ -178,7 +178,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 						for _, service := range sg.Node.Services.Edges {
 							Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
-							Expect(service.Node.Name).ToNot(BeNil(), "Service has a name set")
+							Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a name set")
 
 							_, serviceFound := lo.Find(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow) bool {
 								return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct support group

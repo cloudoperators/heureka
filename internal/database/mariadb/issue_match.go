@@ -34,7 +34,7 @@ func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter)
 	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "IM.issuematch_component_instance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.EvidenceId, "IME.issuematchevidence_evidence_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.AffectedServiceName, "S.service_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.AffectedServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SeverityValue, "IM.issuematch_rating = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Status, "IM.issuematch_status = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupName, "SG.supportgroup_name = ?", OP_OR))
@@ -67,7 +67,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter) string
 		`)
 	}
 
-	if len(filter.AffectedServiceName) > 0 || len(filter.SupportGroupName) > 0 || len(filter.ComponentName) > 0 {
+	if len(filter.AffectedServiceCCRN) > 0 || len(filter.SupportGroupName) > 0 || len(filter.ComponentName) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on CI.componentinstance_id = IM.issuematch_component_instance_id
 			
@@ -80,7 +80,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter) string
 			`)
 		}
 
-		if len(filter.AffectedServiceName) > 0 || len(filter.SupportGroupName) > 0 {
+		if len(filter.AffectedServiceCCRN) > 0 || len(filter.SupportGroupName) > 0 {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id
 			`)
@@ -168,7 +168,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.AffectedServiceName)
+	filterParameters = buildQueryParameters(filterParameters, filter.AffectedServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
 	filterParameters = buildQueryParameters(filterParameters, filter.Status)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)

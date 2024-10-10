@@ -156,7 +156,7 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 						}
 						for _, s := range activity.Node.Services.Edges {
 							Expect(s.Node.ID).ToNot(BeEmpty())
-							Expect(*s.Node.Name).ToNot(BeEmpty())
+							Expect(*s.Node.Ccrn).ToNot(BeEmpty())
 						}
 						for _, e := range activity.Node.Evidences.Edges {
 							Expect(e.Node.ID).ToNot(BeEmpty())

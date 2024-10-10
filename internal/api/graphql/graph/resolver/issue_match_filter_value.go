@@ -27,7 +27,7 @@ func (r *issueMatchFilterValueResolver) PrimaryName(ctx context.Context, obj *mo
 
 // AffectedService is the resolver for the affectedService field.
 func (r *issueMatchFilterValueResolver) AffectedService(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.ServiceNameBaseResolver(r.App, ctx, filter)
+	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}

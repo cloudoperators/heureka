@@ -15,14 +15,14 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 )
 
-// ServiceName is the resolver for the serviceName field.
-func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.ServiceNameBaseResolver(r.App, ctx, filter)
+// ServiceCcrn is the resolver for the serviceCcrn field.
+func (r *serviceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ServiceFilterServiceName
-	return item, nil
+	item.FilterName = &baseResolver.ServiceFilterServiceCcrn
+	return item, err
 }
 
 // UniqueUserID is the resolver for the uniqueUserId field.

@@ -52,7 +52,7 @@ type IssueResult struct {
 type IssueFilter struct {
 	Paginated
 	PrimaryName                     []*string   `json:"primary_name"`
-	ServiceName                     []*string   `json:"service_name"`
+	ServiceCCRN                     []*string   `json:"service_ccrn"`
 	Type                            []*string   `json:"type"`
 	Id                              []*int64    `json:"id"`
 	ActivityId                      []*int64    `json:"activity_id"`

@@ -60,7 +60,7 @@ func (this ActivityEdge) GetNode() Node      { return *this.Node }
 func (this ActivityEdge) GetCursor() *string { return this.Cursor }
 
 type ActivityFilter struct {
-	ServiceName []*string               `json:"serviceName,omitempty"`
+	ServiceCcrn []*string               `json:"serviceCcrn,omitempty"`
 	Status      []*ActivityStatusValues `json:"status,omitempty"`
 }
 
@@ -512,7 +512,7 @@ func (this IssueRepositoryEdge) GetNode() Node      { return *this.Node }
 func (this IssueRepositoryEdge) GetCursor() *string { return this.Cursor }
 
 type IssueRepositoryFilter struct {
-	ServiceName []*string `json:"serviceName,omitempty"`
+	ServiceCcrn []*string `json:"serviceCcrn,omitempty"`
 	ServiceID   []*string `json:"serviceId,omitempty"`
 	Name        []*string `json:"name,omitempty"`
 }
@@ -595,7 +595,7 @@ type Query struct {
 
 type Service struct {
 	ID                 string                       `json:"id"`
-	Name               *string                      `json:"name,omitempty"`
+	Ccrn               *string                      `json:"ccrn,omitempty"`
 	Owners             *UserConnection              `json:"owners,omitempty"`
 	SupportGroups      *SupportGroupConnection      `json:"supportGroups,omitempty"`
 	Activities         *ActivityConnection          `json:"activities,omitempty"`
@@ -627,7 +627,7 @@ func (this ServiceEdge) GetNode() Node      { return *this.Node }
 func (this ServiceEdge) GetCursor() *string { return this.Cursor }
 
 type ServiceFilter struct {
-	ServiceName      []*string `json:"serviceName,omitempty"`
+	ServiceCcrn      []*string `json:"serviceCcrn,omitempty"`
 	UniqueUserID     []*string `json:"uniqueUserId,omitempty"`
 	Type             []*int    `json:"type,omitempty"`
 	UserName         []*string `json:"userName,omitempty"`
@@ -636,14 +636,14 @@ type ServiceFilter struct {
 }
 
 type ServiceFilterValue struct {
-	ServiceName      *FilterItem `json:"serviceName,omitempty"`
+	ServiceCcrn      *FilterItem `json:"serviceCcrn,omitempty"`
 	UniqueUserID     *FilterItem `json:"uniqueUserId,omitempty"`
 	UserName         *FilterItem `json:"userName,omitempty"`
 	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
 }
 
 type ServiceInput struct {
-	Name *string `json:"name,omitempty"`
+	Ccrn *string `json:"ccrn,omitempty"`
 }
 
 type Severity struct {

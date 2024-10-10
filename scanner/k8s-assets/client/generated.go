@@ -403,17 +403,17 @@ func (v *ListSupportGroupsSupportGroupsSupportGroupConnectionEdgesSupportGroupEd
 // Service includes the requested fields of the GraphQL type Service.
 type Service struct {
 	Id   string `json:"id"`
-	Name string `json:"name"`
+	Ccrn string `json:"ccrn"`
 }
 
 // GetId returns Service.Id, and is useful for accessing the field via an interface.
 func (v *Service) GetId() string { return v.Id }
 
-// GetName returns Service.Name, and is useful for accessing the field via an interface.
-func (v *Service) GetName() string { return v.Name }
+// GetCcrn returns Service.Ccrn, and is useful for accessing the field via an interface.
+func (v *Service) GetCcrn() string { return v.Ccrn }
 
 type ServiceFilter struct {
-	ServiceName      []string `json:"serviceName"`
+	ServiceCcrn      []string `json:"serviceCcrn"`
 	UniqueUserId     []string `json:"uniqueUserId"`
 	Type             []int    `json:"type"`
 	UserName         []string `json:"userName"`
@@ -421,8 +421,8 @@ type ServiceFilter struct {
 	Search           []string `json:"search"`
 }
 
-// GetServiceName returns ServiceFilter.ServiceName, and is useful for accessing the field via an interface.
-func (v *ServiceFilter) GetServiceName() []string { return v.ServiceName }
+// GetServiceCcrn returns ServiceFilter.ServiceCcrn, and is useful for accessing the field via an interface.
+func (v *ServiceFilter) GetServiceCcrn() []string { return v.ServiceCcrn }
 
 // GetUniqueUserId returns ServiceFilter.UniqueUserId, and is useful for accessing the field via an interface.
 func (v *ServiceFilter) GetUniqueUserId() []string { return v.UniqueUserId }
@@ -440,11 +440,11 @@ func (v *ServiceFilter) GetSupportGroupName() []string { return v.SupportGroupNa
 func (v *ServiceFilter) GetSearch() []string { return v.Search }
 
 type ServiceInput struct {
-	Name string `json:"name"`
+	Ccrn string `json:"ccrn"`
 }
 
-// GetName returns ServiceInput.Name, and is useful for accessing the field via an interface.
-func (v *ServiceInput) GetName() string { return v.Name }
+// GetCcrn returns ServiceInput.Ccrn, and is useful for accessing the field via an interface.
+func (v *ServiceInput) GetCcrn() string { return v.Ccrn }
 
 // SupportGroup includes the requested fields of the GraphQL type SupportGroup.
 type SupportGroup struct {
@@ -679,7 +679,7 @@ const CreateService_Operation = `
 mutation CreateService ($input: ServiceInput!) {
 	createService(input: $input) {
 		id
-		name
+		ccrn
 	}
 }
 `

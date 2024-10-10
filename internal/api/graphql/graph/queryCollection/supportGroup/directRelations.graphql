@@ -34,7 +34,7 @@ query ($filter: SupportGroupFilter, $first: Int, $after: String) {
                     edges { 
                         node { 
                             id
-                            name
+                            ccrn
                         }
                         cursor
                     }

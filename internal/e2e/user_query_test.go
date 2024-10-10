@@ -162,7 +162,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 
 						for _, service := range user.Node.Services.Edges {
 							Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
-							Expect(service.Node.Name).ToNot(BeNil(), "Service has a name set")
+							Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a name set")
 
 							_, serviceFound := lo.Find(seedCollection.OwnerRows, func(row mariadb.OwnerRow) bool {
 								return fmt.Sprintf("%d", row.UserId.Int64) == user.Node.ID && // correct user

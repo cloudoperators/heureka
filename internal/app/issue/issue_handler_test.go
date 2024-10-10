@@ -37,7 +37,7 @@ func getIssueFilter() *entity.IssueFilter {
 			First: nil,
 			After: nil,
 		},
-		ServiceName:                     []*string{&serviceName},
+		ServiceCCRN:                     []*string{&serviceName},
 		Id:                              nil,
 		IssueMatchStatus:                nil,
 		IssueMatchDiscoveryDate:         nil,

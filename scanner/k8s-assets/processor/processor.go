@@ -76,8 +76,8 @@ func NewProcessor(cfg Config) *Processor {
 func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.ServiceInfo) (string, error) {
 	var serviceId string
 
-	if serviceInfo.Name == "" {
-		serviceInfo.Name = "none"
+	if serviceInfo.CCRN == "" {
+		serviceInfo.CCRN = "none"
 	}
 
 	// The Service might already exist in the DB
@@ -85,17 +85,17 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 	_serviceId, err := p.getService(ctx, serviceInfo)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"serviceName": serviceInfo.Name,
+			"serviceCcrn": serviceInfo.CCRN,
 		}).Error("failed to fetch service")
 
 		// Create new Service
 		createServiceInput := &client.ServiceInput{
-			Name: serviceInfo.Name,
+			Ccrn: serviceInfo.CCRN,
 		}
 
 		createServiceResp, err := client.CreateService(ctx, *p.Client, createServiceInput)
 		if err != nil {
-			return "", fmt.Errorf("failed to create Service %s: %w", serviceInfo.Name, err)
+			return "", fmt.Errorf("failed to create Service %s: %w", serviceInfo.CCRN, err)
 		} else {
 			serviceId = createServiceResp.CreateService.Id
 		}
@@ -107,7 +107,7 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 	_supportGroupId, err := p.getSupportGroup(ctx, serviceInfo)
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"serviceName": serviceInfo.Name,
+			"serviceCcrn": serviceInfo.CCRN,
 		}).Error("failed to fetch service")
 
 		// Create new SupportGroup
@@ -155,7 +155,7 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 	var serviceId string
 
 	listServicesFilter := client.ServiceFilter{
-		ServiceName: []string{serviceInfo.Name},
+		ServiceCcrn: []string{serviceInfo.CCRN},
 	}
 	listServicesResp, err := client.ListServices(ctx, *p.Client, &listServicesFilter)
 	if err != nil {

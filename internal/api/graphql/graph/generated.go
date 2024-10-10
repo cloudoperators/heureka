@@ -463,10 +463,10 @@ type ComplexityRoot struct {
 
 	Service struct {
 		Activities         func(childComplexity int, filter *model.ActivityFilter, first *int, after *string) int
+		Ccrn               func(childComplexity int) int
 		ComponentInstances func(childComplexity int, filter *model.ComponentInstanceFilter, first *int, after *string) int
 		ID                 func(childComplexity int) int
 		IssueRepositories  func(childComplexity int, filter *model.IssueRepositoryFilter, first *int, after *string) int
-		Name               func(childComplexity int) int
 		Owners             func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
 		SupportGroups      func(childComplexity int, filter *model.SupportGroupFilter, first *int, after *string) int
 	}
@@ -484,7 +484,7 @@ type ComplexityRoot struct {
 	}
 
 	ServiceFilterValue struct {
-		ServiceName      func(childComplexity int, filter *model.ServiceFilter) int
+		ServiceCcrn      func(childComplexity int, filter *model.ServiceFilter) int
 		SupportGroupName func(childComplexity int, filter *model.SupportGroupFilter) int
 		UniqueUserID     func(childComplexity int, filter *model.UserFilter) int
 		UserName         func(childComplexity int, filter *model.UserFilter) int
@@ -679,7 +679,7 @@ type ServiceResolver interface {
 	ComponentInstances(ctx context.Context, obj *model.Service, filter *model.ComponentInstanceFilter, first *int, after *string) (*model.ComponentInstanceConnection, error)
 }
 type ServiceFilterValueResolver interface {
-	ServiceName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error)
+	ServiceCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error)
 	UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error)
 	UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error)
 	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error)
@@ -3064,6 +3064,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Service.Activities(childComplexity, args["filter"].(*model.ActivityFilter), args["first"].(*int), args["after"].(*string)), true
 
+	case "Service.ccrn":
+		if e.complexity.Service.Ccrn == nil {
+			break
+		}
+
+		return e.complexity.Service.Ccrn(childComplexity), true
+
 	case "Service.componentInstances":
 		if e.complexity.Service.ComponentInstances == nil {
 			break
@@ -3094,13 +3101,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Service.IssueRepositories(childComplexity, args["filter"].(*model.IssueRepositoryFilter), args["first"].(*int), args["after"].(*string)), true
-
-	case "Service.name":
-		if e.complexity.Service.Name == nil {
-			break
-		}
-
-		return e.complexity.Service.Name(childComplexity), true
 
 	case "Service.owners":
 		if e.complexity.Service.Owners == nil {
@@ -3168,17 +3168,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ServiceEdge.Priority(childComplexity), true
 
-	case "ServiceFilterValue.serviceName":
-		if e.complexity.ServiceFilterValue.ServiceName == nil {
+	case "ServiceFilterValue.serviceCcrn":
+		if e.complexity.ServiceFilterValue.ServiceCcrn == nil {
 			break
 		}
 
-		args, err := ec.field_ServiceFilterValue_serviceName_args(context.TODO(), rawArgs)
+		args, err := ec.field_ServiceFilterValue_serviceCcrn_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.ServiceFilterValue.ServiceName(childComplexity, args["filter"].(*model.ServiceFilter)), true
+		return e.complexity.ServiceFilterValue.ServiceCcrn(childComplexity, args["filter"].(*model.ServiceFilter)), true
 
 	case "ServiceFilterValue.supportGroupName":
 		if e.complexity.ServiceFilterValue.SupportGroupName == nil {
@@ -8908,17 +8908,17 @@ func (ec *executionContext) field_Query___type_argsName(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_ServiceFilterValue_serviceName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_ServiceFilterValue_serviceCcrn_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	arg0, err := ec.field_ServiceFilterValue_serviceName_argsFilter(ctx, rawArgs)
+	arg0, err := ec.field_ServiceFilterValue_serviceCcrn_argsFilter(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["filter"] = arg0
 	return args, nil
 }
-func (ec *executionContext) field_ServiceFilterValue_serviceName_argsFilter(
+func (ec *executionContext) field_ServiceFilterValue_serviceCcrn_argsFilter(
 	ctx context.Context,
 	rawArgs map[string]interface{},
 ) (*model.ServiceFilter, error) {
@@ -12573,8 +12573,8 @@ func (ec *executionContext) fieldContext_ComponentInstance_service(_ context.Con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Service_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Service_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_Service_ccrn(ctx, field)
 			case "owners":
 				return ec.fieldContext_Service_owners(ctx, field)
 			case "supportGroups":
@@ -20229,8 +20229,8 @@ func (ec *executionContext) fieldContext_Mutation_createService(ctx context.Cont
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Service_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Service_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_Service_ccrn(ctx, field)
 			case "owners":
 				return ec.fieldContext_Service_owners(ctx, field)
 			case "supportGroups":
@@ -20300,8 +20300,8 @@ func (ec *executionContext) fieldContext_Mutation_updateService(ctx context.Cont
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Service_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Service_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_Service_ccrn(ctx, field)
 			case "owners":
 				return ec.fieldContext_Service_owners(ctx, field)
 			case "supportGroups":
@@ -20426,8 +20426,8 @@ func (ec *executionContext) fieldContext_Mutation_addOwnerToService(ctx context.
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Service_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Service_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_Service_ccrn(ctx, field)
 			case "owners":
 				return ec.fieldContext_Service_owners(ctx, field)
 			case "supportGroups":
@@ -20497,8 +20497,8 @@ func (ec *executionContext) fieldContext_Mutation_removeOwnerFromService(ctx con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Service_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Service_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_Service_ccrn(ctx, field)
 			case "owners":
 				return ec.fieldContext_Service_owners(ctx, field)
 			case "supportGroups":
@@ -20568,8 +20568,8 @@ func (ec *executionContext) fieldContext_Mutation_addIssueRepositoryToService(ct
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Service_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Service_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_Service_ccrn(ctx, field)
 			case "owners":
 				return ec.fieldContext_Service_owners(ctx, field)
 			case "supportGroups":
@@ -20639,8 +20639,8 @@ func (ec *executionContext) fieldContext_Mutation_removeIssueRepositoryFromServi
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Service_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Service_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_Service_ccrn(ctx, field)
 			case "owners":
 				return ec.fieldContext_Service_owners(ctx, field)
 			case "supportGroups":
@@ -23954,8 +23954,8 @@ func (ec *executionContext) fieldContext_Query_ServiceFilterValues(_ context.Con
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "serviceName":
-				return ec.fieldContext_ServiceFilterValue_serviceName(ctx, field)
+			case "serviceCcrn":
+				return ec.fieldContext_ServiceFilterValue_serviceCcrn(ctx, field)
 			case "uniqueUserId":
 				return ec.fieldContext_ServiceFilterValue_uniqueUserId(ctx, field)
 			case "userName":
@@ -24199,8 +24199,8 @@ func (ec *executionContext) fieldContext_Service_id(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _Service_name(ctx context.Context, field graphql.CollectedField, obj *model.Service) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Service_name(ctx, field)
+func (ec *executionContext) _Service_ccrn(ctx context.Context, field graphql.CollectedField, obj *model.Service) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Service_ccrn(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -24213,7 +24213,7 @@ func (ec *executionContext) _Service_name(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
+		return obj.Ccrn, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24227,7 +24227,7 @@ func (ec *executionContext) _Service_name(ctx context.Context, field graphql.Col
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Service_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Service_ccrn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Service",
 		Field:      field,
@@ -24729,8 +24729,8 @@ func (ec *executionContext) fieldContext_ServiceEdge_node(_ context.Context, fie
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Service_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Service_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_Service_ccrn(ctx, field)
 			case "owners":
 				return ec.fieldContext_Service_owners(ctx, field)
 			case "supportGroups":
@@ -24830,8 +24830,8 @@ func (ec *executionContext) fieldContext_ServiceEdge_priority(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _ServiceFilterValue_serviceName(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ServiceFilterValue_serviceName(ctx, field)
+func (ec *executionContext) _ServiceFilterValue_serviceCcrn(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_serviceCcrn(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -24844,7 +24844,7 @@ func (ec *executionContext) _ServiceFilterValue_serviceName(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().ServiceName(rctx, obj, fc.Args["filter"].(*model.ServiceFilter))
+		return ec.resolvers.ServiceFilterValue().ServiceCcrn(rctx, obj, fc.Args["filter"].(*model.ServiceFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -24858,7 +24858,7 @@ func (ec *executionContext) _ServiceFilterValue_serviceName(ctx context.Context,
 	return ec.marshalOFilterItem2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ServiceFilterValue_serviceName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ServiceFilterValue_serviceCcrn(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ServiceFilterValue",
 		Field:      field,
@@ -24883,7 +24883,7 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_serviceName(ctx cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_ServiceFilterValue_serviceName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_ServiceFilterValue_serviceCcrn_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -27964,20 +27964,20 @@ func (ec *executionContext) unmarshalInputActivityFilter(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceName", "status"}
+	fieldsInOrder := [...]string{"serviceCcrn", "status"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "serviceName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceName"))
+		case "serviceCcrn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCcrn"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ServiceName = data
+			it.ServiceCcrn = data
 		case "status":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
 			data, err := ec.unmarshalOActivityStatusValues2ᚕᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐActivityStatusValues(ctx, v)
@@ -28689,20 +28689,20 @@ func (ec *executionContext) unmarshalInputIssueRepositoryFilter(ctx context.Cont
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceName", "serviceId", "name"}
+	fieldsInOrder := [...]string{"serviceCcrn", "serviceId", "name"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "serviceName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceName"))
+		case "serviceCcrn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCcrn"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ServiceName = data
+			it.ServiceCcrn = data
 		case "serviceId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceId"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
@@ -28846,20 +28846,20 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceName", "uniqueUserId", "type", "userName", "supportGroupName", "search"}
+	fieldsInOrder := [...]string{"serviceCcrn", "uniqueUserId", "type", "userName", "supportGroupName", "search"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "serviceName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceName"))
+		case "serviceCcrn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCcrn"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ServiceName = data
+			it.ServiceCcrn = data
 		case "uniqueUserId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("uniqueUserId"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
@@ -28908,20 +28908,20 @@ func (ec *executionContext) unmarshalInputServiceInput(ctx context.Context, obj 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name"}
+	fieldsInOrder := [...]string{"ccrn"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		case "ccrn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ccrn"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Name = data
+			it.Ccrn = data
 		}
 	}
 
@@ -33139,8 +33139,8 @@ func (ec *executionContext) _Service(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "name":
-			out.Values[i] = ec._Service_name(ctx, field, obj)
+		case "ccrn":
+			out.Values[i] = ec._Service_ccrn(ctx, field, obj)
 		case "owners":
 			field := field
 
@@ -33426,7 +33426,7 @@ func (ec *executionContext) _ServiceFilterValue(ctx context.Context, sel ast.Sel
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ServiceFilterValue")
-		case "serviceName":
+		case "serviceCcrn":
 			field := field
 
 			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
@@ -33435,7 +33435,7 @@ func (ec *executionContext) _ServiceFilterValue(ctx context.Context, sel ast.Sel
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._ServiceFilterValue_serviceName(ctx, field, obj)
+				res = ec._ServiceFilterValue_serviceCcrn(ctx, field, obj)
 				return res
 			}
 

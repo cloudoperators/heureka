@@ -5,8 +5,9 @@ package mariadb
 
 import (
 	"fmt"
-	"github.com/cloudoperators/heureka/internal/database"
 	"strings"
+
+	"github.com/cloudoperators/heureka/internal/database"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/jmoiron/sqlx"
@@ -20,7 +21,7 @@ const (
 
 func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	var fl []string
-	fl = append(fl, buildFilterQuery(filter.ServiceName, "S.service_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "I.issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchStatus, "IM.issuematch_status = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
@@ -43,12 +44,12 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, withAggregations
          	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceName) > 0 || len(filter.IssueMatchId) > 0 || withAggregations {
+	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 || withAggregations {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
-	if len(filter.ServiceName) > 0 || withAggregations {
+	if len(filter.ServiceCCRN) > 0 || withAggregations {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 			LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
@@ -80,7 +81,7 @@ func (s *SqlDatabase) ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilt
 				First: &first,
 				After: &after,
 			},
-			ServiceName:                     nil,
+			ServiceCCRN:                     nil,
 			Id:                              nil,
 			ActivityId:                      nil,
 			IssueMatchStatus:                nil,
@@ -162,7 +163,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 
 	//adding parameters
 	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceName)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
@@ -197,7 +198,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter) ([]e
 	aggregations := []string{
 		"count(distinct issuematch_id) as agg_issue_matches",
 		"count(distinct activity_id) as agg_activities",
-		"count(distinct service_name) as agg_affected_services",
+		"count(distinct service_ccrn) as agg_affected_services",
 		"count(distinct componentversionissue_component_version_id) as agg_component_versions",
 		"sum(componentinstance_count) as agg_affected_component_instances",
 		"min(issuematch_target_remediation_date) as agg_earliest_target_remediation_date",

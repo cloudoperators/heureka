@@ -334,14 +334,14 @@ func NewUserEntity(user *UserInput) entity.User {
 func NewService(s *entity.Service) Service {
 	return Service{
 		ID:   fmt.Sprintf("%d", s.Id),
-		Name: &s.Name,
+		Ccrn: &s.CCRN,
 	}
 }
 
 func NewServiceEntity(service *ServiceInput) entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
-			Name: lo.FromPtr(service.Name),
+			CCRN: lo.FromPtr(service.Ccrn),
 		},
 	}
 }
