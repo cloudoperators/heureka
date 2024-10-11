@@ -300,6 +300,7 @@ func (p *Processor) ProcessContainer(
 	// Find component version by container image hash
 	componentVersionId, err := p.getComponentVersion(ctx, containerInfo.ImageHash)
 	if err != nil {
+		// TODO: Create componentVersion if API call failed
 		return fmt.Errorf("Couldn't find ComponentVersion (imageHash: %s): %w", containerInfo.ImageHash, err)
 	}
 
