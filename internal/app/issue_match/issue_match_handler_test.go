@@ -462,10 +462,10 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
 				})).Return(variants, nil)
-				db.On("GetIssueMatches", mock.Anything).Return([]entity.IssueMatch{}, nil)
 			})
 
 			It("should create issue matches for each issue", func() {
+				db.On("GetIssueMatches", mock.Anything).Return([]entity.IssueMatch{}, nil)
 				// Mock CreateIssueMatch
 				db.On("CreateIssueMatch", mock.AnythingOfType("*entity.IssueMatch")).Return(&entity.IssueMatch{}, nil).Twice()
 				im.OnComponentVersionAssignmentToComponentInstance(db, componentInstanceID, componentVersionID)
@@ -479,9 +479,14 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					// Fake issues
 					issueMatch := test.NewFakeIssueMatch()
 					issueMatch.IssueId = 2 // issue2.Id
+					//when issueid is 2 return a fake issue match
 					db.On("GetIssueMatches", mock.MatchedBy(func(filter *entity.IssueMatchFilter) bool {
-						return *filter.IssueId[0] == int64(1)
+						return *filter.IssueId[0] == int64(2)
 					})).Return([]entity.IssueMatch{issueMatch}, nil)
+					//when it is not 2 return none
+					db.On("GetIssueMatches", mock.MatchedBy(func(filter *entity.IssueMatchFilter) bool {
+						return *filter.IssueId[0] != int64(2)
+					})).Return([]entity.IssueMatch{}, nil)
 				})
 
 				It("should only create issue matches for new issues", func() {
@@ -490,7 +495,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					im.OnComponentVersionAssignmentToComponentInstance(db, componentInstanceID, componentVersionID)
 
 					// Verify that CreateIssueMatch was called only once (for the new issue)
-					//db.AssertNumberOfCalls(GinkgoT(), "CreateIssueMatch", 1)
+					db.AssertNumberOfCalls(GinkgoT(), "CreateIssueMatch", 1)
 				})
 			})
 
