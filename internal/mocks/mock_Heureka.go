@@ -3023,12 +3023,12 @@ func (_c *MockHeureka_ListServices_Call) RunAndReturn(run func(*entity.ServiceFi
 	return _c
 }
 
-// ListSupportGroupNames provides a mock function with given fields: _a0, _a1
-func (_m *MockHeureka) ListSupportGroupNames(_a0 *entity.SupportGroupFilter, _a1 *entity.ListOptions) ([]string, error) {
+// ListSupportGroupCcrns provides a mock function with given fields: _a0, _a1
+func (_m *MockHeureka) ListSupportGroupCcrns(_a0 *entity.SupportGroupFilter, _a1 *entity.ListOptions) ([]string, error) {
 	ret := _m.Called(_a0, _a1)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ListSupportGroupNames")
+		panic("no return value specified for ListSupportGroupCcrns")
 	}
 
 	var r0 []string
@@ -3053,31 +3053,31 @@ func (_m *MockHeureka) ListSupportGroupNames(_a0 *entity.SupportGroupFilter, _a1
 	return r0, r1
 }
 
-// MockHeureka_ListSupportGroupNames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListSupportGroupNames'
-type MockHeureka_ListSupportGroupNames_Call struct {
+// MockHeureka_ListSupportGroupCcrns_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListSupportGroupCcrns'
+type MockHeureka_ListSupportGroupCcrns_Call struct {
 	*mock.Call
 }
 
-// ListSupportGroupNames is a helper method to define mock.On call
+// ListSupportGroupCcrns is a helper method to define mock.On call
 //   - _a0 *entity.SupportGroupFilter
 //   - _a1 *entity.ListOptions
-func (_e *MockHeureka_Expecter) ListSupportGroupNames(_a0 interface{}, _a1 interface{}) *MockHeureka_ListSupportGroupNames_Call {
-	return &MockHeureka_ListSupportGroupNames_Call{Call: _e.mock.On("ListSupportGroupNames", _a0, _a1)}
+func (_e *MockHeureka_Expecter) ListSupportGroupCcrns(_a0 interface{}, _a1 interface{}) *MockHeureka_ListSupportGroupCcrns_Call {
+	return &MockHeureka_ListSupportGroupCcrns_Call{Call: _e.mock.On("ListSupportGroupCcrns", _a0, _a1)}
 }
 
-func (_c *MockHeureka_ListSupportGroupNames_Call) Run(run func(_a0 *entity.SupportGroupFilter, _a1 *entity.ListOptions)) *MockHeureka_ListSupportGroupNames_Call {
+func (_c *MockHeureka_ListSupportGroupCcrns_Call) Run(run func(_a0 *entity.SupportGroupFilter, _a1 *entity.ListOptions)) *MockHeureka_ListSupportGroupCcrns_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*entity.SupportGroupFilter), args[1].(*entity.ListOptions))
 	})
 	return _c
 }
 
-func (_c *MockHeureka_ListSupportGroupNames_Call) Return(_a0 []string, _a1 error) *MockHeureka_ListSupportGroupNames_Call {
+func (_c *MockHeureka_ListSupportGroupCcrns_Call) Return(_a0 []string, _a1 error) *MockHeureka_ListSupportGroupCcrns_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockHeureka_ListSupportGroupNames_Call) RunAndReturn(run func(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)) *MockHeureka_ListSupportGroupNames_Call {
+func (_c *MockHeureka_ListSupportGroupCcrns_Call) RunAndReturn(run func(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)) *MockHeureka_ListSupportGroupCcrns_Call {
 	_c.Call.Return(run)
 	return _c
 }

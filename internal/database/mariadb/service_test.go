@@ -233,7 +233,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						}
 					}
 
-					filter := &entity.ServiceFilter{SupportGroupName: []*string{&sgRow.Name.String}}
+					filter := &entity.ServiceFilter{SupportGroupCCRN: []*string{&sgRow.CCRN.String}}
 
 					entries, err := db.GetServices(filter)
 
@@ -509,7 +509,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 							First: &pageSize,
 							After: nil,
 						},
-						SupportGroupName: []*string{&sgRow.Name.String},
+						SupportGroupCCRN: []*string{&sgRow.CCRN.String},
 					}
 					entries, err := db.CountServices(filter)
 					By("throwing no error", func() {

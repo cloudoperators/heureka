@@ -173,7 +173,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 
 						for _, sg := range user.Node.SupportGroups.Edges {
 							Expect(sg.Node.ID).ToNot(BeNil(), "supportGroup has a ID set")
-							Expect(sg.Node.Name).ToNot(BeNil(), "supportGroup has a name set")
+							Expect(sg.Node.Ccrn).ToNot(BeNil(), "supportGroup has a ccrn set")
 
 							_, sgFound := lo.Find(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow) bool {
 								return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct support group

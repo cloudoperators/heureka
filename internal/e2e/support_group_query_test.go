@@ -174,11 +174,11 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 					for _, sg := range respData.SupportGroups.Edges {
 						Expect(sg.Node.ID).ToNot(BeNil(), "supportGroup has a ID set")
-						Expect(sg.Node.Name).ToNot(BeNil(), "supportGroup has a name set")
+						Expect(sg.Node.Ccrn).ToNot(BeNil(), "supportGroup has a ccrn set")
 
 						for _, service := range sg.Node.Services.Edges {
 							Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
-							Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a name set")
+							Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a ccrn set")
 
 							_, serviceFound := lo.Find(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow) bool {
 								return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct support group
@@ -258,7 +258,7 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 				req := graphql.NewRequest(str)
 
 				req.Var("input", map[string]string{
-					"name": supportGroup.Name,
+					"ccrn": supportGroup.CCRN,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -271,7 +271,7 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*respData.SupportGroup.Name).To(Equal(supportGroup.Name))
+				Expect(*respData.SupportGroup.Ccrn).To(Equal(supportGroup.CCRN))
 			})
 		})
 	})
@@ -320,11 +320,11 @@ var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"),
 				req := graphql.NewRequest(str)
 
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
-				supportGroup.Name = "Team Alone"
+				supportGroup.CCRN = "Team Alone"
 
 				req.Var("id", fmt.Sprintf("%d", supportGroup.Id))
 				req.Var("input", map[string]string{
-					"name": supportGroup.Name,
+					"ccrn": supportGroup.CCRN,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -337,7 +337,7 @@ var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"),
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*respData.SupportGroup.Name).To(Equal(supportGroup.Name))
+				Expect(*respData.SupportGroup.Ccrn).To(Equal(supportGroup.CCRN))
 			})
 		})
 	})

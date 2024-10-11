@@ -45,13 +45,13 @@ func (r *issueMatchFilterValueResolver) ComponentCcrn(ctx context.Context, obj *
 	return item, nil
 }
 
-// SupportGroupName is the resolver for the supportGroupName field.
-func (r *issueMatchFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter)
+// SupportGroupCcrn is the resolver for the supportGroupCcrn field.
+func (r *issueMatchFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.IssueMatchFilterSupportGroupName
+	item.FilterName = &baseResolver.IssueMatchFilterSupportGroupCcrn
 	return item, nil
 }
 

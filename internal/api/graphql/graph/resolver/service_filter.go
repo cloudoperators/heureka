@@ -45,13 +45,13 @@ func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.Se
 	return item, err
 }
 
-// SupportGroupName is the resolver for the supportGroupName field.
-func (r *serviceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter)
+// SupportGroupCcrn is the resolver for the supportGroupCcrn field.
+func (r *serviceFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ServiceFilterSupportGroupName
+	item.FilterName = &baseResolver.ServiceFilterSupportGroupCcrn
 	return item, err
 }
 

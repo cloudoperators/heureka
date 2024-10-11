@@ -443,7 +443,7 @@ type IssueMatchFilter struct {
 	Status           []*IssueMatchStatusValues `json:"status,omitempty"`
 	Severity         []*SeverityValues         `json:"severity,omitempty"`
 	AffectedService  []*string                 `json:"affectedService,omitempty"`
-	SupportGroupName []*string                 `json:"supportGroupName,omitempty"`
+	SupportGroupCcrn []*string                 `json:"supportGroupCcrn,omitempty"`
 }
 
 type IssueMatchFilterValue struct {
@@ -453,7 +453,7 @@ type IssueMatchFilterValue struct {
 	PrimaryName      *FilterItem `json:"primaryName,omitempty"`
 	AffectedService  *FilterItem `json:"affectedService,omitempty"`
 	ComponentCcrn    *FilterItem `json:"componentCcrn,omitempty"`
-	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
+	SupportGroupCcrn *FilterItem `json:"supportGroupCcrn,omitempty"`
 }
 
 type IssueMatchInput struct {
@@ -631,7 +631,7 @@ type ServiceFilter struct {
 	UniqueUserID     []*string `json:"uniqueUserId,omitempty"`
 	Type             []*int    `json:"type,omitempty"`
 	UserName         []*string `json:"userName,omitempty"`
-	SupportGroupName []*string `json:"supportGroupName,omitempty"`
+	SupportGroupCcrn []*string `json:"supportGroupCcrn,omitempty"`
 	Search           []*string `json:"search,omitempty"`
 }
 
@@ -639,7 +639,7 @@ type ServiceFilterValue struct {
 	ServiceCcrn      *FilterItem `json:"serviceCcrn,omitempty"`
 	UniqueUserID     *FilterItem `json:"uniqueUserId,omitempty"`
 	UserName         *FilterItem `json:"userName,omitempty"`
-	SupportGroupName *FilterItem `json:"supportGroupName,omitempty"`
+	SupportGroupCcrn *FilterItem `json:"supportGroupCcrn,omitempty"`
 }
 
 type ServiceInput struct {
@@ -658,7 +658,7 @@ type SeverityInput struct {
 
 type SupportGroup struct {
 	ID       string             `json:"id"`
-	Name     *string            `json:"name,omitempty"`
+	Ccrn     *string            `json:"ccrn,omitempty"`
 	Users    *UserConnection    `json:"users,omitempty"`
 	Services *ServiceConnection `json:"services,omitempty"`
 }
@@ -686,12 +686,12 @@ func (this SupportGroupEdge) GetNode() Node      { return *this.Node }
 func (this SupportGroupEdge) GetCursor() *string { return this.Cursor }
 
 type SupportGroupFilter struct {
-	SupportGroupName []*string `json:"supportGroupName,omitempty"`
+	SupportGroupCcrn []*string `json:"supportGroupCcrn,omitempty"`
 	UserIds          []*string `json:"userIds,omitempty"`
 }
 
 type SupportGroupInput struct {
-	Name *string `json:"name,omitempty"`
+	Ccrn *string `json:"ccrn,omitempty"`
 }
 
 type User struct {

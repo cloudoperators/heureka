@@ -108,7 +108,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		AffectedServiceCCRN: filter.AffectedService,
 		Status:              lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
 		SeverityValue:       lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
-		SupportGroupName:    filter.SupportGroupName,
+		SupportGroupCCRN:    filter.SupportGroupCcrn,
 		IssueId:             issueId,
 		EvidenceId:          eId,
 		ComponentInstanceId: ciId,

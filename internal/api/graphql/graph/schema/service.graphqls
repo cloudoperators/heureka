@@ -32,6 +32,6 @@ input ServiceFilter {
     uniqueUserId: [String]
     type: [Int]
     userName: [String]
-    supportGroupName: [String]
+    supportGroupCcrn: [String]
     search: [String]
 }

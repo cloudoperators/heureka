@@ -20,7 +20,7 @@ func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) strin
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.CCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "S.service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.SupportGroupName, "SG.supportgroup_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerName, "U.user_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
@@ -45,12 +45,12 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter) string {
 			LEFT JOIN User U on U.user_id = O.owner_user_id
 		`)
 	}
-	if len(filter.SupportGroupName) > 0 || len(filter.SupportGroupId) > 0 {
+	if len(filter.SupportGroupCCRN) > 0 || len(filter.SupportGroupId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
 		`)
 	}
-	if len(filter.SupportGroupName) > 0 {
+	if len(filter.SupportGroupCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
 		`)
@@ -91,7 +91,7 @@ func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.Servi
 				First: &first,
 				After: &after,
 			},
-			SupportGroupName:  nil,
+			SupportGroupCCRN:  nil,
 			CCRN:              nil,
 			Id:                nil,
 			OwnerName:         nil,
@@ -157,7 +157,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 
 	//adding parameters
 	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)

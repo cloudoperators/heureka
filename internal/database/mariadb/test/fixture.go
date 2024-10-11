@@ -918,9 +918,9 @@ func (s *DatabaseSeeder) InsertFakeBaseService(service mariadb.BaseServiceRow) (
 func (s *DatabaseSeeder) InsertFakeSupportGroup(sg mariadb.SupportGroupRow) (int64, error) {
 	query := `
 		INSERT INTO SupportGroup (
-			supportgroup_name
+			supportgroup_ccrn
 		) VALUES (
-			:supportgroup_name
+			:supportgroup_ccrn
 		)`
 	return s.ExecPreparedNamed(query, sg)
 }
@@ -1181,7 +1181,7 @@ func NewFakeService() mariadb.ServiceRow {
 
 func NewFakeSupportGroup() mariadb.SupportGroupRow {
 	return mariadb.SupportGroupRow{
-		Name: sql.NullString{String: gofakeit.AppName(), Valid: true},
+		CCRN: sql.NullString{String: gofakeit.AppName(), Valid: true},
 	}
 }
 
@@ -1318,7 +1318,7 @@ func (s *DatabaseSeeder) SeedRealSupportGroups() map[string]mariadb.SupportGroup
 
 	for _, sg := range sgs {
 		supportGroup := mariadb.SupportGroupRow{
-			Name: sql.NullString{String: sg, Valid: true},
+			CCRN: sql.NullString{String: sg, Valid: true},
 		}
 		supportGroupId, err := s.InsertFakeSupportGroup(supportGroup)
 		if err != nil {

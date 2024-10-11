@@ -69,10 +69,10 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 
 			Expect(respData.ServiceFilterValues.ServiceCcrn.Values).To(BeEmpty())
 		})
-		It("returns empty for supportGroupNames", func() {
+		It("returns empty for supportGroupCcrns", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroupNames.graphql")
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroupCcrns.graphql")
 
 			Expect(err).To(BeNil())
 			str := string(b)
@@ -88,7 +88,7 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ServiceFilterValues.SupportGroupName.Values).To(BeEmpty())
+			Expect(respData.ServiceFilterValues.SupportGroupCcrn.Values).To(BeEmpty())
 		})
 		It("returns empty for userNames", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
@@ -166,14 +166,14 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 					return s.CCRN.String
 				})
 
-				for _, name := range respData.ServiceFilterValues.ServiceCcrn.Values {
-					Expect(lo.Contains(existingServiceCcrns, *name)).To(BeTrue())
+				for _, ccrn := range respData.ServiceFilterValues.ServiceCcrn.Values {
+					Expect(lo.Contains(existingServiceCcrns, *ccrn)).To(BeTrue())
 				}
 			})
-			It("returns correct supportGroupNames", func() {
+			It("returns correct supportGroupCcrns", func() {
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroupNames.graphql")
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroupCcrns.graphql")
 
 				Expect(err).To(BeNil())
 				str := string(b)
@@ -189,14 +189,14 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ServiceFilterValues.SupportGroupName.Values)).To(Equal(len(seedCollection.SupportGroupRows)))
+				Expect(len(respData.ServiceFilterValues.SupportGroupCcrn.Values)).To(Equal(len(seedCollection.SupportGroupRows)))
 
-				existingSupportGroupNames := lo.Map(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow, index int) string {
-					return s.Name.String
+				existingsupportGroupCcrns := lo.Map(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow, index int) string {
+					return s.CCRN.String
 				})
 
-				for _, name := range respData.ServiceFilterValues.SupportGroupName.Values {
-					Expect(lo.Contains(existingSupportGroupNames, *name)).To(BeTrue())
+				for _, ccrn := range respData.ServiceFilterValues.SupportGroupCcrn.Values {
+					Expect(lo.Contains(existingsupportGroupCcrns, *ccrn)).To(BeTrue())
 				}
 			})
 			It("returns correct userNames", func() {

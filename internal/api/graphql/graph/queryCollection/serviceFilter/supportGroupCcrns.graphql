@@ -3,7 +3,7 @@
 
 query($filter: SupportGroupFilter){
     ServiceFilterValues{
-        supportGroupName(filter: $filter){
+        supportGroupCcrn(filter: $filter){
             filterName
             values
         }

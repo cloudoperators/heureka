@@ -306,7 +306,7 @@ type ComplexityRoot struct {
 		PrimaryName      func(childComplexity int, filter *model.IssueFilter) int
 		Severity         func(childComplexity int) int
 		Status           func(childComplexity int) int
-		SupportGroupName func(childComplexity int, filter *model.SupportGroupFilter) int
+		SupportGroupCcrn func(childComplexity int, filter *model.SupportGroupFilter) int
 	}
 
 	IssueMetadata struct {
@@ -485,7 +485,7 @@ type ComplexityRoot struct {
 
 	ServiceFilterValue struct {
 		ServiceCcrn      func(childComplexity int, filter *model.ServiceFilter) int
-		SupportGroupName func(childComplexity int, filter *model.SupportGroupFilter) int
+		SupportGroupCcrn func(childComplexity int, filter *model.SupportGroupFilter) int
 		UniqueUserID     func(childComplexity int, filter *model.UserFilter) int
 		UserName         func(childComplexity int, filter *model.UserFilter) int
 	}
@@ -497,8 +497,8 @@ type ComplexityRoot struct {
 	}
 
 	SupportGroup struct {
+		Ccrn     func(childComplexity int) int
 		ID       func(childComplexity int) int
-		Name     func(childComplexity int) int
 		Services func(childComplexity int, filter *model.ServiceFilter, first *int, after *string) int
 		Users    func(childComplexity int, filter *model.UserFilter, first *int, after *string) int
 	}
@@ -586,7 +586,7 @@ type IssueMatchFilterValueResolver interface {
 	PrimaryName(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.IssueFilter) (*model.FilterItem, error)
 	AffectedService(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error)
 	ComponentCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error)
-	SupportGroupName(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error)
+	SupportGroupCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error)
 }
 type IssueRepositoryResolver interface {
 	IssueVariants(ctx context.Context, obj *model.IssueRepository, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error)
@@ -682,7 +682,7 @@ type ServiceFilterValueResolver interface {
 	ServiceCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error)
 	UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error)
 	UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error)
-	SupportGroupName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error)
+	SupportGroupCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error)
 }
 type SupportGroupResolver interface {
 	Users(ctx context.Context, obj *model.SupportGroup, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -1857,17 +1857,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IssueMatchFilterValue.Status(childComplexity), true
 
-	case "IssueMatchFilterValue.supportGroupName":
-		if e.complexity.IssueMatchFilterValue.SupportGroupName == nil {
+	case "IssueMatchFilterValue.supportGroupCcrn":
+		if e.complexity.IssueMatchFilterValue.SupportGroupCcrn == nil {
 			break
 		}
 
-		args, err := ec.field_IssueMatchFilterValue_supportGroupName_args(context.TODO(), rawArgs)
+		args, err := ec.field_IssueMatchFilterValue_supportGroupCcrn_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.IssueMatchFilterValue.SupportGroupName(childComplexity, args["filter"].(*model.SupportGroupFilter)), true
+		return e.complexity.IssueMatchFilterValue.SupportGroupCcrn(childComplexity, args["filter"].(*model.SupportGroupFilter)), true
 
 	case "IssueMetadata.activityCount":
 		if e.complexity.IssueMetadata.ActivityCount == nil {
@@ -3180,17 +3180,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ServiceFilterValue.ServiceCcrn(childComplexity, args["filter"].(*model.ServiceFilter)), true
 
-	case "ServiceFilterValue.supportGroupName":
-		if e.complexity.ServiceFilterValue.SupportGroupName == nil {
+	case "ServiceFilterValue.supportGroupCcrn":
+		if e.complexity.ServiceFilterValue.SupportGroupCcrn == nil {
 			break
 		}
 
-		args, err := ec.field_ServiceFilterValue_supportGroupName_args(context.TODO(), rawArgs)
+		args, err := ec.field_ServiceFilterValue_supportGroupCcrn_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.ServiceFilterValue.SupportGroupName(childComplexity, args["filter"].(*model.SupportGroupFilter)), true
+		return e.complexity.ServiceFilterValue.SupportGroupCcrn(childComplexity, args["filter"].(*model.SupportGroupFilter)), true
 
 	case "ServiceFilterValue.uniqueUserId":
 		if e.complexity.ServiceFilterValue.UniqueUserID == nil {
@@ -3237,19 +3237,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Severity.Value(childComplexity), true
 
+	case "SupportGroup.ccrn":
+		if e.complexity.SupportGroup.Ccrn == nil {
+			break
+		}
+
+		return e.complexity.SupportGroup.Ccrn(childComplexity), true
+
 	case "SupportGroup.id":
 		if e.complexity.SupportGroup.ID == nil {
 			break
 		}
 
 		return e.complexity.SupportGroup.ID(childComplexity), true
-
-	case "SupportGroup.name":
-		if e.complexity.SupportGroup.Name == nil {
-			break
-		}
-
-		return e.complexity.SupportGroup.Name(childComplexity), true
 
 	case "SupportGroup.services":
 		if e.complexity.SupportGroup.Services == nil {
@@ -4382,17 +4382,17 @@ func (ec *executionContext) field_IssueMatchFilterValue_primaryName_argsFilter(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_IssueMatchFilterValue_supportGroupName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_IssueMatchFilterValue_supportGroupCcrn_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	arg0, err := ec.field_IssueMatchFilterValue_supportGroupName_argsFilter(ctx, rawArgs)
+	arg0, err := ec.field_IssueMatchFilterValue_supportGroupCcrn_argsFilter(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["filter"] = arg0
 	return args, nil
 }
-func (ec *executionContext) field_IssueMatchFilterValue_supportGroupName_argsFilter(
+func (ec *executionContext) field_IssueMatchFilterValue_supportGroupCcrn_argsFilter(
 	ctx context.Context,
 	rawArgs map[string]interface{},
 ) (*model.SupportGroupFilter, error) {
@@ -8940,17 +8940,17 @@ func (ec *executionContext) field_ServiceFilterValue_serviceCcrn_argsFilter(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_ServiceFilterValue_supportGroupName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_ServiceFilterValue_supportGroupCcrn_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	arg0, err := ec.field_ServiceFilterValue_supportGroupName_argsFilter(ctx, rawArgs)
+	arg0, err := ec.field_ServiceFilterValue_supportGroupCcrn_argsFilter(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["filter"] = arg0
 	return args, nil
 }
-func (ec *executionContext) field_ServiceFilterValue_supportGroupName_argsFilter(
+func (ec *executionContext) field_ServiceFilterValue_supportGroupCcrn_argsFilter(
 	ctx context.Context,
 	rawArgs map[string]interface{},
 ) (*model.SupportGroupFilter, error) {
@@ -17093,8 +17093,8 @@ func (ec *executionContext) fieldContext_IssueMatchFilterValue_componentCcrn(ctx
 	return fc, nil
 }
 
-func (ec *executionContext) _IssueMatchFilterValue_supportGroupName(ctx context.Context, field graphql.CollectedField, obj *model.IssueMatchFilterValue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_IssueMatchFilterValue_supportGroupName(ctx, field)
+func (ec *executionContext) _IssueMatchFilterValue_supportGroupCcrn(ctx context.Context, field graphql.CollectedField, obj *model.IssueMatchFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_IssueMatchFilterValue_supportGroupCcrn(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17107,7 +17107,7 @@ func (ec *executionContext) _IssueMatchFilterValue_supportGroupName(ctx context.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.IssueMatchFilterValue().SupportGroupName(rctx, obj, fc.Args["filter"].(*model.SupportGroupFilter))
+		return ec.resolvers.IssueMatchFilterValue().SupportGroupCcrn(rctx, obj, fc.Args["filter"].(*model.SupportGroupFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17121,7 +17121,7 @@ func (ec *executionContext) _IssueMatchFilterValue_supportGroupName(ctx context.
 	return ec.marshalOFilterItem2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_IssueMatchFilterValue_supportGroupName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_IssueMatchFilterValue_supportGroupCcrn(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IssueMatchFilterValue",
 		Field:      field,
@@ -17146,7 +17146,7 @@ func (ec *executionContext) fieldContext_IssueMatchFilterValue_supportGroupName(
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_IssueMatchFilterValue_supportGroupName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_IssueMatchFilterValue_supportGroupCcrn_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -19197,8 +19197,8 @@ func (ec *executionContext) fieldContext_Mutation_createSupportGroup(ctx context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_SupportGroup_id(ctx, field)
-			case "name":
-				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_SupportGroup_ccrn(ctx, field)
 			case "users":
 				return ec.fieldContext_SupportGroup_users(ctx, field)
 			case "services":
@@ -19262,8 +19262,8 @@ func (ec *executionContext) fieldContext_Mutation_updateSupportGroup(ctx context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_SupportGroup_id(ctx, field)
-			case "name":
-				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_SupportGroup_ccrn(ctx, field)
 			case "users":
 				return ec.fieldContext_SupportGroup_users(ctx, field)
 			case "services":
@@ -19382,8 +19382,8 @@ func (ec *executionContext) fieldContext_Mutation_addServiceToSupportGroup(ctx c
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_SupportGroup_id(ctx, field)
-			case "name":
-				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_SupportGroup_ccrn(ctx, field)
 			case "users":
 				return ec.fieldContext_SupportGroup_users(ctx, field)
 			case "services":
@@ -19447,8 +19447,8 @@ func (ec *executionContext) fieldContext_Mutation_removeServiceFromSupportGroup(
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_SupportGroup_id(ctx, field)
-			case "name":
-				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_SupportGroup_ccrn(ctx, field)
 			case "users":
 				return ec.fieldContext_SupportGroup_users(ctx, field)
 			case "services":
@@ -19512,8 +19512,8 @@ func (ec *executionContext) fieldContext_Mutation_addUserToSupportGroup(ctx cont
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_SupportGroup_id(ctx, field)
-			case "name":
-				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_SupportGroup_ccrn(ctx, field)
 			case "users":
 				return ec.fieldContext_SupportGroup_users(ctx, field)
 			case "services":
@@ -19577,8 +19577,8 @@ func (ec *executionContext) fieldContext_Mutation_removeUserFromSupportGroup(ctx
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_SupportGroup_id(ctx, field)
-			case "name":
-				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_SupportGroup_ccrn(ctx, field)
 			case "users":
 				return ec.fieldContext_SupportGroup_users(ctx, field)
 			case "services":
@@ -23960,8 +23960,8 @@ func (ec *executionContext) fieldContext_Query_ServiceFilterValues(_ context.Con
 				return ec.fieldContext_ServiceFilterValue_uniqueUserId(ctx, field)
 			case "userName":
 				return ec.fieldContext_ServiceFilterValue_userName(ctx, field)
-			case "supportGroupName":
-				return ec.fieldContext_ServiceFilterValue_supportGroupName(ctx, field)
+			case "supportGroupCcrn":
+				return ec.fieldContext_ServiceFilterValue_supportGroupCcrn(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ServiceFilterValue", field.Name)
 		},
@@ -24017,8 +24017,8 @@ func (ec *executionContext) fieldContext_Query_IssueMatchFilterValues(_ context.
 				return ec.fieldContext_IssueMatchFilterValue_affectedService(ctx, field)
 			case "componentCcrn":
 				return ec.fieldContext_IssueMatchFilterValue_componentCcrn(ctx, field)
-			case "supportGroupName":
-				return ec.fieldContext_IssueMatchFilterValue_supportGroupName(ctx, field)
+			case "supportGroupCcrn":
+				return ec.fieldContext_IssueMatchFilterValue_supportGroupCcrn(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IssueMatchFilterValue", field.Name)
 		},
@@ -25010,8 +25010,8 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_userName(ctx context
 	return fc, nil
 }
 
-func (ec *executionContext) _ServiceFilterValue_supportGroupName(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ServiceFilterValue_supportGroupName(ctx, field)
+func (ec *executionContext) _ServiceFilterValue_supportGroupCcrn(ctx context.Context, field graphql.CollectedField, obj *model.ServiceFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ServiceFilterValue_supportGroupCcrn(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -25024,7 +25024,7 @@ func (ec *executionContext) _ServiceFilterValue_supportGroupName(ctx context.Con
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ServiceFilterValue().SupportGroupName(rctx, obj, fc.Args["filter"].(*model.SupportGroupFilter))
+		return ec.resolvers.ServiceFilterValue().SupportGroupCcrn(rctx, obj, fc.Args["filter"].(*model.SupportGroupFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -25038,7 +25038,7 @@ func (ec *executionContext) _ServiceFilterValue_supportGroupName(ctx context.Con
 	return ec.marshalOFilterItem2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ServiceFilterValue_supportGroupName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ServiceFilterValue_supportGroupCcrn(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ServiceFilterValue",
 		Field:      field,
@@ -25063,7 +25063,7 @@ func (ec *executionContext) fieldContext_ServiceFilterValue_supportGroupName(ctx
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_ServiceFilterValue_supportGroupName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_ServiceFilterValue_supportGroupCcrn_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -25247,8 +25247,8 @@ func (ec *executionContext) fieldContext_SupportGroup_id(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _SupportGroup_name(ctx context.Context, field graphql.CollectedField, obj *model.SupportGroup) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SupportGroup_name(ctx, field)
+func (ec *executionContext) _SupportGroup_ccrn(ctx context.Context, field graphql.CollectedField, obj *model.SupportGroup) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SupportGroup_ccrn(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -25261,7 +25261,7 @@ func (ec *executionContext) _SupportGroup_name(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
+		return obj.Ccrn, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -25275,7 +25275,7 @@ func (ec *executionContext) _SupportGroup_name(ctx context.Context, field graphq
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_SupportGroup_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_SupportGroup_ccrn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "SupportGroup",
 		Field:      field,
@@ -25595,8 +25595,8 @@ func (ec *executionContext) fieldContext_SupportGroupEdge_node(_ context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_SupportGroup_id(ctx, field)
-			case "name":
-				return ec.fieldContext_SupportGroup_name(ctx, field)
+			case "ccrn":
+				return ec.fieldContext_SupportGroup_ccrn(ctx, field)
 			case "users":
 				return ec.fieldContext_SupportGroup_users(ctx, field)
 			case "services":
@@ -28537,7 +28537,7 @@ func (ec *executionContext) unmarshalInputIssueMatchFilter(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "search", "primaryName", "componentCcrn", "issueType", "status", "severity", "affectedService", "supportGroupName"}
+	fieldsInOrder := [...]string{"id", "search", "primaryName", "componentCcrn", "issueType", "status", "severity", "affectedService", "supportGroupCcrn"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -28600,13 +28600,13 @@ func (ec *executionContext) unmarshalInputIssueMatchFilter(ctx context.Context, 
 				return it, err
 			}
 			it.AffectedService = data
-		case "supportGroupName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupName"))
+		case "supportGroupCcrn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupCcrn"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.SupportGroupName = data
+			it.SupportGroupCcrn = data
 		}
 	}
 
@@ -28846,7 +28846,7 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"serviceCcrn", "uniqueUserId", "type", "userName", "supportGroupName", "search"}
+	fieldsInOrder := [...]string{"serviceCcrn", "uniqueUserId", "type", "userName", "supportGroupCcrn", "search"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -28881,13 +28881,13 @@ func (ec *executionContext) unmarshalInputServiceFilter(ctx context.Context, obj
 				return it, err
 			}
 			it.UserName = data
-		case "supportGroupName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupName"))
+		case "supportGroupCcrn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupCcrn"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.SupportGroupName = data
+			it.SupportGroupCcrn = data
 		case "search":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
@@ -28962,20 +28962,20 @@ func (ec *executionContext) unmarshalInputSupportGroupFilter(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"supportGroupName", "userIds"}
+	fieldsInOrder := [...]string{"supportGroupCcrn", "userIds"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "supportGroupName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupName"))
+		case "supportGroupCcrn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("supportGroupCcrn"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.SupportGroupName = data
+			it.SupportGroupCcrn = data
 		case "userIds":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userIds"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
@@ -28996,20 +28996,20 @@ func (ec *executionContext) unmarshalInputSupportGroupInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name"}
+	fieldsInOrder := [...]string{"ccrn"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		case "ccrn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ccrn"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Name = data
+			it.Ccrn = data
 		}
 	}
 
@@ -31738,7 +31738,7 @@ func (ec *executionContext) _IssueMatchFilterValue(ctx context.Context, sel ast.
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "supportGroupName":
+		case "supportGroupCcrn":
 			field := field
 
 			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
@@ -31747,7 +31747,7 @@ func (ec *executionContext) _IssueMatchFilterValue(ctx context.Context, sel ast.
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._IssueMatchFilterValue_supportGroupName(ctx, field, obj)
+				res = ec._IssueMatchFilterValue_supportGroupCcrn(ctx, field, obj)
 				return res
 			}
 
@@ -33525,7 +33525,7 @@ func (ec *executionContext) _ServiceFilterValue(ctx context.Context, sel ast.Sel
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "supportGroupName":
+		case "supportGroupCcrn":
 			field := field
 
 			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
@@ -33534,7 +33534,7 @@ func (ec *executionContext) _ServiceFilterValue(ctx context.Context, sel ast.Sel
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._ServiceFilterValue_supportGroupName(ctx, field, obj)
+				res = ec._ServiceFilterValue_supportGroupCcrn(ctx, field, obj)
 				return res
 			}
 
@@ -33637,8 +33637,8 @@ func (ec *executionContext) _SupportGroup(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "name":
-			out.Values[i] = ec._SupportGroup_name(ctx, field, obj)
+		case "ccrn":
+			out.Values[i] = ec._SupportGroup_ccrn(ctx, field, obj)
 		case "users":
 			field := field
 

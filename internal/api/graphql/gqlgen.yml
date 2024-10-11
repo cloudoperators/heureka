@@ -205,7 +205,7 @@ models:
         resolver: true
       componentCcrn:
         resolver: true
-      supportGroupName:
+      supportGroupCcrn:
         resolver: true
   ServiceFilterValue:
     fields:
@@ -215,5 +215,5 @@ models:
         resolver: true
       userName:
         resolver: true
-      supportGroupName:
+      supportGroupCcrn:
         resolver: true

@@ -47,7 +47,7 @@ func getServiceFilter() *entity.ServiceFilter {
 		},
 		CCRN:             nil,
 		Id:               nil,
-		SupportGroupName: []*string{&sgName},
+		SupportGroupCCRN: []*string{&sgName},
 	}
 }
 

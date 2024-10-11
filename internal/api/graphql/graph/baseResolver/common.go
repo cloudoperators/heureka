@@ -15,7 +15,7 @@ import (
 
 var (
 	FilterDisplayServiceCcrn      string = "Service CCRN"
-	FilterDisplaySupportGroupName string = "Support Group Name"
+	FilterDisplaySupportGroupCcrn string = "Support Group CCRN"
 	FilterDisplayUserName         string = "User Name"
 	FilterDisplayUniqueUserId     string = "Unique User ID"
 	FilterDisplayComponentCcrn    string = "Component CCRN"
@@ -28,7 +28,7 @@ var (
 	ServiceFilterUniqueUserId     string = "uniqueUserId"
 	ServiceFilterType             string = "type"
 	ServiceFilterUserName         string = "userName"
-	ServiceFilterSupportGroupName string = "supportGroupName"
+	ServiceFilterSupportGroupCcrn string = "supportGroupCcrn"
 
 	IssueMatchFilterPrimaryName      string = "primaryName"
 	IssueMatchFilterComponentCcrn    string = "componentCcrn"
@@ -36,7 +36,7 @@ var (
 	IssueMatchFilterStatus           string = "status"
 	IssueMatchFilterSeverity         string = "severity"
 	IssueMatchFilterAffectedService  string = "affectedService"
-	IssueMatchFilterSupportGroupName string = "supportGroupName"
+	IssueMatchFilterSupportGroupCcrn string = "supportGroupCcrn"
 )
 
 type ResolverError struct {

@@ -96,7 +96,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 
 	f := &entity.ServiceFilter{
 		Paginated:         entity.Paginated{First: first, After: afterId},
-		SupportGroupName:  filter.SupportGroupName,
+		SupportGroupCCRN:  filter.SupportGroupCcrn,
 		CCRN:              filter.ServiceCcrn,
 		OwnerName:         filter.UserName,
 		OwnerId:           ownerId,
@@ -156,7 +156,7 @@ func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model
 
 	f := &entity.ServiceFilter{
 		Paginated:        entity.Paginated{},
-		SupportGroupName: filter.SupportGroupName,
+		SupportGroupCCRN: filter.SupportGroupCcrn,
 		CCRN:             filter.ServiceCcrn,
 		OwnerName:        filter.UserName,
 	}

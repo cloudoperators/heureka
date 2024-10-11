@@ -349,13 +349,13 @@ func NewServiceEntity(service *ServiceInput) entity.Service {
 func NewSupportGroup(supportGroup *entity.SupportGroup) SupportGroup {
 	return SupportGroup{
 		ID:   fmt.Sprintf("%d", supportGroup.Id),
-		Name: &supportGroup.Name,
+		Ccrn: &supportGroup.CCRN,
 	}
 }
 
 func NewSupportGroupEntity(supportGroup *SupportGroupInput) entity.SupportGroup {
 	return entity.SupportGroup{
-		Name: lo.FromPtr(supportGroup.Name),
+		CCRN: lo.FromPtr(supportGroup.Ccrn),
 	}
 }
 

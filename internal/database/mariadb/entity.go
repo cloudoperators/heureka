@@ -423,7 +423,7 @@ func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion
 
 type SupportGroupRow struct {
 	Id        sql.NullInt64  `db:"supportgroup_id" json:"id"`
-	Name      sql.NullString `db:"supportgroup_name" json:"name"`
+	CCRN      sql.NullString `db:"supportgroup_ccrn" json:"ccrn"`
 	CreatedAt sql.NullTime   `db:"supportgroup_created_at" json:"created_at"`
 	DeletedAt sql.NullTime   `db:"supportgroup_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"supportgroup_updated_at" json:"updated_at"`
@@ -432,7 +432,7 @@ type SupportGroupRow struct {
 func (sgr *SupportGroupRow) AsSupportGroup() entity.SupportGroup {
 	return entity.SupportGroup{
 		Id:        GetInt64Value(sgr.Id),
-		Name:      GetStringValue(sgr.Name),
+		CCRN:      GetStringValue(sgr.CCRN),
 		CreatedAt: GetTimeValue(sgr.CreatedAt),
 		DeletedAt: GetTimeValue(sgr.DeletedAt),
 		UpdatedAt: GetTimeValue(sgr.UpdatedAt),
@@ -441,7 +441,7 @@ func (sgr *SupportGroupRow) AsSupportGroup() entity.SupportGroup {
 
 func (sgr *SupportGroupRow) FromSupportGroup(sg *entity.SupportGroup) {
 	sgr.Id = sql.NullInt64{Int64: sg.Id, Valid: true}
-	sgr.Name = sql.NullString{String: sg.Name, Valid: true}
+	sgr.CCRN = sql.NullString{String: sg.CCRN, Valid: true}
 	sgr.CreatedAt = sql.NullTime{Time: sg.CreatedAt, Valid: true}
 	sgr.DeletedAt = sql.NullTime{Time: sg.DeletedAt, Valid: true}
 	sgr.UpdatedAt = sql.NullTime{Time: sg.UpdatedAt, Valid: true}

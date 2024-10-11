@@ -37,7 +37,7 @@ func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter)
 	fl = append(fl, buildFilterQuery(filter.AffectedServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SeverityValue, "IM.issuematch_rating = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Status, "IM.issuematch_status = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.SupportGroupName, "SG.supportgroup_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueType, "I.issue_type = ?", OP_OR))
@@ -67,7 +67,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter) string
 		`)
 	}
 
-	if len(filter.AffectedServiceCCRN) > 0 || len(filter.SupportGroupName) > 0 || len(filter.ComponentCCRN) > 0 {
+	if len(filter.AffectedServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.ComponentCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on CI.componentinstance_id = IM.issuematch_component_instance_id
 			
@@ -80,13 +80,13 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter) string
 			`)
 		}
 
-		if len(filter.AffectedServiceCCRN) > 0 || len(filter.SupportGroupName) > 0 {
+		if len(filter.AffectedServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id
 			`)
 		}
 
-		if len(filter.SupportGroupName) > 0 {
+		if len(filter.SupportGroupCCRN) > 0 {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
 			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
@@ -171,7 +171,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParameters(filterParameters, filter.AffectedServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
 	filterParameters = buildQueryParameters(filterParameters, filter.Status)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueType)

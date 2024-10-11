@@ -38,7 +38,7 @@ input IssueMatchFilter {
     status: [IssueMatchStatusValues]
     severity: [SeverityValues]
     affectedService: [String]
-    supportGroupName: [String]
+    supportGroupCcrn: [String]
 }
 
 #type CCloudSeverity {

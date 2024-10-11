@@ -4297,12 +4297,12 @@ func (_c *MockDatabase_GetServices_Call) RunAndReturn(run func(*entity.ServiceFi
 	return _c
 }
 
-// GetSupportGroupNames provides a mock function with given fields: _a0
-func (_m *MockDatabase) GetSupportGroupNames(_a0 *entity.SupportGroupFilter) ([]string, error) {
+// GetSupportGroupCcrns provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetSupportGroupCcrns(_a0 *entity.SupportGroupFilter) ([]string, error) {
 	ret := _m.Called(_a0)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetSupportGroupNames")
+		panic("no return value specified for GetSupportGroupCcrns")
 	}
 
 	var r0 []string
@@ -4327,30 +4327,30 @@ func (_m *MockDatabase) GetSupportGroupNames(_a0 *entity.SupportGroupFilter) ([]
 	return r0, r1
 }
 
-// MockDatabase_GetSupportGroupNames_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSupportGroupNames'
-type MockDatabase_GetSupportGroupNames_Call struct {
+// MockDatabase_GetSupportGroupCcrns_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSupportGroupCcrns'
+type MockDatabase_GetSupportGroupCcrns_Call struct {
 	*mock.Call
 }
 
-// GetSupportGroupNames is a helper method to define mock.On call
+// GetSupportGroupCcrns is a helper method to define mock.On call
 //   - _a0 *entity.SupportGroupFilter
-func (_e *MockDatabase_Expecter) GetSupportGroupNames(_a0 interface{}) *MockDatabase_GetSupportGroupNames_Call {
-	return &MockDatabase_GetSupportGroupNames_Call{Call: _e.mock.On("GetSupportGroupNames", _a0)}
+func (_e *MockDatabase_Expecter) GetSupportGroupCcrns(_a0 interface{}) *MockDatabase_GetSupportGroupCcrns_Call {
+	return &MockDatabase_GetSupportGroupCcrns_Call{Call: _e.mock.On("GetSupportGroupCcrns", _a0)}
 }
 
-func (_c *MockDatabase_GetSupportGroupNames_Call) Run(run func(_a0 *entity.SupportGroupFilter)) *MockDatabase_GetSupportGroupNames_Call {
+func (_c *MockDatabase_GetSupportGroupCcrns_Call) Run(run func(_a0 *entity.SupportGroupFilter)) *MockDatabase_GetSupportGroupCcrns_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*entity.SupportGroupFilter))
 	})
 	return _c
 }
 
-func (_c *MockDatabase_GetSupportGroupNames_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetSupportGroupNames_Call {
+func (_c *MockDatabase_GetSupportGroupCcrns_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetSupportGroupCcrns_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockDatabase_GetSupportGroupNames_Call) RunAndReturn(run func(*entity.SupportGroupFilter) ([]string, error)) *MockDatabase_GetSupportGroupNames_Call {
+func (_c *MockDatabase_GetSupportGroupCcrns_Call) RunAndReturn(run func(*entity.SupportGroupFilter) ([]string, error)) *MockDatabase_GetSupportGroupCcrns_Call {
 	_c.Call.Return(run)
 	return _c
 }

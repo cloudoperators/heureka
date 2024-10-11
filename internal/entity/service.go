@@ -23,7 +23,7 @@ type ServiceAggregations struct {
 
 type ServiceFilter struct {
 	Paginated
-	SupportGroupName    []*string `json:"support_group_name"`
+	SupportGroupCCRN    []*string `json:"support_group_ccrn"`
 	Id                  []*int64  `json:"id"`
 	CCRN                []*string `json:"ccrn"`
 	OwnerName           []*string `json:"owner_name"`

@@ -417,7 +417,7 @@ type ServiceFilter struct {
 	UniqueUserId     []string `json:"uniqueUserId"`
 	Type             []int    `json:"type"`
 	UserName         []string `json:"userName"`
-	SupportGroupName []string `json:"supportGroupName"`
+	SupportGroupCcrn []string `json:"supportGroupCcrn"`
 	Search           []string `json:"search"`
 }
 
@@ -433,8 +433,8 @@ func (v *ServiceFilter) GetType() []int { return v.Type }
 // GetUserName returns ServiceFilter.UserName, and is useful for accessing the field via an interface.
 func (v *ServiceFilter) GetUserName() []string { return v.UserName }
 
-// GetSupportGroupName returns ServiceFilter.SupportGroupName, and is useful for accessing the field via an interface.
-func (v *ServiceFilter) GetSupportGroupName() []string { return v.SupportGroupName }
+// GetSupportGroupCcrn returns ServiceFilter.SupportGroupCcrn, and is useful for accessing the field via an interface.
+func (v *ServiceFilter) GetSupportGroupCcrn() []string { return v.SupportGroupCcrn }
 
 // GetSearch returns ServiceFilter.Search, and is useful for accessing the field via an interface.
 func (v *ServiceFilter) GetSearch() []string { return v.Search }
@@ -449,32 +449,32 @@ func (v *ServiceInput) GetCcrn() string { return v.Ccrn }
 // SupportGroup includes the requested fields of the GraphQL type SupportGroup.
 type SupportGroup struct {
 	Id   string `json:"id"`
-	Name string `json:"name"`
+	Ccrn string `json:"ccrn"`
 }
 
 // GetId returns SupportGroup.Id, and is useful for accessing the field via an interface.
 func (v *SupportGroup) GetId() string { return v.Id }
 
-// GetName returns SupportGroup.Name, and is useful for accessing the field via an interface.
-func (v *SupportGroup) GetName() string { return v.Name }
+// GetCcrn returns SupportGroup.Ccrn, and is useful for accessing the field via an interface.
+func (v *SupportGroup) GetCcrn() string { return v.Ccrn }
 
 type SupportGroupFilter struct {
-	SupportGroupName []string `json:"supportGroupName"`
+	SupportGroupCcrn []string `json:"supportGroupCcrn"`
 	UserIds          []string `json:"userIds"`
 }
 
-// GetSupportGroupName returns SupportGroupFilter.SupportGroupName, and is useful for accessing the field via an interface.
-func (v *SupportGroupFilter) GetSupportGroupName() []string { return v.SupportGroupName }
+// GetSupportGroupCcrn returns SupportGroupFilter.SupportGroupCcrn, and is useful for accessing the field via an interface.
+func (v *SupportGroupFilter) GetSupportGroupCcrn() []string { return v.SupportGroupCcrn }
 
 // GetUserIds returns SupportGroupFilter.UserIds, and is useful for accessing the field via an interface.
 func (v *SupportGroupFilter) GetUserIds() []string { return v.UserIds }
 
 type SupportGroupInput struct {
-	Name string `json:"name"`
+	Ccrn string `json:"ccrn"`
 }
 
-// GetName returns SupportGroupInput.Name, and is useful for accessing the field via an interface.
-func (v *SupportGroupInput) GetName() string { return v.Name }
+// GetCcrn returns SupportGroupInput.Ccrn, and is useful for accessing the field via an interface.
+func (v *SupportGroupInput) GetCcrn() string { return v.Ccrn }
 
 // __AddServiceToSupportGroupInput is used internally by genqlient
 type __AddServiceToSupportGroupInput struct {
@@ -565,7 +565,7 @@ const AddServiceToSupportGroup_Operation = `
 mutation AddServiceToSupportGroup ($supportGroupId: ID!, $serviceId: ID!) {
 	addServiceToSupportGroup(supportGroupId: $supportGroupId, serviceId: $serviceId) {
 		id
-		name
+		ccrn
 	}
 }
 `
@@ -715,7 +715,7 @@ const CreateSupportGroup_Operation = `
 mutation CreateSupportGroup ($input: SupportGroupInput!) {
 	createSupportGroup(input: $input) {
 		id
-		name
+		ccrn
 	}
 }
 `

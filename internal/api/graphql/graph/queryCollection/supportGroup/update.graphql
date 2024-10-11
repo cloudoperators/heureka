@@ -8,6 +8,6 @@ mutation ($id: ID!, $input: SupportGroupInput!) {
     ) {
         __typename
         id
-        name
+        ccrn
     }
 }

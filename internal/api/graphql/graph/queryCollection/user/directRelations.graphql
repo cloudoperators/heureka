@@ -20,7 +20,7 @@ query ($filter: UserFilter, $first: Int, $after: String) {
                     edges { 
                         node { 
                             id
-                            name
+                            ccrn
                         }
                         cursor
                     }

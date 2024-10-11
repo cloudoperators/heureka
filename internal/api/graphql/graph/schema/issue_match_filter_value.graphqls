@@ -8,5 +8,5 @@ type IssueMatchFilterValue {
     primaryName(filter: IssueFilter): FilterItem
     affectedService(filter: ServiceFilter): FilterItem
     componentCcrn(filter: ComponentFilter): FilterItem
-    supportGroupName(filter: SupportGroupFilter): FilterItem
+    supportGroupCcrn(filter: SupportGroupFilter): FilterItem
 }

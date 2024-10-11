@@ -112,7 +112,7 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 
 		// Create new SupportGroup
 		createSupportGroupInput := &client.SupportGroupInput{
-			Name: serviceInfo.SupportGroup,
+			Ccrn: serviceInfo.SupportGroup,
 		}
 		createSupportGroupResp, err := client.CreateSupportGroup(ctx, *p.Client, createSupportGroupInput)
 		if err != nil {
@@ -133,7 +133,7 @@ func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.Ser
 	var supportGroupId string
 
 	listSupportGroupsFilter := client.SupportGroupFilter{
-		SupportGroupName: []string{serviceInfo.SupportGroup},
+		SupportGroupCcrn: []string{serviceInfo.SupportGroup},
 	}
 	listSupportGroupsResp, err := client.ListSupportGroups(ctx, *p.Client, &listSupportGroupsFilter)
 	if err != nil {
