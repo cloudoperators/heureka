@@ -4413,8 +4413,8 @@ func (_c *MockDatabase_GetServices_Call) RunAndReturn(run func(*entity.ServiceFi
 	return _c
 }
 
-// GetServicesWithAggregations provides a mock function with given fields: _a0
-func (_m *MockDatabase) GetServicesWithAggregations(_a0 *entity.ServiceFilter) ([]entity.ServiceWithAggregations, error) {
+// GetSupportGroupCcrns provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetSupportGroupCcrns(_a0 *entity.SupportGroupFilter) ([]string, error) {
 	ret := _m.Called(_a0)
 
 	if len(ret) == 0 {
