@@ -32,22 +32,6 @@ func (s *SqlDatabase) ensureServiceIssueVariantFilter(f *entity.ServiceIssueVari
 	return f
 }
 
-func (s *SqlDatabase) getServiceIssueVariantJoins(filter *entity.ServiceIssueVariantFilter) string {
-	joins := ""
-	if filter.ComponentInstanceId != nil {
-		joins = `
-		  INNER JOIN Issue I on IV.issuevariant_issue_id = i.issue_id
-		  INNER JOIN ComponentVersionIssue CVI on I.issue_id = CVI.componentversionissue_issue_id
-		  INNER JOIN ComponentVersion CV on CVI.componentversionissue_component_version_id = CV.componentversion_id
-		  INNER JOIN ComponentInstance CI on CV.componentversion_id= CI.componentinstance_component_version_id
-		  INNER JOIN Service S on CI.componentinstance_service_id = S.service_id
-		  INNER JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
-		  INNER JOIN IssueRepository IR on IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id`
-	}
-
-	return joins
-}
-
 func (s *SqlDatabase) getServiceIssueVariantFilterString(filter *entity.ServiceIssueVariantFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
@@ -62,7 +46,6 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := s.getServiceIssueVariantFilterString(filter)
-	joins := s.getServiceIssueVariantJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "IV.issuevariant_id > ?")
 
 	whereClause := ""
@@ -72,9 +55,9 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 
 	// construct final query
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement)
+		query = fmt.Sprintf(baseQuery, whereClause, cursor.Statement)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause)
+		query = fmt.Sprintf(baseQuery, whereClause)
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
@@ -111,8 +94,19 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
 	})
 
 	baseQuery := `
-		SELECT IV.* FROM  IssueVariant IV 
-		%s
+		SELECT IRS.issuerepositoryservice_priority, IV.*  FROM  ComponentInstance CI 
+			# Join path to Issue
+			INNER JOIN ComponentVersion CV on CI.componentinstance_component_version_id = CV.componentversion_id
+			INNER JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id
+			INNER JOIN Issue I on CVI.componentversionissue_issue_id = I.issue_id
+			
+			# Join path to Repository
+			INNER JOIN Service S on CI.componentinstance_service_id = S.service_id
+			INNER JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
+			INNER JOIN IssueRepository IR on IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id
+			
+			# Join to from repo and issue to IssueVariant
+			INNER JOIN IssueVariant IV on I.issue_id = IV.issuevariant_issue_id and IV.issuevariant_repository_id = IR.issuerepository_id
 		%s
 		%s ORDER BY IV.issuevariant_id LIMIT ?
     `
