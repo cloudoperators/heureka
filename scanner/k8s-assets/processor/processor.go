@@ -315,6 +315,33 @@ func (p *Processor) ProcessContainer(
 		Container: containerInfo.Name,
 	}
 
+	// Create new Component
+	componentInput := &client.ComponentInput{
+		// TODO: Put name from container info
+		Name: fmt.Sprintf("%s/%s/%s", "registry", "account.Name", "repository.Name"),
+		Type: client.ComponentTypeValuesContainerimage,
+	}
+	createComponentResp, err := client.CreateComponent(ctx, *p.Client, componentInput)
+	if err != nil {
+		return fmt.Errorf("failed to create Component: %w", err)
+	}
+	log.WithFields(log.Fields{
+		"componentId": createComponentResp.CreateComponent.Id,
+	}).Info("Component created")
+
+	// Create new ComponentVersion
+	componentVersionInput := &client.ComponentVersionInput{
+		Version:     containerInfo.ImageHash,
+		ComponentId: createComponentResp.CreateComponent.Id,
+	}
+	createCompVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, componentVersionInput)
+	if err != nil {
+		return fmt.Errorf("failed to create ComponentVersion: %w", err)
+	}
+	log.WithFields(log.Fields{
+		"componentId": createCompVersionResp.CreateComponentVersion.Id,
+	}).Info("ComponentVersion created")
+
 	// Create new ComponentInstance
 	componentInstanceInput := &client.ComponentInstanceInput{
 		Ccrn:               ccrn.String(),
