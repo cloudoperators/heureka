@@ -22,7 +22,7 @@ func (r *serviceFilterValueResolver) ServiceName(ctx context.Context, obj *model
 		return nil, err
 	}
 	item.FilterName = &baseResolver.ServiceFilterServiceName
-	return item, nil
+	return item, err
 }
 
 // UniqueUserID is the resolver for the uniqueUserId field.

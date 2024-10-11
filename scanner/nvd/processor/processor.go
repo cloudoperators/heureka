@@ -39,7 +39,11 @@ func (p *Processor) Setup() error {
 	}
 	listRepositoriesResp, err := client.GetIssueRepositories(context.TODO(), p.GraphqlClient, &queryFilter)
 
-	if (err == nil) && (listRepositoriesResp.IssueRepositories.TotalCount == 0) {
+	if err != nil {
+		return err
+	}
+
+	if listRepositoriesResp.IssueRepositories.TotalCount == 0 {
 		log.Warnf("There is no IssueRepository: %s", err)
 
 		// Create new IssueRepository

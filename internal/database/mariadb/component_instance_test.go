@@ -488,4 +488,108 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 		})
 	})
+	When("Getting CCRN", Label("GetCCRN"), func() {
+		Context("and the database is empty", func() {
+			It("can perform the list query", func() {
+				res, err := db.GetCcrn(nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning an empty list", func() {
+					Expect(res).To(BeEmpty())
+				})
+			})
+		})
+		Context("and we have 10 CCRNs in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+
+			Context("and using no filter", func() {
+				It("can fetch the items correctly", func() {
+					res, err := db.GetCcrn(nil)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentInstanceRows)))
+					})
+
+					existingCCRN := lo.Map(seedCollection.ComponentInstanceRows, func(s mariadb.ComponentInstanceRow, index int) string {
+						return s.CCRN.String
+					})
+
+					By("returning the correct CCRN", func() {
+						left, right := lo.Difference(res, existingCCRN)
+						Expect(left).Should(BeEmpty())
+						Expect(right).Should(BeEmpty())
+					})
+				})
+			})
+			Context("and using a CCRN filter", func() {
+
+				var filter *entity.ComponentInstanceFilter
+				var expectedCCRN []string
+				BeforeEach(func() {
+					namePointers := []*string{}
+
+					ccrnValue := "ca9d963d-b441-4167-b08d-086e76186653"
+					namePointers = append(namePointers, &ccrnValue)
+
+					filter = &entity.ComponentInstanceFilter{
+						CCRN: namePointers,
+					}
+
+					It("can fetch the filtered items correctly", func() {
+						res, err := db.GetCcrn(filter)
+
+						By("throwing no error", func() {
+							Expect(err).Should(BeNil())
+						})
+
+						By("returning the correct number of results", func() {
+							Expect(len(res)).Should(BeIdenticalTo(len(expectedCCRN)))
+						})
+
+						By("returning the correct names", func() {
+							left, right := lo.Difference(res, expectedCCRN)
+							Expect(left).Should(BeEmpty())
+							Expect(right).Should(BeEmpty())
+						})
+					})
+					It("and using another filter", func() {
+
+						var anotherFilter *entity.ComponentInstanceFilter
+						BeforeEach(func() {
+
+							nonExistentCCRN := "NonexistentCCRN"
+
+							nonExistentCCRNs := []*string{&nonExistentCCRN}
+
+							anotherFilter = &entity.ComponentInstanceFilter{
+								CCRN: nonExistentCCRNs,
+							}
+
+							It("returns an empty list when no CCRN match the filter", func() {
+								res, err := db.GetCcrn(anotherFilter)
+								Expect(err).Should(BeNil())
+								Expect(res).Should(BeEmpty())
+
+								By("throwing no error", func() {
+									Expect(err).Should(BeNil())
+								})
+
+								By("returning an empty list", func() {
+									Expect(res).Should(BeEmpty())
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
 })

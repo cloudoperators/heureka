@@ -338,6 +338,23 @@ func NewService(s *entity.Service) Service {
 	}
 }
 
+func NewServiceWithAggregations(service *entity.ServiceResult) Service {
+	var metadata ServiceMetadata
+
+	if service.ServiceAggregations != nil {
+		metadata = ServiceMetadata{
+			IssueMatchCount:        int(service.ServiceAggregations.IssueMatches),
+			ComponentInstanceCount: int(service.ServiceAggregations.ComponentInstances),
+		}
+	}
+
+	return Service{
+		ID:       fmt.Sprintf("%d", service.Id),
+		Name:     &service.Name,
+		Metadata: &metadata,
+	}
+}
+
 func NewServiceEntity(service *ServiceInput) entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{

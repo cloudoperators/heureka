@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 )
 
 func GetInt64Value(v sql.NullInt64) int64 {
@@ -65,6 +66,8 @@ type DatabaseRow interface {
 		ComponentVersionRow |
 		BaseServiceRow |
 		ServiceRow |
+		GetServicesByRow |
+		ServiceAggregationsRow |
 		ActivityRow |
 		UserRow |
 		EvidenceRow |
@@ -532,6 +535,41 @@ func (sr *ServiceRow) FromService(s *entity.Service) {
 	sr.BaseServiceRow.CreatedAt = sql.NullTime{Time: s.BaseService.CreatedAt, Valid: true}
 	sr.BaseServiceRow.DeletedAt = sql.NullTime{Time: s.BaseService.DeletedAt, Valid: true}
 	sr.BaseServiceRow.UpdatedAt = sql.NullTime{Time: s.BaseService.UpdatedAt, Valid: true}
+}
+
+type GetServicesByRow struct {
+	ServiceAggregationsRow
+	ServiceRow
+}
+
+type ServiceAggregationsRow struct {
+	ComponentInstances sql.NullInt64 `db:"agg_component_instances"`
+	IssueMatches       sql.NullInt64 `db:"agg_issue_matches"`
+}
+
+func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggregations {
+	return entity.ServiceWithAggregations{
+		ServiceAggregations: entity.ServiceAggregations{
+			ComponentInstances: lo.Max([]int64{0, GetInt64Value(sbr.ServiceAggregationsRow.ComponentInstances)}),
+			IssueMatches:       lo.Max([]int64{0, GetInt64Value(sbr.ServiceAggregationsRow.IssueMatches)}),
+		},
+		Service: entity.Service{
+			BaseService: entity.BaseService{
+				Id:         GetInt64Value(sbr.BaseServiceRow.Id),
+				Name:       GetStringValue(sbr.BaseServiceRow.Name),
+				Owners:     []entity.User{},
+				Activities: []entity.Activity{},
+				CreatedAt:  GetTimeValue(sbr.BaseServiceRow.CreatedAt),
+				DeletedAt:  GetTimeValue(sbr.BaseServiceRow.DeletedAt),
+				UpdatedAt:  GetTimeValue(sbr.BaseServiceRow.UpdatedAt),
+			},
+			IssueRepositoryService: entity.IssueRepositoryService{
+				ServiceId:         GetInt64Value(sbr.IssueRepositoryServiceRow.ServiceId),
+				IssueRepositoryId: GetInt64Value(sbr.IssueRepositoryServiceRow.IssueRepositoryId),
+				Priority:          GetInt64Value(sbr.IssueRepositoryServiceRow.Priority),
+			},
+		},
+	}
 }
 
 type ActivityRow struct {

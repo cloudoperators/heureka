@@ -5,10 +5,14 @@ package service
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/pkg/util"
+	"github.com/samber/lo"
+	"golang.org/x/exp/maps"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -36,6 +40,62 @@ func (e *ServiceHandlerError) Error() string {
 
 func NewServiceHandlerError(msg string) *ServiceHandlerError {
 	return &ServiceHandlerError{msg: msg}
+}
+
+func (s *serviceHandler) getServiceResultsWithAggregations(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
+	var serviceResults []entity.ServiceResult
+	servicesCiCount, err := s.database.GetServicesWithComponentInstanceCount(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	servicesImCount, err := s.database.GetServicesWithIssueMatchCount(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(servicesImCount) != len(servicesCiCount) {
+		return nil, fmt.Errorf("Error")
+	}
+
+	// don't assume that results have some order
+	// create map with id -> service
+	ciCounts := map[int64]entity.ServiceWithAggregations{}
+	imCounts := map[int64]entity.ServiceWithAggregations{}
+
+	lo.ForEach(servicesCiCount, func(s entity.ServiceWithAggregations, _ int) {
+		ciCounts[s.Id] = s
+	})
+
+	lo.ForEach(servicesImCount, func(s entity.ServiceWithAggregations, _ int) {
+		imCounts[s.Id] = s
+	})
+
+	ciIds := maps.Keys(ciCounts)
+	imIds := maps.Keys(imCounts)
+
+	slices.Sort(ciIds)
+	slices.Sort(imIds)
+
+	// check if same services were returned by the aggregation queries
+	if !slices.Equal(ciIds, imIds) {
+		return nil, fmt.Errorf("aggregation queries returned different services")
+	}
+
+	for id := range ciIds {
+		cursor := fmt.Sprintf("%d", id)
+		service := ciCounts[int64(id)].Service
+		serviceResults = append(serviceResults, entity.ServiceResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			ServiceAggregations: &entity.ServiceAggregations{
+				IssueMatches:       imCounts[int64(id)].IssueMatches,
+				ComponentInstances: ciCounts[int64(id)].ComponentInstances,
+			},
+			Service: util.Ptr(service),
+		})
+	}
+
+	return serviceResults, nil
 }
 
 func (s *serviceHandler) getServiceResults(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
@@ -81,6 +141,8 @@ func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
+	var res []entity.ServiceResult
+	var err error
 
 	common.EnsurePaginated(&filter.Paginated)
 
@@ -89,11 +151,18 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 		"filter": filter,
 	})
 
-	res, err := s.getServiceResults(filter)
-
-	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Error while filtering for Services")
+	if options.IncludeAggregations {
+		res, err = s.getServiceResultsWithAggregations(filter)
+		if err != nil {
+			l.Error(err)
+			return nil, NewServiceHandlerError("Internal error while retrieving list results with aggregations")
+		}
+	} else {
+		res, err = s.getServiceResults(filter)
+		if err != nil {
+			l.Error(err)
+			return nil, NewServiceHandlerError("Internal error while retrieving list results.")
+		}
 	}
 
 	if options.ShowPageInfo {

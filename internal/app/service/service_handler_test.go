@@ -4,10 +4,12 @@
 package service_test
 
 import (
+	"errors"
 	"math"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/service"
 	s "github.com/cloudoperators/heureka/internal/app/service"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -108,6 +110,96 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
+	})
+	When("the list options does include aggregations", func() {
+		BeforeEach(func() {
+			options.IncludeAggregations = true
+		})
+		Context("and the given filter does not have any matches in the database", func() {
+
+			BeforeEach(func() {
+				db.On("GetServicesWithComponentInstanceCount", filter).Return([]entity.ServiceWithAggregations{}, nil)
+				db.On("GetServicesWithIssueMatchCount", filter).Return([]entity.ServiceWithAggregations{}, nil)
+			})
+
+			It("should return an empty result", func() {
+				serviceHandler = service.NewServiceHandler(db, er)
+				res, err := serviceHandler.ListServices(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
+
+			})
+		})
+		Context("and the filter does have results in the database", func() {
+			BeforeEach(func() {
+				services := test.NNewFakeServiceEntitiesWithAggregations(10)
+				db.On("GetServicesWithComponentInstanceCount", filter).Return(services, nil)
+				db.On("GetServicesWithIssueMatchCount", filter).Return(services, nil)
+			})
+			It("should return the expected services in the result", func() {
+				serviceHandler = service.NewServiceHandler(db, er)
+				res, err := serviceHandler.ListServices(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(10), "return 10 results")
+			})
+		})
+		Context("and the database operations throw an error", func() {
+			BeforeEach(func() {
+				db.On("GetServicesWithComponentInstanceCount", filter).Return([]entity.ServiceWithAggregations{}, errors.New("some error"))
+			})
+
+			It("should return the expected services in the result", func() {
+				serviceHandler = service.NewServiceHandler(db, er)
+				_, err := serviceHandler.ListServices(filter, options)
+				Expect(err).Error()
+				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
+			})
+		})
+	})
+	When("the list options does NOT include aggregations", func() {
+
+		BeforeEach(func() {
+			options.IncludeAggregations = false
+		})
+
+		Context("and the given filter does not have any matches in the database", func() {
+
+			BeforeEach(func() {
+				db.On("GetServices", filter).Return([]entity.Service{}, nil)
+			})
+			It("should return an empty result", func() {
+
+				serviceHandler = service.NewServiceHandler(db, er)
+				res, err := serviceHandler.ListServices(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
+
+			})
+		})
+		Context("and the filter does have results in the database", func() {
+			BeforeEach(func() {
+				db.On("GetServices", filter).Return(test.NNewFakeServiceEntities(15), nil)
+			})
+			It("should return the expected services in the result", func() {
+				serviceHandler = service.NewServiceHandler(db, er)
+				res, err := serviceHandler.ListServices(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(15), "return 15 results")
+			})
+		})
+
+		Context("and the database operations throw an error", func() {
+			BeforeEach(func() {
+				db.On("GetServices", filter).Return([]entity.Service{}, errors.New("some error"))
+			})
+
+			It("should return the expected services in the result", func() {
+				serviceHandler = service.NewServiceHandler(db, er)
+				_, err := serviceHandler.ListServices(filter, options)
+				Expect(err).Error()
+				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
+			})
+		})
 	})
 })
 

@@ -5,6 +5,7 @@ package event
 
 import (
 	"context"
+
 	"github.com/cloudoperators/heureka/internal/database"
 )
 

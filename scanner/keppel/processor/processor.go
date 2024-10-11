@@ -53,6 +53,7 @@ func (p *Processor) ProcessManifest(manifest models.Manifest, componentId string
 	})
 
 	if err != nil {
+		log.WithError(err).Error("Error while creating component")
 		return nil, err
 	}
 

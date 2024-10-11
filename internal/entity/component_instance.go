@@ -7,10 +7,11 @@ import "time"
 
 type ComponentInstanceFilter struct {
 	Paginated
-	IssueMatchId       []*int64 `json:"issue_match_id"`
-	ServiceId          []*int64 `json:"service_id"`
-	ComponentVersionId []*int64 `json:"component_version_id"`
-	Id                 []*int64 `json:"id"`
+	IssueMatchId       []*int64  `json:"issue_match_id"`
+	ServiceId          []*int64  `json:"service_id"`
+	ComponentVersionId []*int64  `json:"component_version_id"`
+	Id                 []*int64  `json:"id"`
+	CCRN               []*string `json:"ccrn"`
 }
 
 type ComponentInstanceAggregations struct{}
