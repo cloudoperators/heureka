@@ -370,8 +370,6 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 type ServiceIssueVariantRow struct {
 	IssueRepositoryRow
 	IssueVariantRow
-	IssueRepositoryServiceRow
-	ComponentInstanceRow
 }
 
 func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIssueVariant {
