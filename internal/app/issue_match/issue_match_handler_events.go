@@ -183,7 +183,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 		}
 
 		// Create new issue match
-		// currently a static user is assumed to be used, this gonna change in future to either a configured user or a dynamically
+		// currently a static user is assumed to be used, this going to change in future to either a configured user or a dynamically
 		// infered user from the component version issue macht
 		issue_match := &entity.IssueMatch{
 			UserId:                1, //@todo discuss whatever we use a static system user or infer the user from the ComponentVersionIssue
@@ -209,7 +209,6 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 //
 // @todo get the configuration from environment variables or configuration file
 func GetTargetRemediationTimeline(severity entity.Severity, creationDate time.Time) time.Time {
-
 	switch entity.SeverityValues(severity.Value) {
 	case entity.SeverityValuesLow:
 		return creationDate.AddDate(0, 6, 0)
