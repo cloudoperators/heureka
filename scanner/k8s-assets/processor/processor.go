@@ -264,13 +264,11 @@ func (p *Processor) ProcessContainer(
 	podGroupName string,
 	containerInfo UniqueContainerInfo,
 ) error {
-	// Find component version by container image hash
-	componentVersionId, err := p.getComponentVersion(ctx, containerInfo.ImageHash)
-	if err != nil {
-		// TODO: Create componentVersion if API call failed
-		return fmt.Errorf("Couldn't find ComponentVersion (imageHash: %s): %w", containerInfo.ImageHash, err)
-	}
-
+	var (
+		componentId         string
+		componentVersionId  string
+		componentInstanceId string
+	)
 	// Create new CCRN
 	ccrn := CCRN{
 		Region:    p.config.RegionName,
@@ -283,7 +281,9 @@ func (p *Processor) ProcessContainer(
 		Container: containerInfo.Name,
 	}
 
+	//
 	// Create new Component
+	//
 	componentInput := &client.ComponentInput{
 		// TODO: Put name from container info
 		Name: fmt.Sprintf("%s/%s/%s", "registry", "account.Name", "repository.Name"),
@@ -297,20 +297,26 @@ func (p *Processor) ProcessContainer(
 		"componentId": createComponentResp.CreateComponent.Id,
 	}).Info("Component created")
 
-	// Create new ComponentVersion
-	componentVersionInput := &client.ComponentVersionInput{
-		Version:     containerInfo.ImageHash,
-		ComponentId: createComponentResp.CreateComponent.Id,
-	}
-	createCompVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, componentVersionInput)
-	if err != nil {
-		return fmt.Errorf("failed to create ComponentVersion: %w", err)
-	}
-	log.WithFields(log.Fields{
-		"componentId": createCompVersionResp.CreateComponentVersion.Id,
-	}).Info("ComponentVersion created")
+	componentId = createComponentResp.CreateComponent.Id
 
+	//
+	// Create new ComponentVersion
+	//
+	componentVersionId, err = p.getComponentVersion(ctx, containerInfo.ImageHash)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id": containerInfo.ImageHash,
+		}).Info("ComponentVersion not found")
+
+		componentVersionId, err := p.createComponentVersion(ctx, containerInfo.ImageHash, componentId)
+		if err != nil {
+			return fmt.Errorf("failed to create ComponentVersion: %w", err)
+		}
+	}
+
+	//
 	// Create new ComponentInstance
+	//
 	componentInstanceInput := &client.ComponentInstanceInput{
 		Ccrn:               ccrn.String(),
 		Count:              containerInfo.Count,
@@ -333,4 +339,27 @@ func (p *Processor) ProcessContainer(
 	}).Info("Created new entities")
 
 	return nil
+}
+
+// createComponentVersion create a new ComponentVersion based on a container image hash
+func (p *Processor) createComponentVersion(ctx context.Context, imageHash string, componentId string) (string, error) {
+	componentVersionInput := &client.ComponentVersionInput{
+		Version:     imageHash,
+		ComponentId: componentId,
+	}
+	createCompVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, componentVersionInput)
+	if err != nil {
+		return "", fmt.Errorf("failed to create ComponentVersion: %w", err)
+	}
+	log.WithFields(log.Fields{
+		"componentId": createCompVersionResp.CreateComponentVersion.Id,
+	}).Info("ComponentVersion created")
+
+	return createCompVersionResp.CreateComponentVersion.Id, nil
+}
+
+// func (p *Processor) createComponentInstance(args) {
+ ...
+func (p *Processor) createComponentInstance(args) {
+
 }
