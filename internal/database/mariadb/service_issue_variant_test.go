@@ -67,10 +67,22 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 			issueRepositories = seeder.SeedIssueRepositories()
 
 			for i := 0; i < totalInstances; i++ {
+				components := make([]mariadb.ComponentRow, 0)
+				services := make([]mariadb.BaseServiceRow, 0)
 
-				// create the component and service
-				components := seeder.SeedComponents(1)
-				services := seeder.SeedServices(1)
+				// create the component
+				// we do this until it got successfully created to avoid failures through unique constraint violations
+				// this happens on bigger datasets due to the limited randomness of the fixtures
+				for len(components) == 0 {
+					components = seeder.SeedComponents(1)
+				}
+
+				// create the service
+				// we do this until it got successfully created to avoid failures through unique constraint violations
+				// this happens on bigger datasets due to the limited randomness of the fixtures
+				for len(services) == 0 {
+					services = seeder.SeedServices(1)
+				}
 
 				//create issues
 				issues := seeder.SeedIssues(issue_count)
