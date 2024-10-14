@@ -240,39 +240,6 @@ func (p *Processor) getComponentVersion(ctx context.Context, versionHash string)
 	image := imageAndVersion[0]
 	version := imageAndVersion[1]
 
-	//@todo Temporary Start
-	// AS we do not scan all the individual registries, we replace the registry string
-	// this is a temporary "hack" we need to move this to the heureka core with a registry configuration
-	//so that the respective versions are created correctly during version creation
-
-	var myMap map[string]string = make(map[string]string)
-	myMap["keppel.global.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.qa-de-1.cloud.sap/ccloud-mirror"] = "keppel.eu-de-1.cloud.sap/ccloud"
-	myMap["keppel.eu-de-2.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.s-eu-de-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.na-us-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.na-us-2.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.ap-jp-2.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.ap-jp-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.na-us-3.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.na-ca-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.eu-nl-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.ap-ae-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.ap-sa-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.ap-sa-2.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.ap-cn-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	myMap["keppel.ap-au-1.cloud.sap"] = "keppel.eu-de-1.cloud.sap"
-	var images []string = make([]string, 1)
-
-	for replace, with := range myMap {
-		if strings.Contains(image, replace) {
-			image = strings.Replace(image, replace, with, 1)
-		}
-	}
-	//@todo Temporary End
-
-	images[0] = image
-
 	listComponentVersionFilter := client.ComponentVersionFilter{
 		ComponentName: []string{image},
 		Version:       []string{version},
