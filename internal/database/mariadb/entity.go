@@ -77,7 +77,8 @@ type DatabaseRow interface {
 		ActivityHasIssueRow |
 		ActivityHasServiceRow |
 		IssueRepositoryServiceRow |
-		IssueMatchChangeRow
+		IssueMatchChangeRow |
+		ServiceIssueVariantRow
 }
 
 type IssueRow struct {
@@ -363,6 +364,32 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 		CreatedAt:         GetTimeValue(ivwr.IssueVariantRow.CreatedAt),
 		DeletedAt:         GetTimeValue(ivwr.IssueVariantRow.DeletedAt),
 		UpdatedAt:         GetTimeValue(ivwr.IssueVariantRow.UpdatedAt),
+	}
+}
+
+type ServiceIssueVariantRow struct {
+	IssueRepositoryRow
+	IssueVariantRow
+}
+
+func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIssueVariant {
+	rep := siv.IssueRepositoryRow.AsIssueRepository()
+	return entity.ServiceIssueVariant{
+		IssueVariant: entity.IssueVariant{
+			Id:                GetInt64Value(siv.IssueVariantRow.Id),
+			IssueRepositoryId: GetInt64Value(siv.IssueRepositoryRow.IssueRepositoryId),
+			IssueRepository:   &rep,
+			SecondaryName:     GetStringValue(siv.IssueVariantRow.SecondaryName),
+			IssueId:           GetInt64Value(siv.IssueId),
+			Issue:             nil,
+			Severity:          entity.NewSeverity(GetStringValue(siv.Vector)),
+			Description:       GetStringValue(siv.Description),
+			CreatedAt:         GetTimeValue(siv.IssueVariantRow.CreatedAt),
+			DeletedAt:         GetTimeValue(siv.IssueVariantRow.DeletedAt),
+			UpdatedAt:         GetTimeValue(siv.IssueVariantRow.UpdatedAt),
+		},
+		ServiceId: GetInt64Value(siv.IssueRepositoryServiceRow.ServiceId),
+		Priority:  GetInt64Value(siv.Priority),
 	}
 }
 

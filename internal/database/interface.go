@@ -18,6 +18,7 @@ type Database interface {
 	RemoveComponentVersionFromIssue(int64, int64) error
 	GetIssueNames(*entity.IssueFilter) ([]string, error)
 
+	GetServiceIssueVariants(*entity.ServiceIssueVariantFilter) ([]entity.ServiceIssueVariant, error)
 	GetIssueVariants(*entity.IssueVariantFilter) ([]entity.IssueVariant, error)
 	GetAllIssueVariantIds(*entity.IssueVariantFilter) ([]int64, error)
 	CountIssueVariants(*entity.IssueVariantFilter) (int64, error)
