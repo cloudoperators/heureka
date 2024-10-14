@@ -443,8 +443,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				newService := newServiceRow.AsService()
 				db.CreateService(&newService)
 			})
-			It("returns the services with componentInstance count", func() {
-				entriesWithAggregations, err := db.GetServicesWithComponentInstanceCount(nil)
+			It("returns the services with aggregations", func() {
+				entriesWithAggregations, err := db.GetServicesWithAggregations(nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -467,39 +467,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			BeforeEach(func() {
 				_ = seeder.SeedDbWithNFakeData(10)
 			})
-			It("returns the services with componentInstance count", func() {
-				entriesWithAggregations, err := db.GetServicesWithComponentInstanceCount(nil)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				By("returning some aggregations", func() {
-					for _, entryWithAggregations := range entriesWithAggregations {
-						Expect(entryWithAggregations).NotTo(
-							BeEquivalentTo(entity.ServiceAggregations{}))
-					}
-				})
-				By("returning all services", func() {
-					Expect(len(entriesWithAggregations)).To(BeEquivalentTo(10))
-				})
-			})
-			It("returns correct aggregation values", func() {
-				//Should be filled with a check for each aggregation value,
-				// this is currently skipped due to the complexity of the test implementation
-				// as we would need to implement for each of the aggregations a manual aggregation
-				// based on the seederCollection.
-				//
-				// This tests should therefore only get implemented in case we encourage errors in this area to test against
-				// possible regressions
-			})
-		})
-		Context("and and we have 10 elements in the database", func() {
-			BeforeEach(func() {
-				_ = seeder.SeedDbWithNFakeData(10)
-			})
-			It("returns the services with issueMatch count", func() {
-				entriesWithAggregations, err := db.GetServicesWithIssueMatchCount(nil)
+			It("returns the services with aggs", func() {
+				entriesWithAggregations, err := db.GetServicesWithAggregations(nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
