@@ -6,6 +6,7 @@ services:
 
     volumes:
       - ../..:/workspaces:cached
+      - ../internal/database/mariadb/init/schema.sql:/app_sqlschema/schema.sql
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
