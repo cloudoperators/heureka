@@ -2,38 +2,52 @@
 
 ## Vision
 
-**Heureka is a Security Posture Management tool designed to manage the security issues in a complex technology landscape.**
+**Heureka is a Security Posture Management tool designed to manage security issues in a cloud operating system.**
 
-Heureka is committed to empowering service owners with a central platform for proactive security management. It seamlessly integrates key components such as advanced patch management, intelligent SIEM analysis, and automated policy enforcement.
+Heureka is committed to empowering cloud operators with a central platform for _proactive_ and _automated_ **assessment** and **remediation** of security issues while easing **compliance** fulfillment.​
 
-It is also designed to address the critical compliance aspect as it is equipped with capabilities to track the end-to-end remediation process, thereby providing tangible compliance evidence. This approach to security posture management ensures a comprehensive and professional approach to maintaining robust security standards.
+- **Issue Assessment** - automated identification, classification, and prioritization of security issues.​ Example: assigning a severity level based on a service's classification of high availability, integrity, or confidentiality.​
+
+
+- **Remediation Tracking** - streamlined and automated tracking of all operations involved in addressing security issues. The current scope includes tracking security patches/updates to address known vulnerabilities; tracking services to ensure they are configured according to security standards; and triaging detected threats and providing a means to respond/address threats.
+
+
+- **Compliance Management** - Ensuring state change documentation​ and adherence to relevant security regulations and industry standards. e.g., PCI DSS,
+
+>>> _A Security Issue​ refers to any problem that can compromise confidentiality, integrity, and availability e.g.: Vulnerabilities; threats; exposures (due to misconfigurations)_
+
 
 ## Problem Statements
 
 ### Complexity and Visibility
-Maintaining security in a complex cloud operations platform landscape is a monumental task. These landscapes often consist of numerous services, each with a multitude of components like images, databases, libraries, and configurations. 
-The challenge is compounded by the fact that these components have varying versions and can be shared across multiple services creating a critical need to pinpoint the specific instance (version) of a component as the security baseline, as vulnerabilities within a single component can impact multiple services within the landscape.
+Maintaining security in a complex cloud operations platform landscape is a monumental task. These landscapes often consist of numerous services, each made up of multiple components like images, databases, libraries, and configurations. 
+The challenge is compounded by the fact that these components have varying versions and can be shared across multiple services creating a critical need to pinpoint the specific instance (version) of a component as the security baseline. Therefore, vulnerabilities of a single component can impact multiple services within the landscape.
+
+![image](https://github.com/user-attachments/assets/91e7507e-dd86-40d8-8a32-c35825d5ff03)
+
 
 ### Compliance and Efficiency
-Meeting compliance requirements and maintaining robust security standards is time-consuming and resource-intensive due to the lack of centralized visibility into the intricate relationships and dependencies between services and their underlying components as well as configurations.
+Meeting compliance requirements and maintaining robust security standards is time-consuming and resource-intensive due to the lack of centralized visibility into the intricate relationships and dependencies between services and their underlying components and configurations.
 This makes tracking remediation, documenting evidence, and managing security configurations difficult leading to inefficient security operations and delayed remediation efforts.
+
+![image](https://github.com/user-attachments/assets/d1248c66-d3df-4e58-aa08-12e0115669e9)
+
  
 ## Business Goals 
  
 - Enhance Visibility and Security Posture:
-  - Track the overall state of the technology landscape 
-  - Track security issues associated to specific components of the technology landscape
+  - Track the overall state of the cloud operating system 
+  - Track security issues associated with specific components of the cloud operating system
  
 - Streamline Security Operations:
   - Provide a central platform to monitor and assess the overall security posture of the technology landscape
-  - Streamline the patch management process to close vulnerabilities and reduce attack surfaces.
+  - Streamline the remediation process to close vulnerabilities and reduce attack surfaces.
   - Enforce consistent security configurations across all systems to minimize misconfigurations that could create security gaps.
-  - Improve threat detection and response with Security Incident and Event Management (SIEM) Integration to aid threat detection and incident response.
+  - Improve threat detection and response with Security Incident and Event Management (SIEM) Integration.
 
 - Enhance Compliance, and Auditability:
-  - Assists in meeting security compliance requirements by tracking remediation status/progress and providing evidence of adherence.
-  - Document the remediation, classification, and impact of issues 
-  - Document the changes corresponding with Patching of Vulnerabilities, Updating components, threat detection alert remediations, and configuration updates.
+  - Assists in meeting security compliance requirements by tracking/documenting assessments, and remediation status/progress thereby providing evidence of adherence.
+  - Document all state changes resulting from the tracked remediation activities.
 
 <br/>      
 
