@@ -28,7 +28,7 @@ func (s *SqlDatabase) getSupportGroupUpdateFields(supportGroup *entity.SupportGr
 	if supportGroup.Name != "" {
 		fl = append(fl, "supportgroup_name = :supportgroup_name")
 	}
-	if supportGroup.UpdatedBy != "" {
+	if supportGroup.UpdatedBy != 0 {
 		fl = append(fl, "supportgroup_updated_by = :supportgroup_updated_by")
 	}
 

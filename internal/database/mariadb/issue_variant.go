@@ -96,7 +96,7 @@ func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVari
 	if issueVariant.IssueRepositoryId != 0 {
 		fl = append(fl, "issuevariant_repository_id = :issuevariant_repository_id")
 	}
-	if issueVariant.UpdatedBy != "" {
+	if issueVariant.UpdatedBy != 0 {
 		fl = append(fl, "issuevariant_updated_by = :issuevariant_updated_by")
 	}
 	return strings.Join(fl, ", ")

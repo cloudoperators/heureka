@@ -102,7 +102,6 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 }
 
 func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
-	issueRepository.CreatedBy = "Creator"
 	f := &entity.IssueRepositoryFilter{
 		Name: []*string{&issueRepository.Name},
 	}
@@ -112,6 +111,13 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 		"object": issueRepository,
 		"filter": f,
 	})
+
+	var err error
+	issueRepository.CreatedBy, err = common.GetUserId(ir.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository (GetUserId).")
+	}
 
 	issueRepositories, err := ir.ListIssueRepositories(f, &entity.ListOptions{})
 
@@ -138,13 +144,19 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 }
 
 func (ir *issueRepositoryHandler) UpdateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
-	issueRepository.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueRepositoryEventName,
 		"object": issueRepository,
 	})
 
-	err := ir.database.UpdateIssueRepository(issueRepository)
+	var err error
+	issueRepository.UpdatedBy, err = common.GetUserId(ir.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository (GetUserId).")
+	}
+
+	err = ir.database.UpdateIssueRepository(issueRepository)
 
 	if err != nil {
 		l.Error(err)

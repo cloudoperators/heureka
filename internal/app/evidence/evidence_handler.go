@@ -104,11 +104,17 @@ func (e *evidenceHandler) ListEvidences(filter *entity.EvidenceFilter, options *
 }
 
 func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
-	evidence.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateEvidenceEventName,
 		"object": evidence,
 	})
+
+	var err error
+	evidence.CreatedBy, err = common.GetUserId(e.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewEvidenceHandlerError("Internal error while creating evidence (GetUserId).")
+	}
 
 	newEvidence, err := e.database.CreateEvidence(evidence)
 
@@ -123,13 +129,19 @@ func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evi
 }
 
 func (e *evidenceHandler) UpdateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
-	evidence.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateEvidenceEventName,
 		"object": evidence,
 	})
 
-	err := e.database.UpdateEvidence(evidence)
+	var err error
+	evidence.UpdatedBy, err = common.GetUserId(e.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewEvidenceHandlerError("Internal error while updating evidence (GetUserId).")
+	}
+
+	err = e.database.UpdateEvidence(evidence)
 
 	if err != nil {
 		l.Error(err)

@@ -76,7 +76,7 @@ func (s *SqlDatabase) getEvidenceUpdateFields(evidence *entity.Evidence) string 
 	if !evidence.RaaEnd.IsZero() {
 		fl = append(fl, "evidence_raa_end = :evidence_raa_end")
 	}
-	if evidence.UpdatedBy != "" {
+	if evidence.UpdatedBy != 0 {
 		fl = append(fl, "evidence_updated_by = :evidence_updated_by")
 	}
 	return strings.Join(fl, ", ")

@@ -203,8 +203,8 @@ type Cvss struct {
 
 type Metadata struct {
 	CreatedAt time.Time `json:"created_at"`
-	CreatedBy string    `json:"created_by"`
+	CreatedBy int64     `json:"created_by"`
 	UpdatedAt time.Time `json:"updated_at"`
-	UpdatedBy string    `json:"updated_by"`
+	UpdatedBy int64     `json:"updated_by"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }

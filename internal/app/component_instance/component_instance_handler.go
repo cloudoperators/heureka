@@ -111,11 +111,17 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 }
 
 func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
-	componentInstance.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentInstanceEventName,
 		"object": componentInstance,
 	})
+
+	var err error
+	componentInstance.CreatedBy, err = common.GetUserId(ci.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while creating componentInstance (GetUserId).")
+	}
 
 	newComponentInstance, err := ci.database.CreateComponentInstance(componentInstance)
 
@@ -132,13 +138,19 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 }
 
 func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
-	componentInstance.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentInstanceEventName,
 		"object": componentInstance,
 	})
 
-	err := ci.database.UpdateComponentInstance(componentInstance)
+	var err error
+	componentInstance.UpdatedBy, err = common.GetUserId(ci.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while updating componentInstance (GetUserId).")
+	}
+
+	err = ci.database.UpdateComponentInstance(componentInstance)
 
 	if err != nil {
 		l.Error(err)

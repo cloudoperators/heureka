@@ -160,7 +160,6 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 }
 
 func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
-	issue.CreatedBy = "Creator"
 	f := &entity.IssueFilter{
 		PrimaryName: []*string{&issue.PrimaryName},
 	}
@@ -170,6 +169,13 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		"object": issue,
 		"filter": f,
 	})
+
+	var err error
+	issue.CreatedBy, err = common.GetUserId(is.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueHandlerError("Internal error while creating issue (GetUserId).")
+	}
 
 	issues, err := is.ListIssues(f, &entity.IssueListOptions{})
 
@@ -194,13 +200,19 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 }
 
 func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) {
-	issue.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueEventName,
 		"object": issue,
 	})
 
-	err := is.database.UpdateIssue(issue)
+	var err error
+	issue.UpdatedBy, err = common.GetUserId(is.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueHandlerError("Internal error while updating issue (GetUserId).")
+	}
+
+	err = is.database.UpdateIssue(issue)
 
 	if err != nil {
 		l.Error(err)

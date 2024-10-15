@@ -103,7 +103,6 @@ func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListO
 }
 
 func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
-	user.CreatedBy = "Creator"
 	f := &entity.UserFilter{
 		UniqueUserID: []*string{&user.UniqueUserID},
 	}
@@ -112,6 +111,13 @@ func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 		"event":  CreateUserEventName,
 		"object": user,
 	})
+
+	var err error
+	user.CreatedBy, err = common.GetUserId(u.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while creating user (GetUserId).")
+	}
 
 	users, err := u.ListUsers(f, &entity.ListOptions{})
 
@@ -137,13 +143,19 @@ func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 }
 
 func (u *userHandler) UpdateUser(user *entity.User) (*entity.User, error) {
-	user.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateUserEventName,
 		"object": user,
 	})
 
-	err := u.database.UpdateUser(user)
+	var err error
+	user.UpdatedBy, err = common.GetUserId(u.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while updating user (GetUserId).")
+	}
+
+	err = u.database.UpdateUser(user)
 
 	if err != nil {
 		l.Error(err)

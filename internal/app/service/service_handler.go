@@ -125,7 +125,6 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 }
 
 func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service, error) {
-	service.CreatedBy = "Creator"
 	f := &entity.ServiceFilter{
 		Name: []*string{&service.Name},
 	}
@@ -135,6 +134,13 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 		"object": service,
 		"filter": f,
 	})
+
+	var err error
+	service.CreatedBy, err = common.GetUserId(s.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while creating service (GetUserId).")
+	}
 
 	services, err := s.ListServices(f, &entity.ListOptions{})
 
@@ -160,13 +166,19 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 }
 
 func (s *serviceHandler) UpdateService(service *entity.Service) (*entity.Service, error) {
-	service.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateServiceEventName,
 		"object": service,
 	})
 
-	err := s.database.UpdateService(service)
+	var err error
+	service.UpdatedBy, err = common.GetUserId(s.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while updating service (GetUserId).")
+	}
+
+	err = s.database.UpdateService(service)
 
 	if err != nil {
 		l.Error(err)

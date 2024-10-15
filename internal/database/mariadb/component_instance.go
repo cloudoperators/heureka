@@ -69,7 +69,7 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	if componentInstance.ServiceId != 0 {
 		fl = append(fl, "componentinstance_service_id = :componentinstance_service_id")
 	}
-	if componentInstance.UpdatedBy != "" {
+	if componentInstance.UpdatedBy != 0 {
 		fl = append(fl, "componentinstance_updated_by = :componentinstance_updated_by")
 	}
 

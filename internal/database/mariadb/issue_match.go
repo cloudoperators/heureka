@@ -122,7 +122,7 @@ func (s *SqlDatabase) getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) s
 	if !issueMatch.TargetRemediationDate.IsZero() {
 		fl = append(fl, "issuematch_target_remediation_date = :issuematch_target_remediation_date")
 	}
-	if issueMatch.UpdatedBy != "" {
+	if issueMatch.UpdatedBy != 0 {
 		fl = append(fl, "issuematch_updated_by = :issuematch_updated_by")
 	}
 	return strings.Join(fl, ", ")

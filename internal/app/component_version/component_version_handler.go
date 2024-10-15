@@ -109,11 +109,17 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 }
 
 func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
-	componentVersion.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentVersionEventName,
 		"object": componentVersion,
 	})
+
+	var err error
+	componentVersion.CreatedBy, err = common.GetUserId(cv.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion (GetUserId).")
+	}
 
 	newComponent, err := cv.database.CreateComponentVersion(componentVersion)
 
@@ -130,13 +136,19 @@ func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *enti
 }
 
 func (cv *componentVersionHandler) UpdateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
-	componentVersion.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentVersionEventName,
 		"object": componentVersion,
 	})
 
-	err := cv.database.UpdateComponentVersion(componentVersion)
+	var err error
+	componentVersion.UpdatedBy, err = common.GetUserId(cv.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentVersionHandlerError("Internal error while updating componentVersion (GetUserId).")
+	}
+
+	err = cv.database.UpdateComponentVersion(componentVersion)
 
 	if err != nil {
 		l.Error(err)

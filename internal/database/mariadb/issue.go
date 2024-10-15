@@ -112,7 +112,7 @@ func (s *SqlDatabase) getIssueUpdateFields(issue *entity.Issue) string {
 	if issue.Description != "" {
 		fl = append(fl, "issue_description = :issue_description")
 	}
-	if issue.UpdatedBy != "" {
+	if issue.UpdatedBy != 0 {
 		fl = append(fl, "issue_updated_by = :issue_updated_by")
 	}
 	return strings.Join(fl, ", ")

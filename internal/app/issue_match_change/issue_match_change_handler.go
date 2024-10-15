@@ -108,11 +108,17 @@ func (imc *issueMatchChangeHandler) ListIssueMatchChanges(filter *entity.IssueMa
 }
 
 func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
-	issueMatchChange.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateIssueMatchChangeEventName,
 		"object": issueMatchChange,
 	})
+
+	var err error
+	issueMatchChange.CreatedBy, err = common.GetUserId(imc.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchChangeHandlerError("Internal error while creating issueMatchChange (GetUserId).")
+	}
 
 	newIssueMatchChange, err := imc.database.CreateIssueMatchChange(issueMatchChange)
 
@@ -129,13 +135,19 @@ func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *ent
 }
 
 func (imc *issueMatchChangeHandler) UpdateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
-	issueMatchChange.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueMatchChangeEventName,
 		"object": issueMatchChange,
 	})
 
-	err := imc.database.UpdateIssueMatchChange(issueMatchChange)
+	var err error
+	issueMatchChange.UpdatedBy, err = common.GetUserId(imc.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchChangeHandlerError("Internal error while updating issueMatchChange (GetUserId).")
+	}
+
+	err = imc.database.UpdateIssueMatchChange(issueMatchChange)
 
 	if err != nil {
 		l.Error(err)

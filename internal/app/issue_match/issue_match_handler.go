@@ -136,11 +136,17 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 }
 
 func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
-	issueMatch.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateIssueMatchEventName,
 		"object": issueMatch,
 	})
+
+	var err error
+	issueMatch.CreatedBy, err = common.GetUserId(im.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity (GetUserId).")
+	}
 
 	severityFilter := &entity.SeverityFilter{
 		IssueId: []*int64{&issueMatch.IssueId},
@@ -171,13 +177,19 @@ func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*e
 }
 
 func (im *issueMatchHandler) UpdateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
-	issueMatch.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueMatchEventName,
 		"object": issueMatch,
 	})
 
-	err := im.database.UpdateIssueMatch(issueMatch)
+	var err error
+	issueMatch.UpdatedBy, err = common.GetUserId(im.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity (GetUserId).")
+	}
+
+	err = im.database.UpdateIssueMatch(issueMatch)
 
 	if err != nil {
 		l.Error(err)

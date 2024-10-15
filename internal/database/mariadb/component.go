@@ -64,7 +64,7 @@ func (s *SqlDatabase) getComponentUpdateFields(component *entity.Component) stri
 	if component.Type != "" {
 		fl = append(fl, "component_type = :component_type")
 	}
-	if component.UpdatedBy != "" {
+	if component.UpdatedBy != 0 {
 		fl = append(fl, "component_updated_by = :component_updated_by")
 	}
 	return strings.Join(fl, ", ")

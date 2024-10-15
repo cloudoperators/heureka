@@ -46,7 +46,7 @@ func (s *SqlDatabase) getIssueRepositoryUpdateFields(issueRepository *entity.Iss
 	if issueRepository.Url != "" {
 		fl = append(fl, "issuerepository_url = :issuerepository_url")
 	}
-	if issueRepository.UpdatedBy != "" {
+	if issueRepository.UpdatedBy != 0 {
 		fl = append(fl, "issuerepository_updated_by = :issuerepository_updated_by")
 	}
 	return strings.Join(fl, ", ")

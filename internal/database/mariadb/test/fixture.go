@@ -269,6 +269,7 @@ func GenerateRandomCVSS31Vector() string {
 }
 
 func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
+	users := s.SeedUsers(n)
 	supportGroupsMap := s.SeedRealSupportGroups()
 	supportGroups := lo.Values[string, mariadb.SupportGroupRow](supportGroupsMap)
 	servicesMap := s.SeedRealServices()
@@ -279,7 +280,6 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 	repos := s.SeedIssueRepositories()
 	issues := s.SeedIssues(n)
 	issueVariants := s.SeedIssueVariants(n, repos, issues)
-	users := s.SeedUsers(n)
 	owners := s.SeedOwners(n, services, users)
 	supportGroupServices := s.SeedRealSupportGroupService(servicesMap, supportGroupsMap)
 	supportGroupUsers := s.SeedSupportGroupUsers(n, users, supportGroups)
@@ -319,6 +319,7 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 }
 
 func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
+	users := s.SeedUsers(n)
 	supportGroups := s.SeedSupportGroups(n)
 	services := s.SeedServices(n)
 	components := s.SeedComponents(n)
@@ -327,7 +328,6 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 	repos := s.SeedIssueRepositories()
 	issues := s.SeedIssues(n)
 	issueVariants := s.SeedIssueVariants(n, repos, issues)
-	users := s.SeedUsers(n)
 	owners := s.SeedOwners(n, services, users)
 	supportGroupServices := s.SeedSupportGroupServices(n/2, services, supportGroups)
 	supportGroupUsers := s.SeedSupportGroupUsers(n/2, users, supportGroups)
@@ -371,6 +371,7 @@ func (s *DatabaseSeeder) SeedDbWithFakeData() {
 }
 
 func (s *DatabaseSeeder) SeedDbForNestedIssueVariantTest() *SeedCollection {
+	users := s.SeedUsers(1)
 	services := s.SeedServices(1)
 	components := s.SeedComponents(1)
 	componentVersions := s.SeedComponentVersions(1, components)
@@ -378,7 +379,6 @@ func (s *DatabaseSeeder) SeedDbForNestedIssueVariantTest() *SeedCollection {
 	repos := s.SeedIssueRepositories()
 	issues := s.SeedIssues(1)
 	issueVariants := s.SeedIssueVariants(100, repos, issues)
-	users := s.SeedUsers(1)
 	issueMatches := s.SeedIssueMatches(1, issues, componentInstances, users)
 	issueRepositoryServices := s.SeedIssueRepositoryServices(len(repos), services, repos)
 	return &SeedCollection{

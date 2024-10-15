@@ -105,7 +105,6 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 }
 
 func (cs *componentHandler) CreateComponent(component *entity.Component) (*entity.Component, error) {
-	component.CreatedBy = "Creator"
 	f := &entity.ComponentFilter{
 		Name: []*string{&component.Name},
 	}
@@ -115,6 +114,13 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 		"object": component,
 		"filter": f,
 	})
+
+	var err error
+	component.CreatedBy, err = common.GetUserId(cs.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while creating component (GetUserId).")
+	}
 
 	components, err := cs.ListComponents(f, &entity.ListOptions{})
 
@@ -140,13 +146,19 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 }
 
 func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entity.Component, error) {
-	component.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentEventName,
 		"object": component,
 	})
 
-	err := cs.database.UpdateComponent(component)
+	var err error
+	component.UpdatedBy, err = common.GetUserId(cs.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while updating component (GetUserId).")
+	}
+
+	err = cs.database.UpdateComponent(component)
 
 	if err != nil {
 		l.Error(err)

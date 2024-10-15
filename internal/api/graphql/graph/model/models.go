@@ -20,11 +20,11 @@ func getModelMetadata(em entity.Metadata) *Metadata {
 	deletedAt := em.DeletedAt.String()
 	updatedAt := em.UpdatedAt.String()
 	return &Metadata{
-		CreatedAt: &createdAt,
-		CreatedBy: &em.CreatedBy,
-		DeletedAt: &deletedAt,
-		UpdatedAt: &updatedAt,
-		UpdatedBy: &em.UpdatedBy,
+		CreatedAt: util.Ptr(createdAt),
+		CreatedBy: util.Ptr(fmt.Sprintf("%d", em.CreatedBy)),
+		DeletedAt: util.Ptr(deletedAt),
+		UpdatedAt: util.Ptr(updatedAt),
+		UpdatedBy: util.Ptr(fmt.Sprintf("%d", em.UpdatedBy)),
 	}
 }
 

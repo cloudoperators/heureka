@@ -132,11 +132,17 @@ func (a *activityHandler) ListActivities(filter *entity.ActivityFilter, options 
 }
 
 func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Activity, error) {
-	activity.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ActivityCreateEventName,
 		"object": activity,
 	})
+
+	var err error
+	activity.CreatedBy, err = common.GetUserId(a.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewActivityHandlerError("Internal error while creating activity (GetUserId).")
+	}
 
 	newActivity, err := a.database.CreateActivity(activity)
 
@@ -153,13 +159,19 @@ func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Act
 }
 
 func (a *activityHandler) UpdateActivity(activity *entity.Activity) (*entity.Activity, error) {
-	activity.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ActivityUpdateEventName,
 		"object": activity,
 	})
 
-	err := a.database.UpdateActivity(activity)
+	var err error
+	activity.UpdatedBy, err = common.GetUserId(a.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewActivityHandlerError("Internal error while updating activity (GetUserId).")
+	}
+
+	err = a.database.UpdateActivity(activity)
 
 	if err != nil {
 		l.Error(err)

@@ -68,7 +68,7 @@ func (s *SqlDatabase) getActivityUpdateFields(activity *entity.Activity) string 
 	if activity.Status != "" {
 		fl = append(fl, "activity_status = :activity_status")
 	}
-	if activity.UpdatedBy != "" {
+	if activity.UpdatedBy != 0 {
 		fl = append(fl, "activity_updated_by = :activity_updated_by")
 	}
 	return strings.Join(fl, ", ")

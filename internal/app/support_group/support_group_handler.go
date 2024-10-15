@@ -133,7 +133,6 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 }
 
 func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
-	supportGroup.CreatedBy = "Creator"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateSupportGroupEventName,
 		"object": supportGroup,
@@ -141,6 +140,13 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 
 	f := &entity.SupportGroupFilter{
 		Name: []*string{&supportGroup.Name},
+	}
+
+	var err error
+	supportGroup.CreatedBy, err = common.GetUserId(sg.database, "C1234567")
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Internal error while creating supportGroup (GetUserId).")
 	}
 
 	supportGroups, err := sg.ListSupportGroups(f, &entity.ListOptions{})
@@ -169,13 +175,19 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 }
 
 func (sg *supportGroupHandler) UpdateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
-	supportGroup.UpdatedBy = "Updater"
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateSupportGroupEventName,
 		"object": supportGroup,
 	})
 
-	err := sg.database.UpdateSupportGroup(supportGroup)
+	var err error
+	supportGroup.UpdatedBy, err = common.GetUserId(sg.database, "C7654321")
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Internal error while updating supportGroup (GetUserId).")
+	}
+
+	err = sg.database.UpdateSupportGroup(supportGroup)
 
 	if err != nil {
 		l.Error(err)

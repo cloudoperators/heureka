@@ -13,14 +13,18 @@ create table if not exists User
     user_unique_user_id varchar(64)                       not null,
     user_type       int unsigned,
     user_created_at timestamp default current_timestamp() not null,
-    user_created_by varchar(256)                          null,
+    user_created_by int unsigned                          null,
     user_deleted_at timestamp                             null,
     user_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
-    user_updated_by varchar(256)                          null,
+    user_updated_by int unsigned                          null,
     constraint id_UNIQUE
         unique (user_id),
     constraint unique_user_id_UNIQUE
-        unique (user_unique_user_id)
+        unique (user_unique_user_id),
+    constraint fk_user_created_by
+        foreign key (user_created_by) references User (user_id),
+    constraint fk_user_updated_by
+        foreign key (user_updated_by) references User (user_id)
 );
 
 create table if not exists Component
@@ -30,20 +34,18 @@ create table if not exists Component
     component_name       varchar(256)                          not null,
     component_type       varchar(256)                          not null,
     component_created_at timestamp default current_timestamp() not null,
-    component_created_by varchar(256)                          null,
+    component_created_by int unsigned                          null,
     component_deleted_at timestamp                             null,
     component_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
-    component_updated_by varchar(256)                          null,
+    component_updated_by int unsigned                          null,
     constraint id_UNIQUE
         unique (component_id),
     constraint name_UNIQUE
         unique (component_name),
     constraint fk_component_created_by
-        foreign key (component_created_by) references User (user_unique_user_id)
-            on update cascade,
+        foreign key (component_created_by) references User (user_id),
     constraint fk_component_updated_by
-        foreign key (component_updated_by) references User (user_unique_user_id)
-            on update cascade
+        foreign key (component_updated_by) references User (user_id)
 );
 
 create table if not exists ComponentVersion
@@ -53,17 +55,21 @@ create table if not exists ComponentVersion
     componentversion_version      varchar(256)                          not null,
     componentversion_component_id int unsigned                          not null,
     componentversion_created_at   timestamp default current_timestamp() not null,
-    componentversion_created_by   varchar(256)                          null,
+    componentversion_created_by   int unsigned                          null,
     componentversion_deleted_at   timestamp                             null,
     componentversion_updated_at   timestamp default current_timestamp() not null on update current_timestamp(),
-    componentversion_updated_by   varchar(256)                          null,
+    componentversion_updated_by   int unsigned                          null,
     constraint id_UNIQUE
         unique (componentversion_id),
     constraint version_component_unique
         unique (componentversion_version, componentversion_component_id),
     constraint fk_component_version_component
         foreign key (componentversion_component_id) references Component (component_id)
-            on update cascade
+            on update cascade,
+    constraint fk_componentversion_created_by
+        foreign key (componentversion_created_by) references User (user_id),
+    constraint fk_componentversion_updated_by
+        foreign key (componentversion_updated_by) references User (user_id)
 );
 
 create table if not exists SupportGroup
@@ -72,14 +78,18 @@ create table if not exists SupportGroup
         primary key,
     supportgroup_name       varchar(256)                          not null,
     supportgroup_created_at timestamp default current_timestamp() not null,
-    supportgroup_created_by varchar(256)                          null,
+    supportgroup_created_by int unsigned                          null,
     supportgroup_deleted_at timestamp                             null,
     supportgroup_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
-    supportgroup_updated_by varchar(256)                          null,
+    supportgroup_updated_by int unsigned                          null,
     constraint id_UNIQUE
         unique (supportgroup_id),
     constraint name_UNIQUE
-        unique (supportgroup_name)
+        unique (supportgroup_name),
+    constraint fk_supportgroup_created_by
+        foreign key (supportgroup_created_by) references User (user_id),
+    constraint fk_supportgroup_updated_by
+        foreign key (supportgroup_updated_by) references User (user_id)
 );
 
 create table if not exists Service
@@ -88,14 +98,18 @@ create table if not exists Service
         primary key,
     service_name       varchar(256)                          not null,
     service_created_at timestamp default current_timestamp() not null,
-    service_created_by varchar(256)                          null,
+    service_created_by int unsigned                          null,
     service_deleted_at timestamp                             null,
     service_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
-    service_updated_by varchar(256)                          null,
+    service_updated_by int unsigned                          null,
     constraint id_UNIQUE
         unique (service_id),
     constraint name_UNIQUE
-        unique (service_name)
+        unique (service_name),
+    constraint fk_service_created_by
+        foreign key (service_created_by) references User (user_id),
+    constraint fk_service_updated_by
+        foreign key (service_updated_by) references User (user_id)
 );
 
 create table if not exists SupportGroupService
@@ -120,14 +134,17 @@ create table if not exists Activity
         primary key,
     activity_status enum('open','closed','in_progress') not null,
     activity_created_at timestamp default current_timestamp() not null,
-    activity_created_by varchar(256)                          null,
+    activity_created_by int unsigned                          null,
     activity_deleted_at timestamp                             null,
     activity_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
-    activity_updated_by varchar(256)                          null,
+    activity_updated_by int unsigned                          null,
     constraint id_UNIQUE
-        unique (activity_id)
+        unique (activity_id),
+    constraint fk_activity_created_by
+        foreign key (activity_created_by) references User (user_id),
+    constraint fk_activity_updated_by
+        foreign key (activity_updated_by) references User (user_id)
 );
-
 
 create table if not exists ComponentInstance
 (
@@ -138,10 +155,10 @@ create table if not exists ComponentInstance
     componentinstance_component_version_id int unsigned                          not null,
     componentinstance_service_id           int unsigned                          not null,
     componentinstance_created_at           timestamp default current_timestamp() not null,
-    componentinstance_created_by           varchar(256)                          null,
+    componentinstance_created_by           int unsigned                          null,
     componentinstance_deleted_at           timestamp                             null,
     componentinstance_updated_at           timestamp default current_timestamp() not null on update current_timestamp(),
-    componentinstance_updated_by           varchar(256)                          null,
+    componentinstance_updated_by           int unsigned                          null,
     constraint id_UNIQUE
         unique (componentinstance_id),
     constraint name_service_unique
@@ -151,7 +168,11 @@ create table if not exists ComponentInstance
             on update cascade,
     constraint fk_component_instance_service
         foreign key (componentinstance_service_id) references Service (service_id)
-            on update cascade
+            on update cascade,
+    constraint fk_componentinstance_created_by
+        foreign key (componentinstance_created_by) references User (user_id),
+    constraint fk_componentinstance_updated_by
+        foreign key (componentinstance_updated_by) references User (user_id)
 );
 
 create table if not exists Evidence
@@ -166,10 +187,10 @@ create table if not exists Evidence
     evidence_rating      enum('None','Low','Medium','High','Critical') null,
     evidence_raa_end     datetime                              null,
     evidence_created_at  timestamp default current_timestamp() not null,
-    evidence_created_by  varchar(256)                          null,
+    evidence_created_by  int unsigned                          null,
     evidence_deleted_at  timestamp                             null,
     evidence_updated_at  timestamp default current_timestamp() not null on update current_timestamp(),
-    evidence_updated_by  varchar(256)                          null,
+    evidence_updated_by  int unsigned                          null,
     constraint id_UNIQUE
         unique (evidence_id),
     constraint fk_evidence_user
@@ -177,9 +198,12 @@ create table if not exists Evidence
             on update cascade,
     constraint fk_evidience_activity
         foreign key (evidence_activity_id) references Activity (activity_id)
-            on update cascade
+            on update cascade,
+    constraint fk_evidence_created_by
+        foreign key (evidence_created_by) references User (user_id),
+    constraint fk_evidence_updated_by
+        foreign key (evidence_updated_by) references User (user_id)
 );
-
 
 create table if not exists Owner
 (
@@ -196,8 +220,6 @@ create table if not exists Owner
         foreign key (owner_user_id) references User (user_id)
             on update cascade
 );
-
-
 
 create table if not exists SupportGroupUser
 (
@@ -222,14 +244,18 @@ create table if not exists IssueRepository
     issuerepository_name       varchar(2048)                         not null,
     issuerepository_url        varchar(2048)                         not null,
     issuerepository_created_at timestamp default current_timestamp() not null,
-    issuerepository_created_by varchar(256)                          null,
+    issuerepository_created_by int unsigned                          null,
     issuerepository_deleted_at timestamp                             null,
     issuerepository_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
-    issuerepository_updated_by varchar(256)                          null,
+    issuerepository_updated_by int unsigned                          null,
     constraint id_UNIQUE
         unique (issuerepository_id),
     constraint name_UNIQUE
-        unique (issuerepository_name)
+        unique (issuerepository_name),
+    constraint fk_issuerepository_created_by
+        foreign key (issuerepository_created_by) references User (user_id),
+    constraint fk_issuerepository_updated_by
+        foreign key (issuerepository_updated_by) references User (user_id)
 );
 
 create table if not exists Issue
@@ -240,14 +266,18 @@ create table if not exists Issue
     issue_primary_name  varchar(256)                          not null,
     issue_description   longtext                              not null,
     issue_created_at    timestamp default current_timestamp() not null,
-    issue_created_by    varchar(256)                          null,
+    issue_created_by    int unsigned                          null,
     issue_deleted_at    timestamp                             null,
     issue_updated_at    timestamp default current_timestamp() not null on update current_timestamp(),
-    issue_updated_by    varchar(256)                          null,
+    issue_updated_by    int unsigned                          null,
     constraint id_UNIQUE
         unique (issue_id),
     constraint name_UNIQUE
-        unique (issue_primary_name)
+        unique (issue_primary_name),
+    constraint fk_issue_created_by
+        foreign key (issue_created_by) references User (user_id),
+    constraint fk_issue_updated_by
+        foreign key (issue_updated_by) references User (user_id)
 );
 
 create table if not exists IssueVariant
@@ -261,10 +291,10 @@ create table if not exists IssueVariant
     issuevariant_secondary_name              varchar(256)                          not null,
     issuevariant_description                 longtext                              not null,
     issuevariant_created_at                  timestamp default current_timestamp() not null,
-    issuevariant_created_by                  varchar(256)                          null,
+    issuevariant_created_by                  int unsigned                          null,
     issuevariant_deleted_at                  timestamp                             null,
     issuevariant_updated_at                  timestamp default current_timestamp() not null on update current_timestamp(),
-    issuevariant_updated_by                  varchar(256)                          null,
+    issuevariant_updated_by                  int unsigned                          null,
     constraint id_UNIQUE
         unique (issuevariant_id),
     constraint name_UNIQUE
@@ -273,7 +303,11 @@ create table if not exists IssueVariant
         foreign key (issuevariant_issue_id) references Issue (issue_id),
     constraint fk_issuevariant_issuerepository
         foreign key (issuevariant_repository_id) references IssueRepository (issuerepository_id)
-            on update cascade
+            on update cascade,
+    constraint fk_issuevariant_created_by
+        foreign key (issuevariant_created_by) references User (user_id),
+    constraint fk_issuevariant_updated_by
+        foreign key (issuevariant_updated_by) references User (user_id)
 );
 
 create table if not exists ActivityHasIssue
@@ -320,10 +354,10 @@ create table if not exists IssueMatch
     issuematch_component_instance_id       int unsigned                          not null,
 
     issuematch_created_at                  timestamp default current_timestamp() not null,
-    issuematch_created_by                  varchar(256)                          null,
+    issuematch_created_by                  int unsigned                          null,
     issuematch_deleted_at                  timestamp                             null,
     issuematch_updated_at                  timestamp default current_timestamp() not null on update current_timestamp(),
-    issuematch_updated_by                  varchar(256)                          null,
+    issuematch_updated_by                  int unsigned                          null,
     constraint id_UNIQUE
         unique (issuematch_id),
     constraint fk_issue_match_user_id
@@ -334,7 +368,11 @@ create table if not exists IssueMatch
             on update cascade,
     constraint fk_issue_match_issue
         foreign key (issuematch_issue_id) references Issue (issue_id)
-            on update cascade
+            on update cascade,
+    constraint fk_issuematch_created_by
+        foreign key (issuematch_created_by) references User (user_id),
+    constraint fk_issuematch_updated_by
+        foreign key (issuematch_updated_by) references User (user_id)
 );
 
 create table if not exists IssueMatchChange
@@ -345,14 +383,18 @@ create table if not exists IssueMatchChange
     issuematchchange_issue_match_id               int unsigned                          not null,
     issuematchchange_action                               enum('add','remove')                  not null,
     issuematchchange_created_at                           timestamp default current_timestamp() not null,
-    issuematchchange_created_by                           varchar(256)                          null,
+    issuematchchange_created_by                           int unsigned                          null,
     issuematchchange_deleted_at                           timestamp                             null,
     issuematchchange_updated_at                           timestamp default current_timestamp() not null on update current_timestamp(),
-    issuematchchange_updated_by                           varchar(256)                          null,
+    issuematchchange_updated_by                           int unsigned                          null,
     constraint fk_issuematchchange_activity
         foreign key (issuematchchange_activity_id) references Activity (activity_id),
     constraint fk_issuematchchange_issue_match
-        foreign key (issuematchchange_issue_match_id) references IssueMatch (issuematch_id)
+        foreign key (issuematchchange_issue_match_id) references IssueMatch (issuematch_id),
+    constraint fk_issuematchchange_created_by
+        foreign key (issuematchchange_created_by) references User (user_id),
+    constraint fk_issuematchchange_updated_by
+        foreign key (issuematchchange_updated_by) references User (user_id)
 );
 
 create table if not exists ComponentVersionIssue

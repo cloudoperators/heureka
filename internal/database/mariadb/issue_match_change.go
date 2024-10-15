@@ -46,7 +46,7 @@ func (s *SqlDatabase) getIssueMatchChangeUpdateFields(imc *entity.IssueMatchChan
 	if imc.Action != "" {
 		fl = append(fl, "issuematchchange_action = :issuematchchange_action")
 	}
-	if imc.UpdatedBy != "" {
+	if imc.UpdatedBy != 0 {
 		fl = append(fl, "issuematchchange_updated_by = :issuematchchange_updated_by")
 	}
 	return strings.Join(fl, ", ")
