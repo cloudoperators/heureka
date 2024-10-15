@@ -471,6 +471,7 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVersion {
 	return ComponentVersion{
 		ID:          fmt.Sprintf("%d", componentVersion.Id),
+		Ccrn:        &componentVersion.CCRN,
 		Version:     &componentVersion.Version,
 		ComponentID: util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
 	}
@@ -482,6 +483,7 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 		componentId = 0
 	}
 	return entity.ComponentVersion{
+		CCRN:        lo.FromPtr(componentVersion.Ccrn),
 		Version:     lo.FromPtr(componentVersion.Version),
 		ComponentId: componentId,
 	}
