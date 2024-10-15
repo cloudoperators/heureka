@@ -12,6 +12,7 @@ query ($filter: ComponentVersionFilter, $first: Int, $after: String) {
         edges { 
             node { 
                 id
+                ccrn
                 version
                 componentId
                 component { 

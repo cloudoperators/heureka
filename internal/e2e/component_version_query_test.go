@@ -236,6 +236,7 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 				req := graphql.NewRequest(str)
 
 				req.Var("input", map[string]string{
+					"ccrn":        componentVersion.CCRN,
 					"version":     componentVersion.Version,
 					"componentId": fmt.Sprintf("%d", componentId),
 				})
@@ -250,6 +251,7 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
+				Expect(*respData.ComponentVersion.Ccrn).To(Equal(componentVersion.CCRN))
 				Expect(*respData.ComponentVersion.Version).To(Equal(componentVersion.Version))
 				Expect(*respData.ComponentVersion.ComponentID).To(Equal(fmt.Sprintf("%d", componentId)))
 			})
@@ -300,10 +302,12 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 				req := graphql.NewRequest(str)
 
 				componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
+				componentVersion.CCRN = "NewCCRN"
 				componentVersion.Version = "4.2.0"
 
 				req.Var("id", fmt.Sprintf("%d", componentVersion.Id))
 				req.Var("input", map[string]string{
+					"ccrn":    componentVersion.CCRN,
 					"version": componentVersion.Version,
 				})
 
@@ -317,6 +321,7 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
+				Expect(*respData.ComponentVersion.Ccrn).To(Equal(componentVersion.CCRN))
 				Expect(*respData.ComponentVersion.Version).To(Equal(componentVersion.Version))
 			})
 		})

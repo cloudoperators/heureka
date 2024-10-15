@@ -11,6 +11,7 @@ query ListComponentVersions($filter: ComponentVersionFilter, $first: Int) {
             # @genqlient(typename: "ComponentVersion")
             node {
                 id
+                ccrn
                 version
                 componentId
             }
