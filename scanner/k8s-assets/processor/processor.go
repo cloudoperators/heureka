@@ -34,6 +34,11 @@ type CCRN struct {
 	Container string
 }
 
+type ImageVersion struct {
+	Image   string
+	Version string
+}
+
 // UniqueContainerInfo extends scanner.ContainerInfo to represent a unique container
 // configuration within a pod replica set, adding a count of occurrences.
 // It is used by the CollectUniqueContainers function to aggregate information about
@@ -231,15 +236,7 @@ func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, 
 	return nil
 }
 
-func (p *Processor) getComponentVersion(ctx context.Context, versionHash string) (string, error) {
-	//separating image name and version hash
-	imageAndVersion := strings.SplitN(versionHash, "@", 2)
-	if len(imageAndVersion) < 2 {
-		return "", fmt.Errorf("Couldn't split image and version")
-	}
-	image := imageAndVersion[0]
-	version := imageAndVersion[1]
-
+func (p *Processor) getComponentVersion(ctx context.Context, image string, version string) (string, error) {
 	listComponentVersionFilter := client.ComponentVersionFilter{
 		ComponentName: []string{image},
 		Version:       []string{version},
@@ -254,6 +251,20 @@ func (p *Processor) getComponentVersion(ctx context.Context, versionHash string)
 	}
 
 	return "", fmt.Errorf("ListComponentVersion returned no ComponentVersion objects")
+}
+
+// extractVersion returns the hash part ia container image
+func (p *Processor) extractImageVersion(versionHash string) (*ImageVersion, error) {
+	//separating image name and version hash
+	imageAndVersion := strings.SplitN(versionHash, "@", 2)
+	if len(imageAndVersion) < 2 {
+		return nil, fmt.Errorf("Couldn't split image and version")
+	}
+	imageVersion := &ImageVersion{
+		Image:   imageAndVersion[0],
+		Version: imageAndVersion[1],
+	}
+	return imageVersion, nil
 }
 
 // ProcessContainer is responsible for creating several entities based on the
@@ -285,6 +296,11 @@ func (p *Processor) ProcessContainer(
 	//
 	// Create new Component
 	//
+
+	// Check if we have everything we need
+	if len(containerInfo.ImageRegistry) == 0 || len(containerInfo.ImageAccount) == 0 || len(containerInfo.ImageRepository) == 0 {
+		return fmt.Errorf("cannot create Component (one or more containerInfo fields are empty)")
+	}
 	componentId, err := p.createComponent(ctx, &client.ComponentInput{
 		Name: fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository),
 		Type: client.ComponentTypeValuesContainerimage,
@@ -296,13 +312,20 @@ func (p *Processor) ProcessContainer(
 	//
 	// Create new ComponentVersion
 	//
-	componentVersionId, err = p.getComponentVersion(ctx, containerInfo.ImageHash)
+	iv, err := p.extractImageVersion(containerInfo.ImageHash)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"imageHash": containerInfo.ImageHash,
+		}).Error("cannot extract image and version from imagehash")
+		return fmt.Errorf("cannot extract image version: %w", err)
+	}
+	componentVersionId, err = p.getComponentVersion(ctx, iv.Image, iv.Version)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id": containerInfo.ImageHash,
 		}).Info("ComponentVersion not found")
 
-		componentVersionId, err = p.createComponentVersion(ctx, containerInfo.ImageHash, componentId)
+		componentVersionId, err = p.createComponentVersion(ctx, iv.Version, componentId)
 		if err != nil {
 			return fmt.Errorf("failed to create ComponentVersion: %w", err)
 		}
@@ -348,9 +371,9 @@ func (p *Processor) createComponent(ctx context.Context, input *client.Component
 }
 
 // createComponentVersion create a new ComponentVersion based on a container image hash
-func (p *Processor) createComponentVersion(ctx context.Context, imageHash string, componentId string) (string, error) {
+func (p *Processor) createComponentVersion(ctx context.Context, imageVersion string, componentId string) (string, error) {
 	componentVersionInput := &client.ComponentVersionInput{
-		Version:     imageHash,
+		Version:     imageVersion,
 		ComponentId: componentId,
 	}
 	createCompVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, componentVersionInput)
