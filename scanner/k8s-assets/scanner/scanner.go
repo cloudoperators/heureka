@@ -9,6 +9,7 @@ import (
 
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -42,10 +43,20 @@ type PodInfo struct {
 	Containers   []ContainerInfo
 }
 
+type ImageInfo struct {
+	Registry     string
+	Account      string
+	Organization string
+	Repository   string
+}
+
 type ContainerInfo struct {
-	Name      string
-	Image     string
-	ImageHash string
+	Name            string
+	Image           string
+	ImageHash       string
+	ImageRegistry   string
+	ImageRepository string
+	ImageAccount    string
 }
 
 type PodLabels struct {
@@ -112,6 +123,36 @@ func (s *Scanner) fetchImageId(pod v1.Pod, container v1.Container) string {
 	return ""
 }
 
+// extractImageInfo extracts image registry, image repository and the account name
+// from a container image
+func (s *Scanner) extractImageInfo(image string) (ImageInfo, error) {
+	// Split the string to remove the tag
+	parts := strings.Split(image, ":")
+	if len(parts) < 1 {
+		return ImageInfo{}, fmt.Errorf("invalid image")
+	}
+
+	// Split the remaining string by '/'
+	components := strings.Split(parts[0], "/")
+	if len(components) < 3 || len(components) > 4 {
+		return ImageInfo{}, fmt.Errorf("invalid image string format: expected 3 or 4 components")
+	}
+
+	info := ImageInfo{
+		Registry:   components[0],
+		Repository: components[len(components)-1],
+	}
+
+	if len(components) == 3 {
+		info.Account = components[1]
+	} else { // len(components) == 4
+		info.Account = components[1]
+		info.Organization = components[2]
+	}
+
+	return info, nil
+}
+
 func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 	podInfo := PodInfo{
 		Name:         pod.Name,
@@ -123,10 +164,28 @@ func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 	}
 
 	for _, containerStatus := range pod.Status.ContainerStatuses {
+		imageInfo, err := s.extractImageInfo(containerStatus.Image)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"image": containerStatus.Image,
+			}).Error("Couldn't extract information from image")
+		}
+
+		// Also consider image repository with an organization
+		var imageRepository string
+		if len(imageInfo.Organization) > 0 {
+			imageRepository = fmt.Sprintf("%s/%s", imageInfo.Organization, imageInfo.Repository)
+		} else {
+			imageRepository = imageInfo.Repository
+		}
+
 		podInfo.Containers = append(podInfo.Containers, ContainerInfo{
-			Name:      containerStatus.Name,
-			Image:     containerStatus.Image,
-			ImageHash: containerStatus.ImageID,
+			Name:            containerStatus.Name,
+			Image:           containerStatus.Image,
+			ImageHash:       containerStatus.ImageID,
+			ImageRegistry:   imageInfo.Registry,
+			ImageRepository: imageRepository,
+			ImageAccount:    imageInfo.Account,
 		})
 	}
 

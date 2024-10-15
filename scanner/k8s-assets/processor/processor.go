@@ -256,7 +256,8 @@ func (p *Processor) getComponentVersion(ctx context.Context, versionHash string)
 	return "", fmt.Errorf("ListComponentVersion returned no ComponentVersion objects")
 }
 
-// ProcessContainer creates a ComponentVersion and ComponentInstance for a container
+// ProcessContainer is responsible for creating several entities based on the
+// information at container level
 func (p *Processor) ProcessContainer(
 	ctx context.Context,
 	namespace string,
@@ -284,20 +285,13 @@ func (p *Processor) ProcessContainer(
 	//
 	// Create new Component
 	//
-	componentInput := &client.ComponentInput{
-		// TODO: Put name from container info
-		Name: fmt.Sprintf("%s/%s/%s", "registry", "account.Name", "repository.Name"),
+	componentId, err := p.createComponent(ctx, &client.ComponentInput{
+		Name: fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository),
 		Type: client.ComponentTypeValuesContainerimage,
-	}
-	createComponentResp, err := client.CreateComponent(ctx, *p.Client, componentInput)
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create Component: %w", err)
+		return fmt.Errorf("failed to create Component. %w", err)
 	}
-	log.WithFields(log.Fields{
-		"componentId": createComponentResp.CreateComponent.Id,
-	}).Info("Component created")
-
-	componentId = createComponentResp.CreateComponent.Id
 
 	//
 	// Create new ComponentVersion
@@ -308,7 +302,7 @@ func (p *Processor) ProcessContainer(
 			"id": containerInfo.ImageHash,
 		}).Info("ComponentVersion not found")
 
-		componentVersionId, err := p.createComponentVersion(ctx, containerInfo.ImageHash, componentId)
+		componentVersionId, err = p.createComponentVersion(ctx, containerInfo.ImageHash, componentId)
 		if err != nil {
 			return fmt.Errorf("failed to create ComponentVersion: %w", err)
 		}
@@ -317,28 +311,40 @@ func (p *Processor) ProcessContainer(
 	//
 	// Create new ComponentInstance
 	//
-	componentInstanceInput := &client.ComponentInstanceInput{
+	componentInstanceId, err = p.createComponentInstance(ctx, &client.ComponentInstanceInput{
 		Ccrn:               ccrn.String(),
 		Count:              containerInfo.Count,
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
-	}
-	createCompInstResp, err := client.CreateComponentInstance(ctx, *p.Client, componentInstanceInput)
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create ComponentInstance: %w", err)
 	}
-	componentInstanceID := createCompInstResp.CreateComponentInstance.Id
 
 	// Do logging
 	log.WithFields(log.Fields{
 		"componentVersionID":  componentVersionId,
-		"componentInstanceID": componentInstanceID,
+		"componentInstanceID": componentInstanceId,
 		"podGroup":            podGroupName,
 		"container":           containerInfo.Name,
 		"count":               containerInfo.Count,
 	}).Info("Created new entities")
 
 	return nil
+}
+
+// createComponent creates a new Component
+func (p *Processor) createComponent(ctx context.Context, input *client.ComponentInput) (string, error) {
+	createComponentResp, err := client.CreateComponent(ctx, *p.Client, input)
+	if err != nil {
+		return "", fmt.Errorf("failed to create Component: %w", err)
+	}
+
+	log.WithFields(log.Fields{
+		"componentId": createComponentResp.CreateComponent.Id,
+	}).Info("Component created")
+
+	return createComponentResp.CreateComponent.Id, nil
 }
 
 // createComponentVersion create a new ComponentVersion based on a container image hash
@@ -351,6 +357,7 @@ func (p *Processor) createComponentVersion(ctx context.Context, imageHash string
 	if err != nil {
 		return "", fmt.Errorf("failed to create ComponentVersion: %w", err)
 	}
+
 	log.WithFields(log.Fields{
 		"componentId": createCompVersionResp.CreateComponentVersion.Id,
 	}).Info("ComponentVersion created")
@@ -358,8 +365,16 @@ func (p *Processor) createComponentVersion(ctx context.Context, imageHash string
 	return createCompVersionResp.CreateComponentVersion.Id, nil
 }
 
-// func (p *Processor) createComponentInstance(args) {
- ...
-func (p *Processor) createComponentInstance(args) {
+// createComponentInstance creates a new ComponentInstance
+func (p *Processor) createComponentInstance(ctx context.Context, input *client.ComponentInstanceInput) (string, error) {
+	createCompInstResp, err := client.CreateComponentInstance(ctx, *p.Client, input)
+	if err != nil {
+		return "", fmt.Errorf("failed to create ComponentInstance: %w", err)
+	}
 
+	log.WithFields(log.Fields{
+		"componentInstanceId": createCompInstResp.CreateComponentInstance.Id,
+	}).Info("ComponentInstance created")
+
+	return createCompInstResp.CreateComponentInstance.Id, nil
 }
