@@ -112,27 +112,27 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 	}
 }
 
-func (p *Processor) GetComponent(name string) (*client.Component, error) {
-	r, err := client.ListComponents(context.Background(), *p.Client, &client.ComponentFilter{
-		ComponentName: []string{name},
-	}, 1)
-
+// GetComponents returns a slice of all availble Components
+func (p *Processor) GetComponents() ([]*client.Component, error) {
+	listComponentsResp, err := client.ListComponents(context.Background(), *p.Client, &client.ComponentFilter{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot list Components: %w", err)
 	}
 
-	var component *client.Component
-	if len(r.Components.Edges) > 0 {
-		component = r.Components.Edges[0].GetNode()
+	var components []*client.Component
+	if len(listComponentsResp.Components.Edges) > 0 {
+		for _, comp := range listComponentsResp.Components.Edges {
+			components = append(components, comp.GetNode())
+		}
 	}
 
-	return component, nil
+	return components, nil
 }
 
-func (p *Processor) GetComponentVersion(version string) (*client.ComponentVersion, error) {
+func (p *Processor) GetComponentVersions(componentId string) ([]*client.ComponentVersion, error) {
 	r, err := client.ListComponentVersions(context.Background(), *p.Client, &client.ComponentVersionFilter{
 		Version: []string{version},
-	}, 1)
+	})
 
 	if err != nil {
 		return nil, err
