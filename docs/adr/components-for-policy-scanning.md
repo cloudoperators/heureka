@@ -31,7 +31,7 @@ Chosen option: "Opt 1: Using Configuration as ComponentVersion", because neither
 ## Pros and Cons of the Options
 
 ### Opt 1: Using the configuration as ComponentVersion
-![](../images/components-for-policy-scanning-opt1.png)
+![](https://github.com/cloudoperators/heureka/blob/origin/MaxLuong/issue-246/component-version-compliance-scanning-adr/docs/adr/images/components-for-policy-scanning-opt1.png)
 We use the configuration of the Openstack entity and hash it to create a unique ComponentVersion.
 
 * Good, because we can decrypt the hash to get the configuration back to do processing
@@ -39,7 +39,7 @@ We use the configuration of the Openstack entity and hash it to create a unique 
 * Bad, because the naming of ComponentVersion may be confusing, as we only store the hash of the configuration, not the config itself
 
 ### Opt 2: Adding ComponentContext to ComponentInstance
-![](../images/components-for-policy-scanning-opt2.png)
+![](https://github.com/cloudoperators/heureka/blob/origin/MaxLuong/issue-246/component-version-compliance-scanning-adr/docs/adr/images/components-for-policy-scanning-opt2.png)
 We add a new entity called ComponentContext to the Entity Relationship for Component Instance
 
 * Good, because having ComponentContext makes it easier to differentiate between Component Instances
@@ -47,7 +47,7 @@ We add a new entity called ComponentContext to the Entity Relationship for Compo
 * Bad, because we are NOT using the same Entity Relationship logic for "Vulnerabilities"
 
 ### Opt 3: Do not store any configuration context data
-![](../images/components-for-policy-scanning-opt3.png)
+![](https://github.com/cloudoperators/heureka/blob/origin/MaxLuong/issue-246/component-version-compliance-scanning-adr/docs/adr/images/components-for-policy-scanning-opt2.png)
 We do not store ComponentVersion or add ComponentContext for Openstack ComponentInstances
 
 * Good, because it simplies handling the configuration and versioning
