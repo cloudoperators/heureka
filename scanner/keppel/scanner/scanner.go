@@ -17,6 +17,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type ImageInfo struct {
+	Registry     string
+	Account      string
+	Organization string
+	Repository   string
+}
+
 type Scanner struct {
 	KeppelBaseUrl    string
 	IdentityEndpoint string
@@ -25,6 +32,14 @@ type Scanner struct {
 	AuthToken        string
 	Domain           string
 	Project          string
+}
+
+func (i ImageInfo) FullRepository() string {
+	if len(i.Organization) > 0 {
+		return fmt.Sprintf("%s/%s", i.Organization, i.Repository)
+	} else {
+		return i.Repository
+	}
 }
 
 func NewScanner(cfg Config) *Scanner {
@@ -219,6 +234,36 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 
 	return &trivyReport, nil
 
+}
+
+// extractImageInfo extracts image registry, image repository and the account name
+// from a container image
+func (s *Scanner) ExtractImageInfo(image string) (ImageInfo, error) {
+	// Split the string to remove the tag
+	parts := strings.Split(image, ":")
+	if len(parts) < 1 {
+		return ImageInfo{}, fmt.Errorf("invalid image")
+	}
+
+	// Split the remaining string by '/'
+	components := strings.Split(parts[0], "/")
+	if len(components) < 3 || len(components) > 4 {
+		return ImageInfo{}, fmt.Errorf("invalid image string format: expected 3 or 4 components")
+	}
+
+	info := ImageInfo{
+		Registry:   components[0],
+		Repository: components[len(components)-1],
+	}
+
+	if len(components) == 3 {
+		info.Account = components[1]
+	} else { // len(components) == 4
+		info.Account = components[1]
+		info.Organization = components[2]
+	}
+
+	return info, nil
 }
 
 func (s *Scanner) sendRequest(url string, token string) ([]byte, error) {

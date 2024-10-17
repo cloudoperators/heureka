@@ -36,19 +36,27 @@ func (v *Component) GetType() ComponentTypeValues { return v.Type }
 
 // ComponentConnection includes the requested fields of the GraphQL type ComponentConnection.
 type ComponentConnection struct {
-	Edges []*ComponentConnectionEdgesComponentEdge `json:"edges"`
+	TotalCount int                                      `json:"totalCount"`
+	Edges      []*ComponentConnectionEdgesComponentEdge `json:"edges"`
 }
+
+// GetTotalCount returns ComponentConnection.TotalCount, and is useful for accessing the field via an interface.
+func (v *ComponentConnection) GetTotalCount() int { return v.TotalCount }
 
 // GetEdges returns ComponentConnection.Edges, and is useful for accessing the field via an interface.
 func (v *ComponentConnection) GetEdges() []*ComponentConnectionEdgesComponentEdge { return v.Edges }
 
 // ComponentConnectionEdgesComponentEdge includes the requested fields of the GraphQL type ComponentEdge.
 type ComponentConnectionEdgesComponentEdge struct {
-	Node *Component `json:"node"`
+	Node   *Component `json:"node"`
+	Cursor string     `json:"cursor"`
 }
 
 // GetNode returns ComponentConnectionEdgesComponentEdge.Node, and is useful for accessing the field via an interface.
 func (v *ComponentConnectionEdgesComponentEdge) GetNode() *Component { return v.Node }
+
+// GetCursor returns ComponentConnectionEdgesComponentEdge.Cursor, and is useful for accessing the field via an interface.
+func (v *ComponentConnectionEdgesComponentEdge) GetCursor() string { return v.Cursor }
 
 type ComponentFilter struct {
 	ComponentName []string `json:"componentName"`
@@ -330,22 +338,26 @@ func (v *__CreateIssueInput) GetInput() *IssueInput { return v.Input }
 // __ListComponentVersionsInput is used internally by genqlient
 type __ListComponentVersionsInput struct {
 	Filter *ComponentVersionFilter `json:"filter,omitempty"`
-	First  int                     `json:"first"`
 }
 
 // GetFilter returns __ListComponentVersionsInput.Filter, and is useful for accessing the field via an interface.
 func (v *__ListComponentVersionsInput) GetFilter() *ComponentVersionFilter { return v.Filter }
 
-// GetFirst returns __ListComponentVersionsInput.First, and is useful for accessing the field via an interface.
-func (v *__ListComponentVersionsInput) GetFirst() int { return v.First }
-
 // __ListComponentsInput is used internally by genqlient
 type __ListComponentsInput struct {
 	Filter *ComponentFilter `json:"filter,omitempty"`
+	First  int              `json:"first"`
+	After  string           `json:"after"`
 }
 
 // GetFilter returns __ListComponentsInput.Filter, and is useful for accessing the field via an interface.
 func (v *__ListComponentsInput) GetFilter() *ComponentFilter { return v.Filter }
+
+// GetFirst returns __ListComponentsInput.First, and is useful for accessing the field via an interface.
+func (v *__ListComponentsInput) GetFirst() int { return v.First }
+
+// GetAfter returns __ListComponentsInput.After, and is useful for accessing the field via an interface.
+func (v *__ListComponentsInput) GetAfter() string { return v.After }
 
 // __ListIssuesInput is used internally by genqlient
 type __ListIssuesInput struct {
@@ -513,8 +525,8 @@ func CreateIssue(
 
 // The query or mutation executed by ListComponentVersions.
 const ListComponentVersions_Operation = `
-query ListComponentVersions ($filter: ComponentVersionFilter, $first: Int) {
-	ComponentVersions(filter: $filter, first: $first) {
+query ListComponentVersions ($filter: ComponentVersionFilter) {
+	ComponentVersions(filter: $filter) {
 		edges {
 			node {
 				id
@@ -530,14 +542,12 @@ func ListComponentVersions(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *ComponentVersionFilter,
-	first int,
 ) (*ListComponentVersionsResponse, error) {
 	req_ := &graphql.Request{
 		OpName: "ListComponentVersions",
 		Query:  ListComponentVersions_Operation,
 		Variables: &__ListComponentVersionsInput{
 			Filter: filter,
-			First:  first,
 		},
 	}
 	var err_ error
@@ -556,14 +566,16 @@ func ListComponentVersions(
 
 // The query or mutation executed by ListComponents.
 const ListComponents_Operation = `
-query ListComponents ($filter: ComponentFilter) {
-	Components(filter: $filter) {
+query ListComponents ($filter: ComponentFilter, $first: Int, $after: String) {
+	Components(filter: $filter, first: $first, after: $after) {
+		totalCount
 		edges {
 			node {
 				id
 				name
 				type
 			}
+			cursor
 		}
 	}
 }
@@ -573,12 +585,16 @@ func ListComponents(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *ComponentFilter,
+	first int,
+	after string,
 ) (*ListComponentsResponse, error) {
 	req_ := &graphql.Request{
 		OpName: "ListComponents",
 		Query:  ListComponents_Operation,
 		Variables: &__ListComponentsInput{
 			Filter: filter,
+			First:  first,
+			After:  after,
 		},
 	}
 	var err_ error
