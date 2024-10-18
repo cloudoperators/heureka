@@ -77,8 +77,7 @@ func main() {
 		imageInfo, err := keppelScanner.ExtractImageInfo(comp.Name)
 		if err != nil {
 			log.WithError(err).Error("Could't extract image information from component name")
-		} else {
-			fmt.Printf("imageInfo: %#v\n", imageInfo)
+			continue
 		}
 
 		// Get component versions
@@ -87,7 +86,11 @@ func main() {
 			log.WithError(err).Errorf("couldn't fetch component versions for componentId: %s", comp.Id)
 		}
 
-		HandleRepository(comp.Id, compVersions[0].Id, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
+		// Handle image manifests for each found component version
+		for _, cv := range compVersions {
+			HandleImageManifests(comp.Id, cv.Id, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
+		}
+
 	}
 
 	// accounts, err := keppelScanner.ListAccounts()
@@ -104,8 +107,7 @@ func main() {
 	// wg.Wait()
 }
 
-// HandleRepository does what ???
-func HandleRepository(
+func HandleImageManifests(
 	componentId string,
 	componentVersionId string,
 	account string,
@@ -138,12 +140,11 @@ func HandleRepository(
 			}).Info("Manifest has no Vulnerabilities")
 			continue
 		}
-		HandleManifest(account, repository, manifest, componentId, componentVersionId, keppelScanner, keppelProcessor)
+		HandleChildManifests(account, repository, manifest, componentId, componentVersionId, keppelScanner, keppelProcessor)
 	}
 }
 
-// HandleManifest does what ???
-func HandleManifest(
+func HandleChildManifests(
 	account string,
 	repository string,
 	manifest models.Manifest,
@@ -164,6 +165,7 @@ func HandleManifest(
 	childManifests = append(childManifests, manifest)
 
 	for _, m := range childManifests {
+		// Get Trivy report for a specific repository and image version (componentVersion)
 		trivyReport, err := keppelScanner.GetTrivyReport(account, repository, m.Digest)
 		if err != nil {
 			log.WithFields(log.Fields{
