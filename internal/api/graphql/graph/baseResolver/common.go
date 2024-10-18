@@ -39,6 +39,8 @@ var (
 	IssueMatchFilterSeverity         string = "severity"
 	IssueMatchFilterAffectedService  string = "affectedService"
 	IssueMatchFilterSupportGroupName string = "supportGroupName"
+
+	ComponentFilterComponentName string = "componentName"
 )
 
 type ResolverError struct {
