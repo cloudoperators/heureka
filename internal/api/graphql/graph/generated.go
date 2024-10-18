@@ -44,6 +44,7 @@ type Config struct {
 type ResolverRoot interface {
 	Activity() ActivityResolver
 	Component() ComponentResolver
+	ComponentFilterValue() ComponentFilterValueResolver
 	ComponentInstance() ComponentInstanceResolver
 	ComponentInstanceFilterValue() ComponentInstanceFilterValueResolver
 	ComponentVersion() ComponentVersionResolver
@@ -148,6 +149,10 @@ type ComplexityRoot struct {
 	ComponentEdge struct {
 		Cursor func(childComplexity int) int
 		Node   func(childComplexity int) int
+	}
+
+	ComponentFilterValue struct {
+		ComponentName func(childComplexity int, filter *model.ComponentFilter) int
 	}
 
 	ComponentInstance struct {
@@ -452,6 +457,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Activities                    func(childComplexity int, filter *model.ActivityFilter, first *int, after *string) int
+		ComponentFilterValues         func(childComplexity int) int
 		ComponentInstanceFilterValues func(childComplexity int) int
 		ComponentInstances            func(childComplexity int, filter *model.ComponentInstanceFilter, first *int, after *string) int
 		ComponentVersions             func(childComplexity int, filter *model.ComponentVersionFilter, first *int, after *string) int
@@ -557,6 +563,9 @@ type ActivityResolver interface {
 }
 type ComponentResolver interface {
 	ComponentVersions(ctx context.Context, obj *model.Component, filter *model.ComponentVersionFilter, first *int, after *string) (*model.ComponentVersionConnection, error)
+}
+type ComponentFilterValueResolver interface {
+	ComponentName(ctx context.Context, obj *model.ComponentFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error)
 }
 type ComponentInstanceResolver interface {
 	ComponentVersion(ctx context.Context, obj *model.ComponentInstance) (*model.ComponentVersion, error)
@@ -690,6 +699,7 @@ type QueryResolver interface {
 	ServiceFilterValues(ctx context.Context) (*model.ServiceFilterValue, error)
 	IssueMatchFilterValues(ctx context.Context) (*model.IssueMatchFilterValue, error)
 	ComponentInstanceFilterValues(ctx context.Context) (*model.ComponentInstanceFilterValue, error)
+	ComponentFilterValues(ctx context.Context) (*model.ComponentFilterValue, error)
 }
 type ServiceResolver interface {
 	Owners(ctx context.Context, obj *model.Service, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error)
@@ -1113,6 +1123,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ComponentEdge.Node(childComplexity), true
+
+	case "ComponentFilterValue.componentName":
+		if e.complexity.ComponentFilterValue.ComponentName == nil {
+			break
+		}
+
+		args, err := ec.field_ComponentFilterValue_componentName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ComponentFilterValue.ComponentName(childComplexity, args["filter"].(*model.ComponentFilter)), true
 
 	case "ComponentInstance.ccrn":
 		if e.complexity.ComponentInstance.Ccrn == nil {
@@ -2950,6 +2972,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Activities(childComplexity, args["filter"].(*model.ActivityFilter), args["first"].(*int), args["after"].(*string)), true
 
+	case "Query.ComponentFilterValues":
+		if e.complexity.Query.ComponentFilterValues == nil {
+			break
+		}
+
+		return e.complexity.Query.ComponentFilterValues(childComplexity), true
+
 	case "Query.ComponentInstanceFilterValues":
 		if e.complexity.Query.ComponentInstanceFilterValues == nil {
 			break
@@ -3613,7 +3642,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/activity.graphqls" "schema/common.graphqls" "schema/component.graphqls" "schema/component_instance.graphqls" "schema/component_instance_filter.graphqls" "schema/component_version.graphqls" "schema/evidence.graphqls" "schema/issue.graphqls" "schema/issue_match.graphqls" "schema/issue_match_change.graphqls" "schema/issue_match_filter_value.graphqls" "schema/issue_repository.graphqls" "schema/issue_variant.graphqls" "schema/mutation.graphqls" "schema/query.graphqls" "schema/service.graphqls" "schema/service_filter.graphqls" "schema/support_group.graphqls" "schema/user.graphqls"
+//go:embed "schema/activity.graphqls" "schema/common.graphqls" "schema/component.graphqls" "schema/component_filter.graphqls" "schema/component_instance.graphqls" "schema/component_instance_filter.graphqls" "schema/component_version.graphqls" "schema/evidence.graphqls" "schema/issue.graphqls" "schema/issue_match.graphqls" "schema/issue_match_change.graphqls" "schema/issue_match_filter_value.graphqls" "schema/issue_repository.graphqls" "schema/issue_variant.graphqls" "schema/mutation.graphqls" "schema/query.graphqls" "schema/service.graphqls" "schema/service_filter.graphqls" "schema/support_group.graphqls" "schema/user.graphqls"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -3628,6 +3657,7 @@ var sources = []*ast.Source{
 	{Name: "schema/activity.graphqls", Input: sourceData("schema/activity.graphqls"), BuiltIn: false},
 	{Name: "schema/common.graphqls", Input: sourceData("schema/common.graphqls"), BuiltIn: false},
 	{Name: "schema/component.graphqls", Input: sourceData("schema/component.graphqls"), BuiltIn: false},
+	{Name: "schema/component_filter.graphqls", Input: sourceData("schema/component_filter.graphqls"), BuiltIn: false},
 	{Name: "schema/component_instance.graphqls", Input: sourceData("schema/component_instance.graphqls"), BuiltIn: false},
 	{Name: "schema/component_instance_filter.graphqls", Input: sourceData("schema/component_instance_filter.graphqls"), BuiltIn: false},
 	{Name: "schema/component_version.graphqls", Input: sourceData("schema/component_version.graphqls"), BuiltIn: false},
@@ -3992,6 +4022,38 @@ func (ec *executionContext) field_Activity_services_argsAfter(
 	}
 
 	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_ComponentFilterValue_componentName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_ComponentFilterValue_componentName_argsFilter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_ComponentFilterValue_componentName_argsFilter(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*model.ComponentFilter, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["filter"]
+	if !ok {
+		var zeroVal *model.ComponentFilter
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+	if tmp, ok := rawArgs["filter"]; ok {
+		return ec.unmarshalOComponentFilter2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐComponentFilter(ctx, tmp)
+	}
+
+	var zeroVal *model.ComponentFilter
 	return zeroVal, nil
 }
 
@@ -12389,6 +12451,66 @@ func (ec *executionContext) fieldContext_ComponentEdge_cursor(_ context.Context,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ComponentFilterValue_componentName(ctx context.Context, field graphql.CollectedField, obj *model.ComponentFilterValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ComponentFilterValue_componentName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ComponentFilterValue().ComponentName(rctx, obj, fc.Args["filter"].(*model.ComponentFilter))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FilterItem)
+	fc.Result = res
+	return ec.marshalOFilterItem2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐFilterItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ComponentFilterValue_componentName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ComponentFilterValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "displayName":
+				return ec.fieldContext_FilterItem_displayName(ctx, field)
+			case "filterName":
+				return ec.fieldContext_FilterItem_filterName(ctx, field)
+			case "values":
+				return ec.fieldContext_FilterItem_values(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FilterItem", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ComponentFilterValue_componentName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -24450,6 +24572,51 @@ func (ec *executionContext) fieldContext_Query_ComponentInstanceFilterValues(_ c
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_ComponentFilterValues(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_ComponentFilterValues(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ComponentFilterValues(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ComponentFilterValue)
+	fc.Result = res
+	return ec.marshalOComponentFilterValue2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐComponentFilterValue(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_ComponentFilterValues(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "componentName":
+				return ec.fieldContext_ComponentFilterValue_componentName(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ComponentFilterValue", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query___type(ctx, field)
 	if err != nil {
@@ -30637,6 +30804,73 @@ func (ec *executionContext) _ComponentEdge(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var componentFilterValueImplementors = []string{"ComponentFilterValue"}
+
+func (ec *executionContext) _ComponentFilterValue(ctx context.Context, sel ast.SelectionSet, obj *model.ComponentFilterValue) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, componentFilterValueImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ComponentFilterValue")
+		case "componentName":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ComponentFilterValue_componentName(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var componentInstanceImplementors = []string{"ComponentInstance", "Node"}
 
 func (ec *executionContext) _ComponentInstance(ctx context.Context, sel ast.SelectionSet, obj *model.ComponentInstance) graphql.Marshaler {
@@ -33826,6 +34060,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "ComponentFilterValues":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ComponentFilterValues(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -36106,6 +36359,13 @@ func (ec *executionContext) unmarshalOComponentFilter2ᚖgithubᚗcomᚋcloudope
 	}
 	res, err := ec.unmarshalInputComponentFilter(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOComponentFilterValue2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐComponentFilterValue(ctx context.Context, sel ast.SelectionSet, v *model.ComponentFilterValue) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ComponentFilterValue(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOComponentInstanceConnection2ᚖgithubᚗcomᚋcloudoperatorsᚋheurekaᚋinternalᚋapiᚋgraphqlᚋgraphᚋmodelᚐComponentInstanceConnection(ctx context.Context, sel ast.SelectionSet, v *model.ComponentInstanceConnection) graphql.Marshaler {
