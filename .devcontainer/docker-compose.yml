@@ -28,7 +28,7 @@ services:
       DB_SCHEMA: /app_sqlschema/schema.sql
 
 
-      SEED_MODE: true
+      SEED_MODE: "true"
       AUTH_TYPE: token
       AUTH_TOKEN_SECRET: xxx
 
