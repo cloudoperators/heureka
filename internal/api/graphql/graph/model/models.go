@@ -16,6 +16,27 @@ import (
 
 // add custom models here
 
+var AllSeverityValuesOrdered = []SeverityValues{
+	SeverityValuesCritical,
+	SeverityValuesHigh,
+	SeverityValuesMedium,
+	SeverityValuesLow,
+	SeverityValuesNone,
+}
+
+var AllIssueTypesOrdered = []IssueTypes{
+	IssueTypesPolicyViolation,
+	IssueTypesSecurityEvent,
+	IssueTypesVulnerability,
+}
+
+var AllIssueMatchStatusValuesOrdered = []IssueMatchStatusValues{
+	IssueMatchStatusValuesNew,
+	IssueMatchStatusValuesRiskAccepted,
+	IssueMatchStatusValuesFalsePositive,
+	IssueMatchStatusValuesMitigated,
+}
+
 func NewPageInfo(p *entity.PageInfo) *PageInfo {
 	if p == nil {
 		return nil

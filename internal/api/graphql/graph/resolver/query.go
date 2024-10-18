@@ -93,17 +93,17 @@ func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.Issu
 		Status: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueMatchStatus,
 			FilterName:  &baseResolver.IssueMatchFilterStatus,
-			Values:      lo.Map(model.AllIssueMatchStatusValues, func(item model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
+			Values:      lo.Map(model.AllIssueMatchStatusValuesOrdered, func(s model.IssueMatchStatusValues, _ int) *string { return pointer.String(s.String()) }),
 		},
 		IssueType: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueType,
 			FilterName:  &baseResolver.IssueMatchFilterIssueType,
-			Values:      lo.Map(model.AllIssueTypes, func(item model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+			Values:      lo.Map(model.AllIssueTypesOrdered, func(s model.IssueTypes, _ int) *string { return pointer.String(s.String()) }),
 		},
 		Severity: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueSeverity,
 			FilterName:  &baseResolver.IssueMatchFilterSeverity,
-			Values:      lo.Map(model.AllSeverityValues, func(item model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
+			Values:      lo.Map(model.AllSeverityValuesOrdered, func(s model.SeverityValues, _ int) *string { return pointer.String(s.String()) }),
 		},
 	}, nil
 }
