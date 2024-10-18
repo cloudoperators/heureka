@@ -31,7 +31,7 @@ func NewFakeIssueEntity() entity.Issue {
 func NewFakeIssueWithAggregationsEntity() entity.IssueWithAggregations {
 	return entity.IssueWithAggregations{
 		IssueAggregations: entity.IssueAggregations{
-			Activites:                     int64(gofakeit.Number(1, 10000000)),
+			Activities:                    int64(gofakeit.Number(1, 10000000)),
 			IssueMatches:                  int64(gofakeit.Number(1, 10000000)),
 			AffectedServices:              int64(gofakeit.Number(1, 10000000)),
 			ComponentVersions:             int64(gofakeit.Number(1, 10000000)),

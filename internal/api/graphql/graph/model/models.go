@@ -172,7 +172,7 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	if issue.IssueAggregations != nil {
 		metadata = IssueMetadata{
 			ServiceCount:                  int(issue.IssueAggregations.AffectedServices),
-			ActivityCount:                 int(issue.IssueAggregations.Activites),
+			ActivityCount:                 int(issue.IssueAggregations.Activities),
 			IssueMatchCount:               int(issue.IssueAggregations.IssueMatches),
 			ComponentInstanceCount:        int(issue.IssueAggregations.AffectedComponentInstances),
 			ComponentVersionCount:         int(issue.IssueAggregations.ComponentVersions),

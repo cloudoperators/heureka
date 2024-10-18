@@ -66,7 +66,7 @@ type IssueFilter struct {
 }
 
 type IssueAggregations struct {
-	Activites                     int64
+	Activities                    int64
 	IssueMatches                  int64
 	AffectedServices              int64
 	AffectedComponentInstances    int64
