@@ -1,0 +1,11 @@
+{
+	"name": "heureka & MariaDB",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"postCreateCommand": "make",
+        "forwardPorts": [
+           80,
+           "mariadb:3306"
+        ]
+}
