@@ -18,4 +18,5 @@ type Query {
     ServiceFilterValues: ServiceFilterValue
     IssueMatchFilterValues: IssueMatchFilterValue
     ComponentInstanceFilterValues: ComponentInstanceFilterValue
+    ComponentFilterValues: ComponentFilterValue
 }
