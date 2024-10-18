@@ -296,6 +296,7 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
     SELECT U.user_name FROM User U
     %s
     %s
+    ORDER BY U.user_name
     `
 
 	// Ensure the filter is initialized
@@ -344,6 +345,7 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
     SELECT U.user_unique_user_id FROM User U
     %s
     %s
+    ORDER BY U.user_unique_user_id
     `
 
 	// Ensure the filter is initialized
