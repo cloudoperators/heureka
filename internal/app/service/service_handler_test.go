@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestServiceHandler(t *testing.T) {
@@ -134,6 +135,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 	It("creates service", func() {
 		filter.Name = []*string{&service.Name}
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateService", &service).Return(&service, nil)
 		db.On("GetServices", filter).Return([]entity.Service{}, nil)
 		serviceHandler = s.NewServiceHandler(db, er)
@@ -169,6 +171,7 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 	})
 
 	It("updates service", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateService", &service).Return(nil)
 		serviceHandler = s.NewServiceHandler(db, er)
 		service.Name = "SecretService"

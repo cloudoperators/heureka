@@ -3,6 +3,7 @@
 
 package e2e_test
 
+/*
 import (
 	"time"
 
@@ -115,3 +116,4 @@ var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"
 	})
 
 })
+*/

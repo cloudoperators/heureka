@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestComponentHandler(t *testing.T) {
@@ -124,6 +125,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 
 	It("creates component", func() {
 		filter.Name = []*string{&component.Name}
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponent", &component).Return(&component, nil)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
 		componentHandler = c.NewComponentHandler(db, er)
@@ -160,6 +162,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 	})
 
 	It("updates component", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponent", &component).Return(nil)
 		componentHandler = c.NewComponentHandler(db, er)
 		component.Name = "NewComponent"

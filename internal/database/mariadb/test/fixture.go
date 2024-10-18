@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/onsi/ginkgo/v2/dsl/core"
@@ -1131,6 +1132,7 @@ func NewFakeIssue() mariadb.IssueRow {
 		PrimaryName: sql.NullString{String: fmt.Sprintf("CVE-%d-%d", gofakeit.Year(), gofakeit.Number(100, 9999999)), Valid: true},
 		Description: sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
 		Type:        sql.NullString{String: gofakeit.RandomString(entity.AllIssueTypes), Valid: true},
+		CreatedBy:   sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1229,6 +1231,7 @@ func NewFakeUser() mariadb.UserRow {
 		Name:         sql.NullString{String: gofakeit.Name(), Valid: true},
 		UniqueUserID: sql.NullString{String: uniqueUserId, Valid: true},
 		Type:         sql.NullInt64{Int64: getNextUserType(), Valid: true},
+		CreatedBy:    sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 

@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestIssueVariantHandler(t *testing.T) {
@@ -229,6 +230,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 
 	It("creates issueVariant", func() {
 		filter.SecondaryName = []*string{&issueVariant.SecondaryName}
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
@@ -272,6 +274,7 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 	})
 
 	It("updates issueVariant", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueVariant", &issueVariant).Return(nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
 		issueVariant.SecondaryName = "SecretAdvisory"

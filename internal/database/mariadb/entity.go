@@ -194,7 +194,7 @@ func (ir *IssueRow) FromIssue(i *entity.Issue) {
 	ir.Type = sql.NullString{String: i.Type.String(), Valid: true}
 	ir.Description = sql.NullString{String: i.Description, Valid: true}
 	ir.CreatedAt = sql.NullTime{Time: i.CreatedAt, Valid: true}
-	ir.CreatedBy = sql.NullInt64{Int64: i.CreatedBy, Valid: true}
+	ir.CreatedBy = sql.NullInt64{Int64: i.CreatedBy, Valid: false}
 	ir.DeletedAt = sql.NullTime{Time: i.DeletedAt, Valid: true}
 	ir.UpdatedAt = sql.NullTime{Time: i.UpdatedAt, Valid: true}
 	ir.UpdatedBy = sql.NullInt64{Int64: i.UpdatedBy, Valid: false}

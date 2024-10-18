@@ -27,6 +27,14 @@ create table if not exists User
         foreign key (user_updated_by) references User (user_id)
 );
 
+set @TechnicalUserType = 2;
+set @SystemUserId = 1;
+set @SystemUserName = 'systemuser';
+set @SystemUserUniqueUserId = 'S0000000';
+insert ignore into User (user_id, user_name, user_unique_user_id,  user_type, user_created_at, user_created_by)
+    values
+    (@SystemUserId, @SystemUserName, @SystemUserUniqueUserId, @TechnicalUserType, current_timestamp(), @SystemUserId);
+
 create table if not exists Component
 (
     component_id         int unsigned auto_increment

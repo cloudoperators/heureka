@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestActivityHandler(t *testing.T) {
@@ -113,6 +114,7 @@ var _ = Describe("When creating Activity", Label("app", "CreateActivity"), func(
 	})
 
 	It("creates activity", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateActivity", &activity).Return(&activity, nil)
 		activityHandler = a.NewActivityHandler(db, er)
 		newActivity, err := activityHandler.CreateActivity(&activity)
@@ -146,6 +148,7 @@ var _ = Describe("When updating Activity", Label("app", "UpdateService"), func()
 	})
 
 	It("updates activity", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateActivity", &activity).Return(nil)
 		activityHandler = a.NewActivityHandler(db, er)
 		if activity.Status.String() == entity.ActivityStatusValuesOpen.String() {

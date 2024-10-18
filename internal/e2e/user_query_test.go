@@ -74,8 +74,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
-
-			Expect(respData.Users.TotalCount).To(Equal(0))
+			e2e_common.ExpectNonSystemUserCount(respData.Users.TotalCount, 0)
 		})
 	})
 
@@ -113,7 +112,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 						logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 					}
 
-					Expect(respData.Users.TotalCount).To(Equal(len(seedCollection.UserRows)))
+					e2e_common.ExpectNonSystemUserCount(respData.Users.TotalCount, len(seedCollection.UserRows))
 					Expect(len(respData.Users.Edges)).To(Equal(5))
 				})
 			})
@@ -146,7 +145,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 				})
 
 				It("- returns the correct result count", func() {
-					Expect(respData.Users.TotalCount).To(Equal(len(seedCollection.UserRows)))
+					e2e_common.ExpectNonSystemUserCount(respData.Users.TotalCount, len(seedCollection.UserRows))
 					Expect(len(respData.Users.Edges)).To(Equal(5))
 				})
 
@@ -189,7 +188,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 					Expect(*respData.Users.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
 					Expect(*respData.Users.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
 					Expect(respData.Users.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-					Expect(len(respData.Users.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
+					Expect(len(respData.Users.PageInfo.Pages)).To(Equal(3), "Correct amount of pages")
 					Expect(*respData.Users.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 				})
 			})
