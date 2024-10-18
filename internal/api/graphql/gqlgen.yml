@@ -225,3 +225,7 @@ models:
         resolver: true
       ccrn:
         resolver: true
+  ComponentFilterValue:
+    fields:
+      componentName: 
+        resolver: true
