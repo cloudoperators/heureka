@@ -546,6 +546,7 @@ func (s *SqlDatabase) GetServiceNames(filter *entity.ServiceFilter) ([]string, e
     SELECT service_name FROM Service S
     %s
     %s
+    ORDER BY S.service_name
     `
 
 	// Ensure the filter is initialized

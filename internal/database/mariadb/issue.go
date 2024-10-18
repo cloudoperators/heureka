@@ -5,8 +5,9 @@ package mariadb
 
 import (
 	"fmt"
-	"github.com/cloudoperators/heureka/internal/database"
 	"strings"
+
+	"github.com/cloudoperators/heureka/internal/database"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/jmoiron/sqlx"
@@ -494,6 +495,7 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
     SELECT I.issue_primary_name FROM Issue I
     %s
     %s
+    ORDER BY I.issue_primary_name
     `
 
 	// Ensure the filter is initialized
