@@ -4,14 +4,17 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
+	"context"
+	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/cloudoperators/heureka/scanners/keppel/processor"
 	"github.com/cloudoperators/heureka/scanners/keppel/scanner"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
+	"runtime"
+	"sync"
 )
 
 type Config struct {
@@ -71,43 +74,63 @@ func main() {
 		log.WithError(err).Fatal("cannot list Components")
 	}
 
-	// For each component get all component versions
-	// TODO: Make each call in a go routine
-	for _, comp := range components {
-		imageInfo, err := keppelScanner.ExtractImageInfo(comp.Name)
-		if err != nil {
-			log.WithError(err).Error("Could't extract image information from component name")
-			continue
-		}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	processConcurrently(ctx, components, keppelScanner, keppelProcessor)
+}
 
-		// Get component versions
-		compVersions, err := keppelProcessor.GetComponentVersions(comp.Id)
-		if err != nil {
-			log.WithError(err).Errorf("couldn't fetch component versions for componentId: %s", comp.Id)
-		}
+func processConcurrently(ctx context.Context, components []*client.Component, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+	maxWorkers := runtime.GOMAXPROCS(0)
+	componentCh := make(chan *client.Component, len(components))
+	var wg sync.WaitGroup
 
-		// Handle image manifests for each found component version
-		for _, cv := range compVersions {
-			HandleImageManifests(comp.Id, cv.Id, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
-		}
-
+	// Start worker goroutines
+	for i := 0; i < maxWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for comp := range componentCh {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					processComponent(ctx, comp, keppelScanner, keppelProcessor)
+				}
+			}
+		}()
 	}
 
-	// accounts, err := keppelScanner.ListAccounts()
-	// if err != nil {
-	// 	log.WithError(err).Fatal("Error during ListAccounts")
-	// }
+	// Feed components to workers
+	for _, comp := range components {
+		componentCh <- comp
+	}
+	close(componentCh)
 
-	// wg.Add(len(accounts))
+	// Wait for all workers to finish
+	wg.Wait()
+}
 
-	// for _, account := range accounts {
-	// 	// go HandleAccount(fqdn, account, keppelScanner, keppelProcessor, &wg)
-	// }
+func processComponent(ctx context.Context, comp *client.Component, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+	imageInfo, err := keppelScanner.ExtractImageInfo(comp.Name)
+	if err != nil {
+		log.WithError(err).Error("Couldn't extract image information from component name")
+		return
+	}
 
-	// wg.Wait()
+	log.Infof("Processing component: %s", comp.Name)
+	compVersions, err := keppelProcessor.GetComponentVersions(comp.Id)
+	if err != nil {
+		log.WithError(err).Errorf("couldn't fetch component versions for componentId: %s", comp.Id)
+		return
+	}
+
+	for _, cv := range compVersions {
+		HandleImageManifests(ctx, comp.Id, cv.Id, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
+	}
 }
 
 func HandleImageManifests(
+	ctx context.Context,
 	componentId string,
 	componentVersionId string,
 	account string,
@@ -116,6 +139,7 @@ func HandleImageManifests(
 	keppelProcessor *processor.Processor,
 ) {
 
+	log.Info("Handling manifest")
 	manifests, err := keppelScanner.ListManifests(account, repository)
 	if err != nil {
 		log.WithFields(log.Fields{
