@@ -22,6 +22,7 @@ type ImageInfo struct {
 	Account      string
 	Organization string
 	Repository   string
+	Tag          string
 }
 
 type Scanner struct {
@@ -256,6 +257,12 @@ func (s *Scanner) ExtractImageInfo(image string) (ImageInfo, error) {
 		Repository: components[len(components)-1],
 	}
 
+	// Set tag
+	if len(parts) > 2 {
+		info.Tag = parts[1]
+	}
+
+	// Set organization and registry
 	if len(components) == 3 {
 		info.Account = components[1]
 	} else { // len(components) == 4
