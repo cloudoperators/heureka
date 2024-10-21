@@ -133,21 +133,21 @@ func (s *Scanner) extractImageInfo(image string) (ImageInfo, error) {
 	}
 
 	// Split the remaining string by '/'
-	components := strings.Split(parts[0], "/")
-	if len(components) < 3 || len(components) > 4 {
-		return ImageInfo{}, fmt.Errorf("invalid image string format: expected 3 or 4 components")
+	tokens := strings.Split(parts[0], "/")
+	if len(tokens) < 3 || len(tokens) > 4 {
+		return ImageInfo{}, fmt.Errorf("invalid image string format: expected 3 or 4 tokens")
 	}
 
 	info := ImageInfo{
-		Registry:   components[0],
-		Repository: components[len(components)-1],
+		Registry:   tokens[0],
+		Repository: tokens[len(tokens)-1],
 	}
 
-	if len(components) == 3 {
-		info.Account = components[1]
-	} else { // len(components) == 4
-		info.Account = components[1]
-		info.Organization = components[2]
+	if len(tokens) == 3 {
+		info.Account = tokens[1]
+	} else { // len(tokens) == 4
+		info.Account = tokens[1]
+		info.Organization = tokens[2]
 	}
 
 	return info, nil
