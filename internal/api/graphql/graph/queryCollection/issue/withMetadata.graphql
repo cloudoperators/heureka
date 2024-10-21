@@ -20,8 +20,23 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                     earliestDiscoveryDate
                     earliestTargetRemediationDate
                 }
+                issueMatches {
+                    totalCount
+                    edges {
+                        node {
+                            componentInstance {
+                                count
+                                service {
+                                    id
+                                }
+                            }
+                        }
+                    }
+                }
+                activities {
+                    totalCount
+                }
             }
-            cursor
         }
     }
 }
