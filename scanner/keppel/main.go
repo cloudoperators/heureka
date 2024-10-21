@@ -54,7 +54,6 @@ func main() {
 	}
 
 	var processorCfg processor.Config
-	// var fqdn = scannerCfg.KeppelFQDN
 	err = envconfig.Process("heureka", &processorCfg)
 	if err != nil {
 		log.WithError(err).Fatal("Error while reading env config for processor")
