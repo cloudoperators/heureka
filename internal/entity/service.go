@@ -34,7 +34,6 @@ type ServiceFilter struct {
 }
 
 type Service struct {
-	Metadata
 	BaseService
 	IssueRepositoryService
 }

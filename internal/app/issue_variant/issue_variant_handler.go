@@ -179,7 +179,7 @@ func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVari
 	})
 
 	var err error
-	issueVariant.CreatedBy, err = common.GetUserId(iv.database, "C1234567")
+	issueVariant.CreatedBy, err = common.GetUserId(iv.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while creating issueVariant (GetUserId).")
@@ -216,7 +216,7 @@ func (iv *issueVariantHandler) UpdateIssueVariant(issueVariant *entity.IssueVari
 	})
 
 	var err error
-	issueVariant.UpdatedBy, err = common.GetUserId(iv.database, "C7654321")
+	issueVariant.UpdatedBy, err = common.GetUserId(iv.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while updating issueVariant (GetUserId).")

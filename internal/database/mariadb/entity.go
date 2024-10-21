@@ -197,7 +197,7 @@ func (ir *IssueRow) FromIssue(i *entity.Issue) {
 	ir.CreatedBy = sql.NullInt64{Int64: i.CreatedBy, Valid: true}
 	ir.DeletedAt = sql.NullTime{Time: i.DeletedAt, Valid: true}
 	ir.UpdatedAt = sql.NullTime{Time: i.UpdatedAt, Valid: true}
-	ir.UpdatedBy = sql.NullInt64{Int64: i.UpdatedBy, Valid: false}
+	ir.UpdatedBy = sql.NullInt64{Int64: i.UpdatedBy, Valid: true}
 }
 
 type IssueMatchRow struct {
@@ -251,10 +251,10 @@ func (imr *IssueMatchRow) FromIssueMatch(im *entity.IssueMatch) {
 	imr.RemediationDate = sql.NullTime{Time: im.RemediationDate, Valid: true}
 	imr.TargetRemediationDate = sql.NullTime{Time: im.TargetRemediationDate, Valid: true}
 	imr.CreatedAt = sql.NullTime{Time: im.CreatedAt, Valid: true}
-	imr.CreatedBy = sql.NullInt64{Int64: im.CreatedBy, Valid: false}
+	imr.CreatedBy = sql.NullInt64{Int64: im.CreatedBy, Valid: true}
 	imr.DeletedAt = sql.NullTime{Time: im.DeletedAt, Valid: true}
 	imr.UpdatedAt = sql.NullTime{Time: im.UpdatedAt, Valid: true}
-	imr.UpdatedBy = sql.NullInt64{Int64: im.UpdatedBy, Valid: false}
+	imr.UpdatedBy = sql.NullInt64{Int64: im.UpdatedBy, Valid: true}
 }
 
 type IssueRepositoryRow struct {
@@ -280,11 +280,11 @@ func (irr *IssueRepositoryRow) FromIssueRepository(ir *entity.IssueRepository) {
 	irr.Priority = sql.NullInt64{Int64: ir.Priority, Valid: true}
 	irr.ServiceId = sql.NullInt64{Int64: ir.ServiceId, Valid: true}
 	irr.IssueRepositoryId = sql.NullInt64{Int64: ir.IssueRepositoryId, Valid: true}
-	irr.BaseIssueRepositoryRow.CreatedAt = sql.NullTime{Time: ir.CreatedAt, Valid: true}
-	irr.BaseIssueRepositoryRow.CreatedBy = sql.NullInt64{Int64: ir.CreatedBy, Valid: false}
-	irr.BaseIssueRepositoryRow.DeletedAt = sql.NullTime{Time: ir.DeletedAt, Valid: true}
-	irr.BaseIssueRepositoryRow.UpdatedAt = sql.NullTime{Time: ir.UpdatedAt, Valid: true}
-	irr.BaseIssueRepositoryRow.UpdatedBy = sql.NullInt64{Int64: ir.UpdatedBy, Valid: false}
+	irr.BaseIssueRepositoryRow.CreatedAt = sql.NullTime{Time: ir.BaseIssueRepository.CreatedAt, Valid: true}
+	irr.BaseIssueRepositoryRow.CreatedBy = sql.NullInt64{Int64: ir.BaseIssueRepository.CreatedBy, Valid: true}
+	irr.BaseIssueRepositoryRow.DeletedAt = sql.NullTime{Time: ir.BaseIssueRepository.DeletedAt, Valid: true}
+	irr.BaseIssueRepositoryRow.UpdatedAt = sql.NullTime{Time: ir.BaseIssueRepository.UpdatedAt, Valid: true}
+	irr.BaseIssueRepositoryRow.UpdatedBy = sql.NullInt64{Int64: ir.BaseIssueRepository.UpdatedBy, Valid: true}
 }
 
 func (birr *BaseIssueRepositoryRow) AsBaseIssueRepository() entity.BaseIssueRepository {
@@ -390,10 +390,10 @@ func (ivr *IssueVariantRow) FromIssueVariant(iv *entity.IssueVariant) {
 	ivr.Rating = sql.NullString{String: iv.Severity.Value, Valid: true}
 	ivr.Description = sql.NullString{String: iv.Description, Valid: true}
 	ivr.CreatedAt = sql.NullTime{Time: iv.CreatedAt, Valid: true}
-	ivr.CreatedBy = sql.NullInt64{Int64: iv.CreatedBy, Valid: false}
+	ivr.CreatedBy = sql.NullInt64{Int64: iv.CreatedBy, Valid: true}
 	ivr.DeletedAt = sql.NullTime{Time: iv.DeletedAt, Valid: true}
 	ivr.UpdatedAt = sql.NullTime{Time: iv.UpdatedAt, Valid: true}
-	ivr.UpdatedBy = sql.NullInt64{Int64: iv.UpdatedBy, Valid: false}
+	ivr.UpdatedBy = sql.NullInt64{Int64: iv.UpdatedBy, Valid: true}
 }
 
 type IssueVariantWithRepository struct {
@@ -451,10 +451,10 @@ func (cr *ComponentRow) FromComponent(c *entity.Component) {
 	cr.Name = sql.NullString{String: c.Name, Valid: true}
 	cr.Type = sql.NullString{String: c.Type, Valid: true}
 	cr.CreatedAt = sql.NullTime{Time: c.CreatedAt, Valid: true}
-	cr.CreatedBy = sql.NullInt64{Int64: c.CreatedBy, Valid: false}
+	cr.CreatedBy = sql.NullInt64{Int64: c.CreatedBy, Valid: true}
 	cr.DeletedAt = sql.NullTime{Time: c.DeletedAt, Valid: true}
 	cr.UpdatedAt = sql.NullTime{Time: c.UpdatedAt, Valid: true}
-	cr.UpdatedBy = sql.NullInt64{Int64: c.UpdatedBy, Valid: false}
+	cr.UpdatedBy = sql.NullInt64{Int64: c.UpdatedBy, Valid: true}
 }
 
 type ComponentVersionRow struct {
@@ -488,10 +488,10 @@ func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion
 	cvr.Version = sql.NullString{String: cv.Version, Valid: true}
 	cvr.ComponentId = sql.NullInt64{Int64: cv.ComponentId, Valid: true}
 	cvr.CreatedAt = sql.NullTime{Time: cv.CreatedAt, Valid: true}
-	cvr.CreatedBy = sql.NullInt64{Int64: cv.CreatedBy, Valid: false}
+	cvr.CreatedBy = sql.NullInt64{Int64: cv.CreatedBy, Valid: true}
 	cvr.DeletedAt = sql.NullTime{Time: cv.DeletedAt, Valid: true}
 	cvr.UpdatedAt = sql.NullTime{Time: cv.UpdatedAt, Valid: true}
-	cvr.UpdatedBy = sql.NullInt64{Int64: cv.UpdatedBy, Valid: false}
+	cvr.UpdatedBy = sql.NullInt64{Int64: cv.UpdatedBy, Valid: true}
 }
 
 type SupportGroupRow struct {
@@ -522,10 +522,10 @@ func (sgr *SupportGroupRow) FromSupportGroup(sg *entity.SupportGroup) {
 	sgr.Id = sql.NullInt64{Int64: sg.Id, Valid: true}
 	sgr.Name = sql.NullString{String: sg.Name, Valid: true}
 	sgr.CreatedAt = sql.NullTime{Time: sg.CreatedAt, Valid: true}
-	sgr.CreatedBy = sql.NullInt64{Int64: sg.CreatedBy, Valid: false}
+	sgr.CreatedBy = sql.NullInt64{Int64: sg.CreatedBy, Valid: true}
 	sgr.DeletedAt = sql.NullTime{Time: sg.DeletedAt, Valid: true}
 	sgr.UpdatedAt = sql.NullTime{Time: sg.UpdatedAt, Valid: true}
-	sgr.UpdatedBy = sql.NullInt64{Int64: sg.UpdatedBy, Valid: false}
+	sgr.UpdatedBy = sql.NullInt64{Int64: sg.UpdatedBy, Valid: true}
 }
 
 type ServiceRow struct {
@@ -592,10 +592,10 @@ func (sr *ServiceRow) FromService(s *entity.Service) {
 	sr.Id = sql.NullInt64{Int64: s.Id, Valid: true}
 	sr.Name = sql.NullString{String: s.Name, Valid: true}
 	sr.BaseServiceRow.CreatedAt = sql.NullTime{Time: s.BaseService.CreatedAt, Valid: true}
-	sr.BaseServiceRow.CreatedBy = sql.NullInt64{Int64: s.BaseService.CreatedBy, Valid: false}
+	sr.BaseServiceRow.CreatedBy = sql.NullInt64{Int64: s.BaseService.CreatedBy, Valid: true}
 	sr.BaseServiceRow.DeletedAt = sql.NullTime{Time: s.BaseService.DeletedAt, Valid: true}
 	sr.BaseServiceRow.UpdatedAt = sql.NullTime{Time: s.BaseService.UpdatedAt, Valid: true}
-	sr.BaseServiceRow.UpdatedBy = sql.NullInt64{Int64: s.BaseService.UpdatedBy, Valid: false}
+	sr.BaseServiceRow.UpdatedBy = sql.NullInt64{Int64: s.BaseService.UpdatedBy, Valid: true}
 }
 
 type ActivityRow struct {
@@ -628,10 +628,10 @@ func (ar *ActivityRow) FromActivity(a *entity.Activity) {
 	ar.Id = sql.NullInt64{Int64: a.Id, Valid: true}
 	ar.Status = sql.NullString{String: a.Status.String(), Valid: true}
 	ar.CreatedAt = sql.NullTime{Time: a.CreatedAt, Valid: true}
-	ar.CreatedBy = sql.NullInt64{Int64: a.CreatedBy, Valid: false}
+	ar.CreatedBy = sql.NullInt64{Int64: a.CreatedBy, Valid: true}
 	ar.DeletedAt = sql.NullTime{Time: a.DeletedAt, Valid: true}
 	ar.UpdatedAt = sql.NullTime{Time: a.UpdatedAt, Valid: true}
-	ar.UpdatedBy = sql.NullInt64{Int64: a.UpdatedBy, Valid: false}
+	ar.UpdatedBy = sql.NullInt64{Int64: a.UpdatedBy, Valid: true}
 }
 
 type ComponentInstanceRow struct {
@@ -673,10 +673,10 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}
 	cir.CreatedAt = sql.NullTime{Time: ci.CreatedAt, Valid: true}
-	cir.CreatedBy = sql.NullInt64{Int64: ci.CreatedBy, Valid: false}
+	cir.CreatedBy = sql.NullInt64{Int64: ci.CreatedBy, Valid: true}
 	cir.DeletedAt = sql.NullTime{Time: ci.DeletedAt, Valid: true}
 	cir.UpdatedAt = sql.NullTime{Time: ci.UpdatedAt, Valid: true}
-	cir.UpdatedBy = sql.NullInt64{Int64: ci.UpdatedBy, Valid: false}
+	cir.UpdatedBy = sql.NullInt64{Int64: ci.UpdatedBy, Valid: true}
 }
 
 type UserRow struct {
@@ -713,10 +713,10 @@ func (ur *UserRow) FromUser(u *entity.User) {
 	ur.UniqueUserID = sql.NullString{String: u.UniqueUserID, Valid: true}
 	ur.Type = sql.NullInt64{Int64: int64(u.Type), Valid: true}
 	ur.CreatedAt = sql.NullTime{Time: u.CreatedAt, Valid: true}
-	ur.CreatedBy = sql.NullInt64{Int64: u.CreatedBy, Valid: false}
+	ur.CreatedBy = sql.NullInt64{Int64: u.CreatedBy, Valid: true}
 	ur.DeletedAt = sql.NullTime{Time: u.DeletedAt, Valid: true}
 	ur.UpdatedAt = sql.NullTime{Time: u.UpdatedAt, Valid: true}
-	ur.UpdatedBy = sql.NullInt64{Int64: u.UpdatedBy, Valid: false}
+	ur.UpdatedBy = sql.NullInt64{Int64: u.UpdatedBy, Valid: true}
 }
 
 type EvidenceRow struct {
@@ -768,10 +768,10 @@ func (er *EvidenceRow) FromEvidence(e *entity.Evidence) {
 	er.UserId = sql.NullInt64{Int64: e.UserId, Valid: true}
 	er.ActivityId = sql.NullInt64{Int64: e.ActivityId, Valid: true}
 	er.CreatedAt = sql.NullTime{Time: e.CreatedAt, Valid: true}
-	er.CreatedBy = sql.NullInt64{Int64: e.CreatedBy, Valid: false}
+	er.CreatedBy = sql.NullInt64{Int64: e.CreatedBy, Valid: true}
 	er.DeletedAt = sql.NullTime{Time: e.DeletedAt, Valid: true}
 	er.UpdatedAt = sql.NullTime{Time: e.UpdatedAt, Valid: true}
-	er.UpdatedBy = sql.NullInt64{Int64: e.UpdatedBy, Valid: false}
+	er.UpdatedBy = sql.NullInt64{Int64: e.UpdatedBy, Valid: true}
 }
 
 type IssueMatchChangeRow struct {
@@ -808,10 +808,10 @@ func (imcr *IssueMatchChangeRow) FromIssueMatchChange(imc *entity.IssueMatchChan
 	imcr.ActivityId = sql.NullInt64{Int64: imc.ActivityId, Valid: true}
 	imcr.Action = sql.NullString{String: imc.Action, Valid: true}
 	imcr.CreatedAt = sql.NullTime{Time: imc.CreatedAt, Valid: true}
-	imcr.CreatedBy = sql.NullInt64{Int64: imc.CreatedBy, Valid: false}
+	imcr.CreatedBy = sql.NullInt64{Int64: imc.CreatedBy, Valid: true}
 	imcr.DeletedAt = sql.NullTime{Time: imc.DeletedAt, Valid: true}
 	imcr.UpdatedAt = sql.NullTime{Time: imc.UpdatedAt, Valid: true}
-	imcr.UpdatedBy = sql.NullInt64{Int64: imc.UpdatedBy, Valid: false}
+	imcr.UpdatedBy = sql.NullInt64{Int64: imc.UpdatedBy, Valid: true}
 }
 
 type OwnerRow struct {

@@ -39,7 +39,6 @@ type IssueRepositoryAggregations struct {
 }
 
 type IssueRepository struct {
-	Metadata
 	BaseIssueRepository
 	IssueRepositoryService
 }

@@ -269,7 +269,7 @@ func NewIssueRepository(repo *entity.IssueRepository) IssueRepository {
 		URL:           &repo.Url,
 		Services:      nil,
 		IssueVariants: nil,
-		Metadata:      getModelMetadata(repo.Metadata),
+		Metadata:      getModelMetadata(repo.BaseIssueRepository.Metadata),
 	}
 }
 
@@ -343,7 +343,7 @@ func NewService(s *entity.Service) Service {
 	return Service{
 		ID:       fmt.Sprintf("%d", s.Id),
 		Name:     &s.Name,
-		Metadata: getModelMetadata(s.Metadata),
+		Metadata: getModelMetadata(s.BaseService.Metadata),
 	}
 }
 

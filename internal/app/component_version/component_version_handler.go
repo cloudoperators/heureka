@@ -115,7 +115,7 @@ func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *enti
 	})
 
 	var err error
-	componentVersion.CreatedBy, err = common.GetUserId(cv.database, "C1234567")
+	componentVersion.CreatedBy, err = common.GetUserId(cv.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion (GetUserId).")
@@ -142,7 +142,7 @@ func (cv *componentVersionHandler) UpdateComponentVersion(componentVersion *enti
 	})
 
 	var err error
-	componentVersion.UpdatedBy, err = common.GetUserId(cv.database, "C7654321")
+	componentVersion.UpdatedBy, err = common.GetUserId(cv.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while updating componentVersion (GetUserId).")

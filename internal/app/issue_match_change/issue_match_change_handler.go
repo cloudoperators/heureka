@@ -114,7 +114,7 @@ func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *ent
 	})
 
 	var err error
-	issueMatchChange.CreatedBy, err = common.GetUserId(imc.database, "C1234567")
+	issueMatchChange.CreatedBy, err = common.GetUserId(imc.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Internal error while creating issueMatchChange (GetUserId).")
@@ -141,7 +141,7 @@ func (imc *issueMatchChangeHandler) UpdateIssueMatchChange(issueMatchChange *ent
 	})
 
 	var err error
-	issueMatchChange.UpdatedBy, err = common.GetUserId(imc.database, "C7654321")
+	issueMatchChange.UpdatedBy, err = common.GetUserId(imc.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Internal error while updating issueMatchChange (GetUserId).")

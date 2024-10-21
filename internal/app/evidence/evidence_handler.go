@@ -110,7 +110,7 @@ func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evi
 	})
 
 	var err error
-	evidence.CreatedBy, err = common.GetUserId(e.database, "C1234567")
+	evidence.CreatedBy, err = common.GetUserId(e.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Internal error while creating evidence (GetUserId).")
@@ -135,7 +135,7 @@ func (e *evidenceHandler) UpdateEvidence(evidence *entity.Evidence) (*entity.Evi
 	})
 
 	var err error
-	evidence.UpdatedBy, err = common.GetUserId(e.database, "C7654321")
+	evidence.UpdatedBy, err = common.GetUserId(e.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Internal error while updating evidence (GetUserId).")

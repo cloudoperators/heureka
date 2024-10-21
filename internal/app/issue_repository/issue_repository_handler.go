@@ -113,7 +113,7 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 	})
 
 	var err error
-	issueRepository.CreatedBy, err = common.GetUserId(ir.database, "C1234567")
+	issueRepository.BaseIssueRepository.CreatedBy, err = common.GetUserId(ir.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository (GetUserId).")
@@ -150,7 +150,7 @@ func (ir *issueRepositoryHandler) UpdateIssueRepository(issueRepository *entity.
 	})
 
 	var err error
-	issueRepository.UpdatedBy, err = common.GetUserId(ir.database, "C7654321")
+	issueRepository.BaseIssueRepository.UpdatedBy, err = common.GetUserId(ir.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository (GetUserId).")

@@ -143,7 +143,7 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	}
 
 	var err error
-	supportGroup.CreatedBy, err = common.GetUserId(sg.database, "C1234567")
+	supportGroup.CreatedBy, err = common.GetUserId(sg.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while creating supportGroup (GetUserId).")
@@ -181,7 +181,7 @@ func (sg *supportGroupHandler) UpdateSupportGroup(supportGroup *entity.SupportGr
 	})
 
 	var err error
-	supportGroup.UpdatedBy, err = common.GetUserId(sg.database, "C7654321")
+	supportGroup.UpdatedBy, err = common.GetUserId(sg.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while updating supportGroup (GetUserId).")

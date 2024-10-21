@@ -171,7 +171,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	})
 
 	var err error
-	issue.CreatedBy, err = common.GetUserId(is.database, "C1234567")
+	issue.CreatedBy, err = common.GetUserId(is.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueHandlerError("Internal error while creating issue (GetUserId).")
@@ -206,7 +206,7 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	})
 
 	var err error
-	issue.UpdatedBy, err = common.GetUserId(is.database, "C7654321")
+	issue.UpdatedBy, err = common.GetUserId(is.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueHandlerError("Internal error while updating issue (GetUserId).")

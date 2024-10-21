@@ -138,7 +138,7 @@ func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Act
 	})
 
 	var err error
-	activity.CreatedBy, err = common.GetUserId(a.database, "C1234567")
+	activity.CreatedBy, err = common.GetUserId(a.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while creating activity (GetUserId).")
@@ -165,7 +165,7 @@ func (a *activityHandler) UpdateActivity(activity *entity.Activity) (*entity.Act
 	})
 
 	var err error
-	activity.UpdatedBy, err = common.GetUserId(a.database, "C1234567")
+	activity.UpdatedBy, err = common.GetUserId(a.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while updating activity (GetUserId).")

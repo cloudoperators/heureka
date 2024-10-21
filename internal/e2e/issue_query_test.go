@@ -14,7 +14,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
-	"github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/server"
@@ -251,7 +250,6 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 					"primaryName": issue.PrimaryName,
 					"description": issue.Description,
 					"type":        issue.Type.String(),
-					"metadata":    map[string]string{"created_by": fmt.Sprintf("%d", e2e_common.SystemUserId)},
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")

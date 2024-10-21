@@ -116,7 +116,7 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	})
 
 	var err error
-	component.CreatedBy, err = common.GetUserId(cs.database, "C1234567")
+	component.CreatedBy, err = common.GetUserId(cs.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating component (GetUserId).")
@@ -152,7 +152,7 @@ func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entit
 	})
 
 	var err error
-	component.UpdatedBy, err = common.GetUserId(cs.database, "C1234567")
+	component.UpdatedBy, err = common.GetUserId(cs.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while updating component (GetUserId).")

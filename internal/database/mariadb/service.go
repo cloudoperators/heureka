@@ -115,7 +115,7 @@ func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 	if service.Name != "" {
 		fl = append(fl, "service_name = :service_name")
 	}
-	if service.UpdatedBy != 0 {
+	if service.BaseService.UpdatedBy != 0 {
 		fl = append(fl, "service_updated_by = :service_updated_by")
 	}
 	return strings.Join(fl, ", ")

@@ -117,7 +117,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 	})
 
 	var err error
-	componentInstance.CreatedBy, err = common.GetUserId(ci.database, "C1234567")
+	componentInstance.CreatedBy, err = common.GetUserId(ci.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentInstanceHandlerError("Internal error while creating componentInstance (GetUserId).")
@@ -144,7 +144,7 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 	})
 
 	var err error
-	componentInstance.UpdatedBy, err = common.GetUserId(ci.database, "C7654321")
+	componentInstance.UpdatedBy, err = common.GetUserId(ci.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentInstanceHandlerError("Internal error while updating componentInstance (GetUserId).")

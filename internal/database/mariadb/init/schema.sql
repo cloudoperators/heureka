@@ -439,9 +439,6 @@ create table if not exists IssueRepositoryService
     issuerepositoryservice_service_id                int unsigned                          not null,
     issuerepositoryservice_issue_repository_id    int unsigned                          not null,
     issuerepositoryservice_priority                  int unsigned                          not null,
-    issuerepositoryservice_created_at                timestamp default current_timestamp() not null,
-    issuerepositoryservice_deleted_at                timestamp                             null,
-    issuerepositoryservice_updated_at                timestamp default current_timestamp() not null on update current_timestamp(),
     primary key (issuerepositoryservice_service_id, issuerepositoryservice_issue_repository_id),
     constraint fk_issue_repository_service
         foreign key (issuerepositoryservice_issue_repository_id) references IssueRepository (issuerepository_id)

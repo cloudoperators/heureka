@@ -136,7 +136,7 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 	})
 
 	var err error
-	service.CreatedBy, err = common.GetUserId(s.database, "C1234567")
+	service.BaseService.CreatedBy, err = common.GetUserId(s.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while creating service (GetUserId).")
@@ -172,7 +172,7 @@ func (s *serviceHandler) UpdateService(service *entity.Service) (*entity.Service
 	})
 
 	var err error
-	service.UpdatedBy, err = common.GetUserId(s.database, "C7654321")
+	service.BaseService.UpdatedBy, err = common.GetUserId(s.database, "S0000000")
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while updating service (GetUserId).")
