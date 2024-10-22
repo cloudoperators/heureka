@@ -424,7 +424,6 @@ func (cr *ComponentRow) FromComponent(c *entity.Component) {
 
 type ComponentVersionRow struct {
 	Id          sql.NullInt64  `db:"componentversion_id" json:"id"`
-	CCRN        sql.NullString `db:"componentversion_ccrn" json:"ccrn"`
 	Version     sql.NullString `db:"componentversion_version" json:"version"`
 	ComponentId sql.NullInt64  `db:"componentversion_component_id"`
 	CreatedAt   sql.NullTime   `db:"componentversion_created_at" json:"created_at"`
@@ -435,7 +434,6 @@ type ComponentVersionRow struct {
 func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 	return entity.ComponentVersion{
 		Id:          GetInt64Value(cvr.Id),
-		CCRN:        GetStringValue(cvr.CCRN),
 		Version:     GetStringValue(cvr.Version),
 		ComponentId: GetInt64Value(cvr.ComponentId),
 		CreatedAt:   GetTimeValue(cvr.CreatedAt),
@@ -446,7 +444,6 @@ func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 
 func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion) {
 	cvr.Id = sql.NullInt64{Int64: cv.Id, Valid: true}
-	cvr.CCRN = sql.NullString{String: cv.CCRN, Valid: true}
 	cvr.Version = sql.NullString{String: cv.Version, Valid: true}
 	cvr.ComponentId = sql.NullInt64{Int64: cv.ComponentId, Valid: true}
 	cvr.CreatedAt = sql.NullTime{Time: cv.CreatedAt, Valid: true}

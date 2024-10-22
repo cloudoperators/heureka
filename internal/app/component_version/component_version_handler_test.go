@@ -103,27 +103,15 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		db                     *mocks.MockDatabase
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersion
-		filter                 *entity.ComponentVersionFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		componentVersion = test.NewFakeComponentVersionEntity()
-		first := 10
-		var after int64
-		after = 0
-		filter = &entity.ComponentVersionFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-		}
 	})
 
 	It("creates componentVersion", func() {
-		filter.CCRN = []*string{&componentVersion.CCRN}
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
-		db.On("GetComponentVersions", filter).Return([]entity.ComponentVersion{}, nil)
 		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		newComponentVersion, err := componenVersionService.CreateComponentVersion(&componentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")

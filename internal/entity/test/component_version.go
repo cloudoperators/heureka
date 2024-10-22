@@ -11,7 +11,6 @@ import (
 func NewFakeComponentVersionEntity() entity.ComponentVersion {
 	return entity.ComponentVersion{
 		Id:                 int64(gofakeit.Number(1, 10000000)),
-		CCRN:               gofakeit.Name(),
 		Version:            gofakeit.AppVersion(),
 		ComponentId:        0,
 		ComponentInstances: nil,

@@ -6,7 +6,6 @@ package component_version
 import (
 	"errors"
 	"fmt"
-
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
@@ -110,26 +109,10 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 }
 
 func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
-	f := &entity.ComponentVersionFilter{
-		CCRN: []*string{&componentVersion.CCRN},
-	}
-
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentVersionEventName,
 		"object": componentVersion,
-		"filter": f,
 	})
-
-	componentVersions, err := cv.ListComponentVersions(f, &entity.ListOptions{})
-
-	if err != nil {
-		l.Error(err)
-		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion.")
-	}
-
-	if len(componentVersions.Elements) > 0 {
-		return nil, NewComponentVersionHandlerError(fmt.Sprintf("Duplicated entry %s for ccrn.", componentVersion.CCRN))
-	}
 
 	newComponent, err := cv.database.CreateComponentVersion(componentVersion)
 

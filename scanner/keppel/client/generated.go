@@ -110,16 +110,12 @@ const (
 // ComponentVersion includes the requested fields of the GraphQL type ComponentVersion.
 type ComponentVersion struct {
 	Id          string `json:"id"`
-	Ccrn        string `json:"ccrn"`
 	Version     string `json:"version"`
 	ComponentId string `json:"componentId"`
 }
 
 // GetId returns ComponentVersion.Id, and is useful for accessing the field via an interface.
 func (v *ComponentVersion) GetId() string { return v.Id }
-
-// GetCcrn returns ComponentVersion.Ccrn, and is useful for accessing the field via an interface.
-func (v *ComponentVersion) GetCcrn() string { return v.Ccrn }
 
 // GetVersion returns ComponentVersion.Version, and is useful for accessing the field via an interface.
 func (v *ComponentVersion) GetVersion() string { return v.Version }
@@ -148,15 +144,11 @@ func (v *ComponentVersionConnectionEdgesComponentVersionEdge) GetNode() *Compone
 }
 
 type ComponentVersionFilter struct {
-	Ccrn          []string `json:"ccrn"`
 	ComponentId   []string `json:"componentId"`
 	ComponentCcrn []string `json:"componentCcrn"`
 	IssueId       []string `json:"issueId"`
 	Version       []string `json:"version"`
 }
-
-// GetCcrn returns ComponentVersionFilter.Ccrn, and is useful for accessing the field via an interface.
-func (v *ComponentVersionFilter) GetCcrn() []string { return v.Ccrn }
 
 // GetComponentId returns ComponentVersionFilter.ComponentId, and is useful for accessing the field via an interface.
 func (v *ComponentVersionFilter) GetComponentId() []string { return v.ComponentId }
@@ -171,13 +163,9 @@ func (v *ComponentVersionFilter) GetIssueId() []string { return v.IssueId }
 func (v *ComponentVersionFilter) GetVersion() []string { return v.Version }
 
 type ComponentVersionInput struct {
-	Ccrn        string `json:"ccrn"`
 	Version     string `json:"version"`
 	ComponentId string `json:"componentId"`
 }
-
-// GetCcrn returns ComponentVersionInput.Ccrn, and is useful for accessing the field via an interface.
-func (v *ComponentVersionInput) GetCcrn() string { return v.Ccrn }
 
 // GetVersion returns ComponentVersionInput.Version, and is useful for accessing the field via an interface.
 func (v *ComponentVersionInput) GetVersion() string { return v.Version }
@@ -504,7 +492,6 @@ const CreateComponentVersion_Operation = `
 mutation CreateComponentVersion ($input: ComponentVersionInput!) {
 	createComponentVersion(input: $input) {
 		id
-		ccrn
 		version
 		componentId
 	}
@@ -582,7 +569,6 @@ query ListComponentVersions ($filter: ComponentVersionFilter) {
 		edges {
 			node {
 				id
-				ccrn
 				version
 				componentId
 			}

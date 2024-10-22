@@ -24,7 +24,6 @@ create table if not exists ComponentVersion
 (
     componentversion_id           int unsigned auto_increment
         primary key,
-    componentversion_ccrn         varchar(256)                          not null,
     componentversion_version      varchar(256)                          not null,
     componentversion_component_id int unsigned                          not null,
     componentversion_created_at   timestamp default current_timestamp() not null,
