@@ -199,6 +199,46 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 					Expect(*respData.Issues.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 				})
 			})
+			Context("and we request metadata", Label("withMetadata.graphql"), func() {
+				It("returns correct metadata counts", func() {
+					// create a queryCollection (safe to share across requests)
+					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/withMetadata.graphql")
+
+					Expect(err).To(BeNil())
+					str := string(b)
+					req := graphql.NewRequest(str)
+
+					req.Var("filter", map[string]string{})
+					req.Var("first", 5)
+					req.Var("after", "0")
+
+					req.Header.Set("Cache-Control", "no-cache")
+					ctx := context.Background()
+
+					var respData struct {
+						Issues model.IssueConnection `json:"Issues"`
+					}
+					if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+						logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+					}
+
+					for _, issueEdge := range respData.Issues.Edges {
+						ciCount := 0
+						serviceIdSet := map[string]bool{}
+						for _, imEdge := range issueEdge.Node.IssueMatches.Edges {
+							ciCount += *imEdge.Node.ComponentInstance.Count
+							serviceIdSet[imEdge.Node.ComponentInstance.Service.ID] = true
+						}
+						Expect(issueEdge.Node.Metadata.IssueMatchCount).To(Equal(issueEdge.Node.IssueMatches.TotalCount), "IssueMatchCount is correct")
+						Expect(issueEdge.Node.Metadata.ComponentInstanceCount).To(Equal(ciCount), "ComponentInstanceCount is correct")
+						Expect(issueEdge.Node.Metadata.ActivityCount).To(Equal(issueEdge.Node.Activities.TotalCount), "ActivityCount is correct")
+						Expect(issueEdge.Node.Metadata.ServiceCount).To(Equal(len(serviceIdSet)), "ServiceCount is correct")
+					}
+				})
+			})
 		})
 	})
 })
