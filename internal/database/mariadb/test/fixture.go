@@ -417,7 +417,7 @@ func (s *DatabaseSeeder) SeedIssueRepositories() []mariadb.BaseIssueRepositoryRo
 	i := 0
 	for _, name := range variants {
 		row := mariadb.BaseIssueRepositoryRow{
-			Name: sql.NullString{String: name, Valid: true},
+			Name: sql.NullString{String: fmt.Sprintf("%s-%s", name, gofakeit.UUID()), Valid: true},
 			Url:  sql.NullString{String: gofakeit.URL(), Valid: true},
 		}
 		id, err := s.InsertFakeBaseIssueRepository(row)
@@ -1158,7 +1158,7 @@ func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.
 func NewFakeIssueRepository() mariadb.IssueRepositoryRow {
 	return mariadb.IssueRepositoryRow{
 		BaseIssueRepositoryRow: mariadb.BaseIssueRepositoryRow{
-			Name: sql.NullString{String: gofakeit.AppName(), Valid: true},
+			Name: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
 			Url:  sql.NullString{String: gofakeit.URL(), Valid: true},
 		},
 	}
@@ -1166,7 +1166,7 @@ func NewFakeIssueRepository() mariadb.IssueRepositoryRow {
 
 func NewFakeBaseService() mariadb.BaseServiceRow {
 	return mariadb.BaseServiceRow{
-		CCRN: sql.NullString{String: gofakeit.AppName(), Valid: true},
+		CCRN: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
 	}
 }
 
@@ -1181,13 +1181,13 @@ func NewFakeService() mariadb.ServiceRow {
 
 func NewFakeSupportGroup() mariadb.SupportGroupRow {
 	return mariadb.SupportGroupRow{
-		CCRN: sql.NullString{String: gofakeit.AppName(), Valid: true},
+		CCRN: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
 	}
 }
 
 func NewFakeComponent() mariadb.ComponentRow {
 	types := []string{"containerImage", "virtualMachineImage", "repository"}
-	ccrn := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.Number(0, 99999))
+	ccrn := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.UUID())
 	return mariadb.ComponentRow{
 		CCRN: sql.NullString{String: ccrn, Valid: true},
 		Type: sql.NullString{String: gofakeit.RandomString(types), Valid: true},
