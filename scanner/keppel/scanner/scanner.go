@@ -172,6 +172,29 @@ func (s *Scanner) ListManifests(account string, repository string) ([]models.Man
 	return manifestResponse.Manifests, nil
 }
 
+// GetManifest returns a single manifest from the image registry
+func (s *Scanner) GetManifest(account string, repository string, manifest string) ([]models.Manifest, error) {
+	url := fmt.Sprintf("%s/v2/%s/%s/manifests/%s", s.KeppelBaseUrl, account, repository, manifest)
+	body, err := s.sendRequest(url, s.AuthToken)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"url": url,
+		}).WithError(err).Error("Error during request in GetManifest")
+		return nil, err
+	}
+
+	var manifestResponse models.ManifestResponse
+	if err = json.Unmarshal(body, &manifestResponse); err != nil {
+		log.WithFields(log.Fields{
+			"url":  url,
+			"body": body,
+		}).WithError(err).Error("Error during unmarshal in GetManifest")
+		return nil, err
+	}
+
+	return manifestResponse.Manifests, nil
+}
+
 // ListChildManifests is requred asa on Keppel not all Images are including vulnerability scan results directly on the
 // top layer of the image and rather have the scan results on the child manifests. An prime example of this are multi-arch
 // images where the scan results are  available on the child manifests with the respective concrete architecture.

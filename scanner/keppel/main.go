@@ -120,14 +120,14 @@ func processComponent(ctx context.Context, comp *client.ComponentAggregate, kepp
 	}
 
 	for _, cv := range comp.ComponentVersions.Edges {
-		HandleImageManifests(ctx, comp.Id, cv.Node.Id, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
+		HandleImageManifests(ctx, comp.Id, cv.Node, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
 	}
 }
 
 func HandleImageManifests(
 	ctx context.Context,
 	componentId string,
-	componentVersionId string,
+	componentVersion *client.ComponentVersion,
 	account string,
 	repository string,
 	keppelScanner *scanner.Scanner,
@@ -135,7 +135,7 @@ func HandleImageManifests(
 ) {
 
 	log.Info("Handling manifest")
-	manifests, err := keppelScanner.ListManifests(account, repository)
+	manifests, err := keppelScanner.GetManifest(account, repository, componentVersion.Version)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"account:":   account,
@@ -159,7 +159,7 @@ func HandleImageManifests(
 			}).Info("Manifest has no Vulnerabilities")
 			continue
 		}
-		HandleChildManifests(account, repository, manifest, componentId, componentVersionId, keppelScanner, keppelProcessor)
+		HandleChildManifests(account, repository, manifest, componentId, componentVersion, keppelScanner, keppelProcessor)
 	}
 }
 
@@ -168,7 +168,7 @@ func HandleChildManifests(
 	repository string,
 	manifest models.Manifest,
 	componentId string,
-	componentVersionId string,
+	componentVersion *client.ComponentVersion,
 	keppelScanner *scanner.Scanner,
 	keppelProcessor *processor.Processor,
 ) {
@@ -198,6 +198,6 @@ func HandleChildManifests(
 			return
 		}
 
-		keppelProcessor.ProcessReport(*trivyReport, componentVersionId)
+		keppelProcessor.ProcessReport(*trivyReport, componentVersion.Id)
 	}
 }
