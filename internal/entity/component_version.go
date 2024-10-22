@@ -8,7 +8,6 @@ import "time"
 type ComponentVersionFilter struct {
 	Paginated
 	Id            []*int64  `json:"id"`
-	CCRN          []*string `json:"ccrn"`
 	IssueId       []*int64  `json:"issue_id"`
 	ComponentCCRN []*string `json:"component_ccrn"`
 	ComponentId   []*int64  `json:"component_id"`
@@ -25,7 +24,6 @@ type ComponentVersionResult struct {
 
 type ComponentVersion struct {
 	Id                 int64               `json:"id"`
-	CCRN               string              `json:"ccrn"`
 	Version            string              `json:"version"`
 	Component          *Component          `json:"component,omitempty"`
 	ComponentId        int64               `db:"componentversion_component_id"`

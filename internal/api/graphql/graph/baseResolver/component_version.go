@@ -96,7 +96,6 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 
 	f := &entity.ComponentVersionFilter{
 		Paginated:     entity.Paginated{First: first, After: afterId},
-		CCRN:          filter.Ccrn,
 		IssueId:       issueId,
 		ComponentId:   componentId,
 		ComponentCCRN: filter.ComponentCcrn,

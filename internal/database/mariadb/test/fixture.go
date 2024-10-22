@@ -939,11 +939,9 @@ func (s *DatabaseSeeder) InsertFakeComponent(component mariadb.ComponentRow) (in
 func (s *DatabaseSeeder) InsertFakeComponentVersion(cv mariadb.ComponentVersionRow) (int64, error) {
 	query := `
 		INSERT INTO ComponentVersion (
-			componentversion_ccrn,
 			componentversion_version,
 			componentversion_component_id
 		) VALUES (
-		 	:componentversion_ccrn,
 			:componentversion_version,
 			:componentversion_component_id
 		)`
@@ -1197,9 +1195,7 @@ func NewFakeComponent() mariadb.ComponentRow {
 }
 
 func NewFakeComponentVersion() mariadb.ComponentVersionRow {
-	ccrn := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.Number(0, 99999))
 	return mariadb.ComponentVersionRow{
-		CCRN:    sql.NullString{String: ccrn, Valid: true},
 		Version: sql.NullString{String: gofakeit.AppVersion(), Valid: true},
 	}
 }

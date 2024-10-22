@@ -19,7 +19,6 @@ query ($filter: ComponentFilter, $first: Int, $after: String) {
                     edges { 
                         node { 
                             id
-                            ccrn
                             version
                             componentId
                         }

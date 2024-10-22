@@ -24,7 +24,6 @@ create table if not exists ComponentVersion
 (
     componentversion_id           int unsigned auto_increment
         primary key,
-    componentversion_ccrn         varchar(256)                          not null,
     componentversion_version      varchar(256)                          not null,
     componentversion_component_id int unsigned                          not null,
     componentversion_created_at   timestamp default current_timestamp() not null,
@@ -32,8 +31,6 @@ create table if not exists ComponentVersion
     componentversion_updated_at   timestamp default current_timestamp() not null on update current_timestamp(),
     constraint id_UNIQUE
         unique (componentversion_id),
-    constraint ccrn_UNIQUE
-        unique (componentversion_ccrn),
     constraint version_component_unique
         unique (componentversion_version, componentversion_component_id),
     constraint fk_component_version_component

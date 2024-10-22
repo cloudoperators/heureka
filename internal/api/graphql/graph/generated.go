@@ -174,7 +174,6 @@ type ComplexityRoot struct {
 	}
 
 	ComponentVersion struct {
-		Ccrn               func(childComplexity int) int
 		Component          func(childComplexity int) int
 		ComponentID        func(childComplexity int) int
 		ComponentInstances func(childComplexity int, first *int, after *string) int
@@ -1204,13 +1203,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ComponentInstanceEdge.Node(childComplexity), true
-
-	case "ComponentVersion.ccrn":
-		if e.complexity.ComponentVersion.Ccrn == nil {
-			break
-		}
-
-		return e.complexity.ComponentVersion.Ccrn(childComplexity), true
 
 	case "ComponentVersion.component":
 		if e.complexity.ComponentVersion.Component == nil {
@@ -12425,8 +12417,6 @@ func (ec *executionContext) fieldContext_ComponentInstance_componentVersion(_ co
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_ComponentVersion_id(ctx, field)
-			case "ccrn":
-				return ec.fieldContext_ComponentVersion_ccrn(ctx, field)
 			case "version":
 				return ec.fieldContext_ComponentVersion_version(ctx, field)
 			case "componentId":
@@ -12984,47 +12974,6 @@ func (ec *executionContext) fieldContext_ComponentVersion_id(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _ComponentVersion_ccrn(ctx context.Context, field graphql.CollectedField, obj *model.ComponentVersion) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ComponentVersion_ccrn(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Ccrn, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ComponentVersion_ccrn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ComponentVersion",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _ComponentVersion_version(ctx context.Context, field graphql.CollectedField, obj *model.ComponentVersion) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ComponentVersion_version(ctx, field)
 	if err != nil {
@@ -13474,8 +13423,6 @@ func (ec *executionContext) fieldContext_ComponentVersionEdge_node(_ context.Con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_ComponentVersion_id(ctx, field)
-			case "ccrn":
-				return ec.fieldContext_ComponentVersion_ccrn(ctx, field)
 			case "version":
 				return ec.fieldContext_ComponentVersion_version(ctx, field)
 			case "componentId":
@@ -20089,8 +20036,6 @@ func (ec *executionContext) fieldContext_Mutation_createComponentVersion(ctx con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_ComponentVersion_id(ctx, field)
-			case "ccrn":
-				return ec.fieldContext_ComponentVersion_ccrn(ctx, field)
 			case "version":
 				return ec.fieldContext_ComponentVersion_version(ctx, field)
 			case "componentId":
@@ -20160,8 +20105,6 @@ func (ec *executionContext) fieldContext_Mutation_updateComponentVersion(ctx con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_ComponentVersion_id(ctx, field)
-			case "ccrn":
-				return ec.fieldContext_ComponentVersion_ccrn(ctx, field)
 			case "version":
 				return ec.fieldContext_ComponentVersion_version(ctx, field)
 			case "componentId":
@@ -28218,20 +28161,13 @@ func (ec *executionContext) unmarshalInputComponentVersionFilter(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ccrn", "componentId", "componentCcrn", "issueId", "version"}
+	fieldsInOrder := [...]string{"componentId", "componentCcrn", "issueId", "version"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "ccrn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ccrn"))
-			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Ccrn = data
 		case "componentId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("componentId"))
 			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
@@ -28273,20 +28209,13 @@ func (ec *executionContext) unmarshalInputComponentVersionInput(ctx context.Cont
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ccrn", "version", "componentId"}
+	fieldsInOrder := [...]string{"version", "componentId"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "ccrn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ccrn"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Ccrn = data
 		case "version":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("version"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -30379,8 +30308,6 @@ func (ec *executionContext) _ComponentVersion(ctx context.Context, sel ast.Selec
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "ccrn":
-			out.Values[i] = ec._ComponentVersion_ccrn(ctx, field, obj)
 		case "version":
 			out.Values[i] = ec._ComponentVersion_version(ctx, field, obj)
 		case "componentId":

@@ -17,7 +17,6 @@ query ($filter: ComponentInstanceFilter, $first: Int, $after: String) {
                 componentVersionId
                 componentVersion { 
                     id
-                    ccrn
                     version
                     componentId
                 }

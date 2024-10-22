@@ -6,7 +6,6 @@ mutation ($input: ComponentVersionInput!) {
         input: $input
     ) {
         id
-        ccrn
         version
         componentId
     }

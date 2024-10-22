@@ -144,7 +144,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						for _, r := range res {
 							for _, row := range seedCollection.ComponentVersionRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "CCRN should match")
 									Expect(r.Version).Should(BeEquivalentTo(row.Version.String), "Name should match")
 									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
@@ -174,25 +173,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					By("returning expected elements", func() {
 						Expect(entries[0].Id).To(BeEquivalentTo(cv.Id.Int64))
 					})
-				})
-				It("can filter by a single component ccrn that does exist", func() {
-					row := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
-					filter := &entity.ComponentVersionFilter{CCRN: []*string{&row.CCRN.String}}
-
-					entries, err := db.GetComponentVersions(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(1))
-					})
-
-					By("returning expected elements", func() {
-						Expect(entries[0].Id).To(BeEquivalentTo(row.Id.Int64))
-					})
-
 				})
 				It("can filter by an issue id", func() {
 					issueRow := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
@@ -404,7 +384,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 					By("setting fields", func() {
 						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
-						Expect(cv[0].CCRN).To(BeEquivalentTo(componentVersion.CCRN))
 						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
 					})
 				})
@@ -439,7 +418,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 					By("setting fields", func() {
 						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
-						Expect(cv[0].CCRN).To(BeEquivalentTo(componentVersion.CCRN))
 						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
 						Expect(cv[0].ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
 					})
@@ -467,7 +445,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 					By("setting fields", func() {
 						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
-						Expect(cv[0].CCRN).To(BeEquivalentTo(componentVersion.CCRN))
 						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
 						Expect(cv[0].ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
 					})

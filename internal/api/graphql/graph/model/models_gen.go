@@ -200,7 +200,6 @@ type ComponentInstanceInput struct {
 
 type ComponentVersion struct {
 	ID                 string                       `json:"id"`
-	Ccrn               *string                      `json:"ccrn,omitempty"`
 	Version            *string                      `json:"version,omitempty"`
 	ComponentID        *string                      `json:"componentId,omitempty"`
 	Component          *Component                   `json:"component,omitempty"`
@@ -231,7 +230,6 @@ func (this ComponentVersionEdge) GetNode() Node      { return *this.Node }
 func (this ComponentVersionEdge) GetCursor() *string { return this.Cursor }
 
 type ComponentVersionFilter struct {
-	Ccrn          []*string `json:"ccrn,omitempty"`
 	ComponentID   []*string `json:"componentId,omitempty"`
 	ComponentCcrn []*string `json:"componentCcrn,omitempty"`
 	IssueID       []*string `json:"issueId,omitempty"`
@@ -239,7 +237,6 @@ type ComponentVersionFilter struct {
 }
 
 type ComponentVersionInput struct {
-	Ccrn        *string `json:"ccrn,omitempty"`
 	Version     *string `json:"version,omitempty"`
 	ComponentID *string `json:"componentId,omitempty"`
 }

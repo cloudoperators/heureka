@@ -24,7 +24,6 @@ func (s *SqlDatabase) ensureComponentVersionFilter(f *entity.ComponentVersionFil
 				After: &after,
 			},
 			Id:            nil,
-			CCRN:          nil,
 			IssueId:       nil,
 			ComponentCCRN: nil,
 			ComponentId:   nil,
@@ -52,9 +51,6 @@ func (s *SqlDatabase) getComponentVersionJoins(filter *entity.ComponentVersionFi
 
 func (s *SqlDatabase) getComponentVersionUpdateFields(componentVersion *entity.ComponentVersion) string {
 	fl := []string{}
-	if componentVersion.CCRN != "" {
-		fl = append(fl, "componentversion_ccrn = :componentversion_ccrn")
-	}
 	if componentVersion.Version != "" {
 		fl = append(fl, "componentversion_version = :componentversion_version")
 	}
@@ -67,7 +63,6 @@ func (s *SqlDatabase) getComponentVersionUpdateFields(componentVersion *entity.C
 func (s *SqlDatabase) getComponentVersionFilterString(filter *entity.ComponentVersionFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "CV.componentversion_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.CCRN, "CV.componentversion_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "CVI.componentversionissue_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Version, "CV.componentversion_version = ?", OP_OR))
@@ -117,7 +112,6 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	//adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Version)
@@ -215,11 +209,9 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 	query := `
 		INSERT INTO ComponentVersion (
 			componentversion_component_id,
-			componentversion_ccrn,
 			componentversion_version
 		) VALUES (
 			:componentversion_component_id,
-			:componentversion_ccrn,
 			:componentversion_version
 		)
 	`
