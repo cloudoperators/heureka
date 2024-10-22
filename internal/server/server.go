@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -144,12 +146,22 @@ func (s *Server) NonBlockingStart() {
 		Handler: s.router.Handler(),
 	}
 
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(1)
 	go func() {
 		logrus.Info("Starting Non Blocking HTTP Server...")
-		if err := s.nonBlockingSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		ln, err := net.Listen("tcp", s.nonBlockingSrv.Addr)
+		if err != nil {
+			logrus.WithError(err).Fatalf("Error while start listening...")
+		}
+		go func() {
+			waitGroup.Done()
+		}()
+		if err := s.nonBlockingSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			logrus.WithError(err).Fatalf("Error while serving HTTP Server.")
 		}
 	}()
+	waitGroup.Wait()
 }
 
 func (s *Server) BlockingStop() {
@@ -187,22 +199,4 @@ func (s *Server) NonBlockingStop() {
 	}
 
 	log.Println("Server exiting")
-}
-
-func (s *Server) TestConnection(backOff int) error {
-	if backOff <= 0 {
-		return fmt.Errorf("Unable to connect to API Server, exceeded backoffs...")
-	}
-	//before each try wait 100 milliseconds
-	time.Sleep(time.Millisecond * 100)
-
-	//timeout after 100 milliseconds
-	reqCtx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
-	defer cancel()
-	_, err := http.NewRequestWithContext(reqCtx, http.MethodGet, fmt.Sprintf("http://localhost%s/ready", s.config.Port), nil)
-	if err != nil {
-		return s.TestConnection(backOff - 1)
-	}
-
-	return nil
 }
