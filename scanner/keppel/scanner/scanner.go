@@ -17,6 +17,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type ImageInfo struct {
+	Registry     string
+	Account      string
+	Organization string
+	Repository   string
+	Tag          string
+}
+
 type Scanner struct {
 	KeppelBaseUrl    string
 	IdentityEndpoint string
@@ -25,6 +33,14 @@ type Scanner struct {
 	AuthToken        string
 	Domain           string
 	Project          string
+}
+
+func (i ImageInfo) FullRepository() string {
+	if len(i.Organization) > 0 {
+		return fmt.Sprintf("%s/%s", i.Organization, i.Repository)
+	} else {
+		return i.Repository
+	}
 }
 
 func NewScanner(cfg Config) *Scanner {
@@ -156,6 +172,29 @@ func (s *Scanner) ListManifests(account string, repository string) ([]models.Man
 	return manifestResponse.Manifests, nil
 }
 
+// GetManifest returns a single manifest from the image registry
+func (s *Scanner) GetManifest(account string, repository string, manifest string) ([]models.Manifest, error) {
+	url := fmt.Sprintf("%s/v2/%s/%s/manifests/%s", s.KeppelBaseUrl, account, repository, manifest)
+	body, err := s.sendRequest(url, s.AuthToken)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"url": url,
+		}).WithError(err).Error("Error during request in GetManifest")
+		return nil, err
+	}
+
+	var manifestResponse models.ManifestResponse
+	if err = json.Unmarshal(body, &manifestResponse); err != nil {
+		log.WithFields(log.Fields{
+			"url":  url,
+			"body": body,
+		}).WithError(err).Error("Error during unmarshal in GetManifest")
+		return nil, err
+	}
+
+	return manifestResponse.Manifests, nil
+}
+
 // ListChildManifests is requred asa on Keppel not all Images are including vulnerability scan results directly on the
 // top layer of the image and rather have the scan results on the child manifests. An prime example of this are multi-arch
 // images where the scan results are  available on the child manifests with the respective concrete architecture.
@@ -219,6 +258,35 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 
 	return &trivyReport, nil
 
+}
+
+// extractImageInfo extracts image registry, image repository and the account name
+// from a container image
+func (s *Scanner) ExtractImageInfo(image string) (ImageInfo, error) {
+	// Split the string to remove the tag
+	imageAndTag := strings.Split(image, ":")
+	if len(imageAndTag) < 1 {
+		return ImageInfo{}, fmt.Errorf("invalid image")
+	}
+
+	// Split the remaining string by '/'
+	parts := strings.Split(imageAndTag[0], "/")
+	if len(parts) < 3 {
+		return ImageInfo{}, fmt.Errorf("invalid image string format: at least registry, account and repository required")
+	}
+
+	info := ImageInfo{
+		Registry:   parts[0],
+		Account:    parts[1],
+		Repository: strings.Join(parts[2:], "/"),
+	}
+
+	// Set tag if present
+	if len(imageAndTag) > 1 {
+		info.Tag = imageAndTag[1]
+	}
+
+	return info, nil
 }
 
 func (s *Scanner) sendRequest(url string, token string) ([]byte, error) {
