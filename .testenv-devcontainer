@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+LOCAL_TEST_DB=true
+
+DB_USER=mariadb
+DB_PASSWORD=mariadb
+DB_ROOT_PASSWORD=mariadb
+DB_NAME=heureka
+DB_ADDRESS=mariadb
+DB_PORT=3306
+DB_SCHEMA=internal/database/mariadb/init/schema.sql
+
+LOG_PRETTY_PRINT=true
+
+SEED_MODE=false

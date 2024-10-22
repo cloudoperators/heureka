@@ -87,11 +87,36 @@ docker-compose --profile db --profile heureka up
 
 ### Makefile
 
-Alternatively, the application can be started by using the provided Makefile:
+The application can be started by using the provided Makefile:
 
 ```
 make start-all-heureka
 ```
+
+### Devcontainers
+
+Devcontainers is a new standard for development environments based on (docker)
+[devcontainer](./.devcontainer).
+
+At the moment devcontainers are supported by Visual Studio Code and IDEA IDEs.
+
+For Microsoft Visual Studio code, install the remote container extension via
+Ctrl-P and this command:
+
+        ext install ms-vscode-remote.remote-containers
+
+When opening the root folder in Visual Studio code a prompt will ask you to
+open the project in a dev container, which you should.
+
+Once inside the devcontainer the provided launch.json is configured to allow
+launching heureka and running the unit and integration tests.
+
+At the moment there is a known issue with the permissions of the .mariadb-dev
+folder. This folder has to be deleted every time after using the devcontainers.
+Use the following command in the root folder of heureka:
+
+    sudo rm -rf .mariadb-dev
+
 
 ### Tests
 

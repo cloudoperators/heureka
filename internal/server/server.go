@@ -12,11 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	graphqlapi "github.com/cloudoperators/heureka/internal/api/graphql"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-
-	graphqlapi "github.com/cloudoperators/heureka/internal/api/graphql"
 	"github.com/cloudoperators/heureka/internal/util"
+	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"github.com/onuryilmaz/ginprom"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -145,12 +145,7 @@ func (s *Server) NonBlockingStart() {
 		Handler: s.router.Handler(),
 	}
 
-	go func() {
-		logrus.Info("Starting Non Blocking HTTP Server...")
-		if err := s.nonBlockingSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logrus.WithError(err).Fatalf("Error while serving HTTP Server.")
-		}
-	}()
+	util2.FirstListenThenServe(s.nonBlockingSrv)
 }
 
 func (s *Server) BlockingStop() {
@@ -164,6 +159,7 @@ func (s *Server) BlockingStop() {
 		log.Fatalf("Error while shuting down Heureka App: %s", err)
 	}
 }
+
 func (s *Server) NonBlockingStop() {
 	ctx := *s.nonBlockingCtx
 	stop := *s.nonBlockingStop
