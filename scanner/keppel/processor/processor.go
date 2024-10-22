@@ -112,38 +112,55 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 	}
 }
 
-func (p *Processor) GetComponent(name string) (*client.Component, error) {
-	r, err := client.ListComponents(context.Background(), *p.Client, &client.ComponentFilter{
-		ComponentName: []string{name},
-	}, 1)
+// GetAllComponents will fetch all available Components using pagination.
+// pageSize specifies how many object we want to fetch in a row. Then we use cursor
+// to fetch the next batch.
+func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize int) ([]*client.ComponentAggregate, error) {
+	var allComponents []*client.ComponentAggregate
+	cursor := "0" // Set initial cursor to "0"
 
-	if err != nil {
-		return nil, err
+	for {
+		// ListComponents also returns the ComponentVersions of each Component
+		listComponentsResp, err := client.ListComponents(context.Background(), *p.Client, filter, pageSize, cursor)
+		if err != nil {
+			return nil, fmt.Errorf("cannot list Components: %w", err)
+		}
+
+		if len(listComponentsResp.Components.Edges) == 0 {
+			break
+		}
+
+		for _, edge := range listComponentsResp.Components.Edges {
+			allComponents = append(allComponents, edge.Node)
+		}
+
+		if len(listComponentsResp.Components.Edges) < pageSize {
+			break
+		}
+
+		// Update cursor for the next iteration
+		cursor = listComponentsResp.Components.Edges[len(listComponentsResp.Components.Edges)-1].Cursor
 	}
-
-	var component *client.Component
-	if len(r.Components.Edges) > 0 {
-		component = r.Components.Edges[0].GetNode()
-	}
-
-	return component, nil
+	return allComponents, nil
 }
 
-func (p *Processor) GetComponentVersion(version string) (*client.ComponentVersion, error) {
-	r, err := client.ListComponentVersions(context.Background(), *p.Client, &client.ComponentVersionFilter{
-		Version: []string{version},
-	}, 1)
+func (p *Processor) GetComponentVersions(componentId string) ([]*client.ComponentVersion, error) {
+	listCompVersionResp, err := client.ListComponentVersions(context.Background(), *p.Client, &client.ComponentVersionFilter{
+		ComponentId: []string{componentId},
+	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot list ComponentVersions: %w", err)
 	}
 
-	var componentVersion *client.ComponentVersion
-	if len(r.ComponentVersions.Edges) > 0 {
-		componentVersion = r.ComponentVersions.Edges[0].GetNode()
+	var componentVersions []*client.ComponentVersion
+	if len(listCompVersionResp.ComponentVersions.Edges) > 0 {
+		for _, cv := range listCompVersionResp.GetComponentVersions().Edges {
+			componentVersions = append(componentVersions, cv.GetNode())
+		}
 	}
 
-	return componentVersion, nil
+	return componentVersions, nil
 }
 
 func (p *Processor) GetIssue(primaryName string) (*client.Issue, error) {
