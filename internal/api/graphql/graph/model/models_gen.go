@@ -147,6 +147,10 @@ type ComponentFilter struct {
 	ComponentName []*string `json:"componentName,omitempty"`
 }
 
+type ComponentFilterValue struct {
+	ComponentName *FilterItem `json:"componentName,omitempty"`
+}
+
 type ComponentInput struct {
 	Name *string              `json:"name,omitempty"`
 	Type *ComponentTypeValues `json:"type,omitempty"`

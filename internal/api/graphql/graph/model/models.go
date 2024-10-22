@@ -16,6 +16,27 @@ import (
 
 // add custom models here
 
+var AllSeverityValuesOrdered = []SeverityValues{
+	SeverityValuesCritical,
+	SeverityValuesHigh,
+	SeverityValuesMedium,
+	SeverityValuesLow,
+	SeverityValuesNone,
+}
+
+var AllIssueTypesOrdered = []IssueTypes{
+	IssueTypesPolicyViolation,
+	IssueTypesSecurityEvent,
+	IssueTypesVulnerability,
+}
+
+var AllIssueMatchStatusValuesOrdered = []IssueMatchStatusValues{
+	IssueMatchStatusValuesNew,
+	IssueMatchStatusValuesRiskAccepted,
+	IssueMatchStatusValuesFalsePositive,
+	IssueMatchStatusValuesMitigated,
+}
+
 func NewPageInfo(p *entity.PageInfo) *PageInfo {
 	if p == nil {
 		return nil
@@ -151,7 +172,7 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	if issue.IssueAggregations != nil {
 		metadata = IssueMetadata{
 			ServiceCount:                  int(issue.IssueAggregations.AffectedServices),
-			ActivityCount:                 int(issue.IssueAggregations.Activites),
+			ActivityCount:                 int(issue.IssueAggregations.Activities),
 			IssueMatchCount:               int(issue.IssueAggregations.IssueMatches),
 			ComponentInstanceCount:        int(issue.IssueAggregations.AffectedComponentInstances),
 			ComponentVersionCount:         int(issue.IssueAggregations.ComponentVersions),

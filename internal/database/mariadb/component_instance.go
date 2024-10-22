@@ -285,6 +285,7 @@ func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string,
     SELECT CI.componentinstance_ccrn FROM ComponentInstance CI 
     %s
     %s
+    ORDER BY CI.componentinstance_ccrn
     `
 
 	// Ensure the filter is initialized

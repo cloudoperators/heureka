@@ -180,33 +180,6 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) getServicesWithAggregations(query string, filter *entity.ServiceFilter) ([]entity.ServiceWithAggregations, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"filter": filter,
-		"event":  "database.getServicesWithAggregation",
-	})
-	stmt, filterParameters, err := s.buildServiceStatement(query, filter, true, l)
-
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-			}).Error(msg)
-		return nil, fmt.Errorf("%s", msg)
-	}
-	defer stmt.Close()
-
-	return performListScan(
-		stmt,
-		filterParameters,
-		l,
-		func(l []entity.ServiceWithAggregations, e GetServicesByRow) []entity.ServiceWithAggregations {
-			return append(l, e.AsServiceWithAggregations())
-		},
-	)
-}
-
 func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountServices",
@@ -546,6 +519,7 @@ func (s *SqlDatabase) GetServiceNames(filter *entity.ServiceFilter) ([]string, e
     SELECT service_name FROM Service S
     %s
     %s
+    ORDER BY S.service_name
     `
 
 	// Ensure the filter is initialized
