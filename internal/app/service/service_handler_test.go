@@ -118,8 +118,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		Context("and the given filter does not have any matches in the database", func() {
 
 			BeforeEach(func() {
-				db.On("GetServicesWithComponentInstanceCount", filter).Return([]entity.ServiceWithAggregations{}, nil)
-				db.On("GetServicesWithIssueMatchCount", filter).Return([]entity.ServiceWithAggregations{}, nil)
+				db.On("GetServicesWithAggregations", filter).Return([]entity.ServiceWithAggregations{}, nil)
 			})
 
 			It("should return an empty result", func() {
@@ -133,8 +132,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
 				services := test.NNewFakeServiceEntitiesWithAggregations(10)
-				db.On("GetServicesWithComponentInstanceCount", filter).Return(services, nil)
-				db.On("GetServicesWithIssueMatchCount", filter).Return(services, nil)
+				db.On("GetServicesWithAggregations", filter).Return(services, nil)
 			})
 			It("should return the expected services in the result", func() {
 				serviceHandler = service.NewServiceHandler(db, er)
@@ -145,7 +143,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetServicesWithComponentInstanceCount", filter).Return([]entity.ServiceWithAggregations{}, errors.New("some error"))
+				db.On("GetServicesWithAggregations", filter).Return([]entity.ServiceWithAggregations{}, errors.New("some error"))
 			})
 
 			It("should return the expected services in the result", func() {

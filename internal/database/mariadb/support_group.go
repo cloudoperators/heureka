@@ -381,6 +381,7 @@ func (s *SqlDatabase) GetSupportGroupNames(filter *entity.SupportGroupFilter) ([
     SELECT SG.supportgroup_name FROM SupportGroup SG
     %s
     %s
+    ORDER BY SG.supportgroup_name
     `
 
 	// Ensure the filter is initialized

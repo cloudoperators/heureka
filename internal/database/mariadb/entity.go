@@ -77,7 +77,8 @@ type DatabaseRow interface {
 		ActivityHasIssueRow |
 		ActivityHasServiceRow |
 		IssueRepositoryServiceRow |
-		IssueMatchChangeRow
+		IssueMatchChangeRow |
+		ServiceIssueVariantRow
 }
 
 type IssueRow struct {
@@ -111,7 +112,7 @@ type GetIssuesByRow struct {
 }
 
 type IssueAggregationsRow struct {
-	Activites                     sql.NullInt64 `db:"agg_activities"`
+	Activities                    sql.NullInt64 `db:"agg_activities"`
 	IssueMatches                  sql.NullInt64 `db:"agg_issue_matches"`
 	AffectedServices              sql.NullInt64 `db:"agg_affected_services"`
 	ComponentVersions             sql.NullInt64 `db:"agg_component_versions"`
@@ -123,11 +124,11 @@ type IssueAggregationsRow struct {
 func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregations {
 	return entity.IssueWithAggregations{
 		IssueAggregations: entity.IssueAggregations{
-			Activites:                     GetInt64Value(ibr.IssueAggregationsRow.Activites),
-			IssueMatches:                  GetInt64Value(ibr.IssueAggregationsRow.IssueMatches),
-			AffectedServices:              GetInt64Value(ibr.IssueAggregationsRow.AffectedServices),
-			ComponentVersions:             GetInt64Value(ibr.IssueAggregationsRow.ComponentVersions),
-			AffectedComponentInstances:    GetInt64Value(ibr.IssueAggregationsRow.AffectedComponentInstances),
+			Activities:                    lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.Activities)}),
+			IssueMatches:                  lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.IssueMatches)}),
+			AffectedServices:              lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.AffectedServices)}),
+			ComponentVersions:             lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.ComponentVersions)}),
+			AffectedComponentInstances:    lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.AffectedComponentInstances)}),
 			EarliestTargetRemediationDate: GetTimeValue(ibr.IssueAggregationsRow.EarliestTargetRemediationDate),
 			EarliestDiscoveryDate:         GetTimeValue(ibr.IssueAggregationsRow.EarliestDiscoveryDate),
 		},
@@ -363,6 +364,32 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 		CreatedAt:         GetTimeValue(ivwr.IssueVariantRow.CreatedAt),
 		DeletedAt:         GetTimeValue(ivwr.IssueVariantRow.DeletedAt),
 		UpdatedAt:         GetTimeValue(ivwr.IssueVariantRow.UpdatedAt),
+	}
+}
+
+type ServiceIssueVariantRow struct {
+	IssueRepositoryRow
+	IssueVariantRow
+}
+
+func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIssueVariant {
+	rep := siv.IssueRepositoryRow.AsIssueRepository()
+	return entity.ServiceIssueVariant{
+		IssueVariant: entity.IssueVariant{
+			Id:                GetInt64Value(siv.IssueVariantRow.Id),
+			IssueRepositoryId: GetInt64Value(siv.IssueRepositoryRow.IssueRepositoryId),
+			IssueRepository:   &rep,
+			SecondaryName:     GetStringValue(siv.IssueVariantRow.SecondaryName),
+			IssueId:           GetInt64Value(siv.IssueId),
+			Issue:             nil,
+			Severity:          entity.NewSeverity(GetStringValue(siv.Vector)),
+			Description:       GetStringValue(siv.Description),
+			CreatedAt:         GetTimeValue(siv.IssueVariantRow.CreatedAt),
+			DeletedAt:         GetTimeValue(siv.IssueVariantRow.DeletedAt),
+			UpdatedAt:         GetTimeValue(siv.IssueVariantRow.UpdatedAt),
+		},
+		ServiceId: GetInt64Value(siv.IssueRepositoryServiceRow.ServiceId),
+		Priority:  GetInt64Value(siv.Priority),
 	}
 }
 
