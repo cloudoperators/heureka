@@ -44,6 +44,9 @@ func startTimeWindow(scanner *s.Scanner, processor *p.Processor, config s.Config
 
 	endTime := startTime.AddDate(0, 2, 0)
 
+	if endTime.After(absoluteEnd) {
+		endTime = absoluteEnd.Add(-1 * time.Minute)
+	}
 	for endTime.Before(absoluteEnd) {
 		startYear, startMonth, startDay := startTime.Date()
 		endYear, endMonth, endDay := endTime.Date()

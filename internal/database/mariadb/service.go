@@ -16,6 +16,25 @@ const (
 	serviceWildCardFilterQuery = "S.service_ccrn LIKE Concat('%',?,'%')"
 )
 
+func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool, cursor entity.Cursor) []interface{} {
+	var filterParameters []interface{}
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.Id)
+	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
+	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
+	filterParameters = buildQueryParameters(filterParameters, filter.OwnerId)
+	filterParameters = buildQueryParameters(filterParameters, filter.Search)
+	if withCursor {
+		filterParameters = append(filterParameters, cursor.Value)
+		filterParameters = append(filterParameters, cursor.Limit)
+	}
+	return filterParameters
+}
+
 func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.CCRN, "S.service_ccrn = ?", OP_OR))
@@ -156,21 +175,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	}
 
 	//adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
-	filterParameters = buildQueryParameters(filterParameters, filter.OwnerId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Search)
-	if withCursor {
-		filterParameters = append(filterParameters, cursor.Value)
-		filterParameters = append(filterParameters, cursor.Limit)
-	}
+	filterParameters := s.buildServiceFilterParameters(filter, withCursor, cursor)
 
 	return stmt, filterParameters, nil
 }
@@ -248,6 +253,82 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter) ([]entity.Servic
 		l,
 		func(l []entity.Service, e ServiceRow) []entity.Service {
 			return append(l, e.AsService())
+		},
+	)
+}
+
+func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter) ([]entity.ServiceWithAggregations, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.GetServicesWithAggregations",
+	})
+
+	baseImQuery := `
+        SELECT %s, COUNT(IM.issuematch_id) AS agg_issue_matches FROM Service S
+        %s
+        LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
+        LEFT JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id
+        %s
+        %s GROUP BY S.service_id ORDER BY S.service_id LIMIT ?
+    `
+
+	baseCiQuery := `
+        SELECT %s, SUM(CI.componentinstance_count) AS agg_component_instances FROM Service S
+        %s
+        LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
+        %s
+        %s GROUP BY S.service_id ORDER BY S.service_id LIMIT ?
+    `
+
+	baseQuery := `
+        WITH IssueMatchCounts AS (
+            %s
+        ),
+        ComponentInstanceCounts AS (
+            %s
+        )
+        SELECT IMC.*, CIC.*
+        FROM ComponentInstanceCounts CIC
+        JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id;
+    `
+	filter = s.ensureServiceFilter(filter)
+	filterStr := s.getServiceFilterString(filter)
+	joins := s.getServiceJoins(filter)
+	columns := s.getServiceColumns(filter)
+	cursor := getCursor(filter.Paginated, filterStr, "S.service_id > ?")
+	whereClause := fmt.Sprintf("WHERE %s", filterStr)
+
+	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursor.Statement)
+	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursor.Statement)
+	query := fmt.Sprintf(baseQuery, imQuery, ciQuery)
+
+	var stmt *sqlx.Stmt
+	var err error
+
+	stmt, err = s.db.Preparex(query)
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+				"stmt":  stmt,
+			}).Error(msg)
+		return nil, fmt.Errorf("%s", msg)
+	}
+
+	// parameters for issue match query
+	filterParameters := s.buildServiceFilterParameters(filter, true, cursor)
+	// parameters for component instance query
+	filterParameters = append(filterParameters, s.buildServiceFilterParameters(filter, true, cursor)...)
+
+	defer stmt.Close()
+
+	return performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []entity.ServiceWithAggregations, e GetServicesByRow) []entity.ServiceWithAggregations {
+			return append(l, e.AsServiceWithAggregations())
 		},
 	)
 }
@@ -438,6 +519,7 @@ func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, e
     SELECT service_ccrn FROM Service S
     %s
     %s
+    ORDER BY S.service_ccrn
     `
 
 	// Ensure the filter is initialized

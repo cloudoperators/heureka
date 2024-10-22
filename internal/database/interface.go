@@ -18,6 +18,7 @@ type Database interface {
 	RemoveComponentVersionFromIssue(int64, int64) error
 	GetIssueNames(*entity.IssueFilter) ([]string, error)
 
+	GetServiceIssueVariants(*entity.ServiceIssueVariantFilter) ([]entity.ServiceIssueVariant, error)
 	GetIssueVariants(*entity.IssueVariantFilter) ([]entity.IssueVariant, error)
 	GetAllIssueVariantIds(*entity.IssueVariantFilter) ([]int64, error)
 	CountIssueVariants(*entity.IssueVariantFilter) (int64, error)
@@ -51,6 +52,7 @@ type Database interface {
 	RemoveEvidenceFromIssueMatch(int64, int64) error
 
 	GetServices(*entity.ServiceFilter) ([]entity.Service, error)
+	GetServicesWithAggregations(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)
 	GetAllServiceIds(*entity.ServiceFilter) ([]int64, error)
 	CountServices(*entity.ServiceFilter) (int64, error)
 	CreateService(*entity.Service) (*entity.Service, error)
@@ -90,6 +92,7 @@ type Database interface {
 	UpdateComponentInstance(*entity.ComponentInstance) error
 	DeleteComponentInstance(int64) error
 	GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error)
+	GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
 	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)

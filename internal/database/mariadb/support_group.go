@@ -381,6 +381,7 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
     SELECT SG.supportgroup_ccrn FROM SupportGroup SG
     %s
     %s
+    ORDER BY SG.supportgroup_ccrn
     `
 
 	// Ensure the filter is initialized
@@ -404,13 +405,13 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
 
 	// Collect the results
 	supportGroupCcrns := []string{}
-	var name string
+	var ccrn string
 	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
+		if err := rows.Scan(&ccrn); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
-		supportGroupCcrns = append(supportGroupCcrns, name)
+		supportGroupCcrns = append(supportGroupCcrns, ccrn)
 	}
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)

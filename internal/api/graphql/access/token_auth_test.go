@@ -57,11 +57,7 @@ func (s *server) startInBackground(port string) {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
 	s.srv = &http.Server{Addr: fmt.Sprintf(":%s", port), Handler: r}
-	go func() {
-		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Println("Unexpected error when running test server")
-		}
-	}()
+	util2.FirstListenThenServe(s.srv)
 }
 
 func (s *server) stop() {

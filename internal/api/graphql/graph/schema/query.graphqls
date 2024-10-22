@@ -17,4 +17,6 @@ type Query {
     Users(filter: UserFilter, first: Int, after: String): UserConnection
     ServiceFilterValues: ServiceFilterValue
     IssueMatchFilterValues: IssueMatchFilterValue
+    ComponentInstanceFilterValues: ComponentInstanceFilterValue
+    ComponentFilterValues: ComponentFilterValue
 }

@@ -19,6 +19,13 @@ type BaseService struct {
 }
 
 type ServiceAggregations struct {
+	ComponentInstances int64
+	IssueMatches       int64
+}
+
+type ServiceWithAggregations struct {
+	Service
+	ServiceAggregations
 }
 
 type ServiceFilter struct {

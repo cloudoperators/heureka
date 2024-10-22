@@ -38,6 +38,26 @@ func NewServiceHandlerError(msg string) *ServiceHandlerError {
 	return &ServiceHandlerError{msg: msg}
 }
 
+func (s *serviceHandler) getServiceResultsWithAggregations(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
+	var serviceResults []entity.ServiceResult
+	services, err := s.database.GetServicesWithAggregations(filter)
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range services {
+		cursor := fmt.Sprintf("%d", s.Id)
+		serviceResults = append(serviceResults, entity.ServiceResult{
+			WithCursor: entity.WithCursor{Value: cursor},
+			ServiceAggregations: &entity.ServiceAggregations{
+				IssueMatches:       s.ServiceAggregations.IssueMatches,
+				ComponentInstances: s.ServiceAggregations.ComponentInstances,
+			},
+			Service: &s.Service,
+		})
+	}
+	return serviceResults, nil
+}
+
 func (s *serviceHandler) getServiceResults(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
 	var serviceResults []entity.ServiceResult
 	services, err := s.database.GetServices(filter)
@@ -81,6 +101,8 @@ func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
+	var res []entity.ServiceResult
+	var err error
 
 	common.EnsurePaginated(&filter.Paginated)
 
@@ -89,11 +111,18 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 		"filter": filter,
 	})
 
-	res, err := s.getServiceResults(filter)
-
-	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Error while filtering for Services")
+	if options.IncludeAggregations {
+		res, err = s.getServiceResultsWithAggregations(filter)
+		if err != nil {
+			l.Error(err)
+			return nil, NewServiceHandlerError("Internal error while retrieving list results with aggregations")
+		}
+	} else {
+		res, err = s.getServiceResults(filter)
+		if err != nil {
+			l.Error(err)
+			return nil, NewServiceHandlerError("Internal error while retrieving list results.")
+		}
 	}
 
 	if options.ShowPageInfo {

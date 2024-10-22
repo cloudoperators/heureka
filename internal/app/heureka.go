@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+
 	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"

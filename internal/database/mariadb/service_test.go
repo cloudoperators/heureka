@@ -383,7 +383,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					const charactersToRemoveFromBeginning = 2
 					const charactersToRemoveFromEnd = 2
-					const minimalCharactersToKeep = 1
+					const minimalCharactersToKeep = 2
 
 					start := charactersToRemoveFromBeginning
 					end := len(row.CCRN.String) - charactersToRemoveFromEnd
@@ -433,6 +433,65 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					Entry("when pageSize is 11", 11),
 					Entry("when pageSize is 100", 100),
 				)
+			})
+		})
+	})
+	When("Getting Services with Aggregations", Label("GetServicesWithAggregations"), func() {
+		Context("and the database contains service without aggregations", func() {
+			BeforeEach(func() {
+				newServiceRow := test.NewFakeService()
+				newService := newServiceRow.AsService()
+				db.CreateService(&newService)
+			})
+			It("returns the services with aggregations", func() {
+				entriesWithAggregations, err := db.GetServicesWithAggregations(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				By("returning some aggregations", func() {
+					for _, entryWithAggregations := range entriesWithAggregations {
+						Expect(entryWithAggregations).NotTo(
+							BeEquivalentTo(entity.ServiceAggregations{}))
+						Expect(entryWithAggregations.ServiceAggregations.ComponentInstances).To(BeEquivalentTo(0))
+						Expect(entryWithAggregations.ServiceAggregations.IssueMatches).To(BeEquivalentTo(0))
+					}
+				})
+				By("returning all services", func() {
+					Expect(len(entriesWithAggregations)).To(BeEquivalentTo(1))
+				})
+			})
+		})
+		Context("and we have 10 services in the database", func() {
+			BeforeEach(func() {
+				_ = seeder.SeedDbWithNFakeData(10)
+			})
+			It("returns the services with aggs", func() {
+				entriesWithAggregations, err := db.GetServicesWithAggregations(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				By("returning some aggregations", func() {
+					for _, entryWithAggregations := range entriesWithAggregations {
+						Expect(entryWithAggregations).NotTo(
+							BeEquivalentTo(entity.ServiceAggregations{}))
+					}
+				})
+				By("returning all services", func() {
+					Expect(len(entriesWithAggregations)).To(BeEquivalentTo(10))
+				})
+			})
+			It("returns correct aggregation values", func() {
+				//Should be filled with a check for each aggregation value,
+				// this is currently skipped due to the complexity of the test implementation
+				// as we would need to implement for each of the aggregations a manual aggregation
+				// based on the seederCollection.
+				//
+				// This tests should therefore only get implemented in case we encourage errors in this area to test against
+				// possible regressions
 			})
 		})
 	})

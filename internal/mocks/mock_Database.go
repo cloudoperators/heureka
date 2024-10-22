@@ -3395,6 +3395,64 @@ func (_c *MockDatabase_GetAllUserIds_Call) RunAndReturn(run func(*entity.UserFil
 	return _c
 }
 
+// GetCcrn provides a mock function with given fields: filter
+func (_m *MockDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	ret := _m.Called(filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCcrn")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ComponentInstanceFilter) ([]string, error)); ok {
+		return rf(filter)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ComponentInstanceFilter) []string); ok {
+		r0 = rf(filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ComponentInstanceFilter) error); ok {
+		r1 = rf(filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetCcrn_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetCcrn'
+type MockDatabase_GetCcrn_Call struct {
+	*mock.Call
+}
+
+// GetCcrn is a helper method to define mock.On call
+//   - filter *entity.ComponentInstanceFilter
+func (_e *MockDatabase_Expecter) GetCcrn(filter interface{}) *MockDatabase_GetCcrn_Call {
+	return &MockDatabase_GetCcrn_Call{Call: _e.mock.On("GetCcrn", filter)}
+}
+
+func (_c *MockDatabase_GetCcrn_Call) Run(run func(filter *entity.ComponentInstanceFilter)) *MockDatabase_GetCcrn_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ComponentInstanceFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetCcrn_Call) Return(_a0 []string, _a1 error) *MockDatabase_GetCcrn_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetCcrn_Call) RunAndReturn(run func(*entity.ComponentInstanceFilter) ([]string, error)) *MockDatabase_GetCcrn_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetComponentCcrns provides a mock function with given fields: filter
 func (_m *MockDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error) {
 	ret := _m.Called(filter)
@@ -4239,6 +4297,64 @@ func (_c *MockDatabase_GetServiceCcrns_Call) RunAndReturn(run func(*entity.Servi
 	return _c
 }
 
+// GetServiceIssueVariants provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetServiceIssueVariants(_a0 *entity.ServiceIssueVariantFilter) ([]entity.ServiceIssueVariant, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServiceIssueVariants")
+	}
+
+	var r0 []entity.ServiceIssueVariant
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ServiceIssueVariantFilter) ([]entity.ServiceIssueVariant, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ServiceIssueVariantFilter) []entity.ServiceIssueVariant); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.ServiceIssueVariant)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ServiceIssueVariantFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetServiceIssueVariants_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServiceIssueVariants'
+type MockDatabase_GetServiceIssueVariants_Call struct {
+	*mock.Call
+}
+
+// GetServiceIssueVariants is a helper method to define mock.On call
+//   - _a0 *entity.ServiceIssueVariantFilter
+func (_e *MockDatabase_Expecter) GetServiceIssueVariants(_a0 interface{}) *MockDatabase_GetServiceIssueVariants_Call {
+	return &MockDatabase_GetServiceIssueVariants_Call{Call: _e.mock.On("GetServiceIssueVariants", _a0)}
+}
+
+func (_c *MockDatabase_GetServiceIssueVariants_Call) Run(run func(_a0 *entity.ServiceIssueVariantFilter)) *MockDatabase_GetServiceIssueVariants_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ServiceIssueVariantFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetServiceIssueVariants_Call) Return(_a0 []entity.ServiceIssueVariant, _a1 error) *MockDatabase_GetServiceIssueVariants_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetServiceIssueVariants_Call) RunAndReturn(run func(*entity.ServiceIssueVariantFilter) ([]entity.ServiceIssueVariant, error)) *MockDatabase_GetServiceIssueVariants_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetServices provides a mock function with given fields: _a0
 func (_m *MockDatabase) GetServices(_a0 *entity.ServiceFilter) ([]entity.Service, error) {
 	ret := _m.Called(_a0)
@@ -4293,6 +4409,64 @@ func (_c *MockDatabase_GetServices_Call) Return(_a0 []entity.Service, _a1 error)
 }
 
 func (_c *MockDatabase_GetServices_Call) RunAndReturn(run func(*entity.ServiceFilter) ([]entity.Service, error)) *MockDatabase_GetServices_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetServicesWithAggregations provides a mock function with given fields: _a0
+func (_m *MockDatabase) GetServicesWithAggregations(_a0 *entity.ServiceFilter) ([]entity.ServiceWithAggregations, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServicesWithAggregations")
+	}
+
+	var r0 []entity.ServiceWithAggregations
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(*entity.ServiceFilter) []entity.ServiceWithAggregations); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.ServiceWithAggregations)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*entity.ServiceFilter) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetServicesWithAggregations_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServicesWithAggregations'
+type MockDatabase_GetServicesWithAggregations_Call struct {
+	*mock.Call
+}
+
+// GetServicesWithAggregations is a helper method to define mock.On call
+//   - _a0 *entity.ServiceFilter
+func (_e *MockDatabase_Expecter) GetServicesWithAggregations(_a0 interface{}) *MockDatabase_GetServicesWithAggregations_Call {
+	return &MockDatabase_GetServicesWithAggregations_Call{Call: _e.mock.On("GetServicesWithAggregations", _a0)}
+}
+
+func (_c *MockDatabase_GetServicesWithAggregations_Call) Run(run func(_a0 *entity.ServiceFilter)) *MockDatabase_GetServicesWithAggregations_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*entity.ServiceFilter))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetServicesWithAggregations_Call) Return(_a0 []entity.ServiceWithAggregations, _a1 error) *MockDatabase_GetServicesWithAggregations_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetServicesWithAggregations_Call) RunAndReturn(run func(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)) *MockDatabase_GetServicesWithAggregations_Call {
 	_c.Call.Return(run)
 	return _c
 }

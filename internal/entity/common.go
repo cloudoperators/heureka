@@ -35,6 +35,7 @@ type HeurekaEntity interface {
 		BaseService |
 		Service |
 		ServiceAggregations |
+		ServiceWithAggregations |
 		SupportGroup |
 		SupportGroupService |
 		SupportGroupUser |
@@ -45,7 +46,8 @@ type HeurekaEntity interface {
 		IssueMatch |
 		IssueMatchChange |
 		HeurekaFilter |
-		IssueCount
+		IssueCount |
+		ServiceIssueVariant
 }
 
 type HeurekaFilter interface {

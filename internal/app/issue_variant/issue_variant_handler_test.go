@@ -215,7 +215,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		issueVariant = test.NewFakeIssueVariantEntity()
+		issueVariant = test.NewFakeIssueVariantEntity(nil)
 		first := 10
 		var after int64
 		after = 0
@@ -259,7 +259,7 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		issueVariant = test.NewFakeIssueVariantEntity()
+		issueVariant = test.NewFakeIssueVariantEntity(nil)
 		first := 10
 		var after int64
 		after = 0

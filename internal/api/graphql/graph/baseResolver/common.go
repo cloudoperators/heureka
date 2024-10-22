@@ -21,8 +21,10 @@ var (
 	FilterDisplayComponentCcrn    string = "Component CCRN"
 	FilterDisplayIssueType        string = "Issue Type"
 	FilterDisplayIssueMatchStatus string = "Issue Match Status"
+	FilterDisplayIssueMatchID     string = "Issue Match ID"
 	FilterDisplayIssuePrimaryName string = "Issue Name"
 	FilterDisplayIssueSeverity    string = "Severity"
+	FilterDisplayCcrn             string = "CCRN"
 
 	ServiceFilterServiceCcrn      string = "serviceCcrn"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"
@@ -37,6 +39,8 @@ var (
 	IssueMatchFilterSeverity         string = "severity"
 	IssueMatchFilterAffectedService  string = "affectedService"
 	IssueMatchFilterSupportGroupCcrn string = "supportGroupCcrn"
+
+	ComponentFilterComponentCcrn string = "componentCcrn"
 )
 
 type ResolverError struct {

@@ -217,3 +217,15 @@ models:
         resolver: true
       supportGroupCcrn:
         resolver: true
+  ComponentInstanceFilterValue:
+    fields:
+      serviceCcrn:
+        resolver: true
+      supportGroupCcrn:
+        resolver: true
+      ccrn:
+        resolver: true
+  ComponentFilterValue:
+    fields:
+      componentCcrn:
+        resolver: true

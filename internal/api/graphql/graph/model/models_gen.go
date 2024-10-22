@@ -147,6 +147,10 @@ type ComponentFilter struct {
 	ComponentCcrn []*string `json:"componentCcrn,omitempty"`
 }
 
+type ComponentFilterValue struct {
+	ComponentCcrn *FilterItem `json:"componentCcrn,omitempty"`
+}
+
 type ComponentInput struct {
 	Ccrn *string              `json:"ccrn,omitempty"`
 	Type *ComponentTypeValues `json:"type,omitempty"`
@@ -188,7 +192,16 @@ func (this ComponentInstanceEdge) GetNode() Node      { return *this.Node }
 func (this ComponentInstanceEdge) GetCursor() *string { return this.Cursor }
 
 type ComponentInstanceFilter struct {
-	IssueMatchID []*string `json:"issueMatchId,omitempty"`
+	ServiceCcrn  []*string `json:"serviceCcrn,omitempty"`
+	Ccrn         []*string `json:"ccrn,omitempty"`
+	SupportGroup []*string `json:"supportGroup,omitempty"`
+	Search       []*string `json:"search,omitempty"`
+}
+
+type ComponentInstanceFilterValue struct {
+	ServiceCcrn      *FilterItem `json:"serviceCcrn,omitempty"`
+	SupportGroupCcrn *FilterItem `json:"supportGroupCcrn,omitempty"`
+	Ccrn             *FilterItem `json:"ccrn,omitempty"`
 }
 
 type ComponentInstanceInput struct {
@@ -601,6 +614,7 @@ type Service struct {
 	Activities         *ActivityConnection          `json:"activities,omitempty"`
 	IssueRepositories  *IssueRepositoryConnection   `json:"issueRepositories,omitempty"`
 	ComponentInstances *ComponentInstanceConnection `json:"componentInstances,omitempty"`
+	Metadata           *ServiceMetadata             `json:"metadata,omitempty"`
 }
 
 func (Service) IsNode()            {}
@@ -644,6 +658,11 @@ type ServiceFilterValue struct {
 
 type ServiceInput struct {
 	Ccrn *string `json:"ccrn,omitempty"`
+}
+
+type ServiceMetadata struct {
+	IssueMatchCount        int `json:"issueMatchCount"`
+	ComponentInstanceCount int `json:"componentInstanceCount"`
 }
 
 type Severity struct {

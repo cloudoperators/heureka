@@ -31,13 +31,13 @@ var _ = BeforeSuite(func() {
 })
 
 func getIssueFilter() *entity.IssueFilter {
-	serviceName := "SomeNotExistingService"
+	serviceCcrn := "SomeNotExistingService"
 	return &entity.IssueFilter{
 		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
-		ServiceCCRN:                     []*string{&serviceName},
+		ServiceCCRN:                     []*string{&serviceCcrn},
 		Id:                              nil,
 		IssueMatchStatus:                nil,
 		IssueMatchDiscoveryDate:         nil,

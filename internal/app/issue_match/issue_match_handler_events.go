@@ -10,7 +10,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,6 +21,7 @@ const (
 	DeleteIssueMatchEventName             event.EventName = "DeleteIssueMatch"
 	AddEvidenceToIssueMatchEventName      event.EventName = "AddEvidenceToIssueMatch"
 	RemoveEvidenceFromIssueMatchEventName event.EventName = "RemoveEvidenceFromIssueMatch"
+	ListIssueMatchIDsEventName            event.EventName = "ListIssueMatchIDs"
 )
 
 type ListIssueMatchesEvent struct {
@@ -92,77 +92,43 @@ func OnComponentInstanceCreate(db database.Database, event event.Event) {
 }
 
 // BuildIssueVariantMap builds a map of issue id to issue variant for the given issues and component instance id
+// it does take the first issue_variant with the highest priority for the respective component instance.
+// This is archived by utilizing database.GetServiceIssueVariants that does return ALL issue variants for a given
+// component instance id together with the priorty and afterwards identifying for each issue the variant with the highest
+// priority
 //
-//   - It fetches the services and issue repositories related to the component instance
-//   - identifies the issue repositories with the highest priority
-//   - fetches the issue variants for this repositories and the given issues
-//   - and finally creates a map of the relevant issueVariants where in case of multiple issue variants the highest
-//     severity variant is taken. In case of multiple variants of the same severity the first one is taken.
-//
-// @Todo DISCUSS may move getting issues here as well and iterate in the calling function over the issueVariantMap....
-// @Todo DISCUSS function still long but mainly due to getting data and logging steps, congnitive complexity is not that high here
-//
-// @Todo DISCUSS this is essential business logic, does it belong here or should it live somewhere else?
-func BuildIssueVariantMap(db database.Database, componentInstanceID int64, componentVersionID int64) (map[int64]entity.IssueVariant, error) {
+// Returns a map of issue id to issue variant
+func BuildIssueVariantMap(db database.Database, componentInstanceID int64, componentVersionID int64) (map[int64]entity.ServiceIssueVariant, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":               "BuildIssueVariantMap",
 		"componentInstanceID": componentInstanceID,
 		"componentVersionID":  componentVersionID,
 	})
-	// Get Issues based on ComponentVersion ID
-	issues, err := db.GetIssues(&entity.IssueFilter{ComponentVersionId: []*int64{&componentVersionID}})
-	if err != nil {
-		l.WithField("event-step", "FetchIssues").WithError(err).Error("Error while fetching issues related to component Version")
-		return nil, err
-	}
-
-	// Get Services based on ComponentInstance ID
-	services, err := db.GetServices(&entity.ServiceFilter{ComponentInstanceId: []*int64{&componentInstanceID}})
-	if err != nil {
-		l.WithField("event-step", "FetchServices").WithError(err).Error("Error while fetching services related to Component Instance")
-		return nil, err
-	}
-
-	// Get Issue Repositories
-	serviceIds := lo.Map(services, func(service entity.Service, _ int) *int64 { return &service.Id })
-	repositories, err := db.GetIssueRepositories(&entity.IssueRepositoryFilter{ServiceId: serviceIds})
-	if err != nil {
-		l.WithField("event-step", "FetchIssueRepositories").WithField("serviceIds", serviceIds).WithError(err).Error("Error while fetching issue repositories related to services that are related to the component instance")
-		return nil, err
-	}
-
-	if len(repositories) < 1 {
-		l.WithField("event-step", "FetchIssueRepositories").WithField("serviceIds", serviceIds).Error("No issue repositories found that are related to the services")
-		return nil, NewIssueMatchHandlerError("No issue repositories found that are related to the services")
-	}
 
 	// Get Issue Variants
-	// - getting high prio
-	maxPriorityIr := lo.MaxBy(repositories, func(item entity.IssueRepository, max entity.IssueRepository) bool {
-		return item.Priority > max.Priority
-	})
-	issueVariants, err := db.GetIssueVariants(&entity.IssueVariantFilter{
-		IssueId:           lo.Map(issues, func(i entity.Issue, _ int) *int64 { return &i.Id }),
-		IssueRepositoryId: []*int64{&maxPriorityIr.Id},
-	})
-
+	issueVariants, err := db.GetServiceIssueVariants(&entity.ServiceIssueVariantFilter{ComponentInstanceId: []*int64{&componentInstanceID}})
 	if err != nil {
-		l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants related to issue repositories")
-		return nil, err
+		l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants")
+		return nil, NewIssueMatchHandlerError("Error while fetching issue variants")
 	}
 
+	//No issue variants found,
 	if len(issueVariants) < 1 {
 		l.WithField("event-step", "FetchIssueVariants").Error("No issue variants found that are related to the issue repository")
 		return nil, NewIssueMatchHandlerError("No issue variants found that are related to the issue repository")
 	}
 
 	// create a map of issue id to variants for easy access
-	var issueVariantMap = make(map[int64]entity.IssueVariant)
+	var issueVariantMap = make(map[int64]entity.ServiceIssueVariant)
 
 	for _, variant := range issueVariants {
-		// if there are multiple variants with the same priority on their repositories we take the highest severity one
+
 		if _, ok := issueVariantMap[variant.IssueId]; ok {
-			if issueVariantMap[variant.IssueId].Severity.Score < variant.Severity.Score {
+			// if there are multiple variants with the same priority on their repositories we take the highest severity one
+			// if serverity and score are the same the first occuring issue variant is taken
+			if issueVariantMap[variant.IssueId].Priority < variant.Priority {
+				issueVariantMap[variant.IssueId] = variant
+			} else if issueVariantMap[variant.IssueId].Severity.Score < variant.Severity.Score {
 				issueVariantMap[variant.IssueId] = variant
 			}
 		} else {
@@ -188,7 +154,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 
 	l.WithField("issueVariantMap", issueVariantMap)
 	if err != nil {
-		l.WithField("event-step", "BuildIssueVariants").WithError(err).Error("Error while fetching issues related to component Version")
+		l.WithField("event-step", "BuildIssueVariants").WithError(err).Error("Error while fetching issues related to component instance")
 		return
 	}
 
@@ -203,6 +169,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceID},
 		})
+
 		if err != nil {
 			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
 			return
@@ -216,7 +183,10 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 		}
 
 		// Create new issue match
+		// currently a static user is assumed to be used, this going to change in future to either a configured user or a dynamically
+		// infered user from the component version issue macht
 		issue_match := &entity.IssueMatch{
+			UserId:                1, //@todo discuss whatever we use a static system user or infer the user from the ComponentVersionIssue
 			Status:                entity.IssueMatchStatusValuesNew,
 			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
 			ComponentInstanceId:   componentInstanceID,
@@ -233,8 +203,12 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 	}
 }
 
+// GetTargetRemediationTimeline returns the target remediation timeline for a given severity and creation date
+// In a first iteration this is going to be obtained from a static configuration in environment variables or configuration file
+// In future this is potentially going to be dynamically inferred from individual service configurations in addition
+//
+// @todo get the configuration from environment variables or configuration file
 func GetTargetRemediationTimeline(severity entity.Severity, creationDate time.Time) time.Time {
-	//@todo get the configuration from environment variables or configuration file
 	switch entity.SeverityValues(severity.Value) {
 	case entity.SeverityValuesLow:
 		return creationDate.AddDate(0, 6, 0)

@@ -9,6 +9,12 @@ type Service implements Node {
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     issueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
     componentInstances(filter: ComponentInstanceFilter, first: Int, after: String): ComponentInstanceConnection
+    metadata: ServiceMetadata
+}
+
+type ServiceMetadata {
+    issueMatchCount: Int!
+    componentInstanceCount: Int!
 }
 
 input ServiceInput {

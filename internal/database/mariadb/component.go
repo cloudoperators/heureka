@@ -278,6 +278,7 @@ func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]strin
     SELECT C.component_ccrn FROM Component C
     %s
     %s
+    ORDER BY C.component_ccrn
     `
 
 	// Ensure the filter is initialized

@@ -275,3 +275,52 @@ func (s *SqlDatabase) DeleteComponentInstance(id int64) error {
 
 	return err
 }
+func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetCcrn",
+	})
+
+	baseQuery := `
+    SELECT CI.componentinstance_ccrn FROM ComponentInstance CI 
+    %s
+    %s
+    ORDER BY CI.componentinstance_ccrn
+    `
+
+	// Ensure the filter is initialized
+	filter = s.ensureComponentInstanceFilter(filter)
+
+	// Builds full statement with possible joins and filters
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, l)
+	if err != nil {
+		l.Error("Error preparing statement: ", err)
+		return nil, err
+	}
+	defer stmt.Close()
+
+	// Execute the query
+	rows, err := stmt.Queryx(filterParameters...)
+	if err != nil {
+		l.Error("Error executing query: ", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Collect the results
+	ccrn := []string{}
+	var name string
+	for rows.Next() {
+		if err := rows.Scan(&name); err != nil {
+			l.Error("Error scanning row: ", err)
+			continue
+		}
+		ccrn = append(ccrn, name)
+	}
+	if err = rows.Err(); err != nil {
+		l.Error("Row iteration error: ", err)
+		return nil, err
+	}
+
+	return ccrn, nil
+}

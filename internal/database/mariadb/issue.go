@@ -19,6 +19,26 @@ const (
 	wildCardFilterParamCount = 2
 )
 
+func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, withCursor bool, cursor entity.Cursor) []interface{} {
+	var filterParameters []interface{}
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.Id)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
+	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
+	filterParameters = buildQueryParameters(filterParameters, filter.Type)
+	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
+	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
+	if withCursor {
+		filterParameters = append(filterParameters, cursor.Value)
+		filterParameters = append(filterParameters, cursor.Limit)
+	}
+
+	return filterParameters
+}
+
 func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
@@ -36,20 +56,20 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, withAggregations bool) string {
+func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter) string {
 	joins := ""
-	if len(filter.ActivityId) > 0 || withAggregations {
+	if len(filter.ActivityId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
          	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 || withAggregations {
+	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
-	if len(filter.ServiceCCRN) > 0 || withAggregations {
+	if len(filter.ServiceCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 			LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
@@ -57,7 +77,7 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, withAggregations
 		`)
 	}
 
-	if len(filter.ComponentVersionId) > 0 || withAggregations {
+	if len(filter.ComponentVersionId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
 		`)
@@ -117,25 +137,18 @@ func (s *SqlDatabase) getIssueUpdateFields(issue *entity.Issue) string {
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, aggregations []string, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
 	var query string
 	filter = s.ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := s.getIssueFilterString(filter)
-	withAggreations := len(aggregations) > 0
-	joins := s.getIssueJoins(filter, withAggreations)
+	joins := s.getIssueJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "I.issue_id > ?")
 
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	ags := ""
-	if len(aggregations) > 0 {
-		ags = fmt.Sprintf(", %s", strings.Join(aggregations, ", "))
-		baseQuery = fmt.Sprintf(baseQuery, ags, "%s", "%s", "%s")
 	}
 
 	// construct final query
@@ -162,21 +175,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	}
 
 	//adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Type)
-	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
-	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
-	if withCursor {
-		filterParameters = append(filterParameters, cursor.Value)
-		filterParameters = append(filterParameters, cursor.Limit)
-	}
+	filterParameters := s.buildIssueFilterParameters(filter, withCursor, cursor)
 
 	return stmt, filterParameters, nil
 }
@@ -188,34 +187,78 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter) ([]e
 		"event":  "database.GetIssuesWithAggregations",
 	})
 
-	baseQuery := `
-		SELECT I.* %s FROM Issue I
+	baseCiQuery := `
+        SELECT I.*, SUM(CI.componentinstance_count) AS agg_affected_component_instances FROM Issue I
+        LEFT JOIN IssueMatch IM on I.issue_id = IM.issuematch_issue_id
+        LEFT JOIN ComponentInstance CI on IM.issuematch_component_instance_id = CI.componentinstance_id
+        %s
+        %s
+        %s GROUP BY I.issue_id ORDER BY I.issue_id LIMIT ?
+    `
+
+	baseAggQuery := `
+		SELECT I.*,
+		count(distinct issuematch_id) as agg_issue_matches,
+		count(distinct activity_id) as agg_activities,
+		count(distinct service_ccrn) as agg_affected_services,
+		count(distinct componentversionissue_component_version_id) as agg_component_versions,
+		min(issuematch_target_remediation_date) as agg_earliest_target_remediation_date,
+		min(issuematch_created_at) agg_earliest_discovery_date
+        FROM Issue I
+        LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
+        LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
+        LEFT JOIN IssueMatch IM on I.issue_id = IM.issuematch_issue_id
+        LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
+        LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
+        LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
+        LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
 		%s
 		%s
 		%s GROUP BY I.issue_id ORDER BY I.issue_id LIMIT ?
-	`
+    `
 
-	aggregations := []string{
-		"count(distinct issuematch_id) as agg_issue_matches",
-		"count(distinct activity_id) as agg_activities",
-		"count(distinct service_ccrn) as agg_affected_services",
-		"count(distinct componentversionissue_component_version_id) as agg_component_versions",
-		"sum(componentinstance_count) as agg_affected_component_instances",
-		"min(issuematch_target_remediation_date) as agg_earliest_target_remediation_date",
-		"min(issuematch_created_at) agg_earliest_discovery_date",
-	}
+	baseQuery := `
+        With ComponentInstanceCounts AS (
+            %s
+        ),
+        Aggs AS (
+            %s
+        )
+        SELECT A.*, CIC.*
+        FROM ComponentInstanceCounts CIC
+        JOIN Aggs A ON CIC.issue_id = A.issue_id;
+    `
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, aggregations, true, l)
+	filter = s.ensureIssueFilter(filter)
+	filterStr := s.getIssueFilterString(filter)
+	joins := s.getIssueJoins(filter)
+	cursor := getCursor(filter.Paginated, filterStr, "I.issue_id > ?")
+	whereClause := fmt.Sprintf("WHERE %s", filterStr)
 
+	ciQuery := fmt.Sprintf(baseCiQuery, joins, whereClause, cursor.Statement)
+	aggQuery := fmt.Sprintf(baseAggQuery, joins, whereClause, cursor.Statement)
+	query := fmt.Sprintf(baseQuery, ciQuery, aggQuery)
+
+	var stmt *sqlx.Stmt
+	var err error
+
+	stmt, err = s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
 			logrus.Fields{
-				"error":        err,
-				"aggregations": aggregations,
+				"error": err,
+				"query": query,
+				"stmt":  stmt,
 			}).Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
+
+	// parameters for component instance query
+	filterParameters := s.buildIssueFilterParameters(filter, true, cursor)
+	// parameters for agg query
+	filterParameters = append(filterParameters, s.buildIssueFilterParameters(filter, true, cursor)...)
+
 	defer stmt.Close()
 
 	return performListScan(
@@ -238,7 +281,7 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 		%s
 		%s
 	`
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, false, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, l)
 
 	if err != nil {
 		return -1, err
@@ -261,7 +304,7 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 		GROUP BY I.issue_type
 	`
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, false, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, l)
 
 	if err != nil {
 		return nil, err
@@ -308,7 +351,7 @@ func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error
 	 	%s GROUP BY I.issue_id ORDER BY I.issue_id
     `
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, false, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, l)
 
 	if err != nil {
 		return nil, err
@@ -333,7 +376,7 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter) ([]entity.Issue, err
 
 	filter = s.ensureIssueFilter(filter)
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, true, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, true, l)
 
 	if err != nil {
 		return nil, err
@@ -495,13 +538,14 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
     SELECT I.issue_primary_name FROM Issue I
     %s
     %s
+    ORDER BY I.issue_primary_name
     `
 
 	// Ensure the filter is initialized
 	filter = s.ensureIssueFilter(filter)
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []string{}, false, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err
