@@ -7,10 +7,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -18,6 +16,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/util"
+	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"github.com/onuryilmaz/ginprom"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -146,22 +145,7 @@ func (s *Server) NonBlockingStart() {
 		Handler: s.router.Handler(),
 	}
 
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(1)
-	go func() {
-		logrus.Info("Starting Non Blocking HTTP Server...")
-		ln, err := net.Listen("tcp", s.nonBlockingSrv.Addr)
-		if err != nil {
-			logrus.WithError(err).Fatalf("Error while start listening...")
-		}
-		go func() {
-			waitGroup.Done()
-		}()
-		if err := s.nonBlockingSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			logrus.WithError(err).Fatalf("Error while serving HTTP Server.")
-		}
-	}()
-	waitGroup.Wait()
+	util2.FirstListenThenServe(s.nonBlockingSrv)
 }
 
 func (s *Server) BlockingStop() {
@@ -175,6 +159,7 @@ func (s *Server) BlockingStop() {
 		log.Fatalf("Error while shuting down Heureka App: %s", err)
 	}
 }
+
 func (s *Server) NonBlockingStop() {
 	ctx := *s.nonBlockingCtx
 	stop := *s.nonBlockingStop
