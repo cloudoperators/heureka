@@ -29,8 +29,6 @@ services:
 
 
       SEED_MODE: "true"
-      AUTH_TYPE: token
-      AUTH_TOKEN_SECRET: xxx
 
   mariadb:
     image: mariadb:latest
