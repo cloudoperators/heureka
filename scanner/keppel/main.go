@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"context"
@@ -20,6 +21,23 @@ import (
 
 type Config struct {
 	LogLevel string `envconfig:"LOG_LEVEL" default:"debug" required:"true" json:"-"`
+}
+
+// ManifestInfo groups related manifest information
+type ManifestInfo struct {
+	ComponentID      string
+	ComponentVersion *client.ComponentVersion
+	Account          string
+	Repository       string
+}
+
+// ChildManifestInfo groups related child manifest information
+type ChildManifestInfo struct {
+	Account          string
+	Repository       string
+	Manifest         models.Manifest
+	ComponentID      string
+	ComponentVersion *client.ComponentVersion
 }
 
 func init() {
@@ -76,28 +94,39 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	processConcurrently(ctx, components, keppelScanner, keppelProcessor)
+
+	if err := processConcurrently(ctx, components, keppelScanner, keppelProcessor); err != nil {
+		log.WithError(err).Error("Error during concurrent processing")
+	}
 }
 
-func processConcurrently(ctx context.Context, components []*client.ComponentAggregate, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+func processConcurrently(
+	ctx context.Context,
+	components []*client.ComponentAggregate,
+	keppelScanner *scanner.Scanner,
+	keppelProcessor *processor.Processor,
+) error {
 	maxWorkers := runtime.GOMAXPROCS(0)
 	componentCh := make(chan *client.ComponentAggregate, len(components))
+	errors := make(chan error, maxWorkers)
 	var wg sync.WaitGroup
 
 	// Start worker goroutines
 	for i := 0; i < maxWorkers; i++ {
 		wg.Add(1)
-		go func() {
+		go func(errors chan error) {
 			defer wg.Done()
 			for comp := range componentCh {
 				select {
 				case <-ctx.Done():
 					return
 				default:
-					processComponent(ctx, comp, keppelScanner, keppelProcessor)
+					if err := processComponent(ctx, comp, keppelScanner, keppelProcessor); err != nil {
+						errors <- err
+					}
 				}
 			}
-		}()
+		}(errors)
 	}
 
 	// Feed components to workers
@@ -108,88 +137,114 @@ func processConcurrently(ctx context.Context, components []*client.ComponentAggr
 
 	// Wait for all workers to finish
 	wg.Wait()
+	close(errors)
+
+	// Check for errors
+	for err := range errors {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func processComponent(ctx context.Context, comp *client.ComponentAggregate, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+func processComponent(
+	ctx context.Context,
+	comp *client.ComponentAggregate,
+	keppelScanner *scanner.Scanner,
+	keppelProcessor *processor.Processor,
+) error {
 	log.Infof("Processing component: %s", comp.Name)
 
 	imageInfo, err := keppelScanner.ExtractImageInfo(comp.Name)
 	if err != nil {
-		log.WithError(err).Error("Couldn't extract image information from component name")
-		return
+		return fmt.Errorf("Cannot extract image information from component name: %w", err)
 	}
 
 	for _, cv := range comp.ComponentVersions.Edges {
-		HandleImageManifests(ctx, comp.Id, cv.Node, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
+		manifestInfo := ManifestInfo{
+			ComponentID:      comp.Id,
+			ComponentVersion: cv.Node,
+			Account:          imageInfo.Account,
+			Repository:       imageInfo.FullRepository(),
+		}
+
+		if err := HandleImageManifests(ctx, manifestInfo, keppelScanner, keppelProcessor); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func HandleImageManifests(
 	ctx context.Context,
-	componentId string,
-	componentVersion *client.ComponentVersion,
-	account string,
-	repository string,
+	info ManifestInfo,
 	keppelScanner *scanner.Scanner,
 	keppelProcessor *processor.Processor,
-) {
+) error {
 
 	log.Info("Handling manifest")
-	manifests, err := keppelScanner.GetManifest(account, repository, componentVersion.Version)
+	manifests, err := keppelScanner.GetManifest(info.Account, info.Repository, info.ComponentVersion.Version)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"account:":   account,
-			"repository": repository,
-		}).WithError(err).Error("Error during ListManifests")
-		return
+			"account:":   info.Account,
+			"repository": info.Repository,
+		}).WithError(err).Error("Error during GetManifest")
+		return fmt.Errorf("Couldn't get manifest: %w", err)
 	}
 
 	for _, manifest := range manifests {
 		if manifest.VulnerabilityStatus == "Unsupported" {
 			log.WithFields(log.Fields{
-				"account:":   account,
-				"repository": repository,
+				"account:":   info.Account,
+				"repository": info.Repository,
 			}).Warn("Manifest has UNSUPPORTED type: " + manifest.MediaType)
 			continue
 		}
 		if manifest.VulnerabilityStatus == "Clean" {
 			log.WithFields(log.Fields{
-				"account:":   account,
-				"repository": repository,
+				"account:":   info.Account,
+				"repository": info.Repository,
 			}).Info("Manifest has no Vulnerabilities")
 			continue
 		}
-		HandleChildManifests(account, repository, manifest, componentId, componentVersion, keppelScanner, keppelProcessor)
+
+		childInfo := ChildManifestInfo{
+			Account:          info.Account,
+			Repository:       info.Repository,
+			Manifest:         manifest,
+			ComponentID:      info.ComponentID,
+			ComponentVersion: info.ComponentVersion,
+		}
+		HandleChildManifests(ctx, childInfo, keppelScanner, keppelProcessor)
 	}
+	return nil
 }
 
 func HandleChildManifests(
-	account string,
-	repository string,
-	manifest models.Manifest,
-	componentId string,
-	componentVersion *client.ComponentVersion,
+	ctx context.Context,
+	info ChildManifestInfo,
 	keppelScanner *scanner.Scanner,
 	keppelProcessor *processor.Processor,
 ) {
-	childManifests, err := keppelScanner.ListChildManifests(account, repository, manifest.Digest)
-
+	childManifests, err := keppelScanner.ListChildManifests(info.Account, info.Repository, info.Manifest.Digest)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"account:":   account,
-			"repository": repository,
+			"account:":   info.Account,
+			"repository": info.Repository,
 		}).WithError(err).Error("Error during ListChildManifests")
 	}
 
-	childManifests = append(childManifests, manifest)
-
+	childManifests = append(childManifests, info.Manifest)
 	for _, m := range childManifests {
+
 		// Get Trivy report for a specific repository and image version (componentVersion)
-		trivyReport, err := keppelScanner.GetTrivyReport(account, repository, m.Digest)
+		trivyReport, err := keppelScanner.GetTrivyReport(info.Account, info.Repository, m.Digest)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"account:":   account,
-				"repository": repository,
+				"account:":   info.Account,
+				"repository": info.Repository,
 			}).WithError(err).Error("Error during GetTrivyReport")
 			return
 		}
@@ -198,6 +253,6 @@ func HandleChildManifests(
 			return
 		}
 
-		keppelProcessor.ProcessReport(*trivyReport, componentVersion.Id)
+		keppelProcessor.ProcessReport(*trivyReport, info.ComponentVersion.Id)
 	}
 }
