@@ -264,33 +264,26 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 // from a container image
 func (s *Scanner) ExtractImageInfo(image string) (ImageInfo, error) {
 	// Split the string to remove the tag
-	parts := strings.Split(image, ":")
-	if len(parts) < 1 {
+	imageAndTag := strings.Split(image, ":")
+	if len(imageAndTag) < 1 {
 		return ImageInfo{}, fmt.Errorf("invalid image")
 	}
 
 	// Split the remaining string by '/'
-	components := strings.Split(parts[0], "/")
-	if len(components) < 3 || len(components) > 4 {
-		return ImageInfo{}, fmt.Errorf("invalid image string format: expected 3 or 4 components")
+	parts := strings.Split(imageAndTag[0], "/")
+	if len(parts) < 3 {
+		return ImageInfo{}, fmt.Errorf("invalid image string format: at least registry, account and repository required")
 	}
 
 	info := ImageInfo{
-		Registry:   components[0],
-		Repository: components[len(components)-1],
+		Registry:   parts[0],
+		Account:    parts[1],
+		Repository: strings.Join(parts[2:], "/"),
 	}
 
-	// Set tag
-	if len(parts) > 2 {
-		info.Tag = parts[1]
-	}
-
-	// Set organization and registry
-	if len(components) == 3 {
-		info.Account = components[1]
-	} else { // len(components) == 4
-		info.Account = components[1]
-		info.Organization = components[2]
+	// Set tag if present
+	if len(imageAndTag) > 1 {
+		info.Tag = imageAndTag[1]
 	}
 
 	return info, nil
