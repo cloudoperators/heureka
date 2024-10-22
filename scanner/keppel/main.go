@@ -65,7 +65,6 @@ func init() {
 }
 
 func main() {
-	// var wg sync.WaitGroup
 	var scannerCfg scanner.Config
 	err := envconfig.Process("heureka", &scannerCfg)
 	if err != nil {
