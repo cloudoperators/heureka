@@ -12,10 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	graphqlapi "github.com/cloudoperators/heureka/internal/api/graphql"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-
-	graphqlapi "github.com/cloudoperators/heureka/internal/api/graphql"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/onuryilmaz/ginprom"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -188,4 +187,22 @@ func (s *Server) NonBlockingStop() {
 	}
 
 	log.Println("Server exiting")
+}
+
+func (s *Server) TestConnection(backOff int) error {
+	if backOff <= 0 {
+		return fmt.Errorf("Unable to connect to API Server, exceeded backoffs...")
+	}
+	//before each try wait 100 milliseconds
+	time.Sleep(time.Millisecond * 100)
+
+	//timeout after 100 milliseconds
+	reqCtx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+	defer cancel()
+	_, err := http.NewRequestWithContext(reqCtx, http.MethodGet, fmt.Sprintf("http://localhost%s/ready", s.config.Port), nil)
+	if err != nil {
+		return s.TestConnection(backOff - 1)
+	}
+
+	return nil
 }

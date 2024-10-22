@@ -36,6 +36,8 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 		queryUrl = fmt.Sprintf("http://localhost:%s/query", cfg.Port)
 
 		s.NonBlockingStart()
+		err = s.TestConnection(20)
+		Expect(err).To(BeNil(), "API Server should be reachable")
 	})
 
 	AfterEach(func() {
