@@ -21,8 +21,10 @@
 # vendor/
 .vscode
 .DS_Store
+cmd/heureka/__debug_bin*
 
 # Heureka specifics
 build/
 .db/
 .env
+.mariadb-dev/
