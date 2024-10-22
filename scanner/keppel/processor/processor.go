@@ -115,11 +115,12 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 // GetAllComponents will fetch all available Components using pagination.
 // pageSize specifies how many object we want to fetch in a row. Then we use cursor
 // to fetch the next batch.
-func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize int) ([]*client.Component, error) {
-	var allComponents []*client.Component
+func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize int) ([]*client.ComponentAggregate, error) {
+	var allComponents []*client.ComponentAggregate
 	cursor := "0" // Set initial cursor to "0"
 
 	for {
+		// ListComponents also returns the ComponentVersions of each Component
 		listComponentsResp, err := client.ListComponents(context.Background(), *p.Client, filter, pageSize, cursor)
 		if err != nil {
 			return nil, fmt.Errorf("cannot list Components: %w", err)

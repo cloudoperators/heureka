@@ -7,14 +7,15 @@ import (
 	"os"
 
 	"context"
+	"runtime"
+	"sync"
+
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/cloudoperators/heureka/scanners/keppel/processor"
 	"github.com/cloudoperators/heureka/scanners/keppel/scanner"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
-	"runtime"
-	"sync"
 )
 
 type Config struct {
@@ -67,7 +68,7 @@ func main() {
 		log.WithError(err).Fatal("Error during scanner setup")
 	}
 
-	// Get components
+	// Get components and correponding componentVersions
 	components, err := keppelProcessor.GetAllComponents(nil, 100)
 	if err != nil {
 		log.WithError(err).Fatal("cannot list Components")
@@ -78,9 +79,9 @@ func main() {
 	processConcurrently(ctx, components, keppelScanner, keppelProcessor)
 }
 
-func processConcurrently(ctx context.Context, components []*client.Component, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+func processConcurrently(ctx context.Context, components []*client.ComponentAggregate, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
 	maxWorkers := runtime.GOMAXPROCS(0)
-	componentCh := make(chan *client.Component, len(components))
+	componentCh := make(chan *client.ComponentAggregate, len(components))
 	var wg sync.WaitGroup
 
 	// Start worker goroutines
@@ -109,22 +110,17 @@ func processConcurrently(ctx context.Context, components []*client.Component, ke
 	wg.Wait()
 }
 
-func processComponent(ctx context.Context, comp *client.Component, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+func processComponent(ctx context.Context, comp *client.ComponentAggregate, keppelScanner *scanner.Scanner, keppelProcessor *processor.Processor) {
+	log.Infof("Processing component: %s", comp.Name)
+
 	imageInfo, err := keppelScanner.ExtractImageInfo(comp.Name)
 	if err != nil {
 		log.WithError(err).Error("Couldn't extract image information from component name")
 		return
 	}
 
-	log.Infof("Processing component: %s", comp.Name)
-	compVersions, err := keppelProcessor.GetComponentVersions(comp.Id)
-	if err != nil {
-		log.WithError(err).Errorf("couldn't fetch component versions for componentId: %s", comp.Id)
-		return
-	}
-
-	for _, cv := range compVersions {
-		HandleImageManifests(ctx, comp.Id, cv.Id, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
+	for _, cv := range comp.ComponentVersions.Edges {
+		HandleImageManifests(ctx, comp.Id, cv.Node.Id, imageInfo.Account, imageInfo.FullRepository(), keppelScanner, keppelProcessor)
 	}
 }
 
