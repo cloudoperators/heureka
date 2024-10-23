@@ -12,7 +12,7 @@ func NewFakeServiceEntity() entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
 			Id:           int64(gofakeit.Number(1, 10000000)),
-			Name:         gofakeit.Name(),
+			CCRN:         gofakeit.Name(),
 			SupportGroup: nil,
 			Activities:   nil,
 			Owners:       nil,

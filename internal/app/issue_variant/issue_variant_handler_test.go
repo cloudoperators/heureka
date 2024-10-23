@@ -53,7 +53,7 @@ func issueRepositoryFilter() *entity.IssueRepositoryFilter {
 		Id:          nil,
 		ServiceId:   nil,
 		Name:        nil,
-		ServiceName: nil,
+		ServiceCCRN: nil,
 	}
 }
 

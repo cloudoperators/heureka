@@ -17,7 +17,7 @@ query ($filter: ActivityFilter, $first: Int, $after: String) {
                     edges {
                         node {
                             id
-                            name
+                            ccrn
                             owners {
                                 totalCount
                                 edges {
@@ -39,7 +39,7 @@ query ($filter: ActivityFilter, $first: Int, $after: String) {
                                 edges {
                                     node {
                                         id
-                                        name
+                                        ccrn
                                     }
                                     cursor
                                 }
@@ -177,7 +177,7 @@ query ($filter: ActivityFilter, $first: Int, $after: String) {
                                     edges {
                                         node {
                                             id
-                                            name
+                                            ccrn
                                         }
                                         cursor
                                     }

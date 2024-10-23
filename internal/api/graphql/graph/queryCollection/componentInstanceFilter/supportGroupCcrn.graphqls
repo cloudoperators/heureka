@@ -3,7 +3,7 @@
 
 query($filter: SupportGroupFilter){
     ComponentInstanceFilterValues{
-        supportGroupName(filter: $filter){
+        supportGroupCcrn(filter: $filter){
             filterName
             values
         }

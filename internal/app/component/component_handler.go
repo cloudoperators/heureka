@@ -106,7 +106,7 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 
 func (cs *componentHandler) CreateComponent(component *entity.Component) (*entity.Component, error) {
 	f := &entity.ComponentFilter{
-		Name: []*string{&component.Name},
+		CCRN: []*string{&component.CCRN},
 	}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -123,7 +123,7 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	}
 
 	if len(components.Elements) > 0 {
-		return nil, NewUserHandlerError(fmt.Sprintf("Duplicated entry %s for name.", component.Name))
+		return nil, NewUserHandlerError(fmt.Sprintf("Duplicated entry %s for ccrn.", component.CCRN))
 	}
 
 	newComponent, err := cs.database.CreateComponent(component)
@@ -186,20 +186,20 @@ func (cs *componentHandler) DeleteComponent(id int64) error {
 	return nil
 }
 
-func (cs *componentHandler) ListComponentNames(filter *entity.ComponentFilter, options *entity.ListOptions) ([]string, error) {
+func (cs *componentHandler) ListComponentCcrns(filter *entity.ComponentFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":  ListComponentNamesEventName,
+		"event":  ListComponentCcrnsEventName,
 		"filter": filter,
 	})
 
-	componentNames, err := cs.database.GetComponentNames(filter)
+	componentCcrns, err := cs.database.GetComponentCcrns(filter)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserHandlerError("Internal error while retrieving componentNames.")
+		return nil, NewUserHandlerError("Internal error while retrieving componentCcrns.")
 	}
 
-	cs.eventRegistry.PushEvent(&ListComponentNamesEvent{Filter: filter, Options: options, Names: componentNames})
+	cs.eventRegistry.PushEvent(&ListComponentCcrnsEvent{Filter: filter, Options: options, CCRNs: componentCcrns})
 
-	return componentNames, nil
+	return componentCcrns, nil
 }

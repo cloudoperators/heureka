@@ -7,6 +7,6 @@ type IssueMatchFilterValue {
     issueType: FilterItem
     primaryName(filter: IssueFilter): FilterItem
     affectedService(filter: ServiceFilter): FilterItem
-    componentName(filter: ComponentFilter): FilterItem
-    supportGroupName(filter: SupportGroupFilter): FilterItem
+    componentCcrn(filter: ComponentFilter): FilterItem
+    supportGroupCcrn(filter: SupportGroupFilter): FilterItem
 }

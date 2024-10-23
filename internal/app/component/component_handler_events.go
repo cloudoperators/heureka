@@ -13,7 +13,7 @@ const (
 	CreateComponentEventName    event.EventName = "CreateComponent"
 	UpdateComponentEventName    event.EventName = "UpdateComponent"
 	DeleteComponentEventName    event.EventName = "DeleteComponent"
-	ListComponentNamesEventName event.EventName = "ListComponentNames"
+	ListComponentCcrnsEventName event.EventName = "ListComponentCcrns"
 )
 
 type ListComponentsEvent struct {
@@ -50,12 +50,12 @@ func (e *DeleteComponentEvent) Name() event.EventName {
 	return DeleteComponentEventName
 }
 
-type ListComponentNamesEvent struct {
+type ListComponentCcrnsEvent struct {
 	Filter  *entity.ComponentFilter
 	Options *entity.ListOptions
-	Names   []string
+	CCRNs   []string
 }
 
-func (e *ListComponentNamesEvent) Name() event.EventName {
-	return ListComponentNamesEventName
+func (e *ListComponentCcrnsEvent) Name() event.EventName {
+	return ListComponentCcrnsEventName
 }

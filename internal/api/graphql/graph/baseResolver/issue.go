@@ -99,7 +99,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 
 	f := &entity.IssueFilter{
 		Paginated:          entity.Paginated{First: first, After: afterId},
-		ServiceName:        filter.AffectedService,
+		ServiceCCRN:        filter.AffectedService,
 		ActivityId:         activityId,
 		ComponentVersionId: cvId,
 		PrimaryName:        filter.PrimaryName,
@@ -170,7 +170,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 
 	f := &entity.IssueFilter{
 		Paginated:                       entity.Paginated{},
-		ServiceName:                     filter.AffectedService,
+		ServiceCCRN:                     filter.AffectedService,
 		PrimaryName:                     filter.PrimaryName,
 		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 		Search:                          filter.Search,

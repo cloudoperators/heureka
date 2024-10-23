@@ -15,13 +15,13 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 )
 
-// ComponentName is the resolver for the componentName field.
-func (r *componentFilterValueResolver) ComponentName(ctx context.Context, obj *model.ComponentFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.ComponentNameBaseResolver(r.App, ctx, filter)
+// ComponentCcrn is the resolver for the componentCcrn field.
+func (r *componentFilterValueResolver) ComponentCcrn(ctx context.Context, obj *model.ComponentFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ComponentCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentName
+	item.FilterName = &baseResolver.ComponentFilterComponentCcrn
 	return item, err
 }
 

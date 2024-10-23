@@ -168,7 +168,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 					service := ci.Node.Service
 					Expect(service.ID).ToNot(BeNil(), "service has a ID set")
-					Expect(service.Name).ToNot(BeNil(), "service has a name set")
+					Expect(service.Ccrn).ToNot(BeNil(), "service has a name set")
 
 					_, serviceFound := lo.Find(seedCollection.ServiceRows, func(row mariadb.BaseServiceRow) bool {
 						return fmt.Sprintf("%d", row.Id.Int64) == service.ID

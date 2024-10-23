@@ -9,15 +9,15 @@ create table if not exists Component
 (
     component_id         int unsigned auto_increment
         primary key,
-    component_name       varchar(256)                          not null,
+    component_ccrn       varchar(256)                          not null,
     component_type       varchar(256)                          not null,
     component_created_at timestamp default current_timestamp() not null,
     component_deleted_at timestamp                             null,
     component_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     constraint component_id_UNIQUE
         unique (component_id),
-    constraint component_name_UNIQUE
-        unique (component_name)
+    constraint component_ccrn_UNIQUE
+        unique (component_ccrn)
 );
 
 create table if not exists ComponentVersion
@@ -42,28 +42,28 @@ create table if not exists SupportGroup
 (
     supportgroup_id         int unsigned auto_increment
         primary key,
-    supportgroup_name       varchar(256)                          not null,
+    supportgroup_ccrn       varchar(256)                          not null,
     supportgroup_created_at timestamp default current_timestamp() not null,
     supportgroup_deleted_at timestamp                             null,
     supportgroup_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     constraint supportgroup_id_UNIQUE
         unique (supportgroup_id),
-    constraint supportgroup_name_UNIQUE
-        unique (supportgroup_name)
+    constraint supportgroup_ccrn_UNIQUE
+        unique (supportgroup_ccrn)
 );
 
 create table if not exists Service
 (
     service_id         int unsigned auto_increment
         primary key,
-    service_name       varchar(256)                          not null,
+    service_ccrn       varchar(256)                          not null,
     service_created_at timestamp default current_timestamp() not null,
     service_deleted_at timestamp                             null,
     service_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     constraint service_id_UNIQUE
         unique (service_id),
-    constraint service_name_UNIQUE
-        unique (service_name)
+    constraint service_ccrn_UNIQUE
+        unique (service_ccrn)
 );
 
 create table if not exists SupportGroupService

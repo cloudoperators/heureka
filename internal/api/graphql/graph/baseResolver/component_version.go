@@ -5,6 +5,7 @@ package baseResolver
 
 import (
 	"context"
+
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -97,7 +98,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		Paginated:     entity.Paginated{First: first, After: afterId},
 		IssueId:       issueId,
 		ComponentId:   componentId,
-		ComponentName: filter.ComponentName,
+		ComponentCCRN: filter.ComponentCcrn,
 		Version:       filter.Version,
 	}
 

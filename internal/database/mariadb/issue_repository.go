@@ -16,7 +16,7 @@ func (s *SqlDatabase) getIssueRepositoryFilterString(filter *entity.IssueReposit
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Name, "IR.issuerepository_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "IR.issuerepository_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceName, "S.service_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "IRS.issuerepositoryservice_service_id = ?", OP_OR))
 	fl = append(fl, "IR.issuerepository_deleted_at IS NULL")
 
@@ -25,12 +25,12 @@ func (s *SqlDatabase) getIssueRepositoryFilterString(filter *entity.IssueReposit
 
 func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilter) string {
 	joins := ""
-	if len(filter.ServiceId) > 0 || len(filter.ServiceName) > 0 {
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueRepositoryService IRS on IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id
 		`)
 	}
-	if len(filter.ServiceName) > 0 {
+	if len(filter.ServiceCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN Service S on S.service_id = IRS.issuerepositoryservice_service_id
 		`)
@@ -51,7 +51,7 @@ func (s *SqlDatabase) getIssueRepositoryUpdateFields(issueRepository *entity.Iss
 
 func (s *SqlDatabase) getIssueRepositoryColumns(filter *entity.IssueRepositoryFilter) string {
 	columns := "IR.*"
-	if len(filter.ServiceId) > 0 || len(filter.ServiceName) > 0 {
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
 		columns = fmt.Sprintf("%s, %s", columns, "IRS.*")
 	}
 	return columns
@@ -69,7 +69,7 @@ func (s *SqlDatabase) ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilte
 			ServiceId:   nil,
 			Name:        nil,
 			Id:          nil,
-			ServiceName: nil,
+			ServiceCCRN: nil,
 		}
 	}
 	if f.First == nil {
@@ -122,7 +122,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Name)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceName)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)

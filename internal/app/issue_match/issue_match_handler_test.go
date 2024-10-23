@@ -44,7 +44,7 @@ func getIssueMatchFilter() *entity.IssueMatchFilter {
 			After: nil,
 		},
 		Id:                  nil,
-		AffectedServiceName: nil,
+		AffectedServiceCCRN: nil,
 		SeverityValue:       nil,
 		Status:              nil,
 		IssueId:             nil,

@@ -2,5 +2,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
 type ComponentFilterValue {
-    componentName(filter: ComponentFilter): FilterItem
+    componentCcrn(filter: ComponentFilter): FilterItem
 }

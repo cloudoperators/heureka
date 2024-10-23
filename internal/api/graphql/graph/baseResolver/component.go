@@ -71,7 +71,7 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 
 	f := &entity.ComponentFilter{
 		Paginated: entity.Paginated{First: first, After: afterId},
-		Name:      filter.ComponentName,
+		CCRN:      filter.ComponentCcrn,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -107,11 +107,11 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 
 }
 
-func ComponentNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter) (*model.FilterItem, error) {
+func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called ComponentNameBaseResolver")
+	}).Debug("Called ComponentCcrnBaseResolver")
 
 	if filter == nil {
 		filter = &model.ComponentFilter{}
@@ -119,15 +119,15 @@ func ComponentNameBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 
 	f := &entity.ComponentFilter{
 		Paginated: entity.Paginated{},
-		Name:      filter.ComponentName,
+		CCRN:      filter.ComponentCcrn,
 	}
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListComponentNames(f, opt)
+	names, err := app.ListComponentCcrns(f, opt)
 
 	if err != nil {
-		return nil, NewResolverError("ComponentNameBaseReolver", err.Error())
+		return nil, NewResolverError("ComponentCcrnBaseReolver", err.Error())
 	}
 
 	var pointerNames []*string
@@ -137,7 +137,7 @@ func ComponentNameBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 	}
 
 	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplayComponentName,
+		DisplayName: &FilterDisplayComponentCcrn,
 		Values:      pointerNames,
 	}
 

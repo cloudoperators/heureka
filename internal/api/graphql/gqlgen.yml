@@ -203,29 +203,29 @@ models:
         resolver: true
       affectedService:
         resolver: true
-      componentName:
+      componentCcrn:
         resolver: true
-      supportGroupName:
+      supportGroupCcrn:
         resolver: true
   ServiceFilterValue:
     fields:
-      serviceName: 
+      serviceCcrn:
         resolver: true
       uniqueUserId:
         resolver: true
       userName:
         resolver: true
-      supportGroupName:
+      supportGroupCcrn:
         resolver: true
   ComponentInstanceFilterValue:
     fields:
-      serviceName:
+      serviceCcrn:
         resolver: true
-      supportGroupName:
+      supportGroupCcrn:
         resolver: true
       ccrn:
         resolver: true
   ComponentFilterValue:
     fields:
-      componentName: 
+      componentCcrn:
         resolver: true

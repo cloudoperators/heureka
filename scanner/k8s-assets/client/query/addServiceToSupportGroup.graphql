@@ -8,6 +8,6 @@ mutation AddServiceToSupportGroup ($supportGroupId: ID!, $serviceId: ID!) {
         serviceId: $serviceId
     ) {
         id
-        name
+        ccrn
     }
 }

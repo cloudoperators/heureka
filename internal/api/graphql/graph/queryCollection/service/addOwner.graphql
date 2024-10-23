@@ -7,7 +7,7 @@ mutation ($serviceId: ID!, $userId: ID!) {
         userId: $userId
     ) {
         id
-        name
+        ccrn
         owners {
             edges {
                 node {

@@ -207,7 +207,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 
 					for _, sg := range service.Node.SupportGroups.Edges {
 						Expect(sg.Node.ID).ToNot(BeNil(), "supportGroup has a ID set")
-						Expect(sg.Node.Name).ToNot(BeNil(), "supportGroup has a name set")
+						Expect(sg.Node.Ccrn).ToNot(BeNil(), "supportGroup has a ccrn set")
 
 						_, sgFound := lo.Find(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow) bool {
 							return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct sg
@@ -308,7 +308,7 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 				req := graphql.NewRequest(str)
 
 				req.Var("input", map[string]string{
-					"name": service.Name,
+					"ccrn": service.CCRN,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -321,7 +321,7 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*respData.Service.Name).To(Equal(service.Name))
+				Expect(*respData.Service.Ccrn).To(Equal(service.CCRN))
 			})
 		})
 	})
@@ -370,11 +370,11 @@ var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
 				req := graphql.NewRequest(str)
 
 				service := seedCollection.ServiceRows[0].AsService()
-				service.Name = "SecretService"
+				service.CCRN = "SecretService"
 
 				req.Var("id", fmt.Sprintf("%d", service.Id))
 				req.Var("input", map[string]string{
-					"name": service.Name,
+					"ccrn": service.CCRN,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -387,7 +387,7 @@ var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*respData.Service.Name).To(Equal(service.Name))
+				Expect(*respData.Service.Ccrn).To(Equal(service.CCRN))
 			})
 		})
 	})

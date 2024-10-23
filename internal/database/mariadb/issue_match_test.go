@@ -317,7 +317,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 
 					filter := &entity.IssueMatchFilter{
 						Paginated:        entity.Paginated{},
-						SupportGroupName: []*string{&supportGroup.Name.String},
+						SupportGroupCCRN: []*string{&supportGroup.CCRN.String},
 					}
 
 					// fixture creation does not guarantee that a support group is always present
