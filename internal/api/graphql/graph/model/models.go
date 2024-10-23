@@ -177,6 +177,7 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 		ID:            fmt.Sprintf("%d", issue.Issue.Id),
 		PrimaryName:   &issue.Issue.PrimaryName,
 		Type:          &issueType,
+		Description:   &issue.Issue.Description,
 		LastModified:  &lastModified,
 		IssueMetadata: &issueMetadata,
 		Metadata:      getModelMetadata(issue.Issue.Metadata),

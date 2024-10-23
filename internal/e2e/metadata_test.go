@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	testCreatedIssueType        = entity.IssueTypeVulnerability.String()
-	testUpdatedIssueType        = entity.IssueTypePolicyViolation.String()
+	testCreatedIssueType = entity.IssueTypeVulnerability.String()
+	testUpdatedIssueType = entity.IssueTypePolicyViolation.String()
 )
 
 func createTestIssue(port string) string {
@@ -35,7 +35,6 @@ func createTestIssue(port string) string {
 	Expect(*issue.PrimaryName).To(Equal(testIssuePrimaryName))
 	Expect(*issue.Description).To(Equal(testCreatedIssueDescription))
 	Expect(issue.Type.String()).To(Equal(testCreatedIssueType))
-	fmt.Println("AAAAAAAAAAAAAAAAAA ", *issue)
 	return issue.ID
 }
 func updateTestIssue(port string, iid string) {
@@ -48,7 +47,6 @@ func updateTestIssue(port string, iid string) {
 func getTestIssue(port string) model.Issue {
 	issues := e2e_common.QueryGetIssue(port, testIssuePrimaryName)
 	Expect(issues.TotalCount).To(Equal(1))
-	fmt.Println("AAAAAAAAAAAAAAAAAA ", *issues.Edges[0].Node)
 	return *issues.Edges[0].Node
 }
 
@@ -81,13 +79,13 @@ var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"
 			Expect(issue.Type.String()).To(Equal(testCreatedIssueType))
 
 			Expect(issue.Metadata).To(Not(BeNil()))
-			Expect(*issue.Metadata.CreatedBy).To(Equal(e2e_common.SystemUserId))
+			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
 
 			createdAt, err := time.Parse(dbDateLayout, *issue.Metadata.CreatedAt)
 			Expect(err).Should(BeNil())
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
 
-			Expect(*issue.Metadata.UpdatedBy).To(BeEmpty())
+			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.EmptyUserId)))
 
 			updatedAt, err := time.Parse(dbDateLayout, *issue.Metadata.UpdatedAt)
 			Expect(err).Should(BeNil())
@@ -107,13 +105,13 @@ var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"
 			Expect(issue.Type.String()).To(Equal(testUpdatedIssueType))
 
 			Expect(issue.Metadata).To(Not(BeNil()))
-			Expect(*issue.Metadata.CreatedBy).To(Equal(e2e_common.SystemUserId))
+			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
 
 			createdAt, err := time.Parse(dbDateLayout, *issue.Metadata.CreatedAt)
 			Expect(err).Should(BeNil())
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
 
-			Expect(*issue.Metadata.UpdatedBy).To(Equal(e2e_common.SystemUserId))
+			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
 
 			updatedAt, err := time.Parse(dbDateLayout, *issue.Metadata.UpdatedAt)
 			Expect(err).Should(BeNil())

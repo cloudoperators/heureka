@@ -31,7 +31,7 @@ func QueryCreateIssue(port string, issue Issue) *model.Issue {
 	str := string(b)
 	req := graphql.NewRequest(str)
 
-	req.Var("input", map[string]interface{}{
+	req.Var("input", map[string]string{
 		"primaryName": issue.PrimaryName,
 		"description": issue.Description,
 		"type":        issue.Type,

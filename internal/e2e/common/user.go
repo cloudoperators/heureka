@@ -20,6 +20,7 @@ import (
 
 const NumberOfSystemUsers = 1
 const SystemUserId = 1
+const EmptyUserId = -1
 
 var SystemUserName = "systemuser"
 var SystemUserUniqueUserId = "S0000000"
