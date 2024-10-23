@@ -95,6 +95,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		IssueMatchId:       imId,
 		ServiceId:          serviceId,
 		ComponentVersionId: copmonentVersionId,
+		Search:             filter.Search,
 	}
 
 	opt := GetListOptions(requestedFields)

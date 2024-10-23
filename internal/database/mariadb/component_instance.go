@@ -12,6 +12,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	componentInstanceWildCardFilterQuery = "CI.componentinstance_id LIKE Concat('%',?,'%')"
+)
+
+func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
+	var fl []string
+	fl = append(fl, buildFilterQuery(filter.Id, "CI.componentinstance_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CI.componentinstance_component_version_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.CCRN, "CI.componentinstance_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Search, componentInstanceWildCardFilterQuery, OP_OR))
+	fl = append(fl, "CI.componentinstance_deleted_at IS NULL")
+
+	filterStr := combineFilterQueries(fl, OP_AND)
+	return filterStr
+}
+
 func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
 	var first int = 1000
 	var after int64 = 0
@@ -33,18 +51,6 @@ func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceF
 		f.After = &after
 	}
 	return f
-}
-
-func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "CI.componentinstance_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CI.componentinstance_component_version_id = ?", OP_OR))
-	fl = append(fl, "CI.componentinstance_deleted_at IS NULL")
-
-	filterStr := combineFilterQueries(fl, OP_AND)
-	return filterStr
 }
 
 func (s *SqlDatabase) getComponentInstanceJoins(filter *entity.ComponentInstanceFilter) string {
@@ -115,6 +121,8 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
+	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
 		filterParameters = append(filterParameters, cursor.Limit)
