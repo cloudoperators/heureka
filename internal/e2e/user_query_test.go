@@ -229,7 +229,7 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new user", func() {
-				respUser := e2e_common.QueryCreateUser(cfg.Port, e2e_common.User{Id: user.UniqueUserID, Type: user.Type, Name: user.Name})
+				respUser := e2e_common.QueryCreateUser(cfg.Port, e2e_common.User{UniqueUserID: user.UniqueUserID, Type: user.Type, Name: user.Name})
 				Expect(*respUser.Name).To(Equal(user.Name))
 				Expect(*respUser.UniqueUserID).To(Equal(user.UniqueUserID))
 				Expect(entity.UserType(respUser.Type)).To(Equal(user.Type))
@@ -272,7 +272,7 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 			It("updates user", func() {
 				user := seedCollection.UserRows[0].AsUser()
 				user.Name = "Sauron"
-				respUser := e2e_common.QueryUpdateUser(cfg.Port, e2e_common.User{Id: fmt.Sprintf("%d", user.Id), Name: user.Name, Type: user.Type})
+				respUser := e2e_common.QueryUpdateUser(cfg.Port, e2e_common.User{UniqueUserID: user.UniqueUserID, Name: user.Name, Type: user.Type}, fmt.Sprintf("%d", user.Id))
 				Expect(*respUser.Name).To(Equal(user.Name))
 				Expect(*respUser.UniqueUserID).To(Equal(user.UniqueUserID))
 				Expect(entity.UserType(respUser.Type)).To(Equal(user.Type))

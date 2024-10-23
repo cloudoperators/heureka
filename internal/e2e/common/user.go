@@ -81,9 +81,9 @@ func ExpectNonSystemUserUniqueUserIds(v, expectedV []*string) {
 }
 
 type User struct {
-	Id   string
-	Type entity.UserType
-	Name string
+	UniqueUserID string
+	Type         entity.UserType
+	Name         string
 }
 
 func QueryCreateUser(port string, user User) *model.User {
@@ -96,7 +96,7 @@ func QueryCreateUser(port string, user User) *model.User {
 	req := graphql.NewRequest(str)
 
 	req.Var("input", map[string]string{
-		"uniqueUserId": user.Id,
+		"uniqueUserId": user.UniqueUserID,
 		"type":         entity.GetUserTypeString(user.Type),
 		"name":         user.Name,
 	})
@@ -113,7 +113,7 @@ func QueryCreateUser(port string, user User) *model.User {
 	return &respData.User
 }
 
-func QueryUpdateUser(port string, user User) *model.User {
+func QueryUpdateUser(port string, user User, uid string) *model.User {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
@@ -123,7 +123,7 @@ func QueryUpdateUser(port string, user User) *model.User {
 	str := string(b)
 	req := graphql.NewRequest(str)
 
-	req.Var("id", user.Id)
+	req.Var("id", uid)
 	req.Var("input", map[string]string{
 		"name": user.Name,
 		"type": entity.GetUserTypeString(user.Type),
@@ -141,7 +141,7 @@ func QueryUpdateUser(port string, user User) *model.User {
 	return &respData.User
 }
 
-func QueryGetUser(port string, userId string) *model.UserConnection {
+func QueryGetUser(port string, uniqueUserId string) *model.UserConnection {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
@@ -151,7 +151,7 @@ func QueryGetUser(port string, userId string) *model.UserConnection {
 	str := string(b)
 	req := graphql.NewRequest(str)
 
-	req.Var("filter", map[string]string{"uniqueUserId": userId})
+	req.Var("filter", map[string]string{"uniqueUserId": uniqueUserId})
 	req.Var("first", 1)
 	req.Var("after", "0")
 

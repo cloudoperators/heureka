@@ -3,8 +3,8 @@
 
 package e2e_test
 
-/*
 import (
+	"fmt"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
@@ -19,34 +19,37 @@ import (
 )
 
 const (
-	testUniqueUserId    = "1"
-	testUserType        = entity.HumanUserType
-	testUpdatedUserType = entity.TechnicalUserType
-	testUserName        = "Joe"
-	testUpdatedUserName = "Donald"
-	testCreatedBy       = "Creator"
-	testUpdatedBy       = "Updater"
-	dbDateLayout        = "2006-01-02 15:04:05 -0700 MST"
+	testIssuePrimaryName        = "PN-001"
+	testCreatedIssueDescription = "Created Issue"
+	testUpdatedIssueDescription = "Updated Issue"
+	dbDateLayout                = "2006-01-02 15:04:05 -0700 MST"
 )
 
-func createTestUser(port string) {
-	user := e2e_common.QueryCreateUser(port, e2e_common.User{Id: testUniqueUserId, Type: testUserType, Name: testUserName})
-	Expect(*user.Name).To(Equal(testUserName))
-	Expect(*user.UniqueUserID).To(Equal(testUniqueUserId))
-	Expect(entity.UserType(user.Type)).To(Equal(testUserType))
+var (
+	testCreatedIssueType        = entity.IssueTypeVulnerability.String()
+	testUpdatedIssueType        = entity.IssueTypePolicyViolation.String()
+)
+
+func createTestIssue(port string) string {
+	issue := e2e_common.QueryCreateIssue(port, e2e_common.Issue{PrimaryName: testIssuePrimaryName, Description: testCreatedIssueDescription, Type: testCreatedIssueType})
+	Expect(*issue.PrimaryName).To(Equal(testIssuePrimaryName))
+	Expect(*issue.Description).To(Equal(testCreatedIssueDescription))
+	Expect(issue.Type.String()).To(Equal(testCreatedIssueType))
+	fmt.Println("AAAAAAAAAAAAAAAAAA ", *issue)
+	return issue.ID
+}
+func updateTestIssue(port string, iid string) {
+	issue := e2e_common.QueryUpdateIssue(port, e2e_common.Issue{PrimaryName: testIssuePrimaryName, Description: testUpdatedIssueDescription, Type: testUpdatedIssueType}, iid)
+	Expect(*issue.PrimaryName).To(Equal(testIssuePrimaryName))
+	Expect(*issue.Description).To(Equal(testUpdatedIssueDescription))
+	Expect(issue.Type.String()).To(Equal(testUpdatedIssueType))
 }
 
-func updateTestUser(port string) {
-	user := e2e_common.QueryUpdateUser(port, e2e_common.User{Id: testUniqueUserId, Type: testUpdatedUserType, Name: testUpdatedUserName})
-	Expect(*user.Name).To(Equal(testUpdatedUserName))
-	Expect(*user.UniqueUserID).To(Equal(testUniqueUserId))
-	Expect(entity.UserType(user.Type)).To(Equal(testUpdatedUserType))
-}
-
-func getTestUser(port string) model.User {
-	users := e2e_common.QueryGetUser(port, testUniqueUserId)
-	Expect(users.TotalCount).To(Equal(1))
-	return *users.Edges[0].Node
+func getTestIssue(port string) model.Issue {
+	issues := e2e_common.QueryGetIssue(port, testIssuePrimaryName)
+	Expect(issues.TotalCount).To(Equal(1))
+	fmt.Println("AAAAAAAAAAAAAAAAAA ", *issues.Edges[0].Node)
+	return *issues.Edges[0].Node
 }
 
 var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"), func() {
@@ -67,48 +70,52 @@ var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"
 		s.BlockingStop()
 	})
 
-	When("New user is created via API", func() {
-		var user model.User
+	When("New issue is created via API", func() {
+		var issue model.Issue
 		BeforeEach(func() {
-			createTestUser(cfg.Port)
-			user = getTestUser(cfg.Port)
+			createTestIssue(cfg.Port)
+			issue = getTestIssue(cfg.Port)
 		})
 		It("shall assign CreatedBy and CreatedAt metadata fields and shall keep nil in UpdatedBy, UpdatedAt and DeltedAt metadata fields", func() {
-			Expect(entity.UserType(user.Type)).To(Equal(testUserType))
-			Expect(user.Metadata).To(Not(BeNil()))
-			Expect(*user.Metadata.CreatedBy).To(Equal(testCreatedBy))
+			Expect(*issue.Description).To(Equal(testCreatedIssueDescription))
+			Expect(issue.Type.String()).To(Equal(testCreatedIssueType))
 
-			createdAt, err := time.Parse(dbDateLayout, *user.Metadata.CreatedAt)
+			Expect(issue.Metadata).To(Not(BeNil()))
+			Expect(*issue.Metadata.CreatedBy).To(Equal(e2e_common.SystemUserId))
+
+			createdAt, err := time.Parse(dbDateLayout, *issue.Metadata.CreatedAt)
 			Expect(err).Should(BeNil())
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
 
-			Expect(*user.Metadata.UpdatedBy).To(BeEmpty())
+			Expect(*issue.Metadata.UpdatedBy).To(BeEmpty())
 
-			updatedAt, err := time.Parse(dbDateLayout, *user.Metadata.UpdatedAt)
+			updatedAt, err := time.Parse(dbDateLayout, *issue.Metadata.UpdatedAt)
 			Expect(err).Should(BeNil())
 			Expect(updatedAt).To(Equal(createdAt))
 		})
 	})
-	When("User is updated via API", func() {
-		var user model.User
+	When("Issue is updated via API", func() {
+		var issue model.Issue
 		BeforeEach(func() {
-			createTestUser(cfg.Port)
+			iid := createTestIssue(cfg.Port)
 			time.Sleep(1100 * time.Millisecond)
-			updateTestUser(cfg.Port)
-			user = getTestUser(cfg.Port)
+			updateTestIssue(cfg.Port, iid)
+			issue = getTestIssue(cfg.Port)
 		})
 		It("shall assign UpdatedBy and UpdatedAt metadata fields and shall keep nil in DeletedAt metadata field", func() {
-			Expect(entity.UserType(user.Type)).To(Equal(testUpdatedUserType))
-			Expect(user.Metadata).To(Not(BeNil()))
-			Expect(*user.Metadata.CreatedBy).To(Equal(testCreatedBy))
+			Expect(*issue.Description).To(Equal(testUpdatedIssueDescription))
+			Expect(issue.Type.String()).To(Equal(testUpdatedIssueType))
 
-			createdAt, err := time.Parse(dbDateLayout, *user.Metadata.CreatedAt)
+			Expect(issue.Metadata).To(Not(BeNil()))
+			Expect(*issue.Metadata.CreatedBy).To(Equal(e2e_common.SystemUserId))
+
+			createdAt, err := time.Parse(dbDateLayout, *issue.Metadata.CreatedAt)
 			Expect(err).Should(BeNil())
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
 
-			Expect(*user.Metadata.UpdatedBy).To(Equal(testUpdatedBy))
+			Expect(*issue.Metadata.UpdatedBy).To(Equal(e2e_common.SystemUserId))
 
-			updatedAt, err := time.Parse(dbDateLayout, *user.Metadata.UpdatedAt)
+			updatedAt, err := time.Parse(dbDateLayout, *issue.Metadata.UpdatedAt)
 			Expect(err).Should(BeNil())
 			Expect(updatedAt).Should(BeTemporally("~", time.Now().UTC(), 2*time.Second))
 			Expect(updatedAt).Should(BeTemporally(">", createdAt))
@@ -116,4 +123,3 @@ var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"
 	})
 
 })
-*/
