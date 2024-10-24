@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+query ListComponents($filter: ComponentFilter, $first: Int, $after: String) {
+  # @genqlient(typename: "ComponentConnection")
+  Components (
+    filter: $filter,
+    first: $first,
+    after: $after
+
+  ) {
+    totalCount
+    edges {
+      # @genqlient(typename: "ComponentAggregate")
+      node {
+        id
+        name
+        type
+        # @genqlient(typename: "ComponentVersions")
+        componentVersions {
+          edges {
+            # @genqlient(typename: "ComponentVersion")
+            node {
+              id
+              version
+              componentId
+            }
+          }
+        }
+      }
+      cursor
+    }
+  }
+}

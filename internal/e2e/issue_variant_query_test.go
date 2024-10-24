@@ -218,7 +218,7 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
-			issueVariant = testentity.NewFakeIssueVariantEntity()
+			issueVariant = testentity.NewFakeIssueVariantEntity(nil)
 			issueVariant.IssueRepositoryId = seedCollection.IssueRepositoryRows[0].Id.Int64
 			issueVariant.IssueId = seedCollection.IssueRows[0].Id.Int64
 		})

@@ -33,7 +33,7 @@ type Config struct {
 	//// https://pkg.go.dev/github.com/robfig/cron#hdr-Predefined_schedules
 	//DiscoverySchedule string `envconfig:"DISOVERY_SCHEDULE" default:"0 0 0 * * *" json:"discoverySchedule"`
 	SeedMode              bool   `envconfig:"SEED_MODE" required:"false" default:"false" json:"seedMode"`
-	AuthType              string `envconfig:"AUTH_TYPE" required:"false" json:"-"`
+	AuthType              string `envconfig:"AUTH_TYPE" required:"false" json:"-" default:"none"`
 	AuthTokenSecret       string `envconfig:"AUTH_TOKEN_SECRET" required:"false" json:"-"`
 	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
 	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`

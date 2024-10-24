@@ -278,6 +278,7 @@ func (s *SqlDatabase) GetComponentNames(filter *entity.ComponentFilter) ([]strin
     SELECT C.component_name FROM Component C
     %s
     %s
+    ORDER BY C.component_name
     `
 
 	// Ensure the filter is initialized

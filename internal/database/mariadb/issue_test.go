@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"time"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -21,6 +23,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
+		// This sleep suppresses a potential racing condition which triggers test failures.
+		time.Sleep(3 * time.Second)
+
 		var err error
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -416,10 +421,39 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		})
 	})
 	When("Getting Issues with Aggregations", Label("GetIssuesWithAggregations"), func() {
-		BeforeEach(func() {
-			_ = seeder.SeedDbWithNFakeData(10)
+		Context("and the database contains service without aggregations", func() {
+			BeforeEach(func() {
+				newIssueRow := test.NewFakeIssue()
+				newIssue := newIssueRow.AsIssue()
+				db.CreateIssue(&newIssue)
+			})
+			It("returns the issues with aggregations", func() {
+				entriesWithAggregations, err := db.GetIssuesWithAggregations(nil)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				By("returning some aggregations", func() {
+					for _, entryWithAggregations := range entriesWithAggregations {
+						Expect(entryWithAggregations).NotTo(
+							BeEquivalentTo(entity.IssueAggregations{}))
+						Expect(entryWithAggregations.IssueAggregations.Activities).To(BeEquivalentTo(0))
+						Expect(entryWithAggregations.IssueAggregations.IssueMatches).To(BeEquivalentTo(0))
+						Expect(entryWithAggregations.IssueAggregations.AffectedServices).To(BeEquivalentTo(0))
+						Expect(entryWithAggregations.IssueAggregations.AffectedComponentInstances).To(BeEquivalentTo(0))
+						Expect(entryWithAggregations.IssueAggregations.ComponentVersions).To(BeEquivalentTo(0))
+					}
+				})
+				By("returning all issues", func() {
+					Expect(len(entriesWithAggregations)).To(BeEquivalentTo(1))
+				})
+			})
 		})
 		Context("and and we have 10 elements in the database", func() {
+			BeforeEach(func() {
+				_ = seeder.SeedDbWithNFakeData(10)
+			})
 			It("returns the issues with aggregations", func() {
 				entriesWithAggregations, err := db.GetIssuesWithAggregations(nil)
 
@@ -432,6 +466,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(entryWithAggregations).NotTo(
 							BeEquivalentTo(entity.IssueAggregations{}))
 					}
+				})
+				By("returning all ld constraints exclude all Go files inservices", func() {
+					Expect(len(entriesWithAggregations)).To(BeEquivalentTo(10))
 				})
 			})
 			It("returns correct aggregation values", func() {

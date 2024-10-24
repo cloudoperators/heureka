@@ -1,7 +1,8 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-mutation CreateComponentVersion ($input: ComponentVersionInput!) {
+mutation CreateComponentVersion($input: ComponentVersionInput!) {
+     # @genqlient(typename: "ComponentVersion")
     createComponentVersion (
         input: $input
     ) {

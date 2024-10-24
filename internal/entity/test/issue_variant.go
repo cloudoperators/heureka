@@ -9,7 +9,15 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-func NewFakeIssueVariantEntity() entity.IssueVariant {
+func NewFakeIssueVariantEntity(issue *int64) entity.IssueVariant {
+	var issueId int64
+
+	if issue == nil {
+		issueId = int64(gofakeit.Number(1, 10000000))
+	} else {
+		issueId = *issue
+	}
+
 	vector := test.GenerateRandomCVSS31Vector()
 	severity := entity.NewSeverity(vector)
 	return entity.IssueVariant{
@@ -17,7 +25,7 @@ func NewFakeIssueVariantEntity() entity.IssueVariant {
 		SecondaryName:     gofakeit.Noun(),
 		Description:       gofakeit.Sentence(10),
 		Severity:          severity,
-		IssueId:           0,
+		IssueId:           issueId,
 		Issue:             nil,
 		IssueRepositoryId: 0,
 		IssueRepository:   nil,
@@ -30,7 +38,7 @@ func NewFakeIssueVariantEntity() entity.IssueVariant {
 func NNewFakeIssueVariants(n int) []entity.IssueVariant {
 	r := make([]entity.IssueVariant, n)
 	for i := 0; i < n; i++ {
-		r[i] = NewFakeIssueVariantEntity()
+		r[i] = NewFakeIssueVariantEntity(nil)
 	}
 	return r
 }

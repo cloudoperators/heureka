@@ -52,3 +52,24 @@ type IssueVariantResult struct {
 	*IssueVariantAggregations
 	*IssueVariant
 }
+
+type ServiceIssueVariant struct {
+	IssueVariant
+	ServiceId int64 `json:"service_id"`
+	Priority  int64 `json:"priority"`
+}
+
+type ServiceIssueVariantFilter struct {
+	Paginated
+	ComponentInstanceId []*int64 `json:"component_instance_id"`
+}
+
+func NewServiceIssueVariantFilter() *ServiceIssueVariantFilter {
+	return &ServiceIssueVariantFilter{
+		Paginated: Paginated{
+			First: nil,
+			After: nil,
+		},
+		ComponentInstanceId: nil,
+	}
+}
