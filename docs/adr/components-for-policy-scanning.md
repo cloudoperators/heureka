@@ -31,7 +31,23 @@ Chosen option: "Opt 1: Using Configuration as ComponentVersion", because neither
 ## Pros and Cons of the Options
 
 ### Opt 1: Using the configuration as ComponentVersion
-![](https://github.com/cloudoperators/heureka/blob/origin/MaxLuong/issue-246/component-version-compliance-scanning-adr/docs/adr/images/components-for-policy-scanning-opt1.png)
+```mermaid
+graph TD;
+    subgraph SecurityGroup["Security Group + Config"]
+        hmac["hmac / sha of context"]
+        sgNameID["Security Group NameID"]
+    end
+
+    ComponentInstance --> IssueMatch[IssueMatch]
+    Service --> ComponentInstance 
+    SecurityGroup --> ComponentInstance
+    SecurityGroup --> Component
+    SecurityGroup --> ComponentVersion[Component Version]
+    ComponentVersion --> ComponentInstance
+    ComponentVersion --> Issue[Issue]
+    IssueMatch --> Issue[Issue]
+    Component --- ComponentVersion
+```
 We use the configuration of the Openstack entity and hash it to create a unique ComponentVersion.
 
 * Good, because we can decrypt the hash to get the configuration back to do processing
@@ -39,7 +55,13 @@ We use the configuration of the Openstack entity and hash it to create a unique 
 * Bad, because the naming of ComponentVersion may be confusing, as we only store the hash of the configuration, not the config itself
 
 ### Opt 2: Adding ComponentContext to ComponentInstance
-![](https://github.com/cloudoperators/heureka/blob/origin/MaxLuong/issue-246/component-version-compliance-scanning-adr/docs/adr/images/components-for-policy-scanning-opt2.png)
+```mermaid
+graph TD;
+    sgNameID[Security Group NameID] --- ComponentInstance[Component Instance];
+    ComponentInstance --> IssueMatch[IssueMatch];
+    IssueMatch --> Issue[Issue];
+    ComponentInstance --> ComponentContext[Component Context];
+```
 We add a new entity called ComponentContext to the Entity Relationship for Component Instance
 
 * Good, because having ComponentContext makes it easier to differentiate between Component Instances
@@ -47,7 +69,12 @@ We add a new entity called ComponentContext to the Entity Relationship for Compo
 * Bad, because we are NOT using the same Entity Relationship logic for "Vulnerabilities"
 
 ### Opt 3: Do not store any configuration context data
-![](https://github.com/cloudoperators/heureka/blob/origin/MaxLuong/issue-246/component-version-compliance-scanning-adr/docs/adr/images/components-for-policy-scanning-opt2.png)
+```mermaid
+graph TD;
+    sgNameID[eu-de-1/CCADMIN/myProject/sgNameID] --- ComponentInstance[Component Instance];
+    ComponentInstance --> IssueMatch[IssueMatch];
+    IssueMatch --> Issue;
+```
 We do not store ComponentVersion or add ComponentContext for Openstack ComponentInstances
 
 * Good, because it simplies handling the configuration and versioning
