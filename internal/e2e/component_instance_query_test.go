@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
@@ -31,6 +32,9 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 	var cfg util.Config
 
 	BeforeEach(func() {
+		// This sleep suppresses a potential racing condition which triggers test failures.
+		time.Sleep(3 * time.Second)
+
 		var err error
 		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -135,6 +139,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				req.Var("after", "0")
 
 				req.Header.Set("Cache-Control", "no-cache")
+
 				ctx := context.Background()
 
 				err = client.Run(ctx, req, &respData)
