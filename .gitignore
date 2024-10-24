@@ -28,3 +28,9 @@ build/
 .db/
 .env
 .mariadb-dev/
+
+# Generated files
+internal/mocks/*.go
+internal/api/graphql/graph/model/models_gen.go
+internal/api/graphql/graph/generated.go
+
