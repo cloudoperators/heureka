@@ -5,6 +5,7 @@ package issue
 
 import (
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -102,6 +103,7 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 	})
 
 	if attachmentEvent, ok := e.(*AddComponentVersionToIssueEvent); ok {
+		// Get ComponentInstances
 		l.WithField("event-step", "GetComponentInstances").Debug("Get Component Instances by ComponentVersionId")
 		componentInstances, err := db.GetComponentInstances(&entity.ComponentInstanceFilter{
 			ComponentVersionId: []*int64{&attachmentEvent.ComponentVersionID},
@@ -112,10 +114,28 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 			return
 		}
 
+		// Get IssueVariants
+		issueVariants, err := db.GetIssueVariants(&entity.IssueVariantFilter{
+			IssueId: []*int64{&attachmentEvent.IssueID},
+		})
+		if err != nil {
+			l.WithError(err).Error("Failed to fetch issue variants")
+			return
+		}
+
+		if len(issueVariants) == 0 {
+			l.Warn("No issue variants found for issue")
+			return
+		}
+
+		// TODO: Use the first variant's severity (we could implement more complex severity selection logic here)
+		severity := issueVariants[0].Severity
+
 		for _, compInst := range componentInstances {
 			l.WithField("event-step", "GetIssueMatches").Debug("Fetching issue matches related to Component Instance")
 			issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
 				ComponentInstanceId: []*int64{&compInst.Id},
+				IssueId:             []*int64{&attachmentEvent.IssueID},
 			})
 
 			if err != nil {
@@ -124,21 +144,19 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 			}
 			l.WithField("issueMatchesCount", len(issue_matches))
 
-			// If the issue match is already created, we ignore it, as we do not associate with a version change a severity change
-			if len(issue_matches) != 0 {
+			if len(issue_matches) > 0 {
 				l.WithField("event-step", "Skipping").Debug("The issue match does already exist. Skipping")
 				continue
 			}
 
 			// Create new issue match
-			// TODO: Implement this properly
 			issue_match := &entity.IssueMatch{
 				UserId:                1, // TODO: change this?
 				Status:                entity.IssueMatchStatusValuesNew,
-				Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
+				Severity:              severity, //we got two  simply take the first one
 				ComponentInstanceId:   compInst.Id,
 				IssueId:               attachmentEvent.IssueID,
-				TargetRemediationDate: GetTargetRemediationTimeline(issueVariant.Severity, time.Now()),
+				TargetRemediationDate: shared.GetTargetRemediationTimeline(severity, time.Now(), nil),
 			}
 			l.WithField("event-step", "CreateIssueMatch").WithField("issueMatch", issue_match).Debug("Creating Issue Match")
 
@@ -150,7 +168,7 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 
 		}
 	} else {
-		l.Error("Wrong event")
+		l.Error("Invalid event type received")
 	}
 
 }
