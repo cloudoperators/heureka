@@ -164,6 +164,12 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while loading DB Client for new Schema")
 	}
+
+	err = mariadb.TestConnection(dbm.Config.Config, 10)
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while testing connection for new Schema")
+	}
+
 	return dbClient
 }
 

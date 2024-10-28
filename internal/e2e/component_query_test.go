@@ -6,11 +6,9 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
+	"os"
 
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
@@ -33,8 +31,6 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 	var cfg util.Config
 
 	BeforeEach(func() {
-		// This sleep suppresses a potential racing condition which triggers test failures.
-		time.Sleep(3 * time.Second)
 
 		var err error
 		_ = dbm.NewTestSchema()
