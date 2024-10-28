@@ -96,3 +96,6 @@ compose-restart: compose-down compose-up
 
 compose-build:
 	$(DOCKER_COMPOSE) build $(DOCKER_COMPOSE_SERVICES)
+
+helm-deploy:
+	cd charts/heureka && helm upgrade heureka . -f values.yaml -n heureka
