@@ -9,11 +9,7 @@ on:
     - cron: '20 08 * * 1'
 
 jobs:
-  codeql:
-    permissions:
-        security-events: write
-        actions: read
-        contents: read
+  setup:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,16 +23,21 @@ jobs:
       - name: Install mockery
         run: go install github.com/vektra/mockery/v2@v2.46.3
 
-      - name: Run shared CodeQL workflow
-        uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@main
-        with:
-          runs-on: "['default']"
-          language: "['go']"
-          go-check: true
-          go-version: "['1.22']"
-          node-check: false
-          # node-version : "['node']"
-          fail-fast: false  
-          # timeout: 30
-          autobuild: false
-          build_query: "make build-binary"
+  codeql:
+    needs: setup
+    uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@main
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    with:
+      runs-on: "['default']"
+      language: "['go']"
+      go-check: true
+      go-version: "['1.22']"
+      node-check: false
+      # node-version : "['node']"
+      fail-fast: false  
+      # timeout: 30
+      autobuild: false
+      build_query: "make build-binary"
