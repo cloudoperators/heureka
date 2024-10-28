@@ -9,22 +9,7 @@ on:
     - cron: '20 08 * * 1'
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.22
-
-      - name: Install mockery
-        run: go install github.com/vektra/mockery/v2@v2.46.3
-
   codeql:
-    needs: setup
     uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@main
     permissions:
       security-events: write
@@ -40,4 +25,4 @@ jobs:
       fail-fast: false  
       # timeout: 30
       autobuild: false
-      build_query: "make build-binary"
+      build_query: "go install github.com/vektra/mockery/v2@v2.46.3 && make build-binary"
