@@ -12,11 +12,11 @@ ifeq ($(wildcard .env),.env)
     export $(shell sed 's/=.*//' .env)
 endif
 
-build-binary:
+build-binary: mockery gqlgen
 	GO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o build/heureka cmd/heureka/main.go
 
 # Build the binary and execute it
-run-%:
+run-%: mockery gqlgen
 	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags="$(LDFLAGS)" -o build/$* cmd/$*/main.go
 	DB_SCHEMA=./internal/database/mariadb/init/schema.sql ./build/$*
 
@@ -66,7 +66,7 @@ mockery:
 	mockery
 
 GINKGO := go run github.com/onsi/ginkgo/v2/ginkgo
-test-all:
+test-all: mockery gqlgen
 	$(GINKGO) -r
 
 test-e2e:
