@@ -54,5 +54,9 @@ func main() {
 	}
 
 	results, err := opScanner.GetServers(service)
+	if err != nil {
+		log.WithError(err).Fatal("Error during scanner get servers")
+	}
+
 	fmt.Print(results)
 }
