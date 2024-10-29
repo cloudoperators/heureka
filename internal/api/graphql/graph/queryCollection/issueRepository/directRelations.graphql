@@ -40,7 +40,7 @@ query ($filter: IssueRepositoryFilter, $first: Int, $after: String) {
                     edges { 
                         node { 
                             id
-                            name
+                            ccrn
                         }
                         cursor
                         priority

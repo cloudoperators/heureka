@@ -155,7 +155,7 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 
 func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service, error) {
 	f := &entity.ServiceFilter{
-		Name: []*string{&service.Name},
+		CCRN: []*string{&service.CCRN},
 	}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -172,7 +172,7 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 	}
 
 	if len(services.Elements) > 0 {
-		return nil, NewServiceHandlerError(fmt.Sprintf("Duplicated entry %s for name.", service.Name))
+		return nil, NewServiceHandlerError(fmt.Sprintf("Duplicated entry %s for name.", service.CCRN))
 	}
 
 	newService, err := s.database.CreateService(service)
@@ -299,20 +299,20 @@ func (s *serviceHandler) RemoveIssueRepositoryFromService(serviceId, issueReposi
 	return s.GetService(serviceId)
 }
 
-func (s *serviceHandler) ListServiceNames(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error) {
+func (s *serviceHandler) ListServiceCcrns(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":  ListServiceNamesEventName,
+		"event":  ListServiceCcrnsEventName,
 		"filter": filter,
 	})
 
-	serviceNames, err := s.database.GetServiceNames(filter)
+	serviceCcrns, err := s.database.GetServiceCcrns(filter)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while retrieving serviceNames.")
+		return nil, NewServiceHandlerError("Internal error while retrieving serviceCCRNs.")
 	}
 
-	s.eventRegistry.PushEvent(&ListServiceNamesEvent{Filter: filter, Options: options, Names: serviceNames})
+	s.eventRegistry.PushEvent(&ListServiceCcrnsEvent{Filter: filter, Options: options, Ccrns: serviceCcrns})
 
-	return serviceNames, nil
+	return serviceCcrns, nil
 }

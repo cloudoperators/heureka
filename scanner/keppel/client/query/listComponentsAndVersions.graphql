@@ -14,7 +14,7 @@ query ListComponents($filter: ComponentFilter, $first: Int, $after: String) {
       # @genqlient(typename: "ComponentAggregate")
       node {
         id
-        name
+        ccrn
         type
         # @genqlient(typename: "ComponentVersions")
         componentVersions {

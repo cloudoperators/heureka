@@ -3,13 +3,13 @@
 
 type Component implements Node {
     id: ID!
-    name: String
+    ccrn: String
     type: ComponentTypeValues
     componentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
 }
 
 input ComponentInput {
-    name: String
+    ccrn: String
     type: ComponentTypeValues
 }
 
@@ -20,7 +20,7 @@ enum ComponentTypeValues {
 }
 
 input ComponentFilter {
-    componentName: [String]
+    componentCcrn: [String]
 }
 
 type ComponentConnection implements Connection {

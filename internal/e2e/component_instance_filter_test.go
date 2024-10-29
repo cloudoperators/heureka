@@ -69,10 +69,10 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 
 			Expect(respData.ComponentInstanceFilterValues.Ccrn.Values).To(BeEmpty())
 		})
-		It("returns empty for serviceNames", func() {
+		It("returns empty for serviceCcrns", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/serviceName.graphqls")
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/serviceCcrn.graphqls")
 
 			Expect(err).To(BeNil())
 			str := string(b)
@@ -88,12 +88,12 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ComponentInstanceFilterValues.ServiceName.Values).To(BeEmpty())
+			Expect(respData.ComponentInstanceFilterValues.ServiceCcrn.Values).To(BeEmpty())
 		})
-		It("returns empty for supportGroupName", func() {
+		It("returns empty for supportGroupCcrn", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/supportGroupName.graphqls")
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/supportGroupCcrn.graphqls")
 
 			Expect(err).To(BeNil())
 			str := string(b)
@@ -109,7 +109,7 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ComponentInstanceFilterValues.SupportGroupName.Values).To(BeEmpty())
+			Expect(respData.ComponentInstanceFilterValues.SupportGroupCcrn.Values).To(BeEmpty())
 		})
 	})
 
@@ -149,10 +149,10 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 					Expect(lo.Contains(existingCcrn, *name)).To(BeTrue())
 				}
 			})
-			It("returns correct supportGroupNames", func() {
+			It("returns correct supportGroupCcrns", func() {
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/supportGroupName.graphqls")
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/supportGroupCcrn.graphqls")
 
 				Expect(err).To(BeNil())
 				str := string(b)
@@ -168,20 +168,20 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ComponentInstanceFilterValues.SupportGroupName.Values)).To(Equal(len(seedCollection.SupportGroupRows)))
+				Expect(len(respData.ComponentInstanceFilterValues.SupportGroupCcrn.Values)).To(Equal(len(seedCollection.SupportGroupRows)))
 
-				existingSupportGroupNames := lo.Map(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow, index int) string {
-					return s.Name.String
+				existingSupportGroupCcrns := lo.Map(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow, index int) string {
+					return s.CCRN.String
 				})
 
-				for _, name := range respData.ComponentInstanceFilterValues.SupportGroupName.Values {
-					Expect(lo.Contains(existingSupportGroupNames, *name)).To(BeTrue())
+				for _, ccrn := range respData.ComponentInstanceFilterValues.SupportGroupCcrn.Values {
+					Expect(lo.Contains(existingSupportGroupCcrns, *ccrn)).To(BeTrue())
 				}
 			})
-			It("returns correct serviceNames", func() {
+			It("returns correct serviceCcrns", func() {
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/serviceName.graphqls")
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/serviceCcrn.graphqls")
 
 				Expect(err).To(BeNil())
 				str := string(b)
@@ -197,14 +197,14 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ComponentInstanceFilterValues.ServiceName.Values)).To(Equal(len(seedCollection.ServiceRows)))
+				Expect(len(respData.ComponentInstanceFilterValues.ServiceCcrn.Values)).To(Equal(len(seedCollection.ServiceRows)))
 
-				existingServiceNames := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
-					return s.Name.String
+				existingServiceCcrns := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
+					return s.CCRN.String
 				})
 
-				for _, name := range respData.ComponentInstanceFilterValues.ServiceName.Values {
-					Expect(lo.Contains(existingServiceNames, *name)).To(BeTrue())
+				for _, ccrn := range respData.ComponentInstanceFilterValues.ServiceCcrn.Values {
+					Expect(lo.Contains(existingServiceCcrns, *ccrn)).To(BeTrue())
 				}
 			})
 		})

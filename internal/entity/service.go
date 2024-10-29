@@ -7,7 +7,7 @@ import "time"
 
 type BaseService struct {
 	Id             int64         `json:"id"`
-	Name           string        `json:"name"`
+	CCRN           string        `json:"ccrn"`
 	SupportGroup   *SupportGroup `json:"support_group,omitempty"`
 	SupportGroupId int64         `db:"service_support_group_id"`
 	Owners         []User        `json:"owners,omitempty"`
@@ -30,9 +30,9 @@ type ServiceWithAggregations struct {
 
 type ServiceFilter struct {
 	Paginated
-	SupportGroupName    []*string `json:"support_group_name"`
+	SupportGroupCCRN    []*string `json:"support_group_ccrn"`
 	Id                  []*int64  `json:"id"`
-	Name                []*string `json:"name"`
+	CCRN                []*string `json:"ccrn"`
 	OwnerName           []*string `json:"owner_name"`
 	OwnerId             []*int64  `json:"owner_id"`
 	ActivityId          []*int64  `json:"activity_id"`

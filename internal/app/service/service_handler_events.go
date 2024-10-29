@@ -18,7 +18,7 @@ const (
 	RemoveOwnerFromServiceEventName           event.EventName = "RemoveOwnerFromService"
 	ListServicesEventName                     event.EventName = "ListServices"
 	GetServiceEventName                       event.EventName = "GetService"
-	ListServiceNamesEventName                 event.EventName = "ListServiceNames"
+	ListServiceCcrnsEventName                 event.EventName = "ListServiceCcrns"
 	AddIssueRepositoryToServiceEventName      event.EventName = "AddIssueRepositoryToService"
 	RemoveIssueRepositoryFromServiceEventName event.EventName = "RemoveIssueRepositoryFromService"
 )
@@ -84,14 +84,14 @@ func (e *GetServiceEvent) Name() event.EventName {
 	return GetServiceEventName
 }
 
-type ListServiceNamesEvent struct {
+type ListServiceCcrnsEvent struct {
 	Filter  *entity.ServiceFilter
 	Options *entity.ListOptions
-	Names   []string
+	Ccrns   []string
 }
 
-func (e *ListServiceNamesEvent) Name() event.EventName {
-	return ListServiceNamesEventName
+func (e *ListServiceCcrnsEvent) Name() event.EventName {
+	return ListServiceCcrnsEventName
 }
 
 type AddIssueRepositoryToServiceEvent struct {

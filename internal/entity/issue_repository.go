@@ -21,7 +21,7 @@ type IssueRepositoryFilter struct {
 	Id          []*int64  `json:"id"`
 	ServiceId   []*int64  `json:"service_id"`
 	Name        []*string `json:"name"`
-	ServiceName []*string `json:"service_name"`
+	ServiceCCRN []*string `json:"service_ccrn"`
 }
 
 func NewIssueRepositoryFilter() *IssueRepositoryFilter {
@@ -33,7 +33,7 @@ func NewIssueRepositoryFilter() *IssueRepositoryFilter {
 		Id:          nil,
 		ServiceId:   nil,
 		Name:        nil,
-		ServiceName: nil,
+		ServiceCCRN: nil,
 	}
 }
 

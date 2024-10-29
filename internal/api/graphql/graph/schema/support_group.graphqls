@@ -3,13 +3,13 @@
 
 type SupportGroup implements Node {
     id: ID!
-    name: String
+    ccrn: String
     users(filter: UserFilter, first: Int, after: String): UserConnection
     services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
 }
 
 input SupportGroupInput {
-    name: String
+    ccrn: String
 }
 
 type SupportGroupConnection implements Connection {
@@ -24,6 +24,6 @@ type SupportGroupEdge implements Edge {
 }
 
 input SupportGroupFilter {
-    supportGroupName: [String],
+    supportGroupCcrn: [String],
     userIds: [String],
 }

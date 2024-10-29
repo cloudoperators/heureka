@@ -172,7 +172,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 						for _, service := range ir.Node.Services.Edges {
 							Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
-							Expect(service.Node.Name).ToNot(BeNil(), "Service has a name set")
+							Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a name set")
 							Expect(service.Priority).ToNot(BeNil(), "Service has a priority set")
 
 							_, serviceFound := lo.Find(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow) bool {
