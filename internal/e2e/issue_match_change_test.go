@@ -6,13 +6,11 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
+	"os"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
@@ -29,8 +27,6 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 	var s *server.Server
 	var cfg util.Config
 	BeforeEach(func() {
-		// This sleep suppresses a potential racing condition which triggers test failures.
-		time.Sleep(3 * time.Second)
 
 		var err error
 		_ = dbm.NewTestSchema()

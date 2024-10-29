@@ -4,8 +4,6 @@
 package mariadb_test
 
 import (
-	"time"
-
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -23,8 +21,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
-		// This sleep suppresses a potential racing condition which triggers test failures.
-		time.Sleep(3 * time.Second)
 
 		var err error
 		db = dbm.NewTestSchema()

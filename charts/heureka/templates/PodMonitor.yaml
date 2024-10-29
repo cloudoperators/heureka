@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ template "heureka.fullname" . }}
+  labels:
+{{- include "heureka.labels" . | nindent 4 }}
+    prometheus: kubernetes
+spec:
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+
+  podMetricsEndpoints:
+  - port: http
+    path: /metrics
