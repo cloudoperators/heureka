@@ -9,7 +9,7 @@ Heureka is committed to empowering cloud operators with a central platform for _
 - **Issue Assessment** - automated identification, classification, and prioritization of security issues.​ Example: assigning a severity level based on a service's classification of high availability, integrity, or confidentiality.​
 
 
-- **Remediation Tracking** — streamlined and automated tracking of all operations involved in addressing security issues. The current scope includes tracking security patches/updates to address known vulnerabilities; tracking services to ensure they are configured according to security standards; triaging detected threats and providing a means to respond to/address threats.
+- **Remediation Tracking** — streamlined and automated tracking of all operations that address security issues. The current scope includes tracking security patches/updates to address known vulnerabilities; tracking services to ensure they are configured according to security standards; triaging detected threats and providing a means to respond to/address threats.
 
 
 - **Compliance Management** - Ensuring state change documentation​ and adherence to relevant security regulations and industry standards. e.g., PCI DSS,
@@ -23,14 +23,14 @@ Heureka is committed to empowering cloud operators with a central platform for _
 Maintaining security in a cloud operations platform landscape is a monumental task. These landscapes often consist of numerous services, each comprising multiple components like images, databases, libraries, and configurations. 
 The challenge is compounded by the fact that these components have varying versions and can be shared across multiple services, creating a critical need to pinpoint a component's specific instance (version) as the security baseline. Therefore, vulnerabilities of a single component can impact multiple services within the landscape.
 
-![image](https://github.com/user-attachments/assets/91e7507e-dd86-40d8-8a32-c35825d5ff03)
+![image](https://github.com/cloudoperators/heureka/blob/main/docs/assets/Problem%20Statement%20-%20Complexity%20Visibility.png)
 
 
 ### Compliance and Efficiency
 Meeting compliance requirements and maintaining robust security standards is time-consuming and resource-intensive due to the lack of centralized visibility into the intricate relationships and dependencies between services and their underlying components and configurations.
 This makes tracking remediation, documenting evidence, and managing security configurations difficult leading to inefficient security operations and delayed remediation efforts.
 
-![image](https://github.com/user-attachments/assets/d1248c66-d3df-4e58-aa08-12e0115669e9)
+![image](https://github.com/cloudoperators/heureka/blob/main/docs/assets/Problem%20Statement%20-%20Compliance%20Efficiency.png)
 
  
 ## Business Goals 
@@ -212,10 +212,10 @@ This feature ensures a systematic and compliant classification of all security i
 This comprehensive documentation aids in prioritizing and managing security issues effectively.
 
 ### Issue Remediation Management
-This feature empowers cloud operators to track the entire lifecycle of each issue, providing complete visibility from identification to remediation. It enables more efficient issue management and resolution, thereby enhancing the overall security posture.
+This feature empowers cloud operators to track each issue's lifecycle, providing complete visibility from identification to remediation. It enables more efficient issue management and resolution, enhancing overall security posture.
 
 ### Compliance Artifact Management
-This feature simplifies the fulfillment of compliance requirements. by providing real-time, comprehensive audit artifacts and evidence. It ensures that all necessary compliance documentation is readily available and up-to-date, making audits smoother and more efficient.
+This feature simplifies fulfilling compliance requirements. by providing real-time, comprehensive audit artifacts and evidence. It ensures that all necessary compliance documentation is readily available and up-to-date, making audits smoother and more efficient.
 
 ### Alerting and Notifications
 This feature would provide real-time alerts and notifications about new and emerging security issues. This could include email notifications, SMS alerts, or integration with communication platforms like Slack. This would ensure that teams are immediately aware of any issues and can respond promptly.
@@ -224,7 +224,6 @@ This feature would provide real-time alerts and notifications about new and emer
 
 ## High-Level Architecture
 
-![](https://objectstore-3.eu-nl-1.cloud.sap/v1/AUTH_8eba81a5654c4bb2a86fde93ccc33cab/codimd-images/uploads/48a8cca4-6fad-448e-b721-c9fe562f8e8e.png)
-
+![image](https://github.com/cloudoperators/heureka/blob/main/docs/assets/Heureka%20High-Level%20Architecture.png)
 
 
