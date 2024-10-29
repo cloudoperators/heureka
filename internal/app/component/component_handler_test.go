@@ -31,13 +31,13 @@ var _ = BeforeSuite(func() {
 })
 
 func getComponentFilter() *entity.ComponentFilter {
-	cName := "SomeNotExistingComponent"
+	cCCRN := "SomeNotExistingComponent"
 	return &entity.ComponentFilter{
 		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
-		Name: []*string{&cName},
+		CCRN: []*string{&cCCRN},
 	}
 }
 
@@ -124,7 +124,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 	})
 
 	It("creates component", func() {
-		filter.Name = []*string{&component.Name}
+		filter.CCRN = []*string{&component.CCRN}
 		db.On("CreateComponent", &component).Return(&component, nil)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
 		componentHandler = c.NewComponentHandler(db, er)
@@ -132,7 +132,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponent.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
-			Expect(newComponent.Name).To(BeEquivalentTo(component.Name))
+			Expect(newComponent.CCRN).To(BeEquivalentTo(component.CCRN))
 			Expect(newComponent.Type).To(BeEquivalentTo(component.Type))
 		})
 	})
@@ -163,13 +163,13 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 	It("updates component", func() {
 		db.On("UpdateComponent", &component).Return(nil)
 		componentHandler = c.NewComponentHandler(db, er)
-		component.Name = "NewComponent"
+		component.CCRN = "NewComponent"
 		filter.Id = []*int64{&component.Id}
 		db.On("GetComponents", filter).Return([]entity.Component{component}, nil)
 		updatedComponent, err := componentHandler.UpdateComponent(&component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
-			Expect(updatedComponent.Name).To(BeEquivalentTo(component.Name))
+			Expect(updatedComponent.CCRN).To(BeEquivalentTo(component.CCRN))
 			Expect(updatedComponent.Type).To(BeEquivalentTo(component.Type))
 		})
 	})

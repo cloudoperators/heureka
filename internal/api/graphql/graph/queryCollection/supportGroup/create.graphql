@@ -6,6 +6,6 @@ mutation ($input: SupportGroupInput!) {
         input: $input
     ) {
         id
-        name
+        ccrn
     }
 }

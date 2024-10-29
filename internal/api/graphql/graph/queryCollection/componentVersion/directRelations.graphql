@@ -16,7 +16,7 @@ query ($filter: ComponentVersionFilter, $first: Int, $after: String) {
                 componentId
                 component { 
                     id
-                    name
+                    ccrn
                     type
                 }
                 issues { 

@@ -90,7 +90,7 @@ func ActivityBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ac
 
 	f := &entity.ActivityFilter{
 		Paginated:   entity.Paginated{First: first, After: afterId},
-		ServiceName: filter.ServiceName,
+		ServiceCCRN: filter.ServiceCcrn,
 		ServiceId:   sId,
 		IssueId:     issueId,
 	}

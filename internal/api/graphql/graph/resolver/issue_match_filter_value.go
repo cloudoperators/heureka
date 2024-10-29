@@ -28,7 +28,7 @@ func (r *issueMatchFilterValueResolver) PrimaryName(ctx context.Context, obj *mo
 }
 
 func (r *issueMatchFilterValueResolver) AffectedService(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.ServiceNameBaseResolver(r.App, ctx, filter)
+	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -36,21 +36,23 @@ func (r *issueMatchFilterValueResolver) AffectedService(ctx context.Context, obj
 	return item, nil
 }
 
-func (r *issueMatchFilterValueResolver) ComponentName(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.ComponentNameBaseResolver(r.App, ctx, filter)
+func (r *issueMatchFilterValueResolver) ComponentCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ComponentCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.IssueMatchFilterComponentName
+	item.FilterName = &baseResolver.IssueMatchFilterComponentCcrn
 	return item, nil
 }
 
-func (r *issueMatchFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter)
+func (r *issueMatchFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.IssueMatchFilterSupportGroupName
+	item.FilterName = &baseResolver.IssueMatchFilterSupportGroupCcrn
 	return item, nil
 }
 

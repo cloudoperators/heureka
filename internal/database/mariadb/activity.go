@@ -27,7 +27,7 @@ func (s *SqlDatabase) ensureActivityFilter(f *entity.ActivityFilter) *entity.Act
 		Id:          nil,
 		Status:      nil,
 		ServiceId:   nil,
-		ServiceName: nil,
+		ServiceCCRN: nil,
 		IssueId:     nil,
 		EvidenceId:  nil,
 	}
@@ -35,10 +35,10 @@ func (s *SqlDatabase) ensureActivityFilter(f *entity.ActivityFilter) *entity.Act
 
 func (s *SqlDatabase) getActivityJoins(filter *entity.ActivityFilter) string {
 	joins := ""
-	if len(filter.ServiceId) > 0 || len(filter.ServiceName) > 0 {
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, "LEFT JOIN ActivityHasService AHS on A.activity_id = AHS.activityhasservice_activity_id")
 	}
-	if len(filter.ServiceName) > 0 {
+	if len(filter.ServiceCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, "LEFT JOIN Service S on AHS.activityhasservice_service_id = S.service_id")
 	}
 	if len(filter.EvidenceId) > 0 {
@@ -55,7 +55,7 @@ func (s *SqlDatabase) getActivityFilterString(filter *entity.ActivityFilter) str
 	fl = append(fl, buildFilterQuery(filter.Id, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Status, "A.activity_status = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "AHS.activityhasservice_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceName, "S.service_name= ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn= ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.EvidenceId, "E.evidence_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "AHI.activityhasissue_issue_id = ?", OP_OR))
 	fl = append(fl, "A.activity_deleted_at IS NULL")
@@ -113,7 +113,7 @@ func (s *SqlDatabase) buildActivityStatement(baseQuery string, filter *entity.Ac
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.Status)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceName)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	if withCursor {

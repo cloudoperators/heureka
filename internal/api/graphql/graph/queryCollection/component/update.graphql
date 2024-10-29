@@ -8,6 +8,6 @@ mutation ($id: ID!, $input: ComponentInput!) {
     ) {
         __typename
         id
-        name
+        ccrn
     }
 }
