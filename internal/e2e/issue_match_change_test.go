@@ -6,12 +6,11 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"os"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
+	"os"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
@@ -28,6 +27,7 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 	var s *server.Server
 	var cfg util.Config
 	BeforeEach(func() {
+
 		var err error
 		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -132,6 +132,7 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 					req.Var("after", "0")
 
 					req.Header.Set("Cache-Control", "no-cache")
+
 					ctx := context.Background()
 
 					err = client.Run(ctx, req, &respData)

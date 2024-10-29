@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	serviceWildCardFilterQuery = "S.service_name LIKE Concat('%',?,'%')"
+	serviceWildCardFilterQuery = "S.service_ccrn LIKE Concat('%',?,'%')"
 )
 
 func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool, cursor entity.Cursor) []interface{} {
 	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupName)
-	filterParameters = buildQueryParameters(filterParameters, filter.Name)
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
@@ -37,9 +37,9 @@ func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter,
 
 func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) string {
 	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Name, "S.service_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.CCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "S.service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.SupportGroupName, "SG.supportgroup_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerName, "U.user_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
@@ -64,12 +64,12 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter) string {
 			LEFT JOIN User U on U.user_id = O.owner_user_id
 		`)
 	}
-	if len(filter.SupportGroupName) > 0 || len(filter.SupportGroupId) > 0 {
+	if len(filter.SupportGroupCCRN) > 0 || len(filter.SupportGroupId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
 		`)
 	}
-	if len(filter.SupportGroupName) > 0 {
+	if len(filter.SupportGroupCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
 		`)
@@ -110,8 +110,8 @@ func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.Servi
 				First: &first,
 				After: &after,
 			},
-			SupportGroupName:  nil,
-			Name:              nil,
+			SupportGroupCCRN:  nil,
+			CCRN:              nil,
 			Id:                nil,
 			OwnerName:         nil,
 			SupportGroupId:    nil,
@@ -131,8 +131,8 @@ func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.Servi
 
 func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 	fl := []string{}
-	if service.Name != "" {
-		fl = append(fl, "service_name = :service_name")
+	if service.CCRN != "" {
+		fl = append(fl, "service_ccrn = :service_ccrn")
 	}
 	return strings.Join(fl, ", ")
 }
@@ -341,9 +341,9 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 
 	query := `
 		INSERT INTO Service (
-			service_name
+			service_ccrn
 		) VALUES (
-			:service_name
+			:service_ccrn
 		)
 	`
 
@@ -509,17 +509,17 @@ func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRep
 	return err
 }
 
-func (s *SqlDatabase) GetServiceNames(filter *entity.ServiceFilter) ([]string, error) {
+func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetServiceNames",
+		"event":  "database.GetServiceCcrns",
 	})
 
 	baseQuery := `
-    SELECT service_name FROM Service S
+    SELECT service_ccrn FROM Service S
     %s
     %s
-    ORDER BY S.service_name
+    ORDER BY S.service_ccrn
     `
 
 	// Ensure the filter is initialized
@@ -542,19 +542,19 @@ func (s *SqlDatabase) GetServiceNames(filter *entity.ServiceFilter) ([]string, e
 	defer rows.Close()
 
 	// Collect the results
-	serviceNames := []string{}
-	var name string
+	serviceCcrns := []string{}
+	var ccrn string
 	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
+		if err := rows.Scan(&ccrn); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
-		serviceNames = append(serviceNames, name)
+		serviceCcrns = append(serviceCcrns, ccrn)
 	}
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
 	}
 
-	return serviceNames, nil
+	return serviceCcrns, nil
 }

@@ -31,6 +31,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 	var s *server.Server
 	var cfg util.Config
 	BeforeEach(func() {
+
 		var err error
 		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -134,6 +135,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 					req.Var("after", "0")
 
 					req.Header.Set("Cache-Control", "no-cache")
+
 					ctx := context.Background()
 
 					err = client.Run(ctx, req, &respData)

@@ -10,11 +10,11 @@ on:
 
 jobs:
   codeql:
-    permissions:
-        security-events: write
-        actions: read
-        contents: read
     uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@main
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
     with:
       runs-on: "['default']"
       language: "['go']"
@@ -25,4 +25,4 @@ jobs:
       fail-fast: false  
       # timeout: 30
       autobuild: false
-      build_query: "make build-binary"
+      build_query: "go install github.com/vektra/mockery/v2@v2.46.3 && make build-binary"

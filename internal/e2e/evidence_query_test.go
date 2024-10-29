@@ -32,6 +32,7 @@ var _ = Describe("Getting Evidences via API", Label("e2e", "Evidences"), func() 
 	var cfg util.Config
 
 	BeforeEach(func() {
+
 		var err error
 		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())

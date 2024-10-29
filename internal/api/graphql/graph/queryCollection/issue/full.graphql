@@ -95,13 +95,13 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                                     version
                                     component {
                                         id
-                                        name
+                                        ccrn
                                         type
                                     }
                                 }
                                 service {
                                     id
-                                    name
+                                    ccrn
                                     owners {
                                         totalCount
                                         edges {
@@ -123,7 +123,7 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                                         edges {
                                             node {
                                                 id
-                                                name
+                                                ccrn
                                             }
                                             cursor
                                         }

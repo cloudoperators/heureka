@@ -6,12 +6,11 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"os"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
+	"os"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -31,6 +30,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 	var cfg util.Config
 
 	BeforeEach(func() {
+
 		var err error
 		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -135,6 +135,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				req.Var("after", "0")
 
 				req.Header.Set("Cache-Control", "no-cache")
+
 				ctx := context.Background()
 
 				err = client.Run(ctx, req, &respData)
@@ -168,7 +169,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 					service := ci.Node.Service
 					Expect(service.ID).ToNot(BeNil(), "service has a ID set")
-					Expect(service.Name).ToNot(BeNil(), "service has a name set")
+					Expect(service.Ccrn).ToNot(BeNil(), "service has a name set")
 
 					_, serviceFound := lo.Find(seedCollection.ServiceRows, func(row mariadb.BaseServiceRow) bool {
 						return fmt.Sprintf("%d", row.Id.Int64) == service.ID

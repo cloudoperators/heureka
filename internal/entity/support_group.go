@@ -7,7 +7,7 @@ import "time"
 
 type SupportGroup struct {
 	Id        int64     `json:"id"`
-	Name      string    `json:"name"`
+	CCRN      string    `json:"ccrn"`
 	CreatedAt time.Time `json:"created_at"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -18,7 +18,7 @@ type SupportGroupFilter struct {
 	Id        []*int64  `json:"id"`
 	ServiceId []*int64  `json:"service_id"`
 	UserId    []*int64  `json:"user_id"`
-	Name      []*string `json:"name"`
+	CCRN      []*string `json:"ccrn"`
 }
 
 type SupportGroupAggregations struct {

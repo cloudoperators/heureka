@@ -908,9 +908,9 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 func (s *DatabaseSeeder) InsertFakeBaseService(service mariadb.BaseServiceRow) (int64, error) {
 	query := `
 		INSERT INTO Service (
-			service_name
+			service_ccrn
 		) VALUES (
-			:service_name
+			:service_ccrn
 		)`
 	return s.ExecPreparedNamed(query, service)
 }
@@ -918,9 +918,9 @@ func (s *DatabaseSeeder) InsertFakeBaseService(service mariadb.BaseServiceRow) (
 func (s *DatabaseSeeder) InsertFakeSupportGroup(sg mariadb.SupportGroupRow) (int64, error) {
 	query := `
 		INSERT INTO SupportGroup (
-			supportgroup_name
+			supportgroup_ccrn
 		) VALUES (
-			:supportgroup_name
+			:supportgroup_ccrn
 		)`
 	return s.ExecPreparedNamed(query, sg)
 }
@@ -928,9 +928,9 @@ func (s *DatabaseSeeder) InsertFakeSupportGroup(sg mariadb.SupportGroupRow) (int
 func (s *DatabaseSeeder) InsertFakeComponent(component mariadb.ComponentRow) (int64, error) {
 	query := `
 		INSERT INTO Component (
-			component_name, component_type
+			component_ccrn, component_type
 		) VALUES (
-			:component_name,
+			:component_ccrn,
 			:component_type
 		)`
 	return s.ExecPreparedNamed(query, component)
@@ -1166,7 +1166,7 @@ func NewFakeIssueRepository() mariadb.IssueRepositoryRow {
 
 func NewFakeBaseService() mariadb.BaseServiceRow {
 	return mariadb.BaseServiceRow{
-		Name: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+		CCRN: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
 	}
 }
 
@@ -1181,15 +1181,15 @@ func NewFakeService() mariadb.ServiceRow {
 
 func NewFakeSupportGroup() mariadb.SupportGroupRow {
 	return mariadb.SupportGroupRow{
-		Name: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+		CCRN: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
 	}
 }
 
 func NewFakeComponent() mariadb.ComponentRow {
 	types := []string{"containerImage", "virtualMachineImage", "repository"}
-	name := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.UUID())
+	ccrn := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.UUID())
 	return mariadb.ComponentRow{
-		Name: sql.NullString{String: name, Valid: true},
+		CCRN: sql.NullString{String: ccrn, Valid: true},
 		Type: sql.NullString{String: gofakeit.RandomString(types), Valid: true},
 	}
 }
@@ -1318,7 +1318,7 @@ func (s *DatabaseSeeder) SeedRealSupportGroups() map[string]mariadb.SupportGroup
 
 	for _, sg := range sgs {
 		supportGroup := mariadb.SupportGroupRow{
-			Name: sql.NullString{String: sg, Valid: true},
+			CCRN: sql.NullString{String: sg, Valid: true},
 		}
 		supportGroupId, err := s.InsertFakeSupportGroup(supportGroup)
 		if err != nil {
@@ -1394,7 +1394,7 @@ func (s *DatabaseSeeder) SeedRealServices() map[string]mariadb.BaseServiceRow {
 
 	for _, sv := range svs {
 		service := mariadb.BaseServiceRow{
-			Name: sql.NullString{String: sv, Valid: true},
+			CCRN: sql.NullString{String: sv, Valid: true},
 		}
 		serviceId, err := s.InsertFakeBaseService(service)
 		if err != nil {

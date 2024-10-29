@@ -6,12 +6,11 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"os"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
+	"os"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -31,6 +30,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 	var cfg util.Config
 
 	BeforeEach(func() {
+
 		var err error
 		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -173,7 +173,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 					if cv.Node.Component != nil {
 						Expect(cv.Node.Component.ID).ToNot(BeNil(), "component has a ID set")
-						Expect(cv.Node.Component.Name).ToNot(BeNil(), "component has a name set")
+						Expect(cv.Node.Component.Ccrn).ToNot(BeNil(), "component has a ccrn set")
 						Expect(cv.Node.Component.Type).ToNot(BeNil(), "component has a type set")
 					}
 				}

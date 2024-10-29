@@ -6,6 +6,6 @@ mutation ($input: ServiceInput!) {
         input: $input
     ) {
         id
-        name
+        ccrn
     }
 }
