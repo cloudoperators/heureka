@@ -11,7 +11,7 @@ mutation ($activityId: ID!, $serviceId: ID!) {
             edges {
                 node {
                     id
-                    name
+                    ccrn
                 }
             }
         }

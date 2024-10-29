@@ -26,8 +26,8 @@ resolver:
   dir: graph/resolver
   package: resolver
   filename_template: "{name}.go"
-  # Optional: turn on to not generate template comments above resolvers
-  # omit_template_comment: false
+  omit_template_comment: true
+  resolver_template: graph/resolver/resolver.gotpl
 
 # Optional: turn on use ` + "`" + `gqlgen:"fieldName"` + "`" + ` tags in your models
 # struct_tag: json
@@ -39,10 +39,10 @@ resolver:
 # omit_complexity: false
 
 # Optional: turn on to not generate any file notice comments in generated files
-# omit_gqlgen_file_notice: false
+# omit_gqlgen_file_notice: true
 
 # Optional: turn on to exclude the gqlgen version in the generated file notice. No effect if `omit_gqlgen_file_notice` is true.
-# omit_gqlgen_version_in_file_notice: false
+omit_gqlgen_version_in_file_notice: true
 
 # Optional: turn off to make struct-type struct fields not use pointers
 # e.g. type Thing struct { FieldA OtherThing } instead of { FieldA *OtherThing }
@@ -203,29 +203,29 @@ models:
         resolver: true
       affectedService:
         resolver: true
-      componentName:
+      componentCcrn:
         resolver: true
-      supportGroupName:
+      supportGroupCcrn:
         resolver: true
   ServiceFilterValue:
     fields:
-      serviceName: 
+      serviceCcrn:
         resolver: true
       uniqueUserId:
         resolver: true
       userName:
         resolver: true
-      supportGroupName:
+      supportGroupCcrn:
         resolver: true
   ComponentInstanceFilterValue:
     fields:
-      serviceName:
+      serviceCcrn:
         resolver: true
-      supportGroupName:
+      supportGroupCcrn:
         resolver: true
       ccrn:
         resolver: true
   ComponentFilterValue:
     fields:
-      componentName: 
+      componentCcrn:
         resolver: true

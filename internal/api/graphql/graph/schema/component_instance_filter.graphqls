@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 type ComponentInstanceFilterValue {
-    serviceName(filter: ServiceFilter): FilterItem
-    supportGroupName(filter: SupportGroupFilter): FilterItem
+    serviceCcrn(filter: ServiceFilter): FilterItem
+    supportGroupCcrn(filter: SupportGroupFilter): FilterItem
     ccrn(filter: ComponentInstanceFilter): FilterItem
 }

@@ -21,7 +21,7 @@ const (
 
 func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, withCursor bool, cursor entity.Cursor) []interface{} {
 	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceName)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
@@ -41,7 +41,7 @@ func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, wit
 
 func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	var fl []string
-	fl = append(fl, buildFilterQuery(filter.ServiceName, "S.service_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "I.issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchStatus, "IM.issuematch_status = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
@@ -64,12 +64,12 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter) string {
          	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceName) > 0 || len(filter.IssueMatchId) > 0 {
+	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
-	if len(filter.ServiceName) > 0 {
+	if len(filter.ServiceCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 			LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
@@ -101,7 +101,7 @@ func (s *SqlDatabase) ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilt
 				First: &first,
 				After: &after,
 			},
-			ServiceName:                     nil,
+			ServiceCCRN:                     nil,
 			Id:                              nil,
 			ActivityId:                      nil,
 			IssueMatchStatus:                nil,
@@ -200,7 +200,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter) ([]e
 		SELECT I.*,
 		count(distinct issuematch_id) as agg_issue_matches,
 		count(distinct activity_id) as agg_activities,
-		count(distinct service_name) as agg_affected_services,
+		count(distinct service_ccrn) as agg_affected_services,
 		count(distinct componentversionissue_component_version_id) as agg_component_versions,
 		min(issuematch_target_remediation_date) as agg_earliest_target_remediation_date,
 		min(issuematch_created_at) agg_earliest_discovery_date

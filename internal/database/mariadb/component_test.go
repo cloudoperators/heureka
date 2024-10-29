@@ -146,7 +146,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.ComponentRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.Name).Should(BeEquivalentTo(row.Name.String), "Name should match")
+									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "CCRN should match")
 									Expect(r.Type).Should(BeEquivalentTo(row.Type.String), "Type should match")
 									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
@@ -169,15 +169,15 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					By("returning some results", func() {
 						Expect(entries).NotTo(BeEmpty())
 					})
-					By("returning entries include the component name", func() {
+					By("returning entries include the component ccrn", func() {
 						for _, entry := range entries {
 							Expect(entry.Id).To(BeEquivalentTo(row.Id.Int64))
 						}
 					})
 				})
-				It("can filter by a single name", func() {
+				It("can filter by a single ccrn", func() {
 					row := seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
-					filter := &entity.ComponentFilter{Name: []*string{&row.Name.String}}
+					filter := &entity.ComponentFilter{CCRN: []*string{&row.CCRN.String}}
 
 					entries, err := db.GetComponents(filter)
 
@@ -187,15 +187,15 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					By("returning some results", func() {
 						Expect(entries).NotTo(BeEmpty())
 					})
-					By("returning entries include the component name", func() {
+					By("returning entries include the component ccrn", func() {
 						for _, entry := range entries {
-							Expect(entry.Name).To(BeEquivalentTo(row.Name.String))
+							Expect(entry.CCRN).To(BeEquivalentTo(row.CCRN.String))
 						}
 					})
 				})
-				It("can filter by a random non existing component name", func() {
-					nonExistingName := util.GenerateRandomString(40, nil)
-					filter := &entity.ComponentFilter{Name: []*string{&nonExistingName}}
+				It("can filter by a random non existing component ccrn", func() {
+					nonExistingCCRN := util.GenerateRandomString(40, nil)
+					filter := &entity.ComponentFilter{CCRN: []*string{&nonExistingCCRN}}
 
 					entries, err := db.GetComponents(filter)
 
@@ -206,13 +206,13 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						Expect(entries).To(BeEmpty())
 					})
 				})
-				It("can filter by all existing component names", func() {
-					componentNames := make([]*string, len(seedCollection.ComponentRows))
+				It("can filter by all existing component ccrns", func() {
+					componentCCRNs := make([]*string, len(seedCollection.ComponentRows))
 					for i, row := range seedCollection.ComponentRows {
-						x := row.Name.String
-						componentNames[i] = &x
+						x := row.CCRN.String
+						componentCCRNs[i] = &x
 					}
-					filter := &entity.ComponentFilter{Name: componentNames}
+					filter := &entity.ComponentFilter{CCRN: componentCCRNs}
 
 					entries, err := db.GetComponents(filter)
 
@@ -307,10 +307,10 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
 					componentRow := seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
 
-					// collect all component ids that have the previously selected name
+					// collect all component ids that have the previously selected ccrn
 					componentIds := []int64{}
 					for _, cRow := range seedCollection.ComponentRows {
-						if cRow.Name.String == componentRow.Name.String {
+						if cRow.CCRN.String == componentRow.CCRN.String {
 							componentIds = append(componentIds, cRow.Id.Int64)
 						}
 					}
@@ -320,7 +320,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 							First: &pageSize,
 							After: nil,
 						},
-						Name: []*string{&componentRow.Name.String},
+						CCRN: []*string{&componentRow.CCRN.String},
 					}
 					entries, err := db.CountComponents(filter)
 					By("throwing no error", func() {
@@ -370,11 +370,11 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					})
 					By("setting fields", func() {
 						Expect(c[0].Id).To(BeEquivalentTo(component.Id))
-						Expect(c[0].Name).To(BeEquivalentTo(component.Name))
+						Expect(c[0].CCRN).To(BeEquivalentTo(component.CCRN))
 						Expect(c[0].Type).To(BeEquivalentTo(component.Type))
 					})
 				})
-				It("does not insert component with existing name", func() {
+				It("does not insert component with existing ccrn", func() {
 					componentRow := seedCollection.ComponentRows[0]
 					component := componentRow.AsComponent()
 					newComponent, err := db.CreateComponent(&component)
@@ -395,10 +395,10 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 				})
-				It("can update name correctly", func() {
+				It("can update ccrn correctly", func() {
 					component := seedCollection.ComponentRows[0].AsComponent()
 
-					component.Name = "NewName"
+					component.CCRN = "NewCCRN"
 					err := db.UpdateComponent(&component)
 
 					By("throwing no error", func() {
@@ -418,7 +418,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					})
 					By("setting fields", func() {
 						Expect(c[0].Id).To(BeEquivalentTo(component.Id))
-						Expect(c[0].Name).To(BeEquivalentTo(component.Name))
+						Expect(c[0].CCRN).To(BeEquivalentTo(component.CCRN))
 						Expect(c[0].Type).To(BeEquivalentTo(component.Type))
 					})
 				})
@@ -445,7 +445,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					})
 					By("setting fields", func() {
 						Expect(c[0].Id).To(BeEquivalentTo(component.Id))
-						Expect(c[0].Name).To(BeEquivalentTo(component.Name))
+						Expect(c[0].CCRN).To(BeEquivalentTo(component.CCRN))
 						Expect(c[0].Type).To(BeEquivalentTo(component.Type))
 					})
 				})

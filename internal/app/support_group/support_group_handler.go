@@ -139,7 +139,7 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	})
 
 	f := &entity.SupportGroupFilter{
-		Name: []*string{&supportGroup.Name},
+		CCRN: []*string{&supportGroup.CCRN},
 	}
 
 	supportGroups, err := sg.ListSupportGroups(f, &entity.ListOptions{})
@@ -150,7 +150,7 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	}
 
 	if len(supportGroups.Elements) > 0 {
-		return nil, NewSupportGroupHandlerError(fmt.Sprintf("Duplicated entry %s for name.", supportGroup.Name))
+		return nil, NewSupportGroupHandlerError(fmt.Sprintf("Duplicated entry %s for ccrn.", supportGroup.CCRN))
 	}
 
 	newSupportGroup, err := sg.database.CreateSupportGroup(supportGroup)
@@ -279,24 +279,24 @@ func (sg *supportGroupHandler) RemoveUserFromSupportGroup(supportGroupId int64, 
 	return sg.GetSupportGroup(supportGroupId)
 }
 
-func (sg *supportGroupHandler) ListSupportGroupNames(filter *entity.SupportGroupFilter, options *entity.ListOptions) ([]string, error) {
+func (sg *supportGroupHandler) ListSupportGroupCcrns(filter *entity.SupportGroupFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":  ListSupportGroupNamesEventName,
+		"event":  ListSupportGroupCcrnsEventName,
 		"filter": filter,
 	})
 
-	supportGroupNames, err := sg.database.GetSupportGroupNames(filter)
+	supportGroupCcrns, err := sg.database.GetSupportGroupCcrns(filter)
 
 	if err != nil {
 		l.Error(err)
-		return nil, NewSupportGroupHandlerError("Internal error while retrieving supportGroupNames.")
+		return nil, NewSupportGroupHandlerError("Internal error while retrieving supportGroupCcrns.")
 	}
 
-	sg.eventRegistry.PushEvent(&ListSupportGroupNamesEvent{
+	sg.eventRegistry.PushEvent(&ListSupportGroupCcrnsEvent{
 		Filter:  filter,
 		Options: options,
-		Names:   supportGroupNames,
+		Ccrns:   supportGroupCcrns,
 	})
 
-	return supportGroupNames, nil
+	return supportGroupCcrns, nil
 }

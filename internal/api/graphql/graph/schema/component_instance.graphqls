@@ -33,7 +33,7 @@ type ComponentInstanceEdge implements Edge {
 }
 
 input ComponentInstanceFilter {
-    serviceName: [String],
+    serviceCcrn: [String],
     ccrn: [String],
     supportGroup: [String],
     search:[String],

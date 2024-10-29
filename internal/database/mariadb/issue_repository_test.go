@@ -187,7 +187,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 						}
 					}
 
-					filter := &entity.IssueRepositoryFilter{ServiceName: []*string{&sRow.Name.String}}
+					filter := &entity.IssueRepositoryFilter{ServiceCCRN: []*string{&sRow.CCRN.String}}
 
 					entries, err := db.GetIssueRepositories(filter)
 
@@ -326,7 +326,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 							First: &pageSize,
 							After: nil,
 						},
-						ServiceName: []*string{&sRow.Name.String},
+						ServiceCCRN: []*string{&sRow.CCRN.String},
 					}
 					entries, err := db.CountIssueRepositories(filter)
 					By("throwing no error", func() {

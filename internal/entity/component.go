@@ -7,7 +7,7 @@ import "time"
 
 type Component struct {
 	Id        int64     `json:"id"`
-	Name      string    `json:"name"`
+	CCRN      string    `json:"ccrn"`
 	Type      string    `json:"type"`
 	CreatedAt time.Time `json:"created_at"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
@@ -22,7 +22,7 @@ type ComponentResult struct {
 
 type ComponentFilter struct {
 	Paginated
-	Name               []*string `json:"name"`
+	CCRN               []*string `json:"ccrn"`
 	Id                 []*int64  `json:"id"`
 	ComponentVersionId []*int64  `json:"component_version_id"`
 }

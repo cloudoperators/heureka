@@ -31,7 +31,7 @@ type IssueRepositoryEdge implements Edge {
 }
 
 input IssueRepositoryFilter {
-    serviceName: [String]
+    serviceCcrn: [String]
     serviceId: [String]
     name: [String]
 }

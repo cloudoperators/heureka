@@ -43,14 +43,18 @@ func TestConnection(cfg util.Config, backOff int) error {
 	}
 
 	//before each try wait 1 Second
-	time.Sleep(time.Millisecond * 1000)
+	time.Sleep(1 * time.Second)
 	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
-	logrus.Info("Testing Connection to Database...")
 	db, err := sqlx.Connect("mysql", connectionString)
 	if err != nil {
 		return TestConnection(cfg, backOff-1)
 	}
 	defer db.Close()
+	//do an actual ping to check if not only the handshake works but the db schema is as well ready to operate on
+	err = db.Ping()
+	if err != nil {
+		return TestConnection(cfg, backOff-1)
+	}
 	return nil
 }
 

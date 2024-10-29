@@ -18,7 +18,7 @@ const (
 	RemoveServiceFromSupportGroupEventName event.EventName = "RemoveServiceFromSupportGroup"
 	AddUserToSupportGroupEventName         event.EventName = "AddUserToSupportGroup"
 	RemoveUserFromSupportGroupEventName    event.EventName = "RemoveUserFromSupportGroup"
-	ListSupportGroupNamesEventName         event.EventName = "ListSupportGroupNames"
+	ListSupportGroupCcrnsEventName         event.EventName = "ListSupportGroupCcrns"
 )
 
 type ListSupportGroupsEvent struct {
@@ -100,12 +100,12 @@ func (e *RemoveUserFromSupportGroupEvent) Name() event.EventName {
 	return RemoveUserFromSupportGroupEventName
 }
 
-type ListSupportGroupNamesEvent struct {
+type ListSupportGroupCcrnsEvent struct {
 	Filter  *entity.SupportGroupFilter
 	Options *entity.ListOptions
-	Names   []string
+	Ccrns   []string
 }
 
-func (e *ListSupportGroupNamesEvent) Name() event.EventName {
-	return ListSupportGroupNamesEventName
+func (e *ListSupportGroupCcrnsEvent) Name() event.EventName {
+	return ListSupportGroupCcrnsEventName
 }

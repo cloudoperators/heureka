@@ -16,7 +16,7 @@ func (s *SqlDatabase) getSupportGroupFilterString(filter *entity.SupportGroupFil
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "SG.supportgroup_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "SGS.supportgroupservice_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Name, "SG.supportgroup_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.CCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.UserId, "SGU.supportgroupuser_user_id = ?", OP_OR))
 	fl = append(fl, "SG.supportgroup_deleted_at IS NULL")
 
@@ -25,8 +25,8 @@ func (s *SqlDatabase) getSupportGroupFilterString(filter *entity.SupportGroupFil
 
 func (s *SqlDatabase) getSupportGroupUpdateFields(supportGroup *entity.SupportGroup) string {
 	fl := []string{}
-	if supportGroup.Name != "" {
-		fl = append(fl, "supportgroup_name = :supportgroup_name")
+	if supportGroup.CCRN != "" {
+		fl = append(fl, "supportgroup_ccrn = :supportgroup_ccrn")
 	}
 
 	return strings.Join(fl, ", ")
@@ -59,7 +59,7 @@ func (s *SqlDatabase) ensureSupportGroupFilter(f *entity.SupportGroupFilter) *en
 			Id:        nil,
 			ServiceId: nil,
 			UserId:    nil,
-			Name:      nil,
+			CCRN:      nil,
 		}
 	}
 	if f.First == nil {
@@ -112,7 +112,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Name)
+	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.UserId)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
@@ -206,9 +206,9 @@ func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*en
 
 	query := `
 		INSERT INTO SupportGroup (
-			supportgroup_name
+			supportgroup_ccrn
 		) VALUES (
-			:supportgroup_name
+			:supportgroup_ccrn
 		)
 	`
 
@@ -371,17 +371,17 @@ func (s *SqlDatabase) RemoveUserFromSupportGroup(supportGroupId int64, userId in
 	return err
 }
 
-func (s *SqlDatabase) GetSupportGroupNames(filter *entity.SupportGroupFilter) ([]string, error) {
+func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetSupportGroupNames",
+		"event":  "database.GetSupportGroupCcrns",
 	})
 
 	baseQuery := `
-    SELECT SG.supportgroup_name FROM SupportGroup SG
+    SELECT SG.supportgroup_ccrn FROM SupportGroup SG
     %s
     %s
-    ORDER BY SG.supportgroup_name
+    ORDER BY SG.supportgroup_ccrn
     `
 
 	// Ensure the filter is initialized
@@ -404,19 +404,19 @@ func (s *SqlDatabase) GetSupportGroupNames(filter *entity.SupportGroupFilter) ([
 	defer rows.Close()
 
 	// Collect the results
-	supportGroupNames := []string{}
-	var name string
+	supportGroupCcrns := []string{}
+	var ccrn string
 	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
+		if err := rows.Scan(&ccrn); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
-		supportGroupNames = append(supportGroupNames, name)
+		supportGroupCcrns = append(supportGroupCcrns, ccrn)
 	}
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
 	}
 
-	return supportGroupNames, nil
+	return supportGroupCcrns, nil
 }

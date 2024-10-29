@@ -52,7 +52,7 @@ type Database interface {
 	RemoveEvidenceFromIssueMatch(int64, int64) error
 
 	GetServices(*entity.ServiceFilter) ([]entity.Service, error)
-    GetServicesWithAggregations(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)
+	GetServicesWithAggregations(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)
 	GetAllServiceIds(*entity.ServiceFilter) ([]int64, error)
 	CountServices(*entity.ServiceFilter) (int64, error)
 	CreateService(*entity.Service) (*entity.Service, error)
@@ -62,7 +62,7 @@ type Database interface {
 	RemoveOwnerFromService(int64, int64) error
 	AddIssueRepositoryToService(int64, int64, int64) error
 	RemoveIssueRepositoryFromService(int64, int64) error
-	GetServiceNames(*entity.ServiceFilter) ([]string, error)
+	GetServiceCcrns(*entity.ServiceFilter) ([]string, error)
 
 	GetUsers(*entity.UserFilter) ([]entity.User, error)
 	GetAllUserIds(*entity.UserFilter) ([]int64, error)
@@ -83,7 +83,7 @@ type Database interface {
 	RemoveServiceFromSupportGroup(int64, int64) error
 	AddUserToSupportGroup(int64, int64) error
 	RemoveUserFromSupportGroup(int64, int64) error
-	GetSupportGroupNames(*entity.SupportGroupFilter) ([]string, error)
+	GetSupportGroupCcrns(*entity.SupportGroupFilter) ([]string, error)
 
 	GetComponentInstances(*entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error)
 	GetAllComponentInstanceIds(*entity.ComponentInstanceFilter) ([]int64, error)
@@ -91,7 +91,7 @@ type Database interface {
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
 	UpdateComponentInstance(*entity.ComponentInstance) error
 	DeleteComponentInstance(int64) error
-	GetComponentNames(filter *entity.ComponentFilter) ([]string, error)
+	GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error)
 	GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)

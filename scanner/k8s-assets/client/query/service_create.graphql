@@ -7,6 +7,6 @@ mutation CreateService ($input: ServiceInput!) {
         input: $input
     ) {
         id
-        name
+        ccrn
     }
 }

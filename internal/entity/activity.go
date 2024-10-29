@@ -64,7 +64,7 @@ type ActivityAggregations struct {
 type ActivityFilter struct {
 	Paginated
 	Status      []*string `json:"status"`
-	ServiceName []*string `json:"service_name"`
+	ServiceCCRN []*string `json:"service_ccrn"`
 	Id          []*int64  `json:"id"`
 	ServiceId   []*int64  `json:"service_id"`
 	IssueId     []*int64  `json:"issue_id"`

@@ -10,5 +10,5 @@ type ComponentHandler interface {
 	CreateComponent(*entity.Component) (*entity.Component, error)
 	UpdateComponent(*entity.Component) (*entity.Component, error)
 	DeleteComponent(int64) error
-	ListComponentNames(*entity.ComponentFilter, *entity.ListOptions) ([]string, error)
+	ListComponentCcrns(*entity.ComponentFilter, *entity.ListOptions) ([]string, error)
 }

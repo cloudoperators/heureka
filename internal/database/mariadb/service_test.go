@@ -148,7 +148,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.ServiceRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.Name).Should(BeEquivalentTo(row.Name.String), "Name should match")
+									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "Name should match")
 									Expect(r.BaseService.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.BaseService.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
@@ -160,7 +160,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			Context("and using a filter", func() {
 				It("can filter by a single name", func() {
 					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
-					filter := &entity.ServiceFilter{Name: []*string{&row.Name.String}}
+					filter := &entity.ServiceFilter{CCRN: []*string{&row.CCRN.String}}
 
 					entries, err := db.GetServices(filter)
 
@@ -172,13 +172,13 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 					By("returning entries include the service name", func() {
 						for _, entry := range entries {
-							Expect(entry.Name).To(BeEquivalentTo(row.Name.String))
+							Expect(entry.CCRN).To(BeEquivalentTo(row.CCRN.String))
 						}
 					})
 				})
 				It("can filter by a random non existing service name", func() {
 					nonExistingName := util.GenerateRandomString(40, nil)
-					filter := &entity.ServiceFilter{Name: []*string{&nonExistingName}}
+					filter := &entity.ServiceFilter{CCRN: []*string{&nonExistingName}}
 
 					entries, err := db.GetServices(filter)
 
@@ -190,12 +190,12 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter by all existing service names", func() {
-					serviceNames := make([]*string, len(seedCollection.ServiceRows))
+					serviceCcrns := make([]*string, len(seedCollection.ServiceRows))
 					for i, row := range seedCollection.ServiceRows {
-						x := row.Name.String
-						serviceNames[i] = &x
+						x := row.CCRN.String
+						serviceCcrns[i] = &x
 					}
-					filter := &entity.ServiceFilter{Name: serviceNames}
+					filter := &entity.ServiceFilter{CCRN: serviceCcrns}
 
 					entries, err := db.GetServices(filter)
 
@@ -233,7 +233,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						}
 					}
 
-					filter := &entity.ServiceFilter{SupportGroupName: []*string{&sgRow.Name.String}}
+					filter := &entity.ServiceFilter{SupportGroupCCRN: []*string{&sgRow.CCRN.String}}
 
 					entries, err := db.GetServices(filter)
 
@@ -378,7 +378,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						}
 					})
 				})
-				It("can filter service ServiceName using wild card search", func() {
+				It("can filter service ServiceCcrn using wild card search", func() {
 					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 
 					const charactersToRemoveFromBeginning = 2
@@ -386,18 +386,18 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					const minimalCharactersToKeep = 2
 
 					start := charactersToRemoveFromBeginning
-					end := len(row.Name.String) - charactersToRemoveFromEnd
+					end := len(row.CCRN.String) - charactersToRemoveFromEnd
 
 					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
 
-					searchStr := row.Name.String[start:end]
+					searchStr := row.CCRN.String[start:end]
 					filter := &entity.ServiceFilter{Search: []*string{&searchStr}}
 
 					entries, err := db.GetServices(filter)
 
 					names := []string{}
 					for _, entry := range entries {
-						names = append(names, entry.Name)
+						names = append(names, entry.CCRN)
 					}
 
 					By("throwing no error", func() {
@@ -409,7 +409,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 
 					By("returning the expected elements", func() {
-						Expect(names).To(ContainElement(row.Name.String))
+						Expect(names).To(ContainElement(row.CCRN.String))
 					})
 				})
 			})
@@ -568,7 +568,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 							First: &pageSize,
 							After: nil,
 						},
-						SupportGroupName: []*string{&sgRow.Name.String},
+						SupportGroupCCRN: []*string{&sgRow.CCRN.String},
 					}
 					entries, err := db.CountServices(filter)
 					By("throwing no error", func() {
@@ -619,7 +619,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					Expect(len(s)).To(BeEquivalentTo(1))
 				})
 				By("setting fields", func() {
-					Expect(s[0].Name).To(BeEquivalentTo(service.Name))
+					Expect(s[0].CCRN).To(BeEquivalentTo(service.CCRN))
 				})
 			})
 			It("does not insert service with existing name", func() {
@@ -646,7 +646,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			It("can update service name correctly", func() {
 				service := seedCollection.ServiceRows[0].AsService()
 
-				service.Name = "SecretService"
+				service.CCRN = "SecretService"
 				err := db.UpdateService(&service)
 
 				By("throwing no error", func() {
@@ -665,7 +665,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					Expect(len(s)).To(BeEquivalentTo(1))
 				})
 				By("setting fields", func() {
-					Expect(s[0].Name).To(BeEquivalentTo(service.Name))
+					Expect(s[0].CCRN).To(BeEquivalentTo(service.CCRN))
 				})
 			})
 		})
@@ -830,10 +830,10 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 		})
 	})
-	When("Getting ServiceNames", Label("GetServiceNames"), func() {
+	When("Getting ServiceCcrns", Label("GetServiceCcrns"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetServiceNames(nil)
+				res, err := db.GetServiceCcrns(nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -850,7 +850,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetServiceNames(nil)
+					res, err := db.GetServiceCcrns(nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -860,21 +860,21 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
 					})
 
-					existingServiceNames := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
-						return s.Name.String
+					existingServiceCcrns := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
+						return s.CCRN.String
 					})
 
 					By("returning the correct names", func() {
-						left, right := lo.Difference(res, existingServiceNames)
+						left, right := lo.Difference(res, existingServiceCcrns)
 						Expect(left).Should(BeEmpty())
 						Expect(right).Should(BeEmpty())
 					})
 				})
 			})
-			Context("and using a ServiceName filter", func() {
+			Context("and using a ServiceCcrn filter", func() {
 
 				var filter *entity.ServiceFilter
-				var expectedServiceNames []string
+				var expectedServiceCcrns []string
 				BeforeEach(func() {
 					namePointers := []*string{}
 
@@ -882,22 +882,22 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					namePointers = append(namePointers, &name)
 
 					filter = &entity.ServiceFilter{
-						Name: namePointers,
+						CCRN: namePointers,
 					}
 
 					It("can fetch the filtered items correctly", func() {
-						res, err := db.GetServiceNames(filter)
+						res, err := db.GetServiceCcrns(filter)
 
 						By("throwing no error", func() {
 							Expect(err).Should(BeNil())
 						})
 
 						By("returning the correct number of results", func() {
-							Expect(len(res)).Should(BeIdenticalTo(len(expectedServiceNames)))
+							Expect(len(res)).Should(BeIdenticalTo(len(expectedServiceCcrns)))
 						})
 
 						By("returning the correct names", func() {
-							left, right := lo.Difference(res, expectedServiceNames)
+							left, right := lo.Difference(res, expectedServiceCcrns)
 							Expect(left).Should(BeEmpty())
 							Expect(right).Should(BeEmpty())
 						})
@@ -907,16 +907,16 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						var anotherFilter *entity.ServiceFilter
 						BeforeEach(func() {
 
-							nonExistentServiceName := "NonexistentService"
+							nonExistentServiceCcrn := "NonexistentService"
 
-							nonExistentServiceNames := []*string{&nonExistentServiceName}
+							nonExistentServiceCcrns := []*string{&nonExistentServiceCcrn}
 
 							anotherFilter = &entity.ServiceFilter{
-								Name: nonExistentServiceNames,
+								CCRN: nonExistentServiceCcrns,
 							}
 
 							It("returns an empty list when no services match the filter", func() {
-								res, err := db.GetServiceNames(anotherFilter)
+								res, err := db.GetServiceCcrns(anotherFilter)
 								Expect(err).Should(BeNil())
 								Expect(res).Should(BeEmpty())
 

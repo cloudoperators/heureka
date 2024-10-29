@@ -15,5 +15,5 @@ type SupportGroupHandler interface {
 	RemoveServiceFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
 	AddUserToSupportGroup(int64, int64) (*entity.SupportGroup, error)
 	RemoveUserFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
-	ListSupportGroupNames(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)
+	ListSupportGroupCcrns(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)
 }

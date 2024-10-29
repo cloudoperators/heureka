@@ -8,6 +8,6 @@ type Config struct {
 	KubeconfigContext string `envconfig:"KUBE_CONFIG_CONTEXT"`
 	KubeconfigType    string `envconfig:"KUBE_CONFIG_TYPE" default:"oidc"`
 	SupportGroupLabel string `envconfig:"SUPPORT_GROUP_LABEL" default:"ccloud/support-group" required:"true"`
-	ServiceNameLabel  string `envconfig:"SERVICE_NAME_LABEL" default:"ccloud/service" required:"true"`
+	ServiceCCRNLabel  string `envconfig:"SERVICE_CCRN_LABEL" default:"ccloud/service" required:"true"`
 	ScannerTimeout    string `envconfig:"SCANNER_TIMEOUT" default:"30m"`
 }

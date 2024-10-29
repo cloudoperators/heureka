@@ -52,7 +52,7 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		Paginated: entity.Paginated{First: first, After: afterId},
 		ServiceId: serviceId,
 		UserId:    userId,
-		Name:      filter.SupportGroupName,
+		CCRN:      filter.SupportGroupCcrn,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -87,11 +87,11 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	return &connection, nil
 }
 
-func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+func SupportGroupCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called SupportGroupNameBaseResolver")
+	}).Debug("Called SupportGroupCcrnBaseResolver")
 	var err error
 
 	if filter == nil {
@@ -103,23 +103,23 @@ func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *
 		userIds, err = util.ConvertStrToIntSlice(filter.UserIds)
 
 		if err != nil {
-			logrus.WithField("Filter", filter).Error("SupportGroupNameBaseResolver: Error while parsing 'UserIds'")
-			return nil, NewResolverError("SupportGroupNameBaseResolver", "Bad Request - unable to parse 'UserIds'")
+			logrus.WithField("Filter", filter).Error("SupportGroupCcrnBaseResolver: Error while parsing 'UserIds'")
+			return nil, NewResolverError("SupportGroupCcrnBaseResolver", "Bad Request - unable to parse 'UserIds'")
 		}
 	}
 
 	f := &entity.SupportGroupFilter{
 		Paginated: entity.Paginated{},
 		UserId:    userIds,
-		Name:      filter.SupportGroupName,
+		CCRN:      filter.SupportGroupCcrn,
 	}
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListSupportGroupNames(f, opt)
+	names, err := app.ListSupportGroupCcrns(f, opt)
 
 	if err != nil {
-		return nil, NewResolverError("SupportGroupNameBaseResolver", err.Error())
+		return nil, NewResolverError("SupportGroupCcrnBaseResolver", err.Error())
 	}
 
 	var pointerNames []*string
@@ -129,7 +129,7 @@ func SupportGroupNameBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplaySupportGroupName,
+		DisplayName: &FilterDisplaySupportGroupCcrn,
 		Values:      pointerNames,
 	}
 

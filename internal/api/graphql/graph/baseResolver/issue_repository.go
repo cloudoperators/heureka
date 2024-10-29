@@ -89,7 +89,7 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 		Paginated:   entity.Paginated{First: first, After: afterId},
 		ServiceId:   serviceId,
 		Name:        filter.Name,
-		ServiceName: filter.ServiceName,
+		ServiceCCRN: filter.ServiceCcrn,
 	}
 
 	opt := GetListOptions(requestedFields)

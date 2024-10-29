@@ -6,11 +6,9 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
+	"os"
 
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
@@ -33,8 +31,6 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 	var cfg util.Config
 
 	BeforeEach(func() {
-		// This sleep suppresses a potential racing condition which triggers test failures.
-		time.Sleep(3 * time.Second)
 
 		var err error
 		_ = dbm.NewTestSchema()
@@ -230,7 +226,7 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 
 				req.Var("input", map[string]string{
 					"type": component.Type,
-					"name": component.Name,
+					"ccrn": component.CCRN,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -243,7 +239,7 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*respData.Component.Name).To(Equal(component.Name))
+				Expect(*respData.Component.Ccrn).To(Equal(component.CCRN))
 				Expect(respData.Component.Type.String()).To(Equal(component.Type))
 			})
 		})
@@ -293,11 +289,11 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 				req := graphql.NewRequest(str)
 
 				component := seedCollection.ComponentRows[0].AsComponent()
-				component.Name = "NewName"
+				component.CCRN = "NewCCRN"
 
 				req.Var("id", fmt.Sprintf("%d", component.Id))
 				req.Var("input", map[string]string{
-					"name": component.Name,
+					"ccrn": component.CCRN,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -310,7 +306,7 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*respData.Component.Name).To(Equal(component.Name))
+				Expect(*respData.Component.Ccrn).To(Equal(component.CCRN))
 			})
 		})
 	})

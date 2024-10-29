@@ -229,7 +229,7 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 						}
 					}
 
-					filter := &entity.ActivityFilter{ServiceName: []*string{&serviceRow.Name.String}}
+					filter := &entity.ActivityFilter{ServiceCCRN: []*string{&serviceRow.CCRN.String}}
 
 					entries, err := db.GetActivities(filter)
 
@@ -386,7 +386,7 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 						}
 					}
 
-					filter := &entity.ActivityFilter{ServiceName: []*string{&serviceRow.Name.String}}
+					filter := &entity.ActivityFilter{ServiceCCRN: []*string{&serviceRow.CCRN.String}}
 
 					entries, err := db.CountActivities(filter)
 					By("throwing no error", func() {
