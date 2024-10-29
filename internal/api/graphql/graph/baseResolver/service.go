@@ -96,8 +96,8 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 
 	f := &entity.ServiceFilter{
 		Paginated:         entity.Paginated{First: first, After: afterId},
-		SupportGroupName:  filter.SupportGroupName,
-		Name:              filter.ServiceName,
+		SupportGroupCCRN:  filter.SupportGroupCcrn,
+		CCRN:              filter.ServiceCcrn,
 		OwnerName:         filter.UserName,
 		OwnerId:           ownerId,
 		ActivityId:        activityId,
@@ -144,11 +144,11 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	return &connection, nil
 
 }
-func ServiceNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
+func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called ServiceNameBaseResolver")
+	}).Debug("Called ServiceCcrnBaseResolver")
 
 	if filter == nil {
 		filter = &model.ServiceFilter{}
@@ -156,17 +156,17 @@ func ServiceNameBaseResolver(app app.Heureka, ctx context.Context, filter *model
 
 	f := &entity.ServiceFilter{
 		Paginated:        entity.Paginated{},
-		SupportGroupName: filter.SupportGroupName,
-		Name:             filter.ServiceName,
+		SupportGroupCCRN: filter.SupportGroupCcrn,
+		CCRN:             filter.ServiceCcrn,
 		OwnerName:        filter.UserName,
 	}
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListServiceNames(f, opt)
+	names, err := app.ListServiceCcrns(f, opt)
 
 	if err != nil {
-		return nil, NewResolverError("ServiceNameBaseResolver", err.Error())
+		return nil, NewResolverError("ServiceCcrnBaseResolver", err.Error())
 	}
 
 	var pointerNames []*string
@@ -176,7 +176,7 @@ func ServiceNameBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplayServiceName,
+		DisplayName: &FilterDisplayServiceCcrn,
 		Values:      pointerNames,
 	}
 

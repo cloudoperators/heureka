@@ -395,7 +395,7 @@ func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIs
 
 type ComponentRow struct {
 	Id        sql.NullInt64  `db:"component_id" json:"id"`
-	Name      sql.NullString `db:"component_name" json:"name"`
+	CCRN      sql.NullString `db:"component_ccrn" json:"ccrn"`
 	Type      sql.NullString `db:"component_type" json:"type"`
 	CreatedAt sql.NullTime   `db:"component_created_at" json:"created_at"`
 	DeletedAt sql.NullTime   `db:"component_deleted_at" json:"deleted_at,omitempty"`
@@ -405,7 +405,7 @@ type ComponentRow struct {
 func (cr *ComponentRow) AsComponent() entity.Component {
 	return entity.Component{
 		Id:        GetInt64Value(cr.Id),
-		Name:      GetStringValue(cr.Name),
+		CCRN:      GetStringValue(cr.CCRN),
 		Type:      GetStringValue(cr.Type),
 		CreatedAt: GetTimeValue(cr.CreatedAt),
 		DeletedAt: GetTimeValue(cr.DeletedAt),
@@ -415,7 +415,7 @@ func (cr *ComponentRow) AsComponent() entity.Component {
 
 func (cr *ComponentRow) FromComponent(c *entity.Component) {
 	cr.Id = sql.NullInt64{Int64: c.Id, Valid: true}
-	cr.Name = sql.NullString{String: c.Name, Valid: true}
+	cr.CCRN = sql.NullString{String: c.CCRN, Valid: true}
 	cr.Type = sql.NullString{String: c.Type, Valid: true}
 	cr.CreatedAt = sql.NullTime{Time: c.CreatedAt, Valid: true}
 	cr.DeletedAt = sql.NullTime{Time: c.DeletedAt, Valid: true}
@@ -453,7 +453,7 @@ func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion
 
 type SupportGroupRow struct {
 	Id        sql.NullInt64  `db:"supportgroup_id" json:"id"`
-	Name      sql.NullString `db:"supportgroup_name" json:"name"`
+	CCRN      sql.NullString `db:"supportgroup_ccrn" json:"ccrn"`
 	CreatedAt sql.NullTime   `db:"supportgroup_created_at" json:"created_at"`
 	DeletedAt sql.NullTime   `db:"supportgroup_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"supportgroup_updated_at" json:"updated_at"`
@@ -462,7 +462,7 @@ type SupportGroupRow struct {
 func (sgr *SupportGroupRow) AsSupportGroup() entity.SupportGroup {
 	return entity.SupportGroup{
 		Id:        GetInt64Value(sgr.Id),
-		Name:      GetStringValue(sgr.Name),
+		CCRN:      GetStringValue(sgr.CCRN),
 		CreatedAt: GetTimeValue(sgr.CreatedAt),
 		DeletedAt: GetTimeValue(sgr.DeletedAt),
 		UpdatedAt: GetTimeValue(sgr.UpdatedAt),
@@ -471,7 +471,7 @@ func (sgr *SupportGroupRow) AsSupportGroup() entity.SupportGroup {
 
 func (sgr *SupportGroupRow) FromSupportGroup(sg *entity.SupportGroup) {
 	sgr.Id = sql.NullInt64{Int64: sg.Id, Valid: true}
-	sgr.Name = sql.NullString{String: sg.Name, Valid: true}
+	sgr.CCRN = sql.NullString{String: sg.CCRN, Valid: true}
 	sgr.CreatedAt = sql.NullTime{Time: sg.CreatedAt, Valid: true}
 	sgr.DeletedAt = sql.NullTime{Time: sg.DeletedAt, Valid: true}
 	sgr.UpdatedAt = sql.NullTime{Time: sg.UpdatedAt, Valid: true}
@@ -484,7 +484,7 @@ type ServiceRow struct {
 
 type BaseServiceRow struct {
 	Id        sql.NullInt64  `db:"service_id" json:"id"`
-	Name      sql.NullString `db:"service_name" json:"name"`
+	CCRN      sql.NullString `db:"service_ccrn" json:"ccrn"`
 	CreatedAt sql.NullTime   `db:"service_created_at" json:"created_at"`
 	DeletedAt sql.NullTime   `db:"service_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt sql.NullTime   `db:"service_updated_at" json:"updated_at"`
@@ -493,7 +493,7 @@ type BaseServiceRow struct {
 func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
 	return entity.BaseService{
 		Id:         GetInt64Value(bsr.Id),
-		Name:       GetStringValue(bsr.Name),
+		CCRN:       GetStringValue(bsr.CCRN),
 		Owners:     []entity.User{},
 		Activities: []entity.Activity{},
 		CreatedAt:  GetTimeValue(bsr.CreatedAt),
@@ -513,7 +513,7 @@ func (sr *ServiceRow) AsService() entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
 			Id:         GetInt64Value(sr.Id),
-			Name:       GetStringValue(sr.Name),
+			CCRN:       GetStringValue(sr.CCRN),
 			Owners:     []entity.User{},
 			Activities: []entity.Activity{},
 			CreatedAt:  GetTimeValue(sr.BaseServiceRow.CreatedAt),
@@ -529,7 +529,7 @@ func (sr *ServiceRow) AsService() entity.Service {
 
 func (sr *ServiceRow) FromService(s *entity.Service) {
 	sr.Id = sql.NullInt64{Int64: s.Id, Valid: true}
-	sr.Name = sql.NullString{String: s.Name, Valid: true}
+	sr.CCRN = sql.NullString{String: s.CCRN, Valid: true}
 	sr.BaseServiceRow.CreatedAt = sql.NullTime{Time: s.BaseService.CreatedAt, Valid: true}
 	sr.BaseServiceRow.DeletedAt = sql.NullTime{Time: s.BaseService.DeletedAt, Valid: true}
 	sr.BaseServiceRow.UpdatedAt = sql.NullTime{Time: s.BaseService.UpdatedAt, Valid: true}
@@ -554,7 +554,7 @@ func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggre
 		Service: entity.Service{
 			BaseService: entity.BaseService{
 				Id:         GetInt64Value(sbr.BaseServiceRow.Id),
-				Name:       GetStringValue(sbr.BaseServiceRow.Name),
+				CCRN:       GetStringValue(sbr.BaseServiceRow.CCRN),
 				Owners:     []entity.User{},
 				Activities: []entity.Activity{},
 				CreatedAt:  GetTimeValue(sbr.BaseServiceRow.CreatedAt),

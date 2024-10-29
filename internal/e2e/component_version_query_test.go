@@ -173,7 +173,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 					if cv.Node.Component != nil {
 						Expect(cv.Node.Component.ID).ToNot(BeNil(), "component has a ID set")
-						Expect(cv.Node.Component.Name).ToNot(BeNil(), "component has a name set")
+						Expect(cv.Node.Component.Ccrn).ToNot(BeNil(), "component has a ccrn set")
 						Expect(cv.Node.Component.Type).ToNot(BeNil(), "component has a type set")
 					}
 				}

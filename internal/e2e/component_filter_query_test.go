@@ -46,10 +46,10 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 	})
 
 	When("the database is empty", func() {
-		It("returns empty for componentNames", func() {
+		It("returns empty for componentCcrns", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentFilter/componentName.graphqls")
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentFilter/componentCcrn.graphqls")
 
 			Expect(err).To(BeNil())
 			str := string(b)
@@ -65,7 +65,7 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ComponentFilterValues.ComponentName.Values).To(BeEmpty())
+			Expect(respData.ComponentFilterValues.ComponentCcrn.Values).To(BeEmpty())
 		})
 	})
 
@@ -76,10 +76,10 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
 		Context("and no additional filters are present", func() {
-			It("returns correct componentNames", func() {
+			It("returns correct componentCcrns", func() {
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentFilter/componentName.graphqls")
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentFilter/componentCcrn.graphqls")
 
 				Expect(err).To(BeNil())
 				str := string(b)
@@ -95,14 +95,14 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ComponentFilterValues.ComponentName.Values)).To(Equal(len(seedCollection.ComponentRows)))
+				Expect(len(respData.ComponentFilterValues.ComponentCcrn.Values)).To(Equal(len(seedCollection.ComponentRows)))
 
-				existingComponentNames := lo.Map(seedCollection.ComponentRows, func(s mariadb.ComponentRow, index int) string {
-					return s.Name.String
+				existingComponentCcrns := lo.Map(seedCollection.ComponentRows, func(s mariadb.ComponentRow, index int) string {
+					return s.CCRN.String
 				})
 
-				for _, name := range respData.ComponentFilterValues.ComponentName.Values {
-					Expect(lo.Contains(existingComponentNames, *name)).To(BeTrue())
+				for _, ccrn := range respData.ComponentFilterValues.ComponentCcrn.Values {
+					Expect(lo.Contains(existingComponentCcrns, *ccrn)).To(BeTrue())
 				}
 			})
 		})

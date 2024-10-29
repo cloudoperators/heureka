@@ -245,16 +245,16 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				It("can filter by a version and component", func() {
 					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
 
-					componentName := ""
+					componentCCRN := ""
 					for _, cr := range seedCollection.ComponentRows {
 						if cr.Id.Int64 == cv.ComponentId.Int64 {
-							componentName = cr.Name.String
+							componentCCRN = cr.CCRN.String
 						}
 					}
 
 					filter := &entity.ComponentVersionFilter{
 						Version:       []*string{&cv.Version.String},
-						ComponentName: []*string{&componentName},
+						ComponentCCRN: []*string{&componentCCRN},
 					}
 
 					entries, err := db.GetComponentVersions(filter)
