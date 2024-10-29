@@ -38,6 +38,7 @@ func (r *issueMatchFilterValueResolver) AffectedService(ctx context.Context, obj
 
 func (r *issueMatchFilterValueResolver) ComponentCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ComponentCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +48,7 @@ func (r *issueMatchFilterValueResolver) ComponentCcrn(ctx context.Context, obj *
 
 func (r *issueMatchFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}

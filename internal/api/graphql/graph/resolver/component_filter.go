@@ -20,6 +20,7 @@ import (
 
 func (r *componentFilterValueResolver) ComponentCcrn(ctx context.Context, obj *model.ComponentFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ComponentCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}

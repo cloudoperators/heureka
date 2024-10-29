@@ -20,6 +20,7 @@ import (
 
 func (r *componentInstanceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +30,7 @@ func (r *componentInstanceFilterValueResolver) ServiceCcrn(ctx context.Context, 
 
 func (r *componentInstanceFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.SupportGroupCcrn(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}
