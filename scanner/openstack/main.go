@@ -43,6 +43,20 @@ func init() {
 	log.SetLevel(level)
 }
 
+func createServiceObject(osProcessor processor.Processor, ctx context.Context, projectName string) (string, error) {
+	serviceObj := processor.ServiceInfo{
+		CCRN:         projectName,
+		SupportGroup: "",
+	}
+
+	serviceId, err := osProcessor.ProcessService(ctx, serviceObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor process service")
+	}
+
+	return serviceId, err
+}
+
 func main() {
 	var scannerCfg scanner.Config
 	err := envconfig.Process("openstack", &scannerCfg)
@@ -85,21 +99,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
 	defer cancel()
 
-	// loop through servers and process them
-	for _, server := range servers {
-
-		serviceObj := processor.ServiceInfo{
-			CCRN:         server.Name,
-			SupportGroup: "none",
-		}
-
-		fmt.Print("Processing server: \n")
-		fmt.Print(serviceObj.CCRN)
-
-		_, err := osProcessor.ProcessService(ctx, serviceObj)
-		if err != nil {
-			log.WithError(err).Fatal("Error during processor process service")
-		}
+	// Create service object
+	_, err = createServiceObject(*osProcessor, ctx, scannerCfg.Project)
+	if err != nil {
+		log.WithError(err).Fatal("Error during create service object")
 	}
 
 	results, err := osProcessor.ProcessServers(servers)
