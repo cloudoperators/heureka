@@ -355,7 +355,7 @@ func NewUserEntity(user *UserInput) entity.User {
 func NewService(s *entity.Service) Service {
 	return Service{
 		ID:   fmt.Sprintf("%d", s.Id),
-		Name: &s.Name,
+		Ccrn: &s.CCRN,
 	}
 }
 
@@ -371,7 +371,7 @@ func NewServiceWithAggregations(service *entity.ServiceResult) Service {
 
 	return Service{
 		ID:       fmt.Sprintf("%d", service.Id),
-		Name:     &service.Name,
+		Ccrn:     &service.CCRN,
 		Metadata: &metadata,
 	}
 }
@@ -379,7 +379,7 @@ func NewServiceWithAggregations(service *entity.ServiceResult) Service {
 func NewServiceEntity(service *ServiceInput) entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
-			Name: lo.FromPtr(service.Name),
+			CCRN: lo.FromPtr(service.Ccrn),
 		},
 	}
 }
@@ -387,13 +387,13 @@ func NewServiceEntity(service *ServiceInput) entity.Service {
 func NewSupportGroup(supportGroup *entity.SupportGroup) SupportGroup {
 	return SupportGroup{
 		ID:   fmt.Sprintf("%d", supportGroup.Id),
-		Name: &supportGroup.Name,
+		Ccrn: &supportGroup.CCRN,
 	}
 }
 
 func NewSupportGroupEntity(supportGroup *SupportGroupInput) entity.SupportGroup {
 	return entity.SupportGroup{
-		Name: lo.FromPtr(supportGroup.Name),
+		CCRN: lo.FromPtr(supportGroup.Ccrn),
 	}
 }
 
@@ -452,7 +452,7 @@ func NewComponent(component *entity.Component) Component {
 	componentType, _ := ComponentTypeValue(component.Type)
 	return Component{
 		ID:   fmt.Sprintf("%d", component.Id),
-		Name: &component.Name,
+		Ccrn: &component.CCRN,
 		Type: &componentType,
 	}
 }
@@ -463,7 +463,7 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 		componentType = component.Type.String()
 	}
 	return entity.Component{
-		Name: lo.FromPtr(component.Name),
+		CCRN: lo.FromPtr(component.Ccrn),
 		Type: componentType,
 	}
 }

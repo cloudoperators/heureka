@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"runtime"
+
 	kubeconfig "github.com/cloudoperators/heureka/scanners/k8s-assets/config"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/processor"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/scanner"
@@ -19,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-	"runtime"
 )
 
 type Config struct {
@@ -80,7 +81,7 @@ func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Proc
 			log.WithFields(log.Fields{
 				"error":       err,
 				"namespace":   namespace,
-				"serviceName": serviceInfo.Name,
+				"serviceCcrn": serviceInfo.CCRN,
 			}).Error("Failed to process service")
 		}
 
@@ -89,7 +90,7 @@ func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Proc
 			log.WithFields(log.Fields{
 				"error":       err,
 				"namespace":   namespace,
-				"serviceName": serviceInfo.Name,
+				"serviceCcrn": serviceInfo.CCRN,
 				"podName":     podReplica.GenerateName,
 			}).Error("Failed to process pod")
 		}

@@ -154,11 +154,11 @@ func processComponent(
 	keppelScanner *scanner.Scanner,
 	keppelProcessor *processor.Processor,
 ) error {
-	log.Infof("Processing component: %s", comp.Name)
+	log.Infof("Processing component: %s", comp.Ccrn)
 
-	imageInfo, err := keppelScanner.ExtractImageInfo(comp.Name)
+	imageInfo, err := keppelScanner.ExtractImageInfo(comp.Ccrn)
 	if err != nil {
-		return fmt.Errorf("Cannot extract image information from component name: %w", err)
+		return fmt.Errorf("Cannot extract image information from component ccrn: %w", err)
 	}
 
 	for _, cv := range comp.ComponentVersions.Edges {

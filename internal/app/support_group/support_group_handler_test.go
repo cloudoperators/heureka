@@ -121,7 +121,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 	})
 
 	It("creates supportGroup", func() {
-		filter.Name = []*string{&supportGroup.Name}
+		filter.CCRN = []*string{&supportGroup.CCRN}
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
@@ -129,7 +129,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newSupportGroup.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
-			Expect(newSupportGroup.Name).To(BeEquivalentTo(supportGroup.Name))
+			Expect(newSupportGroup.CCRN).To(BeEquivalentTo(supportGroup.CCRN))
 		})
 	})
 })
@@ -159,13 +159,13 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 	It("updates supportGroup", func() {
 		db.On("UpdateSupportGroup", &supportGroup).Return(nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
-		supportGroup.Name = "Team Alone"
+		supportGroup.CCRN = "Team Alone"
 		filter.Id = []*int64{&supportGroup.Id}
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{supportGroup}, nil)
 		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(&supportGroup)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
-			Expect(updatedSupportGroup.Name).To(BeEquivalentTo(supportGroup.Name))
+			Expect(updatedSupportGroup.CCRN).To(BeEquivalentTo(supportGroup.CCRN))
 		})
 	})
 })
@@ -293,48 +293,48 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
 })
-var _ = Describe("When listing supportGroupNames", Label("app", "ListSupportGroupNames"), func() {
+var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGroupCcrns"), func() {
 	var (
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		filter              *entity.SupportGroupFilter
 		options             *entity.ListOptions
-		name                string
+		ccrn                string
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = getSupportGroupFilter()
-		name = "src"
+		ccrn = "src"
 	})
 
 	When("no filters are used", func() {
 
 		BeforeEach(func() {
-			db.On("GetSupportGroupNames", filter).Return([]string{}, nil)
+			db.On("GetSupportGroupCcrns", filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			supportGroupHandler = sg.NewSupportGroupHandler(db, er)
-			res, err := supportGroupHandler.ListSupportGroupNames(filter, options)
+			res, err := supportGroupHandler.ListSupportGroupCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
 	})
-	When("specific supportGroupNames filter is applied", func() {
+	When("specific supportGroupCcrns filter is applied", func() {
 		BeforeEach(func() {
 			filter = &entity.SupportGroupFilter{
-				Name: []*string{&name},
+				CCRN: []*string{&ccrn},
 			}
 
-			db.On("GetSupportGroupNames", filter).Return([]string{name}, nil)
+			db.On("GetSupportGroupCcrns", filter).Return([]string{ccrn}, nil)
 		})
 		It("returns filtered userGroups according to the service type", func() {
 			supportGroupHandler = sg.NewSupportGroupHandler(db, er)
-			res, err := supportGroupHandler.ListSupportGroupNames(filter, options)
+			res, err := supportGroupHandler.ListSupportGroupCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(res).Should(ConsistOf(name), "should only consist of supportGroup")
+			Expect(res).Should(ConsistOf(ccrn), "should only consist of supportGroup")
 		})
 	})
 })

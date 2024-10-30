@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-// SPDX-License-Identifier: Apache-2.0
-
 package resolver
 
 // This file will be automatically regenerated based on the schema, any resolver implementations
@@ -18,12 +15,13 @@ import (
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *componentFilterValueResolver) ComponentName(ctx context.Context, obj *model.ComponentFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.ComponentNameBaseResolver(r.App, ctx, filter)
+func (r *componentFilterValueResolver) ComponentCcrn(ctx context.Context, obj *model.ComponentFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ComponentCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentName
+	item.FilterName = &baseResolver.ComponentFilterComponentCcrn
 	return item, err
 }
 

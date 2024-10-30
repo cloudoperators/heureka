@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	FilterDisplayServiceName      string = "Service Name"
-	FilterDisplaySupportGroupName string = "Support Group Name"
+	FilterDisplayServiceCcrn      string = "Service CCRN"
+	FilterDisplaySupportGroupCcrn string = "Support Group CCRN"
 	FilterDisplayUserName         string = "User Name"
 	FilterDisplayUniqueUserId     string = "Unique User ID"
-	FilterDisplayComponentName    string = "Component Name"
+	FilterDisplayComponentCcrn    string = "Component CCRN"
 	FilterDisplayIssueType        string = "Issue Type"
 	FilterDisplayIssueMatchStatus string = "Issue Match Status"
 	FilterDisplayIssueMatchID     string = "Issue Match ID"
@@ -26,21 +26,21 @@ var (
 	FilterDisplayIssueSeverity    string = "Severity"
 	FilterDisplayCcrn             string = "CCRN"
 
-	ServiceFilterServiceName      string = "serviceName"
+	ServiceFilterServiceCcrn      string = "serviceCcrn"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"
 	ServiceFilterType             string = "type"
 	ServiceFilterUserName         string = "userName"
-	ServiceFilterSupportGroupName string = "supportGroupName"
+	ServiceFilterSupportGroupCcrn string = "supportGroupCcrn"
 
 	IssueMatchFilterPrimaryName      string = "primaryName"
-	IssueMatchFilterComponentName    string = "componentName"
+	IssueMatchFilterComponentCcrn    string = "componentCcrn"
 	IssueMatchFilterIssueType        string = "issueType"
 	IssueMatchFilterStatus           string = "status"
 	IssueMatchFilterSeverity         string = "severity"
 	IssueMatchFilterAffectedService  string = "affectedService"
-	IssueMatchFilterSupportGroupName string = "supportGroupName"
+	IssueMatchFilterSupportGroupCcrn string = "supportGroupCcrn"
 
-	ComponentFilterComponentName string = "componentName"
+	ComponentFilterComponentCcrn string = "componentCcrn"
 )
 
 type ResolverError struct {

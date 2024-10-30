@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-// SPDX-License-Identifier: Apache-2.0
-
 package resolver
 
 // This file will be automatically regenerated based on the schema, any resolver implementations
@@ -18,21 +15,23 @@ import (
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *componentInstanceFilterValueResolver) ServiceName(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.ServiceNameBaseResolver(r.App, ctx, filter)
+func (r *componentInstanceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ServiceFilterServiceName
+	item.FilterName = &baseResolver.ServiceFilterServiceCcrn
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) SupportGroupName(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
-	item, err := baseResolver.SupportGroupNameBaseResolver(r.App, ctx, filter)
+func (r *componentInstanceFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
+
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ServiceFilterSupportGroupName
+	item.FilterName = &baseResolver.ServiceFilterSupportGroupCcrn
 	return item, err
 }
 

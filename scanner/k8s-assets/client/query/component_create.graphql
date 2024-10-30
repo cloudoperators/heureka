@@ -7,7 +7,7 @@ mutation CreateComponent($input: ComponentInput!) {
         input: $input
     ) {
         id
-        name
+        ccrn
         type
     }
 }
