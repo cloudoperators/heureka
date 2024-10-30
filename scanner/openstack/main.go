@@ -4,8 +4,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/cloudoperators/heureka/scanner/openstack/processor"
 	"github.com/cloudoperators/heureka/scanner/openstack/scanner"
@@ -67,9 +69,38 @@ func main() {
 		log.WithError(err).Fatal("Error during scanner get servers")
 	}
 
-	fmt.Print("Servers: \n")
-	fmt.Print(servers)
-	fmt.Print("\n\n")
+	// print servers in a formatted way
+	for _, server := range servers {
+		fmt.Printf("Server ID: %s, Server Name: %s\n", server.ID, server.Name)
+		fmt.Printf("Server Status: %s\n", server.Status)
+		fmt.Print("\n\n")
+	}
+
+	// Create context with timeout (30min should be ok)
+	scanTimeout, err := time.ParseDuration(scannerCfg.ScannerTimeout)
+	if err != nil {
+		log.WithError(err).Fatal("couldn't parse scanner timeout, setting it to 30 minutes")
+		scanTimeout = 30 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
+	defer cancel()
+
+	// loop through servers and process them
+	for _, server := range servers {
+
+		serviceObj := processor.ServiceInfo{
+			CCRN:         server.Name,
+			SupportGroup: "none",
+		}
+
+		fmt.Print("Processing server: \n")
+		fmt.Print(serviceObj.CCRN)
+
+		_, err := osProcessor.ProcessService(ctx, serviceObj)
+		if err != nil {
+			log.WithError(err).Fatal("Error during processor process service")
+		}
+	}
 
 	results, err := osProcessor.ProcessServers(servers)
 	if err != nil {
