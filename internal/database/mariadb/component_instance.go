@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	componentInstanceWildCardFilterQuery = "CI.componentinstance_id LIKE Concat('%',?,'%')"
+	componentInstanceWildCardFilterQuery = "CI.componentinstance_ccrn LIKE Concat('%',?,'%')"
 )
 
 func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
