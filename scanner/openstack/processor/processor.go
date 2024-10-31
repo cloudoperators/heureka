@@ -27,6 +27,11 @@ type SupportGroupInfo struct {
 	CCRN string
 }
 
+type IssueRepositoryInfo struct {
+	Name string
+	Url  string
+}
+
 type ComponentInfo struct {
 	CCRN string
 	Type string
@@ -210,6 +215,82 @@ func (p *Processor) ConnectServiceToSupportGroup(ctx context.Context, serviceId 
 	}
 
 	return nil
+}
+
+// ProcessIssueRepository processes an issue repository and creates a new issue repository if it doesn't exist.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	issueRepositoryInfo IssueRepositoryInfo - The issue repository info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the issue repository.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ProcessIssueRepository(ctx context.Context, issueRepositoryInfo IssueRepositoryInfo) (string, error) {
+	var issueRepositoryId string
+
+	if issueRepositoryInfo.Name == "" {
+		issueRepositoryInfo.Name = "none"
+	}
+
+	// The IssueRepository might already exist in the DB
+	// Let's try to fetch list of IssueRepository by name
+	_issueRepositoryId, err := p.GetIssueRepository(ctx, issueRepositoryInfo)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"issueRepositoryName": issueRepositoryInfo.Name,
+		}).Error("failed to fetch issueRepository")
+
+		// Create new IssueRepository
+		createIssueRepositoryInput := &client.IssueRepositoryInput{
+			Name: issueRepositoryInfo.Name,
+			Url:  issueRepositoryInfo.Url,
+		}
+
+		createIssueRepositoryResp, err := client.CreateIssueRepository(ctx, *p.Client, createIssueRepositoryInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create IssueRepository %s: %w", issueRepositoryInfo.Name, err)
+		} else {
+			issueRepositoryId = createIssueRepositoryResp.CreateIssueRepository.Id
+		}
+	} else {
+		issueRepositoryId = _issueRepositoryId
+	}
+
+	return issueRepositoryId, nil
+}
+
+// GetIssueRepository fetches an issue repository by name
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	issueRepositoryInfo IssueRepositoryInfo - The issue repository info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the issue repository.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) GetIssueRepository(ctx context.Context, issueRepositoryInfo IssueRepositoryInfo) (string, error) {
+	listIssueRepositoryFilter := client.IssueRepositoryFilter{
+		Name: []string{issueRepositoryInfo.Name},
+	}
+
+	listIssueRepositoryResp, err := client.ListIssueRepositories(ctx, *p.Client, &listIssueRepositoryFilter)
+	if err != nil {
+		fmt.Println(err)
+		return "", fmt.Errorf("couldn't list issue repositories")
+	}
+
+	// Return the first item
+	if listIssueRepositoryResp.IssueRepositories.TotalCount > 0 {
+		return listIssueRepositoryResp.IssueRepositories.Edges[0].Node.Id, nil
+	}
+
+	// No IssueRepository found
+	return "", fmt.Errorf("ListIssueRepositories returned no IssueRepositoryID")
 }
 
 // ProcessServers processes a list of servers and checks if they are compliant with policy 4.5.

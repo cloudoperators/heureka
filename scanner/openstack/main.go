@@ -69,6 +69,20 @@ func createSupportGroupObject(osProcessor processor.Processor, ctx context.Conte
 	return supportGroupId, err
 }
 
+func createIssueRepositoryObject(osProcessor processor.Processor, ctx context.Context, issueRepositoryName string, issueRepositoryUrl string) (string, error) {
+	issueRepositoryObj := processor.IssueRepositoryInfo{
+		Name: issueRepositoryName,
+		Url:  issueRepositoryUrl,
+	}
+
+	issueRepositoryId, err := osProcessor.ProcessIssueRepository(ctx, issueRepositoryObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor process issue repository")
+	}
+
+	return issueRepositoryId, err
+}
+
 func createComponentObject(osProcessor processor.Processor, ctx context.Context, componentName string) (string, error) {
 	ComponentObj := processor.ComponentInfo{
 		CCRN: componentName,
@@ -154,7 +168,16 @@ func main() {
 	// join service to support group
 	err = osProcessor.ConnectServiceToSupportGroup(ctx, serviceId, supportGroupId)
 	if err != nil {
-		log.WithError(err).Fatal("Error during connect service to support group")
+		log.WithError(err).Warning("Failed adding service to support group")
+	}
+
+	// Create issue repository object
+	// Hardcoded name & url for hardening guide for PoC
+	issueRepositoryName := "SAP Converged Cloud - Security Hardening"
+	issueRepositoryUrl := "https://wiki.one.int.sap/wiki/display/itsec/SAP+Converged+Cloud+-+Security+Hardening"
+	_, err = createIssueRepositoryObject(*osProcessor, ctx, issueRepositoryName, issueRepositoryUrl)
+	if err != nil {
+		log.WithError(err).Fatal("Error during create issue repository object")
 	}
 
 	// Create component object for each server
