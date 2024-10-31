@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// test commit
 const (
 	serviceWildCardFilterQuery = "S.service_name LIKE Concat('%',?,'%')"
 )
