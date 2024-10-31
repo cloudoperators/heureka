@@ -3,6 +3,8 @@
 
 package resolver
 
+//go:generate go run github.com/99designs/gqlgen generate
+
 import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/app"
