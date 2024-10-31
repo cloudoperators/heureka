@@ -29,6 +29,11 @@ type ComponentInfo struct {
 	Type string
 }
 
+type ComponentVersionInfo struct {
+	ComponentID      string
+	ComponentVersion string
+}
+
 func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
@@ -258,6 +263,77 @@ func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize in
 
 		// Update cursor for the next iteration
 		cursor = listComponentsResp.Components.Edges[len(listComponentsResp.Components.Edges)-1].Cursor
+	}
+	return allComponents, nil
+}
+
+func (p *Processor) ProcessComponentVersion(ctx context.Context, componentVersionInfo ComponentVersionInfo) (string, error) {
+	var componentVersionId string
+
+	if componentVersionInfo.ComponentVersion == "" {
+		componentVersionInfo.ComponentVersion = "none"
+	}
+
+	listComponentVersionFilter := &client.ComponentVersionFilter{
+		Version: []string{componentVersionInfo.ComponentVersion},
+	}
+
+	pagesize := 100
+
+	// The Component might already exist in the DB
+	// Let's try to fetch list of Components by name
+	components, err := p.GetAllComponentVersions(listComponentVersionFilter, pagesize)
+
+	if err != nil || len(components) == 0 {
+		log.WithError(err).WithFields(log.Fields{
+			"componentVersionID": componentVersionInfo.ComponentID,
+		}).Error("failed to fetch componentVersion")
+
+		// Create new Component
+		createComponentVersionInput := &client.ComponentVersionInput{
+			Version:     componentVersionInfo.ComponentVersion,
+			ComponentId: componentVersionInfo.ComponentID,
+		}
+
+		createComponentVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, createComponentVersionInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create ComponentVersion %s: %w", componentVersionInfo.ComponentID, err)
+		} else {
+			componentVersionId = createComponentVersionResp.CreateComponentVersion.Id
+		}
+	} else {
+		// Retrieve ID from []*client.ComponentAggregate
+		componentVersionId = components[0].GetId()
+	}
+
+	return componentVersionId, nil
+}
+
+func (p *Processor) GetAllComponentVersions(filter *client.ComponentVersionFilter, pageSize int) ([]*client.ComponentVersion, error) {
+	var allComponents []*client.ComponentVersion
+	//cursor := "0" // Set initial cursor to "0"
+
+	for {
+		// ListComponents also returns the ComponentVersions of each Component
+		listComponentsResp, err := client.ListComponentVersions(context.Background(), *p.Client, filter)
+		if err != nil {
+			return nil, fmt.Errorf("cannot list ComponentVersion: %w", err)
+		}
+
+		if len(listComponentsResp.ComponentVersions.Edges) == 0 {
+			break
+		}
+
+		for _, edge := range listComponentsResp.ComponentVersions.Edges {
+			allComponents = append(allComponents, edge.Node)
+		}
+
+		if len(listComponentsResp.ComponentVersions.Edges) < pageSize {
+			break
+		}
+
+		// Update cursor for the next iteration
+		// cursor = listComponentsResp.ComponentVersions.Edges[len(listComponentsResp.ComponentVersions.Edges)-1].Cursor
 	}
 	return allComponents, nil
 }

@@ -57,9 +57,9 @@ func createServiceObject(osProcessor processor.Processor, ctx context.Context, p
 	return serviceId, err
 }
 
-func createComponentObject(osProcessor processor.Processor, ctx context.Context, ComponentName string) (string, error) {
+func createComponentObject(osProcessor processor.Processor, ctx context.Context, componentName string) (string, error) {
 	ComponentObj := processor.ComponentInfo{
-		CCRN: ComponentName,
+		CCRN: componentName,
 	}
 
 	componentId, err := osProcessor.ProcessComponent(ctx, ComponentObj)
@@ -68,6 +68,19 @@ func createComponentObject(osProcessor processor.Processor, ctx context.Context,
 	}
 
 	return componentId, err
+}
+
+func createComponentVersionObject(osProcessor processor.Processor, ctx context.Context, componentVersionID string) (string, error) {
+	componentVersionObj := processor.ComponentVersionInfo{
+		ComponentID: componentVersionID,
+	}
+
+	componentVersionId, err := osProcessor.ProcessComponentVersion(ctx, componentVersionObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor process service")
+	}
+
+	return componentVersionId, err
 }
 
 func main() {
@@ -117,6 +130,14 @@ func main() {
 		_, err = createComponentObject(*osProcessor, ctx, server.Metadata["image_name"])
 		if err != nil {
 			log.WithError(err).Fatal("Error during create component object")
+		}
+	}
+
+	// Create component version object for each server
+	for _, server := range servers {
+		_, err = createComponentVersionObject(*osProcessor, ctx, server.Metadata["image_id"])
+		if err != nil {
+			log.WithError(err).Fatal("Error during create component version object")
 		}
 	}
 
