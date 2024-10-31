@@ -24,6 +24,11 @@ type ServiceInfo struct {
 	SupportGroup string
 }
 
+type ComponentInfo struct {
+	CCRN string
+	Type string
+}
+
 func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
@@ -162,4 +167,97 @@ func policy4dot5Check(img_name string) bool {
 		return true
 	}
 	return false
+}
+
+// ProcessComponent processes a component and creates a new component if it doesn't exist.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	componentInfo ComponentInfo - The component info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the component.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ProcessComponent(ctx context.Context, componentInfo ComponentInfo) (string, error) {
+	var componentId string
+
+	if componentInfo.CCRN == "" {
+		componentInfo.CCRN = "none"
+	}
+
+	listComponentFilter := &client.ComponentFilter{
+		ComponentCcrn: []string{componentInfo.CCRN},
+	}
+
+	pagesize := 100
+
+	// The Component might already exist in the DB
+	// Let's try to fetch list of Components by name
+	components, err := p.GetAllComponents(listComponentFilter, pagesize)
+
+	if err != nil || len(components) == 0 {
+		log.WithError(err).WithFields(log.Fields{
+			"componentCcrn": componentInfo.CCRN,
+		}).Error("failed to fetch component")
+
+		// Create new Component
+		createComponentInput := &client.ComponentInput{
+			Ccrn: componentInfo.CCRN,
+			Type: client.ComponentTypeValuesVirtualmachineimage,
+		}
+
+		createComponentResp, err := client.CreateComponent(ctx, *p.Client, createComponentInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create Component %s: %w", componentInfo.CCRN, err)
+		} else {
+			componentId = createComponentResp.CreateComponent.Id
+		}
+	} else {
+		// Retrieve ID from []*client.ComponentAggregate
+		componentId = components[0].GetId()
+	}
+
+	return componentId, nil
+}
+
+// GetAllComponents fetches a slice of ComponentAggregates storing Component data
+//
+// Parameters:
+//
+//		filter *client.ComponentFilter - the filter for specific Component
+//		pageSize int - Maximum number of elements in first page of pagination process
+//
+//	 Returns:
+//
+//		[]*client.ComponentAggregate - slice of component data
+//		error - An error if something goes wrong during the request.
+func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize int) ([]*client.ComponentAggregate, error) {
+	var allComponents []*client.ComponentAggregate
+	cursor := "0" // Set initial cursor to "0"
+
+	for {
+		// ListComponents also returns the ComponentVersions of each Component
+		listComponentsResp, err := client.ListComponents(context.Background(), *p.Client, filter, pageSize, cursor)
+		if err != nil {
+			return nil, fmt.Errorf("cannot list Components: %w", err)
+		}
+
+		if len(listComponentsResp.Components.Edges) == 0 {
+			break
+		}
+
+		for _, edge := range listComponentsResp.Components.Edges {
+			allComponents = append(allComponents, edge.Node)
+		}
+
+		if len(listComponentsResp.Components.Edges) < pageSize {
+			break
+		}
+
+		// Update cursor for the next iteration
+		cursor = listComponentsResp.Components.Edges[len(listComponentsResp.Components.Edges)-1].Cursor
+	}
+	return allComponents, nil
 }

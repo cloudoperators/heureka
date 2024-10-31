@@ -57,6 +57,19 @@ func createServiceObject(osProcessor processor.Processor, ctx context.Context, p
 	return serviceId, err
 }
 
+func createComponentObject(osProcessor processor.Processor, ctx context.Context, ComponentName string) (string, error) {
+	ComponentObj := processor.ComponentInfo{
+		CCRN: ComponentName,
+	}
+
+	componentId, err := osProcessor.ProcessComponent(ctx, ComponentObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor process component")
+	}
+
+	return componentId, err
+}
+
 func main() {
 	var scannerCfg scanner.Config
 	err := envconfig.Process("openstack", &scannerCfg)
@@ -98,6 +111,14 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
 	defer cancel()
+
+	// Create component object for each server
+	for _, server := range servers {
+		_, err = createComponentObject(*osProcessor, ctx, server.Metadata["image_name"])
+		if err != nil {
+			log.WithError(err).Fatal("Error during create component object")
+		}
+	}
 
 	// Create service object
 	_, err = createServiceObject(*osProcessor, ctx, scannerCfg.Project)
