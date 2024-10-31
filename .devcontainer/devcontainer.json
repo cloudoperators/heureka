@@ -7,5 +7,5 @@
         "forwardPorts": [
            80,
            "mariadb:3306"
-        ]
+        ] 
 }
