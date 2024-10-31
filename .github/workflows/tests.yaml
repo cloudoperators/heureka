@@ -25,10 +25,10 @@ jobs:
         run: go install github.com/onsi/ginkgo/v2/ginkgo
       - name: Install Mockery
         run: go install github.com/vektra/mockery/v2@v2.46.3
-      - name: Generate Gqlgen code
-        run: make gqlgen
       - name: Generate Mockery code
         run: make mockery
+      - name: Generate Gqlgen code
+        run: make gqlgen
       - name: Run Tests
         env:
           DB_USER: my_username
