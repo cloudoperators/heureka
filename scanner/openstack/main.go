@@ -45,8 +45,7 @@ func init() {
 
 func createServiceObject(osProcessor processor.Processor, ctx context.Context, projectName string) (string, error) {
 	serviceObj := processor.ServiceInfo{
-		CCRN:         projectName,
-		SupportGroup: "",
+		CCRN: projectName,
 	}
 
 	serviceId, err := osProcessor.ProcessService(ctx, serviceObj)
@@ -55,6 +54,19 @@ func createServiceObject(osProcessor processor.Processor, ctx context.Context, p
 	}
 
 	return serviceId, err
+}
+
+func createSupportGroupObject(osProcessor processor.Processor, ctx context.Context, supportGroupName string) (string, error) {
+	supportGroupObj := processor.SupportGroupInfo{
+		CCRN: supportGroupName,
+	}
+
+	supportGroupId, err := osProcessor.ProcessSupportGroup(ctx, supportGroupObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor process support group")
+	}
+
+	return supportGroupId, err
 }
 
 func createComponentObject(osProcessor processor.Processor, ctx context.Context, componentName string) (string, error) {
@@ -125,6 +137,26 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
 	defer cancel()
 
+	// Create service object
+	serviceName := scannerCfg.Project
+	serviceId, err := createServiceObject(*osProcessor, ctx, serviceName)
+	if err != nil {
+		log.WithError(err).Fatal("Error during create service object")
+	}
+
+	// Create support group object
+	supportGroupName := serviceName + "_SupportGroup"
+	supportGroupId, err := createSupportGroupObject(*osProcessor, ctx, supportGroupName)
+	if err != nil {
+		log.WithError(err).Fatal("Error during create support group object")
+	}
+
+	// join service to support group
+	err = osProcessor.ConnectServiceToSupportGroup(ctx, serviceId, supportGroupId)
+	if err != nil {
+		log.WithError(err).Fatal("Error during connect service to support group")
+	}
+
 	// Create component object for each server
 	for _, server := range servers {
 		_, err = createComponentObject(*osProcessor, ctx, server.Metadata["image_name"])
@@ -139,12 +171,6 @@ func main() {
 		if err != nil {
 			log.WithError(err).Fatal("Error during create component version object")
 		}
-	}
-
-	// Create service object
-	_, err = createServiceObject(*osProcessor, ctx, scannerCfg.Project)
-	if err != nil {
-		log.WithError(err).Fatal("Error during create service object")
 	}
 
 	results, err := osProcessor.ProcessServers(servers)

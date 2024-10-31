@@ -20,8 +20,11 @@ type Processor struct {
 }
 
 type ServiceInfo struct {
-	CCRN         string
-	SupportGroup string
+	CCRN string
+}
+
+type SupportGroupInfo struct {
+	CCRN string
 }
 
 type ComponentInfo struct {
@@ -114,6 +117,99 @@ func (p *Processor) getService(ctx context.Context, serviceInfo ServiceInfo) (st
 
 	// No Service found
 	return "", fmt.Errorf("ListServices returned no ServiceID")
+}
+
+// ProcessSupportGroup processes a support group and creates a new support group if it doesn't exist.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	supportGroupInfo SupportGroupInfo - The support group info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the support group.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ProcessSupportGroup(ctx context.Context, supportGroupInfo SupportGroupInfo) (string, error) {
+	var supportGroupId string
+	_supportGroupId, err := p.getSupportGroup(ctx, supportGroupInfo)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"supportGroupCCRN": supportGroupInfo.CCRN,
+		}).Error("failed to fetch support group")
+
+		// Create new SupportGroup
+		createSupportGroupInput := &client.SupportGroupInput{
+			Ccrn: supportGroupInfo.CCRN,
+		}
+		createSupportGroupResp, err := client.CreateSupportGroup(ctx, *p.Client, createSupportGroupInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create SupportGroup %s: %w", supportGroupInfo.CCRN, err)
+		} else {
+			supportGroupId = createSupportGroupResp.CreateSupportGroup.Id
+		}
+	} else {
+		supportGroupId = _supportGroupId
+	}
+
+	return supportGroupId, nil
+}
+
+// getSupportGroup fetches a support group by CCRN
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	supportGroupInfo SupportGroupInfo - The support group info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the support group.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) getSupportGroup(ctx context.Context, supportGroupInfo SupportGroupInfo) (string, error) {
+	var supportGroupId string
+
+	listSupportGroupsFilter := client.SupportGroupFilter{
+		SupportGroupCcrn: []string{supportGroupInfo.CCRN},
+	}
+	listSupportGroupsResp, err := client.ListSupportGroups(ctx, *p.Client, &listSupportGroupsFilter)
+	if err != nil {
+		return "", fmt.Errorf("couldn't list support groups")
+	}
+
+	// Return the first item
+	if listSupportGroupsResp.SupportGroups.TotalCount > 0 && len(listSupportGroupsResp.SupportGroups.Edges) > 0 {
+		supportGroupId = listSupportGroupsResp.SupportGroups.Edges[0].Node.Id
+	} else {
+		return "", fmt.Errorf("ListSupportGroups returned no SupportGroupID")
+	}
+
+	return supportGroupId, nil
+}
+
+// ConnectServiceToSupportGroup connects a service to a support group.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	serviceId string - The ID of the service.
+//	supportGroupId string - The ID of the support group.
+//
+// Returns:
+//
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ConnectServiceToSupportGroup(ctx context.Context, serviceId string, supportGroupId string) error {
+	_, err := client.AddServiceToSupportGroup(ctx, *p.Client, supportGroupId, serviceId)
+
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"serviceId":      serviceId,
+			"supportGroupId": supportGroupId,
+		}).Warning("Failed adding service to support group")
+		return err
+	}
+
+	return nil
 }
 
 // ProcessServers processes a list of servers and checks if they are compliant with policy 4.5.
