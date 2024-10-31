@@ -5,7 +5,7 @@
 
 **Heureka** is a Security Posture Management tool designed to manage security issues in a cloud operating system. 
 
-Its primary focus is remediation management of security issues such as vulnerabilities, security events, and policy violations while ensuring compliance and audit-ability.
+Its primary focus is remediation management of security issues such as vulnerabilities, security events, and policy violations while ensuring compliance and auditability.
 
 
 ## Value Propositions
@@ -25,15 +25,12 @@ Facilitate compliance by tracking remediation progress and providing a complete 
 
 ## Architecture & Design
 
-For a detailed understanding of the system's architecture and design, refer to the following resources:
+For a detailed understanding of Heureka's architecture and design, refer to the following resources:
 
-- [Heureka Product Design Document](docs/product_design_documentation.md): This document provides a general overview, a glossary of terms, and user personas relevant to Heureka.
-- [Entity Relationship Documentation](docs/entity_relationships.md): This document outlines the core entities within Heureka and how they interact with each other.
-
-**Additional Resources Coming Soon**
-
-- High-Level Architecture Diagrams: These diagrams will provide a visual representation of the overall system architecture, expected to be published before the end of Q3.
-- High-Level Features: A high-level overview of the system's functionalities is also planned for publication before the end of Q3.
+- [Heureka Product Design Document](docs/product_design_documentation.md): This document provides a general overview, a glossary of terms, and user personas.
+- [Entity Relationship Documentation](docs/entity_relationships.md): This document outlines the core entities within Heureka and how they interact.
+- [High-Level Architecture Diagram](https://github.com/cloudoperators/heureka/blob/main/docs/product_design_documentation.md#high-level-features): This provides a visual representation of the overall system architecture.
+- [High-Level Features](https://github.com/cloudoperators/heureka/blob/main/docs/product_design_documentation.md#high-level-features): A high-level overview of Heureka's functionalities.
 
 
 ## Requirements and Setup
