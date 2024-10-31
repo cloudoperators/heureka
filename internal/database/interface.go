@@ -3,9 +3,6 @@
 
 package database
 
-//go:generate go install github.com/vektra/mockery/v2@v2.46.3
-//go:generate mockery
-
 import "github.com/cloudoperators/heureka/internal/entity"
 
 type Database interface {
