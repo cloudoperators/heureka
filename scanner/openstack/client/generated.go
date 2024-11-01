@@ -44,50 +44,6 @@ func (v *Component) GetCcrn() string { return v.Ccrn }
 // GetType returns Component.Type, and is useful for accessing the field via an interface.
 func (v *Component) GetType() ComponentTypeValues { return v.Type }
 
-// ComponentAggregate includes the requested fields of the GraphQL type Component.
-type ComponentAggregate struct {
-	Id                string              `json:"id"`
-	Ccrn              string              `json:"ccrn"`
-	Type              ComponentTypeValues `json:"type"`
-	ComponentVersions *ComponentVersions  `json:"componentVersions"`
-}
-
-// GetId returns ComponentAggregate.Id, and is useful for accessing the field via an interface.
-func (v *ComponentAggregate) GetId() string { return v.Id }
-
-// GetCcrn returns ComponentAggregate.Ccrn, and is useful for accessing the field via an interface.
-func (v *ComponentAggregate) GetCcrn() string { return v.Ccrn }
-
-// GetType returns ComponentAggregate.Type, and is useful for accessing the field via an interface.
-func (v *ComponentAggregate) GetType() ComponentTypeValues { return v.Type }
-
-// GetComponentVersions returns ComponentAggregate.ComponentVersions, and is useful for accessing the field via an interface.
-func (v *ComponentAggregate) GetComponentVersions() *ComponentVersions { return v.ComponentVersions }
-
-// ComponentConnection includes the requested fields of the GraphQL type ComponentConnection.
-type ComponentConnection struct {
-	TotalCount int                                      `json:"totalCount"`
-	Edges      []*ComponentConnectionEdgesComponentEdge `json:"edges"`
-}
-
-// GetTotalCount returns ComponentConnection.TotalCount, and is useful for accessing the field via an interface.
-func (v *ComponentConnection) GetTotalCount() int { return v.TotalCount }
-
-// GetEdges returns ComponentConnection.Edges, and is useful for accessing the field via an interface.
-func (v *ComponentConnection) GetEdges() []*ComponentConnectionEdgesComponentEdge { return v.Edges }
-
-// ComponentConnectionEdgesComponentEdge includes the requested fields of the GraphQL type ComponentEdge.
-type ComponentConnectionEdgesComponentEdge struct {
-	Node   *ComponentAggregate `json:"node"`
-	Cursor string              `json:"cursor"`
-}
-
-// GetNode returns ComponentConnectionEdgesComponentEdge.Node, and is useful for accessing the field via an interface.
-func (v *ComponentConnectionEdgesComponentEdge) GetNode() *ComponentAggregate { return v.Node }
-
-// GetCursor returns ComponentConnectionEdgesComponentEdge.Cursor, and is useful for accessing the field via an interface.
-func (v *ComponentConnectionEdgesComponentEdge) GetCursor() string { return v.Cursor }
-
 type ComponentFilter struct {
 	ComponentCcrn []string `json:"componentCcrn"`
 }
@@ -194,8 +150,12 @@ func (v *ComponentVersion) GetComponentId() string { return v.ComponentId }
 
 // ComponentVersionConnection includes the requested fields of the GraphQL type ComponentVersionConnection.
 type ComponentVersionConnection struct {
-	Edges []*ComponentVersionConnectionEdgesComponentVersionEdge `json:"edges"`
+	TotalCount int                                                    `json:"totalCount"`
+	Edges      []*ComponentVersionConnectionEdgesComponentVersionEdge `json:"edges"`
 }
+
+// GetTotalCount returns ComponentVersionConnection.TotalCount, and is useful for accessing the field via an interface.
+func (v *ComponentVersionConnection) GetTotalCount() int { return v.TotalCount }
 
 // GetEdges returns ComponentVersionConnection.Edges, and is useful for accessing the field via an interface.
 func (v *ComponentVersionConnection) GetEdges() []*ComponentVersionConnectionEdgesComponentVersionEdge {
@@ -241,22 +201,6 @@ func (v *ComponentVersionInput) GetVersion() string { return v.Version }
 
 // GetComponentId returns ComponentVersionInput.ComponentId, and is useful for accessing the field via an interface.
 func (v *ComponentVersionInput) GetComponentId() string { return v.ComponentId }
-
-// ComponentVersions includes the requested fields of the GraphQL type ComponentVersionConnection.
-type ComponentVersions struct {
-	Edges []*ComponentVersionsEdgesComponentVersionEdge `json:"edges"`
-}
-
-// GetEdges returns ComponentVersions.Edges, and is useful for accessing the field via an interface.
-func (v *ComponentVersions) GetEdges() []*ComponentVersionsEdgesComponentVersionEdge { return v.Edges }
-
-// ComponentVersionsEdgesComponentVersionEdge includes the requested fields of the GraphQL type ComponentVersionEdge.
-type ComponentVersionsEdgesComponentVersionEdge struct {
-	Node *ComponentVersion `json:"node"`
-}
-
-// GetNode returns ComponentVersionsEdgesComponentVersionEdge.Node, and is useful for accessing the field via an interface.
-func (v *ComponentVersionsEdgesComponentVersionEdge) GetNode() *ComponentVersion { return v.Node }
 
 // CreateComponentInstanceResponse is returned by CreateComponentInstance on success.
 type CreateComponentInstanceResponse struct {
@@ -529,13 +473,49 @@ func (v *ListComponentVersionsResponse) GetComponentVersions() *ComponentVersion
 	return v.ComponentVersions
 }
 
+// ListComponentsComponentsComponentConnection includes the requested fields of the GraphQL type ComponentConnection.
+type ListComponentsComponentsComponentConnection struct {
+	TotalCount int                                                              `json:"totalCount"`
+	Edges      []*ListComponentsComponentsComponentConnectionEdgesComponentEdge `json:"edges"`
+}
+
+// GetTotalCount returns ListComponentsComponentsComponentConnection.TotalCount, and is useful for accessing the field via an interface.
+func (v *ListComponentsComponentsComponentConnection) GetTotalCount() int { return v.TotalCount }
+
+// GetEdges returns ListComponentsComponentsComponentConnection.Edges, and is useful for accessing the field via an interface.
+func (v *ListComponentsComponentsComponentConnection) GetEdges() []*ListComponentsComponentsComponentConnectionEdgesComponentEdge {
+	return v.Edges
+}
+
+// ListComponentsComponentsComponentConnectionEdgesComponentEdge includes the requested fields of the GraphQL type ComponentEdge.
+type ListComponentsComponentsComponentConnectionEdgesComponentEdge struct {
+	Node *ListComponentsComponentsComponentConnectionEdgesComponentEdgeNodeComponent `json:"node"`
+}
+
+// GetNode returns ListComponentsComponentsComponentConnectionEdgesComponentEdge.Node, and is useful for accessing the field via an interface.
+func (v *ListComponentsComponentsComponentConnectionEdgesComponentEdge) GetNode() *ListComponentsComponentsComponentConnectionEdgesComponentEdgeNodeComponent {
+	return v.Node
+}
+
+// ListComponentsComponentsComponentConnectionEdgesComponentEdgeNodeComponent includes the requested fields of the GraphQL type Component.
+type ListComponentsComponentsComponentConnectionEdgesComponentEdgeNodeComponent struct {
+	Id string `json:"id"`
+}
+
+// GetId returns ListComponentsComponentsComponentConnectionEdgesComponentEdgeNodeComponent.Id, and is useful for accessing the field via an interface.
+func (v *ListComponentsComponentsComponentConnectionEdgesComponentEdgeNodeComponent) GetId() string {
+	return v.Id
+}
+
 // ListComponentsResponse is returned by ListComponents on success.
 type ListComponentsResponse struct {
-	Components *ComponentConnection `json:"Components"`
+	Components *ListComponentsComponentsComponentConnection `json:"Components"`
 }
 
 // GetComponents returns ListComponentsResponse.Components, and is useful for accessing the field via an interface.
-func (v *ListComponentsResponse) GetComponents() *ComponentConnection { return v.Components }
+func (v *ListComponentsResponse) GetComponents() *ListComponentsComponentsComponentConnection {
+	return v.Components
+}
 
 // ListIssueRepositoriesIssueRepositoriesIssueRepositoryConnection includes the requested fields of the GraphQL type IssueRepositoryConnection.
 type ListIssueRepositoriesIssueRepositoriesIssueRepositoryConnection struct {
@@ -846,18 +826,10 @@ func (v *__ListComponentVersionsInput) GetFilter() *ComponentVersionFilter { ret
 // __ListComponentsInput is used internally by genqlient
 type __ListComponentsInput struct {
 	Filter *ComponentFilter `json:"filter,omitempty"`
-	First  int              `json:"first"`
-	After  string           `json:"after"`
 }
 
 // GetFilter returns __ListComponentsInput.Filter, and is useful for accessing the field via an interface.
 func (v *__ListComponentsInput) GetFilter() *ComponentFilter { return v.Filter }
-
-// GetFirst returns __ListComponentsInput.First, and is useful for accessing the field via an interface.
-func (v *__ListComponentsInput) GetFirst() int { return v.First }
-
-// GetAfter returns __ListComponentsInput.After, and is useful for accessing the field via an interface.
-func (v *__ListComponentsInput) GetAfter() string { return v.After }
 
 // __ListIssueRepositoriesInput is used internally by genqlient
 type __ListIssueRepositoriesInput struct {
@@ -1277,6 +1249,7 @@ func ListComponentInstances(
 const ListComponentVersions_Operation = `
 query ListComponentVersions ($filter: ComponentVersionFilter) {
 	ComponentVersions(filter: $filter) {
+		totalCount
 		edges {
 			node {
 				id
@@ -1316,25 +1289,13 @@ func ListComponentVersions(
 
 // The query or mutation executed by ListComponents.
 const ListComponents_Operation = `
-query ListComponents ($filter: ComponentFilter, $first: Int, $after: String) {
-	Components(filter: $filter, first: $first, after: $after) {
+query ListComponents ($filter: ComponentFilter) {
+	Components(filter: $filter) {
 		totalCount
 		edges {
 			node {
 				id
-				ccrn
-				type
-				componentVersions {
-					edges {
-						node {
-							id
-							version
-							componentId
-						}
-					}
-				}
 			}
-			cursor
 		}
 	}
 }
@@ -1344,16 +1305,12 @@ func ListComponents(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *ComponentFilter,
-	first int,
-	after string,
 ) (*ListComponentsResponse, error) {
 	req_ := &graphql.Request{
 		OpName: "ListComponents",
 		Query:  ListComponents_Operation,
 		Variables: &__ListComponentsInput{
 			Filter: filter,
-			First:  first,
-			After:  after,
 		},
 	}
 	var err_ error

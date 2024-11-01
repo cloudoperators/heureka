@@ -6,6 +6,7 @@ query ListComponentVersions($filter: ComponentVersionFilter) {
     ComponentVersions (
         filter: $filter,
     ) {
+        totalCount
         edges {
             # @genqlient(typename: "ComponentVersion")
             node {

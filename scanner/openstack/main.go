@@ -44,6 +44,19 @@ func init() {
 	log.SetLevel(level)
 }
 
+// createServiceObject creates a service object in the processor
+// and returns the service ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	projectName: Name of the project
+//
+// Returns:
+//
+//	string: Service ID
+//	error: Error object
 func createServiceObject(osProcessor processor.Processor, ctx context.Context, projectName string) (string, error) {
 	serviceObj := processor.ServiceInfo{
 		CCRN: projectName,
@@ -51,12 +64,25 @@ func createServiceObject(osProcessor processor.Processor, ctx context.Context, p
 
 	serviceId, err := osProcessor.ProcessService(ctx, serviceObj)
 	if err != nil {
-		log.WithError(err).Fatal("Error during processor process service")
+		log.WithError(err).Fatal("Error during processor processService")
 	}
 
 	return serviceId, err
 }
 
+// createSupportGroupObject creates a support group object in the processor
+// and returns the support group ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	supportGroupName: Name of the support group
+//
+// Returns:
+//
+//	string: Support Group ID
+//	error: Error object
 func createSupportGroupObject(osProcessor processor.Processor, ctx context.Context, supportGroupName string) (string, error) {
 	supportGroupObj := processor.SupportGroupInfo{
 		CCRN: supportGroupName,
@@ -64,12 +90,26 @@ func createSupportGroupObject(osProcessor processor.Processor, ctx context.Conte
 
 	supportGroupId, err := osProcessor.ProcessSupportGroup(ctx, supportGroupObj)
 	if err != nil {
-		log.WithError(err).Fatal("Error during processor process support group")
+		log.WithError(err).Fatal("Error during processor processSupportGroup")
 	}
 
 	return supportGroupId, err
 }
 
+// createIssueRepositoryObject creates an issue repository object in the processor
+// and returns the issue repository ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	issueRepositoryName: Name of the issue repository
+//	issueRepositoryUrl: URL of the issue repository
+//
+// Returns:
+//
+//	string: Issue Repository ID
+//	error: Error object
 func createIssueRepositoryObject(osProcessor processor.Processor, ctx context.Context, issueRepositoryName string, issueRepositoryUrl string) (string, error) {
 	issueRepositoryObj := processor.IssueRepositoryInfo{
 		Name: issueRepositoryName,
@@ -78,33 +118,61 @@ func createIssueRepositoryObject(osProcessor processor.Processor, ctx context.Co
 
 	issueRepositoryId, err := osProcessor.ProcessIssueRepository(ctx, issueRepositoryObj)
 	if err != nil {
-		log.WithError(err).Fatal("Error during processor process issue repository")
+		log.WithError(err).Fatal("Error during processor processIssueRepository")
 	}
 
 	return issueRepositoryId, err
 }
 
-func createComponentObject(osProcessor processor.Processor, ctx context.Context, componentName string) (string, error) {
+// createComponentObject creates a component object in the processor
+// and returns the component ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	componentCCRN: CCRN of the component
+//
+// Returns:
+//
+//	string: Component ID
+//	error: Error object
+func createComponentObject(osProcessor processor.Processor, ctx context.Context, componentCCRN string) (string, error) {
 	ComponentObj := processor.ComponentInfo{
-		CCRN: componentName,
+		CCRN: componentCCRN,
 	}
 
 	componentId, err := osProcessor.ProcessComponent(ctx, ComponentObj)
 	if err != nil {
-		log.WithError(err).Fatal("Error during processor process component")
+		log.WithError(err).Fatal("Error during processor processComponent")
 	}
 
 	return componentId, err
 }
 
-func createComponentVersionObject(osProcessor processor.Processor, ctx context.Context, componentVersionID string) (string, error) {
+// createComponentVersionObject creates a component version object in the processor
+// and returns the component version ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	version: Version of the component
+//	componentID: ID of the component
+//
+// Returns:
+//
+//	string: Component Version ID
+//	error: Error object
+func createComponentVersionObject(osProcessor processor.Processor, ctx context.Context, version string, componentID string) (string, error) {
 	componentVersionObj := processor.ComponentVersionInfo{
-		ComponentID: componentVersionID,
+		Version:     version,
+		ComponentID: componentID,
 	}
 
 	componentVersionId, err := osProcessor.ProcessComponentVersion(ctx, componentVersionObj)
 	if err != nil {
-		log.WithError(err).Fatal("Error during processor process service")
+		log.WithError(err).Fatal("Error during processor processComponentVersion")
 	}
 
 	return componentVersionId, err
@@ -136,13 +204,6 @@ func main() {
 		log.WithError(err).Fatal("Error during scanner get servers")
 	}
 
-	// print servers in a formatted way
-	for _, server := range servers {
-		fmt.Printf("Server ID: %s, Server Name: %s\n", server.ID, server.Name)
-		fmt.Printf("Server Status: %s\n", server.Status)
-		fmt.Print("\n\n")
-	}
-
 	// Create context with timeout (30min should be ok)
 	scanTimeout, err := time.ParseDuration(scannerCfg.ScannerTimeout)
 	if err != nil {
@@ -156,14 +217,14 @@ func main() {
 	serviceName := scannerCfg.Project
 	serviceId, err := createServiceObject(*osProcessor, ctx, serviceName)
 	if err != nil {
-		log.WithError(err).Fatal("Error during create service object")
+		log.WithError(err).Fatal("Error during createServiceObject")
 	}
 
 	// Create support group object
 	supportGroupName := serviceName + "_SupportGroup"
 	supportGroupId, err := createSupportGroupObject(*osProcessor, ctx, supportGroupName)
 	if err != nil {
-		log.WithError(err).Fatal("Error during create support group object")
+		log.WithError(err).Fatal("Error during createSupportGroupObject")
 	}
 
 	// join service to support group
@@ -178,34 +239,50 @@ func main() {
 	issueRepositoryUrl := "https://wiki.one.int.sap/wiki/display/itsec/SAP+Converged+Cloud+-+Security+Hardening"
 	_, err = createIssueRepositoryObject(*osProcessor, ctx, issueRepositoryName, issueRepositoryUrl)
 	if err != nil {
-		log.WithError(err).Fatal("Error during create issue repository object")
+		log.WithError(err).Fatal("Error during createIssueRepositoryObject")
+	}
+
+	// print servers in a formatted way
+	for _, server := range servers {
+		fmt.Printf("Server ID: %s, Server Name: %s\n", server.ID, server.Name)
+		fmt.Printf("Server Status: %s\n", server.Status)
+		fmt.Printf("Server Image Data: %v\n", server.Image)
+		fmt.Print("\n\n")
 	}
 
 	// Create component object for each server
 	for _, server := range servers {
+
+		if server.Metadata == nil || server.Metadata["image_name"] == "" {
+			// Skip servers without image name
+			// Need to figure out how to handle this case in the future
+			log.WithFields(log.Fields{
+				"server_id": server.ID,
+			}).Warning("Server image name is empty")
+			continue
+		}
+
 		// Seperate Component name and version from server data
 		re := regexp.MustCompile(`^([a-zA-Z\-]+)-([0-9].*)$`)
 		matches := re.FindStringSubmatch(server.Metadata["image_name"])
-		//imageVersion := matches[2]
+
 		imageName := matches[1]
+		imageVersion := matches[2]
 
-		_, err = createComponentObject(*osProcessor, ctx, imageName)
+		componentId, err := createComponentObject(*osProcessor, ctx, imageName)
 		if err != nil {
-			log.WithError(err).Fatal("Error during create component object")
+			log.WithError(err).Fatal("Error during createComponentObject")
 		}
-	}
 
-	// Create component version object for each server
-	for _, server := range servers {
-		_, err = createComponentVersionObject(*osProcessor, ctx, server.Metadata["image_id"])
+		_, err = createComponentVersionObject(*osProcessor, ctx, imageVersion, componentId)
 		if err != nil {
-			log.WithError(err).Fatal("Error during create component version object")
+			log.WithError(err).Fatal("Error during createComponentVersionObject")
 		}
 	}
 
 	results, err := osProcessor.ProcessServers(servers)
 	if err != nil {
-		log.WithError(err).Fatal("Error during processor process servers")
+		log.WithError(err).Fatal("Error during processor ProcessServers")
 	}
 
 	fmt.Print("Results: \n")

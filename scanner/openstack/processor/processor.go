@@ -38,8 +38,8 @@ type ComponentInfo struct {
 }
 
 type ComponentVersionInfo struct {
-	ComponentID      string
-	ComponentVersion string
+	Version     string
+	ComponentID string
 }
 
 func NewProcessor(cfg Config) *Processor {
@@ -293,6 +293,160 @@ func (p *Processor) GetIssueRepository(ctx context.Context, issueRepositoryInfo 
 	return "", fmt.Errorf("ListIssueRepositories returned no IssueRepositoryID")
 }
 
+// ProcessComponent processes a component and creates a new component if it doesn't exist.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	componentInfo ComponentInfo - The component info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the component.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ProcessComponent(ctx context.Context, componentInfo ComponentInfo) (string, error) {
+	var componentId string
+
+	if componentInfo.CCRN == "" {
+		componentInfo.CCRN = "none"
+	}
+
+	// The Component might already exist in the DB
+	// Let's try to fetch list of Components by name
+	_componentId, err := p.GetComponent(ctx, componentInfo)
+
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"componentCcrn": componentInfo.CCRN,
+		}).Error("failed to fetch component")
+
+		// Create new Component
+		createComponentInput := &client.ComponentInput{
+			Ccrn: componentInfo.CCRN,
+			Type: client.ComponentTypeValuesVirtualmachineimage,
+		}
+
+		createComponentResp, err := client.CreateComponent(ctx, *p.Client, createComponentInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create Component %s: %w", componentInfo.CCRN, err)
+		} else {
+			componentId = createComponentResp.CreateComponent.Id
+		}
+	} else {
+		componentId = _componentId
+	}
+
+	return componentId, nil
+}
+
+// GetComponent fetches a component by CCRN
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	componentInfo ComponentInfo - The component info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the component.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) GetComponent(ctx context.Context, componentInfo ComponentInfo) (string, error) {
+	listComponentsFilter := client.ComponentFilter{
+		ComponentCcrn: []string{componentInfo.CCRN},
+	}
+	listComponentsResp, err := client.ListComponents(ctx, *p.Client, &listComponentsFilter)
+	if err != nil {
+		fmt.Println(err)
+		return "", fmt.Errorf("couldn't list components")
+	}
+
+	// Return the first item
+	if listComponentsResp.Components.TotalCount > 0 {
+		return listComponentsResp.Components.Edges[0].Node.Id, nil
+	}
+
+	// No Component found
+	return "", fmt.Errorf("ListComponents returned no ComponentID")
+}
+
+// ProcessComponentVersion processes a component version and creates a new component version if it doesn't exist.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	componentVersionInfo ComponentVersionInfo - The component version info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the component version.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ProcessComponentVersion(ctx context.Context, componentVersionInfo ComponentVersionInfo) (string, error) {
+	var componentVersionId string
+
+	if componentVersionInfo.Version == "" {
+		componentVersionInfo.Version = "none"
+	}
+
+	// The Component Version might already exist in the DB
+	// Let's try to fetch list of Component Versions by name
+	_componentVersionId, err := p.GetComponentVersion(ctx, componentVersionInfo)
+
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"version":     componentVersionInfo.Version,
+			"componentID": componentVersionInfo.ComponentID,
+		}).Error("failed to fetch componentVersion")
+
+		// Create new Component Version
+		createComponentVersionInput := &client.ComponentVersionInput{
+			Version:     componentVersionInfo.Version,
+			ComponentId: componentVersionInfo.ComponentID,
+		}
+
+		createComponentVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, createComponentVersionInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create ComponentVersion %s %s: %w", componentVersionInfo.Version, componentVersionInfo.ComponentID, err)
+		} else {
+			componentVersionId = createComponentVersionResp.CreateComponentVersion.Id
+		}
+	} else {
+		componentVersionId = _componentVersionId
+	}
+
+	return componentVersionId, nil
+}
+
+// GetComponentVersion fetches a component version by version and component ID
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	componentVersionInfo ComponentVersionInfo - The component version info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the component version.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) GetComponentVersion(ctx context.Context, componentVersionInfo ComponentVersionInfo) (string, error) {
+	listComponentVersionFilter := client.ComponentVersionFilter{
+		Version:     []string{componentVersionInfo.Version},
+		ComponentId: []string{componentVersionInfo.ComponentID},
+	}
+	listComponentVersionssResp, err := client.ListComponentVersions(ctx, *p.Client, &listComponentVersionFilter)
+	if err != nil {
+		fmt.Println(err)
+		return "", fmt.Errorf("couldn't list component versions")
+	}
+
+	// Return the first item
+	if listComponentVersionssResp.ComponentVersions.TotalCount > 0 {
+		return listComponentVersionssResp.ComponentVersions.Edges[0].Node.Id, nil
+	}
+
+	// No Component Version found
+	return "", fmt.Errorf("ListComponentVersions returned no ComponentVersionID")
+}
+
 // ProcessServers processes a list of servers and checks if they are compliant with policy 4.5.
 // It returns a slice of maps, where each map contains the server name, server image name,
 // and the compliance result.
@@ -349,168 +503,4 @@ func policy4dot5Check(img_name string) bool {
 		return true
 	}
 	return false
-}
-
-// ProcessComponent processes a component and creates a new component if it doesn't exist.
-//
-// Parameters:
-//
-//	ctx context.Context - The context to be used for the request.
-//	componentInfo ComponentInfo - The component info to be used for the request.
-//
-// Returns:
-//
-//	string - The ID of the component.
-//	error - An error if something goes wrong during the request.
-func (p *Processor) ProcessComponent(ctx context.Context, componentInfo ComponentInfo) (string, error) {
-	var componentId string
-
-	if componentInfo.CCRN == "" {
-		componentInfo.CCRN = "none"
-	}
-
-	listComponentFilter := &client.ComponentFilter{
-		ComponentCcrn: []string{componentInfo.CCRN},
-	}
-
-	pagesize := 100
-
-	// The Component might already exist in the DB
-	// Let's try to fetch list of Components by name
-	components, err := p.GetAllComponents(listComponentFilter, pagesize)
-
-	if err != nil || len(components) == 0 {
-		log.WithError(err).WithFields(log.Fields{
-			"componentCcrn": componentInfo.CCRN,
-		}).Error("failed to fetch component")
-
-		// Create new Component
-		createComponentInput := &client.ComponentInput{
-			Ccrn: componentInfo.CCRN,
-			Type: client.ComponentTypeValuesVirtualmachineimage,
-		}
-
-		createComponentResp, err := client.CreateComponent(ctx, *p.Client, createComponentInput)
-		if err != nil {
-			return "", fmt.Errorf("failed to create Component %s: %w", componentInfo.CCRN, err)
-		} else {
-			componentId = createComponentResp.CreateComponent.Id
-		}
-	} else {
-		// Retrieve ID from []*client.ComponentAggregate
-		componentId = components[0].GetId()
-	}
-
-	return componentId, nil
-}
-
-// GetAllComponents fetches a slice of ComponentAggregates storing Component data
-//
-// Parameters:
-//
-//		filter *client.ComponentFilter - the filter for specific Component
-//		pageSize int - Maximum number of elements in first page of pagination process
-//
-//	 Returns:
-//
-//		[]*client.ComponentAggregate - slice of component data
-//		error - An error if something goes wrong during the request.
-func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize int) ([]*client.ComponentAggregate, error) {
-	var allComponents []*client.ComponentAggregate
-	cursor := "0" // Set initial cursor to "0"
-
-	for {
-		// ListComponents also returns the ComponentVersions of each Component
-		listComponentsResp, err := client.ListComponents(context.Background(), *p.Client, filter, pageSize, cursor)
-		if err != nil {
-			return nil, fmt.Errorf("cannot list Components: %w", err)
-		}
-
-		if len(listComponentsResp.Components.Edges) == 0 {
-			break
-		}
-
-		for _, edge := range listComponentsResp.Components.Edges {
-			allComponents = append(allComponents, edge.Node)
-		}
-
-		if len(listComponentsResp.Components.Edges) < pageSize {
-			break
-		}
-
-		// Update cursor for the next iteration
-		cursor = listComponentsResp.Components.Edges[len(listComponentsResp.Components.Edges)-1].Cursor
-	}
-	return allComponents, nil
-}
-
-func (p *Processor) ProcessComponentVersion(ctx context.Context, componentVersionInfo ComponentVersionInfo) (string, error) {
-	var componentVersionId string
-
-	if componentVersionInfo.ComponentVersion == "" {
-		componentVersionInfo.ComponentVersion = "none"
-	}
-
-	listComponentVersionFilter := &client.ComponentVersionFilter{
-		Version: []string{componentVersionInfo.ComponentVersion},
-	}
-
-	pagesize := 100
-
-	// The Component might already exist in the DB
-	// Let's try to fetch list of Components by name
-	components, err := p.GetAllComponentVersions(listComponentVersionFilter, pagesize)
-
-	if err != nil || len(components) == 0 {
-		log.WithError(err).WithFields(log.Fields{
-			"componentVersionID": componentVersionInfo.ComponentID,
-		}).Error("failed to fetch componentVersion")
-
-		// Create new Component
-		createComponentVersionInput := &client.ComponentVersionInput{
-			Version:     componentVersionInfo.ComponentVersion,
-			ComponentId: componentVersionInfo.ComponentID,
-		}
-
-		createComponentVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, createComponentVersionInput)
-		if err != nil {
-			return "", fmt.Errorf("failed to create ComponentVersion %s: %w", componentVersionInfo.ComponentID, err)
-		} else {
-			componentVersionId = createComponentVersionResp.CreateComponentVersion.Id
-		}
-	} else {
-		// Retrieve ID from []*client.ComponentAggregate
-		componentVersionId = components[0].GetId()
-	}
-
-	return componentVersionId, nil
-}
-
-func (p *Processor) GetAllComponentVersions(filter *client.ComponentVersionFilter, pageSize int) ([]*client.ComponentVersion, error) {
-	var allComponents []*client.ComponentVersion
-	//cursor := "0" // Set initial cursor to "0"
-
-	for {
-		// ListComponents also returns the ComponentVersions of each Component
-		listComponentsResp, err := client.ListComponentVersions(context.Background(), *p.Client, filter)
-		if err != nil {
-			return nil, fmt.Errorf("cannot list ComponentVersion: %w", err)
-		}
-
-		if len(listComponentsResp.ComponentVersions.Edges) == 0 {
-			break
-		}
-
-		for _, edge := range listComponentsResp.ComponentVersions.Edges {
-			allComponents = append(allComponents, edge.Node)
-		}
-
-		if len(listComponentsResp.ComponentVersions.Edges) < pageSize {
-			break
-		}
-
-		// Update cursor for the next iteration
-		// cursor = listComponentsResp.ComponentVersions.Edges[len(listComponentsResp.ComponentVersions.Edges)-1].Cursor
-	}
-	return allComponents, nil
 }
