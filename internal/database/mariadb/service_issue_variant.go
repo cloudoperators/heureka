@@ -94,17 +94,17 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
 	})
 
 	baseQuery := `
-		SELECT IRS.issuerepositoryservice_priority, IV.*  FROM  ComponentInstance CI 
+		SELECT IRS.issuerepositoryservice_priority, IV.*  FROM  ComponentInstance CI
 			# Join path to Issue
 			INNER JOIN ComponentVersion CV on CI.componentinstance_component_version_id = CV.componentversion_id
 			INNER JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id
 			INNER JOIN Issue I on CVI.componentversionissue_issue_id = I.issue_id
-			
+
 			# Join path to Repository
 			INNER JOIN Service S on CI.componentinstance_service_id = S.service_id
 			INNER JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
 			INNER JOIN IssueRepository IR on IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id
-			
+
 			# Join to from repo and issue to IssueVariant
 			INNER JOIN IssueVariant IV on I.issue_id = IV.issuevariant_issue_id and IV.issuevariant_repository_id = IR.issuerepository_id
 		%s
