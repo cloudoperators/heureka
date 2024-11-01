@@ -114,61 +114,78 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 			return
 		}
 
-		// Get IssueVariants
-		issueVariants, err := db.GetIssueVariants(&entity.IssueVariantFilter{
-			IssueId: []*int64{&attachmentEvent.IssueID},
-		})
-		if err != nil {
-			l.WithError(err).Error("Failed to fetch issue variants")
-			return
-		}
-
-		if len(issueVariants) == 0 {
-			l.Warn("No issue variants found for issue")
-			return
-		}
-
-		// TODO: Use the first variant's severity (we could implement more complex severity selection logic here)
-		severity := issueVariants[0].Severity
-
+		// For each ComponentInstance get available IssueVariants
+		// via GetServiceIssueVariants
 		for _, compInst := range componentInstances {
-			l.WithField("event-step", "GetIssueMatches").Debug("Fetching issue matches related to Component Instance")
-			issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
+			// Get Service Issue Variants
+			issueVariantMap, err := shared.BuildIssueVariantMap(db, &entity.ServiceIssueVariantFilter{
 				ComponentInstanceId: []*int64{&compInst.Id},
 				IssueId:             []*int64{&attachmentEvent.IssueID},
-			})
-
+			}, attachmentEvent.ComponentVersionID)
 			if err != nil {
-				l.WithField("event-step", "GetIssueMatches").WithError(err).Error("Error while fetching issue matches related to Component Instance")
-				return
-			}
-			l.WithField("issueMatchesCount", len(issue_matches))
-
-			if len(issue_matches) > 0 {
-				l.WithField("event-step", "Skipping").Debug("The issue match does already exist. Skipping")
-				continue
+				l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants")
 			}
 
-			// Create new issue match
-			issue_match := &entity.IssueMatch{
-				UserId:                1, // TODO: change this?
-				Status:                entity.IssueMatchStatusValuesNew,
-				Severity:              severity, //we got two  simply take the first one
-				ComponentInstanceId:   compInst.Id,
-				IssueId:               attachmentEvent.IssueID,
-				TargetRemediationDate: shared.GetTargetRemediationTimeline(severity, time.Now(), nil),
-			}
-			l.WithField("event-step", "CreateIssueMatch").WithField("issueMatch", issue_match).Debug("Creating Issue Match")
-
-			_, err = db.CreateIssueMatch(issue_match)
-			if err != nil {
-				l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
-				return
-			}
-
+			// Create new IssueMatches
+			createIssueMatches(db, l, compInst.Id, issueVariantMap)
 		}
 	} else {
 		l.Error("Invalid event type received")
 	}
 
+}
+
+// TODO: This function is very similar to the one used in issue_match_handler_events.go
+// We might as well put this into the shared package
+//
+// createIssueMatches creates new issue matches based on the component instance Id,
+// issue ID and their corresponding issue variants (sorted by priority)
+func createIssueMatches(
+	db database.Database,
+	l *logrus.Entry,
+	componentInstanceId int64,
+	issueVariantMap map[int64]entity.ServiceIssueVariant,
+) {
+	for issueId, issueVariant := range issueVariantMap {
+		l = l.WithFields(logrus.Fields{
+			"issue": issueVariant,
+		})
+
+		// Check if IssueMatches already exist
+		l.WithField("event-step", "FetchIssueMatches").Debug("Fetching issue matches related to assigned Component Instance")
+		issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
+			IssueId:             []*int64{&issueId},
+			ComponentInstanceId: []*int64{&componentInstanceId},
+		})
+
+		if err != nil {
+			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
+			return
+		}
+		l.WithField("issueMatchesCount", len(issue_matches))
+
+		if len(issue_matches) != 0 {
+			l.WithField("event-step", "Skipping").Debug("The issue match does already exist. Skipping")
+			return
+		}
+
+		// Create new issue match
+		// currently a static user is assumed to be used, this going to change in future to either a configured user or a dynamically
+		// infered user from the component version issue macht
+		issue_match := &entity.IssueMatch{
+			UserId:                1, //@todo discuss whatever we use a static system user or infer the user from the ComponentVersionIssue
+			Status:                entity.IssueMatchStatusValuesNew,
+			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
+			ComponentInstanceId:   componentInstanceId,
+			IssueId:               issueId,
+			TargetRemediationDate: shared.GetTargetRemediationTimeline(issueVariant.Severity, time.Now(), nil),
+		}
+		l.WithField("event-step", "CreateIssueMatch").WithField("issueMatch", issue_match).Debug("Creating Issue Match")
+
+		_, err = db.CreateIssueMatch(issue_match)
+		if err != nil {
+			l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
+			return
+		}
+	}
 }

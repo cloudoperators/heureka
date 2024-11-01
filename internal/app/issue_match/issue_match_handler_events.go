@@ -151,7 +151,9 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 	})
 
 	l.WithField("event-step", "BuildIssueVariants").Debug("Building map of IssueVariants for issues related to assigned Component Version")
-	issueVariantMap, err := BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
+	issueVariantMap, err := shared.BuildIssueVariantMap(db, &entity.ServiceIssueVariantFilter{
+		ComponentInstanceId: []*int64{&componentInstanceID},
+	}, componentVersionID)
 
 	l.WithField("issueVariantMap", issueVariantMap)
 	if err != nil {
