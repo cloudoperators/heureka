@@ -42,6 +42,13 @@ type ComponentVersionInfo struct {
 	ComponentID string
 }
 
+type ComponentInstanceInfo struct {
+	CCRN               string
+	ComponentVersionID string
+	ServiceID          string
+	ServiceCCRN        string
+}
+
 func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
@@ -445,6 +452,87 @@ func (p *Processor) GetComponentVersion(ctx context.Context, componentVersionInf
 
 	// No Component Version found
 	return "", fmt.Errorf("ListComponentVersions returned no ComponentVersionID")
+}
+
+// ProcessComponentInstance processes a component instance and creates a new component instance if it doesn't exist.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	componentInstanceInfo ComponentInstanceInfo - The component instance info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the component instance.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ProcessComponentInstance(ctx context.Context, componentInstanceInfo ComponentInstanceInfo) (string, error) {
+	var componentInstanceId string
+
+	if componentInstanceInfo.CCRN == "" {
+		componentInstanceInfo.CCRN = "none"
+	}
+
+	// The Component Instance might already exist in the DB
+	// Let's try to fetch list of Component Instances by name
+	_componentInstanceId, err := p.GetComponentInstance(ctx, componentInstanceInfo)
+
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"ccrn":               componentInstanceInfo.CCRN,
+			"componentVersionId": componentInstanceInfo.ComponentVersionID,
+			"serviceId":          componentInstanceInfo.ServiceID,
+		}).Error("failed to fetch componentInstance")
+
+		// Create new Component Instance
+		createComponentInstanceInput := &client.ComponentInstanceInput{
+			Ccrn:               componentInstanceInfo.CCRN,
+			Count:              1,
+			ComponentVersionId: componentInstanceInfo.ComponentVersionID,
+			ServiceId:          componentInstanceInfo.ServiceID,
+		}
+
+		createComponentInstanceResp, err := client.CreateComponentInstance(ctx, *p.Client, createComponentInstanceInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create ComponentInstance %s: %w", componentInstanceInfo.CCRN, err)
+		} else {
+			componentInstanceId = createComponentInstanceResp.CreateComponentInstance.Id
+		}
+	} else {
+		componentInstanceId = _componentInstanceId
+	}
+
+	return componentInstanceId, nil
+}
+
+// GetComponentInstance fetches a component instance by CCRN
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	componentInstanceInfo ComponentInstanceInfo - The component instance info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the component instance.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) GetComponentInstance(ctx context.Context, componentInstanceInfo ComponentInstanceInfo) (string, error) {
+	listComponentInstancesFilter := client.ComponentInstanceFilter{
+		Ccrn:        []string{componentInstanceInfo.CCRN},
+		ServiceCcrn: []string{componentInstanceInfo.ServiceCCRN},
+	}
+	listComponentInstancesResp, err := client.ListComponentInstances(ctx, *p.Client, &listComponentInstancesFilter)
+	if err != nil {
+		fmt.Println(err)
+		return "", fmt.Errorf("couldn't list component instances")
+	}
+
+	// Return the first item
+	if listComponentInstancesResp.ComponentInstances.TotalCount > 0 {
+		return listComponentInstancesResp.ComponentInstances.Edges[0].Node.Id, nil
+	}
+
+	// No Component Instance found
+	return "", fmt.Errorf("ListComponentInstances returned no ComponentInstanceID")
 }
 
 // ProcessServers processes a list of servers and checks if they are compliant with policy 4.5.

@@ -51,15 +51,15 @@ func init() {
 //
 //	osProcessor: Processor object
 //	ctx: context object
-//	projectName: Name of the project
+//	serviceCCRN: CCRN of the service
 //
 // Returns:
 //
 //	string: Service ID
 //	error: Error object
-func createServiceObject(osProcessor processor.Processor, ctx context.Context, projectName string) (string, error) {
+func createServiceObject(osProcessor processor.Processor, ctx context.Context, serviceCCRN string) (string, error) {
 	serviceObj := processor.ServiceInfo{
-		CCRN: projectName,
+		CCRN: serviceCCRN,
 	}
 
 	serviceId, err := osProcessor.ProcessService(ctx, serviceObj)
@@ -77,15 +77,15 @@ func createServiceObject(osProcessor processor.Processor, ctx context.Context, p
 //
 //	osProcessor: Processor object
 //	ctx: context object
-//	supportGroupName: Name of the support group
+//	supportGroupCCRN: CCRN of the support group
 //
 // Returns:
 //
 //	string: Support Group ID
 //	error: Error object
-func createSupportGroupObject(osProcessor processor.Processor, ctx context.Context, supportGroupName string) (string, error) {
+func createSupportGroupObject(osProcessor processor.Processor, ctx context.Context, supportGroupCCRN string) (string, error) {
 	supportGroupObj := processor.SupportGroupInfo{
-		CCRN: supportGroupName,
+		CCRN: supportGroupCCRN,
 	}
 
 	supportGroupId, err := osProcessor.ProcessSupportGroup(ctx, supportGroupObj)
@@ -178,6 +178,38 @@ func createComponentVersionObject(osProcessor processor.Processor, ctx context.C
 	return componentVersionId, err
 }
 
+// createComponentInstanceObject creates a component instance object in the processor
+// and returns the component instance ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	componentInstanceCCRN: CCRN of the component instance
+//	componentVersionID: ID of the component version
+//	serviceID: ID of the service
+//	serviceCCRN: CCRN of the service
+//
+// Returns:
+//
+//	string: Component Instance ID
+//	error: Error object
+func createComponentInstanceObject(osProcessor processor.Processor, ctx context.Context, componentInstanceCCRN string, componentVersionID string, serviceID string, serviceCCRN string) (string, error) {
+	componentInstanceObj := processor.ComponentInstanceInfo{
+		CCRN:               componentInstanceCCRN,
+		ComponentVersionID: componentVersionID,
+		ServiceID:          serviceID,
+		ServiceCCRN:        serviceCCRN,
+	}
+
+	componentInstanceID, err := osProcessor.ProcessComponentInstance(ctx, componentInstanceObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processComponentInstance")
+	}
+
+	return componentInstanceID, err
+}
+
 func main() {
 	var scannerCfg scanner.Config
 	err := envconfig.Process("openstack", &scannerCfg)
@@ -214,15 +246,15 @@ func main() {
 	defer cancel()
 
 	// Create service object
-	serviceName := scannerCfg.Project
-	serviceId, err := createServiceObject(*osProcessor, ctx, serviceName)
+	serviceCCRN := scannerCfg.Project
+	serviceId, err := createServiceObject(*osProcessor, ctx, serviceCCRN)
 	if err != nil {
 		log.WithError(err).Fatal("Error during createServiceObject")
 	}
 
 	// Create support group object
-	supportGroupName := serviceName + "_SupportGroup"
-	supportGroupId, err := createSupportGroupObject(*osProcessor, ctx, supportGroupName)
+	supportGroupCCRN := serviceCCRN + "_SupportGroup"
+	supportGroupId, err := createSupportGroupObject(*osProcessor, ctx, supportGroupCCRN)
 	if err != nil {
 		log.WithError(err).Fatal("Error during createSupportGroupObject")
 	}
@@ -274,9 +306,15 @@ func main() {
 			log.WithError(err).Fatal("Error during createComponentObject")
 		}
 
-		_, err = createComponentVersionObject(*osProcessor, ctx, imageVersion, componentId)
+		componentVersionId, err := createComponentVersionObject(*osProcessor, ctx, imageVersion, componentId)
 		if err != nil {
 			log.WithError(err).Fatal("Error during createComponentVersionObject")
+		}
+
+		componentInstanceCCRN := serviceCCRN + "_" + server.Metadata["image_name"]
+		_, err = createComponentInstanceObject(*osProcessor, ctx, componentInstanceCCRN, componentVersionId, serviceId, serviceCCRN)
+		if err != nil {
+			log.WithError(err).Fatal("Error during createComponentInstanceObject")
 		}
 	}
 
