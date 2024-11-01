@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/cloudoperators/heureka/scanner/openstack/processor"
@@ -182,7 +183,13 @@ func main() {
 
 	// Create component object for each server
 	for _, server := range servers {
-		_, err = createComponentObject(*osProcessor, ctx, server.Metadata["image_name"])
+		// Seperate Component name and version from server data
+		re := regexp.MustCompile(`^([a-zA-Z\-]+)-([0-9].*)$`)
+		matches := re.FindStringSubmatch(server.Metadata["image_name"])
+		//imageVersion := matches[2]
+		imageName := matches[1]
+
+		_, err = createComponentObject(*osProcessor, ctx, imageName)
 		if err != nil {
 			log.WithError(err).Fatal("Error during create component object")
 		}
