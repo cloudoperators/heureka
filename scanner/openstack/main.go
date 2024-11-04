@@ -239,6 +239,13 @@ func createIssueObject(osProcessor processor.Processor, ctx context.Context, pri
 }
 
 func main() {
+
+	// Some hardcoded values for now
+	issueRepositoryName := "SAP Converged Cloud - Security Hardening"
+	issueRepositoryUrl := "https://wiki.one.int.sap/wiki/display/itsec/SAP+Converged+Cloud+-+Security+Hardening"
+	issuePrimaryName := "4.5 Ensure only approved Golden images are used in VM creation"
+	issueDescription := "Only SAP approved Golden Images SHOULD be used. These Golden images are compliant to SAP security, legal, license and compliance requirements per default. The owner of the VM image is responsible to ensure it is compliant and secure."
+
 	var scannerCfg scanner.Config
 	err := envconfig.Process("openstack", &scannerCfg)
 	if err != nil {
@@ -294,9 +301,6 @@ func main() {
 	}
 
 	// Create issue repository object
-	// Hardcoded name & url for hardening guide for PoC
-	issueRepositoryName := "SAP Converged Cloud - Security Hardening"
-	issueRepositoryUrl := "https://wiki.one.int.sap/wiki/display/itsec/SAP+Converged+Cloud+-+Security+Hardening"
 	issueRepositoryId, err := createIssueRepositoryObject(*osProcessor, ctx, issueRepositoryName, issueRepositoryUrl)
 	if err != nil {
 		log.WithError(err).Fatal("Error during createIssueRepositoryObject")
@@ -306,6 +310,12 @@ func main() {
 	err = osProcessor.ConnectIssueRepositoryToService(ctx, issueRepositoryId, serviceId)
 	if err != nil {
 		log.WithError(err).Warning("Failed adding issue repository to service")
+	}
+
+	// Create issue object
+	issue45Id, err := createIssueObject(*osProcessor, ctx, issuePrimaryName, issueDescription)
+	if err != nil {
+		log.WithError(err).Fatal("Error during createIssueObject")
 	}
 
 	// print servers in a formatted way
@@ -328,9 +338,11 @@ func main() {
 			continue
 		}
 
+		fullImageName := server.Metadata["image_name"]
+
 		// Seperate Component name and version from server data
 		re := regexp.MustCompile(`^([a-zA-Z\-]+)-([0-9].*)$`)
-		matches := re.FindStringSubmatch(server.Metadata["image_name"])
+		matches := re.FindStringSubmatch(fullImageName)
 
 		imageName := matches[1]
 		imageVersion := matches[2]
@@ -350,14 +362,23 @@ func main() {
 		if err != nil {
 			log.WithError(err).Fatal("Error during createComponentInstanceObject")
 		}
-	}
 
-	results, err := osProcessor.ProcessServers(servers)
-	if err != nil {
-		log.WithError(err).Fatal("Error during processor ProcessServers")
+		// Perform policy checks
+		if osProcessor.Policy4dot5Check(fullImageName) {
+			// Compliant
+			// Need to decide what to do here, if anything.
+			// but for now we can just log it
+			log.WithFields(log.Fields{
+				"server_id":  server.ID,
+				"image_name": fullImageName,
+			}).Info("Server image is compliant")
+		} else {
+			// Non-Compliant
+			// Connect component version to relevant issue
+			err = osProcessor.ConnectComponentVersionToIssue(ctx, componentVersionId, issue45Id)
+			if err != nil {
+				log.WithError(err).Warning("Failed adding component version to issue")
+			}
+		}
 	}
-
-	fmt.Print("Results: \n")
-	fmt.Print(results)
-	fmt.Print("\n\n")
 }

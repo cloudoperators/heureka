@@ -11,7 +11,6 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/scanner/openstack/client"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -646,44 +645,32 @@ func (p *Processor) GetIssue(ctx context.Context, issueInfo IssueInfo) (string, 
 	return "", fmt.Errorf("ListIssues returned no IssueID")
 }
 
-// ProcessServers processes a list of servers and checks if they are compliant with policy 4.5.
-// It returns a slice of maps, where each map contains the server name, server image name,
-// and the compliance result.
+// ConnectComponentVersionToIssue connects a component version to an issue.
 //
 // Parameters:
 //
-//	serverList []servers.Server - A list of servers to be processed.
+//	ctx context.Context - The context to be used for the request.
+//	componentVersionId string - The ID of the component version.
+//	issueId string - The ID of the issue.
 //
 // Returns:
 //
-//	[]map[string]interface{} - A slice of maps containing server details and compliance results.
-//	error - An error if something goes wrong during processing.
-func (p *Processor) ProcessServers(serverList []servers.Server) ([]map[string]interface{}, error) {
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ConnectComponentVersionToIssue(ctx context.Context, componentVersionId string, issueId string) error {
+	_, err := client.AddComponentVersionToIssue(ctx, *p.Client, issueId, componentVersionId)
 
-	output := []map[string]interface{}{}
-
-	for _, server := range serverList {
-
-		imgName := server.Metadata["image_name"]
-
-		resultObj := map[string]interface{}{
-			"server_name":       server.Name,
-			"server_image_name": imgName,
-		}
-
-		if policy4dot5Check(imgName) {
-			resultObj["result"] = "compliant"
-		} else {
-			resultObj["result"] = "non-compliant"
-		}
-
-		output = append(output, resultObj)
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"componentVersionId": componentVersionId,
+			"issueId":            issueId,
+		}).Warning("Failed adding component version to issue")
+		return err
 	}
 
-	return output, nil
+	return nil
 }
 
-// policy4dot5Check checks if the given image name complies with policy 4.5.
+// Policy4dot5Check checks if the given image name complies with policy 4.5.
 // Policy 4.5 requires that the image name contains either "gardenlinux" or "SAP-compliant".
 //
 // Parameters:
@@ -693,7 +680,7 @@ func (p *Processor) ProcessServers(serverList []servers.Server) ([]map[string]in
 // Returns:
 //
 //	bool: Returns true if the image name complies with policy 4.5, otherwise false.
-func policy4dot5Check(img_name string) bool {
+func (p *Processor) Policy4dot5Check(img_name string) bool {
 	// This is a temporary hardcoded implementation of policy 4.5 for the OpenStack scanner PoC
 	// This function will be replaced by the actual implementation of policy checks in the future
 	// Policy 4.5 checks that the image name contains either "gardenlinux" or "SAP-compliant"
