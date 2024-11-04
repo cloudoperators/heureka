@@ -576,6 +576,17 @@ func (p *Processor) GetComponentInstance(ctx context.Context, componentInstanceI
 	return "", fmt.Errorf("ListComponentInstances returned no ComponentInstanceID")
 }
 
+// ProcessIssue processes an issue and creates a new issue if it doesn't exist.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	issueInfo IssueInfo - The issue info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the issue.
+//	error - An error if something goes wrong during the request.
 func (p *Processor) ProcessIssue(ctx context.Context, issueInfo IssueInfo) (string, error) {
 	var issueId string
 

@@ -357,7 +357,7 @@ func main() {
 			log.WithError(err).Fatal("Error during createComponentVersionObject")
 		}
 
-		componentInstanceCCRN := serviceCCRN + "_" + server.Metadata["image_name"]
+		componentInstanceCCRN := serviceCCRN + "_" + fullImageName
 		_, err = createComponentInstanceObject(*osProcessor, ctx, componentInstanceCCRN, componentVersionId, serviceId, serviceCCRN)
 		if err != nil {
 			log.WithError(err).Fatal("Error during createComponentInstanceObject")
