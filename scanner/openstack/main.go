@@ -269,9 +269,15 @@ func main() {
 	// Hardcoded name & url for hardening guide for PoC
 	issueRepositoryName := "SAP Converged Cloud - Security Hardening"
 	issueRepositoryUrl := "https://wiki.one.int.sap/wiki/display/itsec/SAP+Converged+Cloud+-+Security+Hardening"
-	_, err = createIssueRepositoryObject(*osProcessor, ctx, issueRepositoryName, issueRepositoryUrl)
+	issueRepositoryId, err := createIssueRepositoryObject(*osProcessor, ctx, issueRepositoryName, issueRepositoryUrl)
 	if err != nil {
 		log.WithError(err).Fatal("Error during createIssueRepositoryObject")
+	}
+
+	// join issue repository to service
+	err = osProcessor.ConnectIssueRepositoryToService(ctx, issueRepositoryId, serviceId)
+	if err != nil {
+		log.WithError(err).Warning("Failed adding issue repository to service")
 	}
 
 	// print servers in a formatted way

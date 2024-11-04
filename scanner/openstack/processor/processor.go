@@ -300,6 +300,31 @@ func (p *Processor) GetIssueRepository(ctx context.Context, issueRepositoryInfo 
 	return "", fmt.Errorf("ListIssueRepositories returned no IssueRepositoryID")
 }
 
+// ConnectIssueRepositoryToService connects an issue repository to a service.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	issueRepositoryId string - The ID of the issue repository.
+//	serviceId string - The ID of the service.
+//
+// Returns:
+//
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ConnectIssueRepositoryToService(ctx context.Context, issueRepositoryId string, serviceId string) error {
+	_, err := client.AddIssueRepositoryToService(ctx, *p.Client, issueRepositoryId, serviceId, 1)
+
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"issueRepositoryId": issueRepositoryId,
+			"serviceId":         serviceId,
+		}).Warning("Failed adding issue repository to service")
+		return err
+	}
+
+	return nil
+}
+
 // ProcessComponent processes a component and creates a new component if it doesn't exist.
 //
 // Parameters:
