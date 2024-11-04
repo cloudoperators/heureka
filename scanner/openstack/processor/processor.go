@@ -49,6 +49,11 @@ type ComponentInstanceInfo struct {
 	ServiceCCRN        string
 }
 
+type IssueInfo struct {
+	PrimaryName string
+	Description string
+}
+
 func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
@@ -102,6 +107,8 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo ServiceInfo)
 }
 
 // getService fetches a service by CCRN
+// *Service has a unique constraint on CCRN,
+// so this query should return at most one result.
 //
 // Parameters:
 //
@@ -168,6 +175,8 @@ func (p *Processor) ProcessSupportGroup(ctx context.Context, supportGroupInfo Su
 }
 
 // getSupportGroup fetches a support group by CCRN
+// *SupportGroup has a unique constraint on CCRN,
+// so this query should return at most one result.
 //
 // Parameters:
 //
@@ -270,6 +279,8 @@ func (p *Processor) ProcessIssueRepository(ctx context.Context, issueRepositoryI
 }
 
 // GetIssueRepository fetches an issue repository by name
+// *IssueRepository has a unique constraint on name,
+// so this query should return at most one result.
 //
 // Parameters:
 //
@@ -372,6 +383,8 @@ func (p *Processor) ProcessComponent(ctx context.Context, componentInfo Componen
 }
 
 // GetComponent fetches a component by CCRN
+// *Component has a unique constraint on CCRN,
+// so this query should return at most one result.
 //
 // Parameters:
 //
@@ -449,6 +462,8 @@ func (p *Processor) ProcessComponentVersion(ctx context.Context, componentVersio
 }
 
 // GetComponentVersion fetches a component version by version and component ID
+// *ComponentVersion has a unique constraint on version + component ID,
+// so this query should return at most one result.
 //
 // Parameters:
 //
@@ -529,7 +544,9 @@ func (p *Processor) ProcessComponentInstance(ctx context.Context, componentInsta
 	return componentInstanceId, nil
 }
 
-// GetComponentInstance fetches a component instance by CCRN
+// GetComponentInstance fetches a component instance by CCRN + Service CCRN
+// *ComponentInstance has a unique constraint on CCRN + Service CCRN,
+// so this query should return at most one result.
 //
 // Parameters:
 //
@@ -558,6 +575,75 @@ func (p *Processor) GetComponentInstance(ctx context.Context, componentInstanceI
 
 	// No Component Instance found
 	return "", fmt.Errorf("ListComponentInstances returned no ComponentInstanceID")
+}
+
+func (p *Processor) ProcessIssue(ctx context.Context, issueInfo IssueInfo) (string, error) {
+	var issueId string
+
+	if issueInfo.PrimaryName == "" {
+		issueInfo.PrimaryName = "none"
+	}
+
+	// The Issue might already exist in the DB
+	// Let's try to fetch list of Issues by name
+	_issueId, err := p.GetIssue(ctx, issueInfo)
+
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"primaryName": issueInfo.PrimaryName,
+			"description": issueInfo.Description,
+		}).Error("failed to fetch issue")
+
+		// Create new Issue
+		createIssueInput := &client.IssueInput{
+			PrimaryName: issueInfo.PrimaryName,
+			Description: issueInfo.Description,
+			Type:        client.IssueTypesPolicyviolation,
+		}
+
+		createIssueResp, err := client.CreateIssue(ctx, *p.Client, createIssueInput)
+		if err != nil {
+			return "", fmt.Errorf("failed to create Issue %s: %w", issueInfo.PrimaryName, err)
+		} else {
+			issueId = createIssueResp.CreateIssue.Id
+		}
+	} else {
+		issueId = _issueId
+	}
+
+	return issueId, nil
+}
+
+// GetIssue fetches an issue by primary name
+// *Issue has a unique constraint on primaryName,
+// so this query should return at most one result.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	issueInfo IssueInfo - The issue info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the issue.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) GetIssue(ctx context.Context, issueInfo IssueInfo) (string, error) {
+	listIssuesFilter := client.IssueFilter{
+		PrimaryName: []string{issueInfo.PrimaryName},
+	}
+	listIssuesResp, err := client.ListIssues(ctx, *p.Client, &listIssuesFilter)
+	if err != nil {
+		fmt.Println(err)
+		return "", fmt.Errorf("couldn't list issues")
+	}
+
+	// Return the first item
+	if listIssuesResp.Issues.TotalCount > 0 {
+		return listIssuesResp.Issues.Edges[0].Node.Id, nil
+	}
+
+	// No Issue found
+	return "", fmt.Errorf("ListIssues returned no IssueID")
 }
 
 // ProcessServers processes a list of servers and checks if they are compliant with policy 4.5.

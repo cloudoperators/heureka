@@ -383,22 +383,6 @@ func (v *Issue) GetDescription() string { return v.Description }
 // GetType returns Issue.Type, and is useful for accessing the field via an interface.
 func (v *Issue) GetType() IssueTypes { return v.Type }
 
-// IssueConnection includes the requested fields of the GraphQL type IssueConnection.
-type IssueConnection struct {
-	Edges []*IssueConnectionEdgesIssueEdge `json:"edges"`
-}
-
-// GetEdges returns IssueConnection.Edges, and is useful for accessing the field via an interface.
-func (v *IssueConnection) GetEdges() []*IssueConnectionEdgesIssueEdge { return v.Edges }
-
-// IssueConnectionEdgesIssueEdge includes the requested fields of the GraphQL type IssueEdge.
-type IssueConnectionEdgesIssueEdge struct {
-	Node *Issue `json:"node"`
-}
-
-// GetNode returns IssueConnectionEdgesIssueEdge.Node, and is useful for accessing the field via an interface.
-func (v *IssueConnectionEdgesIssueEdge) GetNode() *Issue { return v.Node }
-
 type IssueFilter struct {
 	AffectedService    []string                 `json:"affectedService"`
 	PrimaryName        []string                 `json:"primaryName"`
@@ -630,13 +614,45 @@ func (v *ListIssueRepositoriesResponse) GetIssueRepositories() *ListIssueReposit
 	return v.IssueRepositories
 }
 
+// ListIssuesIssuesIssueConnection includes the requested fields of the GraphQL type IssueConnection.
+type ListIssuesIssuesIssueConnection struct {
+	TotalCount int                                              `json:"totalCount"`
+	Edges      []*ListIssuesIssuesIssueConnectionEdgesIssueEdge `json:"edges"`
+}
+
+// GetTotalCount returns ListIssuesIssuesIssueConnection.TotalCount, and is useful for accessing the field via an interface.
+func (v *ListIssuesIssuesIssueConnection) GetTotalCount() int { return v.TotalCount }
+
+// GetEdges returns ListIssuesIssuesIssueConnection.Edges, and is useful for accessing the field via an interface.
+func (v *ListIssuesIssuesIssueConnection) GetEdges() []*ListIssuesIssuesIssueConnectionEdgesIssueEdge {
+	return v.Edges
+}
+
+// ListIssuesIssuesIssueConnectionEdgesIssueEdge includes the requested fields of the GraphQL type IssueEdge.
+type ListIssuesIssuesIssueConnectionEdgesIssueEdge struct {
+	Node *ListIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue `json:"node"`
+}
+
+// GetNode returns ListIssuesIssuesIssueConnectionEdgesIssueEdge.Node, and is useful for accessing the field via an interface.
+func (v *ListIssuesIssuesIssueConnectionEdgesIssueEdge) GetNode() *ListIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue {
+	return v.Node
+}
+
+// ListIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue includes the requested fields of the GraphQL type Issue.
+type ListIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue struct {
+	Id string `json:"id"`
+}
+
+// GetId returns ListIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue.Id, and is useful for accessing the field via an interface.
+func (v *ListIssuesIssuesIssueConnectionEdgesIssueEdgeNodeIssue) GetId() string { return v.Id }
+
 // ListIssuesResponse is returned by ListIssues on success.
 type ListIssuesResponse struct {
-	Issues *IssueConnection `json:"Issues"`
+	Issues *ListIssuesIssuesIssueConnection `json:"Issues"`
 }
 
 // GetIssues returns ListIssuesResponse.Issues, and is useful for accessing the field via an interface.
-func (v *ListIssuesResponse) GetIssues() *IssueConnection { return v.Issues }
+func (v *ListIssuesResponse) GetIssues() *ListIssuesIssuesIssueConnection { return v.Issues }
 
 // ListServicesResponse is returned by ListServices on success.
 type ListServicesResponse struct {
@@ -927,14 +943,10 @@ func (v *__ListIssueRepositoriesInput) GetFilter() *IssueRepositoryFilter { retu
 // __ListIssuesInput is used internally by genqlient
 type __ListIssuesInput struct {
 	Filter *IssueFilter `json:"filter,omitempty"`
-	First  int          `json:"first"`
 }
 
 // GetFilter returns __ListIssuesInput.Filter, and is useful for accessing the field via an interface.
 func (v *__ListIssuesInput) GetFilter() *IssueFilter { return v.Filter }
-
-// GetFirst returns __ListIssuesInput.First, and is useful for accessing the field via an interface.
-func (v *__ListIssuesInput) GetFirst() int { return v.First }
 
 // __ListServicesInput is used internally by genqlient
 type __ListServicesInput struct {
@@ -1502,14 +1514,12 @@ func ListIssueRepositories(
 
 // The query or mutation executed by ListIssues.
 const ListIssues_Operation = `
-query ListIssues ($filter: IssueFilter, $first: Int) {
-	Issues(filter: $filter, first: $first) {
+query ListIssues ($filter: IssueFilter) {
+	Issues(filter: $filter) {
+		totalCount
 		edges {
 			node {
 				id
-				primaryName
-				description
-				type
 			}
 		}
 	}
@@ -1520,14 +1530,12 @@ func ListIssues(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *IssueFilter,
-	first int,
 ) (*ListIssuesResponse, error) {
 	req_ := &graphql.Request{
 		OpName: "ListIssues",
 		Query:  ListIssues_Operation,
 		Variables: &__ListIssuesInput{
 			Filter: filter,
-			First:  first,
 		},
 	}
 	var err_ error

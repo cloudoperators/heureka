@@ -210,6 +210,34 @@ func createComponentInstanceObject(osProcessor processor.Processor, ctx context.
 	return componentInstanceID, err
 }
 
+// createIssueObject creates an issue object in the processor
+// and returns the issue ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	primaryName: Primary name of the issue
+//	description: Description of the issue
+//
+// Returns:
+//
+//	string: Issue ID
+//	error: Error object
+func createIssueObject(osProcessor processor.Processor, ctx context.Context, primaryName string, description string) (string, error) {
+	issueObj := processor.IssueInfo{
+		PrimaryName: primaryName,
+		Description: description,
+	}
+
+	issueId, err := osProcessor.ProcessIssue(ctx, issueObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processIssue")
+	}
+
+	return issueId, err
+}
+
 func main() {
 	var scannerCfg scanner.Config
 	err := envconfig.Process("openstack", &scannerCfg)
