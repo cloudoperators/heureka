@@ -4,85 +4,62 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/cloudoperators/heureka/scanner/openstack/processor"
 	"github.com/cloudoperators/heureka/scanner/openstack/scanner"
-	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 )
 
-func GetCompliance() {
+// policy2dot2Check checks if the given image name complies with policy 2.2.
+// Policy 2.2 requires that project users do not contain the role "admin".
+//
+// Parameters:
+//
+//	roles ([]string): slice of roles for a given user
+//
+// Returns:
+//
+//	bool: Returns true if the image name complies with policy 2.2, otherwise false.
+func policy2dot2Check(roles []string) bool {
+	// This is a temporary hardcoded implementation of policy 2.2 for the OpenStack scanner PoC
+	// This function will be replaced by the actual implementation of policy checks in the future
+	// Policy 2.2 checks that the user roles contains
+	for _, role := range roles {
+		if role == "admin" {
+			return false
+		}
+	}
+	return true
+}
+
+// ComputeUserRoleCompliance checks the compliance of the user roles in the OpenStack project.
+// Policy 2.2 requires that project users do not contain the role "admin".
+//
+// Parameters:
+//
+//	osScanner (*scanner.Scanner): The scanner object for the OpenStack cloud.
+//	osProcessor (*processor.Processor): The processor object for the OpenStack cloud.
+//	ctx (context.Context): The context object for the OpenStack cloud.
+//	serviceId (string): The ID of the service.
+//	serviceCCRN (string): The CCRN of the service.
+//	issueRepoId (string): The ID of the issue repository.
+//
+// Returns:
+//
+//	None
+func ComputeUserRoleCompliance(osScanner *scanner.Scanner, osProcessor *processor.Processor, ctx context.Context, serviceId string, serviceCCRN string, issueRepoId string) {
 	// Some hardcoded values for now
-	issueRepositoryName := "SAP Converged Cloud - Security Hardening"
-	issueRepositoryUrl := "https://wiki.one.int.sap/wiki/display/itsec/SAP+Converged+Cloud+-+Security+Hardening"
 	issuePrimaryName := "2.2 Ensure secure permission & role concept"
 	issueDescription := "It MUST be ensured that a secure group & permission concept, following the Need-to-know Principle, is in place for every Plus One Converged Cloud project."
 
-	var scannerCfg scanner.Config
-	err := envconfig.Process("openstack", &scannerCfg)
-	if err != nil {
-		log.WithError(err).Fatal("Error while reading env config for scanner")
-	}
-
-	var processorsCfg processor.Config
-	err = envconfig.Process("openstack", &processorsCfg)
-	if err != nil {
-		log.WithError(err).Fatal("Error while reading env config for processor")
-	}
-
-	osScanner := scanner.NewScanner(scannerCfg)
-	osProcessor := processor.NewProcessor(processorsCfg)
-
-	service, err := osScanner.CreateIdentityClient()
+	identityService, err := osScanner.CreateIdentityClient()
 	if err != nil {
 		log.WithError(err).Fatal("Error during scanner setup")
 	}
 
-	users := osScanner.GetUsers(service, osScanner.ProjectId)
+	users := osScanner.GetUsers(identityService, osScanner.ProjectId)
 	if err != nil {
 		log.WithError(err).Fatal("Error during scanner get servers")
-	}
-
-	// Create context with timeout (30min should be ok)
-	scanTimeout, err := time.ParseDuration(scannerCfg.ScannerTimeout)
-	if err != nil {
-		log.WithError(err).Fatal("couldn't parse scanner timeout, setting it to 30 minutes")
-		scanTimeout = 30 * time.Minute
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
-	defer cancel()
-
-	// Create service object
-	serviceCCRN := scannerCfg.Project
-	serviceId, err := processor.CreateServiceObject(*osProcessor, ctx, serviceCCRN)
-	if err != nil {
-		log.WithError(err).Fatal("Error during createServiceObject")
-	}
-
-	// Create support group object
-	supportGroupCCRN := serviceCCRN + "_SupportGroup"
-	supportGroupId, err := processor.CreateSupportGroupObject(*osProcessor, ctx, supportGroupCCRN)
-	if err != nil {
-		log.WithError(err).Fatal("Error during createSupportGroupObject")
-	}
-
-	// join service to support group
-	err = osProcessor.ConnectServiceToSupportGroup(ctx, serviceId, supportGroupId)
-	if err != nil {
-		log.WithError(err).Warning("Failed adding service to support group")
-	}
-
-	// Create issue repository object
-	issueRepositoryId, err := processor.CreateIssueRepositoryObject(*osProcessor, ctx, issueRepositoryName, issueRepositoryUrl)
-	if err != nil {
-		log.WithError(err).Fatal("Error during createIssueRepositoryObject")
-	}
-
-	// join issue repository to service
-	err = osProcessor.ConnectIssueRepositoryToService(ctx, issueRepositoryId, serviceId)
-	if err != nil {
-		log.WithError(err).Warning("Failed adding issue repository to service")
 	}
 
 	// Create issue object
@@ -132,7 +109,7 @@ func GetCompliance() {
 			}
 
 			// Perform policy checks
-			if osProcessor.Policy2dot2Check(userRoles) {
+			if policy2dot2Check(userRoles) {
 				// Compliant
 				// Need to decide what to do here, if anything.
 				// but for now we can just log it

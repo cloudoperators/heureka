@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/scanner/openstack/client"
@@ -59,6 +58,32 @@ func NewProcessor(cfg Config) *Processor {
 	return &Processor{
 		Client: &gClient,
 	}
+}
+
+// createServiceObject creates a service object in the processor
+// and returns the service ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	serviceCCRN: CCRN of the service
+//
+// Returns:
+//
+//	string: Service ID
+//	error: Error object
+func CreateServiceObject(osProcessor Processor, ctx context.Context, serviceCCRN string) (string, error) {
+	serviceObj := ServiceInfo{
+		CCRN: serviceCCRN,
+	}
+
+	serviceId, err := osProcessor.ProcessService(ctx, serviceObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processService")
+	}
+
+	return serviceId, err
 }
 
 // ProcessService processes a service and creates a new service if it doesn't exist.
@@ -135,6 +160,32 @@ func (p *Processor) getService(ctx context.Context, serviceInfo ServiceInfo) (st
 
 	// No Service found
 	return "", fmt.Errorf("ListServices returned no ServiceID")
+}
+
+// createSupportGroupObject creates a support group object in the processor
+// and returns the support group ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	supportGroupCCRN: CCRN of the support group
+//
+// Returns:
+//
+//	string: Support Group ID
+//	error: Error object
+func CreateSupportGroupObject(osProcessor Processor, ctx context.Context, supportGroupCCRN string) (string, error) {
+	supportGroupObj := SupportGroupInfo{
+		CCRN: supportGroupCCRN,
+	}
+
+	supportGroupId, err := osProcessor.ProcessSupportGroup(ctx, supportGroupObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processSupportGroup")
+	}
+
+	return supportGroupId, err
 }
 
 // ProcessSupportGroup processes a support group and creates a new support group if it doesn't exist.
@@ -230,6 +281,34 @@ func (p *Processor) ConnectServiceToSupportGroup(ctx context.Context, serviceId 
 	}
 
 	return nil
+}
+
+// createIssueRepositoryObject creates an issue repository object in the processor
+// and returns the issue repository ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	issueRepositoryName: Name of the issue repository
+//	issueRepositoryUrl: URL of the issue repository
+//
+// Returns:
+//
+//	string: Issue Repository ID
+//	error: Error object
+func CreateIssueRepositoryObject(osProcessor Processor, ctx context.Context, issueRepositoryName string, issueRepositoryUrl string) (string, error) {
+	issueRepositoryObj := IssueRepositoryInfo{
+		Name: issueRepositoryName,
+		Url:  issueRepositoryUrl,
+	}
+
+	issueRepositoryId, err := osProcessor.ProcessIssueRepository(ctx, issueRepositoryObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processIssueRepository")
+	}
+
+	return issueRepositoryId, err
 }
 
 // ProcessIssueRepository processes an issue repository and creates a new issue repository if it doesn't exist.
@@ -335,6 +414,32 @@ func (p *Processor) ConnectIssueRepositoryToService(ctx context.Context, issueRe
 	return nil
 }
 
+// createComponentObject creates a component object in the processor
+// and returns the component ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	componentCCRN: CCRN of the component
+//
+// Returns:
+//
+//	string: Component ID
+//	error: Error object
+func CreateComponentObject(osProcessor Processor, ctx context.Context, componentCCRN string) (string, error) {
+	ComponentObj := ComponentInfo{
+		CCRN: componentCCRN,
+	}
+
+	componentId, err := osProcessor.ProcessComponent(ctx, ComponentObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processComponent")
+	}
+
+	return componentId, err
+}
+
 // ProcessComponent processes a component and creates a new component if it doesn't exist.
 //
 // Parameters:
@@ -411,6 +516,34 @@ func (p *Processor) GetComponent(ctx context.Context, componentInfo ComponentInf
 
 	// No Component found
 	return "", fmt.Errorf("ListComponents returned no ComponentID")
+}
+
+// createComponentVersionObject creates a component version object in the processor
+// and returns the component version ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	version: Version of the component
+//	componentID: ID of the component
+//
+// Returns:
+//
+//	string: Component Version ID
+//	error: Error object
+func CreateComponentVersionObject(osProcessor Processor, ctx context.Context, version string, componentID string) (string, error) {
+	componentVersionObj := ComponentVersionInfo{
+		Version:     version,
+		ComponentID: componentID,
+	}
+
+	componentVersionId, err := osProcessor.ProcessComponentVersion(ctx, componentVersionObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processComponentVersion")
+	}
+
+	return componentVersionId, err
 }
 
 // ProcessComponentVersion processes a component version and creates a new component version if it doesn't exist.
@@ -491,6 +624,38 @@ func (p *Processor) GetComponentVersion(ctx context.Context, componentVersionInf
 
 	// No Component Version found
 	return "", fmt.Errorf("ListComponentVersions returned no ComponentVersionID")
+}
+
+// createComponentInstanceObject creates a component instance object in the processor
+// and returns the component instance ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	componentInstanceCCRN: CCRN of the component instance
+//	componentVersionID: ID of the component version
+//	serviceID: ID of the service
+//	serviceCCRN: CCRN of the service
+//
+// Returns:
+//
+//	string: Component Instance ID
+//	error: Error object
+func CreateComponentInstanceObject(osProcessor Processor, ctx context.Context, componentInstanceCCRN string, componentVersionID string, serviceID string, serviceCCRN string) (string, error) {
+	componentInstanceObj := ComponentInstanceInfo{
+		CCRN:               componentInstanceCCRN,
+		ComponentVersionID: componentVersionID,
+		ServiceID:          serviceID,
+		ServiceCCRN:        serviceCCRN,
+	}
+
+	componentInstanceID, err := osProcessor.ProcessComponentInstance(ctx, componentInstanceObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processComponentInstance")
+	}
+
+	return componentInstanceID, err
 }
 
 // ProcessComponentInstance processes a component instance and creates a new component instance if it doesn't exist.
@@ -574,6 +739,34 @@ func (p *Processor) GetComponentInstance(ctx context.Context, componentInstanceI
 
 	// No Component Instance found
 	return "", fmt.Errorf("ListComponentInstances returned no ComponentInstanceID")
+}
+
+// createIssueObject creates an issue object in the processor
+// and returns the issue ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	primaryName: Primary name of the issue
+//	description: Description of the issue
+//
+// Returns:
+//
+//	string: Issue ID
+//	error: Error object
+func CreateIssueObject(osProcessor Processor, ctx context.Context, primaryName string, description string) (string, error) {
+	issueObj := IssueInfo{
+		PrimaryName: primaryName,
+		Description: description,
+	}
+
+	issueId, err := osProcessor.ProcessIssue(ctx, issueObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processIssue")
+	}
+
+	return issueId, err
 }
 
 // ProcessIssue processes an issue and creates a new issue if it doesn't exist.
@@ -679,252 +872,4 @@ func (p *Processor) ConnectComponentVersionToIssue(ctx context.Context, componen
 	}
 
 	return nil
-}
-
-// Policy4dot5Check checks if the given image name complies with policy 4.5.
-// Policy 4.5 requires that the image name contains either "gardenlinux" or "SAP-compliant".
-//
-// Parameters:
-//
-//	img_name (string): The name of the image to be checked.
-//
-// Returns:
-//
-//	bool: Returns true if the image name complies with policy 4.5, otherwise false.
-func (p *Processor) Policy4dot5Check(img_name string) bool {
-	// This is a temporary hardcoded implementation of policy 4.5 for the OpenStack scanner PoC
-	// This function will be replaced by the actual implementation of policy checks in the future
-	// Policy 4.5 checks that the image name contains either "gardenlinux" or "SAP-compliant"
-
-	if strings.Contains(img_name, "gardenlinux") || strings.Contains(img_name, "SAP-compliant") {
-		return true
-	}
-	return false
-}
-
-func (p *Processor) Policy4dot6Check(img_name string) bool {
-	// This is a temporary hardcoded implementation of policy 4.5 for the OpenStack scanner PoC
-	// This function will be replaced by the actual implementation of policy checks in the future
-	// Policy 4.5 checks that the image name contains either "gardenlinux" or "SAP-compliant"
-
-	if strings.Contains(img_name, "gardenlinux") || strings.Contains(img_name, "SAP-compliant") {
-		return true
-	}
-	return false
-}
-
-// Policy2dot2Check checks if the given image name complies with policy 2.2.
-// Policy 2.2 requires that project users do not contain the role "admin".
-//
-// Parameters:
-//
-//	roles ([]string): slice of roles for a given user
-//
-// Returns:
-//
-//	bool: Returns true if the image name complies with policy 2.2, otherwise false.
-func (p *Processor) Policy2dot2Check(roles []string) bool {
-	// This is a temporary hardcoded implementation of policy 2.2 for the OpenStack scanner PoC
-	// This function will be replaced by the actual implementation of policy checks in the future
-	// Policy 2.2 checks that the user roles contains
-	for _, role := range roles {
-		if role == "admin" {
-			return false
-		}
-	}
-	return true
-}
-
-// createServiceObject creates a service object in the processor
-// and returns the service ID
-//
-// Parameters:
-//
-//	osProcessor: Processor object
-//	ctx: context object
-//	serviceCCRN: CCRN of the service
-//
-// Returns:
-//
-//	string: Service ID
-//	error: Error object
-func CreateServiceObject(osProcessor Processor, ctx context.Context, serviceCCRN string) (string, error) {
-	serviceObj := ServiceInfo{
-		CCRN: serviceCCRN,
-	}
-
-	serviceId, err := osProcessor.ProcessService(ctx, serviceObj)
-	if err != nil {
-		log.WithError(err).Fatal("Error during processor processService")
-	}
-
-	return serviceId, err
-}
-
-// createSupportGroupObject creates a support group object in the processor
-// and returns the support group ID
-//
-// Parameters:
-//
-//	osProcessor: Processor object
-//	ctx: context object
-//	supportGroupCCRN: CCRN of the support group
-//
-// Returns:
-//
-//	string: Support Group ID
-//	error: Error object
-func CreateSupportGroupObject(osProcessor Processor, ctx context.Context, supportGroupCCRN string) (string, error) {
-	supportGroupObj := SupportGroupInfo{
-		CCRN: supportGroupCCRN,
-	}
-
-	supportGroupId, err := osProcessor.ProcessSupportGroup(ctx, supportGroupObj)
-	if err != nil {
-		log.WithError(err).Fatal("Error during processor processSupportGroup")
-	}
-
-	return supportGroupId, err
-}
-
-// createIssueRepositoryObject creates an issue repository object in the processor
-// and returns the issue repository ID
-//
-// Parameters:
-//
-//	osProcessor: Processor object
-//	ctx: context object
-//	issueRepositoryName: Name of the issue repository
-//	issueRepositoryUrl: URL of the issue repository
-//
-// Returns:
-//
-//	string: Issue Repository ID
-//	error: Error object
-func CreateIssueRepositoryObject(osProcessor Processor, ctx context.Context, issueRepositoryName string, issueRepositoryUrl string) (string, error) {
-	issueRepositoryObj := IssueRepositoryInfo{
-		Name: issueRepositoryName,
-		Url:  issueRepositoryUrl,
-	}
-
-	issueRepositoryId, err := osProcessor.ProcessIssueRepository(ctx, issueRepositoryObj)
-	if err != nil {
-		log.WithError(err).Fatal("Error during processor processIssueRepository")
-	}
-
-	return issueRepositoryId, err
-}
-
-// createComponentObject creates a component object in the processor
-// and returns the component ID
-//
-// Parameters:
-//
-//	osProcessor: Processor object
-//	ctx: context object
-//	componentCCRN: CCRN of the component
-//
-// Returns:
-//
-//	string: Component ID
-//	error: Error object
-func CreateComponentObject(osProcessor Processor, ctx context.Context, componentCCRN string) (string, error) {
-	ComponentObj := ComponentInfo{
-		CCRN: componentCCRN,
-	}
-
-	componentId, err := osProcessor.ProcessComponent(ctx, ComponentObj)
-	if err != nil {
-		log.WithError(err).Fatal("Error during processor processComponent")
-	}
-
-	return componentId, err
-}
-
-// createComponentVersionObject creates a component version object in the processor
-// and returns the component version ID
-//
-// Parameters:
-//
-//	osProcessor: Processor object
-//	ctx: context object
-//	version: Version of the component
-//	componentID: ID of the component
-//
-// Returns:
-//
-//	string: Component Version ID
-//	error: Error object
-func CreateComponentVersionObject(osProcessor Processor, ctx context.Context, version string, componentID string) (string, error) {
-	componentVersionObj := ComponentVersionInfo{
-		Version:     version,
-		ComponentID: componentID,
-	}
-
-	componentVersionId, err := osProcessor.ProcessComponentVersion(ctx, componentVersionObj)
-	if err != nil {
-		log.WithError(err).Fatal("Error during processor processComponentVersion")
-	}
-
-	return componentVersionId, err
-}
-
-// createComponentInstanceObject creates a component instance object in the processor
-// and returns the component instance ID
-//
-// Parameters:
-//
-//	osProcessor: Processor object
-//	ctx: context object
-//	componentInstanceCCRN: CCRN of the component instance
-//	componentVersionID: ID of the component version
-//	serviceID: ID of the service
-//	serviceCCRN: CCRN of the service
-//
-// Returns:
-//
-//	string: Component Instance ID
-//	error: Error object
-func CreateComponentInstanceObject(osProcessor Processor, ctx context.Context, componentInstanceCCRN string, componentVersionID string, serviceID string, serviceCCRN string) (string, error) {
-	componentInstanceObj := ComponentInstanceInfo{
-		CCRN:               componentInstanceCCRN,
-		ComponentVersionID: componentVersionID,
-		ServiceID:          serviceID,
-		ServiceCCRN:        serviceCCRN,
-	}
-
-	componentInstanceID, err := osProcessor.ProcessComponentInstance(ctx, componentInstanceObj)
-	if err != nil {
-		log.WithError(err).Fatal("Error during processor processComponentInstance")
-	}
-
-	return componentInstanceID, err
-}
-
-// createIssueObject creates an issue object in the processor
-// and returns the issue ID
-//
-// Parameters:
-//
-//	osProcessor: Processor object
-//	ctx: context object
-//	primaryName: Primary name of the issue
-//	description: Description of the issue
-//
-// Returns:
-//
-//	string: Issue ID
-//	error: Error object
-func CreateIssueObject(osProcessor Processor, ctx context.Context, primaryName string, description string) (string, error) {
-	issueObj := IssueInfo{
-		PrimaryName: primaryName,
-		Description: description,
-	}
-
-	issueId, err := osProcessor.ProcessIssue(ctx, issueObj)
-	if err != nil {
-		log.WithError(err).Fatal("Error during processor processIssue")
-	}
-
-	return issueId, err
 }

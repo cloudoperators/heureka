@@ -4,85 +4,62 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"time"
+	"strings"
 
 	"github.com/cloudoperators/heureka/scanner/openstack/processor"
 	"github.com/cloudoperators/heureka/scanner/openstack/scanner"
-	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 )
 
-func GetCompliance() {
+// policy4dot5Check checks if the given image name complies with policy 4.5.
+// Policy 4.5 requires that the image name contains either "gardenlinux" or "SAP-compliant".
+//
+// Parameters:
+//
+//	img_name (string): The name of the image to be checked.
+//
+// Returns:
+//
+//	bool: Returns true if the image name complies with policy 4.5, otherwise false.
+func policy4dot5Check(img_name string) bool {
+	// This is a temporary hardcoded implementation of policy 4.5 for the OpenStack scanner PoC
+	// This function will be replaced by the actual implementation of policy checks in the future
+	// Policy 4.5 checks that the image name contains either "gardenlinux" or "SAP-compliant"
+
+	if strings.Contains(img_name, "gardenlinux") || strings.Contains(img_name, "SAP-compliant") {
+		return true
+	}
+	return false
+}
+
+// ComputeGoldenImageCompliance checks the compliance of the golden images used in VM creation.
+// Policy 4.5 requires that only approved Golden images are used in VM creation.
+//
+// Parameters:
+//
+//	osScanner (*scanner.Scanner): The scanner object for the OpenStack cloud.
+//	osProcessor (*processor.Processor): The processor object for the OpenStack cloud.
+//	ctx (context.Context): The context object for the OpenStack cloud.
+//	serviceId (string): The ID of the service.
+//	serviceCCRN (string): The CCRN of the service.
+//	issueRepoId (string): The ID of the issue repository.
+//
+// Returns:
+//
+//	None
+func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *processor.Processor, ctx context.Context, serviceId string, serviceCCRN string, issueRepoId string) {
 	// Some hardcoded values for now
-	issueRepositoryName := "SAP Converged Cloud - Security Hardening"
-	issueRepositoryUrl := "https://wiki.one.int.sap/wiki/display/itsec/SAP+Converged+Cloud+-+Security+Hardening"
 	issuePrimaryName := "4.5 Ensure only approved Golden images are used in VM creation"
 	issueDescription := "Only SAP approved Golden Images SHOULD be used. These Golden images are compliant to SAP security, legal, license and compliance requirements per default. The owner of the VM image is responsible to ensure it is compliant and secure."
 
-	var scannerCfg scanner.Config
-	err := envconfig.Process("openstack", &scannerCfg)
-	if err != nil {
-		log.WithError(err).Fatal("Error while reading env config for scanner")
-	}
-
-	var processorsCfg processor.Config
-	err = envconfig.Process("openstack", &processorsCfg)
-	if err != nil {
-		log.WithError(err).Fatal("Error while reading env config for processor")
-	}
-
-	osScanner := scanner.NewScanner(scannerCfg)
-	osProcessor := processor.NewProcessor(processorsCfg)
-
-	service, err := osScanner.CreateComputeClient()
+	computeService, err := osScanner.CreateComputeClient()
 	if err != nil {
 		log.WithError(err).Fatal("Error during scanner setup")
 	}
 
-	servers, err := osScanner.GetServers(service)
+	servers, err := osScanner.GetServers(computeService)
 	if err != nil {
 		log.WithError(err).Fatal("Error during scanner get servers")
-	}
-
-	// Create context with timeout (30min should be ok)
-	scanTimeout, err := time.ParseDuration(scannerCfg.ScannerTimeout)
-	if err != nil {
-		log.WithError(err).Fatal("couldn't parse scanner timeout, setting it to 30 minutes")
-		scanTimeout = 30 * time.Minute
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
-	defer cancel()
-
-	// Create service object
-	serviceCCRN := scannerCfg.Project
-	serviceId, err := processor.CreateServiceObject(*osProcessor, ctx, serviceCCRN)
-	if err != nil {
-		log.WithError(err).Fatal("Error during createServiceObject")
-	}
-
-	// Create support group object
-	supportGroupCCRN := serviceCCRN + "_SupportGroup"
-	supportGroupId, err := processor.CreateSupportGroupObject(*osProcessor, ctx, supportGroupCCRN)
-	if err != nil {
-		log.WithError(err).Fatal("Error during createSupportGroupObject")
-	}
-
-	// join service to support group
-	err = osProcessor.ConnectServiceToSupportGroup(ctx, serviceId, supportGroupId)
-	if err != nil {
-		log.WithError(err).Warning("Failed adding service to support group")
-	}
-
-	// Create issue repository object
-	issueRepositoryId, err := processor.CreateIssueRepositoryObject(*osProcessor, ctx, issueRepositoryName, issueRepositoryUrl)
-	if err != nil {
-		log.WithError(err).Fatal("Error during createIssueRepositoryObject")
-	}
-
-	// join issue repository to service
-	err = osProcessor.ConnectIssueRepositoryToService(ctx, issueRepositoryId, serviceId)
-	if err != nil {
-		log.WithError(err).Warning("Failed adding issue repository to service")
 	}
 
 	// Create issue object
@@ -137,7 +114,7 @@ func GetCompliance() {
 		}
 
 		// Perform policy checks
-		if osProcessor.Policy4dot5Check(fullImageName) {
+		if policy4dot5Check(fullImageName) {
 			// Compliant
 			// Need to decide what to do here, if anything.
 			// but for now we can just log it
