@@ -24,7 +24,7 @@ import (
 
 const (
 	testEndpoint    = "/testendpoint"
-	testUsername    = "testAccessUser"
+	testScannerName = "testAccessScanner"
 	authTokenSecret = "xxx"
 )
 
@@ -46,7 +46,7 @@ type server struct {
 
 func (s *server) startInBackground(port string) {
 	s.lastRequestCtx = context.TODO()
-	auth := access.NewTokenAuth(&noLogLogger{}, &util.Config{AuthTokenSecret: authTokenSecret})
+	auth := access.NewAuth(&util.Config{AuthTokenSecret: authTokenSecret})
 	r := gin.Default()
 	r.Use(auth.GetMiddleware())
 	r.GET(testEndpoint, func(c *gin.Context) {
@@ -92,27 +92,27 @@ var _ = Describe("Pass token data via context when using token auth middleware",
 		testServer.stop()
 	})
 
-	When("User access api through token auth middleware with valid token", func() {
+	When("Scanner access api through token auth middleware with valid token", func() {
 		BeforeEach(func() {
-			token := GenerateJwtWithUsername(authTokenSecret, 1*time.Hour, testUsername)
-			resp := SendGetRequest(url, map[string]string{"Authorization": token})
+			token := GenerateJwtWithName(authTokenSecret, 1*time.Hour, testScannerName)
+			resp := SendGetRequest(url, map[string]string{"X-Service-Authorization": token})
 			Expect(resp.StatusCode).To(Equal(200))
 		})
-		It("Should be able to access user name from request context", func() {
-			username, err := access.UsernameFromContext(testServer.context())
+		It("Should be able to access scanner name from request context", func() {
+			name, err := access.ScannerNameFromContext(testServer.context())
 			Expect(err).To(BeNil())
-			Expect(username).To(BeEquivalentTo(testUsername))
+			Expect(name).To(BeEquivalentTo(testScannerName))
 		})
 	})
 
-	When("User access api through token auth middleware with invalid token", func() {
+	When("Scanner access api through token auth middleware with invalid token", func() {
 		BeforeEach(func() {
 			token := GenerateInvalidJwt(authTokenSecret)
-			resp := SendGetRequest(url, map[string]string{"Authorization": token})
+			resp := SendGetRequest(url, map[string]string{"X-Service-Authorization": token})
 			Expect(resp.StatusCode).To(Equal(401))
 		})
 		It("Should not store gin context in request context", func() {
-			_, err := access.UsernameFromContext(testServer.context())
+			_, err := access.ScannerNameFromContext(testServer.context())
 			Expect(err).ShouldNot(BeNil())
 		})
 	})
