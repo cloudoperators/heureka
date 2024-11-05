@@ -12,4 +12,5 @@ type Config struct {
 	Region            string `envconfig:"OS_REGION_NAME" required:"true" json:"-"`
 	IdentityEndpoint  string `envconfig:"OS_AUTH_URL" required:"true" json:"-"`
 	ScannerTimeout    string `envconfig:"SCANNER_TIMEOUT" default:"30m"`
+	ProjectId         string `envconfig:"OS_PROJECT_ID" required:"true" json:"-"`
 }

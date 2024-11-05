@@ -4,13 +4,16 @@
 package scanner
 
 import (
-	"fmt"
+	"crypto/md5"
+	"encoding/hex"
 	"net/http"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/roles"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/users"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,6 +26,7 @@ type Scanner struct {
 	Domain           string
 	Project          string
 	Region           string
+	ProjectId        string
 }
 
 func NewScanner(cfg Config) *Scanner {
@@ -33,20 +37,12 @@ func NewScanner(cfg Config) *Scanner {
 		Project:          cfg.Project,
 		IdentityEndpoint: cfg.IdentityEndpoint,
 		ProjectDomain:    cfg.ProjectDomain,
+		ProjectId:        cfg.ProjectId,
 		Region:           cfg.Region,
 	}
 }
 
-func (s *Scanner) Setup() (*gophercloud.ServiceClient, error) {
-	client, err := s.CreateServiceClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create service client: %w", err)
-	}
-
-	return client, nil
-}
-
-func (s *Scanner) CreateServiceClient() (*gophercloud.ServiceClient, error) {
+func (s *Scanner) CreateComputeClient() (*gophercloud.ServiceClient, error) {
 	provider, err := s.newAuthenticatedProviderClient()
 	if err != nil {
 		return nil, err
@@ -60,6 +56,22 @@ func (s *Scanner) CreateServiceClient() (*gophercloud.ServiceClient, error) {
 	}
 
 	return computeClient, nil
+}
+
+func (s *Scanner) CreateIdentityClient() (*gophercloud.ServiceClient, error) {
+	provider, err := s.newAuthenticatedProviderClient()
+	if err != nil {
+		return nil, err
+	}
+
+	identityClient, err := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{
+		Region: s.Region,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return identityClient, nil
 }
 
 func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient, error) {
@@ -116,4 +128,110 @@ func (s *Scanner) GetServers(service *gophercloud.ServiceClient) ([]servers.Serv
 
 func GetProjects(service *gophercloud.ServiceClient) ([]string, error) {
 	return []string{"project1", "project2"}, nil
+}
+
+func (s *Scanner) GetUsers(service *gophercloud.ServiceClient, projectID string) []map[string]interface{} {
+	// Return users and roles for project
+	roleNamesByID, err := GetRoleNames(service)
+	if err != nil {
+		panic(err)
+	}
+
+	listOpts := roles.ListAssignmentsOpts{
+		ScopeProjectID: projectID,
+	}
+
+	allPages, err := roles.ListAssignments(service, listOpts).AllPages()
+	if err != nil {
+		panic(err)
+	}
+
+	allRoleAssignments, err := roles.ExtractRoleAssignments(allPages)
+	if err != nil {
+		panic(err)
+	}
+
+	userIDs := make(map[string][]string)
+	for _, assignment := range allRoleAssignments {
+		userIDs[assignment.User.ID] = append(userIDs[assignment.User.ID], assignment.Role.ID)
+	}
+
+	config := make(map[string][]string)
+
+	for userID, roles := range userIDs {
+		for _, role := range roles {
+			RoleName := roleNamesByID[role]
+			config[userID] = append(config[userID], RoleName)
+		}
+	}
+
+	userNamesByRoles := GetUserNamesbyRoles(service, config)
+
+	return FormatServerOutput(userNamesByRoles)
+}
+
+func FormatServerOutput(userList map[string][]string) []map[string]interface{} {
+	// Format compliance results for OPA Policy input
+	var Configs []map[string]interface{}
+
+	for user, roles := range userList {
+		newConfig := map[string]interface{}{
+			"user":  user,
+			"roles": roles,
+		}
+
+		Configs = append(Configs, newConfig)
+	}
+
+	return Configs
+}
+
+func GetRoleNames(service *gophercloud.ServiceClient) (map[string]string, error) {
+	// Translate role IDs to readable names
+	allPages, err := roles.List(service, roles.ListOpts{}).AllPages()
+	if err != nil {
+		panic(err)
+	}
+
+	allRoles, err := roles.ExtractRoles(allPages)
+	if err != nil {
+		panic(err)
+	}
+
+	roleNamesByID := make(map[string]string)
+	for _, role := range allRoles {
+		roleNamesByID[role.ID] = role.Name
+	}
+
+	return roleNamesByID, err
+}
+
+func GetUserNamesbyRoles(service *gophercloud.ServiceClient, IdsandRoles map[string][]string) map[string][]string {
+	// Translate User IDs into readable usernames, and return map of readable usernames and roles
+	userNamesByID := make(map[string][]string)
+
+	for id, roles := range IdsandRoles {
+		if id != "" {
+			user := users.Get(service, id)
+			userdata := user.Result.Body.(map[string]interface{})["user"].(map[string]interface{})
+			username := userdata["name"].(string)
+			userNamesByID[username] = roles
+		}
+	}
+
+	return userNamesByID
+}
+
+func (s *Scanner) Md5Hash(toHash string) string {
+	// Create a new MD5 hash
+	hash := md5.New()
+	hash.Write([]byte(toHash))
+
+	// Calculate the MD5 checksum
+	md5Hash := hash.Sum(nil)
+
+	// Convert the hash to a hexadecimal string
+	hashString := hex.EncodeToString(md5Hash)
+
+	return hashString
 }
