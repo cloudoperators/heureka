@@ -14,6 +14,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/roles"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/users"
+	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -56,6 +57,22 @@ func (s *Scanner) CreateComputeClient() (*gophercloud.ServiceClient, error) {
 	}
 
 	return computeClient, nil
+}
+
+func (s *Scanner) CreateImageClient() (*gophercloud.ServiceClient, error) {
+	provider, err := s.newAuthenticatedProviderClient()
+	if err != nil {
+		return nil, err
+	}
+
+	imageClient, err := openstack.NewImageServiceV2(provider, gophercloud.EndpointOpts{
+		Region: s.Region,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return imageClient, nil
 }
 
 func (s *Scanner) CreateIdentityClient() (*gophercloud.ServiceClient, error) {
@@ -124,6 +141,21 @@ func (s *Scanner) GetServers(service *gophercloud.ServiceClient) ([]servers.Serv
 	}
 
 	return serverList, nil
+}
+
+func (s *Scanner) GetImage(service *gophercloud.ServiceClient, imageId string) (images.Image, error) {
+	// Use Service client to get image info
+	image := images.Get(service, imageId)
+
+	image_result, err := image.Extract()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"url": service.Endpoint,
+		}).WithError(err).Error("Error during request in images get")
+		return images.Image{}, err
+	}
+
+	return *image_result, nil
 }
 
 func GetProjects(service *gophercloud.ServiceClient) ([]string, error) {

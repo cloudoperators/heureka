@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudoperators/heureka/scanner/openstack/modules/keystone"
 	"github.com/cloudoperators/heureka/scanner/openstack/modules/nova"
 	"github.com/cloudoperators/heureka/scanner/openstack/processor"
 	"github.com/cloudoperators/heureka/scanner/openstack/scanner"
@@ -106,5 +105,5 @@ func main() {
 	}
 
 	nova.ComputeGoldenImageCompliance(osScanner, osProcessor, ctx, serviceId, serviceCCRN, issueRepositoryId)
-	keystone.ComputeUserRoleCompliance(osScanner, osProcessor, ctx, serviceId, serviceCCRN, issueRepositoryId)
+	// keystone.ComputeUserRoleCompliance(osScanner, osProcessor, ctx, serviceId, serviceCCRN, issueRepositoryId)
 }

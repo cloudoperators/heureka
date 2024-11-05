@@ -3,7 +3,6 @@ package nova
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/cloudoperators/heureka/scanner/openstack/processor"
@@ -57,6 +56,11 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 		log.WithError(err).Fatal("Error during scanner setup")
 	}
 
+	imageService, err := osScanner.CreateImageClient()
+	if err != nil {
+		log.WithError(err).Fatal("Error during scanner setup")
+	}
+
 	servers, err := osScanner.GetServers(computeService)
 	if err != nil {
 		log.WithError(err).Fatal("Error during scanner get servers")
@@ -88,39 +92,39 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 			continue
 		}
 
-		fullImageName := server.Metadata["image_name"]
+		imageId := server.Image["id"].(string)
+		image, err := osScanner.GetImage(imageService, imageId)
+		if err != nil {
+			log.WithError(err).Warn("Error during scanner get image")
+		}
 
-		// Seperate Component name and version from server data
-		re := regexp.MustCompile(`^([a-zA-Z\-]+)-([0-9].*)$`)
-		matches := re.FindStringSubmatch(fullImageName)
-
-		imageName := matches[1]
-		imageVersion := matches[2]
+		imageName := server.Metadata["image_name"]
+		imageChecksum := image.Checksum
 
 		componentId, err := processor.CreateComponentObject(*osProcessor, ctx, imageName)
 		if err != nil {
 			log.WithError(err).Fatal("Error during createComponentObject")
 		}
 
-		componentVersionId, err := processor.CreateComponentVersionObject(*osProcessor, ctx, imageVersion, componentId)
+		componentVersionId, err := processor.CreateComponentVersionObject(*osProcessor, ctx, imageChecksum, componentId)
 		if err != nil {
 			log.WithError(err).Fatal("Error during createComponentVersionObject")
 		}
 
-		componentInstanceCCRN := serviceCCRN + "_" + fullImageName
+		componentInstanceCCRN := serviceCCRN + "_" + imageName
 		_, err = processor.CreateComponentInstanceObject(*osProcessor, ctx, componentInstanceCCRN, componentVersionId, serviceId, serviceCCRN)
 		if err != nil {
 			log.WithError(err).Fatal("Error during createComponentInstanceObject")
 		}
 
 		// Perform policy checks
-		if policy4dot5Check(fullImageName) {
+		if policy4dot5Check(imageName) {
 			// Compliant
 			// Need to decide what to do here, if anything.
 			// but for now we can just log it
 			log.WithFields(log.Fields{
 				"server_id":  server.ID,
-				"image_name": fullImageName,
+				"image_name": imageName,
 			}).Info("Server image is compliant")
 		} else {
 			// Non-Compliant
