@@ -2,6 +2,13 @@ FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23.2 AS builder
 
 WORKDIR /go/src/github.com/cloudoperators/heureka
 ADD . .
+
+# generate mock code files
+RUN go install github.com/vektra/mockery/v2@v2.46.3
+RUN mockery
+# generate graphql code
+RUN cd internal/api/graphql && go run github.com/99designs/gqlgen generate
+
 RUN CGO_ENABLED=0 go build -o /go/bin/heureka cmd/heureka/main.go
 
 FROM --platform=${BUILDPLATFORM:-linux/amd64} gcr.io/distroless/static-debian12:nonroot
