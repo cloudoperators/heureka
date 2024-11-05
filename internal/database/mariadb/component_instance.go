@@ -21,6 +21,7 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.Id, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CI.componentinstance_component_version_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.CCRN, "CI.componentinstance_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, componentInstanceWildCardFilterQuery, OP_OR))
@@ -57,6 +58,9 @@ func (s *SqlDatabase) getComponentInstanceJoins(filter *entity.ComponentInstance
 	joins := ""
 	if len(filter.IssueMatchId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, "INNER JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id")
+	}
+	if len(filter.ServiceCcrn) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, "INNER JOIN Service S on CI.componentinstance_service_id = S.service_id")
 	}
 	return joins
 }
@@ -120,6 +124,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
