@@ -29,7 +29,6 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		cfg.AuthType = "token"
 		cfg.AuthTokenSecret = "xxx"
 		s = server.NewServer(cfg)
 
@@ -45,54 +44,54 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 	When("trying to access query resource with valid token", func() {
 		It("respond with 200", func() {
 			token := GenerateJwt(cfg.AuthTokenSecret, 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": token})
+			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
 			Expect(resp.StatusCode).To(Equal(200))
 		})
 	})
-	When("trying to access query resource without 'Authorization' header", func() {
+	When("trying to access query resource without 'X-Service-Authorization' header", func() {
 		It("respond with 401", func() {
 			resp := SendGetRequest(queryUrl, nil)
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "Authorization header is required")
+			ExpectErrorMessage(resp, "TokenAuthMethod(No authorization header)")
 		})
 	})
-	When("trying to access query resource with invalid 'Authorization' header", func() {
+	When("trying to access query resource with invalid 'X-Service-Authorization' header", func() {
 		It("respond with 401", func() {
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": "invalidHeader"})
+			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": "invalidHeader"})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "Token parsing error")
+			ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
 		})
 	})
 	When("trying to access query resource with expired token", func() {
 		It("respond with 401", func() {
 			token := GenerateJwt(cfg.AuthTokenSecret, -1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": token})
+			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "Token parsing error")
+			ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
 		})
 	})
 	When("trying to access query resource with token created using invalid secret", func() {
 		It("respond with 401", func() {
 			token := GenerateJwt("invalidSecret", 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": token})
+			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "Token parsing error")
+			ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
 		})
 	})
 	When("trying to access query resource with token created using invalid signing method", func() {
 		It("respond with 401", func() {
 			token := GenerateJwtWithInvalidSigningMethod(cfg.AuthTokenSecret, 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": token})
+			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "Token parsing error")
+			ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
 		})
 	})
 	When("trying to access query resource with invalid token", func() {
 		It("respond with 401", func() {
 			token := GenerateInvalidJwt(cfg.AuthTokenSecret)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": token})
+			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "Invalid token")
+			ExpectErrorMessage(resp, "TokenAuthMethod(Invalid token)")
 		})
 	})
 })
