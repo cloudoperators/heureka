@@ -3,6 +3,7 @@ package nova
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/cloudoperators/heureka/scanner/openstack/processor"
@@ -20,12 +21,17 @@ import (
 // Returns:
 //
 //	bool: Returns true if the image name complies with policy 4.5, otherwise false.
-func policy4dot5Check(img_name string) bool {
+func policy4dot5Check(imgName string, imgOwner string) bool {
 	// This is a temporary hardcoded implementation of policy 4.5 for the OpenStack scanner PoC
 	// This function will be replaced by the actual implementation of policy checks in the future
 	// Policy 4.5 checks that the image name contains either "gardenlinux" or "SAP-compliant"
 
-	if strings.Contains(img_name, "gardenlinux") || strings.Contains(img_name, "SAP-compliant") {
+	// Temporary implementation for owner check, storing the owner ids as env variables
+	sapCompliantOwner := os.Getenv("SAP_COMPLIANT_OWNER_ID")
+	gardenLinuxOwner := os.Getenv("GARDENLINUX_OWNER_ID")
+
+	if (strings.Contains(imgName, "gardenlinux") && imgOwner == gardenLinuxOwner) ||
+		(strings.Contains(imgName, "SAP-compliant") && imgOwner == sapCompliantOwner) {
 		return true
 	}
 	return false
@@ -111,6 +117,7 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 
 		imageName := server.Metadata["image_name"]
 		imageChecksum := image.Checksum
+		imageOwner := image.Owner
 
 		componentId, err := processor.CreateComponentObject(*osProcessor, ctx, imageName)
 		if err != nil {
@@ -129,7 +136,7 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 		}
 
 		// Perform policy checks
-		if policy4dot5Check(imageName) {
+		if policy4dot5Check(imageName, imageOwner) {
 			// Compliant
 			// Need to decide what to do here, if anything.
 			// but for now we can just log it
