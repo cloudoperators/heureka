@@ -52,6 +52,13 @@ type IssueInfo struct {
 	Description string
 }
 
+type IssueVariantInfo struct {
+	SecondaryName     string
+	Description       string
+	IssueRepositoryID string
+	IssueID           string
+}
+
 func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
@@ -872,4 +879,124 @@ func (p *Processor) ConnectComponentVersionToIssue(ctx context.Context, componen
 	}
 
 	return nil
+}
+
+// CreateIssueVariantObject creates an issue variant object in the processor
+// and returns the issue variant ID
+//
+// Parameters:
+//
+//	osProcessor: Processor object
+//	ctx: context object
+//	secondaryName: Secondary name of the issue variant
+//	description: Description of the issue variant
+//	issueRepositoryID: ID of the issue repository
+//	issueID: ID of the issue
+//
+// Returns:
+//
+//	string: Issue Variant ID
+//	error: Error object
+func CreateIssueVariantObject(osProcessor Processor, ctx context.Context, secondaryName string, description string, issueRepositoryID string, issueID string) (string, error) {
+	issueVariantObj := IssueVariantInfo{
+		SecondaryName:     secondaryName,
+		Description:       description,
+		IssueRepositoryID: issueRepositoryID,
+		IssueID:           issueID,
+	}
+
+	issueVariantId, err := osProcessor.ProcessIssueVariant(ctx, issueVariantObj)
+	if err != nil {
+		log.WithError(err).Fatal("Error during processor processIssueVariant")
+	}
+
+	return issueVariantId, err
+}
+
+// ProcessIssueVariant processes an issue variant and creates a new issue variant if it doesn't exist.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	issueVariantInfo IssueVariantInfo - The issue variant info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the issue variant.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) ProcessIssueVariant(ctx context.Context, issueVariantInfo IssueVariantInfo) (string, error) {
+	var issueVariantId string
+
+	if issueVariantInfo.SecondaryName == "" {
+		issueVariantInfo.SecondaryName = "none"
+	}
+
+	// The Issue Variant might already exist in the DB
+	// Let's try to fetch list of Issue Variants by name
+	_issueVariantId, err := p.GetIssueVariant(ctx, issueVariantInfo)
+
+	if err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"secondaryName": issueVariantInfo.SecondaryName,
+			"description":   issueVariantInfo.Description,
+			"issueId":       issueVariantInfo.IssueID,
+			"repositoryId":  issueVariantInfo.IssueRepositoryID,
+		}).Error("failed to fetch issue variant")
+
+		severityInput := client.SeverityInput{
+			Vector: string(client.SeverityValuesMedium),
+		}
+
+		// Create new Issue Variant
+		createIssueVariantInput := &client.IssueVariantInput{
+			SecondaryName:     issueVariantInfo.SecondaryName,
+			Description:       issueVariantInfo.Description,
+			IssueId:           issueVariantInfo.IssueID,
+			IssueRepositoryId: issueVariantInfo.IssueRepositoryID,
+			Severity:          &severityInput,
+		}
+
+		createIssueVariantResp, err := client.CreateIssueVariant(ctx, *p.Client, createIssueVariantInput)
+		if err != nil {
+			log.WithError(err).Fatal("failed to create Issue Variant")
+		} else {
+			issueVariantId = createIssueVariantResp.CreateIssueVariant.Id
+		}
+	} else {
+		issueVariantId = _issueVariantId
+	}
+
+	return issueVariantId, nil
+}
+
+// GetIssueVariant fetches an issue variant by secondary name
+// *IssueVariant has a unique constraint on secondary name,
+// so this query should return at most one result.
+//
+// Parameters:
+//
+//	ctx context.Context - The context to be used for the request.
+//	issueVariantInfo IssueVariantInfo - The issue variant info to be used for the request.
+//
+// Returns:
+//
+//	string - The ID of the issue variant.
+//	error - An error if something goes wrong during the request.
+func (p *Processor) GetIssueVariant(ctx context.Context, issueVariantInfo IssueVariantInfo) (string, error) {
+	listIssueVariantsFilter := client.IssueVariantFilter{
+		SecondaryName: []string{issueVariantInfo.SecondaryName},
+	}
+	listIssueVariantsResp, err := client.ListIssueVariants(ctx, *p.Client, &listIssueVariantsFilter)
+	if err != nil {
+		fmt.Println(err)
+		return "", fmt.Errorf("couldn't list issue variants")
+	}
+
+	// Return the first item
+	if listIssueVariantsResp.IssueVariants.TotalCount > 0 {
+		return listIssueVariantsResp.IssueVariants.Edges[0].Node.Id, nil
+	}
+
+	// No Issue Variant found
+	return "", fmt.Errorf("ListIssueVariants returned no IssueVariantID")
 }
