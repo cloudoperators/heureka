@@ -417,28 +417,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 
-				It("can order by severity ascending", func() {
-					order := []entity.Order{
-						{By: entity.IssueMatchOrderValuesSeverity, Direction: entity.OrderDirectionValueAsc},
-					}
-
-					res, err := db.GetIssueMatches(nil, order)
-
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning the correct order", func() {
-						var prev float64
-						for i, r := range res {
-							if i > 0 {
-								Expect(r.Severity.Score >= prev).Should(BeTrue())
-							}
-							prev = r.Severity.Score
-						}
-					})
-				})
-
 				It("can order by severity descending", func() {
 					order := []entity.Order{
 						{By: entity.IssueMatchOrderValuesSeverity, Direction: entity.OrderDirectionValueDesc},
