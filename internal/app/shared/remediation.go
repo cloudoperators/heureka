@@ -19,6 +19,7 @@ type RemediationTimelineConfig struct {
 }
 
 // DefaultRemediationConfig provides default values for remediation timelines
+// TODO: Make these values configurable (allow to be specified via ENV variables)
 var DefaultRemediationConfig = RemediationTimelineConfig{
 	LowDays:      180, // 6 months
 	MediumDays:   90,  // 3 months
