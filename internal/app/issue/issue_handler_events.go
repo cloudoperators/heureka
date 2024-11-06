@@ -152,7 +152,7 @@ func createIssueMatches(
 		})
 
 		// Check if IssueMatches already exist
-		l.WithField("event-step", "FetchIssueMatches").Debug("Fetching issue matches related to assigned Component Instance")
+		l.WithField("event-step", "GetIssueMatches").Debug("Fetching issue matches related to assigned Component Instance")
 		issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceId},
@@ -160,20 +160,17 @@ func createIssueMatches(
 
 		if err != nil {
 			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
-			return
 		}
 		l.WithField("issueMatchesCount", len(issue_matches))
 
 		if len(issue_matches) != 0 {
 			l.WithField("event-step", "Skipping").Debug("The issue match does already exist. Skipping")
-			return
+			continue
 		}
 
 		// Create new issue match
-		// currently a static user is assumed to be used, this going to change in future to either a configured user or a dynamically
-		// infered user from the component version issue macht
 		issue_match := &entity.IssueMatch{
-			UserId:                1, //@todo discuss whatever we use a static system user or infer the user from the ComponentVersionIssue
+			UserId:                1,
 			Status:                entity.IssueMatchStatusValuesNew,
 			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
 			ComponentInstanceId:   componentInstanceId,
@@ -185,7 +182,7 @@ func createIssueMatches(
 		_, err = db.CreateIssueMatch(issue_match)
 		if err != nil {
 			l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
-			return
+			continue
 		}
 	}
 }
