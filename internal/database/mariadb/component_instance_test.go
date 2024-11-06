@@ -120,6 +120,27 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						Expect(entry.ServiceId).To(BeEquivalentTo(ciRow.ServiceId.Int64))
 					}
 				})
+				It("can filter by a single ccrn that does exist", func() {
+					ciRow := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
+					filter := &entity.ComponentInstanceFilter{
+						CCRN: []*string{&ciRow.CCRN.String},
+					}
+
+					entries, err := db.GetComponentInstances(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(entries).To(HaveLen(1))
+					})
+
+					By("returning expected ccrn", func() {
+						Expect(entries[0].CCRN).To(BeEquivalentTo(ciRow.CCRN.String))
+					})
+
+				})
 				It("can filter by a single componentVersion id that does exist", func() {
 					// select a component version
 					cvRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]

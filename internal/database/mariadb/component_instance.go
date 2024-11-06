@@ -38,6 +38,7 @@ func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceF
 func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "CI.componentinstance_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.CCRN, "CI.componentinstance_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
@@ -116,6 +117,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	//adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
+	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
