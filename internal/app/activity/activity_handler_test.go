@@ -140,8 +140,9 @@ var _ = Describe("When updating Activity", Label("app", "UpdateService"), func()
 		after = 0
 		filter = &entity.ActivityFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -180,8 +181,9 @@ var _ = Describe("When deleting Activity", Label("app", "DeleteActivity"), func(
 		after = 0
 		filter = &entity.ActivityFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -218,8 +220,9 @@ var _ = Describe("When modifying relationship of Service and Activity", Label("a
 		after = 0
 		filter = &entity.ActivityFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id: []*int64{&activity.Id},
 		}
@@ -262,8 +265,9 @@ var _ = Describe("When modifying relationship of Issue and Activity", Label("app
 		after = 0
 		filter = &entity.ActivityFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id: []*int64{&activity.Id},
 		}

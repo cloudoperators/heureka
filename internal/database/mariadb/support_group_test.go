@@ -291,8 +291,9 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					f := 10
 					filter := &entity.SupportGroupFilter{
 						Paginated: entity.Paginated{
-							First: &f,
-							After: nil,
+							First:  &f,
+							After:  nil,
+							Cursor: lo.ToPtr(""),
 						},
 					}
 					c, err := db.CountSupportGroups(filter)

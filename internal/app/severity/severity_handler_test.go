@@ -60,9 +60,11 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		ivFilter.First = &first
 		var after int64 = 0
 		ivFilter.After = &after
+		ivFilter.Cursor = lo.ToPtr("")
 		irFilter = entity.NewIssueRepositoryFilter()
 		irFilter.First = &first
 		irFilter.After = &after
+		irFilter.Cursor = lo.ToPtr("")
 		rs = issue_repository.NewIssueRepositoryHandler(db, er)
 		ivs = issue_variant.NewIssueVariantHandler(db, er, rs)
 	})

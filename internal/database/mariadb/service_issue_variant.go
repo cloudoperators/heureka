@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/jmoiron/sqlx"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,8 +17,9 @@ func (s *SqlDatabase) ensureServiceIssueVariantFilter(f *entity.ServiceIssueVari
 	if f == nil {
 		return &entity.ServiceIssueVariantFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			ComponentInstanceId: nil,
 		}

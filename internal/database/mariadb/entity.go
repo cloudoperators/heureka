@@ -51,6 +51,16 @@ func GetUserTypeValue(v sql.NullInt64) entity.UserType {
 	}
 }
 
+type DatabaseCursor struct {
+	Statement       string
+	ParameterValues []any
+	Limit           int
+}
+
+type DatabaseCursorRow struct {
+	IssueMatchCursor
+}
+
 type DatabaseRow interface {
 	IssueRow |
 		IssueCountRow |
@@ -78,7 +88,40 @@ type DatabaseRow interface {
 		ActivityHasServiceRow |
 		IssueRepositoryServiceRow |
 		IssueMatchChangeRow |
-		ServiceIssueVariantRow
+		ServiceIssueVariantRow |
+		RowComposite
+}
+
+// RowComposite is a composite type that contains all the row types for the database
+// This is used to unmarshal the database rows into the corresponding entity types in a dynamical manner
+type RowComposite struct {
+	*IssueRow
+	*IssueCountRow
+	*GetIssuesByRow
+	*IssueMatchRow
+	*IssueAggregationsRow
+	*IssueVariantRow
+	*BaseIssueRepositoryRow
+	*IssueRepositoryRow
+	*IssueVariantWithRepository
+	*ComponentRow
+	*ComponentInstanceRow
+	*ComponentVersionRow
+	*BaseServiceRow
+	*ServiceRow
+	*GetServicesByRow
+	*ServiceAggregationsRow
+	*ActivityRow
+	*UserRow
+	*EvidenceRow
+	*OwnerRow
+	*SupportGroupRow
+	*SupportGroupServiceRow
+	*ActivityHasIssueRow
+	*ActivityHasServiceRow
+	*IssueRepositoryServiceRow
+	*IssueMatchChangeRow
+	*ServiceIssueVariantRow
 }
 
 type IssueRow struct {
@@ -184,16 +227,39 @@ func (ir *IssueRow) FromIssue(i *entity.Issue) {
 	ir.UpdatedAt = sql.NullTime{Time: i.UpdatedAt, Valid: true}
 }
 
+// // IssueMatchCursor is used to marshal / unmarshal IssueMatch
+type IssueMatchCursor struct {
+	Id                    sql.NullInt64  `db:"issuematch_id" json:"id" cursor:"id"`
+	Rating                sql.NullString `db:"issuematch_rating" json:"rating" cursor:"severity" cursor_enum:"critical,high,medium,low"`
+	TargetRemediationDate sql.NullTime   `db:"issuematch_target_remediation_date" json:"target_remediation_date" cursor:"target_remediation_date"`
+	ComponentInstanceCCRN sql.NullString `db:"componentinstance_ccrn" json:"component_instance_ccrn" cursor:"component_instance_ccrn"`
+}
+
+func (imc *IssueMatchCursor) FromIssueMatch(im *entity.IssueMatch) {
+	imc.Id = sql.NullInt64{Int64: im.Id, Valid: true}
+	imc.Rating = sql.NullString{String: im.Severity.Value, Valid: true}
+	imc.TargetRemediationDate = sql.NullTime{Time: im.TargetRemediationDate, Valid: true}
+}
+
+func (imc *IssueMatchCursor) FromComponentInstance(ci *entity.ComponentInstance) {
+	imc.ComponentInstanceCCRN = sql.NullString{String: ci.CCRN, Valid: true}
+}
+
+type CursorRow struct {
+	IssueMatchRow
+	ComponentInstanceRow
+}
+
 type IssueMatchRow struct {
-	Id                    sql.NullInt64  `db:"issuematch_id" json:"id"`
+	Id                    sql.NullInt64  `db:"issuematch_id" json:"id" cursor:"issuematch_id"`
 	Status                sql.NullString `db:"issuematch_status" json:"status"`
 	Vector                sql.NullString `db:"issuematch_vector" json:"vector"`
-	Rating                sql.NullString `db:"issuematch_rating" json:"rating"`
+	Rating                sql.NullString `db:"issuematch_rating" json:"rating" cursor:"issuematch_severity" cursor_enum:"Critical,High,Medium,Low,None"`
 	UserId                sql.NullInt64  `db:"issuematch_user_id" json:"user_id"`
 	ComponentInstanceId   sql.NullInt64  `db:"issuematch_component_instance_id" json:"component_instance_id"`
 	IssueId               sql.NullInt64  `db:"issuematch_issue_id" json:"issue_id"`
 	RemediationDate       sql.NullTime   `db:"issuematch_remediation_date" json:"remediation_date"`
-	TargetRemediationDate sql.NullTime   `db:"issuematch_target_remediation_date" json:"target_remediation_date"`
+	TargetRemediationDate sql.NullTime   `db:"issuematch_target_remediation_date" json:"target_remediation_date" cursor:"target_remediation_date"`
 	CreatedAt             sql.NullTime   `db:"issuematch_created_at" json:"created_at"`
 	DeletedAt             sql.NullTime   `db:"issuematch_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt             sql.NullTime   `db:"issuematch_updated_at" json:"updated_at"`
@@ -600,7 +666,7 @@ func (ar *ActivityRow) FromActivity(a *entity.Activity) {
 
 type ComponentInstanceRow struct {
 	Id                 sql.NullInt64  `db:"componentinstance_id" json:"id"`
-	CCRN               sql.NullString `db:"componentinstance_ccrn" json:"ccrn"`
+	CCRN               sql.NullString `db:"componentinstance_ccrn" json:"ccrn" cursor:"ci_ccrn"`
 	Count              sql.NullInt16  `db:"componentinstance_count" json:"count"`
 	ComponentVersionId sql.NullInt64  `db:"componentinstance_component_version_id"`
 	ServiceId          sql.NullInt64  `db:"componentinstance_service_id"`

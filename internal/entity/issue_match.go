@@ -76,3 +76,10 @@ type IssueMatchResult struct {
 	WithCursor
 	*IssueMatch
 }
+
+const (
+	IssueMatchOrderValuesComponentInstanceCCRN OrderByValue = "ci_ccrn"
+	IssueMatchOrderValuesSeverity              OrderByValue = "issuematch_severity"
+	IssueMatchOrderValuesTargetRemediationDate OrderByValue = "target_remediation_date"
+	IssueMatchOrderValuesId                    OrderByValue = "issuematch_id"
+)

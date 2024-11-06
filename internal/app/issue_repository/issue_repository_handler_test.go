@@ -120,8 +120,9 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		after = 0
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 		issueRepository = test.NewFakeIssueRepositoryEntity()
@@ -185,8 +186,9 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 		after = 0
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -221,8 +223,9 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 		after = 0
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})

@@ -151,8 +151,9 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		after = 0
 		filter = &entity.ComponentInstanceFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})

@@ -244,6 +244,36 @@ func NewIssueMatchEntity(im *IssueMatchInput) entity.IssueMatch {
 	}
 }
 
+func NewIssueMatchOrder(imos []*IssueMatchOrderBy) []entity.Order {
+	fieldMap := map[IssueMatchOrderByValues]entity.OrderByValue{
+		IssueMatchOrderByValuesSeverity:              entity.IssueMatchOrderValuesSeverity,
+		IssueMatchOrderByValuesComponentInstanceCcrn: entity.IssueMatchOrderValuesComponentInstanceCCRN,
+		IssueMatchOrderByValuesTargetRemediationDate: entity.IssueMatchOrderValuesTargetRemediationDate,
+	}
+
+	directionMap := map[OrderDirection]entity.OrderDirectionValue{
+		OrderDirectionAsc:  entity.OrderDirectionValueAsc,
+		OrderDirectionDesc: entity.OrderDirectionValueDesc,
+	}
+
+	order := make([]entity.Order, len(imos))
+	for i, imo := range imos {
+		if _, exists := fieldMap[*imo.Field]; !exists {
+			return nil
+		}
+		if _, exists := directionMap[*imo.Direction]; !exists {
+			return nil
+		}
+
+		order[i] = entity.Order{
+			By:        fieldMap[*imo.Field],
+			Direction: directionMap[*imo.Direction],
+		}
+	}
+
+	return order
+}
+
 func NewIssueMatchChange(imc *entity.IssueMatchChange) IssueMatchChange {
 	action := IssueMatchChangeAction(imc.Action)
 	return IssueMatchChange{

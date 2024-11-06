@@ -117,8 +117,9 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		after = 0
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -154,8 +155,9 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		after = 0
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -191,8 +193,9 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		after = 0
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})

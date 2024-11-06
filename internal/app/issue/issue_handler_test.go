@@ -230,8 +230,9 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		after = 0
 		filter = &entity.IssueFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -268,8 +269,9 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 		after = 0
 		filter = &entity.IssueFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -344,8 +346,9 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 		after = 0
 		filter = &entity.IssueFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id: []*int64{&issueEntity.Id},
 		}

@@ -142,8 +142,9 @@ var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatc
 		after = 0
 		filter = &entity.IssueMatchChangeFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -182,8 +183,9 @@ var _ = Describe("When deleting IssueMatchChange", Label("app", "DeleteIssueMatc
 		after = 0
 		filter = &entity.IssueMatchChangeFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})

@@ -47,7 +47,8 @@ type HeurekaEntity interface {
 		IssueMatchChange |
 		HeurekaFilter |
 		IssueCount |
-		ServiceIssueVariant
+		ServiceIssueVariant |
+		IssueMatchResult
 }
 
 type HeurekaFilter interface {
@@ -85,9 +86,10 @@ type ResultList struct {
 }
 
 type ListOptions struct {
-	ShowTotalCount      bool `json:"show_total_count"`
-	ShowPageInfo        bool `json:"show_page_info"`
-	IncludeAggregations bool `json:"include_aggregations"`
+	ShowTotalCount      bool    `json:"show_total_count"`
+	ShowPageInfo        bool    `json:"show_page_info"`
+	IncludeAggregations bool    `json:"include_aggregations"`
+	Order               []Order `json:"order"`
 }
 
 func NewListOptions() *ListOptions {
@@ -95,7 +97,22 @@ func NewListOptions() *ListOptions {
 		ShowTotalCount:      false,
 		ShowPageInfo:        false,
 		IncludeAggregations: false,
+		Order:               []Order{},
 	}
+}
+
+type OrderByValue string
+
+type OrderDirectionValue string
+
+const (
+	OrderDirectionValueAsc  OrderDirectionValue = "asc"
+	OrderDirectionValueDesc OrderDirectionValue = "desc"
+)
+
+type Order struct {
+	By        OrderByValue
+	Direction OrderDirectionValue
 }
 
 type PageInfo struct {
@@ -128,8 +145,11 @@ type TimeFilter struct {
 }
 
 type Paginated struct {
-	First *int   `json:"first"`
+	First *int `json:"first"`
+	// going to get deprecated
 	After *int64 `json:"from"`
+	//we add the AfterCursor to keep backwards compatibility with old cursor
+	Cursor *string `json:"after_cursor"`
 }
 
 func MaxPaginated() Paginated {

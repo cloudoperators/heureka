@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"fmt"
+	"github.com/samber/lo"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -18,8 +19,9 @@ func (s *SqlDatabase) ensureIssueVariantFilter(f *entity.IssueVariantFilter) *en
 	if f == nil {
 		return &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id:                nil,
 			SecondaryName:     nil,

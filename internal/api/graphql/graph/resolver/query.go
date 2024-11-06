@@ -21,8 +21,8 @@ func (r *queryResolver) Issues(ctx context.Context, filter *model.IssueFilter, f
 	return baseResolver.IssueBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) IssueMatches(ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string) (*model.IssueMatchConnection, error) {
-	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil)
+func (r *queryResolver) IssueMatches(ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, order []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
+	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, order, nil)
 }
 
 func (r *queryResolver) IssueMatchChanges(ctx context.Context, filter *model.IssueMatchChangeFilter, first *int, after *string) (*model.IssueMatchChangeConnection, error) {
@@ -93,10 +93,12 @@ func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.Issu
 	}, nil
 }
 
+// ComponentInstanceFilterValues is the resolver for the ComponentInstanceFilterValues field.
 func (r *queryResolver) ComponentInstanceFilterValues(ctx context.Context) (*model.ComponentInstanceFilterValue, error) {
 	return &model.ComponentInstanceFilterValue{}, nil
 }
 
+// ComponentFilterValues is the resolver for the ComponentFilterValues field.
 func (r *queryResolver) ComponentFilterValues(ctx context.Context) (*model.ComponentFilterValue, error) {
 	return &model.ComponentFilterValue{}, nil
 }

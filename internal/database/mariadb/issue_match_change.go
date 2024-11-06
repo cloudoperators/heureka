@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/jmoiron/sqlx"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,8 +22,9 @@ func (s *SqlDatabase) ensureIssueMatchChangeFilter(f *entity.IssueMatchChangeFil
 	var after int64 = 0
 	return &entity.IssueMatchChangeFilter{
 		Paginated: entity.Paginated{
-			First: &first,
-			After: &after,
+			First:  &first,
+			After:  &after,
+			Cursor: lo.ToPtr(""),
 		},
 		Id:           nil,
 		ActivityId:   nil,

@@ -151,8 +151,9 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 		after = 0
 		filter = &entity.EvidenceFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})

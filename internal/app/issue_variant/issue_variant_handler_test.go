@@ -146,9 +146,11 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 		irFilter = issueRepositoryFilter()
 		first := 10
 		ivFilter.First = &first
+		ivFilter.Cursor = lo.ToPtr("")
 		var after int64 = 0
 		irFilter.First = &first
 		irFilter.After = &after
+		irFilter.Cursor = lo.ToPtr("")
 		rs = issue_repository.NewIssueRepositoryHandler(db, er)
 	})
 
@@ -221,8 +223,9 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		after = 0
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(db, er)
@@ -265,8 +268,9 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		after = 0
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(db, er)
@@ -309,8 +313,9 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		after = 0
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(db, er)

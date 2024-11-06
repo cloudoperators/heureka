@@ -217,8 +217,9 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		after = 0
 		filter = &entity.ServiceFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -328,8 +329,9 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 		after = 0
 		filter = &entity.ServiceFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -364,8 +366,9 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		after = 0
 		filter = &entity.ServiceFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -402,8 +405,9 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		after = 0
 		filter = &entity.ServiceFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id: []*int64{&service.Id},
 		}
@@ -447,8 +451,9 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 		after = 0
 		filter = &entity.ServiceFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id: []*int64{&service.Id},
 		}

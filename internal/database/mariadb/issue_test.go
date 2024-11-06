@@ -509,8 +509,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					var after int64 = 0
 					filter := &entity.IssueFilter{
 						Paginated: entity.Paginated{
-							First: &first,
-							After: &after,
+							First:  &first,
+							After:  &after,
+							Cursor: lo.ToPtr(""),
 						},
 					}
 					res, err := db.CountIssues(filter)

@@ -139,8 +139,9 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		after = 0
 		filter = &entity.ComponentVersionFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})

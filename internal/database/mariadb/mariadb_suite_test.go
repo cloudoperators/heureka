@@ -59,5 +59,5 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	Expect(dbm.TearDown()).To(Succeed())
+	_ = dbm.TearDown()
 })

@@ -168,7 +168,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 		issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceID},
-		})
+		}, nil)
 
 		if err != nil {
 			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")

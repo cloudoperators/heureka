@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"fmt"
+	"github.com/samber/lo"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -63,8 +64,9 @@ func (s *SqlDatabase) ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilte
 	if f == nil {
 		return &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			ServiceId:   nil,
 			Name:        nil,

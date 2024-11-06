@@ -117,8 +117,9 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		after = 0
 		filter = &entity.ComponentFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -154,8 +155,9 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		after = 0
 		filter = &entity.ComponentFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})

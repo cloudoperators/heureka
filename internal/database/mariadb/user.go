@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"fmt"
+	"github.com/samber/lo"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -31,8 +32,9 @@ func (s *SqlDatabase) ensureUserFilter(f *entity.UserFilter) *entity.UserFilter 
 	if f == nil {
 		return &entity.UserFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id:             nil,
 			Name:           nil,

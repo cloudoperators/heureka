@@ -24,6 +24,11 @@ type Page {
     pageCount: Int
 }
 
+enum OrderDirection {
+    ASC,
+    DESC
+}
+
 type PageInfo {
     hasNextPage: Boolean
     hasPreviousPage: Boolean

@@ -32,8 +32,9 @@ var _ = BeforeSuite(func() {
 func getSupportGroupFilter() *entity.SupportGroupFilter {
 	return &entity.SupportGroupFilter{
 		Paginated: entity.Paginated{
-			First: nil,
-			After: nil,
+			First:  nil,
+			After:  nil,
+			Cursor: lo.ToPtr(""),
 		},
 	}
 }
@@ -114,8 +115,9 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		after = 0
 		filter = &entity.SupportGroupFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -150,8 +152,9 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 		after = 0
 		filter = &entity.SupportGroupFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -186,8 +189,9 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		after = 0
 		filter = &entity.SupportGroupFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 		}
 	})
@@ -224,8 +228,9 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 		after = 0
 		filter = &entity.SupportGroupFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id: []*int64{&supportGroup.Id},
 		}
@@ -268,8 +273,9 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 		after = 0
 		filter = &entity.SupportGroupFilter{
 			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
+				First:  &first,
+				After:  &after,
+				Cursor: lo.ToPtr(""),
 			},
 			Id: []*int64{&supportGroup.Id},
 		}

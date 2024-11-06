@@ -12,7 +12,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,23 +39,6 @@ func NewIssueMatchHandlerError(message string) *IssueMatchHandlerError {
 
 func (e *IssueMatchHandlerError) Error() string {
 	return e.message
-}
-
-func (h *issueMatchHandler) getIssueMatchResults(filter *entity.IssueMatchFilter) ([]entity.IssueMatchResult, error) {
-	var results []entity.IssueMatchResult
-	ims, err := h.database.GetIssueMatches(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, im := range ims {
-		cursor := fmt.Sprintf("%d", im.Id)
-		results = append(results, entity.IssueMatchResult{
-			WithCursor: entity.WithCursor{Value: cursor},
-			IssueMatch: util.Ptr(im),
-		})
-	}
-
-	return results, nil
 }
 
 func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMatch, error) {
@@ -95,7 +77,7 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 		"filter": filter,
 	})
 
-	res, err := im.getIssueMatchResults(filter)
+	res, err := im.database.GetIssueMatches(filter, options.Order)
 
 	if err != nil {
 		l.Error(err)
@@ -104,13 +86,13 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := im.database.GetAllIssueMatchIds(filter)
+			allCursors, err := im.database.GetAllIssueMatchCursors(filter, options.Order)
 			if err != nil {
 				l.Error(err)
 				return nil, NewIssueMatchHandlerError("Error while getting all Ids")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+			pageInfo = common.GetCursorPageInfo(res, allCursors, *filter.First, filter.Cursor)
+			count = int64(len(allCursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = im.database.CountIssueMatches(filter)
