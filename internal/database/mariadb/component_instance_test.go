@@ -146,6 +146,40 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						Expect(len(entries)).To(BeEquivalentTo(len(ciIds)))
 					})
 				})
+				It("can filter Component Instance Ccrn using wild card search", func() {
+					row := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
+
+					const charactersToRemoveFromBeginning = 2
+					const charactersToRemoveFromEnd = 2
+					const minimalCharactersToKeep = 2
+
+					start := charactersToRemoveFromBeginning
+					end := len(row.CCRN.String) - charactersToRemoveFromEnd
+
+					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
+
+					searchStr := row.CCRN.String[start:end]
+					filter := &entity.ComponentInstanceFilter{Search: []*string{&searchStr}}
+
+					entries, err := db.GetComponentInstances(filter)
+
+					ccrn := []string{}
+					for _, entry := range entries {
+						ccrn = append(ccrn, entry.CCRN)
+					}
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("at least one element was discarded (filtered)", func() {
+						Expect(len(seedCollection.ServiceRows) > len(ccrn)).To(BeTrue())
+					})
+
+					By("returning the expected elements", func() {
+						Expect(ccrn).To(ContainElement(row.CCRN.String))
+					})
+				})
 			})
 		})
 	})
