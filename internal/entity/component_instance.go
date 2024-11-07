@@ -13,6 +13,7 @@ type ComponentInstanceFilter struct {
 	ComponentVersionId []*int64  `json:"component_version_id"`
 	Id                 []*int64  `json:"id"`
 	CCRN               []*string `json:"ccrn"`
+	Search             []*string `json:"search"`
 }
 
 type ComponentInstanceAggregations struct{}
