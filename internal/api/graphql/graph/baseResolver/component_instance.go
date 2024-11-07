@@ -92,6 +92,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 
 	f := &entity.ComponentInstanceFilter{
 		Paginated:          entity.Paginated{First: first, After: afterId},
+		CCRN:               filter.Ccrn,
 		IssueMatchId:       imId,
 		ServiceId:          serviceId,
 		ServiceCcrn:        filter.ServiceCcrn,
