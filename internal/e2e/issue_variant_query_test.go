@@ -224,7 +224,7 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 		})
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
-			It("creates new issueVariant", func() {
+			It("creates new issueVariant with Vector", func() {
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
@@ -260,6 +260,43 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 				Expect(*respData.IssueVariant.IssueRepositoryID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)))
 				Expect(*respData.IssueVariant.IssueID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueId)))
 				Expect(*respData.IssueVariant.Severity.Cvss.Vector).To(Equal(issueVariant.Severity.Cvss.Vector))
+			})
+			It("creates new issueVariant with Rating", func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueVariant/createWithRating.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Var("input", map[string]interface{}{
+					"secondaryName":     issueVariant.SecondaryName,
+					"description":       issueVariant.Description,
+					"issueRepositoryId": fmt.Sprintf("%d", issueVariant.IssueRepositoryId),
+					"issueId":           fmt.Sprintf("%d", issueVariant.IssueId),
+					"severity": map[string]string{
+						"rating": issueVariant.Severity.Value,
+					},
+				})
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					IssueVariant model.IssueVariant `json:"createIssueVariant"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				Expect(*respData.IssueVariant.SecondaryName).To(Equal(issueVariant.SecondaryName))
+				Expect(*respData.IssueVariant.Description).To(Equal(issueVariant.Description))
+				Expect(*respData.IssueVariant.IssueRepositoryID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)))
+				Expect(*respData.IssueVariant.IssueID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueId)))
+				Expect(string(*respData.IssueVariant.Severity.Value)).To(Equal(issueVariant.Severity.Value))
 			})
 		})
 	})
@@ -312,8 +349,12 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 				issueVariant.SecondaryName = "SecretIssueVariant"
 
 				req.Var("id", fmt.Sprintf("%d", issueVariant.Id))
-				req.Var("input", map[string]string{
+				req.Var("input", map[string]interface{}{
 					"secondaryName": issueVariant.SecondaryName,
+					"severity": model.SeverityInput{
+						Rating: &model.AllSeverityValues[0],
+						Vector: &issueVariant.Severity.Cvss.Vector,
+					},
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")

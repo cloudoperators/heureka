@@ -150,6 +150,26 @@ type Cursor struct {
 	Limit     int
 }
 
+func NewSeverityFromRating(rating SeverityValues) Severity {
+	score := 0.0
+	switch rating {
+	case SeverityValuesLow:
+		score = 0.1
+	case SeverityValuesMedium:
+		score = 4.0
+	case SeverityValuesHigh:
+		score = 7.0
+	case SeverityValuesCritical:
+		score = 9.0
+	}
+
+	return Severity{
+		Value: string(rating),
+		Score: score,
+		Cvss:  Cvss{},
+	}
+}
+
 func NewSeverity(url string) Severity {
 	ev, err := metric.NewEnvironmental().Decode(url)
 

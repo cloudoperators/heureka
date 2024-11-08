@@ -317,8 +317,12 @@ var _ = Describe("Updating evidence via API", Label("e2e", "Evidences"), func() 
 				evidence.Description = "New Description"
 
 				req.Var("id", fmt.Sprintf("%d", evidence.Id))
-				req.Var("input", map[string]string{
+				req.Var("input", map[string]interface{}{
 					"description": evidence.Description,
+					"severity": model.SeverityInput{
+						Rating: &model.AllSeverityValues[0],
+						Vector: &evidence.Severity.Cvss.Vector,
+					},
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")

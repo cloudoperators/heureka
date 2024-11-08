@@ -317,6 +317,13 @@ type IssueVariantRow struct {
 }
 
 func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) entity.IssueVariant {
+	var severity entity.Severity
+	if ivr.Vector.String == "" {
+		severity = entity.NewSeverityFromRating(entity.SeverityValues(ivr.Rating.String))
+	} else {
+		severity = entity.NewSeverity(GetStringValue(ivr.Vector))
+	}
+
 	return entity.IssueVariant{
 		Id:                GetInt64Value(ivr.Id),
 		IssueRepositoryId: GetInt64Value(ivr.IssueRepositoryId),
@@ -324,7 +331,7 @@ func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) e
 		SecondaryName:     GetStringValue(ivr.SecondaryName),
 		IssueId:           GetInt64Value(ivr.IssueId),
 		Issue:             nil,
-		Severity:          entity.NewSeverity(GetStringValue(ivr.Vector)),
+		Severity:          severity,
 		Description:       GetStringValue(ivr.Description),
 		CreatedAt:         GetTimeValue(ivr.CreatedAt),
 		DeletedAt:         GetTimeValue(ivr.DeletedAt),
@@ -352,6 +359,14 @@ type IssueVariantWithRepository struct {
 
 func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVariant {
 	rep := ivwr.IssueRepositoryRow.AsIssueRepository()
+
+	var severity entity.Severity
+	if ivwr.Vector.String == "" {
+		severity = entity.NewSeverityFromRating(entity.SeverityValues(ivwr.Rating.String))
+	} else {
+		severity = entity.NewSeverity(GetStringValue(ivwr.Vector))
+	}
+
 	return entity.IssueVariant{
 		Id:                GetInt64Value(ivwr.IssueVariantRow.Id),
 		IssueRepositoryId: GetInt64Value(ivwr.IssueRepositoryId),
@@ -359,7 +374,7 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 		SecondaryName:     GetStringValue(ivwr.IssueVariantRow.SecondaryName),
 		IssueId:           GetInt64Value(ivwr.IssueId),
 		Issue:             nil,
-		Severity:          entity.NewSeverity(GetStringValue(ivwr.Vector)),
+		Severity:          severity,
 		Description:       GetStringValue(ivwr.Description),
 		CreatedAt:         GetTimeValue(ivwr.IssueVariantRow.CreatedAt),
 		DeletedAt:         GetTimeValue(ivwr.IssueVariantRow.DeletedAt),
@@ -374,6 +389,14 @@ type ServiceIssueVariantRow struct {
 
 func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIssueVariant {
 	rep := siv.IssueRepositoryRow.AsIssueRepository()
+
+	var severity entity.Severity
+	if siv.Vector.String == "" {
+		severity = entity.NewSeverityFromRating(entity.SeverityValues(siv.Rating.String))
+	} else {
+		severity = entity.NewSeverity(GetStringValue(siv.Vector))
+	}
+
 	return entity.ServiceIssueVariant{
 		IssueVariant: entity.IssueVariant{
 			Id:                GetInt64Value(siv.IssueVariantRow.Id),
@@ -382,7 +405,7 @@ func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIs
 			SecondaryName:     GetStringValue(siv.IssueVariantRow.SecondaryName),
 			IssueId:           GetInt64Value(siv.IssueId),
 			Issue:             nil,
-			Severity:          entity.NewSeverity(GetStringValue(siv.Vector)),
+			Severity:          severity,
 			Description:       GetStringValue(siv.Description),
 			CreatedAt:         GetTimeValue(siv.IssueVariantRow.CreatedAt),
 			DeletedAt:         GetTimeValue(siv.IssueVariantRow.DeletedAt),
