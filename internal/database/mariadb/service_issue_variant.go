@@ -80,6 +80,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 	//adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
