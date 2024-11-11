@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -150,7 +151,9 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 	})
 
 	l.WithField("event-step", "BuildIssueVariants").Debug("Building map of IssueVariants for issues related to assigned Component Version")
-	issueVariantMap, err := BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
+	issueVariantMap, err := shared.BuildIssueVariantMap(db, &entity.ServiceIssueVariantFilter{
+		ComponentInstanceId: []*int64{&componentInstanceID},
+	}, componentVersionID)
 
 	l.WithField("issueVariantMap", issueVariantMap)
 	if err != nil {
@@ -191,7 +194,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
 			ComponentInstanceId:   componentInstanceID,
 			IssueId:               issueId,
-			TargetRemediationDate: GetTargetRemediationTimeline(issueVariant.Severity, time.Now()),
+			TargetRemediationDate: shared.GetTargetRemediationTimeline(issueVariant.Severity, time.Now(), nil),
 		}
 		l.WithField("event-step", "CreateIssueMatch").WithField("issueMatch", issue_match).Debug("Creating Issue Match")
 
@@ -201,26 +204,4 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			return
 		}
 	}
-}
-
-// GetTargetRemediationTimeline returns the target remediation timeline for a given severity and creation date
-// In a first iteration this is going to be obtained from a static configuration in environment variables or configuration file
-// In future this is potentially going to be dynamically inferred from individual service configurations in addition
-//
-// @todo get the configuration from environment variables or configuration file
-func GetTargetRemediationTimeline(severity entity.Severity, creationDate time.Time) time.Time {
-	switch entity.SeverityValues(severity.Value) {
-	case entity.SeverityValuesLow:
-		return creationDate.AddDate(0, 6, 0)
-	case entity.SeverityValuesMedium:
-
-		return creationDate.AddDate(0, 3, 0)
-	case entity.SeverityValuesHigh:
-		return creationDate.AddDate(0, 0, 20)
-	case entity.SeverityValuesCritical:
-		return creationDate.AddDate(0, 0, 7)
-	default:
-		return time.Date(5000, 1, 1, 0, 0, 0, 0, time.UTC)
-	}
-
 }

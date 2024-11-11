@@ -62,6 +62,7 @@ type ServiceIssueVariant struct {
 type ServiceIssueVariantFilter struct {
 	Paginated
 	ComponentInstanceId []*int64 `json:"component_instance_id"`
+	IssueId             []*int64 `json:"issue_id"`
 }
 
 func NewServiceIssueVariantFilter() *ServiceIssueVariantFilter {
