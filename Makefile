@@ -63,7 +63,7 @@ gqlgen:
 	cd internal/api/graphql && go run github.com/99designs/gqlgen generate
 
 mockery:
-	mockery
+	go install github.com/vektra/mockery/v2@v2.46.3
 
 GINKGO := go run github.com/onsi/ginkgo/v2/ginkgo
 test-all: mockery gqlgen
