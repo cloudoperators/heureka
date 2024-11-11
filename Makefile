@@ -64,10 +64,10 @@ run:
 gqlgen:
 	cd internal/api/graphql && go run github.com/99designs/gqlgen generate
 
-mockery: /go/bin/mockery
+mockery: install-build-dependencies
 	mockery
 
-/go/bin/mockery:
+install-build-dependencies:
 	go install github.com/vektra/mockery/v2@v2.46.3
 
 
