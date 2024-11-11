@@ -12,6 +12,8 @@ ifeq ($(wildcard .env),.env)
     export $(shell sed 's/=.*//' .env)
 endif
 
+all: build-binary test-all
+
 build-binary: mockery gqlgen
 	GO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o build/heureka cmd/heureka/main.go
 
@@ -62,8 +64,12 @@ run:
 gqlgen:
 	cd internal/api/graphql && go run github.com/99designs/gqlgen generate
 
-mockery:
+mockery: /go/bin/mockery
+	mockery
+
+/go/bin/mockery:
 	go install github.com/vektra/mockery/v2@v2.46.3
+
 
 GINKGO := go run github.com/onsi/ginkgo/v2/ginkgo
 test-all: mockery gqlgen
