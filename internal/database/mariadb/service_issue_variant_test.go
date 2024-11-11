@@ -6,6 +6,7 @@ package mariadb_test
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
@@ -179,5 +180,103 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 			Entry("4 of 100 component instance, with 50 issues", 4, 100, 50),
 			Entry("4 of 4 component instance, with 4 issues", 4, 4, 4),
 		)
+
+		// Testing issues
+		Context("When filtering by IssueId", Label("GetServiceIssueVariants", "IssueFilter"), func() {
+			Context("and the database is empty", func() {
+				It("returns empty results when filtering for non-existent issue", func() {
+					someId := lo.ToPtr(int64(1))
+					filter := &entity.ServiceIssueVariantFilter{
+						IssueId: []*int64{someId},
+					}
+
+					res, err := db.GetServiceIssueVariants(filter)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeEmpty())
+				})
+			})
+
+			Context("and there is a single issue with variants", func() {
+				var issue mariadb.IssueRow
+				var componentInstances []mariadb.ComponentInstanceRow
+				var services []mariadb.BaseServiceRow
+				var issueRepositories []mariadb.BaseIssueRepositoryRow
+
+				BeforeEach(func() {
+					// Create service
+					services = seeder.SeedServices(1)
+					
+					// Create issue
+					issues := seeder.SeedIssues(1)
+					issue = issues[0]
+
+					// Create repositories
+					issueRepositories = seeder.SeedIssueRepositories()
+					Expect(issueRepositories).To(HaveLen(5))
+
+					// Create components
+					components := seeder.SeedComponents(1)
+
+					// Create component version
+					componentVersions := seeder.SeedComponentVersions(1, components)
+
+					// Attach component version to issue
+					cvi := mariadb.ComponentVersionIssueRow{
+						ComponentVersionId: componentVersions[0].Id,
+						IssueId:            issue.Id,
+					}
+					_, err := seeder.InsertFakeComponentVersionIssue(cvi)
+					Expect(err).To(BeNil())
+					
+					// Create component instance
+					componentInstances = seeder.SeedComponentInstances(1, componentVersions, services)
+
+					// Create variants and link repositories
+					for _, repo := range issueRepositories {
+						v := test.GenerateRandomCVSS31Vector()
+						cvss, _ := metric.NewEnvironmental().Decode(v)
+
+						iv := mariadb.IssueVariantRow{
+							IssueId:           issue.Id,
+							Description:       issue.Description,
+							IssueRepositoryId: repo.Id,
+							SecondaryName:     sql.NullString{String: fmt.Sprintf("TEST-2024-%d", gofakeit.Number(1000, 9999)), Valid: true},
+							Vector:            sql.NullString{String: v, Valid: true},
+							Rating:            sql.NullString{String: cvss.Severity().String(), Valid: true},
+						}
+
+						// Create issue variants
+						_, err := seeder.InsertFakeIssueVariant(iv)
+
+						// Link repository to service with priority
+						irs := mariadb.IssueRepositoryServiceRow{
+							IssueRepositoryId: repo.Id,
+							ServiceId:         services[0].Id,
+							Priority:          sql.NullInt64{Int64: 1, Valid: true},
+						}
+						_, err = seeder.InsertFakeIssueRepositoryService(irs)
+						Expect(err).To(BeNil())
+					}
+				})
+
+				It("returns all variants when filtering for the issue", func() {
+					filter := &entity.ServiceIssueVariantFilter{
+						ComponentInstanceId: []*int64{lo.ToPtr(componentInstances[0].Id.Int64)},
+						IssueId: []*int64{lo.ToPtr(issue.Id.Int64)},
+					}
+
+					res, err := db.GetServiceIssueVariants(filter)
+					Expect(err).To(BeNil())
+					Expect(res).To(HaveLen(5)) // One variant per repository
+					
+					// All variants should be for our issue
+					for _, variant := range res {
+						Expect(variant.IssueId).To(Equal(issue.Id.Int64))
+					}
+				})
+			})
+		})
+
 	})
 })
