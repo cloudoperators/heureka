@@ -145,12 +145,24 @@ func NewSeverity(sev entity.Severity) *Severity {
 }
 
 func NewSeverityEntity(severity *SeverityInput) entity.Severity {
-	if (severity.Vector == nil || *severity.Vector == "") && severity.Rating != nil {
-		return entity.NewSeverityFromRating(entity.SeverityValues(*severity.Rating))
-	}
-	if severity == nil || severity.Vector == nil {
+	if severity == nil || (severity.Rating == nil && severity.Vector == nil) {
+		// no severity information was passed
 		return entity.Severity{}
 	}
+	if severity.Rating != nil && severity.Vector != nil {
+		// both were passed - check if they match
+		vectorSeverity := entity.NewSeverity(*severity.Vector)
+		ratingSeverity := entity.NewSeverityFromRating(entity.SeverityValues(*severity.Rating))
+		if vectorSeverity.Value != ratingSeverity.Value {
+			return entity.Severity{}
+		}
+		return vectorSeverity
+	}
+	if (severity.Vector == nil || *severity.Vector == "") && severity.Rating != nil {
+		// only rating was passed
+		return entity.NewSeverityFromRating(entity.SeverityValues(*severity.Rating))
+	}
+	// only vector was passed
 	return entity.NewSeverity(*severity.Vector)
 }
 
