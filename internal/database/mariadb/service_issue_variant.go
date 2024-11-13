@@ -37,6 +37,7 @@ func (s *SqlDatabase) ensureServiceIssueVariantFilter(f *entity.ServiceIssueVari
 func (s *SqlDatabase) getServiceIssueVariantFilterString(filter *entity.ServiceIssueVariantFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueId, "I.issue_id = ?", OP_OR))
 	fl = append(fl, "IV.issuevariant_deleted_at IS NULL")
 
 	return combineFilterQueries(fl, OP_AND)
@@ -81,6 +82,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 	//adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
@@ -96,17 +98,17 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
 	})
 
 	baseQuery := `
-		SELECT IRS.issuerepositoryservice_priority, IV.*  FROM  ComponentInstance CI 
+		SELECT IRS.issuerepositoryservice_priority, IV.*  FROM  ComponentInstance CI
 			# Join path to Issue
 			INNER JOIN ComponentVersion CV on CI.componentinstance_component_version_id = CV.componentversion_id
 			INNER JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id
 			INNER JOIN Issue I on CVI.componentversionissue_issue_id = I.issue_id
-			
+
 			# Join path to Repository
 			INNER JOIN Service S on CI.componentinstance_service_id = S.service_id
 			INNER JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
 			INNER JOIN IssueRepository IR on IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id
-			
+
 			# Join to from repo and issue to IssueVariant
 			INNER JOIN IssueVariant IV on I.issue_id = IV.issuevariant_issue_id and IV.issuevariant_repository_id = IR.issuerepository_id
 		%s
