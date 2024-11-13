@@ -309,6 +309,27 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						}
 					})
 				})
+				It("can filter by a secondary name", func() {
+					iv := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+
+					filter := &entity.IssueVariantFilter{
+						SecondaryName: []*string{&iv.SecondaryName.String},
+					}
+
+					entries, err := db.GetIssueVariants(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(entries).To(HaveLen(1))
+					})
+
+					By("returning expected elements", func() {
+						Expect(entries[0].SecondaryName).To(BeEquivalentTo(iv.SecondaryName.String))
+					})
+				})
 			})
 			Context("and using Pagination", func() {
 				DescribeTable("can correctly paginate", func(pageSize int) {
