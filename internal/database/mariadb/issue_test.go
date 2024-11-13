@@ -701,13 +701,18 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	When("Add Component Version to Issue", Label("AddComponentVersionToIssue"), func() {
 		Context("and we have 10 Issues in the database", func() {
 			var seedCollection *test.SeedCollection
+			var newComponentVersionRow mariadb.ComponentVersionRow
+			var newComponentVersion entity.ComponentVersion
+			var componentVersion *entity.ComponentVersion
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
+				newComponentVersionRow = test.NewFakeComponentVersion()
+				newComponentVersionRow.ComponentId = seedCollection.ComponentRows[0].Id
+				newComponentVersion = newComponentVersionRow.AsComponentVersion()
+				componentVersion, _ = db.CreateComponentVersion(&newComponentVersion)
 			})
 			It("can add component version correctly", func() {
 				issue := seedCollection.IssueRows[0].AsIssue()
-				componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
-				componentVersion.ComponentId = seedCollection.ComponentRows[0].Id.Int64
 
 				err := db.AddComponentVersionToIssue(issue.Id, componentVersion.Id)
 
@@ -724,7 +729,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Expect(err).To(BeNil())
 				})
 				By("returning issue", func() {
-					Expect(len(i)).To(BeEquivalentTo(1))
+					Expect(i).To(HaveLen(1))
 				})
 			})
 		})
