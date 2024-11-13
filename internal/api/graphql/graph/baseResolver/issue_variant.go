@@ -92,6 +92,7 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		Paginated:         entity.Paginated{First: first, After: afterId},
 		IssueId:           issueId,
 		IssueRepositoryId: irId,
+		SecondaryName:     filter.SecondaryName,
 	}
 
 	opt := GetListOptions(requestedFields)
