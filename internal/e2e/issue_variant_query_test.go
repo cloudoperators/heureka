@@ -349,12 +349,8 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 				issueVariant.SecondaryName = "SecretIssueVariant"
 
 				req.Var("id", fmt.Sprintf("%d", issueVariant.Id))
-				req.Var("input", map[string]interface{}{
+				req.Var("input", map[string]string{
 					"secondaryName": issueVariant.SecondaryName,
-					"severity": model.SeverityInput{
-						Rating: &model.AllSeverityValues[0],
-						Vector: &issueVariant.Severity.Cvss.Vector,
-					},
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
