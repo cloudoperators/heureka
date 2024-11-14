@@ -9,9 +9,11 @@ type ComponentInstanceFilter struct {
 	Paginated
 	IssueMatchId       []*int64  `json:"issue_match_id"`
 	ServiceId          []*int64  `json:"service_id"`
+	ServiceCcrn        []*string `json:"service_ccrn"`
 	ComponentVersionId []*int64  `json:"component_version_id"`
 	Id                 []*int64  `json:"id"`
 	CCRN               []*string `json:"ccrn"`
+	Search             []*string `json:"search"`
 }
 
 type ComponentInstanceAggregations struct{}

@@ -5,7 +5,11 @@ package issue
 
 import (
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/shared"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/sirupsen/logrus"
+	"time"
 )
 
 const (
@@ -88,4 +92,97 @@ type ListIssueNamesEvent struct {
 
 func (e *ListIssueNamesEvent) Name() event.EventName {
 	return ListIssueNamesEventName
+}
+
+// OnComponentVersionAttachmentToIssue is an event handler whenever a ComponentVersion
+// is attached to an Issue.
+func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnComponentVersionAttachmentToIssue",
+		"payload": e,
+	})
+
+	if attachmentEvent, ok := e.(*AddComponentVersionToIssueEvent); ok {
+		// Get ComponentInstances
+		l.WithField("event-step", "GetComponentInstances").Debug("Get Component Instances by ComponentVersionId")
+		componentInstances, err := db.GetComponentInstances(&entity.ComponentInstanceFilter{
+			ComponentVersionId: []*int64{&attachmentEvent.ComponentVersionID},
+		})
+
+		if err != nil {
+			l.WithField("event-step", "GetComponentInstances").WithError(err).Error("Error while fetching ComponentInstances")
+			return
+		}
+
+		// For each ComponentInstance get available IssueVariants
+		// via GetServiceIssueVariants
+		for _, compInst := range componentInstances {
+			// Get Service Issue Variants
+			issueVariantMap, err := shared.BuildIssueVariantMap(db, &entity.ServiceIssueVariantFilter{
+				ComponentInstanceId: []*int64{&compInst.Id},
+				IssueId:             []*int64{&attachmentEvent.IssueID},
+			}, attachmentEvent.ComponentVersionID)
+			if err != nil {
+				l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants")
+			}
+
+			// Create new IssueMatches
+			createIssueMatches(db, l, compInst.Id, issueVariantMap)
+		}
+	} else {
+		l.Error("Invalid event type received")
+	}
+
+}
+
+// TODO: This function is very similar to the one used in issue_match_handler_events.go
+// We might as well put this into the shared package
+//
+// createIssueMatches creates new issue matches based on the component instance Id,
+// issue ID and their corresponding issue variants (sorted by priority)
+func createIssueMatches(
+	db database.Database,
+	l *logrus.Entry,
+	componentInstanceId int64,
+	issueVariantMap map[int64]entity.ServiceIssueVariant,
+) {
+	for issueId, issueVariant := range issueVariantMap {
+		l = l.WithFields(logrus.Fields{
+			"issue": issueVariant,
+		})
+
+		// Check if IssueMatches already exist
+		l.WithField("event-step", "GetIssueMatches").Debug("Fetching issue matches related to assigned Component Instance")
+		issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
+			IssueId:             []*int64{&issueId},
+			ComponentInstanceId: []*int64{&componentInstanceId},
+		})
+
+		if err != nil {
+			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
+		}
+		l.WithField("issueMatchesCount", len(issue_matches))
+
+		if len(issue_matches) != 0 {
+			l.WithField("event-step", "Skipping").Debug("The issue match does already exist. Skipping")
+			continue
+		}
+
+		// Create new issue match
+		issue_match := &entity.IssueMatch{
+			UserId:                1,
+			Status:                entity.IssueMatchStatusValuesNew,
+			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
+			ComponentInstanceId:   componentInstanceId,
+			IssueId:               issueId,
+			TargetRemediationDate: shared.GetTargetRemediationTimeline(issueVariant.Severity, time.Now(), nil),
+		}
+		l.WithField("event-step", "CreateIssueMatch").WithField("issueMatch", issue_match).Debug("Creating Issue Match")
+
+		_, err = db.CreateIssueMatch(issue_match)
+		if err != nil {
+			l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
+			continue
+		}
+	}
 }

@@ -91,6 +91,12 @@ func (h *HeurekaApp) SubscribeHandlers() {
 		issue_repository.CreateIssueRepositoryEventName,
 		event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate),
 	)
+
+	// Event handlers for ComponentVersion attachments to Issues
+	h.eventRegistry.RegisterEventHandler(
+		issue.AddComponentVersionToIssueEventName,
+		event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue),
+	)
 }
 
 func (h *HeurekaApp) Shutdown() error {
