@@ -5,7 +5,7 @@ FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23.3 AS builder
 
 WORKDIR /go/src/github.com/cloudoperators/heureka/scanner/keppel
 
-ADD . .
+ADD ./scanner/keppel .
 RUN CGO_ENABLED=0 go build -o /go/bin/heureka-scanner-keppel main.go
 
 FROM --platform=${BUILDPLATFORM:-linux/amd64} gcr.io/distroless/static-debian12:nonroot
