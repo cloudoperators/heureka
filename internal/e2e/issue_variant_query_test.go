@@ -366,6 +366,44 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 
 				Expect(*respData.IssueVariant.SecondaryName).To(Equal(issueVariant.SecondaryName))
 			})
+			It("updates issueVariant severity with rating", func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueVariant/update.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				newRating := model.SeverityValuesLow
+
+				ir := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
+				issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant(&ir)
+
+				issueVariant.Severity.Value = string(newRating)
+
+				req.Var("id", fmt.Sprintf("%d", issueVariant.Id))
+				req.Var("input", map[string]interface{}{
+					"severity": model.SeverityInput{
+						Rating: &newRating,
+					},
+				})
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					IssueVariant model.IssueVariant `json:"updateIssueVariant"`
+				}
+
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				Expect(string(*respData.IssueVariant.Severity.Value)).To(Equal(issueVariant.Severity.Value))
+			})
 		})
 	})
 })
