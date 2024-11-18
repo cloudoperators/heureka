@@ -3,8 +3,6 @@
 
 package entity
 
-import "time"
-
 type ComponentVersionFilter struct {
 	Paginated
 	Id            []*int64  `json:"id"`
@@ -14,7 +12,8 @@ type ComponentVersionFilter struct {
 	Version       []*string `json:"version"`
 }
 
-type ComponentVersionAggregations struct{}
+type ComponentVersionAggregations struct {
+}
 
 type ComponentVersionResult struct {
 	WithCursor
@@ -23,13 +22,11 @@ type ComponentVersionResult struct {
 }
 
 type ComponentVersion struct {
+	Metadata
 	Id                 int64               `json:"id"`
 	Version            string              `json:"version"`
 	Component          *Component          `json:"component,omitempty"`
 	ComponentId        int64               `db:"componentversion_component_id"`
 	ComponentInstances []ComponentInstance `json:"component_instances,omitempty"`
 	Issues             []Issue             `json:"issues,omitempty"`
-	CreatedAt          time.Time           `json:"created_at"`
-	DeletedAt          time.Time           `json:"deleted_at,omitempty"`
-	UpdatedAt          time.Time           `json:"updated_at"`
 }

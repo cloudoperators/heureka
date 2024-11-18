@@ -17,10 +17,13 @@ import (
 
 type HeurekaEntity interface {
 	Activity |
+		ActivityAggregations |
 		ActivityHasIssue |
 		IssueVariant |
+		IssueVariantAggregations |
 		BaseIssueRepository |
 		IssueRepository |
+		IssueRepositoryAggregations |
 		ResultList |
 		ListOptions |
 		PageInfo |
@@ -28,18 +31,23 @@ type HeurekaEntity interface {
 		Severity |
 		Cvss |
 		Component |
-		ComponentInstanceAggregations |
+		ComponentAggregations |
 		ComponentInstance |
+		ComponentInstanceAggregations |
 		ComponentVersion |
+		ComponentVersionAggregations |
 		Evidence |
+		EvidenceAggregations |
 		BaseService |
 		Service |
 		ServiceAggregations |
 		ServiceWithAggregations |
 		SupportGroup |
+		SupportGroupAggregations |
 		SupportGroupService |
 		SupportGroupUser |
 		User |
+		UserAggregations |
 		IssueWithAggregations |
 		IssueAggregations |
 		Issue |
@@ -47,6 +55,7 @@ type HeurekaEntity interface {
 		IssueMatchChange |
 		HeurekaFilter |
 		IssueCount |
+		IssueTypeCounts |
 		ServiceIssueVariant
 }
 
@@ -64,7 +73,8 @@ type HeurekaFilter interface {
 		EvidenceFilter |
 		ComponentFilter |
 		ComponentVersionFilter |
-		IssueRepositoryFilter
+		IssueRepositoryFilter |
+		SeverityFilter
 }
 
 type HasCursor interface {
@@ -184,4 +194,12 @@ type Cvss struct {
 	Base          *metric.Base
 	Temporal      *metric.Temporal
 	Environmental *metric.Environmental
+}
+
+type Metadata struct {
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy int64     `json:"created_by"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedBy int64     `json:"updated_by"`
+	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }

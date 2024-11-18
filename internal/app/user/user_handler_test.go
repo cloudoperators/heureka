@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestUserHandler(t *testing.T) {
@@ -125,6 +126,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 
 	It("creates user", func() {
 		filter.UniqueUserID = []*string{&user.UniqueUserID}
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateUser", &user).Return(&user, nil)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
 		userHandler = u.NewUserHandler(db, er)
@@ -161,6 +163,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 	})
 
 	It("updates user", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateUser", &user).Return(nil)
 		userHandler = u.NewUserHandler(db, er)
 		user.Name = "Sauron"

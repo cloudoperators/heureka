@@ -80,6 +80,10 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	if componentInstance.ServiceId != 0 {
 		fl = append(fl, "componentinstance_service_id = :componentinstance_service_id")
 	}
+	if componentInstance.UpdatedBy != 0 {
+		fl = append(fl, "componentinstance_updated_by = :componentinstance_updated_by")
+	}
+
 	return strings.Join(fl, ", ")
 }
 
@@ -223,12 +227,14 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_ccrn,
 			componentinstance_count,
 			componentinstance_component_version_id,
-			componentinstance_service_id
+			componentinstance_service_id,
+			componentinstance_created_by
 		) VALUES (
 			:componentinstance_ccrn,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
-			:componentinstance_service_id
+			:componentinstance_service_id,
+			:componentinstance_created_by
 		)
 	`
 

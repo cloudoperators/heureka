@@ -206,7 +206,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 				BeforeEach(func() {
 					// Create service
 					services = seeder.SeedServices(1)
-					
+
 					// Create issue
 					issues := seeder.SeedIssues(1)
 					issue = issues[0]
@@ -228,7 +228,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 					}
 					_, err := seeder.InsertFakeComponentVersionIssue(cvi)
 					Expect(err).To(BeNil())
-					
+
 					// Create component instance
 					componentInstances = seeder.SeedComponentInstances(1, componentVersions, services)
 
@@ -263,13 +263,13 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 				It("returns all variants when filtering for the issue", func() {
 					filter := &entity.ServiceIssueVariantFilter{
 						ComponentInstanceId: []*int64{lo.ToPtr(componentInstances[0].Id.Int64)},
-						IssueId: []*int64{lo.ToPtr(issue.Id.Int64)},
+						IssueId:             []*int64{lo.ToPtr(issue.Id.Int64)},
 					}
 
 					res, err := db.GetServiceIssueVariants(filter)
 					Expect(err).To(BeNil())
 					Expect(res).To(HaveLen(5)) // One variant per repository
-					
+
 					// All variants should be for our issue
 					for _, variant := range res {
 						Expect(variant.IssueId).To(Equal(issue.Id.Int64))

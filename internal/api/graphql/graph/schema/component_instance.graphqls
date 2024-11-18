@@ -10,8 +10,7 @@ type ComponentInstance implements Node {
     issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
     serviceId: String
     service: Service
-    createdAt: DateTime
-    updatedAt: DateTime
+    metadata: Metadata
 }
 
 input ComponentInstanceInput {
