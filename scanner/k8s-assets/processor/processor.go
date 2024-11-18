@@ -173,7 +173,7 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 	}
 
 	// Return the first item
-	if listServicesResp.Services.TotalCount > 0 {
+	if listServicesResp.Services != nil && listServicesResp.Services.TotalCount > 0 && len(listServicesResp.Services.Edges) > 0 {
 		return listServicesResp.Services.Edges[0].Node.Id, nil
 	}
 
