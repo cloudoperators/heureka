@@ -101,7 +101,7 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 		createServiceResp, err := client.CreateService(ctx, *p.Client, createServiceInput)
 		if err != nil {
 			return "", fmt.Errorf("failed to create Service %s: %w", serviceInfo.CCRN, err)
-		} else {
+		} else if createServiceResp.CreateService != nil && createServiceResp.CreateService.Id != "" {
 			serviceId = createServiceResp.CreateService.Id
 		}
 	} else {
