@@ -62,6 +62,9 @@ func (s *SqlDatabase) getUserUpdateFields(user *entity.User) string {
 	if user.Type != entity.InvalidUserType {
 		fl = append(fl, "user_type = :user_type")
 	}
+	if user.UpdatedBy != 0 {
+		fl = append(fl, "user_updated_by = :user_updated_by")
+	}
 
 	return strings.Join(fl, ", ")
 }
@@ -178,7 +181,6 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.User, error)
 	}
 
 	defer stmt.Close()
-
 	return performListScan(
 		stmt,
 		filterParameters,
@@ -220,11 +222,13 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 		INSERT INTO User (
 			user_name,
 			user_unique_user_id,
-			user_type
+			user_type,
+			user_created_by
 		) VALUES (
 			:user_name,
 			:user_unique_user_id,
-			:user_type
+			:user_type,
+			:user_created_by
 		)
 	`
 

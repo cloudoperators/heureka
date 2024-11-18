@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestIssueHandler(t *testing.T) {
@@ -238,6 +239,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 
 	It("creates issue", func() {
 		filter.PrimaryName = []*string{&issueEntity.PrimaryName}
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssue", &issueEntity).Return(&issueEntity, nil)
 		db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
 		issueHandler = issue.NewIssueHandler(db, er)
@@ -275,6 +277,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	})
 
 	It("updates issueEntity", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssue", &issueEntity).Return(nil)
 		issueHandler = issue.NewIssueHandler(db, er)
 		issueEntity.Description = "New Description"

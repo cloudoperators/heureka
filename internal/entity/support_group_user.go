@@ -3,12 +3,8 @@
 
 package entity
 
-import "time"
-
 type SupportGroupUser struct {
-	SupportGroupId int64     `json:"support_group_id"`
-	UserId         int64     `json:"user_id"`
-	CreatedAt      time.Time `json:"created_at"`
-	DeletedAt      time.Time `json:"deleted_at,omitempty"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	Metadata
+	SupportGroupId int64 `json:"support_group_id"`
+	UserId         int64 `json:"user_id"`
 }

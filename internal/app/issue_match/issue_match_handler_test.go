@@ -196,6 +196,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		irFilter.Id = []*int64{&repositories[0].Id}
 		ivFilter.IssueId = []*int64{&issueMatch.IssueId}
 		issueMatch.Severity = issueVariants[0].Severity
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueMatch", &issueMatch).Return(&issueMatch, nil)
 		db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
 		db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
@@ -240,6 +241,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 	})
 
 	It("updates issueMatch", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueMatch", &issueMatch).Return(nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		if issueMatch.Status == entity.NewIssueMatchStatusValue("new") {

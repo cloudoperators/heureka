@@ -3,13 +3,9 @@
 
 package entity
 
-import "time"
-
 type IssueRepositoryService struct {
-	ServiceId         int64     `json:"service_id"`
-	IssueRepositoryId int64     `json:"issue_repository_id"`
-	Priority          int64     `json:"priority"`
-	CreatedAt         time.Time `json:"created_at"`
-	DeletedAt         time.Time `json:"deleted_at,omitempty"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	Metadata
+	ServiceId         int64 `json:"service_id"`
+	IssueRepositoryId int64 `json:"issue_repository_id"`
+	Priority          int64 `json:"priority"`
 }
