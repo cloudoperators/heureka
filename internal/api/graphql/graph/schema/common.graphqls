@@ -98,6 +98,7 @@ type Severity {
 
 input SeverityInput {
     vector: String
+    rating: SeverityValues
 }
 
 type FilterItem {

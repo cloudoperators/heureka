@@ -81,7 +81,8 @@ func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVari
 	if issueVariant.SecondaryName != "" {
 		fl = append(fl, "issuevariant_secondary_name = :issuevariant_secondary_name")
 	}
-	if issueVariant.Severity.Cvss.Vector != "" {
+	// if rating but not vector is passed, we need to include the vector in the update in order to overwrite any existing vector
+	if issueVariant.Severity.Cvss.Vector != "" || (issueVariant.Severity.Value != "" && issueVariant.Severity.Cvss.Vector == "") {
 		fl = append(fl, "issuevariant_vector = :issuevariant_vector")
 	}
 	if issueVariant.Severity.Value != "" {
