@@ -102,6 +102,6 @@ func GetListOptions(requestedFields []string) *entity.ListOptions {
 	return &entity.ListOptions{
 		ShowTotalCount:      lo.Contains(requestedFields, "totalCount"),
 		ShowPageInfo:        lo.Contains(requestedFields, "pageInfo"),
-		IncludeAggregations: lo.Contains(requestedFields, "edges.node.metadata"),
+		IncludeAggregations: lo.Contains(requestedFields, "edges.node.objectMetadata"),
 	}
 }

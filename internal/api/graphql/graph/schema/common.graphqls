@@ -98,10 +98,19 @@ type Severity {
 
 input SeverityInput {
     vector: String
+    rating: SeverityValues
 }
 
 type FilterItem {
     displayName: String
     filterName: String
     values: [String]
+}
+
+type Metadata {
+    created_at: DateTime
+    created_by: String
+    deleted_at: DateTime
+    updated_at: DateTime
+    updated_by: String
 }

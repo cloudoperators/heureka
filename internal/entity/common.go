@@ -17,10 +17,13 @@ import (
 
 type HeurekaEntity interface {
 	Activity |
+		ActivityAggregations |
 		ActivityHasIssue |
 		IssueVariant |
+		IssueVariantAggregations |
 		BaseIssueRepository |
 		IssueRepository |
+		IssueRepositoryAggregations |
 		ResultList |
 		ListOptions |
 		PageInfo |
@@ -28,18 +31,23 @@ type HeurekaEntity interface {
 		Severity |
 		Cvss |
 		Component |
-		ComponentInstanceAggregations |
+		ComponentAggregations |
 		ComponentInstance |
+		ComponentInstanceAggregations |
 		ComponentVersion |
+		ComponentVersionAggregations |
 		Evidence |
+		EvidenceAggregations |
 		BaseService |
 		Service |
 		ServiceAggregations |
 		ServiceWithAggregations |
 		SupportGroup |
+		SupportGroupAggregations |
 		SupportGroupService |
 		SupportGroupUser |
 		User |
+		UserAggregations |
 		IssueWithAggregations |
 		IssueAggregations |
 		Issue |
@@ -47,6 +55,7 @@ type HeurekaEntity interface {
 		IssueMatchChange |
 		HeurekaFilter |
 		IssueCount |
+		IssueTypeCounts |
 		ServiceIssueVariant
 }
 
@@ -64,7 +73,8 @@ type HeurekaFilter interface {
 		EvidenceFilter |
 		ComponentFilter |
 		ComponentVersionFilter |
-		IssueRepositoryFilter
+		IssueRepositoryFilter |
+		SeverityFilter
 }
 
 type HasCursor interface {
@@ -150,6 +160,30 @@ type Cursor struct {
 	Limit     int
 }
 
+func NewSeverityFromRating(rating SeverityValues) Severity {
+	// These values are based on the CVSS v3.1 specification
+	// https://www.first.org/cvss/v3.1/specification-document#Qualitative-Severity-Rating-Scale
+	// https://nvd.nist.gov/vuln-metrics/cvss
+	// They are the lower bounds of the CVSS Score ranges that correlate to each given Rating
+	score := 0.0
+	switch rating {
+	case SeverityValuesLow:
+		score = 0.1
+	case SeverityValuesMedium:
+		score = 4.0
+	case SeverityValuesHigh:
+		score = 7.0
+	case SeverityValuesCritical:
+		score = 9.0
+	}
+
+	return Severity{
+		Value: string(rating),
+		Score: score,
+		Cvss:  Cvss{},
+	}
+}
+
 func NewSeverity(url string) Severity {
 	ev, err := metric.NewEnvironmental().Decode(url)
 
@@ -184,4 +218,12 @@ type Cvss struct {
 	Base          *metric.Base
 	Temporal      *metric.Temporal
 	Environmental *metric.Environmental
+}
+
+type Metadata struct {
+	CreatedAt time.Time `json:"created_at"`
+	CreatedBy int64     `json:"created_by"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedBy int64     `json:"updated_by"`
+	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }

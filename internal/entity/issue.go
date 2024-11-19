@@ -76,6 +76,7 @@ type IssueAggregations struct {
 }
 
 type Issue struct {
+	Metadata
 	Id                int64              `json:"id"`
 	Type              IssueType          `json:"type"`
 	PrimaryName       string             `json:"primary_name"`
@@ -84,9 +85,6 @@ type Issue struct {
 	IssueMatches      []IssueMatch       `json:"issue_matches,omitempty"`
 	ComponentVersions []ComponentVersion `json:"component_versions,omitempty"`
 	Activity          []Activity         `json:"activity,omitempty"`
-	CreatedAt         time.Time          `json:"created_at"`
-	DeletedAt         time.Time          `json:"deleted_at,omitempty"`
-	UpdatedAt         time.Time          `json:"updated_lsat"`
 }
 
 type IssueCount struct {

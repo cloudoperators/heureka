@@ -103,8 +103,6 @@ models:
         resolver: true
       evidences:
         resolver: true
-      severity:
-        resolver: true
       effectiveIssueVariants:
         resolver: true
       issueMatchChanges:

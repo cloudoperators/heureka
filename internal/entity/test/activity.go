@@ -15,9 +15,11 @@ func NewFakeActivityEntity() entity.Activity {
 		Issues:    nil,
 		Evidences: nil,
 		Service:   nil,
-		CreatedAt: gofakeit.Date(),
-		DeletedAt: gofakeit.Date(),
-		UpdatedAt: gofakeit.Date(),
+		Metadata: entity.Metadata{
+			CreatedAt: gofakeit.Date(),
+			DeletedAt: gofakeit.Date(),
+			UpdatedAt: gofakeit.Date(),
+		},
 	}
 }
 

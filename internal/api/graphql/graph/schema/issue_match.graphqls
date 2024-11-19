@@ -17,6 +17,7 @@ type IssueMatch implements Node {
     componentInstanceId: String
     componentInstance: ComponentInstance!
     issueMatchChanges(filter: IssueMatchChangeFilter, first: Int, after: String): IssueMatchChangeConnection
+    metadata: Metadata
 }
 
 input IssueMatchInput {

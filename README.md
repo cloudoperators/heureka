@@ -32,7 +32,6 @@ For a detailed understanding of Heureka's architecture and design, refer to the 
 - [High-Level Architecture Diagram](https://github.com/cloudoperators/heureka/blob/main/docs/product_design_documentation.md#high-level-features): This provides a visual representation of the overall system architecture.
 - [High-Level Features](https://github.com/cloudoperators/heureka/blob/main/docs/product_design_documentation.md#high-level-features): A high-level overview of Heureka's functionalities.
 
-
 ## Requirements and Setup
 
 The application can be configured using environment variables. These variables are stored in a `.env` file at the root of the project.

@@ -24,13 +24,25 @@ spec:
               mountPath: "{{ .Values.scanner.config_mount_path }}"
               readOnly: true
             env:
-            - name: HEUREKA_API_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-secret
-                  key: api_token
-            - name: HEUREKA_URL
-              value: {{ .Values.scanner.heureka_url }}
+              - name: HEUREKA_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Release.Name }}-secret
+                    key: api_token
+              - name: HEUREKA_URL
+                value: {{ .Values.scanner.heureka_url }}
+              - name: SUPPORT_GROUP_LABEL
+                value: {{ .Values.scanner.support_group_label }}
+              - name: SERVICE_CCRN_LABEL
+                value: {{ .Values.scanner.service_label }}
+              - name: SCANNER_TIMEOUT
+                value: {{ .Values.scanner.scanner_timeout }}
+              - name: HEUREKA_CLUSTER_NAME
+                value: {{ .Values.scanner.k8s_cluster_name }}
+              - name: HEUREKA_CLUSTER_REGION
+                value: {{ .Values.scanner.k8s_cluster_region }}
+              - name: KUBE_CONFIG_TYPE
+                value: "in-cluster"
             args:
             - /bin/sh
             - -c

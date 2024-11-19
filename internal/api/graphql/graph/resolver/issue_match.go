@@ -10,40 +10,12 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/sirupsen/logrus"
 )
 
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
-
-func (r *issueMatchResolver) Severity(ctx context.Context, obj *model.IssueMatch) (*model.Severity, error) {
-	imIds, err := util.ConvertStrToIntSlice([]*string{&obj.ID})
-	if err != nil {
-		logrus.WithField("obj", obj).Error("IssueMatchResolver: Error while parsing issue match ids'")
-		return nil, err
-	}
-
-	filter := entity.SeverityFilter{
-		IssueMatchId: imIds,
-	}
-
-	severity, err := r.App.GetSeverity(&filter)
-
-	if err != nil {
-		logrus.WithField("obj", obj).Error("IssueMatchResolver: Error while getting severity'")
-		return nil, err
-	}
-
-	if severity == nil {
-		logrus.WithField("obj", obj).Info("IssueMatchResolver: Effective severity not found'")
-		return nil, err
-	}
-
-	s := model.NewSeverity(*severity)
-	return s, nil
-}
 
 func (r *issueMatchResolver) EffectiveIssueVariants(ctx context.Context, obj *model.IssueMatch, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error) {
 	return baseResolver.EffectiveIssueVariantBaseResolver(

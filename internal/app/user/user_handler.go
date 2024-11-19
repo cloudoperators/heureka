@@ -112,6 +112,13 @@ func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 		"object": user,
 	})
 
+	var err error
+	user.CreatedBy, err = common.GetCurrentUserId(u.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while creating user (GetUserId).")
+	}
+
 	users, err := u.ListUsers(f, &entity.ListOptions{})
 
 	if err != nil {
@@ -141,7 +148,14 @@ func (u *userHandler) UpdateUser(user *entity.User) (*entity.User, error) {
 		"object": user,
 	})
 
-	err := u.database.UpdateUser(user)
+	var err error
+	user.UpdatedBy, err = common.GetCurrentUserId(u.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while updating user (GetUserId).")
+	}
+
+	err = u.database.UpdateUser(user)
 
 	if err != nil {
 		l.Error(err)

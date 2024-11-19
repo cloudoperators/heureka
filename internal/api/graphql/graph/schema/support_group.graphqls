@@ -6,6 +6,7 @@ type SupportGroup implements Node {
     ccrn: String
     users(filter: UserFilter, first: Int, after: String): UserConnection
     services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
+    metadata: Metadata
 }
 
 input SupportGroupInput {

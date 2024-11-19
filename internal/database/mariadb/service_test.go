@@ -775,7 +775,9 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newIssueRepositoryRow = test.NewFakeIssueRepository()
 				newIssueRepository = newIssueRepositoryRow.AsIssueRepository()
-				issueRepository, _ = db.CreateIssueRepository(&newIssueRepository)
+				var err error
+				issueRepository, err = db.CreateIssueRepository(&newIssueRepository)
+				Expect(err).To(BeNil())
 			})
 			It("can add issue repository correctly", func() {
 				service := seedCollection.ServiceRows[0].AsService()

@@ -122,6 +122,9 @@ func (s *SqlDatabase) getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) s
 	if !issueMatch.TargetRemediationDate.IsZero() {
 		fl = append(fl, "issuematch_target_remediation_date = :issuematch_target_remediation_date")
 	}
+	if issueMatch.UpdatedBy != 0 {
+		fl = append(fl, "issuematch_updated_by = :issuematch_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -270,7 +273,8 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 			issuematch_rating,
 			issuematch_user_id,
 			issuematch_component_instance_id,
-			issuematch_issue_id
+			issuematch_issue_id,
+			issuematch_created_by
 		) VALUES (
 			:issuematch_status,
 			:issuematch_remediation_date,
@@ -279,7 +283,8 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 			:issuematch_rating,
 			:issuematch_user_id,
 			:issuematch_component_instance_id,
-			:issuematch_issue_id
+			:issuematch_issue_id,
+			:issuematch_created_by
 		)
 	`
 

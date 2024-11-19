@@ -12,7 +12,7 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
             node {
                 id
                 lastModified
-                metadata {
+                objectMetadata {
                     serviceCount
                     activityCount
                     issueMatchCount

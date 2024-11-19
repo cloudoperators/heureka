@@ -63,13 +63,17 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
                             id
                             name
                             url
-                            created_at
-                            updated_at
+                            metadata {
+                                created_at
+                                updated_at
+                            }
                         }
                         cursor
                         priority
-                        created_at
-                        updated_at
+                        metadata {
+                            created_at
+                            updated_at
+                        }
                     }
                     pageInfo { 
                         hasNextPage

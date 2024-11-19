@@ -6,6 +6,7 @@ type Component implements Node {
     ccrn: String
     type: ComponentTypeValues
     componentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
+    metadata: Metadata
 }
 
 input ComponentInput {

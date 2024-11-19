@@ -13,7 +13,8 @@ type Issue implements Node {
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
     componentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
-    metadata: IssueMetadata
+    objectMetadata: IssueMetadata
+    metadata: Metadata
 }
 
 type IssueMetadata {

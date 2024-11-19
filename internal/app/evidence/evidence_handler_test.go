@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestEvidenceHandler(t *testing.T) {
@@ -119,6 +120,7 @@ var _ = Describe("When creating Evidence", Label("app", "CreateEvidence"), func(
 	})
 
 	It("creates evidence", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateEvidence", &evidence).Return(&evidence, nil)
 		evidenceHandler = es.NewEvidenceHandler(db, er)
 		newEvidence, err := evidenceHandler.CreateEvidence(&evidence)
@@ -158,6 +160,7 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 	})
 
 	It("updates evidence", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateEvidence", &evidence).Return(nil)
 		evidenceHandler = es.NewEvidenceHandler(db, er)
 		evidence.Description = "New Description"

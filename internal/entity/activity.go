@@ -3,8 +3,6 @@
 
 package entity
 
-import "time"
-
 type ActivityStatusValue string
 
 const (
@@ -36,14 +34,12 @@ var AllActivityStatusValues = []string{
 }
 
 type Activity struct {
+	Metadata
 	Id        int64               `json:"id"`
 	Status    ActivityStatusValue `json:"status"`
 	Service   *Service            `json:"service,omitempty"`
 	Issues    []Issue             `json:"issues,omitempty"`
 	Evidences []Evidence          `json:"evidences,omitempty"`
-	CreatedAt time.Time           `json:"created_at"`
-	DeletedAt time.Time           `json:"deleted_at,omitempty"`
-	UpdatedAt time.Time           `json:"updated_at"`
 }
 
 func (a *Activity) GetId() int64 {
@@ -51,11 +47,9 @@ func (a *Activity) GetId() int64 {
 }
 
 type ActivityHasIssue struct {
-	ActivityId int64     `json:"activity_id"`
-	IssueId    int64     `json:"issue_id"`
-	CreatedAt  time.Time `json:"created_at"`
-	DeletedAt  time.Time `json:"deleted_at,omitempty"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	Metadata
+	ActivityId int64 `json:"activity_id"`
+	IssueId    int64 `json:"issue_id"`
 }
 
 type ActivityAggregations struct {

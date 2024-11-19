@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestComponentVersionHandler(t *testing.T) {
@@ -111,6 +112,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 	})
 
 	It("creates componentVersion", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
 		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		newComponentVersion, err := componenVersionService.CreateComponentVersion(&componentVersion)
@@ -146,6 +148,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 	})
 
 	It("updates componentVersion", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentVersion", &componentVersion).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		componentVersion.Version = "7.3.3.1"

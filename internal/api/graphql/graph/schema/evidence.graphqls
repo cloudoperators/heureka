@@ -13,6 +13,7 @@ type Evidence implements Node {
     activityId: String
     activity: Activity
     issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
+    metadata: Metadata
 }
 
 input EvidenceInput {

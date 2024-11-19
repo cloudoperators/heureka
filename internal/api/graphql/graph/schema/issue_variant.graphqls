@@ -10,8 +10,7 @@ type IssueVariant implements Node {
     issueRepository: IssueRepository
     issueId: String
     issue: Issue
-    created_at: DateTime
-    updated_at: DateTime
+    metadata: Metadata
 }
 
 input IssueVariantInput {
@@ -31,8 +30,7 @@ type IssueVariantConnection implements Connection {
 type IssueVariantEdge implements Edge {
     node: IssueVariant!
     cursor: String
-    created_at: DateTime
-    updated_at: DateTime
+    metadata: Metadata
 }
 
 input IssueVariantFilter {

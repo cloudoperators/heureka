@@ -10,6 +10,9 @@ scanner:
   heureka_url: "api.heureka.greenhouse-qa.eu-nl-1.cloud.sap"
   config_mount_path: "/etc/heureka/config/k8s-assets-scanner"
   schedule: "0 * * * *"
+  support_group_label: "ccloud/support-group"
+  service_label: "ccloud/service"
+  scanner_timeout: "30s"
 
 image:
   repository: ghcr.io/cloudoperators/heureka-scanner-k8s-assets

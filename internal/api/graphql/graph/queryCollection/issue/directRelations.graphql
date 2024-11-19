@@ -33,16 +33,22 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                                 id
                                 name
                                 url
+                                metadata {
+                                    created_at
+                                    updated_at
+                                }
+                            }
+                            issueId
+                            metadata {
                                 created_at
                                 updated_at
                             }
-                            issueId
+                        }
+                        cursor
+                        metadata {
                             created_at
                             updated_at
                         }
-                        cursor
-                        created_at
-                        updated_at
                     }
                     pageInfo {
                         hasNextPage
@@ -61,8 +67,10 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                             componentInstance {
                                 id
                                 count
-                                createdAt
-                                updatedAt
+                                metadata {
+                                    created_at
+                                    updated_at
+                                }
                                 ccrn
                             }
                         }
@@ -73,7 +81,7 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                         nextPageAfter
                     }
                 }
-                metadata {
+                objectMetadata {
                     serviceCount
                     activityCount
                     issueMatchCount

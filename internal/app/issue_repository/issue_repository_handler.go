@@ -112,6 +112,13 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 		"filter": f,
 	})
 
+	var err error
+	issueRepository.BaseIssueRepository.CreatedBy, err = common.GetCurrentUserId(ir.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository (GetUserId).")
+	}
+
 	issueRepositories, err := ir.ListIssueRepositories(f, &entity.ListOptions{})
 
 	if err != nil {
@@ -142,7 +149,14 @@ func (ir *issueRepositoryHandler) UpdateIssueRepository(issueRepository *entity.
 		"object": issueRepository,
 	})
 
-	err := ir.database.UpdateIssueRepository(issueRepository)
+	var err error
+	issueRepository.BaseIssueRepository.UpdatedBy, err = common.GetCurrentUserId(ir.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository (GetUserId).")
+	}
+
+	err = ir.database.UpdateIssueRepository(issueRepository)
 
 	if err != nil {
 		l.Error(err)

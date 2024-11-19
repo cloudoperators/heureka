@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/onsi/ginkgo/v2/dsl/core"
@@ -269,6 +270,7 @@ func GenerateRandomCVSS31Vector() string {
 }
 
 func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
+	users := s.SeedUsers(n)
 	supportGroupsMap := s.SeedRealSupportGroups()
 	supportGroups := lo.Values[string, mariadb.SupportGroupRow](supportGroupsMap)
 	servicesMap := s.SeedRealServices()
@@ -279,7 +281,6 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 	repos := s.SeedIssueRepositories()
 	issues := s.SeedIssues(n)
 	issueVariants := s.SeedIssueVariants(n, repos, issues)
-	users := s.SeedUsers(n)
 	owners := s.SeedOwners(n, services, users)
 	supportGroupServices := s.SeedRealSupportGroupService(servicesMap, supportGroupsMap)
 	supportGroupUsers := s.SeedSupportGroupUsers(n, users, supportGroups)
@@ -319,6 +320,7 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 }
 
 func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
+	users := s.SeedUsers(n)
 	supportGroups := s.SeedSupportGroups(n)
 	services := s.SeedServices(n)
 	components := s.SeedComponents(n)
@@ -327,7 +329,6 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 	repos := s.SeedIssueRepositories()
 	issues := s.SeedIssues(n)
 	issueVariants := s.SeedIssueVariants(n, repos, issues)
-	users := s.SeedUsers(n)
 	owners := s.SeedOwners(n, services, users)
 	supportGroupServices := s.SeedSupportGroupServices(n/2, services, supportGroups)
 	supportGroupUsers := s.SeedSupportGroupUsers(n/2, users, supportGroups)
@@ -371,6 +372,7 @@ func (s *DatabaseSeeder) SeedDbWithFakeData() {
 }
 
 func (s *DatabaseSeeder) SeedDbForNestedIssueVariantTest() *SeedCollection {
+	users := s.SeedUsers(1)
 	services := s.SeedServices(1)
 	components := s.SeedComponents(1)
 	componentVersions := s.SeedComponentVersions(1, components)
@@ -378,7 +380,6 @@ func (s *DatabaseSeeder) SeedDbForNestedIssueVariantTest() *SeedCollection {
 	repos := s.SeedIssueRepositories()
 	issues := s.SeedIssues(1)
 	issueVariants := s.SeedIssueVariants(100, repos, issues)
-	users := s.SeedUsers(1)
 	issueMatches := s.SeedIssueMatches(1, issues, componentInstances, users)
 	issueRepositoryServices := s.SeedIssueRepositoryServices(len(repos), services, repos)
 	return &SeedCollection{
@@ -417,8 +418,10 @@ func (s *DatabaseSeeder) SeedIssueRepositories() []mariadb.BaseIssueRepositoryRo
 	i := 0
 	for _, name := range variants {
 		row := mariadb.BaseIssueRepositoryRow{
-			Name: sql.NullString{String: fmt.Sprintf("%s-%s", name, gofakeit.UUID()), Valid: true},
-			Url:  sql.NullString{String: gofakeit.URL(), Valid: true},
+			Name:      sql.NullString{String: fmt.Sprintf("%s-%s", name, gofakeit.UUID()), Valid: true},
+			Url:       sql.NullString{String: gofakeit.URL(), Valid: true},
+			CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+			UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		}
 		id, err := s.InsertFakeBaseIssueRepository(row)
 		if err != nil {
@@ -1123,6 +1126,8 @@ func NewFakeIssueMatch() mariadb.IssueMatchRow {
 		Rating:                sql.NullString{String: rating, Valid: true},
 		RemediationDate:       sql.NullTime{Time: gofakeit.Date(), Valid: true},
 		TargetRemediationDate: sql.NullTime{Time: gofakeit.Date(), Valid: true},
+		CreatedBy:             sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy:             sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1131,6 +1136,8 @@ func NewFakeIssue() mariadb.IssueRow {
 		PrimaryName: sql.NullString{String: fmt.Sprintf("CVE-%d-%d", gofakeit.Year(), gofakeit.Number(100, 9999999)), Valid: true},
 		Description: sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
 		Type:        sql.NullString{String: gofakeit.RandomString(entity.AllIssueTypes), Valid: true},
+		CreatedBy:   sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy:   sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1152,21 +1159,27 @@ func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.
 			Int64: disc[rand.Intn(len(disc))].Id.Int64,
 			Valid: true,
 		},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
 func NewFakeIssueRepository() mariadb.IssueRepositoryRow {
 	return mariadb.IssueRepositoryRow{
 		BaseIssueRepositoryRow: mariadb.BaseIssueRepositoryRow{
-			Name: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
-			Url:  sql.NullString{String: gofakeit.URL(), Valid: true},
+			Name:      sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+			Url:       sql.NullString{String: gofakeit.URL(), Valid: true},
+			CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+			UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		},
 	}
 }
 
 func NewFakeBaseService() mariadb.BaseServiceRow {
 	return mariadb.BaseServiceRow{
-		CCRN: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+		CCRN:      sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1181,7 +1194,9 @@ func NewFakeService() mariadb.ServiceRow {
 
 func NewFakeSupportGroup() mariadb.SupportGroupRow {
 	return mariadb.SupportGroupRow{
-		CCRN: sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+		CCRN:      sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1189,14 +1204,18 @@ func NewFakeComponent() mariadb.ComponentRow {
 	types := []string{"containerImage", "virtualMachineImage", "repository"}
 	ccrn := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.UUID())
 	return mariadb.ComponentRow{
-		CCRN: sql.NullString{String: ccrn, Valid: true},
-		Type: sql.NullString{String: gofakeit.RandomString(types), Valid: true},
+		CCRN:      sql.NullString{String: ccrn, Valid: true},
+		Type:      sql.NullString{String: gofakeit.RandomString(types), Valid: true},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
 func NewFakeComponentVersion() mariadb.ComponentVersionRow {
 	return mariadb.ComponentVersionRow{
-		Version: sql.NullString{String: gofakeit.AppVersion(), Valid: true},
+		Version:   sql.NullString{String: gofakeit.AppVersion(), Valid: true},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1206,8 +1225,10 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 		n = n * -1
 	}
 	return mariadb.ComponentInstanceRow{
-		CCRN:  sql.NullString{String: gofakeit.UUID(), Valid: true},
-		Count: sql.NullInt16{Int16: n, Valid: true},
+		CCRN:      sql.NullString{String: gofakeit.UUID(), Valid: true},
+		Count:     sql.NullInt16{Int16: n, Valid: true},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1229,6 +1250,8 @@ func NewFakeUser() mariadb.UserRow {
 		Name:         sql.NullString{String: gofakeit.Name(), Valid: true},
 		UniqueUserID: sql.NullString{String: uniqueUserId, Valid: true},
 		Type:         sql.NullInt64{Int64: getNextUserType(), Valid: true},
+		CreatedBy:    sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy:    sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1247,7 +1270,9 @@ func NewFakeSupportGroupUser() mariadb.SupportGroupUserRow {
 func NewFakeActivity() mariadb.ActivityRow {
 	status := []string{"open", "closed", "in_progress"}
 	return mariadb.ActivityRow{
-		Status: sql.NullString{String: gofakeit.RandomString(status), Valid: true},
+		Status:    sql.NullString{String: gofakeit.RandomString(status), Valid: true},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1274,9 +1299,11 @@ func NewFakeEvidence() mariadb.EvidenceRow {
 			String: gofakeit.RandomString(types),
 			Valid:  true,
 		},
-		Vector: sql.NullString{String: v, Valid: true},
-		Rating: sql.NullString{String: rating, Valid: true},
-		RAAEnd: sql.NullTime{Time: gofakeit.Date(), Valid: true},
+		Vector:    sql.NullString{String: v, Valid: true},
+		Rating:    sql.NullString{String: rating, Valid: true},
+		RAAEnd:    sql.NullTime{Time: gofakeit.Date(), Valid: true},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
@@ -1294,6 +1321,8 @@ func NewFakeIssueMatchChange() mariadb.IssueMatchChangeRow {
 			String: gofakeit.RandomString(entity.AllIssueMatchChangeActions),
 			Valid:  true,
 		},
+		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 

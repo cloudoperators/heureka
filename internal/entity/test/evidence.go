@@ -19,9 +19,11 @@ func NewFakeEvidenceEntity() entity.Evidence {
 		RaaEnd:      gofakeit.Date(),
 		Type:        entity.NewEvidenceTypeValue(t),
 		Severity:    severity,
-		CreatedAt:   gofakeit.Date(),
-		DeletedAt:   gofakeit.Date(),
-		UpdatedAt:   gofakeit.Date(),
+		Metadata: entity.Metadata{
+			CreatedAt: gofakeit.Date(),
+			DeletedAt: gofakeit.Date(),
+			UpdatedAt: gofakeit.Date(),
+		},
 	}
 }
 

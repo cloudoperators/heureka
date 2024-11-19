@@ -32,11 +32,11 @@ jobs:
         include:
           - Dockerfiles: Dockerfile
             Imagename: heureka
-          - Dockerfiles: Dockerfile.scanner-nvd
+          - Dockerfiles: scanner/nvd/Dockerfile
             Imagename: heureka-scanner-nvd
-          - Dockerfiles: Dockerfile.scanner-k8s-assets
+          - Dockerfiles: scanner/k8s-assets/Dockerfile
             Imagename: heureka-scanner-k8s-assets
-          - Dockerfiles: Dockerfile.scanner-keppel
+          - Dockerfiles: scanner/keppel/Dockerfile
             Imagename: heureka-scanner-keppel
     permissions:
       contents: read
@@ -144,11 +144,11 @@ jobs:
         include:
           - Dockerfiles: Dockerfile
             Imagename: heureka
-          - Dockerfiles: Dockerfile.scanner-nvd
+          - Dockerfiles: scanner/nvd/Dockerfile
             Imagename: heureka-scanner-nvd
-          - Dockerfiles: Dockerfile.scanner-k8s-assets
+          - Dockerfiles: scanner/k8s-assets/Dockerfile
             Imagename: heureka-scanner-k8s-assets
-          - Dockerfiles: Dockerfile.scanner-keppel
+          - Dockerfiles: scanner/keppel/Dockerfile
             Imagename: heureka-scanner-keppel
 
     name: Vulnerability Scan

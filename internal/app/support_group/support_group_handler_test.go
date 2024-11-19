@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestSupportGroupHandler(t *testing.T) {
@@ -122,6 +123,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 	It("creates supportGroup", func() {
 		filter.CCRN = []*string{&supportGroup.CCRN}
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
@@ -157,6 +159,7 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 	})
 
 	It("updates supportGroup", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateSupportGroup", &supportGroup).Return(nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
 		supportGroup.CCRN = "Team Alone"

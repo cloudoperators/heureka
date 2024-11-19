@@ -134,6 +134,9 @@ func (s *SqlDatabase) getIssueUpdateFields(issue *entity.Issue) string {
 	if issue.Description != "" {
 		fl = append(fl, "issue_description = :issue_description")
 	}
+	if issue.UpdatedBy != 0 {
+		fl = append(fl, "issue_updated_by = :issue_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -404,11 +407,13 @@ func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
 		INSERT INTO Issue (
 			issue_primary_name,
 			issue_type,
-			issue_description
+			issue_description,
+			issue_created_by
 		) VALUES (
 			:issue_primary_name,
 			:issue_type,
-			:issue_description
+			:issue_description,
+			:issue_created_by
 		)
 	`
 

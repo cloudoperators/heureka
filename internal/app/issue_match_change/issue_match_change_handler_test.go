@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestIssueHandler(t *testing.T) {
@@ -115,6 +116,7 @@ var _ = Describe("When creating IssueMatchChange", Label("app", "CreateIssueMatc
 	})
 
 	It("creates issueMatchChange", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueMatchChange", &issueMatchChange).Return(&issueMatchChange, nil)
 		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
 		newIssueMatchChange, err := issueMatchChangeHandler.CreateIssueMatchChange(&issueMatchChange)
@@ -149,6 +151,7 @@ var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatc
 	})
 
 	It("updates issueMatchChange", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueMatchChange", &issueMatchChange).Return(nil)
 		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
 		if issueMatchChange.Action == entity.IssueMatchChangeActionAdd.String() {
