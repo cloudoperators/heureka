@@ -403,6 +403,9 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 				}
 
 				Expect(string(*respData.IssueVariant.Severity.Value)).To(Equal(issueVariant.Severity.Value))
+				if respData.IssueVariant.Severity.Cvss != nil && respData.IssueVariant.Severity.Cvss.Vector != nil {
+					Expect(string(*respData.IssueVariant.Severity.Cvss.Vector)).To(BeEmpty())
+				}
 			})
 		})
 	})
