@@ -46,6 +46,9 @@ func (s *SqlDatabase) getIssueMatchChangeUpdateFields(imc *entity.IssueMatchChan
 	if imc.Action != "" {
 		fl = append(fl, "issuematchchange_action = :issuematchchange_action")
 	}
+	if imc.UpdatedBy != 0 {
+		fl = append(fl, "issuematchchange_updated_by = :issuematchchange_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -181,11 +184,13 @@ func (s *SqlDatabase) CreateIssueMatchChange(imc *entity.IssueMatchChange) (*ent
 		INSERT INTO IssueMatchChange (
 			issuematchchange_action,
 			issuematchchange_activity_id,
-			issuematchchange_issue_match_id
+			issuematchchange_issue_match_id,
+			issuematchchange_created_by
 		) VALUES (
 			:issuematchchange_action,
 			:issuematchchange_activity_id,
-			:issuematchchange_issue_match_id
+			:issuematchchange_issue_match_id,
+			:issuematchchange_created_by
 		)
 	`
 

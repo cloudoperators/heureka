@@ -97,6 +97,9 @@ func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVari
 	if issueVariant.IssueRepositoryId != 0 {
 		fl = append(fl, "issuevariant_repository_id = :issuevariant_repository_id")
 	}
+	if issueVariant.UpdatedBy != 0 {
+		fl = append(fl, "issuevariant_updated_by = :issuevariant_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -243,14 +246,16 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 			issuevariant_vector,
 			issuevariant_rating,
 			issuevariant_secondary_name,
-			issuevariant_description
+			issuevariant_description,
+			issuevariant_created_by
 		) VALUES (
 			:issuevariant_issue_id,
 			:issuevariant_repository_id,
 			:issuevariant_vector,
 			:issuevariant_rating,
 			:issuevariant_secondary_name,
-			:issuevariant_description
+			:issuevariant_description,
+			:issuevariant_created_by
 		)
 	`
 

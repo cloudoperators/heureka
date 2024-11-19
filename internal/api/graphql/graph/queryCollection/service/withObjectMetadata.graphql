@@ -22,7 +22,7 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
                         }
                     }
                 }
-                metadata {
+                objectMetadata {
                     issueMatchCount
                     componentInstanceCount
                 }

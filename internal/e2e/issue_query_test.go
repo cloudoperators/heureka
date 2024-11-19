@@ -199,13 +199,13 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 					Expect(*respData.Issues.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 				})
 			})
-			Context("and we request metadata", Label("withMetadata.graphql"), func() {
+			Context("and we request metadata", Label("withObjectMetadata.graphql"), func() {
 				It("returns correct metadata counts", func() {
 					// create a queryCollection (safe to share across requests)
 					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
 					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/withMetadata.graphql")
+					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/withObjectMetadata.graphql")
 
 					Expect(err).To(BeNil())
 					str := string(b)
@@ -232,10 +232,10 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 							ciCount += *imEdge.Node.ComponentInstance.Count
 							serviceIdSet[imEdge.Node.ComponentInstance.Service.ID] = true
 						}
-						Expect(issueEdge.Node.Metadata.IssueMatchCount).To(Equal(issueEdge.Node.IssueMatches.TotalCount), "IssueMatchCount is correct")
-						Expect(issueEdge.Node.Metadata.ComponentInstanceCount).To(Equal(ciCount), "ComponentInstanceCount is correct")
-						Expect(issueEdge.Node.Metadata.ActivityCount).To(Equal(issueEdge.Node.Activities.TotalCount), "ActivityCount is correct")
-						Expect(issueEdge.Node.Metadata.ServiceCount).To(Equal(len(serviceIdSet)), "ServiceCount is correct")
+						Expect(issueEdge.Node.ObjectMetadata.IssueMatchCount).To(Equal(issueEdge.Node.IssueMatches.TotalCount), "IssueMatchCount is correct")
+						Expect(issueEdge.Node.ObjectMetadata.ComponentInstanceCount).To(Equal(ciCount), "ComponentInstanceCount is correct")
+						Expect(issueEdge.Node.ObjectMetadata.ActivityCount).To(Equal(issueEdge.Node.Activities.TotalCount), "ActivityCount is correct")
+						Expect(issueEdge.Node.ObjectMetadata.ServiceCount).To(Equal(len(serviceIdSet)), "ServiceCount is correct")
 					}
 				})
 			})
@@ -286,7 +286,7 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 				str := string(b)
 				req := graphql.NewRequest(str)
 
-				req.Var("input", map[string]string{
+				req.Var("input", map[string]interface{}{
 					"primaryName": issue.PrimaryName,
 					"description": issue.Description,
 					"type":        issue.Type.String(),

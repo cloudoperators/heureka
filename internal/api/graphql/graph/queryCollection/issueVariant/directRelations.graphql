@@ -23,20 +23,26 @@ query ($filter: IssueVariantFilter, $first: Int, $after: String) {
                     id
                     name
                     url
-                    created_at
-                    updated_at
+                    metadata {
+                        created_at
+                        updated_at
+                    }
                 }
                 issueId
                 issue { 
                     id
                     lastModified
                 }
+                metadata {
+                    created_at
+                    updated_at
+                }
+            }
+            cursor
+            metadata {
                 created_at
                 updated_at
             }
-            cursor
-            created_at
-            updated_at
         }
         pageInfo {
             hasNextPage

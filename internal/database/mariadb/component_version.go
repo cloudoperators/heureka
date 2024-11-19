@@ -57,6 +57,9 @@ func (s *SqlDatabase) getComponentVersionUpdateFields(componentVersion *entity.C
 	if componentVersion.ComponentId != 0 {
 		fl = append(fl, "componentversion_component_id = :componentversion_component_id")
 	}
+	if componentVersion.UpdatedBy != 0 {
+		fl = append(fl, "componentversion_updated_by = :componentversion_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -209,10 +212,12 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 	query := `
 		INSERT INTO ComponentVersion (
 			componentversion_component_id,
-			componentversion_version
+			componentversion_version,
+			componentversion_created_by
 		) VALUES (
 			:componentversion_component_id,
-			:componentversion_version
+			:componentversion_version,
+			:componentversion_created_by
 		)
 	`
 

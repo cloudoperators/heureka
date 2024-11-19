@@ -76,6 +76,9 @@ func (s *SqlDatabase) getEvidenceUpdateFields(evidence *entity.Evidence) string 
 	if !evidence.RaaEnd.IsZero() {
 		fl = append(fl, "evidence_raa_end = :evidence_raa_end")
 	}
+	if evidence.UpdatedBy != 0 {
+		fl = append(fl, "evidence_updated_by = :evidence_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -220,7 +223,8 @@ func (s *SqlDatabase) CreateEvidence(evidence *entity.Evidence) (*entity.Evidenc
 			evidence_description,
 			evidence_vector,
 			evidence_rating,
-			evidence_raa_end
+			evidence_raa_end,
+			evidence_created_by
 		) VALUES (
 			:evidence_author_id,
 			:evidence_activity_id,
@@ -228,7 +232,8 @@ func (s *SqlDatabase) CreateEvidence(evidence *entity.Evidence) (*entity.Evidenc
 			:evidence_description,
 			:evidence_vector,
 			:evidence_rating,
-			:evidence_raa_end
+			:evidence_raa_end,
+			:evidence_created_by
 		)
 	`
 

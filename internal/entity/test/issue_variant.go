@@ -29,9 +29,11 @@ func NewFakeIssueVariantEntity(issue *int64) entity.IssueVariant {
 		Issue:             nil,
 		IssueRepositoryId: 0,
 		IssueRepository:   nil,
-		CreatedAt:         gofakeit.Date(),
-		DeletedAt:         gofakeit.Date(),
-		UpdatedAt:         gofakeit.Date(),
+		Metadata: entity.Metadata{
+			CreatedAt: gofakeit.Date(),
+			DeletedAt: gofakeit.Date(),
+			UpdatedAt: gofakeit.Date(),
+		},
 	}
 }
 

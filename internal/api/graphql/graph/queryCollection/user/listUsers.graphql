@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+query ($filter: UserFilter, $first: Int, $after: String) {
+    Users (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+                name
+                type
+                metadata {
+                    created_at
+                    created_by
+                    deleted_at
+                    updated_at
+                    updated_by
+                }
+            }
+            cursor
+        }
+    }
+}

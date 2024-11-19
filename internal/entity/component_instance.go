@@ -3,8 +3,6 @@
 
 package entity
 
-import "time"
-
 type ComponentInstanceFilter struct {
 	Paginated
 	IssueMatchId       []*int64  `json:"issue_match_id"`
@@ -16,7 +14,8 @@ type ComponentInstanceFilter struct {
 	Search             []*string `json:"search"`
 }
 
-type ComponentInstanceAggregations struct{}
+type ComponentInstanceAggregations struct {
+}
 
 type ComponentInstanceResult struct {
 	WithCursor
@@ -25,6 +24,7 @@ type ComponentInstanceResult struct {
 }
 
 type ComponentInstance struct {
+	Metadata
 	Id                 int64             `json:"id"`
 	CCRN               string            `json:"ccrn"`
 	Count              int16             `json:"count"`
@@ -32,7 +32,4 @@ type ComponentInstance struct {
 	ComponentVersionId int64             `db:"componentinstance_component_version_id"`
 	Service            *Service          `json:"service,omitempty"`
 	ServiceId          int64             `db:"componentinstance_service_id"`
-	CreatedAt          time.Time         `json:"created_at"`
-	DeletedAt          time.Time         `json:"deleted_at,omitempty"`
-	UpdatedAt          time.Time         `json:"updated_at"`
 }
