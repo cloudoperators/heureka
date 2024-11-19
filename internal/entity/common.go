@@ -160,6 +160,30 @@ type Cursor struct {
 	Limit     int
 }
 
+func NewSeverityFromRating(rating SeverityValues) Severity {
+	// These values are based on the CVSS v3.1 specification
+	// https://www.first.org/cvss/v3.1/specification-document#Qualitative-Severity-Rating-Scale
+	// https://nvd.nist.gov/vuln-metrics/cvss
+	// They are the lower bounds of the CVSS Score ranges that correlate to each given Rating
+	score := 0.0
+	switch rating {
+	case SeverityValuesLow:
+		score = 0.1
+	case SeverityValuesMedium:
+		score = 4.0
+	case SeverityValuesHigh:
+		score = 7.0
+	case SeverityValuesCritical:
+		score = 9.0
+	}
+
+	return Severity{
+		Value: string(rating),
+		Score: score,
+		Cvss:  Cvss{},
+	}
+}
+
 func NewSeverity(url string) Severity {
 	ev, err := metric.NewEnvironmental().Decode(url)
 
