@@ -58,8 +58,8 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 	issueDescription := "Only SAP approved Golden Images SHOULD be used. These Golden images are compliant to SAP security, legal, license and compliance requirements per default. The owner of the VM image is responsible to ensure it is compliant and secure."
 
 	// Hardocding the issue variant to be a copy of the issue for now
-	// issueVariantSecondaryName := issuePrimaryName
-	// issueVariantDescription := issueDescription
+	issueVariantSecondaryName := issuePrimaryName
+	issueVariantDescription := issueDescription
 
 	computeService, err := osScanner.CreateComputeClient()
 	if err != nil {
@@ -82,12 +82,11 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 		log.WithError(err).Fatal("Error during createIssueObject")
 	}
 
-	// NOTE: Currently commented out as there is a problem with the create issue variant query
 	// Create Issue Variant object
-	// _, err = processor.CreateIssueVariantObject(*osProcessor, ctx, issueVariantSecondaryName, issueVariantDescription, issueRepoId, issue45Id)
-	// if err != nil {
-	// 	log.WithError(err).Fatal("Error during createIssueVariantObject")
-	// }
+	_, err = processor.CreateIssueVariantObject(*osProcessor, ctx, issueVariantSecondaryName, issueVariantDescription, issueRepoId, issue45Id)
+	if err != nil {
+		log.WithError(err).Fatal("Error during createIssueVariantObject")
+	}
 
 	// print servers in a formatted way
 	for _, server := range servers {

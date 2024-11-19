@@ -943,16 +943,18 @@ func (p *Processor) ProcessIssueVariant(ctx context.Context, issueVariantInfo Is
 			"repositoryId":  issueVariantInfo.IssueRepositoryID,
 		}).Error("failed to fetch issue variant")
 
+		rating := client.SeverityValuesMedium
+
 		severityInput := client.SeverityInput{
-			Vector: string(client.SeverityValuesMedium),
+			Rating: &rating,
 		}
 
 		// Create new Issue Variant
 		createIssueVariantInput := &client.IssueVariantInput{
-			SecondaryName:     issueVariantInfo.SecondaryName,
-			Description:       issueVariantInfo.Description,
-			IssueId:           issueVariantInfo.IssueID,
-			IssueRepositoryId: issueVariantInfo.IssueRepositoryID,
+			SecondaryName:     &issueVariantInfo.SecondaryName,
+			Description:       &issueVariantInfo.Description,
+			IssueId:           &issueVariantInfo.IssueID,
+			IssueRepositoryId: &issueVariantInfo.IssueRepositoryID,
 			Severity:          &severityInput,
 		}
 
@@ -960,7 +962,7 @@ func (p *Processor) ProcessIssueVariant(ctx context.Context, issueVariantInfo Is
 		if err != nil {
 			log.WithError(err).Fatal("failed to create Issue Variant")
 		} else {
-			issueVariantId = createIssueVariantResp.CreateIssueVariant.Id
+			issueVariantId = *createIssueVariantResp.CreateIssueVariant.Id
 		}
 	} else {
 		issueVariantId = _issueVariantId

@@ -8,13 +8,57 @@ import (
 	"github.com/Khan/genqlient/graphql"
 )
 
+// AddComponentVersionToIssueAddComponentVersionToIssue includes the requested fields of the GraphQL type Issue.
+type AddComponentVersionToIssueAddComponentVersionToIssue struct {
+	Id                string                                                                                           `json:"id"`
+	ComponentVersions *AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnection `json:"componentVersions"`
+}
+
+// GetId returns AddComponentVersionToIssueAddComponentVersionToIssue.Id, and is useful for accessing the field via an interface.
+func (v *AddComponentVersionToIssueAddComponentVersionToIssue) GetId() string { return v.Id }
+
+// GetComponentVersions returns AddComponentVersionToIssueAddComponentVersionToIssue.ComponentVersions, and is useful for accessing the field via an interface.
+func (v *AddComponentVersionToIssueAddComponentVersionToIssue) GetComponentVersions() *AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnection {
+	return v.ComponentVersions
+}
+
+// AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnection includes the requested fields of the GraphQL type ComponentVersionConnection.
+type AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnection struct {
+	Edges []*AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdge `json:"edges"`
+}
+
+// GetEdges returns AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnection.Edges, and is useful for accessing the field via an interface.
+func (v *AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnection) GetEdges() []*AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdge {
+	return v.Edges
+}
+
+// AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdge includes the requested fields of the GraphQL type ComponentVersionEdge.
+type AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdge struct {
+	Node *AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdgeNodeComponentVersion `json:"node"`
+}
+
+// GetNode returns AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdge.Node, and is useful for accessing the field via an interface.
+func (v *AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdge) GetNode() *AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdgeNodeComponentVersion {
+	return v.Node
+}
+
+// AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdgeNodeComponentVersion includes the requested fields of the GraphQL type ComponentVersion.
+type AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdgeNodeComponentVersion struct {
+	Id string `json:"id"`
+}
+
+// GetId returns AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdgeNodeComponentVersion.Id, and is useful for accessing the field via an interface.
+func (v *AddComponentVersionToIssueAddComponentVersionToIssueComponentVersionsComponentVersionConnectionEdgesComponentVersionEdgeNodeComponentVersion) GetId() string {
+	return v.Id
+}
+
 // AddComponentVersionToIssueResponse is returned by AddComponentVersionToIssue on success.
 type AddComponentVersionToIssueResponse struct {
-	AddComponentVersionToIssue *Issue `json:"addComponentVersionToIssue"`
+	AddComponentVersionToIssue *AddComponentVersionToIssueAddComponentVersionToIssue `json:"addComponentVersionToIssue"`
 }
 
 // GetAddComponentVersionToIssue returns AddComponentVersionToIssueResponse.AddComponentVersionToIssue, and is useful for accessing the field via an interface.
-func (v *AddComponentVersionToIssueResponse) GetAddComponentVersionToIssue() *Issue {
+func (v *AddComponentVersionToIssueResponse) GetAddComponentVersionToIssue() *AddComponentVersionToIssueAddComponentVersionToIssue {
 	return v.AddComponentVersionToIssue
 }
 
@@ -330,22 +374,22 @@ func (v *CreateIssueResponse) GetCreateIssue() *Issue { return v.CreateIssue }
 
 // CreateIssueVariantCreateIssueVariant includes the requested fields of the GraphQL type IssueVariant.
 type CreateIssueVariantCreateIssueVariant struct {
-	Id                string                                        `json:"id"`
-	SecondaryName     string                                        `json:"secondaryName"`
-	Description       string                                        `json:"description"`
+	Id                *string                                       `json:"id"`
+	SecondaryName     *string                                       `json:"secondaryName"`
+	Description       *string                                       `json:"description"`
 	Severity          *CreateIssueVariantCreateIssueVariantSeverity `json:"severity"`
-	IssueRepositoryId string                                        `json:"issueRepositoryId"`
-	IssueId           string                                        `json:"issueId"`
+	IssueRepositoryId *string                                       `json:"issueRepositoryId"`
+	IssueId           *string                                       `json:"issueId"`
 }
 
 // GetId returns CreateIssueVariantCreateIssueVariant.Id, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariant) GetId() string { return v.Id }
+func (v *CreateIssueVariantCreateIssueVariant) GetId() *string { return v.Id }
 
 // GetSecondaryName returns CreateIssueVariantCreateIssueVariant.SecondaryName, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariant) GetSecondaryName() string { return v.SecondaryName }
+func (v *CreateIssueVariantCreateIssueVariant) GetSecondaryName() *string { return v.SecondaryName }
 
 // GetDescription returns CreateIssueVariantCreateIssueVariant.Description, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariant) GetDescription() string { return v.Description }
+func (v *CreateIssueVariantCreateIssueVariant) GetDescription() *string { return v.Description }
 
 // GetSeverity returns CreateIssueVariantCreateIssueVariant.Severity, and is useful for accessing the field via an interface.
 func (v *CreateIssueVariantCreateIssueVariant) GetSeverity() *CreateIssueVariantCreateIssueVariantSeverity {
@@ -353,38 +397,24 @@ func (v *CreateIssueVariantCreateIssueVariant) GetSeverity() *CreateIssueVariant
 }
 
 // GetIssueRepositoryId returns CreateIssueVariantCreateIssueVariant.IssueRepositoryId, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariant) GetIssueRepositoryId() string {
+func (v *CreateIssueVariantCreateIssueVariant) GetIssueRepositoryId() *string {
 	return v.IssueRepositoryId
 }
 
 // GetIssueId returns CreateIssueVariantCreateIssueVariant.IssueId, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariant) GetIssueId() string { return v.IssueId }
+func (v *CreateIssueVariantCreateIssueVariant) GetIssueId() *string { return v.IssueId }
 
 // CreateIssueVariantCreateIssueVariantSeverity includes the requested fields of the GraphQL type Severity.
 type CreateIssueVariantCreateIssueVariantSeverity struct {
-	Value SeverityValues                                        `json:"value"`
-	Score float64                                               `json:"score"`
-	Cvss  *CreateIssueVariantCreateIssueVariantSeverityCvssCVSS `json:"cvss"`
+	Value *SeverityValues `json:"value"`
+	Score *float64        `json:"score"`
 }
 
 // GetValue returns CreateIssueVariantCreateIssueVariantSeverity.Value, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariantSeverity) GetValue() SeverityValues { return v.Value }
+func (v *CreateIssueVariantCreateIssueVariantSeverity) GetValue() *SeverityValues { return v.Value }
 
 // GetScore returns CreateIssueVariantCreateIssueVariantSeverity.Score, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariantSeverity) GetScore() float64 { return v.Score }
-
-// GetCvss returns CreateIssueVariantCreateIssueVariantSeverity.Cvss, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariantSeverity) GetCvss() *CreateIssueVariantCreateIssueVariantSeverityCvssCVSS {
-	return v.Cvss
-}
-
-// CreateIssueVariantCreateIssueVariantSeverityCvssCVSS includes the requested fields of the GraphQL type CVSS.
-type CreateIssueVariantCreateIssueVariantSeverityCvssCVSS struct {
-	Vector string `json:"vector"`
-}
-
-// GetVector returns CreateIssueVariantCreateIssueVariantSeverityCvssCVSS.Vector, and is useful for accessing the field via an interface.
-func (v *CreateIssueVariantCreateIssueVariantSeverityCvssCVSS) GetVector() string { return v.Vector }
+func (v *CreateIssueVariantCreateIssueVariantSeverity) GetScore() *float64 { return v.Score }
 
 // CreateIssueVariantResponse is returned by CreateIssueVariant on success.
 type CreateIssueVariantResponse struct {
@@ -541,24 +571,24 @@ type IssueVariantFilter struct {
 func (v *IssueVariantFilter) GetSecondaryName() []string { return v.SecondaryName }
 
 type IssueVariantInput struct {
-	SecondaryName     string         `json:"secondaryName"`
-	Description       string         `json:"description"`
-	IssueRepositoryId string         `json:"issueRepositoryId"`
-	IssueId           string         `json:"issueId"`
+	SecondaryName     *string        `json:"secondaryName"`
+	Description       *string        `json:"description"`
+	IssueRepositoryId *string        `json:"issueRepositoryId"`
+	IssueId           *string        `json:"issueId"`
 	Severity          *SeverityInput `json:"severity,omitempty"`
 }
 
 // GetSecondaryName returns IssueVariantInput.SecondaryName, and is useful for accessing the field via an interface.
-func (v *IssueVariantInput) GetSecondaryName() string { return v.SecondaryName }
+func (v *IssueVariantInput) GetSecondaryName() *string { return v.SecondaryName }
 
 // GetDescription returns IssueVariantInput.Description, and is useful for accessing the field via an interface.
-func (v *IssueVariantInput) GetDescription() string { return v.Description }
+func (v *IssueVariantInput) GetDescription() *string { return v.Description }
 
 // GetIssueRepositoryId returns IssueVariantInput.IssueRepositoryId, and is useful for accessing the field via an interface.
-func (v *IssueVariantInput) GetIssueRepositoryId() string { return v.IssueRepositoryId }
+func (v *IssueVariantInput) GetIssueRepositoryId() *string { return v.IssueRepositoryId }
 
 // GetIssueId returns IssueVariantInput.IssueId, and is useful for accessing the field via an interface.
-func (v *IssueVariantInput) GetIssueId() string { return v.IssueId }
+func (v *IssueVariantInput) GetIssueId() *string { return v.IssueId }
 
 // GetSeverity returns IssueVariantInput.Severity, and is useful for accessing the field via an interface.
 func (v *IssueVariantInput) GetSeverity() *SeverityInput { return v.Severity }
@@ -920,11 +950,15 @@ type ServiceInput struct {
 func (v *ServiceInput) GetCcrn() string { return v.Ccrn }
 
 type SeverityInput struct {
-	Vector string `json:"vector"`
+	Vector *string         `json:"vector"`
+	Rating *SeverityValues `json:"rating"`
 }
 
 // GetVector returns SeverityInput.Vector, and is useful for accessing the field via an interface.
-func (v *SeverityInput) GetVector() string { return v.Vector }
+func (v *SeverityInput) GetVector() *string { return v.Vector }
+
+// GetRating returns SeverityInput.Rating, and is useful for accessing the field via an interface.
+func (v *SeverityInput) GetRating() *SeverityValues { return v.Rating }
 
 type SeverityValues string
 
@@ -1143,9 +1177,13 @@ const AddComponentVersionToIssue_Operation = `
 mutation AddComponentVersionToIssue ($issueId: ID!, $componentVersionId: ID!) {
 	addComponentVersionToIssue(issueId: $issueId, componentVersionId: $componentVersionId) {
 		id
-		primaryName
-		description
-		type
+		componentVersions {
+			edges {
+				node {
+					id
+				}
+			}
+		}
 	}
 }
 `
@@ -1462,9 +1500,6 @@ mutation CreateIssueVariant ($input: IssueVariantInput!) {
 		severity {
 			value
 			score
-			cvss {
-				vector
-			}
 		}
 		issueRepositoryId
 		issueId
