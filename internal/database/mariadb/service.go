@@ -134,6 +134,9 @@ func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 	if service.CCRN != "" {
 		fl = append(fl, "service_ccrn = :service_ccrn")
 	}
+	if service.BaseService.UpdatedBy != 0 {
+		fl = append(fl, "service_updated_by = :service_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -341,9 +344,11 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 
 	query := `
 		INSERT INTO Service (
-			service_ccrn
+			service_ccrn,
+			service_created_by
 		) VALUES (
-			:service_ccrn
+			:service_ccrn,
+			:service_created_by
 		)
 	`
 

@@ -3,9 +3,8 @@
 
 package entity
 
-import "time"
-
 type BaseService struct {
+	Metadata
 	Id             int64         `json:"id"`
 	CCRN           string        `json:"ccrn"`
 	SupportGroup   *SupportGroup `json:"support_group,omitempty"`
@@ -13,9 +12,6 @@ type BaseService struct {
 	Owners         []User        `json:"owners,omitempty"`
 	Activities     []Activity    `json:"activities,omitempty"`
 	Priority       int64         `json:"priority"`
-	CreatedAt      time.Time     `json:"created_at"`
-	DeletedAt      time.Time     `json:"deleted_at,omitempty"`
-	UpdatedAt      time.Time     `json:"updated_at"`
 }
 
 type ServiceAggregations struct {

@@ -16,6 +16,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
+	"github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -109,7 +110,7 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ServiceFilterValues.UserName.Values).To(BeEmpty())
+			e2e_common.ExpectNonSystemUserNames(respData.ServiceFilterValues.UserName.Values, []*string{})
 		})
 		It("returns empty for uniqueUserID", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
@@ -130,7 +131,7 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ServiceFilterValues.UniqueUserID.Values).To(BeEmpty())
+			e2e_common.ExpectNonSystemUserUniqueUserIds(respData.ServiceFilterValues.UniqueUserID.Values, []*string{})
 		})
 	})
 
@@ -218,13 +219,13 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ServiceFilterValues.UserName.Values)).To(Equal(len(seedCollection.UserRows)))
+				e2e_common.ExpectNonSystemUserCount(len(respData.ServiceFilterValues.UserName.Values), len(seedCollection.UserRows))
 
 				existingUserNames := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
 					return s.Name.String
 				})
 
-				for _, name := range respData.ServiceFilterValues.UserName.Values {
+				for _, name := range e2e_common.SubtractSystemUserName(respData.ServiceFilterValues.UserName.Values) {
 					Expect(lo.Contains(existingUserNames, *name)).To(BeTrue())
 				}
 			})
@@ -247,13 +248,13 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ServiceFilterValues.UniqueUserID.Values)).To(Equal(len(seedCollection.UserRows)))
+				e2e_common.ExpectNonSystemUserCount(len(respData.ServiceFilterValues.UniqueUserID.Values), len(seedCollection.UserRows))
 
 				existingUniqueUserIds := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
 					return s.UniqueUserID.String
 				})
 
-				for _, name := range respData.ServiceFilterValues.UniqueUserID.Values {
+				for _, name := range e2e_common.SubtractSystemUserUniqueUserId(respData.ServiceFilterValues.UniqueUserID.Values) {
 					Expect(lo.Contains(existingUniqueUserIds, *name)).To(BeTrue())
 				}
 			})

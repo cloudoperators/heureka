@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
+	"github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,11 +29,12 @@ var _ = Describe("User", Label("database", "User"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
 				res, err := db.GetAllUserIds(nil)
+				res = e2e_common.SubtractSystemUserId(res)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
-				By("returning an empty list", func() {
+				By("returning an empty list of non-system users", func() {
 					Expect(res).To(BeEmpty())
 				})
 			})
@@ -50,6 +52,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
 					res, err := db.GetAllUserIds(nil)
+					res = e2e_common.SubtractSystemUserId(res)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -105,6 +108,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
 				res, err := db.GetUsers(nil)
+				res = e2e_common.SubtractSystemUsersEntity(res)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -123,7 +127,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 
 				It("can fetch the items correctly", func() {
 					res, err := db.GetUsers(nil)
-
+					res = e2e_common.SubtractSystemUsersEntity(res)
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
 					})
@@ -304,7 +308,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 
 					By("number of human and technical user types should match number of all users", func() {
-						Expect(len(humanUserEntries) + len(technicalUserEntries)).To(BeEquivalentTo(len(seedCollection.UserRows)))
+						Expect(e2e_common.SubtractSystemUsers(len(humanUserEntries) + len(technicalUserEntries))).To(BeEquivalentTo(len(seedCollection.UserRows)))
 					})
 				})
 			})
@@ -314,6 +318,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {
 				c, err := db.CountUsers(nil)
+				c = e2e_common.SubtractSystemUsers(c)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -336,6 +341,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			Context("and using no filter", func() {
 				It("can count", func() {
 					c, err := db.CountUsers(nil)
+					c = e2e_common.SubtractSystemUsers(c)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -355,6 +361,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 						},
 					}
 					c, err := db.CountUsers(filter)
+					c = e2e_common.SubtractSystemUsers(c)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -545,6 +552,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetUserNames(nil)
+				res = e2e_common.SubtractSystemUserNameVL(res)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -562,6 +570,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
 					res, err := db.GetUserNames(nil)
+					res = e2e_common.SubtractSystemUserNameVL(res)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -649,6 +658,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetUniqueUserIDs(nil)
+				res = e2e_common.SubtractSystemUserUniqueUserIdVL(res)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -666,6 +676,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
 					res, err := db.GetUniqueUserIDs(nil)
+					res = e2e_common.SubtractSystemUserUniqueUserIdVL(res)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())

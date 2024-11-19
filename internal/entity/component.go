@@ -3,15 +3,11 @@
 
 package entity
 
-import "time"
-
 type Component struct {
-	Id        int64     `json:"id"`
-	CCRN      string    `json:"ccrn"`
-	Type      string    `json:"type"`
-	CreatedAt time.Time `json:"created_at"`
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Metadata
+	Id   int64  `json:"id"`
+	CCRN string `json:"ccrn"`
+	Type string `json:"type"`
 }
 
 type ComponentResult struct {

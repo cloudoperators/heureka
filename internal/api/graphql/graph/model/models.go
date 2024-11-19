@@ -15,6 +15,18 @@ import (
 )
 
 // add custom models here
+func getModelMetadata(em entity.Metadata) *Metadata {
+	createdAt := em.CreatedAt.String()
+	deletedAt := em.DeletedAt.String()
+	updatedAt := em.UpdatedAt.String()
+	return &Metadata{
+		CreatedAt: util.Ptr(createdAt),
+		CreatedBy: util.Ptr(fmt.Sprintf("%d", em.CreatedBy)),
+		DeletedAt: util.Ptr(deletedAt),
+		UpdatedAt: util.Ptr(updatedAt),
+		UpdatedBy: util.Ptr(fmt.Sprintf("%d", em.UpdatedBy)),
+	}
+}
 
 var AllSeverityValuesOrdered = []SeverityValues{
 	SeverityValuesCritical,
@@ -160,6 +172,7 @@ func NewIssue(issue *entity.Issue) Issue {
 		Type:         &issueType,
 		Description:  &issue.Description,
 		LastModified: &lastModified,
+		Metadata:     getModelMetadata(issue.Metadata),
 	}
 }
 
@@ -167,10 +180,10 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	lastModified := issue.Issue.UpdatedAt.String()
 	issueType := IssueTypes(issue.Type.String())
 
-	var metadata IssueMetadata
+	var objectMetadata IssueMetadata
 
 	if issue.IssueAggregations != nil {
-		metadata = IssueMetadata{
+		objectMetadata = IssueMetadata{
 			ServiceCount:                  int(issue.IssueAggregations.AffectedServices),
 			ActivityCount:                 int(issue.IssueAggregations.Activities),
 			IssueMatchCount:               int(issue.IssueAggregations.IssueMatches),
@@ -182,11 +195,13 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	}
 
 	return Issue{
-		ID:           fmt.Sprintf("%d", issue.Issue.Id),
-		PrimaryName:  &issue.Issue.PrimaryName,
-		Type:         &issueType,
-		LastModified: &lastModified,
-		Metadata:     &metadata,
+		ID:             fmt.Sprintf("%d", issue.Issue.Id),
+		PrimaryName:    &issue.Issue.PrimaryName,
+		Type:           &issueType,
+		Description:    &issue.Issue.Description,
+		LastModified:   &lastModified,
+		ObjectMetadata: &objectMetadata,
+		Metadata:       getModelMetadata(issue.Issue.Metadata),
 	}
 }
 
@@ -218,6 +233,7 @@ func NewIssueMatch(im *entity.IssueMatch) IssueMatch {
 		IssueID:               util.Ptr(fmt.Sprintf("%d", im.IssueId)),
 		ComponentInstanceID:   util.Ptr(fmt.Sprintf("%d", im.ComponentInstanceId)),
 		UserID:                util.Ptr(fmt.Sprintf("%d", im.UserId)),
+		Metadata:              getModelMetadata(im.Metadata),
 	}
 }
 
@@ -240,7 +256,7 @@ func NewIssueMatchEntity(im *IssueMatchInput) entity.IssueMatch {
 		IssueId:               issueId,
 		ComponentInstanceId:   ciId,
 		UserId:                userId,
-		CreatedAt:             createdAt,
+		Metadata:              entity.Metadata{CreatedAt: createdAt},
 	}
 }
 
@@ -253,6 +269,7 @@ func NewIssueMatchChange(imc *entity.IssueMatchChange) IssueMatchChange {
 		IssueMatch:   nil,
 		ActivityID:   util.Ptr(fmt.Sprintf("%d", imc.ActivityId)),
 		Activity:     nil,
+		Metadata:     getModelMetadata(imc.Metadata),
 	}
 }
 
@@ -268,16 +285,13 @@ func NewIssueMatchChangeEntity(imc *IssueMatchChangeInput) entity.IssueMatchChan
 }
 
 func NewIssueRepository(repo *entity.IssueRepository) IssueRepository {
-	createdAt := repo.BaseIssueRepository.CreatedAt.String()
-	updatedAt := repo.BaseIssueRepository.UpdatedAt.String()
 	return IssueRepository{
 		ID:            fmt.Sprintf("%d", repo.Id),
 		Name:          &repo.Name,
 		URL:           &repo.Url,
 		Services:      nil,
 		IssueVariants: nil,
-		CreatedAt:     &createdAt,
-		UpdatedAt:     &updatedAt,
+		Metadata:      getModelMetadata(repo.BaseIssueRepository.Metadata),
 	}
 }
 
@@ -295,8 +309,6 @@ func NewIssueVariant(issueVariant *entity.IssueVariant) IssueVariant {
 	if issueVariant.IssueRepository != nil {
 		repo = NewIssueRepository(issueVariant.IssueRepository)
 	}
-	createdAt := issueVariant.CreatedAt.String()
-	updatedAt := issueVariant.UpdatedAt.String()
 	return IssueVariant{
 		ID:                fmt.Sprintf("%d", issueVariant.Id),
 		SecondaryName:     &issueVariant.SecondaryName,
@@ -305,20 +317,16 @@ func NewIssueVariant(issueVariant *entity.IssueVariant) IssueVariant {
 		IssueID:           util.Ptr(fmt.Sprintf("%d", issueVariant.IssueId)),
 		IssueRepositoryID: util.Ptr(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)),
 		IssueRepository:   &repo,
-		CreatedAt:         &createdAt,
-		UpdatedAt:         &updatedAt,
+		Metadata:          getModelMetadata(issueVariant.Metadata),
 	}
 }
 
 func NewIssueVariantEdge(issueVariant *entity.IssueVariant) IssueVariantEdge {
 	iv := NewIssueVariant(issueVariant)
-	edgeCreationDate := issueVariant.CreatedAt.String()
-	edgeUpdateDate := issueVariant.UpdatedAt.String()
 	issueVariantEdge := IssueVariantEdge{
-		Node:      &iv,
-		Cursor:    &iv.ID,
-		CreatedAt: &edgeCreationDate,
-		UpdatedAt: &edgeUpdateDate,
+		Node:     &iv,
+		Cursor:   &iv.ID,
+		Metadata: getModelMetadata(issueVariant.Metadata),
 	}
 	return issueVariantEdge
 }
@@ -341,6 +349,7 @@ func NewUser(user *entity.User) User {
 		UniqueUserID: &user.UniqueUserID,
 		Name:         &user.Name,
 		Type:         int(user.Type),
+		Metadata:     getModelMetadata(user.Metadata),
 	}
 }
 
@@ -354,25 +363,27 @@ func NewUserEntity(user *UserInput) entity.User {
 
 func NewService(s *entity.Service) Service {
 	return Service{
-		ID:   fmt.Sprintf("%d", s.Id),
-		Ccrn: &s.CCRN,
+		ID:       fmt.Sprintf("%d", s.Id),
+		Ccrn:     &s.CCRN,
+		Metadata: getModelMetadata(s.BaseService.Metadata),
 	}
 }
 
 func NewServiceWithAggregations(service *entity.ServiceResult) Service {
-	var metadata ServiceMetadata
+	var objectMetadata ServiceMetadata
 
 	if service.ServiceAggregations != nil {
-		metadata = ServiceMetadata{
+		objectMetadata = ServiceMetadata{
 			IssueMatchCount:        int(service.ServiceAggregations.IssueMatches),
 			ComponentInstanceCount: int(service.ServiceAggregations.ComponentInstances),
 		}
 	}
 
 	return Service{
-		ID:       fmt.Sprintf("%d", service.Id),
-		Ccrn:     &service.CCRN,
-		Metadata: &metadata,
+		ID:             fmt.Sprintf("%d", service.Id),
+		Ccrn:           &service.CCRN,
+		ObjectMetadata: &objectMetadata,
+		Metadata:       getModelMetadata(service.BaseService.Metadata),
 	}
 }
 
@@ -386,8 +397,9 @@ func NewServiceEntity(service *ServiceInput) entity.Service {
 
 func NewSupportGroup(supportGroup *entity.SupportGroup) SupportGroup {
 	return SupportGroup{
-		ID:   fmt.Sprintf("%d", supportGroup.Id),
-		Ccrn: &supportGroup.CCRN,
+		ID:       fmt.Sprintf("%d", supportGroup.Id),
+		Ccrn:     &supportGroup.CCRN,
+		Metadata: getModelMetadata(supportGroup.Metadata),
 	}
 }
 
@@ -400,8 +412,9 @@ func NewSupportGroupEntity(supportGroup *SupportGroupInput) entity.SupportGroup 
 func NewActivity(activity *entity.Activity) Activity {
 	status := ActivityStatusValues(activity.Status.String())
 	return Activity{
-		ID:     fmt.Sprintf("%d", activity.Id),
-		Status: &status,
+		ID:       fmt.Sprintf("%d", activity.Id),
+		Status:   &status,
+		Metadata: getModelMetadata(activity.Metadata),
 	}
 }
 
@@ -429,6 +442,7 @@ func NewEvidence(evidence *entity.Evidence) Evidence {
 		Vector:      severity.Cvss.Vector,
 		Type:        &t,
 		RaaEnd:      &raaEnd,
+		Metadata:    getModelMetadata(evidence.Metadata),
 	}
 }
 
@@ -451,9 +465,10 @@ func NewEvidenceEntity(evidence *EvidenceInput) entity.Evidence {
 func NewComponent(component *entity.Component) Component {
 	componentType, _ := ComponentTypeValue(component.Type)
 	return Component{
-		ID:   fmt.Sprintf("%d", component.Id),
-		Ccrn: &component.CCRN,
-		Type: &componentType,
+		ID:       fmt.Sprintf("%d", component.Id),
+		Ccrn:     &component.CCRN,
+		Type:     &componentType,
+		Metadata: getModelMetadata(component.Metadata),
 	}
 }
 
@@ -473,6 +488,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		ID:          fmt.Sprintf("%d", componentVersion.Id),
 		Version:     &componentVersion.Version,
 		ComponentID: util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
+		Metadata:    getModelMetadata(componentVersion.Metadata),
 	}
 }
 
@@ -495,6 +511,7 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 		Count:              &count,
 		ComponentVersionID: util.Ptr(fmt.Sprintf("%d", componentInstance.ComponentVersionId)),
 		ServiceID:          util.Ptr(fmt.Sprintf("%d", componentInstance.ServiceId)),
+		Metadata:           getModelMetadata(componentInstance.Metadata),
 	}
 }
 
