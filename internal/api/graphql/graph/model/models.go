@@ -80,7 +80,7 @@ func NewPage(p *entity.Page) *Page {
 func NewSeverity(sev entity.Severity) *Severity {
 	severity, _ := SeverityValue(sev.Value)
 
-	if severity == "unknown" {
+	if severity == "unknown" || sev.Cvss == (entity.Cvss{}) {
 		return &Severity{
 			Value: &severity,
 			Score: &sev.Score,
@@ -157,9 +157,16 @@ func NewSeverity(sev entity.Severity) *Severity {
 }
 
 func NewSeverityEntity(severity *SeverityInput) entity.Severity {
-	if severity == nil || severity.Vector == nil {
+	if severity == nil || (severity.Rating == nil && severity.Vector == nil) {
+		// no severity information was passed
 		return entity.Severity{}
 	}
+	if (severity.Vector == nil || *severity.Vector == "") && severity.Rating != nil {
+		// only rating was passed
+		return entity.NewSeverityFromRating(entity.SeverityValues(*severity.Rating))
+	}
+	// both rating and vector or only vector was passed
+	// either way, use the vector as the primary source of information
 	return entity.NewSeverity(*severity.Vector)
 }
 
