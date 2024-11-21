@@ -15,7 +15,7 @@ scanner:
   scanner_timeout: "30s"
 
 image:
-  repository: keppel.eu-de-1.cloud.sap/ccloud-ghcr-io-mirror/cloudoperators/heureka-scanner-k8s-assets
+  repository: ghcr.io/cloudoperators/heureka-scanner-k8s-assets
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
@@ -30,13 +30,3 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: "heureka-k8s-assets-scanner-sa"
-
-
-owner-info:
-  helm-chart-url: "https://github.wdf.sap.corp/cc/heureka/tree/main/charts/k8s-asstes-scanner"
-  maintainers:
-    - David Rochow
-    - Michael Reimsbach
-    - Victor Dorneanu
-  support-group: src
-  service: ldapproval
