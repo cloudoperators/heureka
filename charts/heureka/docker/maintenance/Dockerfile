@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 FROM alpine:3.20
 
 # Install mysql-client and bash (for scripts)
