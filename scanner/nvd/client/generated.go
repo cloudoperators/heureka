@@ -187,13 +187,13 @@ type IssueRepositoryConnectionEdgesIssueRepositoryEdge struct {
 func (v *IssueRepositoryConnectionEdgesIssueRepositoryEdge) GetNode() *IssueRepository { return v.Node }
 
 type IssueRepositoryFilter struct {
-	ServiceName []string `json:"serviceName"`
+	ServiceCcrn []string `json:"serviceCcrn"`
 	ServiceId   []string `json:"serviceId"`
 	Name        []string `json:"name"`
 }
 
-// GetServiceName returns IssueRepositoryFilter.ServiceName, and is useful for accessing the field via an interface.
-func (v *IssueRepositoryFilter) GetServiceName() []string { return v.ServiceName }
+// GetServiceCcrn returns IssueRepositoryFilter.ServiceCcrn, and is useful for accessing the field via an interface.
+func (v *IssueRepositoryFilter) GetServiceCcrn() []string { return v.ServiceCcrn }
 
 // GetServiceId returns IssueRepositoryFilter.ServiceId, and is useful for accessing the field via an interface.
 func (v *IssueRepositoryFilter) GetServiceId() []string { return v.ServiceId }
