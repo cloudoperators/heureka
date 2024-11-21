@@ -24,6 +24,24 @@ spec:
               mountPath: "{{ .Values.scanner.config_mount_path }}"
               readOnly: true
             env:
+            - name: KEPPEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name:  {{ .Release.Name }}-secret
+                  key: keppel_password
+            - name: KEPPEL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: keppel_username
+            - name:  KEPPEL_FQDN
+              value: {{ .Values.scanner.keppel.fqdn }}
+            - name: IDENTITY_ENDPOINT
+              value: {{ .Values.scanner.identity_endpoint }}
+            - name: KEPPEL_DOMAIN
+              value: {{ .Values.scanner.keppel.domain }}
+            - name: KEPPEL_PROJECT
+              value: {{ .Values.scanner.keppel.project }}
             - name: HEUREKA_API_TOKEN
               valueFrom:
                 secretKeyRef:
