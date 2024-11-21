@@ -83,3 +83,16 @@ mariadb:
     username: my_username
     rootPassword: my_password
     password: my_password
+
+dbMaintenance:
+  enabled: true 
+  # schedule: "0 0 * * *"
+  schedule: "*/1 * * * *"  # Every minute for testing
+  image:
+    # Just for testing purposes
+    repository: db-maintenance 
+    tag: "local"
+    pullPolicy: "never"
+  scripts:
+    - name: cleanup
+      enabled: true

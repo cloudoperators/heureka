@@ -1,0 +1,46 @@
+{{- if .Values.dbMaintenance.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "heureka.fullname" . }}-db-maintenance
+  labels:
+    {{- include "heureka.labels" . | nindent 4 }}
+    app.kubernetes.io/component: db-maintenance
+spec:
+  schedule: {{ .Values.dbMaintenance.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+          containers:
+          - name: db-maintenance
+            image: {{ .Values.dbMaintenance.image.repository }}:{{ .Values.dbMaintenance.image.tag }}
+            # resources:
+            #   limits:
+            #     memory: "128Mi"
+            #     cpu: "100m"
+            #   requests:
+            #     memory: "64Mi"
+            #     cpu: "50m"
+            env:
+            - name: DB_HOST
+              value: {{ .Values.mariadb.fullnameOverride | default (printf "%s-mariadb" (include "heureka.fullname" .)) }}
+            - name: DB_NAME
+              value: {{ .Values.mariadb.auth.database }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: heureka
+                  key: mariadb-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: heureka
+                  key: mariadb-password
+          restartPolicy: OnFailure
+{{- end }}
