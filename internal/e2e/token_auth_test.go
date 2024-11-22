@@ -91,7 +91,7 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 			token := GenerateInvalidJwt(cfg.AuthTokenSecret)
 			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "TokenAuthMethod(Invalid token)")
+			ExpectErrorMessage(resp, "TokenAuthMethod(Missing ExpiresAt in token claims)")
 		})
 	})
 })

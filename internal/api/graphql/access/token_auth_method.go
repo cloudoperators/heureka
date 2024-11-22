@@ -40,35 +40,69 @@ type TokenAuthMethod struct {
 }
 
 func (tam TokenAuthMethod) Verify(c *gin.Context) error {
-	verifyError := func(s string) error {
-		return fmt.Errorf("TokenAuthMethod(%s)", s)
+
+	tokenString, err := getTokenFromHeader(c)
+	if err != nil {
+		return err
 	}
 
-	tokenString := c.GetHeader(tokenAuthHeader)
-	if tokenString == "" {
-		return verifyError("No authorization header")
-	}
-	token, claims, err := tam.parseFromString(tokenString)
+	claims, err := tam.verifyTokenAndGetClaimsFromTokenString(tokenString)
 	if err != nil {
-		tam.logger.Error("JWT parsing error: ", err)
-		return verifyError("Token parsing error")
-	} else if !token.Valid || claims.ExpiresAt == nil {
-		tam.logger.Error("Invalid token")
-		return verifyError("Invalid token")
-	} else if claims.ExpiresAt.Before(time.Now()) {
-		tam.logger.Warn("Expired token")
-		return verifyError("Token expired")
+		return err
 	}
-	c.Set(scannerNameKey, claims.RegisteredClaims.Subject)
-	ctx := context.WithValue(c.Request.Context(), ginContextKey, c)
-	c.Request = c.Request.WithContext(ctx)
+
+	err = tam.verifyTokenExpiration(claims)
+	if err != nil {
+		return err
+	}
+
+	scannerNameToContext(c, claims)
+
 	return nil
 }
 
-func (tam TokenAuthMethod) parseFromString(tokenString string) (*jwt.Token, *TokenClaims, error) {
+func verifyError(s string) error {
+	return fmt.Errorf("TokenAuthMethod(%s)", s)
+}
+
+func getTokenFromHeader(c *gin.Context) (string, error) {
+	var err error
+	tokenString := c.GetHeader(tokenAuthHeader)
+	if tokenString == "" {
+		err = verifyError("No authorization header")
+	}
+	return tokenString, err
+}
+
+func (tam TokenAuthMethod) verifyTokenAndGetClaimsFromTokenString(tokenString string) (*TokenClaims, error) {
 	claims := &TokenClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, tam.parse)
-	return token, claims, err
+	if err != nil {
+		tam.logger.Error("JWT parsing error: ", err)
+		err = verifyError("Token parsing error")
+	} else if !token.Valid {
+		tam.logger.Error("Invalid token")
+		err = verifyError("Invalid token")
+	}
+	return claims, err
+}
+
+func (tam TokenAuthMethod) verifyTokenExpiration(tc *TokenClaims) error {
+	var err error
+	if tc.ExpiresAt == nil {
+		tam.logger.Error("Missing ExpiresAt in token claims")
+		err = verifyError("Missing ExpiresAt in token claims")
+	} else if tc.ExpiresAt.Before(time.Now()) {
+		tam.logger.Warn("Expired token")
+		err = verifyError("Expired token")
+	}
+	return err
+}
+
+func scannerNameToContext(c *gin.Context, tc *TokenClaims) {
+	c.Set(scannerNameKey, tc.RegisteredClaims.Subject)
+	ctx := context.WithValue(c.Request.Context(), ginContextKey, c)
+	c.Request = c.Request.WithContext(ctx)
 }
 
 func (tam *TokenAuthMethod) parse(token *jwt.Token) (interface{}, error) {
