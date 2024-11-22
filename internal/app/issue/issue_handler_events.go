@@ -4,12 +4,13 @@
 package issue
 
 import (
+	"time"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 const (
@@ -170,6 +171,9 @@ func createIssueMatches(
 
 		// Create new issue match
 		issue_match := &entity.IssueMatch{
+			Metadata: entity.Metadata{
+				CreatedBy: 1,
+			},
 			UserId:                1,
 			Status:                entity.IssueMatchStatusValuesNew,
 			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
