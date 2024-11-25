@@ -1,0 +1,13 @@
+services:
+  maintenance:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: heureka_maintenance
+    environment:
+      DB_HOST: host.docker.internal
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./scripts:/scripts
