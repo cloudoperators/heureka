@@ -450,3 +450,13 @@ create table if not exists IssueRepositoryService
         foreign key (issuerepositoryservice_service_id) references Service (service_id)
             on update cascade
 );
+
+
+
+create table if not exists ScannerRun
+(
+    scanner_run_id int unsigned                not null,
+    start_run                                  timestamp default current_timestamp() not null,
+    end_run                                    timestamp default null,
+    primary key (scanner_run_id)
+);
