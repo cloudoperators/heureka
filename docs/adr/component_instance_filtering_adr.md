@@ -29,11 +29,13 @@ Our current database schema enforces having a service id for each component inst
 
 ## Decision Outcome
 
-tbd
+The decision is to have the "unknown" Service and SupportGroup that can be attached by default to a ComponentInstance that does not have a Service. In addition we need to add an Event Handler (in the App Layer) that checks and removes the "unknown" relationship if any other Group is present or has been added.
 
 ### Consequences
 
-tbd
+* Neutral, because of additional implementation of business logic and requires managing these relations
+* Good, because its easier to fiter for Group "Unknown"
+
 
 
 ## Pros and Cons of the Options
