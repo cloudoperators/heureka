@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+-- SPDX-License-Identifier: Apache-2.0
+
 -- Maintenance script for database truncation
 -- Enable logging
 SET @start_time = NOW();
