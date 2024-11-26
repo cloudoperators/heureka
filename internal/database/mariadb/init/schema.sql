@@ -456,8 +456,9 @@ create table if not exists IssueRepositoryService
 create table if not exists ScannerRun
 (
     scanner_run_id  int unsigned primary key auto_increment,
-    start_run       timestamp not null,
-    end_run         timestamp not null
+    uuid            UUID not null,
+    start_run       timestamp default current_timestamp() not null,
+    end_run         timestamp default null
 );
 
 create table if not exists ScannerRunIssueTracker
