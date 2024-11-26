@@ -9,7 +9,7 @@ create table if not exists User
 (
     user_id         int unsigned auto_increment
         primary key,
-    user_name           varchar(256)                          not null,
+    user_name           varchar(255)                          not null,
     user_unique_user_id varchar(64)                           not null,
     user_type           int unsigned,
     user_created_at     timestamp default current_timestamp() not null,
@@ -39,8 +39,8 @@ create table if not exists Component
 (
     component_id         int unsigned auto_increment
         primary key,
-    component_ccrn       varchar(256)                          not null,
-    component_type       varchar(256)                          not null,
+    component_ccrn       varchar(255)                          not null,
+    component_type       varchar(255)                          not null,
     component_created_at timestamp default current_timestamp() not null,
     component_created_by int unsigned                          null,
     component_deleted_at timestamp                             null,
@@ -60,7 +60,7 @@ create table if not exists ComponentVersion
 (
     componentversion_id           int unsigned auto_increment
         primary key,
-    componentversion_version      varchar(256)                          not null,
+    componentversion_version      varchar(255)                          not null,
     componentversion_component_id int unsigned                          not null,
     componentversion_created_at   timestamp default current_timestamp() not null,
     componentversion_created_by   int unsigned                          null,
@@ -84,7 +84,7 @@ create table if not exists SupportGroup
 (
     supportgroup_id         int unsigned auto_increment
         primary key,
-    supportgroup_ccrn       varchar(256)                          not null,
+    supportgroup_ccrn       varchar(255)                          not null,
     supportgroup_created_at timestamp default current_timestamp() not null,
     supportgroup_created_by int unsigned                          null,
     supportgroup_deleted_at timestamp                             null,
@@ -104,7 +104,7 @@ create table if not exists Service
 (
     service_id         int unsigned auto_increment
         primary key,
-    service_ccrn       varchar(256)                          not null,
+    service_ccrn       varchar(255)                          not null,
     service_created_at timestamp default current_timestamp() not null,
     service_created_by int unsigned                          null,
     service_deleted_at timestamp                             null,
@@ -274,7 +274,7 @@ create table if not exists Issue
     issue_id           int unsigned auto_increment
         primary key,
     issue_type         enum ('Vulnerability','PolicyViolation','SecurityEvent') not null,
-    issue_primary_name varchar(256)                                             not null,
+    issue_primary_name varchar(255)                                             not null,
     issue_description  longtext                                                 not null,
     issue_created_at   timestamp default current_timestamp()                    not null,
     issue_created_by   int unsigned                                             null,
@@ -299,7 +299,7 @@ create table if not exists IssueVariant
     issuevariant_repository_id  int unsigned                                     not null,
     issuevariant_vector         varchar(512)                                     null,
     issuevariant_rating         enum ('None','Low','Medium', 'High', 'Critical') not null,
-    issuevariant_secondary_name varchar(256)                                     not null,
+    issuevariant_secondary_name varchar(255)                                     not null,
     issuevariant_description    longtext                                         not null,
     issuevariant_created_at     timestamp default current_timestamp()            not null,
     issuevariant_created_by     int unsigned                                     null,
