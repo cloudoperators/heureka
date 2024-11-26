@@ -20,13 +20,6 @@ spec:
           containers:
           - name: db-maintenance
             image: {{ .Values.dbMaintenance.image.repository }}:{{ .Values.dbMaintenance.image.tag }}
-            # resources:
-            #   limits:
-            #     memory: "128Mi"
-            #     cpu: "100m"
-            #   requests:
-            #     memory: "64Mi"
-            #     cpu: "50m"
             env:
             - name: DB_HOST
               value: {{ .Values.mariadb.fullnameOverride | default (printf "%s-mariadb" (include "heureka.fullname" .)) }}

@@ -91,7 +91,7 @@ dbMaintenance:
   image:
     # Just for testing purposes
     repository: db-maintenance 
-    tag: "local"
+    tag: "latest"
     pullPolicy: "never"
   scripts:
     - name: cleanup

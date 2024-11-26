@@ -16,8 +16,6 @@ SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE IssueMatchEvidence;
 TRUNCATE TABLE ComponentVersionIssue;
 TRUNCATE TABLE IssueRepositoryService;
-TRUNCATE TABLE ActivityHasIssue;
-TRUNCATE TABLE ActivityHasService;
 TRUNCATE TABLE IssueMatchChange;
 TRUNCATE TABLE SupportGroupService;
 TRUNCATE TABLE SupportGroupUser;
@@ -27,7 +25,7 @@ TRUNCATE TABLE Owner;
 TRUNCATE TABLE IssueMatch;
 TRUNCATE TABLE Evidence;
 TRUNCATE TABLE ComponentInstance;
-TRUNCATE TABLE IssueVariant;
+-- TRUNCATE TABLE IssueVariant;
 TRUNCATE TABLE ComponentVersion;
 TRUNCATE TABLE Activity;
 
@@ -35,8 +33,8 @@ TRUNCATE TABLE Activity;
 TRUNCATE TABLE Component;
 TRUNCATE TABLE Service;
 TRUNCATE TABLE SupportGroup;
-TRUNCATE TABLE Issue;
-TRUNCATE TABLE IssueRepository;
+-- TRUNCATE TABLE Issue;
+-- TRUNCATE TABLE IssueRepository;
 
 -- Re-enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;

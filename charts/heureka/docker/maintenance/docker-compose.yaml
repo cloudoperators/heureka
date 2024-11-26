@@ -3,9 +3,8 @@
 
 services:
   maintenance:
-    build: 
-      context: .
-      dockerfile: Dockerfile
+    build: .
+    image: db-maintenance:latest
     container_name: heureka_maintenance
     environment:
       DB_HOST: host.docker.internal
