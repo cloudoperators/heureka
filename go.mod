@@ -15,14 +15,13 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onsi/ginkgo/v2 v2.21.0
+	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/onsi/gomega v1.35.1
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/prometheus/client_golang v1.20.5
 	github.com/samber/lo v1.47.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/stretchr/testify v1.9.0
-	github.com/vektah/gqlparser/v2 v2.5.19
+	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
 )
@@ -86,6 +85,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/urfave/cli/v2 v2.27.5 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.19 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
 	go.opentelemetry.io/otel v1.24.0 // indirect
@@ -100,7 +100,7 @@ require (
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
-	google.golang.org/protobuf v1.35.1 // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.5.0 // indirect
@@ -108,7 +108,7 @@ require (
 )
 
 require (
-	github.com/99designs/gqlgen v0.17.56
+	github.com/99designs/gqlgen v0.17.57
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1
