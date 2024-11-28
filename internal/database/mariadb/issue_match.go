@@ -274,7 +274,8 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 			issuematch_user_id,
 			issuematch_component_instance_id,
 			issuematch_issue_id,
-			issuematch_created_by
+			issuematch_created_by,
+			issuematch_updated_by
 		) VALUES (
 			:issuematch_status,
 			:issuematch_remediation_date,
@@ -284,7 +285,8 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 			:issuematch_user_id,
 			:issuematch_component_instance_id,
 			:issuematch_issue_id,
-			:issuematch_created_by
+			:issuematch_created_by,
+			:issuematch_updated_by
 		)
 	`
 

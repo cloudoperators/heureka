@@ -224,7 +224,8 @@ func (s *SqlDatabase) CreateEvidence(evidence *entity.Evidence) (*entity.Evidenc
 			evidence_vector,
 			evidence_rating,
 			evidence_raa_end,
-			evidence_created_by
+			evidence_created_by,
+			evidence_updated_by
 		) VALUES (
 			:evidence_author_id,
 			:evidence_activity_id,
@@ -233,7 +234,8 @@ func (s *SqlDatabase) CreateEvidence(evidence *entity.Evidence) (*entity.Evidenc
 			:evidence_vector,
 			:evidence_rating,
 			:evidence_raa_end,
-			:evidence_created_by
+			:evidence_created_by,
+			:evidence_updated_by
 		)
 	`
 

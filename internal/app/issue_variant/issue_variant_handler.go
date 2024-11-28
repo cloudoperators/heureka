@@ -184,6 +184,7 @@ func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVari
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while creating issueVariant (GetUserId).")
 	}
+	issueVariant.UpdatedBy = issueVariant.CreatedBy
 
 	issueVariants, err := iv.ListIssueVariants(f, &entity.ListOptions{})
 

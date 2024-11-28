@@ -247,7 +247,8 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 			issuevariant_rating,
 			issuevariant_secondary_name,
 			issuevariant_description,
-			issuevariant_created_by
+			issuevariant_created_by,
+			issuevariant_updated_by
 		) VALUES (
 			:issuevariant_issue_id,
 			:issuevariant_repository_id,
@@ -255,7 +256,8 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 			:issuevariant_rating,
 			:issuevariant_secondary_name,
 			:issuevariant_description,
-			:issuevariant_created_by
+			:issuevariant_created_by,
+			:issuevariant_updated_by
 		)
 	`
 

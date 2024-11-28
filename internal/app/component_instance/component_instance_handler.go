@@ -122,6 +122,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 		l.Error(err)
 		return nil, NewComponentInstanceHandlerError("Internal error while creating componentInstance (GetUserId).")
 	}
+	componentInstance.UpdatedBy = componentInstance.CreatedBy
 
 	newComponentInstance, err := ci.database.CreateComponentInstance(componentInstance)
 

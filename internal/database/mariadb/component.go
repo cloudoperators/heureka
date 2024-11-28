@@ -206,11 +206,13 @@ func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Comp
 		INSERT INTO Component (
 			component_ccrn,
 			component_type,
-			component_created_by
+			component_created_by,
+			component_updated_by
 		) VALUES (
 			:component_ccrn,
 			:component_type,
-			:component_created_by
+			:component_created_by,
+			:component_updated_by
 		)
 	`
 
