@@ -210,10 +210,12 @@ func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*en
 	query := `
 		INSERT INTO SupportGroup (
 			supportgroup_ccrn,
-			supportgroup_created_by
+			supportgroup_created_by,
+			supportgroup_updated_by
 		) VALUES (
 			:supportgroup_ccrn,
-			:supportgroup_created_by
+			:supportgroup_created_by,
+			:supportgroup_updated_by
 		)
 	`
 

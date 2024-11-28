@@ -222,11 +222,13 @@ func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueReposit
 		INSERT INTO IssueRepository (
 			issuerepository_name,
 			issuerepository_url,
-			issuerepository_created_by
+			issuerepository_created_by,
+			issuerepository_updated_by
 		) VALUES (
 			:issuerepository_name,
 			:issuerepository_url,
-			:issuerepository_created_by
+			:issuerepository_created_by,
+			:issuerepository_updated_by
 		)
 	`
 

@@ -74,7 +74,7 @@ var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"
 			createTestIssue(cfg.Port)
 			issue = getTestIssue(cfg.Port)
 		})
-		It("shall assign CreatedBy and CreatedAt metadata fields and shall keep nil in UpdatedBy, UpdatedAt and DeltedAt metadata fields", func() {
+		It("shall assign CreatedBy, CreatedAt, UpdatedBy and UpdatedAt metadata fields and shall keep nil in DeltedAt metadata fields", func() {
 			Expect(*issue.Description).To(Equal(testCreatedIssueDescription))
 			Expect(issue.Type.String()).To(Equal(testCreatedIssueType))
 
@@ -85,7 +85,7 @@ var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"
 			Expect(err).Should(BeNil())
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
 
-			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.EmptyUserId)))
+			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
 
 			updatedAt, err := time.Parse(dbDateLayout, *issue.Metadata.UpdatedAt)
 			Expect(err).Should(BeNil())

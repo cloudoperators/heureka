@@ -147,6 +147,7 @@ func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*e
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity (GetUserId).")
 	}
+	issueMatch.UpdatedBy = issueMatch.CreatedBy
 
 	severityFilter := &entity.SeverityFilter{
 		IssueId: []*int64{&issueMatch.IssueId},

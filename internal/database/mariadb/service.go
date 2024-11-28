@@ -345,10 +345,12 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 	query := `
 		INSERT INTO Service (
 			service_ccrn,
-			service_created_by
+			service_created_by,
+			service_updated_by
 		) VALUES (
 			:service_ccrn,
-			:service_created_by
+			:service_created_by,
+			:service_updated_by
 		)
 	`
 

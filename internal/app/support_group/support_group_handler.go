@@ -148,6 +148,7 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while creating supportGroup (GetUserId).")
 	}
+	supportGroup.UpdatedBy = supportGroup.CreatedBy
 
 	supportGroups, err := sg.ListSupportGroups(f, &entity.ListOptions{})
 
