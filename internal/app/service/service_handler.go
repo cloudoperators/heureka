@@ -170,6 +170,7 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while creating service (GetUserId).")
 	}
+	service.BaseService.UpdatedBy = service.BaseService.CreatedBy
 
 	services, err := s.ListServices(f, &entity.ListOptions{})
 

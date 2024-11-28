@@ -119,6 +119,7 @@ func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *ent
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Internal error while creating issueMatchChange (GetUserId).")
 	}
+	issueMatchChange.UpdatedBy = issueMatchChange.CreatedBy
 
 	newIssueMatchChange, err := imc.database.CreateIssueMatchChange(issueMatchChange)
 
