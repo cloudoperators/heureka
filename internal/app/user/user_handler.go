@@ -118,6 +118,7 @@ func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating user (GetUserId).")
 	}
+	user.UpdatedBy = user.CreatedBy
 
 	users, err := u.ListUsers(f, &entity.ListOptions{})
 

@@ -213,11 +213,13 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 		INSERT INTO ComponentVersion (
 			componentversion_component_id,
 			componentversion_version,
-			componentversion_created_by
+			componentversion_created_by,
+			componentversion_updated_by
 		) VALUES (
 			:componentversion_component_id,
 			:componentversion_version,
-			:componentversion_created_by
+			:componentversion_created_by,
+			:componentversion_updated_by
 		)
 	`
 

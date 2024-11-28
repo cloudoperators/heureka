@@ -212,10 +212,12 @@ func (s *SqlDatabase) CreateActivity(activity *entity.Activity) (*entity.Activit
 	query := `
 		INSERT INTO Activity (
 			activity_status,
-			activity_created_by
+			activity_created_by,
+			activity_updated_by
 		) VALUES (
 			:activity_status,
-			:activity_created_by
+			:activity_created_by,
+			:activity_updated_by
 		)
 	`
 

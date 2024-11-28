@@ -121,6 +121,7 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating component (GetUserId).")
 	}
+	component.UpdatedBy = component.CreatedBy
 
 	components, err := cs.ListComponents(f, &entity.ListOptions{})
 

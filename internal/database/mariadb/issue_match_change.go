@@ -185,12 +185,14 @@ func (s *SqlDatabase) CreateIssueMatchChange(imc *entity.IssueMatchChange) (*ent
 			issuematchchange_action,
 			issuematchchange_activity_id,
 			issuematchchange_issue_match_id,
-			issuematchchange_created_by
+			issuematchchange_created_by,
+			issuematchchange_updated_by
 		) VALUES (
 			:issuematchchange_action,
 			:issuematchchange_activity_id,
 			:issuematchchange_issue_match_id,
-			:issuematchchange_created_by
+			:issuematchchange_created_by,
+			:issuematchchange_updated_by
 		)
 	`
 

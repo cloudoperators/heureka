@@ -120,6 +120,7 @@ func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *enti
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion (GetUserId).")
 	}
+	componentVersion.UpdatedBy = componentVersion.CreatedBy
 
 	newComponent, err := cv.database.CreateComponentVersion(componentVersion)
 

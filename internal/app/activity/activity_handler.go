@@ -143,6 +143,7 @@ func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Act
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while creating activity (GetUserId).")
 	}
+	activity.UpdatedBy = activity.CreatedBy
 
 	newActivity, err := a.database.CreateActivity(activity)
 

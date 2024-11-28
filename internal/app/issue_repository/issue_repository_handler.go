@@ -118,6 +118,7 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository (GetUserId).")
 	}
+	issueRepository.BaseIssueRepository.UpdatedBy = issueRepository.BaseIssueRepository.CreatedBy
 
 	issueRepositories, err := ir.ListIssueRepositories(f, &entity.ListOptions{})
 
