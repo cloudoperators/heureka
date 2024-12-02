@@ -42,6 +42,8 @@ spec:
               value: {{ .Values.scanner.keppel.domain }}
             - name: KEPPEL_PROJECT
               value: {{ .Values.scanner.keppel.project }}
+            - name: KEPPEL_JUSER_DOMAIN
+              value: {{ .Values.scanner.keppel.user_domain }}
             - name: HEUREKA_API_TOKEN
               valueFrom:
                 secretKeyRef:
