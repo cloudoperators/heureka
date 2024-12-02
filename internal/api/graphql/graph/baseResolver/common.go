@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	FilterDisplayServiceCcrn      string = "Service CCRN"
-	FilterDisplaySupportGroupCcrn string = "Support Group CCRN"
+	FilterDisplayServiceCcrn      string = "Service"
+	FilterDisplaySupportGroupCcrn string = "Support Group"
 	FilterDisplayUserName         string = "User Name"
 	FilterDisplayUniqueUserId     string = "Unique User ID"
-	FilterDisplayComponentCcrn    string = "Component CCRN"
+	FilterDisplayComponentCcrn    string = "Pod"
 	FilterDisplayIssueType        string = "Issue Type"
 	FilterDisplayIssueMatchStatus string = "Issue Match Status"
 	FilterDisplayIssueMatchID     string = "Issue Match ID"
