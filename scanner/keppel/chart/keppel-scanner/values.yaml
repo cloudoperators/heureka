@@ -4,6 +4,7 @@
 # Default values for keppel-scanner.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
 scanner:
   api_token: ""
   heureka_url: ""
@@ -14,6 +15,7 @@ scanner:
     fqdn: ""
     domain: ""
     project: ""
+    user_domain: ""
   identity_endpoint: ""
 
 
