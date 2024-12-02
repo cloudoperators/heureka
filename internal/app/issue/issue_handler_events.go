@@ -6,6 +6,7 @@ package issue
 import (
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
@@ -169,12 +170,18 @@ func createIssueMatches(
 			continue
 		}
 
+		user, err := common.GetCurrentUserId(db)
+		if err != nil {
+			l.WithField("event-step", "GetCurrentUserId").WithError(err).Error("Error while getting current user ID")
+			continue
+		}
+
 		// Create new issue match
 		issue_match := &entity.IssueMatch{
 			Metadata: entity.Metadata{
-				CreatedBy: 1,
+				CreatedBy: user,
 			},
-			UserId:                1,
+			UserId:                user,
 			Status:                entity.IssueMatchStatusValuesNew,
 			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
 			ComponentInstanceId:   componentInstanceId,
