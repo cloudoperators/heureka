@@ -176,6 +176,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		l.Error(err)
 		return nil, NewIssueHandlerError("Internal error while creating issue (GetUserId).")
 	}
+	issue.UpdatedBy = issue.CreatedBy
 
 	issues, err := is.ListIssues(f, &entity.IssueListOptions{})
 

@@ -408,12 +408,14 @@ func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
 			issue_primary_name,
 			issue_type,
 			issue_description,
-			issue_created_by
+			issue_created_by,
+			issue_updated_by
 		) VALUES (
 			:issue_primary_name,
 			:issue_type,
 			:issue_description,
-			:issue_created_by
+			:issue_created_by,
+			:issue_updated_by
 		)
 	`
 

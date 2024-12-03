@@ -102,6 +102,7 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 				ComponentInstanceId: componentInstance.Id,
 				IssueId:             issueEntity.Id,
 			}
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{1}, nil)
 			db.On("CreateIssueMatch", matchIssueMatch(expectedMatch)).Return(expectedMatch, nil)
 
 			// Emit event

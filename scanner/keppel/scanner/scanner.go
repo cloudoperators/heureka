@@ -29,6 +29,7 @@ type Scanner struct {
 	KeppelBaseUrl    string
 	IdentityEndpoint string
 	Username         string
+	UserDomain       string
 	Password         string
 	AuthToken        string
 	Domain           string
@@ -49,6 +50,7 @@ func NewScanner(cfg Config) *Scanner {
 		Username:         cfg.KeppelUsername,
 		Password:         cfg.KeppelPassword,
 		Domain:           cfg.Domain,
+		UserDomain:       cfg.KeppelUserDomain,
 		Project:          cfg.Project,
 		IdentityEndpoint: cfg.IdentityEndpoint,
 	}
@@ -84,7 +86,7 @@ func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient,
 		IdentityEndpoint: s.IdentityEndpoint,
 		Username:         s.Username,
 		Password:         s.Password,
-		DomainName:       s.Domain,
+		DomainName:       s.UserDomain,
 		AllowReauth:      true,
 		Scope: tokens.Scope{
 			ProjectName: s.Project,

@@ -115,6 +115,7 @@ func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evi
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Internal error while creating evidence (GetUserId).")
 	}
+	evidence.UpdatedBy = evidence.CreatedBy
 
 	newEvidence, err := e.database.CreateEvidence(evidence)
 

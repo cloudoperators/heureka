@@ -155,7 +155,7 @@ func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.Ser
 	}
 
 	// Return the first item
-	if listSupportGroupsResp != nil && listSupportGroupsResp.SupportGroups.TotalCount > 0 && len(listSupportGroupsResp.SupportGroups.Edges) > 0 {
+	if listSupportGroupsResp != nil && listSupportGroupsResp.SupportGroups != nil && listSupportGroupsResp.SupportGroups.TotalCount > 0 && len(listSupportGroupsResp.SupportGroups.Edges) > 0 {
 		supportGroupId = listSupportGroupsResp.SupportGroups.Edges[0].Node.Id
 	} else {
 		return "", fmt.Errorf("ListSupportGroups returned no SupportGroupID")
@@ -175,7 +175,7 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 	}
 
 	// Return the first item
-	if listServicesResp.Services != nil && listServicesResp.Services.TotalCount > 0 && len(listServicesResp.Services.Edges) > 0 {
+	if listServicesResp != nil && listServicesResp.Services != nil && listServicesResp.Services.TotalCount > 0 && len(listServicesResp.Services.Edges) > 0 {
 		return listServicesResp.Services.Edges[0].Node.Id, nil
 	}
 
@@ -248,7 +248,7 @@ func (p *Processor) getComponentVersion(ctx context.Context, image string, versi
 		return "", fmt.Errorf("Couldn't list ComponentVersion")
 	}
 
-	if listCompoVersResp != nil && listCompoVersResp.ComponentVersions.TotalCount > 0 {
+	if listCompoVersResp != nil && listCompoVersResp.ComponentVersions != nil && listCompoVersResp.ComponentVersions.TotalCount > 0 {
 		return listCompoVersResp.ComponentVersions.Edges[0].Node.Id, nil
 	}
 

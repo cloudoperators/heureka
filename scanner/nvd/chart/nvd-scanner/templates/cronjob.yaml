@@ -11,18 +11,10 @@ spec:
     spec:
       template:
         spec:
-          volumes:
-          - name: config-volume
-            configMap:
-              name: {{ .Release.Name }}-configmap
           containers:
           - name: {{ .Release.Name }}
             image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
             imagePullPolicy: {{ .Values.image.pullPolicy }}
-            volumeMounts:
-            - name: config-volume
-              mountPath: "{{ .Values.scanner.config_mount_path }}"
-              readOnly: true
             env:
             - name: HEUREKA_API_TOKEN
               valueFrom:
@@ -31,8 +23,17 @@ spec:
                   key: api_token
             - name: HEUREKA_URL
               value: {{ .Values.scanner.heureka_url }}
-            args:
-            - /bin/sh
-            - -c
-            - date; echo Hello from the Kubernetes cluster
+            - name: NVDSERVER_URL
+              value: {{ .Values.scanner.nvd.api_url }}
+            - name: NVD_API_KEY
+              valueFrom:
+                  secretKeyRef:
+                    name: {{ .Release.Name }}-secret
+                    key: nvd_api_key
+            - name: NVD_RESULTS_PER_PAGE
+              value: {{ .Values.scanner.nvd.results_per_page }}
+            - name: NVD_START_DATE
+              value: {{ .Values.scanner.nvd.start_date }}
+            - name: NVD_END_DATE
+              value: {{ .Values.scanner.nvd.end_date }}
           restartPolicy: OnFailure

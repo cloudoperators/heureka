@@ -6,24 +6,21 @@
 # Declare variables to be passed into your templates.
 
 scanner:
-  api_token: "my_token"
-  heureka_url: "api.heureka.greenhouse-qa.eu-nl-1.cloud.sap"
-  config_mount_path: "/etc/heureka/config/keppel-scanner"
+  api_token: ""
+  heureka_url: ""
   schedule: "0 * * * *"
+  keppel:
+    username: ""
+    password: ""
+    fqdn: ""
+    domain: ""
+    project: ""
+    user_domain: ""
+  identity_endpoint: ""
+
 
 image:
   repository: ghcr.io/cloudoperators/heureka-scanner-keppel
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "main"
-
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: false
-  # Automatically mount a ServiceAccount's API credentials?
-  automount: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
+  tag: ""

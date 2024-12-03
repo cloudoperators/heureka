@@ -8,22 +8,17 @@
 scanner:
   api_token: "my_token"
   heureka_url: "api.heureka.greenhouse-qa.eu-nl-1.cloud.sap"
-  config_mount_path: "/etc/heureka/config/nvd-scanner"
   schedule: "0 * * * *"
+  nvd:
+    api_url: ""
+    api_key: ""
+    results_per_page: 2000
+    # can be used to specify the range from which the NVD data should be fetched, by default is fetched from last day
+    start_date: ""
+    end_date: ""
 
 image:
   repository: ghcr.io/cloudoperators/heureka-scanner-nvd
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "main"
-
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: false
-  # Automatically mount a ServiceAccount's API credentials?
-  automount: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
+  tag: "latest"
