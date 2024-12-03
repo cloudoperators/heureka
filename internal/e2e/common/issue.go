@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/entity"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/machinebox/graphql"
@@ -77,6 +78,30 @@ func QueryUpdateIssue(port string, issue Issue, iid string) *model.Issue {
 	return &respData.Issue
 }
 
+func QueryDeleteIssue(port string, iid string) string {
+	// create a queryCollection (safe to share across requests)
+	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
+
+	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/delete.graphql")
+	Expect(err).To(BeNil())
+	str := string(b)
+	req := graphql.NewRequest(str)
+
+	req.Var("id", iid)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	ctx := context.Background()
+
+	var respData struct {
+		Id string `json:"deleteIssue"`
+	}
+	if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+		logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+	}
+	return respData.Id
+}
+
 func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
@@ -87,7 +112,7 @@ func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection 
 	str := string(b)
 	req := graphql.NewRequest(str)
 
-	req.Var("filter", map[string]string{"primaryName": issuePrimaryName})
+	req.Var("filter", map[string]string{"primaryName": issuePrimaryName, "state": fmt.Sprintf("%d", entity.All)})
 	req.Var("first", 1)
 	req.Var("after", "0")
 
