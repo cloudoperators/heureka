@@ -51,18 +51,19 @@ type IssueResult struct {
 
 type IssueFilter struct {
 	Paginated
-	PrimaryName                     []*string   `json:"primary_name"`
-	ServiceCCRN                     []*string   `json:"service_ccrn"`
-	Type                            []*string   `json:"type"`
-	Id                              []*int64    `json:"id"`
-	ActivityId                      []*int64    `json:"activity_id"`
-	IssueMatchId                    []*int64    `json:"issue_match_id"`
-	ComponentVersionId              []*int64    `json:"component_version_id"`
-	IssueVariantId                  []*int64    `json:"issue_variant_id"`
-	Search                          []*string   `json:"search"`
-	IssueMatchStatus                []*string   `json:"issue_match_status"`
-	IssueMatchDiscoveryDate         *TimeFilter `json:"issue_match_discovery_date"`
-	IssueMatchTargetRemediationDate *TimeFilter `json:"issue_match_target_remediation_date"`
+	PrimaryName                     []*string       `json:"primary_name"`
+	ServiceCCRN                     []*string       `json:"service_ccrn"`
+	Type                            []*string       `json:"type"`
+	Id                              []*int64        `json:"id"`
+	ActivityId                      []*int64        `json:"activity_id"`
+	IssueMatchId                    []*int64        `json:"issue_match_id"`
+	ComponentVersionId              []*int64        `json:"component_version_id"`
+	IssueVariantId                  []*int64        `json:"issue_variant_id"`
+	Search                          []*string       `json:"search"`
+	IssueMatchStatus                []*string       `json:"issue_match_status"`
+	IssueMatchDiscoveryDate         *TimeFilter     `json:"issue_match_discovery_date"`
+	IssueMatchTargetRemediationDate *TimeFilter     `json:"issue_match_target_remediation_date"`
+	State                           StateFilterType `json:"state"`
 }
 
 type IssueAggregations struct {
