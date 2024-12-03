@@ -51,7 +51,12 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Type, "I.issue_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
-	fl = append(fl, "I.issue_deleted_at IS NULL")
+	//TODO: create common function
+	if filter.State == entity.Active {
+		fl = append(fl, "I.issue_deleted_at IS NULL")
+	} else if filter.State == entity.Deleted {
+		fl = append(fl, "I.issue_deleted_at IS NOT NULL")
+	}
 
 	return combineFilterQueries(fl, OP_AND)
 }

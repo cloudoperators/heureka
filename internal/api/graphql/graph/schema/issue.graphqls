@@ -60,6 +60,7 @@ input IssueFilter {
     primaryName: [String],
     issueMatchStatus: [IssueMatchStatusValues],
     issueType: [IssueTypes],
+    state: Int
 
     componentVersionId: [String],
 
