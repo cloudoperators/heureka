@@ -180,6 +180,7 @@ func createIssueMatches(
 		issue_match := &entity.IssueMatch{
 			Metadata: entity.Metadata{
 				CreatedBy: user,
+				UpdatedBy: user,
 			},
 			UserId:                user,
 			Status:                entity.IssueMatchStatusValuesNew,
