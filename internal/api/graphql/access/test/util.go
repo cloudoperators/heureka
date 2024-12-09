@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	testUsername = "testUser"
+	testClientName = "testClientName"
 )
 
 func SendGetRequest(url string, headers map[string]string) *http.Response {
@@ -53,7 +53,7 @@ type Jwt struct {
 	signingMethod jwt.SigningMethod
 	signKey       interface{}
 	expiresAt     *jwt.NumericDate
-	username      string
+	name          string
 }
 
 func NewJwt(secret string) *Jwt {
@@ -64,8 +64,8 @@ func NewRsaJwt(privKey *rsa.PrivateKey) *Jwt {
 	return &Jwt{signKey: privKey, signingMethod: jwt.SigningMethodRS256}
 }
 
-func (j *Jwt) WithUsername(username string) *Jwt {
-	j.username = username
+func (j *Jwt) WithName(name string) *Jwt {
+	j.name = name
 	return j
 }
 
@@ -81,7 +81,7 @@ func (j *Jwt) String() string {
 			ExpiresAt: j.expiresAt,
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "heureka",
-			Subject:   j.username,
+			Subject:   j.name,
 		},
 	}
 	token := jwt.NewWithClaims(j.signingMethod, claims)
@@ -92,15 +92,15 @@ func (j *Jwt) String() string {
 }
 
 func GenerateJwt(jwtSecret string, expiresIn time.Duration) string {
-	return NewJwt(jwtSecret).WithExpiresAt(time.Now().Add(expiresIn)).WithUsername(testUsername).String()
+	return NewJwt(jwtSecret).WithExpiresAt(time.Now().Add(expiresIn)).WithName(testClientName).String()
 }
 
-func GenerateJwtWithUsername(jwtSecret string, expiresIn time.Duration, username string) string {
-	return NewJwt(jwtSecret).WithExpiresAt(time.Now().Add(expiresIn)).WithUsername(username).String()
+func GenerateJwtWithName(jwtSecret string, expiresIn time.Duration, name string) string {
+	return NewJwt(jwtSecret).WithExpiresAt(time.Now().Add(expiresIn)).WithName(name).String()
 }
 
 func GenerateInvalidJwt(jwtSecret string) string {
-	return NewJwt(jwtSecret).WithUsername(testUsername).String()
+	return NewJwt(jwtSecret).WithName(testClientName).String()
 }
 
 func GenerateRsaPrivateKey() *rsa.PrivateKey {
@@ -110,5 +110,5 @@ func GenerateRsaPrivateKey() *rsa.PrivateKey {
 }
 
 func GenerateJwtWithInvalidSigningMethod(jwtSecret string, expiresIn time.Duration) string {
-	return NewRsaJwt(GenerateRsaPrivateKey()).WithExpiresAt(time.Now().Add(expiresIn)).WithUsername(testUsername).String()
+	return NewRsaJwt(GenerateRsaPrivateKey()).WithExpiresAt(time.Now().Add(expiresIn)).WithName(testClientName).String()
 }
