@@ -290,7 +290,8 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 	})
 
 	It("deletes issueMatch", func() {
-		db.On("DeleteIssueMatch", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteIssueMatch", id, mock.Anything).Return(nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, nil)
 		err := issueMatchHandler.DeleteIssueMatch(id)

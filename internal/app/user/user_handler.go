@@ -186,7 +186,13 @@ func (u *userHandler) DeleteUser(id int64) error {
 		"id":    id,
 	})
 
-	err := u.database.DeleteUser(id)
+	userId, err := common.GetCurrentUserId(u.database)
+	if err != nil {
+		l.Error(err)
+		return NewUserHandlerError("Internal error while deleting user (GetUserId).")
+	}
+
+	err = u.database.DeleteUser(id, userId)
 
 	if err != nil {
 		l.Error(err)

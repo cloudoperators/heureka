@@ -374,7 +374,8 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 	})
 
 	It("deletes service", func() {
-		db.On("DeleteService", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteService", id, mock.Anything).Return(nil)
 		serviceHandler = s.NewServiceHandler(db, er)
 		db.On("GetServices", filter).Return([]entity.Service{}, nil)
 		err := serviceHandler.DeleteService(id)

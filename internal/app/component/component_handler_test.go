@@ -201,7 +201,8 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 	})
 
 	It("deletes component", func() {
-		db.On("DeleteComponent", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteComponent", id, mock.Anything).Return(nil)
 		componentHandler = c.NewComponentHandler(db, er)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
 		err := componentHandler.DeleteComponent(id)

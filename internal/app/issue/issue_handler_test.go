@@ -316,7 +316,8 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 	})
 
 	It("deletes issue", func() {
-		db.On("DeleteIssue", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteIssue", id, mock.Anything).Return(nil)
 		issueHandler = issue.NewIssueHandler(db, er)
 		db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
 		err := issueHandler.DeleteIssue(id)
