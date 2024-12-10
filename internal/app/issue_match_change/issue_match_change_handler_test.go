@@ -192,7 +192,8 @@ var _ = Describe("When deleting IssueMatchChange", Label("app", "DeleteIssueMatc
 	})
 
 	It("deletes issueMatchChange", func() {
-		db.On("DeleteIssueMatchChange", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteIssueMatchChange", id, mock.Anything).Return(nil)
 		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
 		db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{}, nil)
 		err := issueMatchChangeHandler.DeleteIssueMatchChange(id)

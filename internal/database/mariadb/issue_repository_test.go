@@ -467,7 +467,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 			It("can delete issueRepository correctly", func() {
 				issueRepository := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
 
-				err := db.DeleteIssueRepository(issueRepository.Id)
+				err := db.DeleteIssueRepository(issueRepository.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

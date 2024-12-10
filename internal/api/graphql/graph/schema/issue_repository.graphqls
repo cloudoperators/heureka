@@ -32,4 +32,5 @@ input IssueRepositoryFilter {
     serviceCcrn: [String]
     serviceId: [String]
     name: [String]
+    state: Int
 }

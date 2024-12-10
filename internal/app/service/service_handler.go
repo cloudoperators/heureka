@@ -226,7 +226,13 @@ func (s *serviceHandler) DeleteService(id int64) error {
 		"id":    id,
 	})
 
-	err := s.database.DeleteService(id)
+	userId, err := common.GetCurrentUserId(s.database)
+	if err != nil {
+		l.Error(err)
+		return NewServiceHandlerError("Internal error while deleting service (GetUserId).")
+	}
+
+	err = s.database.DeleteService(id, userId)
 
 	if err != nil {
 		l.Error(err)

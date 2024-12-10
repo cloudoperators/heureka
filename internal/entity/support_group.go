@@ -11,10 +11,11 @@ type SupportGroup struct {
 
 type SupportGroupFilter struct {
 	Paginated
-	Id        []*int64  `json:"id"`
-	ServiceId []*int64  `json:"service_id"`
-	UserId    []*int64  `json:"user_id"`
-	CCRN      []*string `json:"ccrn"`
+	Id        []*int64        `json:"id"`
+	ServiceId []*int64        `json:"service_id"`
+	UserId    []*int64        `json:"user_id"`
+	CCRN      []*string       `json:"ccrn"`
+	State     StateFilterType `json:"state"`
 }
 
 type SupportGroupAggregations struct {

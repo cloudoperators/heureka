@@ -98,6 +98,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		ServiceCcrn:        filter.ServiceCcrn,
 		ComponentVersionId: copmonentVersionId,
 		Search:             filter.Search,
+		State:              entity.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -146,6 +147,7 @@ func CcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.Compon
 	f := &entity.ComponentInstanceFilter{
 		CCRN:   filter.Ccrn,
 		Search: filter.Search,
+		State:  entity.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
