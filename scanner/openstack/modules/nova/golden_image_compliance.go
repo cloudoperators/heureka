@@ -99,7 +99,7 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 	// Create component object for each server
 	for _, server := range servers {
 
-		if server.Metadata == nil || server.Metadata["image_name"] == "" {
+		if _, exists := server.Image["id"]; !exists {
 			// Skip servers without image name
 			// Need to figure out how to handle this case in the future
 			log.WithFields(log.Fields{
@@ -114,9 +114,10 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 			log.WithError(err).Warn("Error during scanner get image")
 		}
 
-		imageName := server.Metadata["image_name"]
+		imageName := image.Name
 		imageChecksum := image.Checksum
 		imageOwner := image.Owner
+		serverName := server.Name
 
 		componentId, err := processor.CreateComponentObject(*osProcessor, ctx, imageName)
 		if err != nil {
@@ -128,7 +129,7 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 			log.WithError(err).Fatal("Error during createComponentVersionObject")
 		}
 
-		componentInstanceCCRN := serviceCCRN + "_" + imageName
+		componentInstanceCCRN := serviceCCRN + "_" + imageName + "_" + serverName + "_" + osScanner.Domain + "_" + osScanner.Region
 		_, err = processor.CreateComponentInstanceObject(*osProcessor, ctx, componentInstanceCCRN, componentVersionId, serviceId, serviceCCRN)
 		if err != nil {
 			log.WithError(err).Fatal("Error during createComponentInstanceObject")
