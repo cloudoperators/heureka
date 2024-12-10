@@ -100,6 +100,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		ComponentId:   componentId,
 		ComponentCCRN: filter.ComponentCcrn,
 		Version:       filter.Version,
+		State:         entity.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

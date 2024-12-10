@@ -47,7 +47,7 @@ func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) strin
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGS.supportgroupservice_support_group_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerId, "O.owner_user_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, serviceWildCardFilterQuery, OP_OR))
-	fl = append(fl, "S.service_deleted_at IS NULL")
+	fl = appendStateFilterQuery(fl, "S.service", filter.State)
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -392,7 +392,7 @@ func (s *SqlDatabase) UpdateService(service *entity.Service) error {
 	return err
 }
 
-func (s *SqlDatabase) DeleteService(id int64) error {
+func (s *SqlDatabase) DeleteService(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteService",
@@ -400,12 +400,14 @@ func (s *SqlDatabase) DeleteService(id int64) error {
 
 	query := `
 		UPDATE Service SET
-		service_deleted_at = NOW()
+		service_deleted_at = NOW(),
+		service_updated_by = :userId
 		WHERE service_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

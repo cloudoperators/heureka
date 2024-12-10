@@ -37,7 +37,7 @@ func (s *SqlDatabase) getIssueMatchChangeFilterString(filter *entity.IssueMatchC
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "IMC.issuematchchange_activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IMC.issuematchchange_issue_match_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Action, "IMC.issuematchchange_action = ?", OP_OR))
-	fl = append(fl, "IMC.issuematchchange_deleted_at IS NULL")
+	fl = appendStateFilterQuery(fl, "IMC.issuematchchange", filter.State)
 	return combineFilterQueries(fl, OP_AND)
 }
 
@@ -234,7 +234,7 @@ func (s *SqlDatabase) UpdateIssueMatchChange(imc *entity.IssueMatchChange) error
 	return err
 }
 
-func (s *SqlDatabase) DeleteIssueMatchChange(id int64) error {
+func (s *SqlDatabase) DeleteIssueMatchChange(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteIssueMatchChange",
@@ -242,12 +242,14 @@ func (s *SqlDatabase) DeleteIssueMatchChange(id int64) error {
 
 	query := `
 		UPDATE IssueMatchChange SET
-		issuematchchange_deleted_at = NOW()
+		issuematchchange_deleted_at = NOW(),
+		issuematchchange_updated_by = :userId
 		WHERE issuematchchange_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

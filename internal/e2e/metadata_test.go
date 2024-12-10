@@ -153,38 +153,4 @@ var _ = Describe("Creating and updating entity via API", Label("e2e", "Entities"
 			Expect(deletedAt).To(Equal(updatedAt))
 		})
 	})
-	/*	When("Issue is deleted via API", func() {
-		var issue model.Issue
-		var updatedAt0 time.Time
-		BeforeEach(func() {
-			iid := createTestIssue(cfg.Port)
-			time.Sleep(1100 * time.Millisecond)
-			updateTestIssue(cfg.Port, iid)
-
-			issue = getTestIssue(cfg.Port)
-			updatedAt0 = parseTimeExpectNoError(*issue.Metadata.UpdatedAt)
-
-			time.Sleep(1100 * time.Millisecond)
-			deleteTestIssue(cfg.Port, iid)
-			issue = getTestIssue(cfg.Port)
-		})
-		It("shall assign UpdatedBy and DeletedAt metadata fields on delete and UpdatedAt should not change after delete", func() {
-			Expect(*issue.Description).To(Equal(testUpdatedIssueDescription))
-			Expect(issue.Type.String()).To(Equal(testUpdatedIssueType))
-
-			Expect(issue.Metadata).To(Not(BeNil()))
-			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
-
-			createdAt := parseTimeExpectNoError(*issue.Metadata.CreatedAt)
-			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
-
-			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
-
-			updatedAt := parseTimeExpectNoError(*issue.Metadata.UpdatedAt)
-			Expect(updatedAt0).Should(BeTemporally(">", createdAt))
-			Expect(updatedAt).Should(BeTemporally(">", updatedAt0))
-		})
-
-	})*/
-
 })

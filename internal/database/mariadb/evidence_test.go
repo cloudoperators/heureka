@@ -417,7 +417,7 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 			It("can delete evidence correctly", func() {
 				evidence := seedCollection.EvidenceRows[0].AsEvidence()
 
-				err := db.DeleteEvidence(evidence.Id)
+				err := db.DeleteEvidence(evidence.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

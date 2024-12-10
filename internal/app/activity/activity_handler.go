@@ -192,7 +192,13 @@ func (a *activityHandler) DeleteActivity(id int64) error {
 		"id":    id,
 	})
 
-	err := a.database.DeleteActivity(id)
+	userId, err := common.GetCurrentUserId(a.database)
+	if err != nil {
+		l.Error(err)
+		return NewActivityHandlerError("Internal error while deleting activity (GetUserId).")
+	}
+
+	err = a.database.DeleteActivity(id, userId)
 
 	if err != nil {
 		l.Error(err)

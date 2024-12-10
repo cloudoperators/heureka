@@ -36,4 +36,5 @@ input ComponentInstanceFilter {
     ccrn: [String],
     supportGroup: [String],
     search:[String],
+    state: Int,
 }

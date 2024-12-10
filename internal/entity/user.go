@@ -21,12 +21,13 @@ type User struct {
 
 type UserFilter struct {
 	Paginated
-	Name           []*string  `json:"name"`
-	UniqueUserID   []*string  `json:"uniqueUserId"`
-	Type           []UserType `json:"type"`
-	Id             []*int64   `json:"id"`
-	SupportGroupId []*int64   `json:"support_group_id"`
-	ServiceId      []*int64   `json:"service_id"`
+	Name           []*string       `json:"name"`
+	UniqueUserID   []*string       `json:"uniqueUserId"`
+	Type           []UserType      `json:"type"`
+	Id             []*int64        `json:"id"`
+	SupportGroupId []*int64        `json:"support_group_id"`
+	ServiceId      []*int64        `json:"service_id"`
+	State          StateFilterType `json:"state"`
 }
 
 type UserAggregations struct {

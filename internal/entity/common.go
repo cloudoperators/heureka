@@ -235,3 +235,10 @@ const (
 	Deleted StateFilterType = 1
 	All     StateFilterType = 2
 )
+
+func GetStateFilterType(sft *int) StateFilterType {
+	if sft != nil {
+		return StateFilterType(*sft)
+	}
+	return Active
+}
