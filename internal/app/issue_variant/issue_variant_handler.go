@@ -253,7 +253,13 @@ func (iv *issueVariantHandler) DeleteIssueVariant(id int64) error {
 		"id":    id,
 	})
 
-	err := iv.database.DeleteIssueVariant(id)
+	userId, err := common.GetCurrentUserId(iv.database)
+	if err != nil {
+		l.Error(err)
+		return NewIssueVariantHandlerError("Internal error while deleting issueVariant (GetUserId).")
+	}
+
+	err = iv.database.DeleteIssueVariant(id, userId)
 
 	if err != nil {
 		l.Error(err)

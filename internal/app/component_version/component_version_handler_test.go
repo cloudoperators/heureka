@@ -186,7 +186,8 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 	})
 
 	It("deletes componentVersion", func() {
-		db.On("DeleteComponentVersion", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		db.On("GetComponentVersions", filter).Return([]entity.ComponentVersion{}, nil)
 		err := componenVersionService.DeleteComponentVersion(id)

@@ -320,7 +320,8 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 	})
 
 	It("deletes issueVariant", func() {
-		db.On("DeleteIssueVariant", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteIssueVariant", id, mock.Anything).Return(nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
 		err := issueVariantHandler.DeleteIssueVariant(id)
