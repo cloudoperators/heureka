@@ -227,3 +227,31 @@ type Metadata struct {
 	UpdatedBy int64     `json:"updated_by"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }
+
+type DbColumnName string
+
+const (
+	IssueMatchId     DbColumnName = "issuematch_id"
+	IssueMatchRating DbColumnName = "issuematch_rating"
+	SupportGroupName DbColumnName = "supportgroup_name"
+)
+
+type OrderDirection string
+
+const (
+	OrderDirectionAsc  OrderDirection = "asc"
+	OrderDirectionDesc OrderDirection = "desc"
+)
+
+type Order struct {
+	By        DbColumnName
+	Direction OrderDirection
+}
+
+func CreateOrderMap(order []Order) map[DbColumnName]OrderDirection {
+	m := map[DbColumnName]OrderDirection{}
+	for _, o := range order {
+		m[o.By] = o.Direction
+	}
+	return m
+}
