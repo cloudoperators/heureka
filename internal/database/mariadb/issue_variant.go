@@ -71,7 +71,7 @@ func (s *SqlDatabase) getIssueVariantFilterString(filter *entity.IssueVariantFil
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id  = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "IRS.issuerepositoryservice_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id  = ?", OP_OR))
-	fl = append(fl, "IV.issuevariant_deleted_at IS NULL")
+	fl = appendStateFilterQuery(fl, "IV.issuevariant", filter.State)
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -299,7 +299,7 @@ func (s *SqlDatabase) UpdateIssueVariant(issueVariant *entity.IssueVariant) erro
 	return err
 }
 
-func (s *SqlDatabase) DeleteIssueVariant(id int64) error {
+func (s *SqlDatabase) DeleteIssueVariant(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteIssueVariant",
@@ -307,12 +307,14 @@ func (s *SqlDatabase) DeleteIssueVariant(id int64) error {
 
 	query := `
 		UPDATE IssueVariant SET
-		issuevariant_deleted_at = NOW()
+		issuevariant_deleted_at = NOW(),
+		issuevariant_updated_by = :userId
 		WHERE issuevariant_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

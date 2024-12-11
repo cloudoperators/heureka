@@ -10,8 +10,11 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
+const SystemUserId = int64(1)
+const systemUserUniqueUserId = "S0000000"
+
 func GetCurrentUserId(db database.Database) (int64, error) {
-	return getUserIdFromDb(db, "S0000000")
+	return getUserIdFromDb(db, systemUserUniqueUserId)
 }
 
 func getUserIdFromDb(db database.Database, uniqueUserId string) (int64, error) {

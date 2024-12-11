@@ -189,7 +189,13 @@ func (cs *componentHandler) DeleteComponent(id int64) error {
 		"id":    id,
 	})
 
-	err := cs.database.DeleteComponent(id)
+	userId, err := common.GetCurrentUserId(cs.database)
+	if err != nil {
+		l.Error(err)
+		return NewUserHandlerError("Internal error while deleting component (GetUserId).")
+	}
+
+	err = cs.database.DeleteComponent(id, userId)
 
 	if err != nil {
 		l.Error(err)

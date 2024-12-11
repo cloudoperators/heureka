@@ -487,7 +487,7 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 			It("can delete activity correctly", func() {
 				activity := seedCollection.ActivityRows[0].AsActivity()
 
-				err := db.DeleteActivity(activity.Id)
+				err := db.DeleteActivity(activity.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

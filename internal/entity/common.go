@@ -227,3 +227,18 @@ type Metadata struct {
 	UpdatedBy int64     `json:"updated_by"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }
+
+type StateFilterType int
+
+const (
+	Active  StateFilterType = 0
+	Deleted StateFilterType = 1
+	All     StateFilterType = 2
+)
+
+func GetStateFilterType(sft *int) StateFilterType {
+	if sft != nil {
+		return StateFilterType(*sft)
+	}
+	return Active
+}

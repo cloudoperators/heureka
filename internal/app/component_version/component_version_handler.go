@@ -185,7 +185,13 @@ func (cv *componentVersionHandler) DeleteComponentVersion(id int64) error {
 		"id":    id,
 	})
 
-	err := cv.database.DeleteComponentVersion(id)
+	userId, err := common.GetCurrentUserId(cv.database)
+	if err != nil {
+		l.Error(err)
+		return NewComponentVersionHandlerError("Internal error while deleting componentVersion (GetUserId).")
+	}
+
+	err = cv.database.DeleteComponentVersion(id, userId)
 
 	if err != nil {
 		l.Error(err)
