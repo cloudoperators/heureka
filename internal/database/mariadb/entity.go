@@ -19,6 +19,14 @@ func GetInt64Value(v sql.NullInt64) int64 {
 	}
 }
 
+func GetBoolValue(v sql.NullBool) bool {
+	if v.Valid {
+		return v.Bool
+	} else {
+		return false
+	}
+}
+
 func GetInt16Value(v sql.NullInt16) int16 {
 	if v.Valid {
 		return v.Int16
@@ -974,31 +982,33 @@ type IssueRepositoryServiceRow struct {
 }
 
 type ScannerRunRow struct {
-	RunID    sql.NullInt64  `db:"scannerrun_run_id"`
-	UUID     sql.NullString `db:"scannerrun_uuid"`
-	Tag      sql.NullString `db:"scannerrun_tag"`
-	StartRun sql.NullTime   `db:"scannerrun_start_run"`
-	EndRun   sql.NullTime   `db:"scannerrun_end_run"`
+	RunID       sql.NullInt64  `db:"scannerrun_run_id"`
+	UUID        sql.NullString `db:"scannerrun_uuid"`
+	Tag         sql.NullString `db:"scannerrun_tag"`
+	StartRun    sql.NullTime   `db:"scannerrun_start_run"`
+	EndRun      sql.NullTime   `db:"scannerrun_end_run"`
+	IsCompleted sql.NullBool   `db:"scannerrun_is_completed"`
 }
 
 func (srr *ScannerRunRow) AsScannerRun() entity.ScannerRun {
 	return entity.ScannerRun{
-		RunID:    GetInt64Value(srr.RunID),
-		UUID:     GetStringValue(srr.UUID),
-		Tag:      GetStringValue(srr.Tag),
-		StartRun: GetTimeValue(srr.StartRun),
-		EndRun:   GetTimeValue(srr.EndRun),
+		RunID:     GetInt64Value(srr.RunID),
+		UUID:      GetStringValue(srr.UUID),
+		Tag:       GetStringValue(srr.Tag),
+		StartRun:  GetTimeValue(srr.StartRun),
+		EndRun:    GetTimeValue(srr.EndRun),
+		Completed: GetBoolValue(srr.IsCompleted),
 	}
 }
 
-func (srr *ScannerRunRow) FromScannerRun(ci *entity.ScannerRun) {
-	srr.RunID = sql.NullInt64{Int64: ci.RunID, Valid: true}
-	srr.UUID = sql.NullString{String: ci.UUID, Valid: true}
-	srr.Tag = sql.NullString{String: ci.Tag, Valid: true}
-	srr.StartRun = sql.NullTime{Time: ci.StartRun, Valid: true}
-	if ci.EndRun == time.Unix(0, 0) {
+func (srr *ScannerRunRow) FromScannerRun(sr *entity.ScannerRun) {
+	srr.RunID = sql.NullInt64{Int64: sr.RunID, Valid: true}
+	srr.UUID = sql.NullString{String: sr.UUID, Valid: true}
+	srr.Tag = sql.NullString{String: sr.Tag, Valid: true}
+	srr.StartRun = sql.NullTime{Time: sr.StartRun, Valid: true}
+	if sr.EndRun == time.Unix(0, 0) {
 		srr.EndRun = sql.NullTime{Valid: false}
 	} else {
-		srr.EndRun = sql.NullTime{Time: ci.EndRun, Valid: true}
+		srr.EndRun = sql.NullTime{Time: sr.EndRun, Valid: true}
 	}
 }
