@@ -455,7 +455,7 @@ create table if not exists IssueRepositoryService
 
 create table if not exists ScannerRun
 (
-    scannerrun_run_id  int unsigned primary key auto_increment,
+    scannerrun_run_id          int unsigned primary key auto_increment,
     scannerrun_uuid            UUID not null unique,
     scannerrun_tag             varchar(255) not null,
     scannerrun_start_run       timestamp default current_timestamp() not null,
@@ -465,8 +465,8 @@ create table if not exists ScannerRun
 
 create table if not exists ScannerRunIssueTracker
 (
-    run_id int unsigned not null,
-    issuematch_id  int unsigned not null,
-    constraint scanner_run_id foreign key (scanner_run_id) references ScannerRun (run_id) on update cascade,
-    constraint issuematch_id foreign key (issuematch_id) references IssueMatch (issuematch_id) on update cascade
+    scannerrunissuetracker_scannerrun_run_id int unsigned not null,
+    scannerrunissuetracker_issuematch_id  int unsigned not null,
+    constraint fk_run_id foreign key (scannerrunissuetracker_scannerrun_run_id) references ScannerRun (scannerrun_run_id) on update cascade,
+    constraint fk_issuematch_id foreign key (scannerrunissuetracker_issuematch_id) references IssueMatch (issuematch_id) on update cascade
 );
