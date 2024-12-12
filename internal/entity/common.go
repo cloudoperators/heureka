@@ -98,6 +98,7 @@ type ListOptions struct {
 	ShowTotalCount      bool `json:"show_total_count"`
 	ShowPageInfo        bool `json:"show_page_info"`
 	IncludeAggregations bool `json:"include_aggregations"`
+	Order               []Order
 }
 
 func NewListOptions() *ListOptions {

@@ -44,7 +44,7 @@ func (e *IssueMatchHandlerError) Error() string {
 
 func (h *issueMatchHandler) getIssueMatchResults(filter *entity.IssueMatchFilter) ([]entity.IssueMatchResult, error) {
 	var results []entity.IssueMatchResult
-	ims, err := h.database.GetIssueMatches(filter)
+	ims, err := h.database.GetIssueMatches(filter, nil)
 	if err != nil {
 		return nil, err
 	}

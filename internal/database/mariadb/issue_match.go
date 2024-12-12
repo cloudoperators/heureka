@@ -209,7 +209,7 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
 	return performIdScan(stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter) ([]entity.IssueMatch, error) {
+func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []entity.Order) ([]entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssueMatches",

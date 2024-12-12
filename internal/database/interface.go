@@ -35,7 +35,7 @@ type Database interface {
 	GetDefaultIssuePriority() int64
 	GetDefaultRepositoryName() string
 
-	GetIssueMatches(*entity.IssueMatchFilter) ([]entity.IssueMatch, error)
+	GetIssueMatches(*entity.IssueMatchFilter, []entity.Order) ([]entity.IssueMatch, error)
 	GetAllIssueMatchIds(*entity.IssueMatchFilter) ([]int64, error)
 	CountIssueMatches(filter *entity.IssueMatchFilter) (int64, error)
 	CreateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)

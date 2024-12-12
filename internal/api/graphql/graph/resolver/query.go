@@ -22,7 +22,7 @@ func (r *queryResolver) Issues(ctx context.Context, filter *model.IssueFilter, f
 }
 
 func (r *queryResolver) IssueMatches(ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, orderBy *model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
-	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil)
+	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
 func (r *queryResolver) IssueMatchChanges(ctx context.Context, filter *model.IssueMatchChangeFilter, first *int, after *string) (*model.IssueMatchChangeConnection, error) {

@@ -49,6 +49,11 @@ var AllIssueMatchStatusValuesOrdered = []IssueMatchStatusValues{
 	IssueMatchStatusValuesMitigated,
 }
 
+func NewOrderEntity(orderBy *IssueMatchOrderBy) []entity.Order {
+	//TODO convert orderBy to entity.Order
+	return []entity.Order{}
+}
+
 func NewPageInfo(p *entity.PageInfo) *PageInfo {
 	if p == nil {
 		return nil

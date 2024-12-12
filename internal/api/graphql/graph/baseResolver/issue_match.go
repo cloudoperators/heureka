@@ -54,7 +54,7 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 	return &issueMatch, nil
 }
 
-func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueMatchConnection, error) {
+func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, orderBy *model.IssueMatchOrderBy, parent *model.NodeParent) (*model.IssueMatchConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -119,6 +119,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	}
 
 	opt := GetListOptions(requestedFields)
+	opt.Order = model.NewOrderEntity(orderBy)
 
 	issueMatches, err := app.ListIssueMatches(f, opt)
 
