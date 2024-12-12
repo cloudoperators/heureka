@@ -972,3 +972,11 @@ type IssueRepositoryServiceRow struct {
 	DeletedAt         sql.NullTime  `db:"issuerepositoryservice_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt         sql.NullTime  `db:"issuerepositoryservice_updated_at" json:"updated_at"`
 }
+
+type ScannerRun struct {
+	RunID    sql.NullInt64  `db:"scannerrun_run_id"`
+	UUID     sql.NullString `db:"scannerrun_uuid"`
+	Tag      sql.NullString `db:"scannerrun_tag"`
+	StartRun sql.NullTime   `db:"scannerrun_start_run"`
+	EndRun   sql.NullTime   `db:"scannerrun_end_run"`
+}
