@@ -223,12 +223,14 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 			user_name,
 			user_unique_user_id,
 			user_type,
-			user_created_by
+			user_created_by,
+			user_updated_by
 		) VALUES (
 			:user_name,
 			:user_unique_user_id,
 			:user_type,
-			:user_created_by
+			:user_created_by,
+			:user_updated_by
 		)
 	`
 

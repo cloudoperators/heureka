@@ -228,13 +228,15 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
-			componentinstance_created_by
+			componentinstance_created_by,
+			componentinstance_updated_by
 		) VALUES (
 			:componentinstance_ccrn,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
-			:componentinstance_created_by
+			:componentinstance_created_by,
+			:componentinstance_updated_by
 		)
 	`
 
