@@ -462,7 +462,7 @@ create table if not exists ScannerRun
     
     scannerrun_end_run         timestamp default current_timestamp() not null,
 
-    scannerrun_is_finished     boolean not null default false
+    scannerrun_is_completed    boolean not null default false
 );
 
 create table if not exists ScannerRunIssueTracker

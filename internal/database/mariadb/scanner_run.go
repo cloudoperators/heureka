@@ -17,13 +17,15 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (*entity.S
 			scannerrun_uuid,
 			scannerrun_tag,
 			scannerrun_start_run,
-			scannerrun_end_run
+			scannerrun_end_run,
+			scannerrun_is_completed
 		) VALUES (
 			:scannerrun_run_id,
 			:scannerrun_uuid,
 			:scannerrun_tag,
 			:scannerrun_start_run,
-			:scannerrun_end_run
+			:scannerrun_end_run,
+			:scannerrun_is_completed
 		)
 	`
 

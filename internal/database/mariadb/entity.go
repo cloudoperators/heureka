@@ -1006,9 +1006,6 @@ func (srr *ScannerRunRow) FromScannerRun(sr *entity.ScannerRun) {
 	srr.UUID = sql.NullString{String: sr.UUID, Valid: true}
 	srr.Tag = sql.NullString{String: sr.Tag, Valid: true}
 	srr.StartRun = sql.NullTime{Time: sr.StartRun, Valid: true}
-	if sr.EndRun == time.Unix(0, 0) {
-		srr.EndRun = sql.NullTime{Valid: false}
-	} else {
-		srr.EndRun = sql.NullTime{Time: sr.EndRun, Valid: true}
-	}
+	srr.EndRun = sql.NullTime{Time: sr.EndRun, Valid: true}
+	srr.IsCompleted = sql.NullBool{Bool: sr.Completed, Valid: true}
 }
