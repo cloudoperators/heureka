@@ -246,7 +246,8 @@ func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
 		Tag:       sr.Tag,
 		Completed: sr.Completed,
 		StartRun:  startRun,
-		EndRun:    endRun,
+		EndRun:    
+		endRun,
 	}
 }
 

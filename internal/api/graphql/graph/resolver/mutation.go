@@ -888,7 +888,6 @@ func (r *mutationResolver) RemoveIssueFromActivity(ctx context.Context, activity
 }
 
 func (r *mutationResolver) CreateScannerRun(ctx context.Context, input model.ScannerRunInput) (*model.ScannerRun, error) {
-
 	scannerRun := model.NewScannerRunEntity(&input)
 	newScannerRun, err := r.App.CreateScannerRun(&scannerRun)
 	if err != nil {
