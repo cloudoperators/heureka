@@ -224,6 +224,32 @@ func NewIssueEntity(issue *IssueInput) entity.Issue {
 	}
 }
 
+func NewScannerRunEntity(sr *ScannerRunInput) entity.ScannerRun {
+
+	return entity.ScannerRun{
+		RunID:     -1,
+		UUID:      lo.FromPtr(sr.UUID),
+		Tag:       lo.FromPtr(sr.Tag),
+		Completed: false,
+		StartRun:  time.Now(),
+		EndRun:    time.Now(),
+	}
+}
+
+func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
+	startRun := sr.StartRun.Format(time.RFC3339)
+	endRun := sr.EndRun.Format(time.RFC3339)
+
+	return ScannerRun{
+		ID:        fmt.Sprintf("%d", sr.RunID),
+		UUID:      sr.UUID,
+		Tag:       sr.Tag,
+		Completed: sr.Completed,
+		StartRun:  startRun,
+		EndRun:    endRun,
+	}
+}
+
 func NewIssueMatch(im *entity.IssueMatch) IssueMatch {
 	status := IssueMatchStatusValue(im.Status.String())
 	targetRemediationDate := im.TargetRemediationDate.Format(time.RFC3339)

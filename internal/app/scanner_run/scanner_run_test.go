@@ -44,6 +44,6 @@ var _ = Describe("When creating ScannerRun", Label("app", "CreateScannerRun"), f
 		db.On("CreateScannerRun", sre).Return(sre, nil)
 
 		scannerRunHandler = NewScannerRunHandler(db, er)
-		scannerRunHandler.CreateScannerRunHandler(sre)
+		scannerRunHandler.CreateScannerRun(sre)
 	})
 })

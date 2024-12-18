@@ -887,6 +887,17 @@ func (r *mutationResolver) RemoveIssueFromActivity(ctx context.Context, activity
 	return &a, nil
 }
 
+func (r *mutationResolver) CreateScannerRun(ctx context.Context, input model.ScannerRunInput) (*model.ScannerRun, error) {
+
+	scannerRun := model.NewScannerRunEntity(&input)
+	newScannerRun, err := r.App.CreateScannerRun(&scannerRun)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("CreateScannerRunMutationResolver", "Internal Error - when creating scannerRun")
+	}
+	sr := model.NewScannerRun(newScannerRun)
+	return &sr, nil
+}
+
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
 
 type mutationResolver struct{ *Resolver }

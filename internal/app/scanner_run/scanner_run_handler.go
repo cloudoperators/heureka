@@ -25,7 +25,7 @@ type ScannerRunHandlerError struct {
 	msg string
 }
 
-func (srh *scannerRunHandler) CreateScannerRunHandler(sr *entity.ScannerRun) (*entity.ScannerRun, error) {
+func (srh *scannerRunHandler) CreateScannerRun(sr *entity.ScannerRun) (*entity.ScannerRun, error) {
 	_, err := srh.database.CreateScannerRun(sr)
 
 	if err != nil {
