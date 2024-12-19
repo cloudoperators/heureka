@@ -15,7 +15,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -24,15 +23,11 @@ import (
 
 var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func() {
 
-	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
 
 	BeforeEach(func() {
-		var err error
 		_ = dbm.NewTestSchema()
-		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
-		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
@@ -45,15 +40,10 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 		s.BlockingStop()
 	})
 
-	When("the database has 10 entries", func() {
-
-		BeforeEach(func() {
-			seeder.SeedDbWithNFakeData(10)
-
-		})
+	When("the database is empty", func() {
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
-			It("creates new service", func() {
+			It("creates new ScannerRun", func() {
 				sampleTag := gofakeit.Word()
 				sampleUUID := gofakeit.UUID()
 
@@ -82,9 +72,9 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*&respData.ScannerRun.ID).To(Equal(0))
+				Expect(*&respData.ScannerRun.ID).To(Equal("1"))
 				Expect(*&respData.ScannerRun.Tag).To(Equal(sampleTag))
-				Expect(*&respData.ScannerRun.Tag).To(Equal(sampleUUID))
+				Expect(*&respData.ScannerRun.UUID).To(Equal(sampleUUID))
 			})
 		})
 	})
