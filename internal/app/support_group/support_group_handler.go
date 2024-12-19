@@ -206,7 +206,13 @@ func (sg *supportGroupHandler) DeleteSupportGroup(id int64) error {
 		"id":    id,
 	})
 
-	err := sg.database.DeleteSupportGroup(id)
+	userId, err := common.GetCurrentUserId(sg.database)
+	if err != nil {
+		l.Error(err)
+		return NewSupportGroupHandlerError("Internal error while deleting supportGroup (GetUserId).")
+	}
+
+	err = sg.database.DeleteSupportGroup(id, userId)
 
 	if err != nil {
 		l.Error(err)

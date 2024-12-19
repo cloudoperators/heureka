@@ -183,7 +183,13 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
 		"id":    id,
 	})
 
-	err := ci.database.DeleteComponentInstance(id)
+	userId, err := common.GetCurrentUserId(ci.database)
+	if err != nil {
+		l.Error(err)
+		return NewComponentInstanceHandlerError("Internal error while deleting componentInstance (GetUserId).")
+	}
+
+	err = ci.database.DeleteComponentInstance(id, userId)
 
 	if err != nil {
 		l.Error(err)

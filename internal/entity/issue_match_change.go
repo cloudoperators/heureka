@@ -41,10 +41,11 @@ type IssueMatchChange struct {
 
 type IssueMatchChangeFilter struct {
 	Paginated
-	Id           []*int64  `json:"id"`
-	ActivityId   []*int64  `json:"activity_id"`
-	IssueMatchId []*int64  `json:"issue_match_id"`
-	Action       []*string `json:"action"`
+	Id           []*int64        `json:"id"`
+	ActivityId   []*int64        `json:"activity_id"`
+	IssueMatchId []*int64        `json:"issue_match_id"`
+	Action       []*string       `json:"action"`
+	State        StateFilterType `json:"state"`
 }
 
 type IssueMatchChangeResult struct {

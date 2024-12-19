@@ -187,7 +187,13 @@ func (ir *issueRepositoryHandler) DeleteIssueRepository(id int64) error {
 		"id":    id,
 	})
 
-	err := ir.database.DeleteIssueRepository(id)
+	userId, err := common.GetCurrentUserId(ir.database)
+	if err != nil {
+		l.Error(err)
+		return NewIssueRepositoryHandlerError("Internal error while deleting issueRepository (GetUserId).")
+	}
+
+	err = ir.database.DeleteIssueRepository(id, userId)
 
 	if err != nil {
 		l.Error(err)
