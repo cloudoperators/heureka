@@ -61,6 +61,8 @@ LOCAL_TEST_DB=true
 SEED_MODE=false
 ```
 
+To enable JWT token authentication, define `AUTH_TOKEN_SECRET` environment variable. Those variable is read by application on startup to start token validation middleware.
+
 ### Docker
 
 The `docker-compose.yml` file defines two profiles: `db` for the `heureka-db` service and `heureka` for the `heureka-app` service.

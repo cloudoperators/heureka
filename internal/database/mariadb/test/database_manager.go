@@ -149,7 +149,6 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 	dbm.Schemas = append(dbm.Schemas, schemaName)
 	dbm.CurrentSchema = schemaName
 	dbm.Config.DBName = schemaName
-	dbm.Config.AuthType = "none"
 
 	err := dbm.dbClient.SetupSchema(dbm.Config.Config)
 	if err != nil {
