@@ -75,13 +75,13 @@ GINKGO := go run github.com/onsi/ginkgo/v2/ginkgo
 test-all: mockery gqlgen
 	$(GINKGO) -r
 
-test-e2e:
+test-e2e: gqlgen
 	$(GINKGO) -r internal/e2e
 
-test-app:
+test-app: gqlgen
 	$(GINKGO) -r internal/app
 
-test-db:
+test-db: gqlgen
 	$(GINKGO) -r internal/database/mariadb
 
 fmt:

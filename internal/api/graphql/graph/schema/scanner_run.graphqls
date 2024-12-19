@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type ScannerRun implements Node {
+    id:         ID!
+    uuid:       String!
+    tag:        String!
+    start_run:  DateTime!
+    end_run:    DateTime!
+    completed:  Boolean!
+    metadata:   Metadata
+}
+
+input ScannerRunInput {
+    uuid:   String
+    tag:    String
+}
+
+type ScannerRunConnection implements Connection {
+    totalCount:     Int!
+    edges:          [ScannerRun]
+    pageInfo:       PageInfo
+}
+
+type ScannerRunEdge implements Edge {
+    node:   ScannerRun!
+    cursor: String
+}

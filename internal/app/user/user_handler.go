@@ -31,7 +31,7 @@ type UserHandlerError struct {
 }
 
 func (e *UserHandlerError) Error() string {
-	return fmt.Sprintf("ServiceHandlerError: %s", e.msg)
+	return fmt.Sprintf("UserHandlerError: %s", e.msg)
 }
 
 func NewUserHandlerError(msg string) *UserHandlerError {

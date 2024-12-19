@@ -69,4 +69,6 @@ type Mutation {
     removeServiceFromActivity(activityId: ID!, serviceId: ID!): Activity!
     addIssueToActivity(activityId: ID!, issueId: ID!): Activity!
     removeIssueFromActivity(activityId: ID!, issueId: ID!): Activity!
+
+    createScannerRun(input: ScannerRunInput!): ScannerRun!
 }
