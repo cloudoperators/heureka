@@ -42,9 +42,9 @@ func (e *IssueMatchHandlerError) Error() string {
 	return e.message
 }
 
-func (h *issueMatchHandler) getIssueMatchResults(filter *entity.IssueMatchFilter) ([]entity.IssueMatchResult, error) {
+func (h *issueMatchHandler) getIssueMatchResults(filter *entity.IssueMatchFilter, order []entity.Order) ([]entity.IssueMatchResult, error) {
 	var results []entity.IssueMatchResult
-	ims, err := h.database.GetIssueMatches(filter, nil)
+	ims, err := h.database.GetIssueMatches(filter, order)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,8 @@ func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMat
 		"id":    issueMatchId,
 	})
 	issueMatchFilter := entity.IssueMatchFilter{Id: []*int64{&issueMatchId}}
-	issueMatches, err := im.ListIssueMatches(&issueMatchFilter, &entity.ListOptions{})
+	options := entity.ListOptions{Order: []entity.Order{}}
+	issueMatches, err := im.ListIssueMatches(&issueMatchFilter, &options)
 
 	if err != nil {
 		l.Error(err)
@@ -95,7 +96,7 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 		"filter": filter,
 	})
 
-	res, err := im.getIssueMatchResults(filter)
+	res, err := im.getIssueMatchResults(filter, options.Order)
 
 	if err != nil {
 		l.Error(err)

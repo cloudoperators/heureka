@@ -49,9 +49,30 @@ var AllIssueMatchStatusValuesOrdered = []IssueMatchStatusValues{
 	IssueMatchStatusValuesMitigated,
 }
 
-func NewOrderEntity(orderBy *IssueMatchOrderBy) []entity.Order {
-	//TODO convert orderBy to entity.Order
-	return []entity.Order{}
+type HasToEntity interface {
+	ToOrderEntity() entity.Order
+}
+
+func (od *OrderDirection) ToOrderDirectionEntity() entity.OrderDirection {
+	direction := entity.OrderDirectionAsc
+	if *od == OrderDirectionDesc {
+		direction = entity.OrderDirectionDesc
+	}
+	return direction
+}
+
+func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *imo.By {
+	case IssueMatchOrderByFieldPrimaryName:
+		order.By = entity.IssuePrimaryName
+	case IssueMatchOrderByFieldComponentInstanceCcrn:
+		order.By = entity.ComponentInstanceCcrn
+	case IssueMatchOrderByFieldTargetRemediationDate:
+		order.By = entity.IssueMatchTargetRemediationDate
+	}
+	order.Direction = imo.Direction.ToOrderDirectionEntity()
+	return order
 }
 
 func NewPageInfo(p *entity.PageInfo) *PageInfo {

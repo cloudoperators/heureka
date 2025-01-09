@@ -67,7 +67,12 @@ enum IssueMatchStatusValues {
 }
 
 input IssueMatchOrderBy {
-    primaryName: OrderDirection
-    targetRemediationDate: OrderDirection
-    componentInstanceCcrn: OrderDirection
+    by: IssueMatchOrderByField
+    direction: OrderDirection
+}
+
+enum IssueMatchOrderByField {
+    primaryName
+    targetRemediationDate
+    componentInstanceCcrn
 }

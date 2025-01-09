@@ -3,7 +3,7 @@
 
 type Query {
     Issues(filter: IssueFilter, first: Int, after: String): IssueConnection
-    IssueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: IssueMatchOrderBy): IssueMatchConnection
+    IssueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     IssueMatchChanges(filter: IssueMatchChangeFilter, first: Int, after: String): IssueMatchChangeConnection
     Services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
     Components(filter: ComponentFilter, first: Int, after: String): ComponentConnection

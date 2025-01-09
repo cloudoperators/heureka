@@ -5,6 +5,8 @@ package mariadb_test
 
 import (
 	"math/rand"
+	"sort"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -147,11 +149,11 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 		})
 		Context("and we have 10 IssueMatches in the database", func() {
 			var seedCollection *test.SeedCollection
-			// var issueMatches []mariadb.IssueMatchRow
+			var issueMatches []mariadb.IssueMatchRow
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 
-				// issueMatches = seedCollection.GetValidIssueMatchRows()
+				issueMatches = seedCollection.GetValidIssueMatchRows()
 			})
 			Context("and using no filter", func() {
 
@@ -340,30 +342,31 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						})
 					}
 				})
-				// Context("and and we use Pagination", func() {
-				// 	DescribeTable("can correctly paginate ", func(pageSize int) {
-				// 		test.TestPaginationOfList(
-				// 			db.GetIssueMatches,
-				// 			func(first *int, after *int64) *entity.IssueMatchFilter {
-				// 				return &entity.IssueMatchFilter{
-				// 					Paginated: entity.Paginated{
-				// 						First: first,
-				// 						After: after,
-				// 					},
-				// 				}
-				// 			},
-				// 			func(entries []entity.IssueMatch) *int64 { return &entries[len(entries)-1].Id },
-				// 			len(issueMatches),
-				// 			pageSize,
-				// 		)
-				// 	},
-				// 		Entry("when pageSize is 1", 1),
-				// 		Entry("when pageSize is 3", 3),
-				// 		Entry("when pageSize is 5", 5),
-				// 		Entry("when pageSize is 11", 11),
-				// 		Entry("when pageSize is 100", 100),
-				// 	)
-				// })
+				Context("and and we use Pagination", func() {
+					DescribeTable("can correctly paginate ", func(pageSize int) {
+						test.TestPaginationOfListWithOrder(
+							db.GetIssueMatches,
+							func(first *int, after *int64) *entity.IssueMatchFilter {
+								return &entity.IssueMatchFilter{
+									Paginated: entity.Paginated{
+										First: first,
+										After: after,
+									},
+								}
+							},
+							[]entity.Order{},
+							func(entries []entity.IssueMatch) *int64 { return &entries[len(entries)-1].Id },
+							len(issueMatches),
+							pageSize,
+						)
+					},
+						Entry("when pageSize is 1", 1),
+						Entry("when pageSize is 3", 3),
+						Entry("when pageSize is 5", 5),
+						Entry("when pageSize is 11", 11),
+						Entry("when pageSize is 100", 100),
+					)
+				})
 			})
 		})
 	})
@@ -636,5 +639,342 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				}
 			})
 		})
+	})
+})
+
+var _ = Describe("Ordering IssueMatches", func() {
+	var db *mariadb.SqlDatabase
+	var seeder *test.DatabaseSeeder
+	var seedCollection *test.SeedCollection
+
+	BeforeEach(func() {
+		var err error
+		db = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+	})
+
+	var testOrder = func(
+		order []entity.Order,
+		verifyFunc func(res []entity.IssueMatch),
+	) {
+		res, err := db.GetIssueMatches(nil, order)
+
+		By("throwing no error", func() {
+			Expect(err).Should(BeNil())
+		})
+
+		By("returning the correct number of results", func() {
+			Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.IssueMatchRows)))
+		})
+
+		By("returning the correct order", func() {
+			verifyFunc(res)
+		})
+	}
+
+	When("with ASC order", Label("IssueMatchASCOrder"), func() {
+
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithNFakeData(10)
+		})
+
+		It("can order by id", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				return seedCollection.IssueMatchRows[i].Id.Int64 < seedCollection.IssueMatchRows[j].Id.Int64
+			})
+
+			order := []entity.Order{
+				{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				for i, r := range res {
+					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
+				}
+			})
+		})
+
+		It("can order by primaryName", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				issueI := seedCollection.GetIssueById(seedCollection.IssueMatchRows[i].IssueId.Int64)
+				issueJ := seedCollection.GetIssueById(seedCollection.IssueMatchRows[j].IssueId.Int64)
+				return issueI.PrimaryName.String < issueJ.PrimaryName.String
+			})
+
+			order := []entity.Order{
+				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prev string = ""
+				for _, r := range res {
+					issue := seedCollection.GetIssueById(r.IssueId)
+					Expect(issue).ShouldNot(BeNil())
+					Expect(issue.PrimaryName.String >= prev).Should(BeTrue())
+					prev = issue.PrimaryName.String
+				}
+			})
+		})
+
+		It("can order by targetRemediationDate", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				return seedCollection.IssueMatchRows[i].TargetRemediationDate.Time.After(seedCollection.IssueMatchRows[j].TargetRemediationDate.Time)
+			})
+
+			order := []entity.Order{
+				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prev time.Time = time.Time{}
+				for _, r := range res {
+					Expect(r.TargetRemediationDate.After(prev)).Should(BeTrue())
+					prev = r.TargetRemediationDate
+
+				}
+			})
+		})
+
+		It("can order by rating", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				r1 := test.SeverityToNumerical(seedCollection.IssueMatchRows[i].Rating.String)
+				r2 := test.SeverityToNumerical(seedCollection.IssueMatchRows[j].Rating.String)
+				return r1 < r2
+			})
+
+			order := []entity.Order{
+				{By: entity.IssueMatchRating, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				for i, r := range res {
+					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
+				}
+			})
+		})
+
+		It("can order by component instance ccrn", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				ciI := seedCollection.GetComponentInstanceById(seedCollection.IssueMatchRows[i].ComponentInstanceId.Int64)
+				ciJ := seedCollection.GetComponentInstanceById(seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64)
+				return ciI.CCRN.String < ciJ.CCRN.String
+			})
+
+			order := []entity.Order{
+				{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prev string = ""
+				for _, r := range res {
+					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
+					Expect(ci).ShouldNot(BeNil())
+					Expect(ci.CCRN.String >= prev).Should(BeTrue())
+					prev = ci.CCRN.String
+				}
+			})
+		})
+	})
+
+	When("with DESC order", Label("IssueMatchDESCOrder"), func() {
+
+		BeforeEach(func() {
+			seedCollection = seeder.SeedDbWithNFakeData(10)
+		})
+
+		It("can order by id", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				return seedCollection.IssueMatchRows[i].Id.Int64 > seedCollection.IssueMatchRows[j].Id.Int64
+			})
+
+			order := []entity.Order{
+				{By: entity.IssueMatchId, Direction: entity.OrderDirectionDesc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				for i, r := range res {
+					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
+				}
+			})
+		})
+
+		It("can order by primaryName", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				issueI := seedCollection.GetIssueById(seedCollection.IssueMatchRows[i].IssueId.Int64)
+				issueJ := seedCollection.GetIssueById(seedCollection.IssueMatchRows[j].IssueId.Int64)
+				return issueI.PrimaryName.String > issueJ.PrimaryName.String
+			})
+
+			order := []entity.Order{
+				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionDesc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prev string = "\U0010FFFF"
+				for _, r := range res {
+					issue := seedCollection.GetIssueById(r.IssueId)
+					Expect(issue).ShouldNot(BeNil())
+					Expect(issue.PrimaryName.String <= prev).Should(BeTrue())
+					prev = issue.PrimaryName.String
+				}
+			})
+		})
+
+		It("can order by targetRemediationDate", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				return seedCollection.IssueMatchRows[i].TargetRemediationDate.Time.Before(seedCollection.IssueMatchRows[j].TargetRemediationDate.Time)
+			})
+
+			order := []entity.Order{
+				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionDesc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prev time.Time = time.Now()
+				for _, r := range res {
+					Expect(r.TargetRemediationDate.Before(prev)).Should(BeTrue())
+					prev = r.TargetRemediationDate
+
+				}
+			})
+		})
+
+		It("can order by rating", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				r1 := test.SeverityToNumerical(seedCollection.IssueMatchRows[i].Rating.String)
+				r2 := test.SeverityToNumerical(seedCollection.IssueMatchRows[j].Rating.String)
+				return r1 > r2
+			})
+
+			order := []entity.Order{
+				{By: entity.IssueMatchRating, Direction: entity.OrderDirectionDesc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				for i, r := range res {
+					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
+				}
+			})
+		})
+
+		It("can order by component instance ccrn", func() {
+			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
+				ciI := seedCollection.GetComponentInstanceById(seedCollection.IssueMatchRows[i].ComponentInstanceId.Int64)
+				ciJ := seedCollection.GetComponentInstanceById(seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64)
+				return ciI.CCRN.String > ciJ.CCRN.String
+			})
+
+			order := []entity.Order{
+				{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionDesc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prev string = "\U0010FFFF"
+				for _, r := range res {
+					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
+					Expect(ci).ShouldNot(BeNil())
+					Expect(ci.CCRN.String <= prev).Should(BeTrue())
+					prev = ci.CCRN.String
+				}
+			})
+		})
+	})
+
+	When("multiple order by used", Label("IssueMatchMultipleOrderBy"), func() {
+
+		BeforeEach(func() {
+			users := seeder.SeedUsers(10)
+			services := seeder.SeedServices(10)
+			components := seeder.SeedComponents(10)
+			componentVersions := seeder.SeedComponentVersions(10, components)
+			componentInstances := seeder.SeedComponentInstances(3, componentVersions, services)
+			issues := seeder.SeedIssues(3)
+			issueMatches := seeder.SeedIssueMatches(100, issues, componentInstances, users)
+			seedCollection = &test.SeedCollection{
+				IssueRows:             issues,
+				IssueMatchRows:        issueMatches,
+				ComponentInstanceRows: componentInstances,
+			}
+		})
+
+		It("can order by asc issue primary name and asc targetRemediationDate", func() {
+			order := []entity.Order{
+				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},
+				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prevTrd time.Time = time.Time{}
+				var prevPn = ""
+				for _, r := range res {
+					issue := seedCollection.GetIssueById(r.IssueId)
+					if issue.PrimaryName.String == prevPn {
+						Expect(r.TargetRemediationDate.After(prevTrd)).Should(BeTrue())
+						prevTrd = r.TargetRemediationDate
+					} else {
+						Expect(issue.PrimaryName.String > prevPn).To(BeTrue())
+						prevTrd = time.Time{}
+					}
+					prevPn = issue.PrimaryName.String
+				}
+			})
+		})
+
+		It("can order by asc issue primary name and desc targetRemediationDate", func() {
+			order := []entity.Order{
+				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},
+				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionDesc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prevTrd time.Time = time.Now()
+				var prevPn = ""
+				for _, r := range res {
+					issue := seedCollection.GetIssueById(r.IssueId)
+					if issue.PrimaryName.String == prevPn {
+						Expect(r.TargetRemediationDate.Before(prevTrd)).Should(BeTrue())
+						prevTrd = r.TargetRemediationDate
+					} else {
+						Expect(issue.PrimaryName.String > prevPn).To(BeTrue())
+						prevTrd = time.Now()
+					}
+					prevPn = issue.PrimaryName.String
+				}
+			})
+		})
+
+		It("can order by asc rating and asc component instance ccrn and asc targetRemediationDate", func() {
+			order := []entity.Order{
+				{By: entity.IssueMatchRating, Direction: entity.OrderDirectionAsc},
+				{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
+				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.IssueMatch) {
+				var prevSeverity = 0
+				var prevCiCcrn = ""
+				var prevTrd time.Time = time.Time{}
+				for _, r := range res {
+					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
+					if test.SeverityToNumerical(r.Severity.Value) == prevSeverity {
+						if ci.CCRN.String == prevCiCcrn {
+							Expect(r.TargetRemediationDate.After(prevTrd)).To(BeTrue())
+							prevTrd = r.TargetRemediationDate
+						} else {
+							Expect(ci.CCRN.String > prevCiCcrn).To(BeTrue())
+							prevCiCcrn = ci.CCRN.String
+							prevTrd = time.Time{}
+						}
+					} else {
+						Expect(test.SeverityToNumerical(r.Severity.Value) > prevSeverity).To(BeTrue())
+						prevSeverity = test.SeverityToNumerical(r.Severity.Value)
+						prevCiCcrn = ""
+						prevTrd = time.Time{}
+					}
+				}
+			})
+		})
+
 	})
 })

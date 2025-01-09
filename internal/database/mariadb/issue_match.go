@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/jmoiron/sqlx"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,10 +48,16 @@ func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter)
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter) string {
+func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order []entity.Order) string {
 	joins := ""
+	orderByIssuePrimaryName := lo.ContainsBy(order, func(o entity.Order) bool {
+		return o.By == entity.IssuePrimaryName
+	})
+	orderByCiCcrn := lo.ContainsBy(order, func(o entity.Order) bool {
+		return o.By == entity.ComponentInstanceCcrn
+	})
 
-	if len(filter.Search) > 0 || len(filter.IssueType) > 0 || len(filter.PrimaryName) > 0 {
+	if len(filter.Search) > 0 || len(filter.IssueType) > 0 || len(filter.PrimaryName) > 0 || orderByIssuePrimaryName {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN Issue I on I.issue_id = IM.issuematch_issue_id
 		`)
@@ -93,6 +100,13 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter) string
 		`)
 		}
 	}
+
+	if orderByCiCcrn {
+		joins = fmt.Sprintf("%s\n%s", joins, `
+			LEFT JOIN ComponentInstance CI on CI.componentinstance_id = IM.issuematch_component_instance_id
+		`)
+	}
+
 	return joins
 }
 
@@ -128,14 +142,16 @@ func (s *SqlDatabase) getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) s
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
 	var query string
 	filter = s.ensureIssueMatchFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := s.getIssueMatchFilterString(filter)
-	joins := s.getIssueMatchJoins(filter)
+	joins := s.getIssueMatchJoins(filter, order)
 	cursor := getCursor(filter.Paginated, filterStr, "IM.issuematch_id > ?")
+	order = GetDefaultOrder(order, entity.IssueMatchId, entity.OrderDirectionAsc)
+	orderStr := entity.CreateOrderString(order)
 
 	whereClause := ""
 	if filterStr != "" || withCursor {
@@ -144,9 +160,9 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 
 	// construct final query
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement, orderStr)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
@@ -197,10 +213,10 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
 	baseQuery := `
 		SELECT IM.issuematch_id FROM IssueMatch IM 
 		%s
-	 	%s GROUP BY IM.issuematch_id ORDER BY IM.issuematch_id
+	 	%s GROUP BY IM.issuematch_id ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, []entity.Order{}, l)
 
 	if err != nil {
 		return nil, err
@@ -218,10 +234,10 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
 	baseQuery := `
 		SELECT IM.* FROM IssueMatch IM 
 		%s
-	    %s %s GROUP BY IM.issuematch_id ORDER BY IM.issuematch_id LIMIT ?
+	    %s %s GROUP BY IM.issuematch_id ORDER BY %s LIMIT ?
     `
 
-	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, true, l)
+	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, true, order, l)
 
 	if err != nil {
 		return nil, err
@@ -247,9 +263,10 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
 		SELECT count(distinct IM.issuematch_id) FROM IssueMatch IM 
 		%s
 		%s
+		ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, []entity.Order{}, l)
 
 	if err != nil {
 		return -1, err
