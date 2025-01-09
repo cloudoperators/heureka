@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"strings"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/onsi/ginkgo/v2/dsl/core"
