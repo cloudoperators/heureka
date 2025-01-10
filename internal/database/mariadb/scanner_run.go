@@ -40,3 +40,46 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (*entity.S
 
 	return scannerRun, nil
 }
+
+func (s *SqlDatabase) CompleteScannerRun(scannerRun *entity.ScannerRun) error {
+	updateQuery := `UPDATE ScannerRun 
+					SET 
+						scannerrun_is_completed = TRUE,
+						scannerrun_end_run = current_timestamp()
+					WHERE 
+						scannerrun_run_id = :scannerrun_run_id AND
+						scannerrun_is_completed = FALSE`
+
+	srr := ScannerRunRow{}
+	srr.FromScannerRun(scannerRun)
+
+	tx, err := s.db.Beginx()
+
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.NamedExec(updateQuery, srr)
+
+	if err != nil {
+		return err
+	}
+
+	newSRR := ScannerRunRow{}
+	err = tx.Get(&newSRR,
+		`SELECT * FROM ScannerRun WHERE scannerrun_run_id = ?`, scannerRun.RunID)
+
+	if err != nil {
+		return err
+	}
+
+	updatedScannerRun := newSRR.AsScannerRun()
+
+	scannerRun.StartRun = updatedScannerRun.StartRun
+	scannerRun.EndRun = updatedScannerRun.EndRun
+	scannerRun.Completed = updatedScannerRun.Completed
+
+	return tx.Commit()
+}
