@@ -84,6 +84,15 @@ test-app: gqlgen install-build-dependencies
 test-db: gqlgen install-build-dependencies
 	ginkgo -r internal/database/mariadb
 
+test-e2e: gqlgen install-build-dependencies
+	ginkgo -r internal/e2e
+
+test-app: gqlgen install-build-dependencies
+	ginkgo -r internal/app
+
+test-db: gqlgen install-build-dependencies
+	ginkgo -r internal/database/mariadb
+
 fmt:
 	go fmt ./...
 

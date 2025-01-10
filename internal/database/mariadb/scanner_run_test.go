@@ -49,6 +49,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 				Expect(sr.IsCompleted()).To(BeTrue())
 				Expect(sr.EndRun.After(sr.StartRun)).To(BeTrue())
 			})
+
 		})
 	})
 })
