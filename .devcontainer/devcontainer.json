@@ -7,5 +7,12 @@
         "forwardPorts": [
            80,
            "mariadb:3306"
-        ]
+		],
+		"customizations": {
+			"vscode": {
+				"extensions": [
+					"dlipovetsky.ginkgo-tools"
+				]
+			}
+		}
 }

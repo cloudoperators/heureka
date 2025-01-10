@@ -61,28 +61,28 @@ push:
 run:
 	go run cmd/heureka/main.go
 
-gqlgen:
-	cd internal/api/graphql && go run github.com/99designs/gqlgen generate
+gqlgen: install-build-dependencies
+	cd internal/api/graphql && gqlgen generate
 
 mockery: install-build-dependencies
 	mockery
 
 install-build-dependencies:
 	go install github.com/vektra/mockery/v2@v2.46.3
+	go install github.com/onsi/ginkgo/v2/ginkgo
+	go install github.com/99designs/gqlgen
 
+test-all: mockery gqlgen install-build-dependencies
+	ginkgo -r
 
-GINKGO := go run github.com/onsi/ginkgo/v2/ginkgo
-test-all: mockery gqlgen
-	$(GINKGO) -r
+test-e2e: gqlgen install-build-dependencies
+	ginkgo -r internal/e2e
 
-test-e2e: gqlgen
-	$(GINKGO) -r internal/e2e
+test-app: gqlgen install-build-dependencies
+	ginkgo -r internal/app
 
-test-app: gqlgen
-	$(GINKGO) -r internal/app
-
-test-db: gqlgen
-	$(GINKGO) -r internal/database/mariadb
+test-db: gqlgen install-build-dependencies
+	ginkgo -r internal/database/mariadb
 
 fmt:
 	go fmt ./...
