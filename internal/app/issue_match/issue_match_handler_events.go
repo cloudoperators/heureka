@@ -191,7 +191,6 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 		issue_match := &entity.IssueMatch{
 			Metadata: entity.Metadata{
 				CreatedBy: 1,
-				UpdatedBy: 1,
 			},
 			UserId:                1, //@todo discuss whatever we use a static system user or infer the user from the ComponentVersionIssue
 			Status:                entity.IssueMatchStatusValuesNew,
