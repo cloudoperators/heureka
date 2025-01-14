@@ -23,9 +23,8 @@ Chosen option: "Opt 1: Using Configuration as ComponentVersion", because neither
 
 ### Consequences
 
-* Good, because we can decrypt the hash to get the configuration back to do processing
-* Good, because we are using the same Entity Relationship logic for "Vulnerabilities" as well, so Heureka now handles issue matching, not the scanner
-* Bad, because the naming of ComponentVersion may be confusing, as we only store the hash of the configuration, not the config itself
+* Good, because we are using the same Entity Relationship logic for "Vulnerabilities" as well
+* Bad, because the naming of ComponentVersion may be confusing
 
 
 ## Pros and Cons of the Options
@@ -50,9 +49,8 @@ graph TD;
 ```
 We use the configuration of the Openstack entity and hash it to create a unique ComponentVersion.
 
-* Good, because we can decrypt the hash to get the configuration back to do processing
 * Good, because we are using the same Entity Relationship logic for "Vulnerabilities" as well, so Heureka now handles issue matching, not the scanner
-* Bad, because the naming of ComponentVersion may be confusing, as we only store the hash of the configuration, not the config itself
+* Bad, because the naming of ComponentVersion may be confusing
 
 ### Opt 2: Adding ComponentContext to ComponentInstance
 ```mermaid
