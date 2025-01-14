@@ -43,13 +43,11 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 				_, err := db.CreateScannerRun(sr)
 				Expect(err).To(BeNil())
 
-				new, err := db.CompleteScannerRun(sr.UUID)
+				success, err := db.CompleteScannerRun(sr.UUID)
 
 				Expect(err).To(BeNil())
-				Expect(new.IsCompleted()).To(BeTrue())
-				Expect(new.EndRun.After(sr.StartRun)).To(BeTrue())
+				Expect(success).To(BeTrue())
 			})
-
 		})
 	})
 })

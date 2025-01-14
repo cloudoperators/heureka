@@ -18,7 +18,6 @@ type CreateScannerRunEvent struct {
 }
 
 type UpdateScannerRunEvent struct {
-	ScannerRun *entity.ScannerRun
 }
 
 func (csr *CreateScannerRunEvent) Name() event.EventName {

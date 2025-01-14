@@ -36,15 +36,15 @@ func (srh *scannerRunHandler) CreateScannerRun(sr *entity.ScannerRun) (*entity.S
 	return sr, nil
 }
 
-func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (*entity.ScannerRun, error) {
-	sr, err := srh.database.CompleteScannerRun(uuid)
+func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (bool, error) {
+	_, err := srh.database.CompleteScannerRun(uuid)
 
 	if err != nil {
-		return nil, &ScannerRunHandlerError{msg: "Error updating scanner run"}
+		return false, &ScannerRunHandlerError{msg: "Error updating scanner run"}
 	}
 
-	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{sr})
-	return sr, nil
+	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{})
+	return true, nil
 }
 
 func (srhe *ScannerRunHandlerError) Error() string {

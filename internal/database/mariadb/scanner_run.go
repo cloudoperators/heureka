@@ -44,7 +44,7 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (*entity.S
 	return scannerRun, nil
 }
 
-func (s *SqlDatabase) CompleteScannerRun(uuid string) (*entity.ScannerRun, error) {
+func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {
 	updateQuery := `UPDATE ScannerRun 
 					SET 
 						scannerrun_is_completed = TRUE,
@@ -53,29 +53,11 @@ func (s *SqlDatabase) CompleteScannerRun(uuid string) (*entity.ScannerRun, error
 						scannerrun_uuid = ? AND
 						scannerrun_is_completed = FALSE`
 
-	tx, err := s.db.Beginx()
+	_, err := s.db.Exec(updateQuery, uuid)
 
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	defer tx.Rollback()
-
-	_, err = tx.Exec(updateQuery, uuid)
-
-	if err != nil {
-		return nil, err
-	}
-
-	newSRR := ScannerRunRow{}
-	err = tx.Get(&newSRR,
-		`SELECT * FROM ScannerRun WHERE scannerrun_uuid = ?`, uuid)
-
-	if err != nil {
-		return nil, err
-	}
-
-	updatedScannerRun := newSRR.AsScannerRun()
-
-	return &updatedScannerRun, tx.Commit()
+	return true, nil
 }
