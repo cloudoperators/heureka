@@ -43,16 +43,16 @@ echo:
 build-image:
 	docker buildx build -t $(SERVER_IMAGE):$(VERSION) -t $(SERVER_IMAGE):latest . --load
 
-build-scanner-images: build-scanner-k8s-assets-image build-scanner-keppel build-scanner-nvd
+build-scanner-images: build-scanner-k8s-assets-image build-scanner-keppel-image build-scanner-nvd-image
 
 build-scanner-k8s-assets-image:
-	docker buildx build -t $(SERVER_IMAGE)-scanner-k8s-assets:$(VERSION) -t $(SERVER_IMAGE)-scanner-k8s-assets:latest -f Dockerfile.scanner-k8s-assets . --load
+	docker buildx build -t $(SERVER_IMAGE)-scanner-k8s-assets:$(VERSION) -t $(SERVER_IMAGE)-scanner-k8s-assets:latest -f ./scanner/k8s-assets/Dockerfile . --load
 
-build-scanner-keppel:
-	docker buildx build -t $(SERVER_IMAGE)-scanner-keppel:$(VERSION) -t $(SERVER_IMAGE)-scanner-keppel:latest -f Dockerfile.scanner-keppel . --load
+build-scanner-keppel-image:
+	docker buildx build -t $(SERVER_IMAGE)-scanner-keppel:$(VERSION) -t $(SERVER_IMAGE)-scanner-keppel:latest -f ./scanner/keppel/Dockerfile . --load
 
-build-scanner-nvd:
-	docker buildx build -t $(SERVER_IMAGE)-scanner-nvd:$(VERSION) -t $(SERVER_IMAGE)-scanner-nvd:latest -f Dockerfile.scanner-nvd . --load
+build-scanner-nvd-image:
+	docker buildx build -t $(SERVER_IMAGE)-scanner-nvd:$(VERSION) -t $(SERVER_IMAGE)-scanner-nvd:latest -f ./scanner/nvd/Dockerfile . --load
 
 push:
 	docker push $(SERVER_IMAGE):$(VERSION)
