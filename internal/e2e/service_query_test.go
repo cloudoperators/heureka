@@ -119,7 +119,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
 				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withMetadata.graphql")
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withObjectMetadata.graphql")
 
 				Expect(err).To(BeNil())
 				str := string(b)
@@ -146,8 +146,8 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 						imCount += ciEdge.Node.IssueMatches.TotalCount
 						ciCount += *ciEdge.Node.Count
 					}
-					Expect(serviceEdge.Node.Metadata.IssueMatchCount).To(Equal(imCount))
-					Expect(serviceEdge.Node.Metadata.ComponentInstanceCount).To(Equal(ciCount))
+					Expect(serviceEdge.Node.ObjectMetadata.IssueMatchCount).To(Equal(imCount))
+					Expect(serviceEdge.Node.ObjectMetadata.ComponentInstanceCount).To(Equal(ciCount))
 				}
 			})
 

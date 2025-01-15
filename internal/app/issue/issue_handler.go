@@ -170,6 +170,14 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		"filter": f,
 	})
 
+	var err error
+	issue.CreatedBy, err = common.GetCurrentUserId(is.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueHandlerError("Internal error while creating issue (GetUserId).")
+	}
+	issue.UpdatedBy = issue.CreatedBy
+
 	issues, err := is.ListIssues(f, &entity.IssueListOptions{})
 
 	if err != nil {
@@ -198,7 +206,14 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		"object": issue,
 	})
 
-	err := is.database.UpdateIssue(issue)
+	var err error
+	issue.UpdatedBy, err = common.GetCurrentUserId(is.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueHandlerError("Internal error while updating issue (GetUserId).")
+	}
+
+	err = is.database.UpdateIssue(issue)
 
 	if err != nil {
 		l.Error(err)

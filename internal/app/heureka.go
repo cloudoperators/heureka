@@ -17,6 +17,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/app/support_group"
@@ -26,15 +27,16 @@ import (
 
 type HeurekaApp struct {
 	activity.ActivityHandler
-	component.ComponentHandler
 	component_instance.ComponentInstanceHandler
 	component_version.ComponentVersionHandler
+	component.ComponentHandler
 	evidence.EvidenceHandler
-	issue.IssueHandler
-	issue_match.IssueMatchHandler
 	issue_match_change.IssueMatchChangeHandler
+	issue_match.IssueMatchHandler
 	issue_repository.IssueRepositoryHandler
 	issue_variant.IssueVariantHandler
+	issue.IssueHandler
+	scanner_run.ScannerRunHandler
 	service.ServiceHandler
 	severity.SeverityHandler
 	support_group.SupportGroupHandler
@@ -57,10 +59,11 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er),
 		EvidenceHandler:          evidence.NewEvidenceHandler(db, er),
 		IssueHandler:             issue.NewIssueHandler(db, er),
-		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh),
 		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er),
+		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh),
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
+		ScannerRunHandler:        scanner_run.NewScannerRunHandler(db, er),
 		ServiceHandler:           service.NewServiceHandler(db, er),
 		SeverityHandler:          sh,
 		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er),
@@ -90,6 +93,12 @@ func (h *HeurekaApp) SubscribeHandlers() {
 	h.eventRegistry.RegisterEventHandler(
 		issue_repository.CreateIssueRepositoryEventName,
 		event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate),
+	)
+
+	// Event handlers for ComponentVersion attachments to Issues
+	h.eventRegistry.RegisterEventHandler(
+		issue.AddComponentVersionToIssueEventName,
+		event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue),
 	)
 }
 

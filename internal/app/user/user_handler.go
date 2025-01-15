@@ -31,7 +31,7 @@ type UserHandlerError struct {
 }
 
 func (e *UserHandlerError) Error() string {
-	return fmt.Sprintf("ServiceHandlerError: %s", e.msg)
+	return fmt.Sprintf("UserHandlerError: %s", e.msg)
 }
 
 func NewUserHandlerError(msg string) *UserHandlerError {
@@ -112,6 +112,14 @@ func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 		"object": user,
 	})
 
+	var err error
+	user.CreatedBy, err = common.GetCurrentUserId(u.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while creating user (GetUserId).")
+	}
+	user.UpdatedBy = user.CreatedBy
+
 	users, err := u.ListUsers(f, &entity.ListOptions{})
 
 	if err != nil {
@@ -141,7 +149,14 @@ func (u *userHandler) UpdateUser(user *entity.User) (*entity.User, error) {
 		"object": user,
 	})
 
-	err := u.database.UpdateUser(user)
+	var err error
+	user.UpdatedBy, err = common.GetCurrentUserId(u.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while updating user (GetUserId).")
+	}
+
+	err = u.database.UpdateUser(user)
 
 	if err != nil {
 		l.Error(err)

@@ -14,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/app/support_group"
@@ -21,21 +22,22 @@ import (
 )
 
 type Heureka interface {
-	issue.IssueHandler
 	activity.ActivityHandler
-	service.ServiceHandler
-	user.UserHandler
-	component.ComponentHandler
 	component_instance.ComponentInstanceHandler
 	component_version.ComponentVersionHandler
-	support_group.SupportGroupHandler
-	issue_variant.IssueVariantHandler
-	issue_repository.IssueRepositoryHandler
-	issue_match.IssueMatchHandler
-	issue_match_change.IssueMatchChangeHandler
-	severity.SeverityHandler
+	component.ComponentHandler
 	evidence.EvidenceHandler
+	issue_match_change.IssueMatchChangeHandler
 	issue_match.IssueMatchHandler
+	issue_match.IssueMatchHandler
+	issue_repository.IssueRepositoryHandler
+	issue_variant.IssueVariantHandler
+	issue.IssueHandler
+	scanner_run.ScannerRunHandler
+	service.ServiceHandler
+	severity.SeverityHandler
+	support_group.SupportGroupHandler
+	user.UserHandler
 
 	Shutdown() error
 }

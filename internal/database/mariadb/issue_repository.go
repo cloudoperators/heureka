@@ -46,6 +46,9 @@ func (s *SqlDatabase) getIssueRepositoryUpdateFields(issueRepository *entity.Iss
 	if issueRepository.Url != "" {
 		fl = append(fl, "issuerepository_url = :issuerepository_url")
 	}
+	if issueRepository.BaseIssueRepository.UpdatedBy != 0 {
+		fl = append(fl, "issuerepository_updated_by = :issuerepository_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -218,10 +221,14 @@ func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueReposit
 	query := `
 		INSERT INTO IssueRepository (
 			issuerepository_name,
-			issuerepository_url
+			issuerepository_url,
+			issuerepository_created_by,
+			issuerepository_updated_by
 		) VALUES (
 			:issuerepository_name,
-			:issuerepository_url
+			:issuerepository_url,
+			:issuerepository_created_by,
+			:issuerepository_updated_by
 		)
 	`
 

@@ -101,7 +101,7 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 		createServiceResp, err := client.CreateService(ctx, *p.Client, createServiceInput)
 		if err != nil {
 			return "", fmt.Errorf("failed to create Service %s: %w", serviceInfo.CCRN, err)
-		} else {
+		} else if createServiceResp.CreateService != nil && createServiceResp.CreateService.Id != "" {
 			serviceId = createServiceResp.CreateService.Id
 		}
 	} else {
@@ -122,6 +122,8 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 		createSupportGroupResp, err := client.CreateSupportGroup(ctx, *p.Client, createSupportGroupInput)
 		if err != nil {
 			return "", fmt.Errorf("failed to create SupportGroup %s: %w", serviceInfo.SupportGroup, err)
+		} else if createSupportGroupResp.CreateSupportGroup == nil {
+			return "", fmt.Errorf("failed to create SupportGroup as CreateSupportGroup response is nil")
 		} else {
 			supportGroupId = createSupportGroupResp.CreateSupportGroup.Id
 		}
@@ -153,7 +155,7 @@ func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.Ser
 	}
 
 	// Return the first item
-	if listSupportGroupsResp.SupportGroups.TotalCount > 0 && len(listSupportGroupsResp.SupportGroups.Edges) > 0 {
+	if listSupportGroupsResp != nil && listSupportGroupsResp.SupportGroups != nil && listSupportGroupsResp.SupportGroups.TotalCount > 0 && len(listSupportGroupsResp.SupportGroups.Edges) > 0 {
 		supportGroupId = listSupportGroupsResp.SupportGroups.Edges[0].Node.Id
 	} else {
 		return "", fmt.Errorf("ListSupportGroups returned no SupportGroupID")
@@ -173,7 +175,7 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 	}
 
 	// Return the first item
-	if listServicesResp.Services.TotalCount > 0 {
+	if listServicesResp != nil && listServicesResp.Services != nil && listServicesResp.Services.TotalCount > 0 && len(listServicesResp.Services.Edges) > 0 {
 		return listServicesResp.Services.Edges[0].Node.Id, nil
 	}
 
@@ -246,7 +248,7 @@ func (p *Processor) getComponentVersion(ctx context.Context, image string, versi
 		return "", fmt.Errorf("Couldn't list ComponentVersion")
 	}
 
-	if listCompoVersResp.ComponentVersions.TotalCount > 0 {
+	if listCompoVersResp != nil && listCompoVersResp.ComponentVersions != nil && listCompoVersResp.ComponentVersions.TotalCount > 0 {
 		return listCompoVersResp.ComponentVersions.Edges[0].Node.Id, nil
 	}
 
@@ -309,6 +311,10 @@ func (p *Processor) ProcessContainer(
 		return fmt.Errorf("failed to create Component. %w", err)
 	}
 
+	if componentId == "" {
+		return fmt.Errorf("failed to create Component. ComponentId is empty")
+	}
+
 	//
 	// Create new ComponentVersion
 	//
@@ -361,6 +367,8 @@ func (p *Processor) createComponent(ctx context.Context, input *client.Component
 	createComponentResp, err := client.CreateComponent(ctx, *p.Client, input)
 	if err != nil {
 		return "", fmt.Errorf("failed to create Component: %w", err)
+	} else if createComponentResp.CreateComponent == nil {
+		return "", fmt.Errorf("failed to create Component as CreateComponent response is nil")
 	}
 
 	log.WithFields(log.Fields{
@@ -379,6 +387,8 @@ func (p *Processor) createComponentVersion(ctx context.Context, imageVersion str
 	createCompVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, componentVersionInput)
 	if err != nil {
 		return "", fmt.Errorf("failed to create ComponentVersion: %w", err)
+	} else if createCompVersionResp.CreateComponentVersion == nil {
+		return "", fmt.Errorf("failed to create ComponentVersion as CreateComponentVersion response is nil")
 	}
 
 	log.WithFields(log.Fields{
@@ -393,6 +403,8 @@ func (p *Processor) createComponentInstance(ctx context.Context, input *client.C
 	createCompInstResp, err := client.CreateComponentInstance(ctx, *p.Client, input)
 	if err != nil {
 		return "", fmt.Errorf("failed to create ComponentInstance: %w", err)
+	} else if createCompInstResp.CreateComponentInstance == nil {
+		return "", fmt.Errorf("failed to create ComponentInstance as CreateComponentInstance response is nil")
 	}
 
 	log.WithFields(log.Fields{

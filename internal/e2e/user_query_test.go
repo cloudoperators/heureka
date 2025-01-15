@@ -21,6 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
+	"github.com/cloudoperators/heureka/internal/e2e/common"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/server"
 )
@@ -73,8 +74,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
-
-			Expect(respData.Users.TotalCount).To(Equal(0))
+			e2e_common.ExpectNonSystemUserCount(respData.Users.TotalCount, 0)
 		})
 	})
 
@@ -112,7 +112,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 						logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 					}
 
-					Expect(respData.Users.TotalCount).To(Equal(len(seedCollection.UserRows)))
+					e2e_common.ExpectNonSystemUserCount(respData.Users.TotalCount, len(seedCollection.UserRows))
 					Expect(len(respData.Users.Edges)).To(Equal(5))
 				})
 			})
@@ -145,7 +145,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 				})
 
 				It("- returns the correct result count", func() {
-					Expect(respData.Users.TotalCount).To(Equal(len(seedCollection.UserRows)))
+					e2e_common.ExpectNonSystemUserCount(respData.Users.TotalCount, len(seedCollection.UserRows))
 					Expect(len(respData.Users.Edges)).To(Equal(5))
 				})
 
@@ -188,7 +188,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 					Expect(*respData.Users.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
 					Expect(*respData.Users.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
 					Expect(respData.Users.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-					Expect(len(respData.Users.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
+					Expect(len(respData.Users.PageInfo.Pages)).To(Equal(3), "Correct amount of pages")
 					Expect(*respData.Users.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 				})
 			})
@@ -229,35 +229,10 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new user", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/user/create.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("input", map[string]string{
-					"uniqueUserId": user.UniqueUserID,
-					"type":         entity.GetUserTypeString(user.Type),
-					"name":         user.Name,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
-					User model.User `json:"createUser"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
-
-				Expect(*respData.User.Name).To(Equal(user.Name))
-				Expect(*respData.User.UniqueUserID).To(Equal(user.UniqueUserID))
-				Expect(entity.UserType(respData.User.Type)).To(Equal(user.Type))
+				respUser := e2e_common.QueryCreateUser(cfg.Port, e2e_common.User{UniqueUserID: user.UniqueUserID, Type: user.Type, Name: user.Name})
+				Expect(*respUser.Name).To(Equal(user.Name))
+				Expect(*respUser.UniqueUserID).To(Equal(user.UniqueUserID))
+				Expect(entity.UserType(respUser.Type)).To(Equal(user.Type))
 			})
 		})
 	})
@@ -295,37 +270,12 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 
 		Context("and a mutation query is performed", Label("update.graphql"), func() {
 			It("updates user", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/user/update.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				user := seedCollection.UserRows[0].AsUser()
 				user.Name = "Sauron"
-
-				req.Var("id", fmt.Sprintf("%d", user.Id))
-				req.Var("input", map[string]string{
-					"name": user.Name,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
-					User model.User `json:"updateUser"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
-
-				Expect(*respData.User.Name).To(Equal(user.Name))
-				Expect(*respData.User.UniqueUserID).To(Equal(user.UniqueUserID))
-				Expect(entity.UserType(respData.User.Type)).To(Equal(user.Type))
+				respUser := e2e_common.QueryUpdateUser(cfg.Port, e2e_common.User{UniqueUserID: user.UniqueUserID, Name: user.Name, Type: user.Type}, fmt.Sprintf("%d", user.Id))
+				Expect(*respUser.Name).To(Equal(user.Name))
+				Expect(*respUser.UniqueUserID).To(Equal(user.UniqueUserID))
+				Expect(entity.UserType(respUser.Type)).To(Equal(user.Type))
 			})
 		})
 	})

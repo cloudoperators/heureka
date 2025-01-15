@@ -9,6 +9,7 @@ type IssueMatchChange implements Node {
     issueMatch: IssueMatch!
     activityId: String
     activity: Activity!
+    metadata: Metadata
 }
 
 input IssueMatchChangeInput {

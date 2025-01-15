@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestIssueRepositoryHandler(t *testing.T) {
@@ -132,6 +133,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 
 	It("creates issueRepository", func() {
 		filter.Name = []*string{&issueRepository.Name}
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
@@ -192,6 +194,7 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 	})
 
 	It("updates issueRepository", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueRepository", &issueRepository).Return(nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
 		issueRepository.Name = "SecretRepository"

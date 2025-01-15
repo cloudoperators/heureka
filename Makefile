@@ -12,6 +12,8 @@ ifeq ($(wildcard .env),.env)
     export $(shell sed 's/=.*//' .env)
 endif
 
+all: build-binary test-all
+
 build-binary: mockery gqlgen
 	GO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o build/heureka cmd/heureka/main.go
 
@@ -41,16 +43,16 @@ echo:
 build-image:
 	docker buildx build -t $(SERVER_IMAGE):$(VERSION) -t $(SERVER_IMAGE):latest . --load
 
-build-scanner-images: build-scanner-k8s-assets-image build-scanner-keppel build-scanner-nvd
+build-scanner-images: build-scanner-k8s-assets-image build-scanner-keppel-image build-scanner-nvd-image
 
 build-scanner-k8s-assets-image:
-	docker buildx build -t $(SERVER_IMAGE)-scanner-k8s-assets:$(VERSION) -t $(SERVER_IMAGE)-scanner-k8s-assets:latest -f Dockerfile.scanner-k8s-assets . --load
+	docker buildx build -t $(SERVER_IMAGE)-scanner-k8s-assets:$(VERSION) -t $(SERVER_IMAGE)-scanner-k8s-assets:latest -f ./scanner/k8s-assets/Dockerfile . --load
 
-build-scanner-keppel:
-	docker buildx build -t $(SERVER_IMAGE)-scanner-keppel:$(VERSION) -t $(SERVER_IMAGE)-scanner-keppel:latest -f Dockerfile.scanner-keppel . --load
+build-scanner-keppel-image:
+	docker buildx build -t $(SERVER_IMAGE)-scanner-keppel:$(VERSION) -t $(SERVER_IMAGE)-scanner-keppel:latest -f ./scanner/keppel/Dockerfile . --load
 
-build-scanner-nvd:
-	docker buildx build -t $(SERVER_IMAGE)-scanner-nvd:$(VERSION) -t $(SERVER_IMAGE)-scanner-nvd:latest -f Dockerfile.scanner-nvd . --load
+build-scanner-nvd-image:
+	docker buildx build -t $(SERVER_IMAGE)-scanner-nvd:$(VERSION) -t $(SERVER_IMAGE)-scanner-nvd:latest -f ./scanner/nvd/Dockerfile . --load
 
 push:
 	docker push $(SERVER_IMAGE):$(VERSION)
@@ -62,20 +64,24 @@ run:
 gqlgen:
 	cd internal/api/graphql && go run github.com/99designs/gqlgen generate
 
-mockery:
+mockery: install-build-dependencies
 	mockery
+
+install-build-dependencies:
+	go install github.com/vektra/mockery/v2@v2.46.3
+
 
 GINKGO := go run github.com/onsi/ginkgo/v2/ginkgo
 test-all: mockery gqlgen
 	$(GINKGO) -r
 
-test-e2e:
+test-e2e: gqlgen
 	$(GINKGO) -r internal/e2e
 
-test-app:
+test-app: gqlgen
 	$(GINKGO) -r internal/app
 
-test-db:
+test-db: gqlgen
 	$(GINKGO) -r internal/database/mariadb
 
 fmt:

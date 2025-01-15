@@ -141,6 +141,14 @@ func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*e
 		"object": issueMatch,
 	})
 
+	var err error
+	issueMatch.CreatedBy, err = common.GetCurrentUserId(im.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity (GetUserId).")
+	}
+	issueMatch.UpdatedBy = issueMatch.CreatedBy
+
 	severityFilter := &entity.SeverityFilter{
 		IssueId: []*int64{&issueMatch.IssueId},
 	}
@@ -175,7 +183,14 @@ func (im *issueMatchHandler) UpdateIssueMatch(issueMatch *entity.IssueMatch) (*e
 		"object": issueMatch,
 	})
 
-	err := im.database.UpdateIssueMatch(issueMatch)
+	var err error
+	issueMatch.UpdatedBy, err = common.GetCurrentUserId(im.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity (GetUserId).")
+	}
+
+	err = im.database.UpdateIssueMatch(issueMatch)
 
 	if err != nil {
 		l.Error(err)

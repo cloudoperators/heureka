@@ -18,7 +18,7 @@ type GraphQLAPI struct {
 	Server *handler.Server
 	App    app.Heureka
 
-	auth access.Auth
+	auth *access.Auth
 }
 
 func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {

@@ -7,8 +7,7 @@ type IssueRepository implements Node {
     url: String
     issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
-    created_at: DateTime
-    updated_at: DateTime
+    metadata: Metadata
 }
 
 input IssueRepositoryInput {
@@ -26,8 +25,7 @@ type IssueRepositoryEdge implements Edge {
     node: IssueRepository!
     cursor: String
     priority: Int
-    created_at: DateTime
-    updated_at: DateTime
+    metadata: Metadata
 }
 
 input IssueRepositoryFilter {

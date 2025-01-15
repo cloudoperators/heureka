@@ -8,6 +8,7 @@ type ComponentVersion implements Node {
     component: Component
     issues(first: Int, after: String): IssueConnection
     componentInstances(first: Int, after: String): ComponentInstanceConnection
+    metadata: Metadata
 }
 
 input ComponentVersionInput {

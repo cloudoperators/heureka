@@ -11,12 +11,14 @@ import (
 func NewFakeIssueRepositoryEntity() entity.IssueRepository {
 	return entity.IssueRepository{
 		BaseIssueRepository: entity.BaseIssueRepository{
-			Id:        int64(gofakeit.Number(1, 10000000)),
-			Name:      gofakeit.Noun(),
-			Url:       gofakeit.URL(),
-			CreatedAt: gofakeit.Date(),
-			DeletedAt: gofakeit.Date(),
-			UpdatedAt: gofakeit.Date(),
+			Id:   int64(gofakeit.Number(1, 10000000)),
+			Name: gofakeit.Noun(),
+			Url:  gofakeit.URL(),
+			Metadata: entity.Metadata{
+				CreatedAt: gofakeit.Date(),
+				DeletedAt: gofakeit.Date(),
+				UpdatedAt: gofakeit.Date(),
+			},
 		},
 		IssueRepositoryService: entity.IssueRepositoryService{
 			Priority: int64(gofakeit.Number(1, 10)),

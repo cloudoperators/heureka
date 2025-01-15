@@ -3,9 +3,8 @@
 
 package entity
 
-import "time"
-
 type IssueVariant struct {
+	Metadata
 	Id                int64            `json:"id"`
 	IssueRepositoryId int64            `json:"issue_repository_id"`
 	IssueRepository   *IssueRepository `json:"issue_repository"`
@@ -14,9 +13,6 @@ type IssueVariant struct {
 	Issue             *Issue           `json:"issue"`
 	Severity          Severity         `json:"severity"`
 	Description       string           `json:"description"`
-	CreatedAt         time.Time        `json:"created_at"`
-	DeletedAt         time.Time        `json:"deleted_at,omitempty"`
-	UpdatedAt         time.Time        `json:"updated_at"`
 }
 
 type IssueVariantFilter struct {
@@ -62,6 +58,7 @@ type ServiceIssueVariant struct {
 type ServiceIssueVariantFilter struct {
 	Paginated
 	ComponentInstanceId []*int64 `json:"component_instance_id"`
+	IssueId             []*int64 `json:"issue_id"`
 }
 
 func NewServiceIssueVariantFilter() *ServiceIssueVariantFilter {

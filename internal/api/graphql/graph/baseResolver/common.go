@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	FilterDisplayServiceCcrn      string = "Service CCRN"
-	FilterDisplaySupportGroupCcrn string = "Support Group CCRN"
+	FilterDisplayServiceCcrn      string = "Service"
+	FilterDisplaySupportGroupCcrn string = "Support Group"
 	FilterDisplayUserName         string = "User Name"
 	FilterDisplayUniqueUserId     string = "Unique User ID"
-	FilterDisplayComponentCcrn    string = "Component CCRN"
+	FilterDisplayComponentCcrn    string = "Pod"
 	FilterDisplayIssueType        string = "Issue Type"
 	FilterDisplayIssueMatchStatus string = "Issue Match Status"
 	FilterDisplayIssueMatchID     string = "Issue Match ID"
@@ -102,6 +102,6 @@ func GetListOptions(requestedFields []string) *entity.ListOptions {
 	return &entity.ListOptions{
 		ShowTotalCount:      lo.Contains(requestedFields, "totalCount"),
 		ShowPageInfo:        lo.Contains(requestedFields, "pageInfo"),
-		IncludeAggregations: lo.Contains(requestedFields, "edges.node.metadata"),
+		IncludeAggregations: lo.Contains(requestedFields, "edges.node.objectMetadata"),
 	}
 }

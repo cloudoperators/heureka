@@ -164,6 +164,14 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 		"filter": f,
 	})
 
+	var err error
+	service.BaseService.CreatedBy, err = common.GetCurrentUserId(s.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while creating service (GetUserId).")
+	}
+	service.BaseService.UpdatedBy = service.BaseService.CreatedBy
+
 	services, err := s.ListServices(f, &entity.ListOptions{})
 
 	if err != nil {
@@ -193,7 +201,14 @@ func (s *serviceHandler) UpdateService(service *entity.Service) (*entity.Service
 		"object": service,
 	})
 
-	err := s.database.UpdateService(service)
+	var err error
+	service.BaseService.UpdatedBy, err = common.GetCurrentUserId(s.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while updating service (GetUserId).")
+	}
+
+	err = s.database.UpdateService(service)
 
 	if err != nil {
 		l.Error(err)

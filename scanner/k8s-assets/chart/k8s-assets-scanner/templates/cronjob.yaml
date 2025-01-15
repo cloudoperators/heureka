@@ -11,6 +11,7 @@ spec:
     spec:
       template:
         spec:
+          serviceAccountName: {{ include "k8s-assets-scanner.serviceAccountName" . }}
           volumes:
           - name: config-volume
             configMap:
@@ -23,6 +24,8 @@ spec:
             - name: config-volume
               mountPath: "{{ .Values.scanner.config_mount_path }}"
               readOnly: true
+            command:
+              - /heureka-scanner-k8s-assets
             env:
             - name: HEUREKA_API_TOKEN
               valueFrom:
@@ -31,8 +34,16 @@ spec:
                   key: api_token
             - name: HEUREKA_URL
               value: {{ .Values.scanner.heureka_url }}
-            args:
-            - /bin/sh
-            - -c
-            - date; echo Hello from the Kubernetes cluster
+            - name: SUPPORT_GROUP_LABEL
+              value: {{ .Values.scanner.support_group_label }}
+            - name: SERVICE_CCRN_LABEL
+              value: {{ .Values.scanner.service_label }}
+            - name: SCANNER_TIMEOUT
+              value: {{ .Values.scanner.scanner_timeout }}
+            - name: HEUREKA_CLUSTER_NAME
+              value: {{ .Values.scanner.k8s_cluster_name }}
+            - name: HEUREKA_CLUSTER_REGION
+              value: {{ .Values.scanner.k8s_cluster_region }}
+            - name: KUBE_CONFIG_TYPE
+              value: "in-cluster"
           restartPolicy: OnFailure

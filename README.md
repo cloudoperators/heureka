@@ -32,7 +32,6 @@ For a detailed understanding of Heureka's architecture and design, refer to the 
 - [High-Level Architecture Diagram](https://github.com/cloudoperators/heureka/blob/main/docs/product_design_documentation.md#high-level-features): This provides a visual representation of the overall system architecture.
 - [High-Level Features](https://github.com/cloudoperators/heureka/blob/main/docs/product_design_documentation.md#high-level-features): A high-level overview of Heureka's functionalities.
 
-
 ## Requirements and Setup
 
 The application can be configured using environment variables. These variables are stored in a `.env` file at the root of the project.
@@ -61,6 +60,8 @@ LOCAL_TEST_DB=true
 
 SEED_MODE=false
 ```
+
+To enable JWT token authentication, define `AUTH_TOKEN_SECRET` environment variable. Those variable is read by application on startup to start token validation middleware.
 
 ### Docker
 
@@ -121,7 +122,9 @@ Use the following command in the root folder of heureka:
 
 Heureka uses [Mockery](https://vektra.github.io/mockery/) for building Mocks based on defined interfaces for the purpose of Unit-Testing.
 
-Please [follow the steps to install mockery on your local system](https://vektra.github.io/mockery/latest/installation/) to be able to build mocks.
+The Makefile/Dockerfile take care of installing mockery via
+
+    go install github.com/vektra/mockery/v2@v2.46.3
 
 #### Using Ginkgo
 

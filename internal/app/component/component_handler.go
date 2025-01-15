@@ -115,6 +115,14 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 		"filter": f,
 	})
 
+	var err error
+	component.CreatedBy, err = common.GetCurrentUserId(cs.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while creating component (GetUserId).")
+	}
+	component.UpdatedBy = component.CreatedBy
+
 	components, err := cs.ListComponents(f, &entity.ListOptions{})
 
 	if err != nil {
@@ -144,7 +152,14 @@ func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entit
 		"object": component,
 	})
 
-	err := cs.database.UpdateComponent(component)
+	var err error
+	component.UpdatedBy, err = common.GetCurrentUserId(cs.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while updating component (GetUserId).")
+	}
+
+	err = cs.database.UpdateComponent(component)
 
 	if err != nil {
 		l.Error(err)

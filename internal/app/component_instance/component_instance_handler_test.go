@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	mock "github.com/stretchr/testify/mock"
 )
 
 func TestComponentInstanceHandler(t *testing.T) {
@@ -121,6 +122,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 	})
 
 	It("creates componentInstance", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
 		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance)
@@ -158,6 +160,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 	})
 
 	It("updates componentInstance", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentInstance", &componentInstance).Return(nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
 		componentInstance.CCRN = "NewCCRN"

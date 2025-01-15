@@ -68,6 +68,9 @@ func (s *SqlDatabase) getActivityUpdateFields(activity *entity.Activity) string 
 	if activity.Status != "" {
 		fl = append(fl, "activity_status = :activity_status")
 	}
+	if activity.UpdatedBy != 0 {
+		fl = append(fl, "activity_updated_by = :activity_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 
@@ -208,9 +211,13 @@ func (s *SqlDatabase) CreateActivity(activity *entity.Activity) (*entity.Activit
 
 	query := `
 		INSERT INTO Activity (
-			activity_status
+			activity_status,
+			activity_created_by,
+			activity_updated_by
 		) VALUES (
-		 	:activity_status
+			:activity_status,
+			:activity_created_by,
+			:activity_updated_by
 		)
 	`
 

@@ -6,24 +6,27 @@
 # Declare variables to be passed into your templates.
 
 scanner:
-  api_token: "my_token"
-  heureka_url: "api.heureka.greenhouse-qa.eu-nl-1.cloud.sap"
+  api_token: ""
+  heureka_url: ""
   config_mount_path: "/etc/heureka/config/k8s-assets-scanner"
   schedule: "0 * * * *"
+  support_group_label: "ccloud/support-group"
+  service_label: "ccloud/service"
+  scanner_timeout: "30s"
 
 image:
   repository: ghcr.io/cloudoperators/heureka-scanner-k8s-assets
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "main"
+  tag: "latest"
 
 serviceAccount:
   # Specifies whether a service account should be created
-  create: false
+  create: true
   # Automatically mount a ServiceAccount's API credentials?
   automount: true
   # Annotations to add to the service account
   annotations: {}
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
-  name: ""
+  name: "heureka-k8s-assets-scanner-sa"
