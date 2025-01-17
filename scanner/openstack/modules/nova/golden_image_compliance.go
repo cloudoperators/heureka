@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package nova
 
 import (
@@ -11,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// policy4dot5Check checks if the given image name complies with policy 4.5.
+// Policy4dot5Check checks if the given image name complies with policy 4.5.
 // Policy 4.5 requires that the image name contains either "gardenlinux" or "SAP-compliant".
 //
 // Parameters:
@@ -21,7 +24,7 @@ import (
 // Returns:
 //
 //	bool: Returns true if the image name complies with policy 4.5, otherwise false.
-func policy4dot5Check(imgName string, imgOwner string) bool {
+func Policy4dot5Check(imgName string, imgOwner string) bool {
 	// This is a temporary hardcoded implementation of policy 4.5 for the OpenStack scanner PoC
 	// This function will be replaced by the actual implementation of policy checks in the future
 	// Policy 4.5 checks that the image name contains either "gardenlinux" or "SAP-compliant"
@@ -136,7 +139,7 @@ func ComputeGoldenImageCompliance(osScanner *scanner.Scanner, osProcessor *proce
 		}
 
 		// Perform policy checks
-		if policy4dot5Check(imageName, imageOwner) {
+		if Policy4dot5Check(imageName, imageOwner) {
 			// Compliant
 			// Need to decide what to do here, if anything.
 			// but for now we can just log it
