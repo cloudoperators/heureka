@@ -30,6 +30,7 @@ type IssueMetadata {
 input IssueInput {
     primaryName: String
     description: String
+    uuid: String
     type: IssueTypes
 }
 

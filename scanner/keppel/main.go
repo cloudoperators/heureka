@@ -78,7 +78,7 @@ func main() {
 	}
 
 	keppelScanner := scanner.NewScanner(scannerCfg)
-	keppelProcessor := processor.NewProcessor(processorCfg)
+	keppelProcessor := processor.NewProcessor(processorCfg, "Keppel")
 
 	err = keppelScanner.Setup()
 	if err != nil {
@@ -94,9 +94,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	keppelProcessor.CreateScannerRun(ctx)
+
 	if err := processConcurrently(ctx, components, keppelScanner, keppelProcessor); err != nil {
 		log.WithError(err).Error("Error during concurrent processing")
 	}
+
+	keppelProcessor.CompleteScannerRun(ctx)
 }
 
 func processConcurrently(
