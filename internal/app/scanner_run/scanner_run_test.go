@@ -29,7 +29,7 @@ var _ = BeforeSuite(func() {
 
 var sre *entity.ScannerRun
 
-var _ = Describe("When creating ScannerRun", Label("app", "CreateScannerRun"), func() {
+var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	var (
 		db                *mocks.MockDatabase
 		scannerRunHandler ScannerRunHandler
@@ -45,5 +45,14 @@ var _ = Describe("When creating ScannerRun", Label("app", "CreateScannerRun"), f
 
 		scannerRunHandler = NewScannerRunHandler(db, er)
 		scannerRunHandler.CreateScannerRun(sre)
+	})
+
+	It("creates a scannerrun and completes it", func() {
+		db.On("CreateScannerRun", sre).Return(sre, nil)
+		db.On("CompleteScannerRun", sre.UUID).Return(true, nil)
+
+		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRunHandler.CreateScannerRun(sre)
+		scannerRunHandler.CompleteScannerRun(sre.UUID)
 	})
 })

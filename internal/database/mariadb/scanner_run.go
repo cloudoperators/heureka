@@ -43,3 +43,21 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (*entity.S
 
 	return scannerRun, nil
 }
+
+func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {
+	updateQuery := `UPDATE ScannerRun 
+					SET 
+						scannerrun_is_completed = TRUE,
+						scannerrun_end_run = current_timestamp()
+					WHERE 
+						scannerrun_uuid = ? AND
+						scannerrun_is_completed = FALSE`
+
+	_, err := s.db.Exec(updateQuery, uuid)
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
