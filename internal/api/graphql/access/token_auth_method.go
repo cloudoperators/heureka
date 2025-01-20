@@ -4,7 +4,6 @@
 package access
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -14,24 +13,16 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
-type ginContextKeyType string
-
 const (
-	ginContextKey   ginContextKeyType = "GinContextKey"
-	scannerNameKey  string            = "scannername"
-	tokenAuthHeader string            = "X-Service-Authorization"
+	tokenAuthHeader     string = "X-Service-Authorization"
+	tokenAuthMethodName string = "TokenAuthMethod"
 )
 
-func NewTokenAuthMethod(l Logger, cfg *util.Config) *TokenAuthMethod {
+func NewTokenAuthMethod(l Logger, cfg *util.Config) authMethod {
 	if cfg.AuthTokenSecret != "" {
 		return &TokenAuthMethod{logger: l, secret: []byte(cfg.AuthTokenSecret)}
 	}
 	return nil
-}
-
-type TokenClaims struct {
-	Version string `json:"version"`
-	jwt.RegisteredClaims
 }
 
 type TokenAuthMethod struct {
@@ -39,11 +30,13 @@ type TokenAuthMethod struct {
 	secret []byte
 }
 
-func (tam TokenAuthMethod) Verify(c *gin.Context) error {
+func (tam TokenAuthMethod) AddWhitelistRoutes(*gin.Engine) {
+}
 
-	tokenString, err := getTokenFromHeader(c)
+func (tam TokenAuthMethod) Verify(c *gin.Context) error {
+	tokenString, err := getAuthTokenFromHeader(tokenAuthHeader, c)
 	if err != nil {
-		return err
+		return verifyError(tokenAuthMethodName, err)
 	}
 
 	claims, err := tam.verifyTokenAndGetClaimsFromTokenString(tokenString)
@@ -56,22 +49,9 @@ func (tam TokenAuthMethod) Verify(c *gin.Context) error {
 		return err
 	}
 
-	scannerNameToContext(c, claims)
+	ginContextSet(c, scannerNameKey, claims.RegisteredClaims.Subject)
 
 	return nil
-}
-
-func verifyError(s string) error {
-	return fmt.Errorf("TokenAuthMethod(%s)", s)
-}
-
-func getTokenFromHeader(c *gin.Context) (string, error) {
-	var err error
-	tokenString := c.GetHeader(tokenAuthHeader)
-	if tokenString == "" {
-		err = verifyError("No authorization header")
-	}
-	return tokenString, err
 }
 
 func (tam TokenAuthMethod) verifyTokenAndGetClaimsFromTokenString(tokenString string) (*TokenClaims, error) {
@@ -79,10 +59,10 @@ func (tam TokenAuthMethod) verifyTokenAndGetClaimsFromTokenString(tokenString st
 	token, err := jwt.ParseWithClaims(tokenString, claims, tam.parse)
 	if err != nil {
 		tam.logger.Error("JWT parsing error: ", err)
-		err = verifyError("Token parsing error")
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("Token parsing error"))
 	} else if !token.Valid {
 		tam.logger.Error("Invalid token")
-		err = verifyError("Invalid token")
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("Invalid token"))
 	}
 	return claims, err
 }
@@ -91,18 +71,12 @@ func (tam TokenAuthMethod) verifyTokenExpiration(tc *TokenClaims) error {
 	var err error
 	if tc.ExpiresAt == nil {
 		tam.logger.Error("Missing ExpiresAt in token claims")
-		err = verifyError("Missing ExpiresAt in token claims")
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("Missing ExpiresAt in token claims"))
 	} else if tc.ExpiresAt.Before(time.Now()) {
 		tam.logger.Warn("Expired token")
-		err = verifyError("Expired token")
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("Expired token"))
 	}
 	return err
-}
-
-func scannerNameToContext(c *gin.Context, tc *TokenClaims) {
-	c.Set(scannerNameKey, tc.RegisteredClaims.Subject)
-	ctx := context.WithValue(c.Request.Context(), ginContextKey, c)
-	c.Request = c.Request.WithContext(ctx)
 }
 
 func (tam *TokenAuthMethod) parse(token *jwt.Token) (interface{}, error) {
@@ -110,34 +84,4 @@ func (tam *TokenAuthMethod) parse(token *jwt.Token) (interface{}, error) {
 		return nil, fmt.Errorf("Invalid JWT parse method")
 	}
 	return tam.secret, nil
-}
-
-func ScannerNameFromContext(ctx context.Context) (string, error) {
-	gc, err := ginContextFromContext(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	s, ok := gc.Get(scannerNameKey)
-	if !ok {
-		return "", fmt.Errorf("could not find scanner name in gin.Context")
-	}
-	ss, ok := s.(string)
-	if !ok {
-		return "", fmt.Errorf("invalid scanner name type")
-	}
-	return ss, nil
-}
-
-func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
-	ginContext := ctx.Value(ginContextKey)
-	if ginContext == nil {
-		return nil, fmt.Errorf("could not retrieve gin.Context")
-	}
-
-	gc, ok := ginContext.(*gin.Context)
-	if !ok {
-		return nil, fmt.Errorf("gin.Context has wrong type")
-	}
-	return gc, nil
 }

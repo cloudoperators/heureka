@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/access"
@@ -24,6 +25,24 @@ const (
 
 func SendGetRequest(url string, headers map[string]string) *http.Response {
 	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	Expect(err).To(BeNil())
+	for k, v := range headers {
+		req.Header.Add(k, v)
+	}
+	resp, err := client.Do(req)
+	Expect(err).To(BeNil())
+	return resp
+}
+
+func CreateCookieJar() *cookiejar.Jar {
+	jar, err := cookiejar.New(nil)
+	Expect(err).To(BeNil())
+	return jar
+}
+
+func SendGetRequestWithCookieJar(url string, headers map[string]string, jar *cookiejar.Jar) *http.Response {
+	client := &http.Client{Jar: jar}
 	req, err := http.NewRequest("GET", url, nil)
 	Expect(err).To(BeNil())
 	for k, v := range headers {

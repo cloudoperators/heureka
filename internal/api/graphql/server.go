@@ -31,6 +31,7 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 }
 
 func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
+	g.auth.AddWhitelistRoutes(router)
 	router.Use(g.auth.GetMiddleware())
 	router.GET("/playground", g.playgroundHandler())
 	router.POST("/query", g.graphqlHandler())
