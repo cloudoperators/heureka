@@ -25,15 +25,15 @@ type ScannerRunHandlerError struct {
 	msg string
 }
 
-func (srh *scannerRunHandler) CreateScannerRun(sr *entity.ScannerRun) (*entity.ScannerRun, error) {
+func (srh *scannerRunHandler) CreateScannerRun(sr *entity.ScannerRun) (bool, error) {
 	_, err := srh.database.CreateScannerRun(sr)
 
 	if err != nil {
-		return nil, &ScannerRunHandlerError{msg: "Error creating scanner run"}
+		return false, &ScannerRunHandlerError{msg: "Error creating scanner run"}
 	}
 
 	srh.eventRegistry.PushEvent(&CreateScannerRunEvent{sr})
-	return sr, nil
+	return true, nil
 }
 
 func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (bool, error) {

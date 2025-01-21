@@ -41,14 +41,14 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	})
 
 	It("creates a scannerrun", func() {
-		db.On("CreateScannerRun", sre).Return(sre, nil)
+		db.On("CreateScannerRun", sre).Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(db, er)
 		scannerRunHandler.CreateScannerRun(sre)
 	})
 
 	It("creates a scannerrun and completes it", func() {
-		db.On("CreateScannerRun", sre).Return(sre, nil)
+		db.On("CreateScannerRun", sre).Return(true, nil)
 		db.On("CompleteScannerRun", sre.UUID).Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(db, er)

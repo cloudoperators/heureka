@@ -126,7 +126,7 @@ type Database interface {
 	UpdateComponentVersion(*entity.ComponentVersion) error
 	DeleteComponentVersion(int64) error
 
-	CreateScannerRun(*entity.ScannerRun) (*entity.ScannerRun, error)
+	CreateScannerRun(*entity.ScannerRun) (bool, error)
 	CompleteScannerRun(string) (bool, error)
 
 	CloseConnection() error

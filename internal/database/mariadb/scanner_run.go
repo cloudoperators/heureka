@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (*entity.ScannerRun, error) {
+func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (bool, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"scannerrun": scannerRun,
 		"event":      "database.CreateScannerRun",
@@ -36,12 +36,12 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (*entity.S
 	id, err := performInsert(s, query, srr, l)
 
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	scannerRun.RunID = id
 
-	return scannerRun, nil
+	return true, nil
 }
 
 func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {

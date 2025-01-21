@@ -70,6 +70,6 @@ type Mutation {
     addIssueToActivity(activityId: ID!, issueId: ID!): Activity!
     removeIssueFromActivity(activityId: ID!, issueId: ID!): Activity!
 
-    createScannerRun(input: ScannerRunInput!): ScannerRun!
+    createScannerRun(input: ScannerRunInput!): Boolean!
     completeScannerRun(uuid: String!): Boolean!
 }

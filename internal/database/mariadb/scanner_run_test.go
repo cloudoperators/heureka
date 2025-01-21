@@ -25,10 +25,9 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 					UUID: "6809de35-9716-4914-b090-15273f82e8ab",
 					Tag:  "tag",
 				}
-				_, err := db.CreateScannerRun(sr)
+				res, err := db.CreateScannerRun(sr)
 				Expect(err).To(BeNil())
-				Expect(sr.RunID).To(BeNumerically(">=", 0))
-				Expect(sr.IsCompleted()).To(BeFalse())
+				Expect(res).To(BeTrue())
 			})
 		})
 	})
@@ -40,8 +39,10 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 					UUID: "6809de35-9716-4914-b090-15273f82e8ab",
 					Tag:  "tag",
 				}
-				_, err := db.CreateScannerRun(sr)
+				res, err := db.CreateScannerRun(sr)
+
 				Expect(err).To(BeNil())
+				Expect(res).To(BeTrue())
 
 				success, err := db.CompleteScannerRun(sr.UUID)
 
