@@ -15,7 +15,7 @@ import (
 
 var adminCount int
 
-// policy2dot2Check checks if the given user complies with policy 2.2.
+// Policy2dot2Check checks if the given user complies with policy 2.2.
 // Policy 2.2 requires that project users do not contain the role "admin".
 //
 // Parameters:
@@ -24,7 +24,7 @@ var adminCount int
 //
 // Returns:
 // - bool: Returns true if the user complies with policy 2.2, otherwise false.
-func policy2dot2Check(userName string, roles []string) bool {
+func Policy2dot2Check(userName string, roles []string) bool {
 	isAdmin := false
 	isTechnicalUser := strings.HasPrefix(userName, "TM3")
 	compliant := true
@@ -155,7 +155,7 @@ func ComputeUserRoleCompliance(osScanner *scanner.Scanner, osProcessor *processo
 			}
 
 			// Perform policy checks
-			if policy2dot2Check(userName, userRoles) {
+			if Policy2dot2Check(userName, userRoles) {
 				// Compliant
 				// Need to decide what to do here, if anything.
 				// but for now we can just log it
