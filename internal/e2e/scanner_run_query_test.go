@@ -14,7 +14,6 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/server"
 
-	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -66,15 +65,13 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				ctx := context.Background()
 
 				var respData struct {
-					ScannerRun model.ScannerRun `json:"createScannerRun"`
+					Result bool `json:"createScannerRun"`
 				}
 				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*&respData.ScannerRun.ID).To(Equal("1"))
-				Expect(*&respData.ScannerRun.Tag).To(Equal(sampleTag))
-				Expect(*&respData.ScannerRun.UUID).To(Equal(sampleUUID))
+				Expect(respData.Result).To(BeTrue())
 			})
 		})
 	})
