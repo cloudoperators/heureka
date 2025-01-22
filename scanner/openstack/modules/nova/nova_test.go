@@ -17,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = Describe("Processor", func() {
+var _ = Describe("Nova", func() {
 	var (
 		scannerCfg        scanner.Config
 		processorsCfg     processor.Config
