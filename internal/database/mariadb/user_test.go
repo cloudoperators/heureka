@@ -528,7 +528,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			It("can delete user correctly", func() {
 				user := seedCollection.UserRows[0].AsUser()
 
-				err := db.DeleteUser(user.Id)
+				err := db.DeleteUser(user.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

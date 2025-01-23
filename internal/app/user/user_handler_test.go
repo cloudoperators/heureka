@@ -201,7 +201,8 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 	})
 
 	It("deletes user", func() {
-		db.On("DeleteUser", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteUser", id, mock.Anything).Return(nil)
 		userHandler = u.NewUserHandler(db, er)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
 		err := userHandler.DeleteUser(id)

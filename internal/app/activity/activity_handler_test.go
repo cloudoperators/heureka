@@ -190,7 +190,8 @@ var _ = Describe("When deleting Activity", Label("app", "DeleteActivity"), func(
 	})
 
 	It("deletes activity", func() {
-		db.On("DeleteActivity", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteActivity", id, mock.Anything).Return(nil)
 		activityHandler = a.NewActivityHandler(db, er)
 		db.On("GetActivities", filter).Return([]entity.Activity{}, nil)
 		err := activityHandler.DeleteActivity(id)

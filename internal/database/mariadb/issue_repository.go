@@ -18,7 +18,7 @@ func (s *SqlDatabase) getIssueRepositoryFilterString(filter *entity.IssueReposit
 	fl = append(fl, buildFilterQuery(filter.Id, "IR.issuerepository_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "IRS.issuerepositoryservice_service_id = ?", OP_OR))
-	fl = append(fl, "IR.issuerepository_deleted_at IS NULL")
+	fl = appendStateFilterQuery(fl, "IR.issuerepository", filter.State)
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -270,7 +270,7 @@ func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueReposit
 	return err
 }
 
-func (s *SqlDatabase) DeleteIssueRepository(id int64) error {
+func (s *SqlDatabase) DeleteIssueRepository(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteIssueRepository",
@@ -278,12 +278,14 @@ func (s *SqlDatabase) DeleteIssueRepository(id int64) error {
 
 	query := `
 		UPDATE IssueRepository SET
-		issuerepository_deleted_at = NOW()
+		issuerepository_deleted_at = NOW(),
+		issuerepository_updated_by = :userId
 		WHERE issuerepository_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

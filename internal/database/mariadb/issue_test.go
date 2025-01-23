@@ -678,7 +678,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			It("can delete issue correctly", func() {
 				issue := seedCollection.IssueRows[0].AsIssue()
 
-				err := db.DeleteIssue(issue.Id)
+				err := db.DeleteIssue(issue.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

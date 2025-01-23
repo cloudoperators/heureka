@@ -242,7 +242,13 @@ func (is *issueHandler) DeleteIssue(id int64) error {
 		"id":    id,
 	})
 
-	err := is.database.DeleteIssue(id)
+	userId, err := common.GetCurrentUserId(is.database)
+	if err != nil {
+		l.Error(err)
+		return NewIssueHandlerError("Internal error while deleting issue (GetUserId).")
+	}
+
+	err = is.database.DeleteIssue(id, userId)
 
 	if err != nil {
 		l.Error(err)

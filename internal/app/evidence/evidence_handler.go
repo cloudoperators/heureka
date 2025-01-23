@@ -172,7 +172,13 @@ func (e *evidenceHandler) DeleteEvidence(id int64) error {
 		"id":    id,
 	})
 
-	err := e.database.DeleteEvidence(id)
+	userId, err := common.GetCurrentUserId(e.database)
+	if err != nil {
+		l.Error(err)
+		return NewEvidenceHandlerError("Internal error while deleting evidence (GetUserId).")
+	}
+
+	err = e.database.DeleteEvidence(id, userId)
 
 	if err != nil {
 		l.Error(err)
