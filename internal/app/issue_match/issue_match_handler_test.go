@@ -71,7 +71,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, nil)
+			db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatch{}, nil)
 			db.On("CountIssueMatches", filter).Return(int64(1337), nil)
 		})
 
@@ -97,7 +97,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 				i++
 				ids = append(ids, i)
 			}
-			db.On("GetIssueMatches", filter).Return(matches, nil)
+			db.On("GetIssueMatches", filter, []entity.Order{}).Return(matches, nil)
 			db.On("GetAllIssueMatchIds", filter).Return(ids, nil)
 			issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 			res, err := issueMatchHandler.ListIssueMatches(filter, options)
@@ -121,7 +121,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		Context("and the given filter does not have any matches in the database", func() {
 
 			BeforeEach(func() {
-				db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, nil)
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatch{}, nil)
 			})
 			It("should return an empty result", func() {
 
@@ -134,7 +134,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssueMatches", filter).Return(test.NNewFakeIssueMatches(15), nil)
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return(test.NNewFakeIssueMatches(15), nil)
 			})
 			It("should return the expected matches in the result", func() {
 				issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
@@ -146,7 +146,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, errors.New("some error"))
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatch{}, errors.New("some error"))
 			})
 
 			It("should return the expected matches in the result", func() {
@@ -250,7 +250,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 			issueMatch.Status = entity.NewIssueMatchStatusValue("new")
 		}
 		filter.Id = []*int64{&issueMatch.Id}
-		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
+		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatch{issueMatch}, nil)
 		updatedIssueMatch, err := issueMatchHandler.UpdateIssueMatch(&issueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
@@ -273,6 +273,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		issueMatchHandler im.IssueMatchHandler
 		id                int64
 		filter            *entity.IssueMatchFilter
+		options           *entity.ListOptions
 	)
 
 	BeforeEach(func() {
@@ -287,17 +288,18 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 				After: &after,
 			},
 		}
+		options = entity.NewListOptions()
 	})
 
 	It("deletes issueMatch", func() {
 		db.On("DeleteIssueMatch", id).Return(nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
-		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, nil)
+		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatch{}, nil)
 		err := issueMatchHandler.DeleteIssueMatch(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, &entity.ListOptions{})
+		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, options)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatches.Elements).To(BeEmpty(), "no error should be thrown")
 	})
@@ -330,7 +332,7 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 
 	It("adds evidence to issueMatch", func() {
 		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
+		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatch{issueMatch}, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		issueMatch, err := issueMatchHandler.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -339,7 +341,7 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 
 	It("removes evidence from issueMatch", func() {
 		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
+		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatch{issueMatch}, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		issueMatch, err := issueMatchHandler.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -467,7 +469,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 			})
 
 			It("should create issue matches for each issue", func() {
-				db.On("GetIssueMatches", mock.Anything).Return([]entity.IssueMatch{}, nil)
+				db.On("GetIssueMatches", mock.Anything, mock.Anything).Return([]entity.IssueMatch{}, nil)
 				// Mock CreateIssueMatch
 				db.On("CreateIssueMatch", mock.AnythingOfType("*entity.IssueMatch")).Return(&entity.IssueMatch{}, nil).Twice()
 				im.OnComponentVersionAssignmentToComponentInstance(db, componentInstanceID, componentVersionID)
@@ -482,7 +484,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					issueMatch := test.NewFakeIssueMatch()
 					issueMatch.IssueId = 2 // issue2.Id
 					//when issueid is 2 return a fake issue match
-					db.On("GetIssueMatches", mock.Anything).Return([]entity.IssueMatch{issueMatch}, nil).Once()
+					db.On("GetIssueMatches", mock.Anything, mock.Anything).Return([]entity.IssueMatch{issueMatch}, nil).Once()
 				})
 
 				It("should should not create new issues", func() {
