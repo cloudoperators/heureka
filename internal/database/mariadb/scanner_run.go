@@ -61,3 +61,20 @@ func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {
 
 	return true, nil
 }
+
+func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) {
+	query := `SELECT 
+				* 
+			  FROM ScannerRun 
+			  WHERE scannerrun_uuid = ?`
+
+	srr := ScannerRunRow{}
+	err := s.db.Get(&srr, query, uuid)
+
+	if err != nil {
+		return nil, err
+	}
+
+	sr := srr.AsScannerRun()
+	return &sr, nil
+}

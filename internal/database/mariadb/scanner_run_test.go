@@ -32,7 +32,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		})
 	})
 
-	When("Creating a new ScannerRun and marking it as complete", Label("Create"), func() {
+	When("Creating a new ScannerRun and marking it as complete", Label("Update"), func() {
 		Context("and the database is empty", func() {
 			It("should be marked as completed correctly", func() {
 				sr := &entity.ScannerRun{
@@ -48,6 +48,26 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 
 				Expect(err).To(BeNil())
 				Expect(success).To(BeTrue())
+			})
+		})
+	})
+
+	When("Creating a new ScannerRun and retrieving it by UUID should work", Label("ByUUID"), func() {
+		Context("and the database is empty", func() {
+			It("should be marked as completed correctly", func() {
+				sr := &entity.ScannerRun{
+					UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+					Tag:  "tag",
+				}
+				res, err := db.CreateScannerRun(sr)
+
+				Expect(err).To(BeNil())
+				Expect(res).To(BeTrue())
+
+				newsr, err := db.ScannerRunByUUID(sr.UUID)
+
+				Expect(err).To(BeNil())
+				Expect(newsr.Tag).To(Equal(sr.Tag))
 			})
 		})
 	})
