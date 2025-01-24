@@ -328,4 +328,45 @@ var _ = Describe("OpenStack Scanner", func() {
 			Expect(len(users)).To(BeEquivalentTo((1)))
 		})
 	})
+
+	Describe("Helper functions", func() {
+		// If its correct, the following cases should also be right
+		Context("FormatServerOutput", func() {
+			DescribeTable("should correctly parse",
+				func(input map[string][]string, expected []map[string]interface{}) {
+					result := scanner.FormatServerOutput(input)
+					Expect(result).To(BeEquivalentTo(expected))
+				},
+				Entry("test formatting",
+					map[string][]string{
+						"test-id": {
+							"role1",
+							"role2",
+						},
+					},
+					[]map[string]interface{}{
+						{
+							"user": "test-id",
+							"roles": []string{
+								"role1",
+								"role2",
+							},
+						},
+					},
+				),
+			)
+		})
+		Context("MD5 Hash", func() {
+			DescribeTable("should correctly hash",
+				func(input string, expected string) {
+					result := scanner.Md5Hash(input)
+					Expect(result).To(BeEquivalentTo(expected))
+				},
+				Entry("test hashing",
+					"string-to-hash",
+					"99dc0ea422440e5b3f675cffe6dde641",
+				),
+			)
+		})
+	})
 })
