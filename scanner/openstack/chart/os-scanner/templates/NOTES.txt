@@ -1,0 +1,1 @@
+1. The Heureka Scanner {{ .Release.Name }} is being deployed. Be aware that this is a CronJob only deployment.

@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-cronjob
+spec:
+  schedule: "{{ .Values.scanner.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+          - name: config-volume
+            configMap:
+              name: {{ .Release.Name }}-configmap
+          containers:
+          - name: {{ .Release.Name }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            volumeMounts:
+            - name: config-volume
+              mountPath: "{{ .Values.scanner.config_mount_path }}"
+              readOnly: true
+            env:
+            - name: HEUREKA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: api_token
+            - name: HEUREKA_URL
+              value: {{ .Values.scanner.heureka_url }}
+            - name: OS_AUTH_URL 
+              value: {{ .Values.scanner.auth_url }}
+            - name: OS_DOMAIN_NAME 
+              value: {{ .Values.scanner.domain_name }}
+            - name: OS_PASSWORD 
+              value: {{ .Values.scanner.password }}
+            - name: OS_PROJECT_DOMAIN_NAME 
+              value: {{ .Values.scanner.domain_name }}
+            - name: OS_PROJECT_ID
+              value: {{ .Values.scanner.project_id }}
+            - name: OS_PROJECT_NAME
+              value: {{ .Values.scanner.project_name }}
+            - name: OS_REGION_NAME 
+              value: {{ .Values.scanner.region_name }}
+            - name: OS_USERNAME
+              value: {{ .Values.scanner.username }}
+            args:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the Kubernetes cluster
+          restartPolicy: OnFailure
