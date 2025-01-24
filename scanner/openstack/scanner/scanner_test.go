@@ -106,6 +106,78 @@ func setupGetServersRoute(server *Server) {
 		},
 	}))
 }
+func setupGetUser(server *Server) {
+	server.RouteToHandler("GET", "/v3/users/test-id", RespondWithJSONEncoded(http.StatusOK, map[string]interface{}{
+		"user": map[string]interface{}{
+			"name":                "test-name",
+			"description":         "admin",
+			"password_expires_at": "2000-10-20",
+			"links": map[string]interface{}{
+				"self": nil,
+			},
+			"id":                "test-id",
+			"email":             "test-email",
+			"enabled":           true,
+			"password_failures": "1",
+			"options":           map[string]interface{}{},
+			"domain_id":         "test-domain",
+		},
+	}))
+}
+
+func setupGetRoles(server *Server) {
+	server.RouteToHandler("GET", "/v3/roles", RespondWithJSONEncoded(http.StatusOK, map[string]interface{}{
+		"roles": []interface{}{
+			map[string]interface{}{
+				"Name": "compute_admin",
+				"ID":   "test-id1",
+			},
+			map[string]interface{}{
+				"Name": "cloud_image_admin",
+				"ID":   "test-id2",
+			},
+		},
+	}))
+}
+
+func setupGetRoleAssignments(server *Server) {
+	server.RouteToHandler("GET", "/v3/role_assignments", RespondWithJSONEncoded(http.StatusOK, map[string]interface{}{
+		"role_assignments": []interface{}{
+			map[string]interface{}{
+				"links": map[string]interface{}{
+					"assignment": "test-link",
+				},
+				"role": map[string]interface{}{
+					"id": "test-id",
+				},
+				"scope": map[string]interface{}{
+					"project": map[string]interface{}{
+						"id": "test-project",
+					},
+				},
+				"user": map[string]interface{}{
+					"id": "test-id",
+				},
+			},
+			map[string]interface{}{
+				"links": map[string]interface{}{
+					"assignment": "test-link",
+				},
+				"role": map[string]interface{}{
+					"id": "test-id",
+				},
+				"scope": map[string]interface{}{
+					"project": map[string]interface{}{
+						"id": "test-project",
+					},
+				},
+				"user": map[string]interface{}{
+					"id": "test-id",
+				},
+			},
+		},
+	}))
+}
 
 func setupGetImage(server *Server) {
 	server.RouteToHandler("GET", "/v2/images/test-id", func(w http.ResponseWriter, r *http.Request) {
@@ -223,6 +295,37 @@ var _ = Describe("OpenStack Scanner", func() {
 			images, err := scanner.GetImage(service, "test-id")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(images.Name).ToNot(BeNil())
+		})
+	})
+
+	Describe("Identity", func() {
+		BeforeEach(func() {
+			setupAuthTokenRoute(server, "identity")
+			setupComputeRoute(server)
+			setupGetRoles(server)
+			setupGetRoleAssignments(server)
+			setupGetUser(server)
+		})
+
+		It("should run CreateIdentityClient", func() {
+			service, err := scanner.CreateIdentityClient()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(service).ToNot(BeNil())
+			Expect(service.Type).To(Equal("identity"))
+		})
+
+		It("should run GetRoleNames", func() {
+			service, _ := scanner.CreateIdentityClient()
+			roles, err := scanner.GetRoleNames(service)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(roles)).To(BeEquivalentTo((2)))
+		})
+
+		It("should run GetUsers", func() {
+			service, err := scanner.CreateIdentityClient()
+			users := scanner.GetUsers(service, "test-id")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(users)).To(BeEquivalentTo((1)))
 		})
 	})
 })
