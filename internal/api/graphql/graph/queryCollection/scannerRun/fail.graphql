@@ -5,5 +5,5 @@ mutation ($uuid: String!, $message: String!) {
     failScannerRun (
         uuid: $uuid
         message: $message
-    )
+    ) 
 }

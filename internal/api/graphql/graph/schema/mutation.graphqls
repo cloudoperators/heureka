@@ -72,4 +72,5 @@ type Mutation {
 
     createScannerRun(input: ScannerRunInput!): Boolean!
     completeScannerRun(uuid: String!): Boolean!
+    failScannerRun(uuid: String!, message: String!): Boolean!
 }

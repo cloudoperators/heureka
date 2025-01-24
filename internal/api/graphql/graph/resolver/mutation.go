@@ -905,6 +905,14 @@ func (r *mutationResolver) CompleteScannerRun(ctx context.Context, uuid string) 
 	return true, nil
 }
 
+func (r *mutationResolver) FailScannerRun(ctx context.Context, uuid string, message string) (bool, error) {
+	_, err := r.App.FailScannerRun(uuid, message)
+	if err != nil {
+		return false, baseResolver.NewResolverError("FailScannerRunMutationResolver", "Internal Error - when failing scannerRun")
+	}
+	return true, nil
+}
+
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
 
 type mutationResolver struct{ *Resolver }
