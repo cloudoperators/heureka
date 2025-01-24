@@ -62,6 +62,35 @@ func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {
 	return true, nil
 }
 
+func (s *SqlDatabase) FailScannerRun(uuid string, message string) (bool, error) {
+	updateScannerRunQuery := `UPDATE ScannerRun 
+					SET 
+						scannerrun_is_completed = FALSE,
+						scannerrun_end_run = current_timestamp()
+					WHERE 
+						scannerrun_uuid = ? AND
+						scannerrun_is_completed = TRUE`
+
+	insertScannerRunErrorQuery := `INSERT INTO ScannerRunError 
+										(scannerrunerror_scannerrun_run_id, error) 
+								   VALUES (
+								   		(SELECT scannerrun_run_id FROM ScannerRun WHERE scannerrun_uuid = ?),
+										?)`
+
+	_, err := s.db.Exec(updateScannerRunQuery, uuid)
+
+	if err != nil {
+		return false, err
+	} else {
+		_, err = s.db.Exec(insertScannerRunErrorQuery, uuid, message)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
 func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) {
 	query := `SELECT 
 				* 
