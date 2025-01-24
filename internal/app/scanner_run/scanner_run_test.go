@@ -44,7 +44,8 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("CreateScannerRun", sre).Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(db, er)
-		scannerRunHandler.CreateScannerRun(sre)
+		_, err := scannerRunHandler.CreateScannerRun(sre)
+		Expect(err).To(BeNil())
 	})
 
 	It("creates a scannerrun and completes it", func() {
@@ -53,6 +54,19 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 
 		scannerRunHandler = NewScannerRunHandler(db, er)
 		scannerRunHandler.CreateScannerRun(sre)
-		scannerRunHandler.CompleteScannerRun(sre.UUID)
+		_, err := scannerRunHandler.CompleteScannerRun(sre.UUID)
+
+		Expect(err).To(BeNil())
+	})
+
+	It("creates a scannerrun and fails it", func() {
+		db.On("CreateScannerRun", sre).Return(true, nil)
+		db.On("FailScannerRun", sre.UUID, "Booom!").Return(true, nil)
+
+		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRunHandler.CreateScannerRun(sre)
+		_, err := scannerRunHandler.FailScannerRun(sre.UUID, "Booom!")
+
+		Expect(err).To(BeNil())
 	})
 })

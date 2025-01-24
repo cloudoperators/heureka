@@ -8,4 +8,5 @@ import "github.com/cloudoperators/heureka/internal/entity"
 type ScannerRunHandler interface {
 	CreateScannerRun(*entity.ScannerRun) (bool, error)
 	CompleteScannerRun(string) (bool, error)
+	FailScannerRun(string, string) (bool, error)
 }

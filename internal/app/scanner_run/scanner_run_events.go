@@ -18,6 +18,7 @@ type CreateScannerRunEvent struct {
 }
 
 type UpdateScannerRunEvent struct {
+	successfulRun bool
 }
 
 func (csr *CreateScannerRunEvent) Name() event.EventName {

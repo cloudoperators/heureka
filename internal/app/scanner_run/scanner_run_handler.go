@@ -43,7 +43,18 @@ func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (bool, error) {
 		return false, &ScannerRunHandlerError{msg: "Error updating scanner run"}
 	}
 
-	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{})
+	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{successfulRun: true})
+	return true, nil
+}
+
+func (srh *scannerRunHandler) FailScannerRun(uuid string, message string) (bool, error) {
+	_, err := srh.database.FailScannerRun(uuid, message)
+
+	if err != nil {
+		return false, &ScannerRunHandlerError{msg: "Error updating scanner run"}
+	}
+
+	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{successfulRun: false})
 	return true, nil
 }
 
