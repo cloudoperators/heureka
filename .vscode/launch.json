@@ -32,6 +32,15 @@
             "envFile": "${workspaceFolder}/scanner/keppel/.env"
         },
         {
+            "name": "Launch OpenstackScanner",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceFolder}",
+            "program": "scanner/openstack/main.go",
+            "envFile": "${workspaceFolder}/scanner/openstack/.env"
+        },
+        {
             "name": "Launch Heureka DevContainer",
             "type": "go",
             "request": "launch",
