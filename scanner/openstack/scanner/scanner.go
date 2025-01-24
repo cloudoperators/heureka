@@ -44,7 +44,7 @@ func NewScanner(cfg Config) *Scanner {
 }
 
 func (s *Scanner) CreateComputeClient() (*gophercloud.ServiceClient, error) {
-	provider, err := s.newAuthenticatedProviderClient()
+	provider, err := s.NewAuthenticatedProviderClient()
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (s *Scanner) CreateComputeClient() (*gophercloud.ServiceClient, error) {
 }
 
 func (s *Scanner) CreateImageClient() (*gophercloud.ServiceClient, error) {
-	provider, err := s.newAuthenticatedProviderClient()
+	provider, err := s.NewAuthenticatedProviderClient()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (s *Scanner) CreateImageClient() (*gophercloud.ServiceClient, error) {
 }
 
 func (s *Scanner) CreateIdentityClient() (*gophercloud.ServiceClient, error) {
-	provider, err := s.newAuthenticatedProviderClient()
+	provider, err := s.NewAuthenticatedProviderClient()
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (s *Scanner) CreateIdentityClient() (*gophercloud.ServiceClient, error) {
 	return identityClient, nil
 }
 
-func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient, error) {
+func (s *Scanner) NewAuthenticatedProviderClient() (*gophercloud.ProviderClient, error) {
 	authOpts := gophercloud.AuthOptions{}
 	authOpts.AllowReauth = true
 	authOpts.Username = s.Username
@@ -164,7 +164,7 @@ func GetProjects(service *gophercloud.ServiceClient) ([]string, error) {
 
 func (s *Scanner) GetUsers(service *gophercloud.ServiceClient, projectID string) []map[string]interface{} {
 	// Return users and roles for project
-	roleNamesByID, err := GetRoleNames(service)
+	roleNamesByID, err := s.GetRoleNames(service)
 	if err != nil {
 		panic(err)
 	}
@@ -199,10 +199,10 @@ func (s *Scanner) GetUsers(service *gophercloud.ServiceClient, projectID string)
 
 	userNamesByRoles := GetUserNamesbyRoles(service, config)
 
-	return FormatServerOutput(userNamesByRoles)
+	return s.FormatServerOutput(userNamesByRoles)
 }
 
-func FormatServerOutput(userList map[string][]string) []map[string]interface{} {
+func (s *Scanner) FormatServerOutput(userList map[string][]string) []map[string]interface{} {
 	// Format compliance results for OPA Policy input
 	var Configs []map[string]interface{}
 
@@ -218,7 +218,7 @@ func FormatServerOutput(userList map[string][]string) []map[string]interface{} {
 	return Configs
 }
 
-func GetRoleNames(service *gophercloud.ServiceClient) (map[string]string, error) {
+func (s *Scanner) GetRoleNames(service *gophercloud.ServiceClient) (map[string]string, error) {
 	// Translate role IDs to readable names
 	allPages, err := roles.List(service, roles.ListOpts{}).AllPages()
 	if err != nil {
