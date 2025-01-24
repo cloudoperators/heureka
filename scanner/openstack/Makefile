@@ -36,7 +36,7 @@ test-all-mods:
 	$(GINKGO) -r modules
 
 test-keystone:
-	$(GINKGO) -r keystone
+	$(GINKGO) -r modules/keystone
 
 test-nova:
-	$(GINKGO) -r nova
+	$(GINKGO) -r modules/nova
