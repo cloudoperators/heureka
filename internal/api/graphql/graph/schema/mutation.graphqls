@@ -71,4 +71,5 @@ type Mutation {
     removeIssueFromActivity(activityId: ID!, issueId: ID!): Activity!
 
     createScannerRun(input: ScannerRunInput!): ScannerRun!
+    completeScannerRun(uuid: String!): Boolean!
 }

@@ -11,19 +11,37 @@ import (
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
 type Processor struct {
+	uuid   string
+	tag    string
 	Client *graphql.Client
 }
 
-func NewProcessor(cfg Config) *Processor {
+func NewProcessor(cfg Config, tag string) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
 	return &Processor{
 		Client: &gClient,
+		uuid:   uuid.New().String(),
+		tag:    tag,
 	}
+}
+
+func (p *Processor) CreateScannerRun(ctx context.Context) error {
+	_, err := client.CreateScannerRun(ctx, *p.Client, &client.ScannerRunInput{
+		Uuid: p.uuid,
+		Tag:  p.tag,
+	})
+	return err
+}
+
+func (p *Processor) CompleteScannerRun(ctx context.Context) error {
+	_, err := client.CompleteScannerRun(ctx, *p.Client, p.uuid)
+	return err
 }
 
 func (p *Processor) ProcessRepository(registry string, account models.Account, repository models.Repository) (*client.Component, error) {
@@ -185,6 +203,7 @@ func (p *Processor) CreateIssue(primaryName string, description string) (*client
 		PrimaryName: primaryName,
 		Description: description,
 		Type:        "Vulnerability",
+		Uuid:        p.uuid,
 	})
 
 	if err != nil {

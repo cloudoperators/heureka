@@ -38,6 +38,8 @@ jobs:
             Imagename: heureka-scanner-k8s-assets
           - Dockerfiles: scanner/keppel/Dockerfile
             Imagename: heureka-scanner-keppel
+          - Dockerfiles: Dockerfile.db
+            Imagename: heureka-db
     permissions:
       contents: read
       packages: write
