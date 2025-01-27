@@ -28,15 +28,6 @@ const (
 	authTokenSecret = "xxx"
 )
 
-type noLogLogger struct {
-}
-
-func (nll noLogLogger) Error(...interface{}) {
-}
-
-func (nll noLogLogger) Warn(...interface{}) {
-}
-
 type server struct {
 	cancel         context.CancelFunc
 	ctx            context.Context
@@ -94,8 +85,8 @@ var _ = Describe("Pass token data via context when using token auth middleware",
 
 	When("Scanner access api through token auth middleware with valid token", func() {
 		BeforeEach(func() {
-			token := GenerateJwtWithName(authTokenSecret, 1*time.Hour, testScannerName)
-			resp := SendGetRequest(url, map[string]string{"X-Service-Authorization": token})
+			token := GenerateJwtWithName(TokenStringHandler, authTokenSecret, 1*time.Hour, testScannerName)
+			resp := SendGetRequest(url, map[string]string{"X-Service-Authorization": WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(200))
 		})
 		It("Should be able to access scanner name from request context", func() {
@@ -107,8 +98,8 @@ var _ = Describe("Pass token data via context when using token auth middleware",
 
 	When("Scanner access api through token auth middleware with invalid token", func() {
 		BeforeEach(func() {
-			token := GenerateInvalidJwt(authTokenSecret)
-			resp := SendGetRequest(url, map[string]string{"X-Service-Authorization": token})
+			token := GenerateJwt(InvalidTokenStringHandler, authTokenSecret, 1*time.Hour)
+			resp := SendGetRequest(url, map[string]string{"X-Service-Authorization": WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
 		})
 		It("Should not store gin context in request context", func() {
