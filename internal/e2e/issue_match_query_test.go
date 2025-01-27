@@ -60,7 +60,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -98,7 +98,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()
@@ -132,7 +132,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 
@@ -219,7 +219,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 10)
-					req.Var("after", "0")
+					req.Var("after", "")
 					req.Var("orderBy", []map[string]string{
 						{"by": "primaryName", "direction": "asc"},
 					})
@@ -259,7 +259,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 10)
-					req.Var("after", "0")
+					req.Var("after", "")
 					req.Var("orderBy", []map[string]string{
 						{"by": "primaryName", "direction": "asc"},
 						{"by": "targetRemediationDate", "direction": "desc"},

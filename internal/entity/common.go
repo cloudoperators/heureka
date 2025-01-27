@@ -4,7 +4,6 @@
 package entity
 
 import (
-	"fmt"
 	"math"
 	"time"
 
@@ -53,6 +52,7 @@ type HeurekaEntity interface {
 		IssueAggregations |
 		Issue |
 		IssueMatch |
+		IssueMatchResult |
 		IssueMatchChange |
 		HeurekaFilter |
 		IssueCount |
@@ -145,6 +145,11 @@ type Paginated struct {
 	After *int64 `json:"from"`
 }
 
+type PaginatedX struct {
+	First *int    `json:"first"`
+	After *string `json:"from"`
+}
+
 func MaxPaginated() Paginated {
 	return Paginated{
 		First: util.Ptr(math.MaxInt),
@@ -229,70 +234,4 @@ type Metadata struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	UpdatedBy int64     `json:"updated_by"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
-}
-
-type DbColumnName int
-
-const (
-	ComponentInstanceCcrn DbColumnName = iota
-
-	IssuePrimaryName
-
-	IssueMatchId
-	IssueMatchRating
-	IssueMatchTargetRemediationDate
-
-	SupportGroupName
-)
-
-func (d DbColumnName) String() string {
-	// order of string needs to match iota order
-	return [...]string{
-		"componentinstance_ccrn",
-		"issue_primary_name",
-		"issuematch_id",
-		"issuematch_rating",
-		"issuematch_target_remediation_date",
-		"supportgroup_name",
-	}[d]
-}
-
-type OrderDirection int
-
-const (
-	OrderDirectionAsc OrderDirection = iota
-	OrderDirectionDesc
-)
-
-func (o OrderDirection) String() string {
-	// order of string needs to match iota order
-	return [...]string{
-		"ASC",
-		"DESC",
-	}[o]
-}
-
-type Order struct {
-	By        DbColumnName
-	Direction OrderDirection
-}
-
-func CreateOrderMap(order []Order) map[DbColumnName]OrderDirection {
-	m := map[DbColumnName]OrderDirection{}
-	for _, o := range order {
-		m[o.By] = o.Direction
-	}
-	return m
-}
-
-func CreateOrderString(order []Order) string {
-	orderStr := ""
-	for i, o := range order {
-		if i > 0 {
-			orderStr = fmt.Sprintf("%s, %s %s", orderStr, o.By, o.Direction)
-		} else {
-			orderStr = fmt.Sprintf("%s %s %s", orderStr, o.By, o.Direction)
-		}
-	}
-	return orderStr
 }
