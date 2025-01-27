@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -49,6 +50,14 @@ func ExpectErrorMessage(resp *http.Response, expectedMsg string) {
 	Expect(respData.Error).To(Equal(expectedMsg))
 }
 
+func ExpectRegexErrorMessage(resp *http.Response, expectedRegexMsg string, args ...interface{}) {
+	var respData struct {
+		Error string `json:"error" required:true`
+	}
+	unmarshalResponseData(resp, &respData)
+	Expect(respData.Error).Should(MatchRegexp(expectedRegexMsg, args...))
+}
+
 type Jwt struct {
 	signingMethod jwt.SigningMethod
 	signKey       interface{}
@@ -74,7 +83,25 @@ func (j *Jwt) WithExpiresAt(t time.Time) *Jwt {
 	return j
 }
 
-func (j *Jwt) String() string {
+func GenerateJwtWithRsaSignature(strGen func(*Jwt) string, rsaPrivateKey *rsa.PrivateKey, expiresIn time.Duration) string {
+	return strGen(NewRsaJwt(rsaPrivateKey).WithExpiresAt(time.Now().Add(expiresIn)).WithName(testClientName))
+}
+
+func GenerateJwt(strGen func(*Jwt) string, jwtSecret string, expiresIn time.Duration) string {
+	return strGen(NewJwt(jwtSecret).WithExpiresAt(time.Now().Add(expiresIn)).WithName(testClientName))
+}
+
+func GenerateJwtWithName(strGen func(*Jwt) string, jwtSecret string, expiresIn time.Duration, name string) string {
+	return strGen(NewJwt(jwtSecret).WithExpiresAt(time.Now().Add(expiresIn)).WithName(name))
+}
+
+func GenerateRsaPrivateKey() *rsa.PrivateKey {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	Expect(err).To(BeNil())
+	return privateKey
+}
+
+func TokenStringHandler(j *Jwt) string {
 	claims := access.TokenClaims{
 		Version: "0.3.1",
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -91,24 +118,58 @@ func (j *Jwt) String() string {
 	return tokenString
 }
 
-func GenerateJwt(jwtSecret string, expiresIn time.Duration) string {
-	return NewJwt(jwtSecret).WithExpiresAt(time.Now().Add(expiresIn)).WithName(testClientName).String()
-}
+func InvalidTokenStringHandler(j *Jwt) string {
+	type InvalidTokenClaims struct{ jwt.RegisteredClaims }
+	claims := InvalidTokenClaims{}
+	token := jwt.NewWithClaims(j.signingMethod, claims)
 
-func GenerateJwtWithName(jwtSecret string, expiresIn time.Duration, name string) string {
-	return NewJwt(jwtSecret).WithExpiresAt(time.Now().Add(expiresIn)).WithName(name).String()
-}
-
-func GenerateInvalidJwt(jwtSecret string) string {
-	return NewJwt(jwtSecret).WithName(testClientName).String()
-}
-
-func GenerateRsaPrivateKey() *rsa.PrivateKey {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	tokenString, err := token.SignedString(j.signKey)
 	Expect(err).To(BeNil())
-	return privateKey
+	return tokenString
 }
 
-func GenerateJwtWithInvalidSigningMethod(jwtSecret string, expiresIn time.Duration) string {
-	return NewRsaJwt(GenerateRsaPrivateKey()).WithExpiresAt(time.Now().Add(expiresIn)).WithName(testClientName).String()
+func CreateOidcTokenStringHandler(issuer string, clientId string) func(j *Jwt) string {
+	return func(j *Jwt) string {
+		claims := access.OidcTokenClaims{
+			Version:       "0.0.1",
+			Sub:           "dummySubject",
+			EmailVerified: false,
+			Mail:          "dummy.mail@heureka.com",
+			LastName:      "dummyLastName",
+			GivenName:     "dummyGivenName",
+			Aud:           clientId,
+			UserUuid:      "dummyUuid",
+			FirstName:     "dummyFirstName",
+			FamilyName:    "dummyFamilyName",
+			JTI:           "dummyJTI",
+			Email:         "dummyMail",
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: j.expiresAt,
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+				Issuer:    issuer,
+				Subject:   j.name,
+			},
+		}
+		token := jwt.NewWithClaims(j.signingMethod, claims)
+
+		tokenString, err := token.SignedString(j.signKey)
+		Expect(err).To(BeNil())
+		return tokenString
+	}
+}
+
+func WithBearer(token string) string {
+	return fmt.Sprintf("Bearer %s", token)
+}
+
+type NoLogLogger struct {
+}
+
+func (nll NoLogLogger) Error(...interface{}) {
+}
+
+func (nll NoLogLogger) Warn(...interface{}) {
+}
+
+func (nll NoLogLogger) Info(...interface{}) {
 }

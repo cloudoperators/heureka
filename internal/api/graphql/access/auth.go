@@ -17,22 +17,23 @@ import (
 type Logger interface {
 	Error(...interface{})
 	Warn(...interface{})
+	Info(...interface{})
 }
 
 func NewAuth(cfg *util.Config) *Auth {
 	l := newLogger()
 	auth := Auth{logger: l}
-	auth.AppendInstance(NewTokenAuthMethod(l, cfg))
-	//TODO: auth.AppendInstance(NewOidcAuthMethod(l, cfg))
+	auth.appendInstance(NewTokenAuthMethod(l, cfg))
+	auth.appendInstance(NewOidcAuthMethod(l, cfg))
 	return &auth
 }
 
 type Auth struct {
-	chain  []AuthMethod
+	chain  []authMethod
 	logger Logger
 }
 
-type AuthMethod interface {
+type authMethod interface {
 	Verify(*gin.Context) error
 }
 
@@ -51,7 +52,7 @@ func (a *Auth) GetMiddleware() gin.HandlerFunc {
 					retMsg = fmt.Sprintf("%s%s", retMsg, err)
 				}
 			}
-			a.logger.Error("Unauthorized access: %s", retMsg)
+			a.logger.Error("Unauthorized access: ", retMsg)
 			authCtx.JSON(http.StatusUnauthorized, gin.H{"error": retMsg})
 			authCtx.Abort()
 			return
@@ -61,8 +62,8 @@ func (a *Auth) GetMiddleware() gin.HandlerFunc {
 	}
 }
 
-func (a *Auth) AppendInstance(am AuthMethod) {
-	if !reflect.ValueOf(am).IsNil() {
+func (a *Auth) appendInstance(am authMethod) {
+	if am != nil && !(reflect.ValueOf(am).Kind() == reflect.Ptr && reflect.ValueOf(am).IsNil()) {
 		a.chain = append(a.chain, am)
 	}
 }
