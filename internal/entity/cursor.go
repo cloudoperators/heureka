@@ -27,7 +27,6 @@ func EncodeCursor(opts ...NewCursor) (string, error) {
 	for _, opt := range opts {
 		err := opt(&cursors)
 		if err != nil {
-			fmt.Println("err")
 			return "", err
 		}
 	}
