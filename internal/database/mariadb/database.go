@@ -246,7 +246,7 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 	return res, nil
 }
 
-func performListScan[T DatabaseRow, E entity.HeurekaEntity](stmt *sqlx.Stmt, filterParameters []interface{}, l *logrus.Entry, listBuilder func([]E, T) []E) ([]E, error) {
+func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt *sqlx.Stmt, filterParameters []interface{}, l *logrus.Entry, listBuilder func([]E, T) []E) ([]E, error) {
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		msg := "Error while performing Query from prepared Statement"

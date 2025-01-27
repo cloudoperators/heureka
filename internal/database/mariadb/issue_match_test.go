@@ -103,8 +103,8 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("can filter by a single issue id that does exist", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
-						Paginated: entity.Paginated{},
-						IssueId:   []*int64{&issueMatch.IssueId.Int64},
+						PaginatedX: entity.PaginatedX{},
+						IssueId:    []*int64{&issueMatch.IssueId.Int64},
 					}
 
 					var imIds []int64
@@ -153,6 +153,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 
+				seedCollection.GetValidIssueMatchRows()
 				issueMatches = seedCollection.GetValidIssueMatchRows()
 			})
 			Context("and using no filter", func() {
@@ -215,8 +216,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("can filter by a single issue id that does exist", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
-						Paginated: entity.Paginated{},
-						IssueId:   []*int64{&issueMatch.IssueId.Int64},
+						IssueId: []*int64{&issueMatch.IssueId.Int64},
 					}
 
 					var imIds []int64
@@ -245,7 +245,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("can filter by a single component instance id that does exist", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
-						Paginated:           entity.Paginated{},
 						ComponentInstanceId: []*int64{&issueMatch.ComponentInstanceId.Int64},
 					}
 
@@ -275,7 +274,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("can filter by a single evidence id that does exist", func() {
 					issueMatch := seedCollection.IssueMatchEvidenceRows[rand.Intn(len(seedCollection.IssueMatchEvidenceRows))]
 					filter := &entity.IssueMatchFilter{
-						Paginated:  entity.Paginated{},
 						EvidenceId: []*int64{&issueMatch.EvidenceId.Int64},
 					}
 
@@ -318,7 +316,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 
 					filter := &entity.IssueMatchFilter{
-						Paginated:        entity.Paginated{},
 						SupportGroupCCRN: []*string{&supportGroup.CCRN.String},
 					}
 
@@ -335,7 +332,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						})
 
 						By("entries contain vm", func() {
-							_, found := lo.Find(entries, func(e entity.IssueMatch) bool {
+							_, found := lo.Find(entries, func(e entity.IssueMatchResult) bool {
 								return e.Id == issueMatch.Id.Int64
 							})
 							Expect(found).To(BeTrue())
@@ -346,16 +343,19 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					DescribeTable("can correctly paginate ", func(pageSize int) {
 						test.TestPaginationOfListWithOrder(
 							db.GetIssueMatches,
-							func(first *int, after *int64) *entity.IssueMatchFilter {
+							func(first *int, after *int64, afterX *string) *entity.IssueMatchFilter {
 								return &entity.IssueMatchFilter{
-									Paginated: entity.Paginated{
+									PaginatedX: entity.PaginatedX{
 										First: first,
-										After: after,
+										After: afterX,
 									},
 								}
 							},
 							[]entity.Order{},
-							func(entries []entity.IssueMatch) *int64 { return &entries[len(entries)-1].Id },
+							func(entries []entity.IssueMatchResult) string {
+								after, _ := entity.EncodeCursor(entity.WithIssueMatch([]entity.Order{}, *entries[len(entries)-1].IssueMatch))
+								return after
+							},
 							len(issueMatches),
 							pageSize,
 						)
@@ -398,9 +398,9 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				})
 				It("does not influence the count when pagination is applied", func() {
 					var first = 1
-					var after int64 = 0
+					var after string = ""
 					filter := &entity.IssueMatchFilter{
-						Paginated: entity.Paginated{
+						PaginatedX: entity.PaginatedX{
 							First: &first,
 							After: &after,
 						},
@@ -418,8 +418,8 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("does show the correct amount when filtering for an issue", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
-						Paginated: entity.Paginated{},
-						IssueId:   []*int64{&issueMatch.IssueId.Int64},
+						PaginatedX: entity.PaginatedX{},
+						IssueId:    []*int64{&issueMatch.IssueId.Int64},
 					}
 
 					var imIds []int64
@@ -656,7 +656,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 	var testOrder = func(
 		order []entity.Order,
-		verifyFunc func(res []entity.IssueMatch),
+		verifyFunc func(res []entity.IssueMatchResult),
 	) {
 		res, err := db.GetIssueMatches(nil, order)
 
@@ -677,6 +677,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
+			seedCollection.GetValidIssueMatchRows()
 		})
 
 		It("can order by id", func() {
@@ -688,7 +689,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				for i, r := range res {
 					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
 				}
@@ -706,7 +707,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prev string = ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
@@ -726,7 +727,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionAsc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prev time.Time = time.Time{}
 				for _, r := range res {
 					Expect(r.TargetRemediationDate.After(prev)).Should(BeTrue())
@@ -747,7 +748,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchRating, Direction: entity.OrderDirectionAsc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				for i, r := range res {
 					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
 				}
@@ -765,7 +766,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prev string = ""
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
@@ -792,7 +793,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchId, Direction: entity.OrderDirectionDesc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				for i, r := range res {
 					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
 				}
@@ -810,7 +811,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionDesc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prev string = "\U0010FFFF"
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
@@ -830,8 +831,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionDesc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
-				var prev time.Time = time.Now()
+			testOrder(order, func(res []entity.IssueMatchResult) {
+				var prev time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				for _, r := range res {
 					Expect(r.TargetRemediationDate.Before(prev)).Should(BeTrue())
 					prev = r.TargetRemediationDate
@@ -851,7 +852,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchRating, Direction: entity.OrderDirectionDesc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				for i, r := range res {
 					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
 				}
@@ -869,7 +870,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionDesc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prev string = "\U0010FFFF"
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
@@ -904,8 +905,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionAsc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
-				var prevTrd time.Time = time.Time{}
+			testOrder(order, func(res []entity.IssueMatchResult) {
+				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				var prevPn = ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
@@ -927,8 +928,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionDesc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
-				var prevTrd time.Time = time.Now()
+			testOrder(order, func(res []entity.IssueMatchResult) {
+				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				var prevPn = ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
@@ -937,7 +938,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 						prevTrd = r.TargetRemediationDate
 					} else {
 						Expect(issue.PrimaryName.String > prevPn).To(BeTrue())
-						prevTrd = time.Now()
+						prevTrd = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 					}
 					prevPn = issue.PrimaryName.String
 				}
@@ -951,7 +952,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionAsc},
 			}
 
-			testOrder(order, func(res []entity.IssueMatch) {
+			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prevSeverity = 0
 				var prevCiCcrn = ""
 				var prevTrd time.Time = time.Time{}
@@ -975,6 +976,5 @@ var _ = Describe("Ordering IssueMatches", func() {
 				}
 			})
 		})
-
 	})
 })

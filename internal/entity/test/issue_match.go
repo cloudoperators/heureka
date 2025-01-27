@@ -45,3 +45,10 @@ func NewRandomIssueStatus() entity.IssueMatchStatusValue {
 	value := gofakeit.RandomString(entity.AllIssueMatchStatusValues)
 	return entity.NewIssueMatchStatusValue(value)
 }
+
+func NewFakeIssueMatchResult() entity.IssueMatchResult {
+	im := NewFakeIssueMatch()
+	return entity.IssueMatchResult{
+		IssueMatch: &im,
+	}
+}

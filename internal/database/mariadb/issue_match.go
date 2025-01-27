@@ -19,9 +19,9 @@ func (s *SqlDatabase) ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity
 	}
 
 	var first = 1000
-	var after int64 = 0
+	var after string = ""
 	return &entity.IssueMatchFilter{
-		Paginated: entity.Paginated{
+		PaginatedX: entity.PaginatedX{
 			First: &first,
 			After: &after,
 		},
@@ -149,7 +149,12 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 
 	filterStr := s.getIssueMatchFilterString(filter)
 	joins := s.getIssueMatchJoins(filter, order)
-	cursor := getCursor(filter.Paginated, filterStr, "IM.issuematch_id > ?")
+	cursorFields, err := entity.DecodeCursor(filter.PaginatedX.After)
+	if err != nil {
+		return nil, nil, err
+	}
+	cursorQuery := entity.CreateCursorQuery("", cursorFields)
+
 	order = GetDefaultOrder(order, entity.IssueMatchId, entity.OrderDirectionAsc)
 	orderStr := entity.CreateOrderString(order)
 
@@ -158,16 +163,19 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
 	}
 
+	if filterStr != "" && withCursor && cursorQuery != "" {
+		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+	}
+
 	// construct final query
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
 	} else {
 		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
 	var stmt *sqlx.Stmt
-	var err error
 
 	stmt, err = s.db.Preparex(query)
 	if err != nil {
@@ -197,8 +205,13 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 
 	if withCursor {
-		filterParameters = append(filterParameters, cursor.Value)
-		filterParameters = append(filterParameters, cursor.Limit)
+		p := entity.CreateCursorParameters([]any{}, cursorFields)
+		filterParameters = append(filterParameters, p...)
+		if filter.PaginatedX.First == nil {
+			filterParameters = append(filterParameters, 1000)
+		} else {
+			filterParameters = append(filterParameters, filter.PaginatedX.First)
+		}
 	}
 
 	return stmt, filterParameters, nil
@@ -225,7 +238,53 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
 	return performIdScan(stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []entity.Order) ([]entity.IssueMatch, error) {
+func (s *SqlDatabase) GetAllIssueMatchCursors(filter *entity.IssueMatchFilter, order []entity.Order) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetIssueAllIssueMatchCursors",
+	})
+
+	baseQuery := `
+		SELECT IM.* FROM IssueMatch IM 
+		%s
+	    %s GROUP BY IM.issuematch_id ORDER BY %s
+    `
+
+	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, order, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []RowComposite, e RowComposite) []RowComposite {
+			return append(l, e)
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return lo.Map(rows, func(row RowComposite, _ int) string {
+		im := row.AsIssueMatch()
+		if row.IssueRow != nil {
+			im.Issue = lo.ToPtr(row.IssueRow.AsIssue())
+		}
+		if row.ComponentInstanceRow != nil {
+			im.ComponentInstance = lo.ToPtr(row.ComponentInstanceRow.AsComponentInstance())
+		}
+
+		cursor, _ := entity.EncodeCursor(entity.WithIssueMatch(order, im))
+
+		return cursor
+	}), nil
+}
+
+func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []entity.Order) ([]entity.IssueMatchResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssueMatches",
@@ -247,8 +306,24 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
 		stmt,
 		filterParameters,
 		l,
-		func(l []entity.IssueMatch, e IssueMatchRow) []entity.IssueMatch {
-			return append(l, e.AsIssueMatch())
+		func(l []entity.IssueMatchResult, e RowComposite) []entity.IssueMatchResult {
+			im := e.AsIssueMatch()
+			if e.IssueRow != nil {
+				im.Issue = lo.ToPtr(e.IssueRow.AsIssue())
+			}
+			if e.ComponentInstanceRow != nil {
+				im.ComponentInstance = lo.ToPtr(e.ComponentInstanceRow.AsComponentInstance())
+			}
+
+			cursor, _ := entity.EncodeCursor(entity.WithIssueMatch(order, im))
+
+			imr := entity.IssueMatchResult{
+				WithCursor: entity.WithCursor{
+					Value: cursor,
+				},
+				IssueMatch: &im,
+			}
+			return append(l, imr)
 		},
 	)
 }

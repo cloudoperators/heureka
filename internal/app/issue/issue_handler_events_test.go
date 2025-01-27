@@ -88,7 +88,7 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 			db.On("GetIssueMatches", &entity.IssueMatchFilter{
 				ComponentInstanceId: []*int64{&componentInstance.Id},
 				IssueId:             []*int64{&issueEntity.Id},
-			}, []entity.Order{}).Return([]entity.IssueMatch{}, nil)
+			}, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 
 			db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
 				ComponentInstanceId: []*int64{&componentInstance.Id},
@@ -113,7 +113,7 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 		})
 
 		It("skips creation if match already exists", func() {
-			existingMatch := test.NewFakeIssueMatch()
+			existingMatch := test.NewFakeIssueMatchResult()
 			db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
 				ComponentInstanceId: []*int64{&componentInstance.Id},
 				IssueId:             []*int64{&issueEntity.Id},
@@ -123,7 +123,7 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 			db.On("GetIssueMatches", &entity.IssueMatchFilter{
 				ComponentInstanceId: []*int64{&componentInstance.Id},
 				IssueId:             []*int64{&issueEntity.Id},
-			}, []entity.Order{}).Return([]entity.IssueMatch{existingMatch}, nil)
+			}, []entity.Order{}).Return([]entity.IssueMatchResult{existingMatch}, nil)
 
 			issue.OnComponentVersionAttachmentToIssue(db, event)
 			db.AssertNotCalled(GinkgoT(), "CreateIssueMatch", mock.Anything)
