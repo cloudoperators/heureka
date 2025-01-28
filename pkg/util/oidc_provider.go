@@ -56,7 +56,7 @@ func (op *OidcProvider) Start() {
 	}
 
 	go func() {
-		op.log.Printf("Starting server on %s\n", serverAddr)
+		op.log.Printf("Starting OIDC provider on %s\n", serverAddr)
 		if err := op.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			op.log.Fatalf("Server failed: %v", err)
 		}
