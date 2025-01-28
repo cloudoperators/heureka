@@ -128,11 +128,11 @@ func InvalidTokenStringHandler(j *Jwt) string {
 	return tokenString
 }
 
-func CreateOidcTokenStringHandler(issuer string, clientId string) func(j *Jwt) string {
+func CreateOidcTokenStringHandler(issuer string, clientId string, userName string) func(j *Jwt) string {
 	return func(j *Jwt) string {
 		claims := access.OidcTokenClaims{
 			Version:       "0.0.1",
-			Sub:           "dummySubject",
+			Sub:           userName,
 			EmailVerified: false,
 			Mail:          "dummy.mail@heureka.com",
 			LastName:      "dummyLastName",

@@ -48,7 +48,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 		s = server.NewServer(cfg)
 		s.NonBlockingStart()
 
-		oidcTokenStringHandler = CreateOidcTokenStringHandler(cfg.AuthOidcUrl, cfg.AuthOidcClientId)
+		oidcTokenStringHandler = CreateOidcTokenStringHandler(cfg.AuthOidcUrl, cfg.AuthOidcClientId, "dummyUserName")
 	})
 
 	AfterEach(func() {

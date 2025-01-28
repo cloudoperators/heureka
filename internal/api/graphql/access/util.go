@@ -56,7 +56,7 @@ func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
 }
 
 func ginContextSet(c *gin.Context, key string, val string) {
-	c.Set(scannerNameKey, val)
+	c.Set(key, val)
 	ctx := context.WithValue(c.Request.Context(), ginContextKey, c)
 	c.Request = c.Request.WithContext(ctx)
 }
