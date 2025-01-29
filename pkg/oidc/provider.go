@@ -1,4 +1,4 @@
-package util
+package oidc
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	"github.com/square/go-jose/v3"
 )
 
-type OidcProvider struct {
+type Provider struct {
 	router           *gin.Engine
 	server           *http.Server
 	ctx              context.Context
@@ -30,8 +30,8 @@ type OidcProvider struct {
 	authCodeNonceMap map[string]string
 }
 
-func NewOidcProvider(url string) *OidcProvider {
-	oidcProvider := OidcProvider{
+func NewProvider(url string) *Provider {
+	oidcProvider := Provider{
 		log:              logrus.New(),
 		url:              url,
 		router:           gin.New(),
@@ -43,73 +43,73 @@ func NewOidcProvider(url string) *OidcProvider {
 	return &oidcProvider
 }
 
-func (op *OidcProvider) Start() {
-	op.ctx, op.cancel = context.WithCancel(context.Background())
-	op.server = &http.Server{Handler: op.router.Handler()}
+func (p *Provider) Start() {
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.server = &http.Server{Handler: p.router.Handler()}
 
 	serverAddr := "'default"
 	re := regexp.MustCompile(`:[0-9]+`)
-	matches := re.FindAllString(op.url, -1)
+	matches := re.FindAllString(p.url, -1)
 	if len(matches) > 0 {
-		op.server.Addr = matches[0]
-		serverAddr = op.server.Addr
+		p.server.Addr = matches[0]
+		serverAddr = p.server.Addr
 	}
 
 	go func() {
-		op.log.Printf("Starting OIDC provider on %s\n", serverAddr)
-		if err := op.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			op.log.Fatalf("Server failed: %v", err)
+		p.log.Printf("Starting OIDC provider on %s\n", serverAddr)
+		if err := p.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			p.log.Fatalf("Server failed: %v", err)
 		}
 	}()
 }
 
-func (op *OidcProvider) StartForeground() {
-	op.server = &http.Server{Handler: op.router.Handler()}
+func (p *Provider) StartForeground() {
+	p.server = &http.Server{Handler: p.router.Handler()}
 
 	serverAddr := "'default"
 	re := regexp.MustCompile(`:[0-9]+`)
-	matches := re.FindAllString(op.url, -1)
+	matches := re.FindAllString(p.url, -1)
 	if len(matches) > 0 {
-		op.server.Addr = matches[0]
-		serverAddr = op.server.Addr
+		p.server.Addr = matches[0]
+		serverAddr = p.server.Addr
 	}
 
-	op.log.Printf("Starting server on %s\n", serverAddr)
-	if err := op.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		op.log.Fatalf("Server failed: %v", err)
+	p.log.Printf("Starting server on %s\n", serverAddr)
+	if err := p.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		p.log.Fatalf("Server failed: %v", err)
 	}
 }
 
-func (op *OidcProvider) GetRsaPrivateKey() *rsa.PrivateKey {
-	return op.rsaPrivateKey
+func (p *Provider) GetRsaPrivateKey() *rsa.PrivateKey {
+	return p.rsaPrivateKey
 }
 
-func (op *OidcProvider) Stop() {
-	op.log.Println("Stopping server...")
-	shutdownCtx, shutdownCancel := context.WithTimeout(op.ctx, 5*time.Second)
+func (p *Provider) Stop() {
+	p.log.Println("Stopping server...")
+	shutdownCtx, shutdownCancel := context.WithTimeout(p.ctx, 5*time.Second)
 	defer shutdownCancel()
-	if err := op.server.Shutdown(shutdownCtx); err != nil {
-		op.log.Fatalf("Failed to gracefully shut down server: %v", err)
+	if err := p.server.Shutdown(shutdownCtx); err != nil {
+		p.log.Fatalf("Failed to gracefully shut down server: %v", err)
 	}
-	op.cancel()
-	op.log.Println("Server stopped successfully")
+	p.cancel()
+	p.log.Println("Server stopped successfully")
 }
 
-func (op *OidcProvider) addRoutes() {
-	op.router.GET("/.well-known/openid-configuration", op.openidConfigurationHandler)
-	op.router.GET("/auth", op.authHandler)
-	op.router.GET("/jwks", op.jwksHandler)
-	op.router.POST("/token", op.tokenHandler)
+func (p *Provider) addRoutes() {
+	p.router.GET("/.well-known/openid-configuration", p.openidConfigurationHandler)
+	p.router.GET("/auth", p.authHandler)
+	p.router.GET("/jwks", p.jwksHandler)
+	p.router.POST("/token", p.tokenHandler)
 }
 
-func (op *OidcProvider) initRsa() {
+func (p *Provider) initRsa() {
 	var err error
-	op.rsaPrivateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	p.rsaPrivateKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		op.log.Fatalf("Failed to generate RSA private key: %v", err)
+		p.log.Fatalf("Failed to generate RSA private key: %v", err)
 	}
-	op.rsaPublicKey = jose.JSONWebKey{
-		Key:       op.rsaPrivateKey.Public(),
+	p.rsaPublicKey = jose.JSONWebKey{
+		Key:       p.rsaPrivateKey.Public(),
 		KeyID:     "mock-key-id",
 		Algorithm: "RS256",
 		Use:       "sig",
@@ -124,25 +124,25 @@ func randString(nByte int) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-func (op *OidcProvider) openidConfigurationHandler(c *gin.Context) {
-	op.log.Println("/.well-known/openid-configuration")
+func (p *Provider) openidConfigurationHandler(c *gin.Context) {
+	p.log.Println("/.well-known/openid-configuration")
 	c.Header("Content-Type", "application/json")
 	metadata := map[string]interface{}{
-		"issuer":                                op.url,
-		"authorization_endpoint":                fmt.Sprintf("%s/auth", op.url),
-		"token_endpoint":                        fmt.Sprintf("%s/token", op.url),
-		"jwks_uri":                              fmt.Sprintf("%s/jwks", op.url),
+		"issuer":                                p.url,
+		"authorization_endpoint":                fmt.Sprintf("%s/auth", p.url),
+		"token_endpoint":                        fmt.Sprintf("%s/token", p.url),
+		"jwks_uri":                              fmt.Sprintf("%s/jwks", p.url),
 		"id_token_signing_alg_values_supported": []string{"RS256"},
 	}
 	c.JSON(http.StatusOK, metadata)
 }
 
-func (op *OidcProvider) authHandler(c *gin.Context) {
-	op.log.Println("/auth")
+func (p *Provider) authHandler(c *gin.Context) {
+	p.log.Println("/auth")
 	state := c.Query("state")
-	op.log.Println("STATE: ", state)
+	p.log.Println("STATE: ", state)
 	nonce := c.Query("nonce")
-	op.log.Println("NONCE: ", nonce)
+	p.log.Println("NONCE: ", nonce)
 	if nonce == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "nonce is required"})
 		return
@@ -154,33 +154,33 @@ func (op *OidcProvider) authHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "could not generate auth code"})
 		return
 	}
-	op.authCodeNonceMap[authCode] = nonce
+	p.authCodeNonceMap[authCode] = nonce
 
 	redirectUri := c.Query("redirect_uri")
 	if redirectUri != "" {
-		op.log.Println(redirectUri + "?code=" + authCode + "&state=" + state)
+		p.log.Println(redirectUri + "?code=" + authCode + "&state=" + state)
 		c.Redirect(http.StatusFound, redirectUri+"?code="+authCode+"&state="+state)
 	}
 }
 
-func (op *OidcProvider) jwksHandler(c *gin.Context) {
-	op.log.Println("/jwks")
+func (p *Provider) jwksHandler(c *gin.Context) {
+	p.log.Println("/jwks")
 	keySet := jose.JSONWebKeySet{
-		Keys: []jose.JSONWebKey{op.rsaPublicKey},
+		Keys: []jose.JSONWebKey{p.rsaPublicKey},
 	}
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, keySet)
 }
 
-func (op *OidcProvider) tokenHandler(c *gin.Context) {
-	op.log.Println("/token")
+func (p *Provider) tokenHandler(c *gin.Context) {
+	p.log.Println("/token")
 
 	code := c.PostForm("code")
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
 		return
 	}
-	nonce, ok := op.authCodeNonceMap[code]
+	nonce, ok := p.authCodeNonceMap[code]
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
 		return
@@ -193,12 +193,12 @@ func (op *OidcProvider) tokenHandler(c *gin.Context) {
 		"email": "johndoe@example.com",
 		"iat":   time.Now().Unix(),
 		"exp":   time.Now().Add(time.Hour).Unix(),
-		"aud":   op.clientId,
-		"iss":   op.url,
+		"aud":   p.clientId,
+		"iss":   p.url,
 		"nonce": nonce,
 	})
 
-	tokenString, err := idToken.SignedString(op.rsaPrivateKey)
+	tokenString, err := idToken.SignedString(p.rsaPrivateKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to sign token"})
 		return

@@ -15,6 +15,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/access"
 	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/cloudoperators/heureka/pkg/oidc"
 )
 
 const (
@@ -23,13 +24,13 @@ const (
 )
 
 var _ = Describe("Pass OIDC token data via context when using OIDC auth middleware", Label("api", "OidcAuthorization"), func() {
-	var oidcProvider *util2.OidcProvider
+	var oidcProvider *oidc.Provider
 	var testServer *TestServer
 	var oidcTokenStringHandler func(j *Jwt) string
 
 	BeforeEach(func() {
 		oidcProviderUrl := fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
-		oidcProvider = util2.NewOidcProvider(oidcProviderUrl)
+		oidcProvider = oidc.NewProvider(oidcProviderUrl)
 		oidcProvider.Start()
 
 		auth := access.NewAuth(&util.Config{AuthOidcUrl: oidcProviderUrl, AuthOidcClientId: clientId})
