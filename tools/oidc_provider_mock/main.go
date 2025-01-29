@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/cloudoperators/heureka/pkg/util"
+	"github.com/cloudoperators/heureka/pkg/oidc"
 )
 
 func main() {
@@ -13,6 +13,6 @@ func main() {
 	if url == "" {
 		log.Fatal("Could not start OIDC provider. OIDC_PROVIDER_URL is not set.")
 	}
-    oidcProvider := util.NewOidcProvider(url)
+    oidcProvider := oidc.NewProvider(url)
     oidcProvider.StartForeground()
 }

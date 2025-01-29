@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/cloudoperators/heureka/pkg/oidc"
 
 	. "github.com/cloudoperators/heureka/internal/api/graphql/access/test"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
@@ -26,7 +27,7 @@ func getHostname() string {
 }
 
 var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), func() {
-	var oidcProvider *util2.OidcProvider
+	var oidcProvider *oidc.Provider
 	var s *server.Server
 	var cfg util.Config
 	var queryUrl string
@@ -41,7 +42,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 		cfg.Port = util2.GetRandomFreePort()
 		cfg.AuthOidcClientId = "mock-client-id"
 		cfg.AuthOidcUrl = fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
-		oidcProvider = util2.NewOidcProvider(cfg.AuthOidcUrl)
+		oidcProvider = oidc.NewProvider(cfg.AuthOidcUrl)
 		oidcProvider.Start()
 
 		queryUrl = fmt.Sprintf("http://%s:%s/query", getHostname(), cfg.Port)
