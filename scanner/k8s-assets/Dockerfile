@@ -4,12 +4,10 @@
 # Create a base layer with linkerd-await from a recent release.
 FROM docker.io/curlimages/curl:latest as linkerd
 ARG LINKERD_AWAIT_VERSION=v0.2.9
-RUN curl -sSLo /tmp/linkerd-await https://github.com/linkerd/linkerd-await/releases/download/release%2F${LINKERD_AWAIT_VERSION}/linkerd-await-${LINKERD_AWAIT_VERSION}-amd64 && \
+RUN curl -sSLo /tmp/linkerd-await https://github.com/linkerd/linkerd-await/releases/download/release%2F${LINKERD_AWAIT_VERSION}/linkerd-await-${LINKERD_AWAIT_VERSION}-arm && \
     chmod 755 /tmp/linkerd-await
 
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23.3 AS builder
-COPY --from=linkerd /tmp/linkerd-await /linkerd-await
-
 WORKDIR /go/src/github.com/cloudoperators/heureka/scanner/k8s-assets
 ADD ./scanner/k8s-assets .
 RUN CGO_ENABLED=0 go build -o /go/bin/heureka-scanner-k8s-assets main.go
@@ -20,6 +18,7 @@ LABEL source_folder="scanner/k8s-assets"
 USER nonroot:nonroot
 
 COPY --from=builder /go/bin/heureka-scanner-k8s-assets  /
+COPY --from=linkerd /tmp/linkerd-await /linkerd-await
 
 # Start linkerd
 ENTRYPOINT ["/linkerd-await", "--shutdown", "--"]

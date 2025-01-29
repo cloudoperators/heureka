@@ -8,7 +8,6 @@ RUN curl -sSLo /tmp/linkerd-await https://github.com/linkerd/linkerd-await/relea
     chmod 755 /tmp/linkerd-await
 
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23.3 AS builder
-COPY --from=linkerd /tmp/linkerd-await /linkerd-await
 
 WORKDIR /go/src/github.com/cloudoperators/heureka/scanner/keppel
 ADD ./scanner/keppel .
@@ -21,6 +20,7 @@ USER nonroot:nonroot
 
 # Uncomment when scanner is available
 COPY --from=builder /go/bin/heureka-scanner-keppel  /heureka-scanner-keppel
+COPY --from=linkerd /tmp/linkerd-await /linkerd-await
 
 # Start linkerd
 ENTRYPOINT ["/linkerd-await", "--shutdown", "--"]
