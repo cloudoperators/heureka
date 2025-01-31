@@ -105,6 +105,7 @@ func (p *Processor) Process(cve *models.Cve) error {
 		IssueId:           issueId,
 		Severity: &client.SeverityInput{
 			Vector: cve.SeverityVector(),
+			Rating: "None",
 		},
 	}
 	variantMutationResp, err := client.CreateIssueVariant(context.TODO(), p.GraphqlClient, &issueVariantInput)
