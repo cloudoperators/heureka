@@ -143,6 +143,21 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 	return serviceId, nil
 }
 
+func (p *Processor) getComponent(ctx context.Context, componentCcrn string) (string, error) {
+	componetFilter := client.ComponentFilter{ComponentCcrn: []string{componentCcrn}}
+
+	listComponentResp, err := client.ListComponents(ctx, *p.Client, &componetFilter)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't list components")
+	}
+
+	if listComponentResp != nil && listComponentResp.Components != nil && listComponentResp.Components.TotalCount > 0 && len(listComponentResp.Components.Edges) > 0 {
+		return listComponentResp.Components.Edges[0].Node.Id, nil
+	}
+
+	return "", fmt.Errorf("Component not found.")
+}
+
 func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.ServiceInfo) (string, error) {
 	var supportGroupId string
 
@@ -238,6 +253,25 @@ func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, 
 	return nil
 }
 
+func (p *Processor) getComponentInstance(ctx context.Context, ccrn string) (string, error) {
+
+	f := client.ComponentInstanceFilter{
+		Ccrn: []string{ccrn},
+	}
+
+	listComponentInstancesResp, err := client.ListComponentInstances(ctx, *p.Client, &f)
+
+	if err != nil {
+		return "", fmt.Errorf("Couldn't list ComponentInstances")
+	}
+
+	if listComponentInstancesResp != nil && listComponentInstancesResp.ComponentInstances != nil && listComponentInstancesResp.ComponentInstances.TotalCount > 0 {
+		return listComponentInstancesResp.ComponentInstances.Edges[0].Node.Id, nil
+	}
+
+	return "", fmt.Errorf("ListComponentVersion returned no ComponentVersion objects")
+}
+
 func (p *Processor) getComponentVersion(ctx context.Context, image string, version string) (string, error) {
 	listComponentVersionFilter := client.ComponentVersionFilter{
 		ComponentCcrn: []string{image},
@@ -303,12 +337,19 @@ func (p *Processor) ProcessContainer(
 	if len(containerInfo.ImageRegistry) == 0 || len(containerInfo.ImageAccount) == 0 || len(containerInfo.ImageRepository) == 0 {
 		return fmt.Errorf("cannot create Component (one or more containerInfo fields are empty)")
 	}
-	componentId, err := p.createComponent(ctx, &client.ComponentInput{
-		Ccrn: fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository),
-		Type: client.ComponentTypeValuesContainerimage,
-	})
+
+	componentCcrn := fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository)
+
+	componentId, err := p.getComponent(ctx, componentCcrn)
+
 	if err != nil {
-		return fmt.Errorf("failed to create Component. %w", err)
+		componentId, err = p.createComponent(ctx, &client.ComponentInput{
+			Ccrn: componentCcrn,
+			Type: client.ComponentTypeValuesContainerimage,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create Component. %w", err)
+		}
 	}
 
 	if componentId == "" {
@@ -337,19 +378,27 @@ func (p *Processor) ProcessContainer(
 		}
 	}
 
-	//
-	// Create new ComponentInstance
-	//
-	componentInstanceId, err = p.createComponentInstance(ctx, &client.ComponentInstanceInput{
+	componentInstanceId, err = p.getComponentInstance(ctx, ccrn.String())
+	input := &client.ComponentInstanceInput{
 		Ccrn:               ccrn.String(),
 		Count:              containerInfo.Count,
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create ComponentInstance: %w", err)
 	}
-
+	if err == nil {
+		componentInstanceId, err = p.updateComponentInstance(ctx, componentInstanceId, input)
+		if err != nil {
+			return fmt.Errorf("failed to update ComponentInstance: %w", err)
+		}
+	} else {
+		//
+		// Create or update ComponentInstance
+		//
+		componentInstanceId, err = p.createComponentInstance(ctx, input)
+		if err != nil {
+			return fmt.Errorf("failed to create ComponentInstance: %w", err)
+		}
+	}
 	// Do logging
 	log.WithFields(log.Fields{
 		"componentVersionID":  componentVersionId,
@@ -365,6 +414,7 @@ func (p *Processor) ProcessContainer(
 // createComponent creates a new Component
 func (p *Processor) createComponent(ctx context.Context, input *client.ComponentInput) (string, error) {
 	createComponentResp, err := client.CreateComponent(ctx, *p.Client, input)
+
 	if err != nil {
 		return "", fmt.Errorf("failed to create Component: %w", err)
 	} else if createComponentResp.CreateComponent == nil {
@@ -412,4 +462,19 @@ func (p *Processor) createComponentInstance(ctx context.Context, input *client.C
 	}).Info("ComponentInstance created")
 
 	return createCompInstResp.CreateComponentInstance.Id, nil
+}
+
+func (p *Processor) updateComponentInstance(ctx context.Context, id string, input *client.ComponentInstanceInput) (string, error) {
+	updateCompInstResp, err := client.UpdateComponentInstance(ctx, *p.Client, id, input)
+	if err != nil {
+		return "", fmt.Errorf("failed to update ComponentInstance: %w", err)
+	} else if updateCompInstResp.UpdateComponentInstance == nil {
+		return "", fmt.Errorf("failed to update ComponentInstance as CreateComponentInstance response is nil")
+	}
+
+	log.WithFields(log.Fields{
+		"componentInstanceId": updateCompInstResp.UpdateComponentInstance.Id,
+	}).Info("ComponentInstance updated")
+
+	return updateCompInstResp.UpdateComponentInstance.Id, nil
 }
