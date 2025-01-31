@@ -269,7 +269,7 @@ func (p *Processor) getComponentInstance(ctx context.Context, ccrn string) (stri
 		return listComponentInstancesResp.ComponentInstances.Edges[0].Node.Id, nil
 	}
 
-	return "", fmt.Errorf("ListComponentVersion returned no ComponentVersion objects")
+	return "", fmt.Errorf("ListComponentInstances returned no ComponentInstance objects")
 }
 
 func (p *Processor) getComponentVersion(ctx context.Context, image string, version string) (string, error) {
