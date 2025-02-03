@@ -19,7 +19,7 @@ require (
 	github.com/onsi/gomega v1.36.2
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/prometheus/client_golang v1.20.5
-	github.com/samber/lo v1.49.0
+	github.com/samber/lo v1.49.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
