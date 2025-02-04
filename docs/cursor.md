@@ -2,7 +2,7 @@
 
 The cursor is a list of `Field`, where `Field` is defined as:
 
-```
+```go
 type Field struct {
 	Name  DbColumnName
 	Value any
@@ -20,7 +20,7 @@ Each entity defines its own cursor values. For example `IssueMatch` allows the f
 - ComponentInstanceCCRN
 - IssuePrimaryName
 
-```
+```go
 func WithIssueMatch(order []Order, im IssueMatch) NewCursor {
 
 	return func(cursors *cursors) error {
@@ -49,7 +49,7 @@ func WithIssueMatch(order []Order, im IssueMatch) NewCursor {
 
 The cursor is returned by the database layer an can be encoded such as:
 
-```
+```go
     cursor, _ := entity.EncodeCursor(entity.WithIssueMatch(order, im))
 ```
 
@@ -60,7 +60,7 @@ A order list can be passed to override the default ordering.
 The cursor points to the starting point in a list of database rows. All elements *after* the cursor are returned.
 Depending on the ordering, the query looks like:
 
-```
+```sql
 WHERE id < cursor_id
 
 Or:
@@ -71,13 +71,13 @@ Where id > cursor_id
 
 If the cursor contains two fields, the query needs to check for the second field, if the first field is equal:
 
-```
+```sql
 WHERE (id = cursor_id AND primaryName > cursor_primaryName) OR (id > cursor_id)
 
 ```
 
 Similarly, for three fields:
-```
+```sql
 WHERE 
     (id = cursor_id AND primaryName = cursor_primaryName AND trd > cursor_trd) OR
     (id = cursor_id AND primaryName > cursor_primaryName) OR 
