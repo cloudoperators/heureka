@@ -7,17 +7,17 @@ Our current database schema mandates that every entity must have a `CreatedBy` a
 
 ## User context and identification
 
-The Heureka API operations are designed to be used by either a scanner or a UI user. Two distinct authorization methods are provided for these use cases.
+The Heureka API operations are designed to be used by either a scanner or a UI user. Two distinct authentication methods are provided for these use cases.
 
 
-### Scanner Authorization
+### Scanner Authentication
 
-This method relies on a custom JWT token. To enable scanner authorization, the `AUTH_TOKEN_SECRET` variable must be configured. This secret must be shared with the token generator. The user associated with the scanner context is identified in the JWT token under the `subject` claim.
+This method relies on a custom JWT token. To enable scanner authentication, the `AUTH_TOKEN_SECRET` variable must be configured. This secret must be shared with the token generator. The user associated with the scanner context is identified in the JWT token under the `subject` claim.
 
 
-### User Authorization
+### User Authentication
 
-This method utilizes an external OIDC (OpenID Connect) provider for authorizing and authenticating UI users. To enable OIDC-based authorization, you must configure the following:
+This method utilizes an external OIDC (OpenID Connect) provider for authentication of UI users. To enable OIDC-based authentication, you must configure the following:
 
 - `AUTH_OIDC_URL`: The URL of a valid OIDC provider.
 - `AUTH_OIDC_CLIENT_ID`: The client ID used for authentication.
