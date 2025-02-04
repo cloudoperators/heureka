@@ -107,3 +107,30 @@ func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) 
 	sr := srr.AsScannerRun()
 	return &sr, nil
 }
+
+func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.ScannerRun, error) {
+	baseQuery := `
+		SELECT * FROM ScannerRun
+    `
+	rows, err := s.db.Query(baseQuery)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	result := []entity.ScannerRun{}
+
+	for rows.Next() {
+		srr := ScannerRunRow{}
+		err = rows.Scan(&srr.RunID, &srr.UUID, &srr.Tag, &srr.StartRun, &srr.EndRun, &srr.IsCompleted)
+
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, srr.AsScannerRun())
+	}
+
+	return result, nil
+}

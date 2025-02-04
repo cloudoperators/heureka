@@ -90,4 +90,14 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 			})
 		})
 	})
+	When("NoScannerRunWasCreated", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should return an empty list", func() {
+				res, err := db.GetScannerRuns(&entity.ScannerRunFilter{})
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(0))
+			})
+		})
+	})
 })
