@@ -551,7 +551,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					ir := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
 					issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant(&ir)
 
-					err := db.DeleteIssueVariant(issueVariant.Id)
+					err := db.DeleteIssueVariant(issueVariant.Id, systemUserId)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())

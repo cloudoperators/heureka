@@ -460,7 +460,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				It("can delete component correctly", func() {
 					component := seedCollection.ComponentRows[0].AsComponent()
 
-					err := db.DeleteComponent(component.Id)
+					err := db.DeleteComponent(component.Id, systemUserId)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())

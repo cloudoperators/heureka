@@ -36,7 +36,7 @@ func (s *SqlDatabase) getServiceIssueVariantFilterString(filter *entity.ServiceI
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "I.issue_id = ?", OP_OR))
-	fl = append(fl, "IV.issuevariant_deleted_at IS NULL")
+	fl = appendStateFilterQuery(fl, "IV.issuevariant", filter.State)
 
 	return combineFilterQueries(fl, OP_AND)
 }

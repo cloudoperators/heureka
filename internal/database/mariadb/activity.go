@@ -58,7 +58,7 @@ func (s *SqlDatabase) getActivityFilterString(filter *entity.ActivityFilter) str
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn= ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.EvidenceId, "E.evidence_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "AHI.activityhasissue_issue_id = ?", OP_OR))
-	fl = append(fl, "A.activity_deleted_at IS NULL")
+	fl = appendStateFilterQuery(fl, "A.activity", filter.State)
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -259,7 +259,7 @@ func (s *SqlDatabase) UpdateActivity(activity *entity.Activity) error {
 	return err
 }
 
-func (s *SqlDatabase) DeleteActivity(id int64) error {
+func (s *SqlDatabase) DeleteActivity(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteActivity",
@@ -267,12 +267,14 @@ func (s *SqlDatabase) DeleteActivity(id int64) error {
 
 	query := `
 		UPDATE Activity SET
-		activity_deleted_at = NOW()
+		activity_deleted_at = NOW(),
+		activity_updated_by = :userId
 		WHERE activity_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)
