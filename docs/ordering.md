@@ -4,13 +4,13 @@
 
 The query contains an additional `orderBy` argument:
 
-```
+```graphql
 IssueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
 ```
 
 The OrderBy input is defined for each model:
 
-```
+```graphql
 input IssueMatchOrderBy {
     by: IssueMatchOrderByField
     direction: OrderDirection
@@ -19,7 +19,7 @@ input IssueMatchOrderBy {
 
 The `By` fields define the allowed order options:
 
-```
+```graphql
 enum IssueMatchOrderByField {
     primaryName
     targetRemediationDate
@@ -28,7 +28,7 @@ enum IssueMatchOrderByField {
 ```
 
 The `OrderDirections` are defined in the `common.graphqls`:
-```
+```graphql
 enum OrderDirection {
     asc
     desc
@@ -37,7 +37,7 @@ enum OrderDirection {
 
 The generated order models are converted to the entity order model in `api/graph/model/models.go`:
 
-```
+```go
 func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
 	switch *imo.By {
@@ -55,7 +55,7 @@ func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
 
 ## Entity
 
-```
+```go
 type Order struct {
 	By        DbColumnName
 	Direction OrderDirection
@@ -64,7 +64,7 @@ type Order struct {
 
 The `By` field is the database column name and is defined as a constant:
 
-```
+```go
 var DbColumnNameMap = map[DbColumnName]string{
 	ComponentInstanceCcrn:           "componentinstance_ccrn",
 	IssuePrimaryName:                "issue_primary_name",
@@ -80,7 +80,7 @@ var DbColumnNameMap = map[DbColumnName]string{
 
 The `GetIssueMatches()` function has an additional order argument:
 
-```
+```go
 func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []entity.Order) ([]entity.IssueMatchResult, error) {
     ...
 }
@@ -88,7 +88,7 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
 
 The order string is created by in `entity/order.go`:
 
-```
+```go
 func CreateOrderString(order []Order) string {
 	orderStr := ""
 	for i, o := range order {
