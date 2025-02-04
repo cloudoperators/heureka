@@ -491,6 +491,16 @@ type SupportGroupInput struct {
 // GetCcrn returns SupportGroupInput.Ccrn, and is useful for accessing the field via an interface.
 func (v *SupportGroupInput) GetCcrn() string { return v.Ccrn }
 
+// UpdateComponentInstanceResponse is returned by UpdateComponentInstance on success.
+type UpdateComponentInstanceResponse struct {
+	UpdateComponentInstance *ComponentInstance `json:"updateComponentInstance"`
+}
+
+// GetUpdateComponentInstance returns UpdateComponentInstanceResponse.UpdateComponentInstance, and is useful for accessing the field via an interface.
+func (v *UpdateComponentInstanceResponse) GetUpdateComponentInstance() *ComponentInstance {
+	return v.UpdateComponentInstance
+}
+
 // __AddServiceToSupportGroupInput is used internally by genqlient
 type __AddServiceToSupportGroupInput struct {
 	SupportGroupId string `json:"supportGroupId"`
@@ -582,6 +592,18 @@ type __ListSupportGroupsInput struct {
 
 // GetFilter returns __ListSupportGroupsInput.Filter, and is useful for accessing the field via an interface.
 func (v *__ListSupportGroupsInput) GetFilter() *SupportGroupFilter { return v.Filter }
+
+// __UpdateComponentInstanceInput is used internally by genqlient
+type __UpdateComponentInstanceInput struct {
+	Id    string                  `json:"id"`
+	Input *ComponentInstanceInput `json:"input,omitempty"`
+}
+
+// GetId returns __UpdateComponentInstanceInput.Id, and is useful for accessing the field via an interface.
+func (v *__UpdateComponentInstanceInput) GetId() string { return v.Id }
+
+// GetInput returns __UpdateComponentInstanceInput.Input, and is useful for accessing the field via an interface.
+func (v *__UpdateComponentInstanceInput) GetInput() *ComponentInstanceInput { return v.Input }
 
 // The query or mutation executed by AddServiceToSupportGroup.
 const AddServiceToSupportGroup_Operation = `
@@ -999,6 +1021,47 @@ func ListSupportGroups(
 	var err_ error
 
 	var data_ ListSupportGroupsResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by UpdateComponentInstance.
+const UpdateComponentInstance_Operation = `
+mutation UpdateComponentInstance ($id: ID!, $input: ComponentInstanceInput!) {
+	updateComponentInstance(id: $id, input: $input) {
+		id
+		ccrn
+		count
+		componentVersionId
+		serviceId
+	}
+}
+`
+
+func UpdateComponentInstance(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	id string,
+	input *ComponentInstanceInput,
+) (*UpdateComponentInstanceResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "UpdateComponentInstance",
+		Query:  UpdateComponentInstance_Operation,
+		Variables: &__UpdateComponentInstanceInput{
+			Id:    id,
+			Input: input,
+		},
+	}
+	var err_ error
+
+	var data_ UpdateComponentInstanceResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(
