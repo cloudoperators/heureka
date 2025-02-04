@@ -8,8 +8,6 @@ RUN curl -sSLo /tmp/linkerd-await https://github.com/linkerd/linkerd-await/relea
     chmod 755 /tmp/linkerd-await
 
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23.3 AS builder
-COPY --from=linkerd /tmp/linkerd-await /linkerd-await
-
 WORKDIR /go/src/github.com/cloudoperators/heureka/scanner/k8s-assets
 ADD ./scanner/k8s-assets .
 RUN CGO_ENABLED=0 go build -o /go/bin/heureka-scanner-k8s-assets main.go
@@ -20,6 +18,7 @@ LABEL source_folder="scanner/k8s-assets"
 USER nonroot:nonroot
 
 COPY --from=builder /go/bin/heureka-scanner-k8s-assets  /
+COPY --from=linkerd /tmp/linkerd-await /linkerd-await
 
 # Start linkerd
 ENTRYPOINT ["/linkerd-await", "--shutdown", "--"]
