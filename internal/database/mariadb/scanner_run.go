@@ -128,6 +128,10 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 		}
 	}
 
+	if filter.Completed {
+		baseQuery += " scannerrun_is_completed = TRUE"
+	}
+
 	baseQuery += " ORDER BY scannerrun_run_id"
 	rows, err := s.db.Query(baseQuery, queryArgs...)
 
