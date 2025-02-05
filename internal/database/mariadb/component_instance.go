@@ -49,7 +49,7 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CI.componentinstance_component_version_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.CCRN, "CI.componentinstance_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, componentInstanceWildCardFilterQuery, OP_OR))
-	fl = appendStateFilterQuery(fl, "CI.componentinstance", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "CI.componentinstance"))
 
 	filterStr := combineFilterQueries(fl, OP_AND)
 	return filterStr

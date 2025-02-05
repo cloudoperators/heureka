@@ -48,7 +48,7 @@ func (s *SqlDatabase) getEvidenceFilterString(filter *entity.EvidenceFilter) str
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "E.evidence_activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.UserId, "E.author_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IME.issuematchevidence_issue_match_id = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "E.evidence", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "E.evidence"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

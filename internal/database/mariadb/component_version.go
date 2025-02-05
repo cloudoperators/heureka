@@ -70,7 +70,7 @@ func (s *SqlDatabase) getComponentVersionFilterString(filter *entity.ComponentVe
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Version, "CV.componentversion_version = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "CV.componentversion", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "CV.componentversion"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

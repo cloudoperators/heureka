@@ -90,7 +90,7 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 		ServiceId:   serviceId,
 		Name:        filter.Name,
 		ServiceCCRN: filter.ServiceCcrn,
-		State:       entity.GetStateFilterType(filter.State),
+		State:       model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

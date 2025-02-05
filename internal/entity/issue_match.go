@@ -56,19 +56,19 @@ type IssueMatch struct {
 
 type IssueMatchFilter struct {
 	Paginated
-	Id                  []*int64        `json:"id"`
-	AffectedServiceCCRN []*string       `json:"affected_service_ccrn"`
-	SeverityValue       []*string       `json:"severity_value"`
-	Status              []*string       `json:"status"`
-	IssueId             []*int64        `json:"issue_id"`
-	EvidenceId          []*int64        `json:"evidence_id"`
-	ComponentInstanceId []*int64        `json:"component_instance_id"`
-	SupportGroupCCRN    []*string       `json:"support_group_ccrn"`
-	Search              []*string       `json:"search"`
-	ComponentCCRN       []*string       `json:"component_ccrn"`
-	PrimaryName         []*string       `json:"primary_name"`
-	IssueType           []*string       `json:"issue_type"`
-	State               StateFilterType `json:"state"`
+	Id                  []*int64          `json:"id"`
+	AffectedServiceCCRN []*string         `json:"affected_service_ccrn"`
+	SeverityValue       []*string         `json:"severity_value"`
+	Status              []*string         `json:"status"`
+	IssueId             []*int64          `json:"issue_id"`
+	EvidenceId          []*int64          `json:"evidence_id"`
+	ComponentInstanceId []*int64          `json:"component_instance_id"`
+	SupportGroupCCRN    []*string         `json:"support_group_ccrn"`
+	Search              []*string         `json:"search"`
+	ComponentCCRN       []*string         `json:"component_ccrn"`
+	PrimaryName         []*string         `json:"primary_name"`
+	IssueType           []*string         `json:"issue_type"`
+	State               []StateFilterType `json:"state"`
 }
 
 type IssueMatchResult struct {

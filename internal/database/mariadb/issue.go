@@ -51,7 +51,7 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Type, "I.issue_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
-	fl = appendStateFilterQuery(fl, "I.issue", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "I.issue"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

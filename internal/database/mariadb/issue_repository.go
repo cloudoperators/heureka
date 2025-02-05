@@ -18,7 +18,7 @@ func (s *SqlDatabase) getIssueRepositoryFilterString(filter *entity.IssueReposit
 	fl = append(fl, buildFilterQuery(filter.Id, "IR.issuerepository_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "IRS.issuerepositoryservice_service_id = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "IR.issuerepository", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "IR.issuerepository"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

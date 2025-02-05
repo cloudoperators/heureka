@@ -27,5 +27,5 @@ type SupportGroupEdge implements Edge {
 input SupportGroupFilter {
     supportGroupCcrn: [String],
     userIds: [String],
-    state: Int,
+    state: [StateFilter!],
 }

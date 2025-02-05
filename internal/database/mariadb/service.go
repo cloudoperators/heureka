@@ -47,7 +47,7 @@ func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) strin
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGS.supportgroupservice_support_group_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerId, "O.owner_user_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, serviceWildCardFilterQuery, OP_OR))
-	fl = appendStateFilterQuery(fl, "S.service", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "S.service"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

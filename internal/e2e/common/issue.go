@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/entity"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/machinebox/graphql"
@@ -112,7 +111,7 @@ func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection 
 	str := string(b)
 	req := graphql.NewRequest(str)
 
-	req.Var("filter", map[string]string{"primaryName": issuePrimaryName, "state": fmt.Sprintf("%d", entity.All)})
+	req.Var("filter", map[string]interface{}{"primaryName": issuePrimaryName, "state": []string{model.StateFilterActive.String(), model.StateFilterDeleted.String()}})
 	req.Var("first", 1)
 	req.Var("after", "0")
 

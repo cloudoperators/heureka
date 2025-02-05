@@ -93,7 +93,7 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 		ServiceId:      serviceId,
 		Name:           filter.UserName,
 		UniqueUserID:   filter.UniqueUserID,
-		State:          entity.GetStateFilterType(filter.State),
+		State:          model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -141,7 +141,7 @@ func UserNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.Us
 		Paginated:    entity.Paginated{},
 		Name:         filter.UserName,
 		UniqueUserID: filter.UniqueUserID,
-		State:        entity.GetStateFilterType(filter.State),
+		State:        model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -180,7 +180,7 @@ func UniqueUserIDBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		Paginated:    entity.Paginated{},
 		UniqueUserID: filter.UniqueUserID,
 		Name:         filter.UserName,
-		State:        entity.GetStateFilterType(filter.State),
+		State:        model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

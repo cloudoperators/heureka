@@ -20,7 +20,7 @@ func (s *SqlDatabase) getUserFilterString(filter *entity.UserFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Type, "U.user_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGU.supportgroupuser_support_group_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "O.owner_service_id = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "U.user", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "U.user"))
 
 	return combineFilterQueries(fl, OP_AND)
 }
