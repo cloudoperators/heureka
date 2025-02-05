@@ -24,3 +24,7 @@ type ScannerRunFilter struct {
 	Tag       []string `json:"tag"`
 	Completed bool     `json:"is_completed"`
 }
+
+func (srf ScannerRunFilter) HasArgs() bool {
+	return srf.Tag != nil || srf.Completed
+}

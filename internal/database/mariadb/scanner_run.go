@@ -116,9 +116,16 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
     `
 	queryArgs := []interface{}{}
 
+	if filter.HasArgs() {
+		baseQuery += " WHERE"
+	}
+
 	for i := 0; filter.Tag != nil && i < len(filter.Tag); i++ {
-		baseQuery += " WHERE scannerrun_tag = ?"
+		baseQuery += " scannerrun_tag = ?"
 		queryArgs = append(queryArgs, filter.Tag[i])
+		if i < len(filter.Tag)-1 {
+			baseQuery += " OR"
+		}
 	}
 
 	baseQuery += " ORDER BY scannerrun_run_id"

@@ -191,4 +191,74 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 			})
 		})
 	})
+
+	When("Two ScannerRuns where created", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should find no ScannerRun by tag when nonexistant tag is provided", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "otherTag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				res, err := db.GetScannerRuns(&entity.ScannerRunFilter{
+					Tag: []string{"nonexistant"},
+				})
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(0))
+			})
+		})
+	})
+
+	When("Two ScannerRuns where created", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should find two ScannerRuns by tag", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "otherTag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				res, err := db.GetScannerRuns(&entity.ScannerRunFilter{
+					Tag: []string{"tag", "otherTag"},
+				})
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(2))
+			})
+		})
+	})
 })
