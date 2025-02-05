@@ -114,6 +114,8 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
     `
 	rows, err := s.db.Query(baseQuery)
 
+	filter = s.ensureScannerRunFilter(filter)
+
 	if err != nil {
 		return nil, err
 	}
@@ -133,4 +135,24 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 	}
 
 	return result, nil
+}
+
+func (s *SqlDatabase) ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity.ScannerRunFilter {
+	var first int = 1000
+	var after int64 = 0
+	if f == nil {
+		return &entity.ScannerRunFilter{
+			Paginated: entity.Paginated{
+				First: &first,
+				After: &after,
+			},
+		}
+	}
+	if f.First == nil {
+		f.First = &first
+	}
+	if f.After == nil {
+		f.After = &after
+	}
+	return f
 }
