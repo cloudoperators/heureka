@@ -109,12 +109,20 @@ func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) 
 }
 
 func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.ScannerRun, error) {
+	filter = s.ensureScannerRunFilter(filter)
+
 	baseQuery := `
 		SELECT * FROM ScannerRun
     `
-	rows, err := s.db.Query(baseQuery)
+	queryArgs := []interface{}{}
 
-	filter = s.ensureScannerRunFilter(filter)
+	for i := 0; filter.Tag != nil && i < len(filter.Tag); i++ {
+		baseQuery += " WHERE scannerrun_tag = ?"
+		queryArgs = append(queryArgs, filter.Tag[i])
+	}
+
+	baseQuery += " ORDER BY scannerrun_run_id"
+	rows, err := s.db.Query(baseQuery, queryArgs...)
 
 	if err != nil {
 		return nil, err

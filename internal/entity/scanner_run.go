@@ -21,9 +21,6 @@ func (sc ScannerRun) IsCompleted() bool {
 type ScannerRunFilter struct {
 	Paginated
 
-	RunID     []int64   `json:"run_id"`
-	UUID      []string  `json:"uuid"`
-	Tag       []string  `json:"tag"`
-	Completed bool      `json:"is_completed"`
-	Search    []*string `json:"search"`
+	Tag       []string `json:"tag"`
+	Completed bool     `json:"is_completed"`
 }
