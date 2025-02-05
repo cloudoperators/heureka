@@ -71,7 +71,7 @@ func (s *SqlDatabase) getIssueVariantFilterString(filter *entity.IssueVariantFil
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id  = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "IRS.issuerepositoryservice_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id  = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "IV.issuevariant", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "IV.issuevariant"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

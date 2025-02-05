@@ -51,7 +51,7 @@ func EvidenceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ev
 		Paginated:    entity.Paginated{First: first, After: afterId},
 		ActivityId:   activityId,
 		IssueMatchId: imId,
-		State:        entity.GetStateFilterType(filter.State),
+		State:        model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

@@ -35,5 +35,5 @@ type IssueVariantEdge implements Edge {
 
 input IssueVariantFilter {
     secondaryName: [String]
-    state: Int
+    state: [StateFilter!]
 }

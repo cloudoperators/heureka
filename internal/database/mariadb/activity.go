@@ -58,7 +58,7 @@ func (s *SqlDatabase) getActivityFilterString(filter *entity.ActivityFilter) str
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn= ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.EvidenceId, "E.evidence_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "AHI.activityhasissue_issue_id = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "A.activity", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "A.activity"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

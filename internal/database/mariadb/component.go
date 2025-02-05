@@ -17,7 +17,7 @@ func (s *SqlDatabase) getComponentFilterString(filter *entity.ComponentFilter) s
 	fl = append(fl, buildFilterQuery(filter.CCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "C.component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CV.componentversion_id = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "C.component", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "C.component"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

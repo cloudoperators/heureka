@@ -42,7 +42,7 @@ func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter)
 	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueType, "I.issue_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
-	fl = appendStateFilterQuery(fl, "IM.issuematch", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "IM.issuematch"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

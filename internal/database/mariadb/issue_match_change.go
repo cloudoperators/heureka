@@ -37,7 +37,8 @@ func (s *SqlDatabase) getIssueMatchChangeFilterString(filter *entity.IssueMatchC
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "IMC.issuematchchange_activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IMC.issuematchchange_issue_match_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Action, "IMC.issuematchchange_action = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "IMC.issuematchchange", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "IMC.issuematchchange"))
+
 	return combineFilterQueries(fl, OP_AND)
 }
 

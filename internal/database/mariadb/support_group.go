@@ -18,7 +18,7 @@ func (s *SqlDatabase) getSupportGroupFilterString(filter *entity.SupportGroupFil
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "SGS.supportgroupservice_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.CCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.UserId, "SGU.supportgroupuser_user_id = ?", OP_OR))
-	fl = appendStateFilterQuery(fl, "SG.supportgroup", filter.State)
+	fl = append(fl, buildStateFilterQuery(filter.State, "SG.supportgroup"))
 
 	return combineFilterQueries(fl, OP_AND)
 }

@@ -22,7 +22,7 @@ enum ComponentTypeValues {
 
 input ComponentFilter {
     componentCcrn: [String]
-    state: Int
+    state: [StateFilter!]
 }
 
 type ComponentConnection implements Connection {

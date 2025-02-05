@@ -104,7 +104,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		IssueRepositoryId: irId,
 		SupportGroupId:    sgId,
 		Search:            filter.Search,
-		State:             entity.GetStateFilterType(filter.State),
+		State:             model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -160,7 +160,7 @@ func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		SupportGroupCCRN: filter.SupportGroupCcrn,
 		CCRN:             filter.ServiceCcrn,
 		OwnerName:        filter.UserName,
-		State:            entity.GetStateFilterType(filter.State),
+		State:            model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

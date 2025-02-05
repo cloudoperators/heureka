@@ -57,13 +57,13 @@ type ActivityAggregations struct {
 
 type ActivityFilter struct {
 	Paginated
-	Status      []*string       `json:"status"`
-	ServiceCCRN []*string       `json:"service_ccrn"`
-	Id          []*int64        `json:"id"`
-	ServiceId   []*int64        `json:"service_id"`
-	IssueId     []*int64        `json:"issue_id"`
-	EvidenceId  []*int64        `json:"evidence_id"`
-	State       StateFilterType `json:"state"`
+	Status      []*string         `json:"status"`
+	ServiceCCRN []*string         `json:"service_ccrn"`
+	Id          []*int64          `json:"id"`
+	ServiceId   []*int64          `json:"service_id"`
+	IssueId     []*int64          `json:"issue_id"`
+	EvidenceId  []*int64          `json:"evidence_id"`
+	State       []StateFilterType `json:"state"`
 }
 
 type ActivityResult struct {

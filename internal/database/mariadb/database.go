@@ -392,11 +392,14 @@ func getCursor(p entity.Paginated, filterStr string, stmt string) entity.Cursor 
 	}
 }
 
-func appendStateFilterQuery(query []string, prefix string, state entity.StateFilterType) []string {
-	if state == entity.Active {
-		query = append(query, fmt.Sprintf("%s_deleted_at IS NULL", prefix))
-	} else if state == entity.Deleted {
-		query = append(query, fmt.Sprintf("%s_deleted_at IS NOT NULL", prefix))
+func buildStateFilterQuery(state []entity.StateFilterType, prefix string) string {
+	stateQueries := []string{}
+	for i := range state {
+		if state[i] == entity.Active {
+			stateQueries = append(stateQueries, fmt.Sprintf("%s_deleted_at IS NULL", prefix))
+		} else if state[i] == entity.Deleted {
+			stateQueries = append(stateQueries, fmt.Sprintf("%s_deleted_at IS NOT NULL", prefix))
+		}
 	}
-	return query
+	return combineFilterQueries(stateQueries, OP_OR)
 }
