@@ -1,19 +1,21 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package entity
+package mariadb
 
 import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 type Field struct {
-	Name  DbColumnName
+	Name  entity.OrderByField
 	Value any
-	Order OrderDirection
+	Order entity.OrderDirection
 }
 
 type cursors struct {
@@ -67,21 +69,21 @@ func CreateCursorQuery(query string, fields []Field) string {
 	for i, f := range fields {
 		dir := ">"
 		switch f.Order {
-		case OrderDirectionAsc:
+		case entity.OrderDirectionAsc:
 			dir = ">"
-		case OrderDirectionDesc:
+		case entity.OrderDirectionDesc:
 			dir = "<"
 		}
 		if i >= len(fields)-1 {
-			subQuery = fmt.Sprintf("%s %s %s ? ", subQuery, f.Name, dir)
+			subQuery = fmt.Sprintf("%s %s %s ? ", subQuery, ColumnName(f.Name), dir)
 		} else {
-			subQuery = fmt.Sprintf("%s %s = ? AND ", subQuery, f.Name)
+			subQuery = fmt.Sprintf("%s %s = ? AND ", subQuery, ColumnName(f.Name))
 		}
 	}
 
 	subQuery = fmt.Sprintf("( %s )", subQuery)
 	if query != "" {
-		subQuery = fmt.Sprintf("%s OR %s", subQuery, query)
+		subQuery = fmt.Sprintf("%s OR %s", query, subQuery)
 	}
 
 	return CreateCursorQuery(subQuery, fields[:len(fields)-1])
@@ -99,24 +101,28 @@ func CreateCursorParameters(params []any, fields []Field) []any {
 	return CreateCursorParameters(params, fields[:len(fields)-1])
 }
 
-func WithIssueMatch(order []Order, im IssueMatch) NewCursor {
+func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
 
 	return func(cursors *cursors) error {
-		cursors.fields = append(cursors.fields, Field{Name: IssueMatchId, Value: im.Id, Order: OrderDirectionAsc})
-		cursors.fields = append(cursors.fields, Field{Name: IssueMatchTargetRemediationDate, Value: im.TargetRemediationDate, Order: OrderDirectionAsc})
-		cursors.fields = append(cursors.fields, Field{Name: IssueMatchRating, Value: im.Severity.Value, Order: OrderDirectionAsc})
-
-		if im.ComponentInstance != nil {
-			cursors.fields = append(cursors.fields, Field{Name: ComponentInstanceCcrn, Value: im.ComponentInstance.CCRN, Order: OrderDirectionAsc})
-		}
-		if im.Issue != nil {
-			cursors.fields = append(cursors.fields, Field{Name: IssuePrimaryName, Value: im.Issue.PrimaryName, Order: OrderDirectionAsc})
-		}
-
-		m := CreateOrderMap(order)
-		for _, f := range cursors.fields {
-			if orderDirection, ok := m[f.Name]; ok {
-				f.Order = orderDirection
+		order = GetDefaultOrder(order, entity.IssueMatchId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.IssueMatchId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueMatchId, Value: im.Id, Order: o.Direction})
+			case entity.IssueMatchTargetRemediationDate:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueMatchTargetRemediationDate, Value: im.TargetRemediationDate, Order: o.Direction})
+			case entity.IssueMatchRating:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueMatchRating, Value: im.Severity.Value, Order: o.Direction})
+			case entity.ComponentInstanceCcrn:
+				if im.ComponentInstance != nil {
+					cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceCcrn, Value: im.ComponentInstance.CCRN, Order: o.Direction})
+				}
+			case entity.IssuePrimaryName:
+				if im.Issue != nil {
+					cursors.fields = append(cursors.fields, Field{Name: entity.IssuePrimaryName, Value: im.Issue.PrimaryName, Order: o.Direction})
+				}
+			default:
+				continue
 			}
 		}
 

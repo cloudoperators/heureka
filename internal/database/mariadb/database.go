@@ -392,7 +392,7 @@ func getCursor(p entity.Paginated, filterStr string, stmt string) entity.Cursor 
 	}
 }
 
-func GetDefaultOrder(order []entity.Order, by entity.DbColumnName, direction entity.OrderDirection) []entity.Order {
+func GetDefaultOrder(order []entity.Order, by entity.OrderByField, direction entity.OrderDirection) []entity.Order {
 	if len(order) == 0 {
 		order = append([]entity.Order{{By: by, Direction: direction}}, order...)
 	}

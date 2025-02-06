@@ -142,21 +142,35 @@ func (s *SqlDatabase) getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) s
 	return strings.Join(fl, ", ")
 }
 
+func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
+	columns := ""
+	for _, o := range order {
+		switch o.By {
+		case entity.IssuePrimaryName:
+			columns = fmt.Sprintf("%s, I.issue_primary_name", columns)
+		case entity.ComponentInstanceCcrn:
+			columns = fmt.Sprintf("%s, CI.componentinstance_ccrn", columns)
+		}
+	}
+	return columns
+}
+
 func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
 	var query string
 	filter = s.ensureIssueMatchFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := s.getIssueMatchFilterString(filter)
-	joins := s.getIssueMatchJoins(filter, order)
-	cursorFields, err := entity.DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, err
 	}
-	cursorQuery := entity.CreateCursorQuery("", cursorFields)
+	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	order = GetDefaultOrder(order, entity.IssueMatchId, entity.OrderDirectionAsc)
-	orderStr := entity.CreateOrderString(order)
+	orderStr := CreateOrderString(order)
+	columns := s.getIssueMatchColumns(order)
+	joins := s.getIssueMatchJoins(filter, order)
 
 	whereClause := ""
 	if filterStr != "" || withCursor {
@@ -169,9 +183,9 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 
 	// construct final query
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, orderStr)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, orderStr)
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
@@ -205,7 +219,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 
 	if withCursor {
-		p := entity.CreateCursorParameters([]any{}, cursorFields)
+		p := CreateCursorParameters([]any{}, cursorFields)
 		filterParameters = append(filterParameters, p...)
 		if filter.PaginatedX.First == nil {
 			filterParameters = append(filterParameters, 1000)
@@ -224,7 +238,7 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
 	})
 
 	baseQuery := `
-		SELECT IM.issuematch_id FROM IssueMatch IM 
+		SELECT IM.issuematch_id %s FROM IssueMatch IM 
 		%s
 	 	%s GROUP BY IM.issuematch_id ORDER BY %s
     `
@@ -245,7 +259,7 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(filter *entity.IssueMatchFilter, o
 	})
 
 	baseQuery := `
-		SELECT IM.* FROM IssueMatch IM 
+		SELECT IM.* %s FROM IssueMatch IM 
 		%s
 	    %s GROUP BY IM.issuematch_id ORDER BY %s
     `
@@ -278,7 +292,7 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(filter *entity.IssueMatchFilter, o
 			im.ComponentInstance = lo.ToPtr(row.ComponentInstanceRow.AsComponentInstance())
 		}
 
-		cursor, _ := entity.EncodeCursor(entity.WithIssueMatch(order, im))
+		cursor, _ := EncodeCursor(WithIssueMatch(order, im))
 
 		return cursor
 	}), nil
@@ -291,7 +305,7 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
 	})
 
 	baseQuery := `
-		SELECT IM.* FROM IssueMatch IM 
+		SELECT IM.* %s FROM IssueMatch IM 
 		%s
 	    %s %s GROUP BY IM.issuematch_id ORDER BY %s LIMIT ?
     `
@@ -315,7 +329,7 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
 				im.ComponentInstance = lo.ToPtr(e.ComponentInstanceRow.AsComponentInstance())
 			}
 
-			cursor, _ := entity.EncodeCursor(entity.WithIssueMatch(order, im))
+			cursor, _ := EncodeCursor(WithIssueMatch(order, im))
 
 			imr := entity.IssueMatchResult{
 				WithCursor: entity.WithCursor{
@@ -335,7 +349,7 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
 	})
 
 	baseQuery := `
-		SELECT count(distinct IM.issuematch_id) FROM IssueMatch IM 
+		SELECT count(distinct IM.issuematch_id) %s FROM IssueMatch IM 
 		%s
 		%s
 		ORDER BY %s

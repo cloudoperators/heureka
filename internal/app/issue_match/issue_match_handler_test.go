@@ -14,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
 	"github.com/cloudoperators/heureka/internal/app/severity"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 
 	"github.com/samber/lo"
 
@@ -91,13 +92,12 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			filter.First = &pageSize
 			matches := []entity.IssueMatchResult{}
 			for _, im := range test.NNewFakeIssueMatches(resElements) {
-				cursor, _ := entity.EncodeCursor(entity.WithIssueMatch([]entity.Order{}, im))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, im))
 				matches = append(matches, entity.IssueMatchResult{WithCursor: entity.WithCursor{Value: cursor}, IssueMatch: lo.ToPtr(im)})
 			}
 
-			// cursors := []string{}
 			var cursors = lo.Map(matches, func(m entity.IssueMatchResult, _ int) string {
-				cursor, _ := entity.EncodeCursor(entity.WithIssueMatch([]entity.Order{}, *m.IssueMatch))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, *m.IssueMatch))
 				return cursor
 			})
 
@@ -105,7 +105,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			for len(cursors) < dbElements {
 				i++
 				im := test.NewFakeIssueMatch()
-				c, _ := entity.EncodeCursor(entity.WithIssueMatch([]entity.Order{}, im))
+				c, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, im))
 				cursors = append(cursors, c)
 			}
 			db.On("GetIssueMatches", filter, []entity.Order{}).Return(matches, nil)
