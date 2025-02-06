@@ -114,3 +114,8 @@ type Metadata {
     updated_at: DateTime
     updated_by: String
 }
+
+enum OrderDirection {
+    asc
+    desc
+}

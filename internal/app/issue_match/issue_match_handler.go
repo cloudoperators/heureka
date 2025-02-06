@@ -12,7 +12,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,21 +41,13 @@ func (e *IssueMatchHandlerError) Error() string {
 	return e.message
 }
 
-func (h *issueMatchHandler) getIssueMatchResults(filter *entity.IssueMatchFilter) ([]entity.IssueMatchResult, error) {
-	var results []entity.IssueMatchResult
-	ims, err := h.database.GetIssueMatches(filter)
+func (h *issueMatchHandler) getIssueMatchResults(filter *entity.IssueMatchFilter, order []entity.Order) ([]entity.IssueMatchResult, error) {
+	ims, err := h.database.GetIssueMatches(filter, order)
 	if err != nil {
 		return nil, err
 	}
-	for _, im := range ims {
-		cursor := fmt.Sprintf("%d", im.Id)
-		results = append(results, entity.IssueMatchResult{
-			WithCursor: entity.WithCursor{Value: cursor},
-			IssueMatch: util.Ptr(im),
-		})
-	}
 
-	return results, nil
+	return ims, nil
 }
 
 func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMatch, error) {
@@ -65,7 +56,8 @@ func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMat
 		"id":    issueMatchId,
 	})
 	issueMatchFilter := entity.IssueMatchFilter{Id: []*int64{&issueMatchId}}
-	issueMatches, err := im.ListIssueMatches(&issueMatchFilter, &entity.ListOptions{})
+	options := entity.ListOptions{Order: []entity.Order{}}
+	issueMatches, err := im.ListIssueMatches(&issueMatchFilter, &options)
 
 	if err != nil {
 		l.Error(err)
@@ -88,14 +80,14 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginated(&filter.Paginated)
+	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListIssueMatchesEventName,
 		"filter": filter,
 	})
 
-	res, err := im.getIssueMatchResults(filter)
+	res, err := im.database.GetIssueMatches(filter, options.Order)
 
 	if err != nil {
 		l.Error(err)
@@ -104,13 +96,13 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := im.database.GetAllIssueMatchIds(filter)
+			cursors, err := im.database.GetAllIssueMatchCursors(filter, options.Order)
 			if err != nil {
 				l.Error(err)
 				return nil, NewIssueMatchHandlerError("Error while getting all Ids")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = im.database.CountIssueMatches(filter)
