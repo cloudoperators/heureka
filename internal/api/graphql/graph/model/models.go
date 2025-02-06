@@ -565,7 +565,7 @@ func GetStateFilterType(sf []StateFilter) []entity.StateFilterType {
 		for i := range sf {
 			if sf[i] == StateFilterDeleted {
 				s[i] = entity.Deleted
-			} else {
+			} else if sf[i] == StateFilterActive {
 				s[i] = entity.Active
 			}
 		}

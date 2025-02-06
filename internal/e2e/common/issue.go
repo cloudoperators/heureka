@@ -101,7 +101,7 @@ func QueryDeleteIssue(port string, iid string) string {
 	return respData.Id
 }
 
-func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection {
+func QueryGetIssueWithReqVars(port string, vars map[string]interface{}) *model.IssueConnection {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
@@ -111,9 +111,9 @@ func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection 
 	str := string(b)
 	req := graphql.NewRequest(str)
 
-	req.Var("filter", map[string]interface{}{"primaryName": issuePrimaryName, "state": []string{model.StateFilterActive.String(), model.StateFilterDeleted.String()}})
-	req.Var("first", 1)
-	req.Var("after", "0")
+	for k, v := range vars {
+		req.Var(k, v)
+	}
 
 	req.Header.Set("Cache-Control", "no-cache")
 	ctx := context.Background()
@@ -125,4 +125,24 @@ func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection 
 		logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 	}
 	return &respData.Issues
+}
+
+func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection {
+	vars := map[string]interface{}{
+		"filter": map[string]interface{}{"primaryName": issuePrimaryName, "state": []string{model.StateFilterActive.String(), model.StateFilterDeleted.String()}},
+		"first":  1,
+		"after":  0,
+	}
+	return QueryGetIssueWithReqVars(port, vars)
+}
+
+func QueryGetIssuesWithoutFiltering(port string) *model.IssueConnection {
+	return QueryGetIssueWithReqVars(port, map[string]interface{}{})
+}
+
+func QueryGetIssuesFilteringByState(port string, stateFilter []string) *model.IssueConnection {
+	vars := map[string]interface{}{
+		"filter": map[string]interface{}{"state": stateFilter},
+	}
+	return QueryGetIssueWithReqVars(port, vars)
 }
