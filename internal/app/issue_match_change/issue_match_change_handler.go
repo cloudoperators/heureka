@@ -180,7 +180,13 @@ func (imc *issueMatchChangeHandler) DeleteIssueMatchChange(id int64) error {
 		"id":    id,
 	})
 
-	err := imc.database.DeleteIssueMatchChange(id)
+	userId, err := common.GetCurrentUserId(imc.database)
+	if err != nil {
+		l.Error(err)
+		return NewIssueMatchChangeHandlerError("Internal error while deleting issueMatchChange (GetUserId).")
+	}
+
+	err = imc.database.DeleteIssueMatchChange(id, userId)
 
 	if err != nil {
 		l.Error(err)

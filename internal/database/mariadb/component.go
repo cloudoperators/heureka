@@ -17,7 +17,7 @@ func (s *SqlDatabase) getComponentFilterString(filter *entity.ComponentFilter) s
 	fl = append(fl, buildFilterQuery(filter.CCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "C.component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CV.componentversion_id = ?", OP_OR))
-	fl = append(fl, "C.component_deleted_at IS NULL")
+	fl = append(fl, buildStateFilterQuery(filter.State, "C.component"))
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -254,7 +254,7 @@ func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
 	return err
 }
 
-func (s *SqlDatabase) DeleteComponent(id int64) error {
+func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteComponent",
@@ -262,12 +262,14 @@ func (s *SqlDatabase) DeleteComponent(id int64) error {
 
 	query := `
 		UPDATE Component SET
-		component_deleted_at = NOW()
+		component_deleted_at = NOW(),
+		component_updated_by = :userId
 		WHERE component_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

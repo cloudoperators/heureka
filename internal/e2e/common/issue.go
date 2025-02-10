@@ -77,7 +77,31 @@ func QueryUpdateIssue(port string, issue Issue, iid string) *model.Issue {
 	return &respData.Issue
 }
 
-func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection {
+func QueryDeleteIssue(port string, iid string) string {
+	// create a queryCollection (safe to share across requests)
+	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
+
+	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/delete.graphql")
+	Expect(err).To(BeNil())
+	str := string(b)
+	req := graphql.NewRequest(str)
+
+	req.Var("id", iid)
+
+	req.Header.Set("Cache-Control", "no-cache")
+	ctx := context.Background()
+
+	var respData struct {
+		Id string `json:"deleteIssue"`
+	}
+	if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+		logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+	}
+	return respData.Id
+}
+
+func QueryGetIssueWithReqVars(port string, vars map[string]interface{}) *model.IssueConnection {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
@@ -87,9 +111,9 @@ func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection 
 	str := string(b)
 	req := graphql.NewRequest(str)
 
-	req.Var("filter", map[string]string{"primaryName": issuePrimaryName})
-	req.Var("first", 1)
-	req.Var("after", "0")
+	for k, v := range vars {
+		req.Var(k, v)
+	}
 
 	req.Header.Set("Cache-Control", "no-cache")
 	ctx := context.Background()
@@ -101,4 +125,24 @@ func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection 
 		logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 	}
 	return &respData.Issues
+}
+
+func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection {
+	vars := map[string]interface{}{
+		"filter": map[string]interface{}{"primaryName": issuePrimaryName, "state": []string{model.StateFilterActive.String(), model.StateFilterDeleted.String()}},
+		"first":  1,
+		"after":  0,
+	}
+	return QueryGetIssueWithReqVars(port, vars)
+}
+
+func QueryGetIssuesWithoutFiltering(port string) *model.IssueConnection {
+	return QueryGetIssueWithReqVars(port, map[string]interface{}{})
+}
+
+func QueryGetIssuesFilteringByState(port string, stateFilter []string) *model.IssueConnection {
+	vars := map[string]interface{}{
+		"filter": map[string]interface{}{"state": stateFilter},
+	}
+	return QueryGetIssueWithReqVars(port, vars)
 }

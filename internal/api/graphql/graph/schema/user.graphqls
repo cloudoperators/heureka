@@ -32,4 +32,5 @@ input UserFilter {
     userName: [String],
     supportGroupIds: [String],
     uniqueUserId: [String],
+    state: [StateFilter!],
 }

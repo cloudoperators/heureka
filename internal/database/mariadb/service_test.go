@@ -679,7 +679,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			It("can delete service correctly", func() {
 				service := seedCollection.ServiceRows[0].AsService()
 
-				err := db.DeleteService(service.Id)
+				err := db.DeleteService(service.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

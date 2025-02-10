@@ -202,7 +202,8 @@ var _ = Describe("When deleting Evidence", Label("app", "DeleteEvidence"), func(
 	})
 
 	It("deletes evidence", func() {
-		db.On("DeleteEvidence", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteEvidence", id, mock.Anything).Return(nil)
 		evidenceHandler = es.NewEvidenceHandler(db, er)
 		db.On("GetEvidences", filter).Return([]entity.Evidence{}, nil)
 		err := evidenceHandler.DeleteEvidence(id)

@@ -18,7 +18,7 @@ func (s *SqlDatabase) getSupportGroupFilterString(filter *entity.SupportGroupFil
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "SGS.supportgroupservice_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.CCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.UserId, "SGU.supportgroupuser_user_id = ?", OP_OR))
-	fl = append(fl, "SG.supportgroup_deleted_at IS NULL")
+	fl = append(fl, buildStateFilterQuery(filter.State, "SG.supportgroup"))
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -257,7 +257,7 @@ func (s *SqlDatabase) UpdateSupportGroup(supportGroup *entity.SupportGroup) erro
 	return err
 }
 
-func (s *SqlDatabase) DeleteSupportGroup(id int64) error {
+func (s *SqlDatabase) DeleteSupportGroup(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteSupportGroup",
@@ -265,12 +265,14 @@ func (s *SqlDatabase) DeleteSupportGroup(id int64) error {
 
 	query := `
 		UPDATE SupportGroup SET
-		supportgroup_deleted_at = NOW()
+		supportgroup_deleted_at = NOW(),
+		supportgroup_updated_by = :userId
 		WHERE supportgroup_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

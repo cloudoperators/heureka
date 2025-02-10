@@ -38,4 +38,5 @@ type EvidenceEdge implements Edge {
 
 input EvidenceFilter {
     placeholder: [Boolean]
+    state: [StateFilter!]
 }

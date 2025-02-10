@@ -145,7 +145,7 @@ func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*e
 	issueMatch.CreatedBy, err = common.GetCurrentUserId(im.database)
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity (GetUserId).")
+		return nil, NewIssueMatchHandlerError("Internal error while creating issueMatch (GetUserId).")
 	}
 	issueMatch.UpdatedBy = issueMatch.CreatedBy
 
@@ -187,7 +187,7 @@ func (im *issueMatchHandler) UpdateIssueMatch(issueMatch *entity.IssueMatch) (*e
 	issueMatch.UpdatedBy, err = common.GetCurrentUserId(im.database)
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity (GetUserId).")
+		return nil, NewIssueMatchHandlerError("Internal error while updating issueMatch (GetUserId).")
 	}
 
 	err = im.database.UpdateIssueMatch(issueMatch)
@@ -210,7 +210,13 @@ func (im *issueMatchHandler) DeleteIssueMatch(id int64) error {
 		"id":    id,
 	})
 
-	err := im.database.DeleteIssueMatch(id)
+	userId, err := common.GetCurrentUserId(im.database)
+	if err != nil {
+		l.Error(err)
+		return NewIssueMatchHandlerError("Internal error while deleting issueMatch (GetUserId).")
+	}
+
+	err = im.database.DeleteIssueMatch(id, userId)
 
 	if err != nil {
 		l.Error(err)
