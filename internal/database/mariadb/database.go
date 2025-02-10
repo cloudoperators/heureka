@@ -246,7 +246,7 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 	return res, nil
 }
 
-func performListScan[T DatabaseRow, E entity.HeurekaEntity](stmt *sqlx.Stmt, filterParameters []interface{}, l *logrus.Entry, listBuilder func([]E, T) []E) ([]E, error) {
+func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt *sqlx.Stmt, filterParameters []interface{}, l *logrus.Entry, listBuilder func([]E, T) []E) ([]E, error) {
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		msg := "Error while performing Query from prepared Statement"
@@ -390,6 +390,14 @@ func getCursor(p entity.Paginated, filterStr string, stmt string) entity.Cursor 
 		Value:     cursorValue,
 		Limit:     limit,
 	}
+}
+
+func GetDefaultOrder(order []entity.Order, by entity.OrderByField, direction entity.OrderDirection) []entity.Order {
+	if len(order) == 0 {
+		order = append([]entity.Order{{By: by, Direction: direction}}, order...)
+	}
+
+	return order
 }
 
 func buildStateFilterQuery(state []entity.StateFilterType, prefix string) string {

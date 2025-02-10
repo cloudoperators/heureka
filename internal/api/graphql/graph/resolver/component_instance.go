@@ -33,7 +33,7 @@ func (r *componentInstanceResolver) ComponentVersion(ctx context.Context, obj *m
 }
 
 func (r *componentInstanceResolver) IssueMatches(ctx context.Context, obj *model.ComponentInstance, filter *model.IssueMatchFilter, first *int, after *string) (*model.IssueMatchConnection, error) {
-	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
+	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ComponentInstanceNodeName,
 	})

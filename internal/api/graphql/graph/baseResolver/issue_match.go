@@ -54,18 +54,12 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 	return &issueMatch, nil
 }
 
-func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueMatchConnection, error) {
+func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy, parent *model.NodeParent) (*model.IssueMatchConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called IssueMatchBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("IssueMatchBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var eId []*int64
 	var ciId []*int64
@@ -104,7 +98,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 
 	f := &entity.IssueMatchFilter{
 		Id:                  issue_match_ids,
-		Paginated:           entity.Paginated{First: first, After: afterId},
+		PaginatedX:          entity.PaginatedX{First: first, After: after},
 		AffectedServiceCCRN: filter.AffectedService,
 		Status:              lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
 		SeverityValue:       lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
@@ -120,6 +114,9 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	}
 
 	opt := GetListOptions(requestedFields)
+	for _, o := range orderBy {
+		opt.Order = append(opt.Order, o.ToOrderEntity())
+	}
 
 	issueMatches, err := app.ListIssueMatches(f, opt)
 
