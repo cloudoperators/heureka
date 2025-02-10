@@ -13,7 +13,7 @@ type Database interface {
 	GetAllIssueIds(*entity.IssueFilter) ([]int64, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
-	DeleteIssue(int64) error
+	DeleteIssue(int64, int64) error
 	AddComponentVersionToIssue(int64, int64) error
 	RemoveComponentVersionFromIssue(int64, int64) error
 	GetIssueNames(*entity.IssueFilter) ([]string, error)
@@ -24,14 +24,14 @@ type Database interface {
 	CountIssueVariants(*entity.IssueVariantFilter) (int64, error)
 	CreateIssueVariant(*entity.IssueVariant) (*entity.IssueVariant, error)
 	UpdateIssueVariant(*entity.IssueVariant) error
-	DeleteIssueVariant(int64) error
+	DeleteIssueVariant(int64, int64) error
 
 	GetIssueRepositories(*entity.IssueRepositoryFilter) ([]entity.IssueRepository, error)
 	GetAllIssueRepositoryIds(*entity.IssueRepositoryFilter) ([]int64, error)
 	CountIssueRepositories(*entity.IssueRepositoryFilter) (int64, error)
 	CreateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
 	UpdateIssueRepository(*entity.IssueRepository) error
-	DeleteIssueRepository(int64) error
+	DeleteIssueRepository(int64, int64) error
 	GetDefaultIssuePriority() int64
 	GetDefaultRepositoryName() string
 
@@ -40,14 +40,14 @@ type Database interface {
 	CountIssueMatches(filter *entity.IssueMatchFilter) (int64, error)
 	CreateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)
 	UpdateIssueMatch(*entity.IssueMatch) error
-	DeleteIssueMatch(int64) error
+	DeleteIssueMatch(int64, int64) error
 
 	GetIssueMatchChanges(*entity.IssueMatchChangeFilter) ([]entity.IssueMatchChange, error)
 	GetAllIssueMatchChangeIds(*entity.IssueMatchChangeFilter) ([]int64, error)
 	CountIssueMatchChanges(filter *entity.IssueMatchChangeFilter) (int64, error)
 	CreateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
 	UpdateIssueMatchChange(*entity.IssueMatchChange) error
-	DeleteIssueMatchChange(int64) error
+	DeleteIssueMatchChange(int64, int64) error
 	AddEvidenceToIssueMatch(int64, int64) error
 	RemoveEvidenceFromIssueMatch(int64, int64) error
 
@@ -57,7 +57,7 @@ type Database interface {
 	CountServices(*entity.ServiceFilter) (int64, error)
 	CreateService(*entity.Service) (*entity.Service, error)
 	UpdateService(*entity.Service) error
-	DeleteService(int64) error
+	DeleteService(int64, int64) error
 	AddOwnerToService(int64, int64) error
 	RemoveOwnerFromService(int64, int64) error
 	AddIssueRepositoryToService(int64, int64, int64) error
@@ -69,7 +69,7 @@ type Database interface {
 	CountUsers(*entity.UserFilter) (int64, error)
 	CreateUser(*entity.User) (*entity.User, error)
 	UpdateUser(*entity.User) error
-	DeleteUser(int64) error
+	DeleteUser(int64, int64) error
 	GetUserNames(*entity.UserFilter) ([]string, error)
 	GetUniqueUserIDs(*entity.UserFilter) ([]string, error)
 
@@ -78,7 +78,7 @@ type Database interface {
 	CountSupportGroups(*entity.SupportGroupFilter) (int64, error)
 	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
 	UpdateSupportGroup(*entity.SupportGroup) error
-	DeleteSupportGroup(int64) error
+	DeleteSupportGroup(int64, int64) error
 	AddServiceToSupportGroup(int64, int64) error
 	RemoveServiceFromSupportGroup(int64, int64) error
 	AddUserToSupportGroup(int64, int64) error
@@ -90,7 +90,7 @@ type Database interface {
 	CountComponentInstances(*entity.ComponentInstanceFilter) (int64, error)
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
 	UpdateComponentInstance(*entity.ComponentInstance) error
-	DeleteComponentInstance(int64) error
+	DeleteComponentInstance(int64, int64) error
 	GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error)
 	GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error)
 
@@ -99,7 +99,7 @@ type Database interface {
 	CountActivities(*entity.ActivityFilter) (int64, error)
 	CreateActivity(*entity.Activity) (*entity.Activity, error)
 	UpdateActivity(*entity.Activity) error
-	DeleteActivity(int64) error
+	DeleteActivity(int64, int64) error
 	AddServiceToActivity(int64, int64) error
 	RemoveServiceFromActivity(int64, int64) error
 	AddIssueToActivity(int64, int64) error
@@ -110,21 +110,21 @@ type Database interface {
 	CountEvidences(*entity.EvidenceFilter) (int64, error)
 	CreateEvidence(*entity.Evidence) (*entity.Evidence, error)
 	UpdateEvidence(*entity.Evidence) error
-	DeleteEvidence(int64) error
+	DeleteEvidence(int64, int64) error
 
 	GetComponents(*entity.ComponentFilter) ([]entity.Component, error)
 	GetAllComponentIds(*entity.ComponentFilter) ([]int64, error)
 	CountComponents(*entity.ComponentFilter) (int64, error)
 	CreateComponent(*entity.Component) (*entity.Component, error)
 	UpdateComponent(*entity.Component) error
-	DeleteComponent(int64) error
+	DeleteComponent(int64, int64) error
 
 	GetComponentVersions(*entity.ComponentVersionFilter) ([]entity.ComponentVersion, error)
 	GetAllComponentVersionIds(*entity.ComponentVersionFilter) ([]int64, error)
 	CountComponentVersions(*entity.ComponentVersionFilter) (int64, error)
 	CreateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)
 	UpdateComponentVersion(*entity.ComponentVersion) error
-	DeleteComponentVersion(int64) error
+	DeleteComponentVersion(int64, int64) error
 
 	CreateScannerRun(*entity.ScannerRun) (bool, error)
 	CompleteScannerRun(string) (bool, error)

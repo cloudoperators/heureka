@@ -546,7 +546,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			It("can delete componentInstance correctly", func() {
 				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
 
-				err := db.DeleteComponentInstance(componentInstance.Id)
+				err := db.DeleteComponentInstance(componentInstance.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

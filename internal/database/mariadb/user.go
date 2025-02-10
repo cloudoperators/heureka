@@ -20,7 +20,7 @@ func (s *SqlDatabase) getUserFilterString(filter *entity.UserFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Type, "U.user_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGU.supportgroupuser_support_group_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "O.owner_service_id = ?", OP_OR))
-	fl = append(fl, "U.user_deleted_at IS NULL")
+	fl = append(fl, buildStateFilterQuery(filter.State, "U.user"))
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -272,7 +272,7 @@ func (s *SqlDatabase) UpdateUser(user *entity.User) error {
 	return err
 }
 
-func (s *SqlDatabase) DeleteUser(id int64) error {
+func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteUser",
@@ -280,12 +280,14 @@ func (s *SqlDatabase) DeleteUser(id int64) error {
 
 	query := `
 		UPDATE User SET
-		user_deleted_at = NOW()
+		user_deleted_at = NOW(),
+		user_updated_by = :userId
 		WHERE user_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

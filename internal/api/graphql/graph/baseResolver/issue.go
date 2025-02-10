@@ -110,6 +110,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		IssueMatchStatus:                nil, //@todo Implement
 		IssueMatchDiscoveryDate:         nil, //@todo Implement
 		IssueMatchTargetRemediationDate: nil, //@todo Implement
+		State:                           model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetIssueListOptions(requestedFields)
@@ -177,6 +178,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 		IssueMatchStatus:                nil, //@todo Implement
 		IssueMatchDiscoveryDate:         nil, //@todo Implement
 		IssueMatchTargetRemediationDate: nil, //@todo Implement
+		State:                           model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

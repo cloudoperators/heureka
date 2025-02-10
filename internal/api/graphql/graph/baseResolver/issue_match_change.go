@@ -54,6 +54,7 @@ func IssueMatchChangeBaseResolver(app app.Heureka, ctx context.Context, filter *
 		Action:       lo.Map(filter.Action, func(item *model.IssueMatchChangeActions, _ int) *string { return pointer.String(item.String()) }),
 		ActivityId:   aId,
 		IssueMatchId: imId,
+		State:        model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
