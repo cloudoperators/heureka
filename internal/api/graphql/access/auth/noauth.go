@@ -1,9 +1,10 @@
-package access
+package auth
 
 import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -11,12 +12,12 @@ const (
 )
 
 type NoAuthMethod struct {
-	logger         Logger
+	logger         *logrus.Logger
 	authMethodName string
 	msg            string
 }
 
-func NewNoAuthMethod(l Logger, authMethodName string, msg string) authMethod {
+func NewNoAuthMethod(l *logrus.Logger, authMethodName string, msg string) authMethod {
 	return &NoAuthMethod{logger: l, authMethodName: authMethodName, msg: msg}
 }
 

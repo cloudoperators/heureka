@@ -1,4 +1,4 @@
-package util
+package test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/cloudoperators/heureka/internal/api/graphql/access"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
 )
 
 const (
@@ -19,14 +19,14 @@ const (
 
 type TestServer struct {
 	port           string
-	auth           *access.Auth
+	auth           *middleware.Auth
 	cancel         context.CancelFunc
 	ctx            context.Context
 	srv            *http.Server
 	lastRequestCtx context.Context
 }
 
-func NewTestServer(auth *access.Auth) *TestServer {
+func NewTestServer(auth *middleware.Auth) *TestServer {
 	port := util2.GetRandomFreePort()
 	return &TestServer{
 		port: port,
@@ -37,7 +37,7 @@ func NewTestServer(auth *access.Auth) *TestServer {
 func (ts *TestServer) StartInBackground() {
 	ts.lastRequestCtx = context.TODO()
 	r := gin.Default()
-	r.Use(ts.auth.GetMiddleware())
+	r.Use(ts.auth.Middleware())
 	r.GET(testEndpoint, func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		ts.lastRequestCtx = c.Request.Context()

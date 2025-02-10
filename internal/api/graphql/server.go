@@ -6,7 +6,7 @@ package graphqlapi
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/cloudoperators/heureka/internal/api/graphql/access"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
 	"github.com/cloudoperators/heureka/internal/app"
@@ -18,20 +18,20 @@ type GraphQLAPI struct {
 	Server *handler.Server
 	App    app.Heureka
 
-	auth *access.Auth
+	auth *middleware.Auth
 }
 
 func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 	graphQLAPI := GraphQLAPI{
 		Server: handler.NewDefaultServer(graph.NewExecutableSchema(resolver.NewResolver(a))),
 		App:    a,
-		auth:   access.NewAuth(&cfg),
+		auth:   middleware.NewAuth(&cfg),
 	}
 	return &graphQLAPI
 }
 
 func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
-	router.Use(g.auth.GetMiddleware())
+	router.Use(g.auth.Middleware())
 	router.GET("/playground", g.playgroundHandler())
 	router.POST("/query", g.graphqlHandler())
 }

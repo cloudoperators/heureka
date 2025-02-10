@@ -1,4 +1,4 @@
-package access_test
+package auth_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"

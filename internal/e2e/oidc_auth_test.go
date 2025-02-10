@@ -12,7 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/oidc"
 
-	. "github.com/cloudoperators/heureka/internal/api/graphql/access/test"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/test"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,7 +31,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 	var s *server.Server
 	var cfg util.Config
 	var queryUrl string
-	var oidcTokenStringHandler func(j *Jwt) string
+	var oidcTokenStringHandler func(j *test.Jwt) string
 
 	BeforeEach(func() {
 		var err error
@@ -49,7 +49,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 		s = server.NewServer(cfg)
 		s.NonBlockingStart()
 
-		oidcTokenStringHandler = CreateOidcTokenStringHandler(cfg.AuthOidcUrl, cfg.AuthOidcClientId, "dummyUserName")
+		oidcTokenStringHandler = test.CreateOidcTokenStringHandler(cfg.AuthOidcUrl, cfg.AuthOidcClientId, "dummyUserName")
 	})
 
 	AfterEach(func() {
@@ -59,56 +59,66 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 
 	When("trying to access query resource with valid oidc token", func() {
 		It("respond with 200", func() {
-			token := GenerateJwtWithRsaSignature(oidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": WithBearer(token)})
+			token := test.GenerateJwtWithRsaSignature(oidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(200))
 		})
 	})
 	When("trying to access query resource without 'Authorization' header", func() {
 		It("respond with 401", func() {
-			resp := SendGetRequest(queryUrl, nil)
+			resp := test.SendGetRequest(queryUrl, nil)
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "OidcAuthMethod(No authorization header)")
+			test.ExpectErrorMessage(resp, "OidcAuthMethod(No authorization header)")
 		})
 	})
 	When("trying to access query resource with invalid 'Authorization' header", func() {
 		It("respond with 401", func() {
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": "invalidHeader"})
+			resp := test.SendGetRequest(queryUrl, map[string]string{"Authorization": "invalidHeader"})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "OidcAuthMethod(Invalid authorization header)")
+			test.ExpectErrorMessage(resp, "OidcAuthMethod(Invalid authorization header)")
 		})
 	})
 	When("trying to access query resource with expired oidc token", func() {
 		It("respond with 401", func() {
-			token := GenerateJwtWithRsaSignature(oidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), -1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": WithBearer(token)})
+			token := test.GenerateJwtWithRsaSignature(oidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), -1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectRegexErrorMessage(resp, "OidcAuthMethod\\(oidc: token is expired \\(Token Expiry: .*\\)\\)")
+			test.ExpectRegexErrorMessage(resp, "OidcAuthMethod\\(oidc: token is expired \\(Token Expiry: .*\\)\\)")
 		})
 	})
 	When("trying to access query resource with oidc token created using invalid Rsa", func() {
 		It("respond with 401", func() {
-			token := GenerateJwtWithRsaSignature(oidcTokenStringHandler, GenerateRsaPrivateKey(), 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": WithBearer(token)})
+			token := test.GenerateJwtWithRsaSignature(oidcTokenStringHandler, test.GenerateRsaPrivateKey(), 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "OidcAuthMethod(failed to verify signature: failed to verify id token signature)")
+			test.ExpectErrorMessage(resp, "OidcAuthMethod(failed to verify signature: failed to verify id token signature)")
 		})
 	})
 	When("trying to access query resource with oidc token created using invalid signing method", func() {
 		It("respond with 401", func() {
-			token := GenerateJwt(oidcTokenStringHandler, "dummySecret", 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": WithBearer(token)})
+			token := test.GenerateJwt(oidcTokenStringHandler, "dummySecret", 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "OidcAuthMethod(oidc: id token signed with unsupported algorithm, expected [\"RS256\"] got \"HS256\")")
+			test.ExpectErrorMessage(resp, "OidcAuthMethod(oidc: id token signed with unsupported algorithm, expected [\"RS256\"] got \"HS256\")")
 		})
 	})
 
 	When("trying to access query resource with invalid token", func() {
 		It("respond with 401", func() {
-			token := GenerateJwtWithRsaSignature(InvalidTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": WithBearer(token)})
+			token := test.GenerateJwtWithRsaSignature(test.InvalidTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectRegexErrorMessage(resp, "OidcAuthMethod\\(oidc: id token issued by a different provider, expected \".*\" got \"\"\\)")
+			test.ExpectRegexErrorMessage(resp, "OidcAuthMethod\\(oidc: id token issued by a different provider, expected \".*\" got \"\"\\)")
+		})
+	})
+
+	When("trying to access query resource with invalid audience", func() {
+		It("respond with 401", func() {
+			invalidAudienceOidcTokenStringHandler := test.CreateOidcTokenStringHandler(cfg.AuthOidcUrl, "invalidAudience", "dummyUserName")
+			token := test.GenerateJwtWithRsaSignature(invalidAudienceOidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"Authorization": test.WithBearer(token)})
+			Expect(resp.StatusCode).To(Equal(401))
+			test.ExpectErrorMessage(resp, "OidcAuthMethod(oidc: expected audience \"mock-client-id\" got [\"invalidAudience\"])")
 		})
 	})
 })

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package access
+package middleware
 
 import (
 	"fmt"
@@ -12,13 +12,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloudoperators/heureka/internal/util"
-)
 
-type Logger interface {
-	Error(...interface{})
-	Warn(...interface{})
-	Info(...interface{})
-}
+	. "github.com/cloudoperators/heureka/internal/api/graphql/access/auth"
+)
 
 func NewAuth(cfg *util.Config) *Auth {
 	l := newLogger()
@@ -30,14 +26,14 @@ func NewAuth(cfg *util.Config) *Auth {
 
 type Auth struct {
 	chain  []authMethod
-	logger Logger
+	logger *logrus.Logger
 }
 
 type authMethod interface {
 	Verify(*gin.Context) error
 }
 
-func (a *Auth) GetMiddleware() gin.HandlerFunc {
+func (a *Auth) Middleware() gin.HandlerFunc {
 	return func(authCtx *gin.Context) {
 		if len(a.chain) > 0 {
 			var retMsg string
@@ -68,6 +64,6 @@ func (a *Auth) appendInstance(am authMethod) {
 	}
 }
 
-func newLogger() Logger {
+func newLogger() *logrus.Logger {
 	return logrus.New()
 }

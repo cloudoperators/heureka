@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package util
+package test
 
 import (
 	"crypto/rand"
@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cloudoperators/heureka/internal/api/graphql/access"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/auth"
 
 	"github.com/golang-jwt/jwt/v5"
 
@@ -102,7 +102,7 @@ func GenerateRsaPrivateKey() *rsa.PrivateKey {
 }
 
 func TokenStringHandler(j *Jwt) string {
-	claims := access.TokenClaims{
+	claims := auth.TokenClaims{
 		Version: "0.3.1",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: j.expiresAt,
@@ -130,7 +130,7 @@ func InvalidTokenStringHandler(j *Jwt) string {
 
 func CreateOidcTokenStringHandler(issuer string, clientId string, userName string) func(j *Jwt) string {
 	return func(j *Jwt) string {
-		claims := access.OidcTokenClaims{
+		claims := auth.OidcTokenClaims{
 			Version:       "0.0.1",
 			Sub:           userName,
 			EmailVerified: false,
@@ -160,16 +160,4 @@ func CreateOidcTokenStringHandler(issuer string, clientId string, userName strin
 
 func WithBearer(token string) string {
 	return fmt.Sprintf("Bearer %s", token)
-}
-
-type NoLogLogger struct {
-}
-
-func (nll NoLogLogger) Error(...interface{}) {
-}
-
-func (nll NoLogLogger) Warn(...interface{}) {
-}
-
-func (nll NoLogLogger) Info(...interface{}) {
 }

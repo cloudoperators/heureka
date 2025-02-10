@@ -1,4 +1,4 @@
-package access
+package auth
 
 import (
 	"context"
@@ -6,7 +6,9 @@ import (
 
 	"github.com/coreos/go-oidc"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 
+	authctx "github.com/cloudoperators/heureka/internal/api/graphql/access/context"
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
@@ -33,13 +35,13 @@ type IDTokenClaims struct {
 }
 
 type OidcAuthMethod struct {
-	logger   Logger
+	logger   *logrus.Logger
 	provider *oidc.Provider
 	config   *oidc.Config
 	verifier *oidc.IDTokenVerifier
 }
 
-func NewOidcAuthMethod(l Logger, cfg *util.Config) authMethod {
+func NewOidcAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 	if cfg.AuthOidcUrl != "" {
 		oidcProvider, err := oidc.NewProvider(context.TODO(), cfg.AuthOidcUrl)
 		if err != nil {
@@ -79,7 +81,7 @@ func (oam OidcAuthMethod) Verify(c *gin.Context) error {
 		return verifyError(oidcAuthMethodName, fmt.Errorf("Failed to parse token claims: %w", err))
 	}
 
-	ginContextSet(c, userNameKey, claims.Sub)
+	authctx.UserNameToContext(c, claims.Sub)
 
 	return nil
 }

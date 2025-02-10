@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package access_test
+package auth_test
 
 import (
 	"fmt"
@@ -10,10 +10,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	. "github.com/cloudoperators/heureka/internal/api/graphql/access/test"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
-	"github.com/cloudoperators/heureka/internal/api/graphql/access"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/context"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/oidc"
 )
@@ -25,19 +26,19 @@ const (
 
 var _ = Describe("Pass OIDC token data via context when using OIDC auth middleware", Label("api", "OidcAuthorization"), func() {
 	var oidcProvider *oidc.Provider
-	var testServer *TestServer
-	var oidcTokenStringHandler func(j *Jwt) string
+	var testServer *test.TestServer
+	var oidcTokenStringHandler func(j *test.Jwt) string
 
 	BeforeEach(func() {
 		oidcProviderUrl := fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
 		oidcProvider = oidc.NewProvider(oidcProviderUrl)
 		oidcProvider.Start()
 
-		auth := access.NewAuth(&util.Config{AuthOidcUrl: oidcProviderUrl, AuthOidcClientId: clientId})
-		testServer = NewTestServer(auth)
+		a := middleware.NewAuth(&util.Config{AuthOidcUrl: oidcProviderUrl, AuthOidcClientId: clientId})
+		testServer = test.NewTestServer(a)
 		testServer.StartInBackground()
 
-		oidcTokenStringHandler = CreateOidcTokenStringHandler(oidcProviderUrl, clientId, testUserName)
+		oidcTokenStringHandler = test.CreateOidcTokenStringHandler(oidcProviderUrl, clientId, testUserName)
 	})
 
 	AfterEach(func() {
@@ -47,12 +48,12 @@ var _ = Describe("Pass OIDC token data via context when using OIDC auth middlewa
 
 	When("User access api through OIDC token auth middleware with valid token", func() {
 		BeforeEach(func() {
-			token := GenerateJwtWithRsaSignature(oidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
-			resp := SendGetRequest(testServer.EndpointUrl(), map[string]string{"Authorization": WithBearer(token)})
+			token := test.GenerateJwtWithRsaSignature(oidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
+			resp := test.SendGetRequest(testServer.EndpointUrl(), map[string]string{"Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(200))
 		})
 		It("Should be able to access user name from request context", func() {
-			name, err := access.UserNameFromContext(testServer.Context())
+			name, err := context.UserNameFromContext(testServer.Context())
 			Expect(err).To(BeNil())
 			Expect(name).To(BeEquivalentTo(testUserName))
 		})
@@ -60,12 +61,12 @@ var _ = Describe("Pass OIDC token data via context when using OIDC auth middlewa
 
 	When("User access api through OIDC token auth middleware with invalid token", func() {
 		BeforeEach(func() {
-			token := GenerateJwtWithRsaSignature(InvalidTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
-			resp := SendGetRequest(testServer.EndpointUrl(), map[string]string{"Authorization": WithBearer(token)})
+			token := test.GenerateJwtWithRsaSignature(test.InvalidTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
+			resp := test.SendGetRequest(testServer.EndpointUrl(), map[string]string{"Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
 		})
 		It("Should not store gin context in request context", func() {
-			_, err := access.UserNameFromContext(testServer.Context())
+			_, err := context.UserNameFromContext(testServer.Context())
 			Expect(err).ShouldNot(BeNil())
 		})
 	})

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package access
+package auth
 
 import (
 	"fmt"
@@ -9,7 +9,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/sirupsen/logrus"
 
+	authctx "github.com/cloudoperators/heureka/internal/api/graphql/access/context"
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
@@ -18,7 +20,7 @@ const (
 	tokenAuthMethodName string = "TokenAuthMethod"
 )
 
-func NewTokenAuthMethod(l Logger, cfg *util.Config) authMethod {
+func NewTokenAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 	if cfg.AuthTokenSecret != "" {
 		l.Info("Initializing Token auth")
 		return &TokenAuthMethod{logger: l, secret: []byte(cfg.AuthTokenSecret)}
@@ -27,7 +29,7 @@ func NewTokenAuthMethod(l Logger, cfg *util.Config) authMethod {
 }
 
 type TokenAuthMethod struct {
-	logger Logger
+	logger *logrus.Logger
 	secret []byte
 }
 
@@ -37,7 +39,7 @@ func (tam TokenAuthMethod) Verify(c *gin.Context) error {
 		return verifyError(tokenAuthMethodName, err)
 	}
 
-	claims, err := tam.verifyTokenAndGetClaimsFromTokenString(tokenString)
+	claims, err := tam.parseTokenWithClaims(tokenString)
 	if err != nil {
 		return err
 	}
@@ -47,12 +49,12 @@ func (tam TokenAuthMethod) Verify(c *gin.Context) error {
 		return err
 	}
 
-	ginContextSet(c, scannerNameKey, claims.RegisteredClaims.Subject)
+	authctx.ScannerNameToContext(c, claims.RegisteredClaims.Subject)
 
 	return nil
 }
 
-func (tam TokenAuthMethod) verifyTokenAndGetClaimsFromTokenString(tokenString string) (*TokenClaims, error) {
+func (tam TokenAuthMethod) parseTokenWithClaims(tokenString string) (*TokenClaims, error) {
 	claims := &TokenClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, tam.parse)
 	if err != nil {
