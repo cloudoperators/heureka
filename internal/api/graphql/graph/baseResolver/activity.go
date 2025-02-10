@@ -93,6 +93,7 @@ func ActivityBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ac
 		ServiceCCRN: filter.ServiceCcrn,
 		ServiceId:   sId,
 		IssueId:     issueId,
+		State:       model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

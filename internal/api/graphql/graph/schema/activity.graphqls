@@ -30,6 +30,7 @@ type ActivityEdge implements Edge {
 input ActivityFilter {
     serviceCcrn: [String]
     status: [ActivityStatusValues]
+    state: [StateFilter!]
 }
 
 enum ActivityStatusValues {
