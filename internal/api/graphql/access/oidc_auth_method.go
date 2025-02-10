@@ -6,6 +6,7 @@ import (
 
 	"github.com/coreos/go-oidc"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cloudoperators/heureka/internal/util"
 )
@@ -33,13 +34,13 @@ type IDTokenClaims struct {
 }
 
 type OidcAuthMethod struct {
-	logger   Logger
+	logger   *logrus.Logger
 	provider *oidc.Provider
 	config   *oidc.Config
 	verifier *oidc.IDTokenVerifier
 }
 
-func NewOidcAuthMethod(l Logger, cfg *util.Config) authMethod {
+func NewOidcAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 	if cfg.AuthOidcUrl != "" {
 		oidcProvider, err := oidc.NewProvider(context.TODO(), cfg.AuthOidcUrl)
 		if err != nil {

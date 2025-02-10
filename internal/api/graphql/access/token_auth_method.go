@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cloudoperators/heureka/internal/util"
 )
@@ -18,7 +19,7 @@ const (
 	tokenAuthMethodName string = "TokenAuthMethod"
 )
 
-func NewTokenAuthMethod(l Logger, cfg *util.Config) authMethod {
+func NewTokenAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 	if cfg.AuthTokenSecret != "" {
 		l.Info("Initializing Token auth")
 		return &TokenAuthMethod{logger: l, secret: []byte(cfg.AuthTokenSecret)}
@@ -27,7 +28,7 @@ func NewTokenAuthMethod(l Logger, cfg *util.Config) authMethod {
 }
 
 type TokenAuthMethod struct {
-	logger Logger
+	logger *logrus.Logger
 	secret []byte
 }
 
@@ -37,7 +38,7 @@ func (tam TokenAuthMethod) Verify(c *gin.Context) error {
 		return verifyError(tokenAuthMethodName, err)
 	}
 
-	claims, err := tam.verifyTokenAndGetClaimsFromTokenString(tokenString)
+	claims, err := tam.parseTokenWithClaims(tokenString)
 	if err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func (tam TokenAuthMethod) Verify(c *gin.Context) error {
 	return nil
 }
 
-func (tam TokenAuthMethod) verifyTokenAndGetClaimsFromTokenString(tokenString string) (*TokenClaims, error) {
+func (tam TokenAuthMethod) parseTokenWithClaims(tokenString string) (*TokenClaims, error) {
 	claims := &TokenClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, tam.parse)
 	if err != nil {

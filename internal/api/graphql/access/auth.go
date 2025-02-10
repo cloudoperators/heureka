@@ -14,12 +14,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
-type Logger interface {
-	Error(...interface{})
-	Warn(...interface{})
-	Info(...interface{})
-}
-
 func NewAuth(cfg *util.Config) *Auth {
 	l := newLogger()
 	auth := Auth{logger: l}
@@ -30,7 +24,7 @@ func NewAuth(cfg *util.Config) *Auth {
 
 type Auth struct {
 	chain  []authMethod
-	logger Logger
+	logger *logrus.Logger
 }
 
 type authMethod interface {
@@ -68,6 +62,6 @@ func (a *Auth) appendInstance(am authMethod) {
 	}
 }
 
-func newLogger() Logger {
+func newLogger() *logrus.Logger {
 	return logrus.New()
 }

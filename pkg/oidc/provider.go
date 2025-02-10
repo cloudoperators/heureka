@@ -47,7 +47,7 @@ func (p *Provider) Start() {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.server = &http.Server{Handler: p.router.Handler()}
 
-	serverAddr := "'default"
+	serverAddr := "'default'"
 	re := regexp.MustCompile(`:[0-9]+`)
 	matches := re.FindAllString(p.url, -1)
 	if len(matches) > 0 {
@@ -66,7 +66,7 @@ func (p *Provider) Start() {
 func (p *Provider) StartForeground() {
 	p.server = &http.Server{Handler: p.router.Handler()}
 
-	serverAddr := "'default"
+	serverAddr := "'default'"
 	re := regexp.MustCompile(`:[0-9]+`)
 	matches := re.FindAllString(p.url, -1)
 	if len(matches) > 0 {

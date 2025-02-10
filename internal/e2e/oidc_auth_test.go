@@ -111,4 +111,14 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 			ExpectRegexErrorMessage(resp, "OidcAuthMethod\\(oidc: id token issued by a different provider, expected \".*\" got \"\"\\)")
 		})
 	})
+
+	When("trying to access query resource with invalid audience", func() {
+		It("respond with 401", func() {
+			invalidAudienceOidcTokenStringHandler := CreateOidcTokenStringHandler(cfg.AuthOidcUrl, "invalidAudience", "dummyUserName")
+			token := GenerateJwtWithRsaSignature(invalidAudienceOidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
+			resp := SendGetRequest(queryUrl, map[string]string{"Authorization": WithBearer(token)})
+			Expect(resp.StatusCode).To(Equal(401))
+			ExpectErrorMessage(resp, "OidcAuthMethod(oidc: expected audience \"mock-client-id\" got [\"invalidAudience\"])")
+		})
+	})
 })

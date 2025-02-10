@@ -161,15 +161,3 @@ func CreateOidcTokenStringHandler(issuer string, clientId string, userName strin
 func WithBearer(token string) string {
 	return fmt.Sprintf("Bearer %s", token)
 }
-
-type NoLogLogger struct {
-}
-
-func (nll NoLogLogger) Error(...interface{}) {
-}
-
-func (nll NoLogLogger) Warn(...interface{}) {
-}
-
-func (nll NoLogLogger) Info(...interface{}) {
-}
