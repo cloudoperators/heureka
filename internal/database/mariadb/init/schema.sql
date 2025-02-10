@@ -481,6 +481,4 @@ create table if not exists ScannerRunError
     error                             text not null,
 
     constraint fk_sre_sr_id foreign key (scannerrunerror_scannerrun_run_id) references ScannerRun (scannerrun_run_id) on update cascade
-    constraint fk_run_id foreign key (scannerrunissuetracker_scannerrun_run_id) references ScannerRun (scannerrun_run_id) on update cascade,
-    constraint fk_issue_id foreign key (scannerrunissuetracker_issue_id) references Issue (issue_id) on update cascade
 );
