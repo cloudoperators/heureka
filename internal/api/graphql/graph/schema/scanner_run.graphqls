@@ -26,3 +26,8 @@ type ScannerRunEdge implements Edge {
     node:   ScannerRun!
     cursor: String
 }
+
+input ScannerRunFilter {
+    tag: [String],
+    completed: Boolean,
+}

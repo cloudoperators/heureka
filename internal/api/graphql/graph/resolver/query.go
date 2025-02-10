@@ -6,6 +6,7 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
@@ -99,6 +100,14 @@ func (r *queryResolver) ComponentInstanceFilterValues(ctx context.Context) (*mod
 
 func (r *queryResolver) ComponentFilterValues(ctx context.Context) (*model.ComponentFilterValue, error) {
 	return &model.ComponentFilterValue{}, nil
+}
+
+func (r *queryResolver) ScannerRunTagFilterValues(ctx context.Context) ([]*string, error) {
+	panic(fmt.Errorf("not implemented: ScannerRunTagFilterValues - ScannerRunTagFilterValues"))
+}
+
+func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) (*model.ScannerRunConnection, error) {
+	panic(fmt.Errorf("not implemented: ScannerRuns - ScannerRuns"))
 }
 
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
