@@ -40,6 +40,7 @@ input IssueMatchFilter {
     severity: [SeverityValues]
     affectedService: [String]
     supportGroupCcrn: [String]
+    state: [StateFilter!]
 }
 
 #type CCloudSeverity {

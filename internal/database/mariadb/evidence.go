@@ -48,7 +48,7 @@ func (s *SqlDatabase) getEvidenceFilterString(filter *entity.EvidenceFilter) str
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "E.evidence_activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.UserId, "E.author_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IME.issuematchevidence_issue_match_id = ?", OP_OR))
-	fl = append(fl, "E.evidence_deleted_at IS NULL")
+	fl = append(fl, buildStateFilterQuery(filter.State, "E.evidence"))
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -277,7 +277,7 @@ func (s *SqlDatabase) UpdateEvidence(evidence *entity.Evidence) error {
 	return err
 }
 
-func (s *SqlDatabase) DeleteEvidence(id int64) error {
+func (s *SqlDatabase) DeleteEvidence(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteEvidence",
@@ -285,12 +285,14 @@ func (s *SqlDatabase) DeleteEvidence(id int64) error {
 
 	query := `
 		UPDATE Evidence SET
-		evidence_deleted_at = NOW()
+		evidence_deleted_at = NOW(),
+		evidence_updated_by = :userId
 		WHERE evidence_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

@@ -272,8 +272,7 @@ func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
 		Tag:       sr.Tag,
 		Completed: sr.Completed,
 		StartRun:  startRun,
-		EndRun:    
-		endRun,
+		EndRun:    endRun,
 	}
 }
 
@@ -584,4 +583,19 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,
 	}
+}
+
+func GetStateFilterType(sf []StateFilter) []entity.StateFilterType {
+	if len(sf) > 0 {
+		s := make([]entity.StateFilterType, len(sf))
+		for i := range sf {
+			if sf[i] == StateFilterDeleted {
+				s[i] = entity.Deleted
+			} else if sf[i] == StateFilterActive {
+				s[i] = entity.Active
+			}
+		}
+		return s
+	}
+	return []entity.StateFilterType{entity.Active}
 }

@@ -42,4 +42,5 @@ input ServiceFilter {
     userName: [String]
     supportGroupCcrn: [String]
     search: [String]
+    state: [StateFilter!]
 }

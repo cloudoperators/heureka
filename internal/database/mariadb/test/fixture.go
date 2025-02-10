@@ -848,11 +848,15 @@ func (s *DatabaseSeeder) InsertFakeIssue(issue mariadb.IssueRow) (int64, error) 
 		INSERT INTO Issue (
 			issue_primary_name,
 			issue_type,
-			issue_description
+			issue_description,
+			issue_created_by,
+			issue_updated_by
 		) VALUES (
 			:issue_primary_name,
 			:issue_type,
-			:issue_description
+			:issue_description,
+			:issue_created_by,
+			:issue_updated_by
 		)`
 	return s.ExecPreparedNamed(query, issue)
 }
@@ -864,13 +868,17 @@ func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVarian
 			issuevariant_vector,
 			issuevariant_issue_id,
 			issuevariant_repository_id,
-			issuevariant_description
+			issuevariant_description,
+			issuevariant_created_by,
+			issuevariant_updated_by
 		) VALUES (
 			:issuevariant_secondary_name,
 			:issuevariant_vector,
 			:issuevariant_issue_id,
 			:issuevariant_repository_id,
-			:issuevariant_description
+			:issuevariant_description,
+			:issuevariant_created_by,
+			:issuevariant_updated_by
 		)`
 	return s.ExecPreparedNamed(query, issueVariant)
 }
@@ -879,10 +887,14 @@ func (s *DatabaseSeeder) InsertFakeBaseIssueRepository(irr mariadb.BaseIssueRepo
 	query := `
 		INSERT INTO IssueRepository (
 			issuerepository_name, 
-			issuerepository_url
+			issuerepository_url,
+			issuerepository_created_by,
+			issuerepository_updated_by
 		) VALUES (
 			:issuerepository_name, 
-			:issuerepository_url
+			:issuerepository_url,
+			:issuerepository_created_by,
+			:issuerepository_updated_by
 		)`
 	return s.ExecPreparedNamed(query, irr)
 }
@@ -897,7 +909,9 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 			issuematch_issue_id,
 			issuematch_user_id,
 			issuematch_remediation_date,
-			issuematch_target_remediation_date
+			issuematch_target_remediation_date,
+			issuematch_created_by,
+			issuematch_updated_by
 		) VALUES (
 			:issuematch_status,
 			:issuematch_component_instance_id,
@@ -906,7 +920,9 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 			:issuematch_issue_id,
 			:issuematch_user_id,
 			:issuematch_remediation_date,
-			:issuematch_target_remediation_date
+			:issuematch_target_remediation_date,
+			:issuematch_created_by,
+			:issuematch_updated_by
 		)`
 	return s.ExecPreparedNamed(query, im)
 }
@@ -917,12 +933,16 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			componentinstance_ccrn,
 			componentinstance_count,
 			componentinstance_component_version_id,
-			componentinstance_service_id
+			componentinstance_service_id,
+			componentinstance_created_by,
+			componentinstance_updated_by
 		) VALUES (
 			:componentinstance_ccrn,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
-			:componentinstance_service_id
+			:componentinstance_service_id,
+			:componentinstance_created_by,
+			:componentinstance_updated_by
 		)`
 	return s.ExecPreparedNamed(query, ci)
 }
@@ -930,9 +950,13 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 func (s *DatabaseSeeder) InsertFakeBaseService(service mariadb.BaseServiceRow) (int64, error) {
 	query := `
 		INSERT INTO Service (
-			service_ccrn
+			service_ccrn,
+			service_created_by,
+			service_updated_by
 		) VALUES (
-			:service_ccrn
+			:service_ccrn,
+			:service_created_by,
+			:service_updated_by
 		)`
 	return s.ExecPreparedNamed(query, service)
 }
@@ -940,9 +964,13 @@ func (s *DatabaseSeeder) InsertFakeBaseService(service mariadb.BaseServiceRow) (
 func (s *DatabaseSeeder) InsertFakeSupportGroup(sg mariadb.SupportGroupRow) (int64, error) {
 	query := `
 		INSERT INTO SupportGroup (
-			supportgroup_ccrn
+			supportgroup_ccrn,
+			supportgroup_created_by,
+			supportgroup_updated_by
 		) VALUES (
-			:supportgroup_ccrn
+			:supportgroup_ccrn,
+			:supportgroup_created_by,
+			:supportgroup_updated_by
 		)`
 	return s.ExecPreparedNamed(query, sg)
 }
@@ -950,10 +978,15 @@ func (s *DatabaseSeeder) InsertFakeSupportGroup(sg mariadb.SupportGroupRow) (int
 func (s *DatabaseSeeder) InsertFakeComponent(component mariadb.ComponentRow) (int64, error) {
 	query := `
 		INSERT INTO Component (
-			component_ccrn, component_type
+			component_ccrn,
+			component_type,
+			component_created_by,
+			component_updated_by
 		) VALUES (
 			:component_ccrn,
-			:component_type
+			:component_type,
+			:component_created_by,
+			:component_updated_by
 		)`
 	return s.ExecPreparedNamed(query, component)
 }
@@ -962,10 +995,14 @@ func (s *DatabaseSeeder) InsertFakeComponentVersion(cv mariadb.ComponentVersionR
 	query := `
 		INSERT INTO ComponentVersion (
 			componentversion_version,
-			componentversion_component_id
+			componentversion_component_id,
+			componentversion_created_by,
+			componentversion_updated_by
 		) VALUES (
 			:componentversion_version,
-			:componentversion_component_id
+			:componentversion_component_id,
+			:componentversion_created_by,
+			:componentversion_updated_by
 		)`
 	return s.ExecPreparedNamed(query, cv)
 }
@@ -975,11 +1012,15 @@ func (s *DatabaseSeeder) InsertFakeUser(user mariadb.UserRow) (int64, error) {
 		INSERT INTO User (
 			user_name,
 			user_unique_user_id,
-			user_type
+			user_type,
+			user_created_by,
+			user_updated_by
 		) VALUES (
 			:user_name,
 			:user_unique_user_id,
-			:user_type
+			:user_type,
+			:user_created_by,
+			:user_updated_by
 		)`
 	return s.ExecPreparedNamed(query, user)
 }
@@ -1023,9 +1064,13 @@ func (s *DatabaseSeeder) InsertFakeSupportGroupService(sgs mariadb.SupportGroupS
 func (s *DatabaseSeeder) InsertFakeActivity(activity mariadb.ActivityRow) (int64, error) {
 	query := `
 		INSERT INTO Activity (
-			activity_status
+			activity_status,
+			activity_created_by,
+			activity_updated_by
 		) VALUES (
-		 	:activity_status
+			:activity_status,
+			:activity_created_by,
+			:activity_updated_by
 		)`
 	return s.ExecPreparedNamed(query, activity)
 }
@@ -1063,7 +1108,9 @@ func (s *DatabaseSeeder) InsertFakeEvidence(evidence mariadb.EvidenceRow) (int64
 			evidence_rating,
 			evidence_raa_end,
 			evidence_author_id,
-			evidence_activity_id
+			evidence_activity_id,
+			evidence_created_by,
+			evidence_updated_by
 		) VALUES (
 			:evidence_description,
 			:evidence_type,
@@ -1071,7 +1118,9 @@ func (s *DatabaseSeeder) InsertFakeEvidence(evidence mariadb.EvidenceRow) (int64
 			:evidence_rating,
 			:evidence_raa_end,
 			:evidence_author_id,
-			:evidence_activity_id
+			:evidence_activity_id,
+			:evidence_created_by,
+			:evidence_updated_by
 		)`
 	return s.ExecPreparedNamed(query, evidence)
 }
@@ -1107,11 +1156,15 @@ func (s *DatabaseSeeder) InsertFakeIssueMatchChange(vmc mariadb.IssueMatchChange
 		INSERT INTO IssueMatchChange (
 			issuematchchange_activity_id,
 			issuematchchange_issue_match_id,
-			issuematchchange_action
+			issuematchchange_action,
+			issuematchchange_created_by,
+			issuematchchange_updated_by
 		) VALUES (
 			:issuematchchange_activity_id,
 			:issuematchchange_issue_match_id,
-			:issuematchchange_action
+			:issuematchchange_action,
+			:issuematchchange_created_by,
+			:issuematchchange_updated_by
 		)`
 	return s.ExecPreparedNamed(query, vmc)
 }

@@ -235,3 +235,19 @@ type Metadata struct {
 	UpdatedBy int64     `json:"updated_by"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }
+
+type StateFilterType int
+
+const (
+	Active StateFilterType = iota
+	Deleted
+)
+
+var StateFilterTypeMap = map[StateFilterType]string{
+	Active:  "active",
+	Deleted: "deleted",
+}
+
+func (sft StateFilterType) String() string {
+	return StateFilterTypeMap[sft]
+}

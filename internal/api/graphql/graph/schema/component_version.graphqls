@@ -32,4 +32,5 @@ input ComponentVersionFilter {
     componentCcrn: [String]
     issueId: [String]
     version: [String]
+    state: [StateFilter!]
 }

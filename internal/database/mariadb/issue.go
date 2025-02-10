@@ -51,7 +51,7 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Type, "I.issue_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
-	fl = append(fl, "I.issue_deleted_at IS NULL")
+	fl = append(fl, buildStateFilterQuery(filter.State, "I.issue"))
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -457,7 +457,7 @@ func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
 	return err
 }
 
-func (s *SqlDatabase) DeleteIssue(id int64) error {
+func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteIssue",
@@ -465,12 +465,14 @@ func (s *SqlDatabase) DeleteIssue(id int64) error {
 
 	query := `
 		UPDATE Issue SET
-		issue_deleted_at = NOW()
+		issue_deleted_at = NOW(),
+		issue_updated_by = :userId
 		WHERE issue_id = :id
 	`
 
 	args := map[string]interface{}{
-		"id": id,
+		"userId": userId,
+		"id":     id,
 	}
 
 	_, err := performExec(s, query, args, l)

@@ -93,6 +93,7 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		IssueId:           issueId,
 		IssueRepositoryId: irId,
 		SecondaryName:     filter.SecondaryName,
+		State:             model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -163,6 +164,7 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 	f := &entity.IssueVariantFilter{
 		Paginated:    entity.Paginated{First: first, After: afterId},
 		IssueMatchId: imId,
+		State:        model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
