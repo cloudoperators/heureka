@@ -177,17 +177,17 @@ func (s *SqlDatabase) ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity
 }
 
 func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
-	query := `SELECT 
+	query := `SELECT DISTINCT
 				scannerrun_tag 
 			  FROM ScannerRun`
 
 	rows, err := s.db.Query(query)
-	defer rows.Close()
 
 	if err != nil {
 		return nil, err
 	}
 
+	defer rows.Close()
 	res := []string{}
 
 	for rows.Next() {
