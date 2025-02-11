@@ -175,3 +175,32 @@ func (s *SqlDatabase) ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity
 	}
 	return f
 }
+
+func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
+	query := `SELECT 
+				scannerrun_tag 
+			  FROM ScannerRun`
+
+	rows, err := s.db.Query(query)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := []string{}
+
+	for rows.Next() {
+
+		var tag string
+		err = rows.Scan(&tag)
+
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, tag)
+	}
+
+	return res, nil
+}
