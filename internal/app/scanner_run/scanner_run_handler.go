@@ -61,3 +61,27 @@ func (srh *scannerRunHandler) FailScannerRun(uuid string, message string) (bool,
 func (srhe *ScannerRunHandlerError) Error() string {
 	return srhe.msg
 }
+
+func (srh *scannerRunHandler) GetScannerRunTags() ([]string, error) {
+	var res []string
+
+	res, err := srh.database.GetScannerRunTags()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (srh *scannerRunHandler) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.ScannerRun, error) {
+	var res []entity.ScannerRun
+
+	res, err := srh.database.GetScannerRuns(filter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
