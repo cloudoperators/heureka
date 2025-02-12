@@ -231,7 +231,8 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 	})
 
 	It("deletes issueRepository", func() {
-		db.On("DeleteIssueRepository", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteIssueRepository", id, mock.Anything).Return(nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
 		err := issueRepositoryHandler.DeleteIssueRepository(id)

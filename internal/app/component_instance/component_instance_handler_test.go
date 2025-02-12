@@ -200,7 +200,8 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 	})
 
 	It("deletes componentInstance", func() {
-		db.On("DeleteComponentInstance", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteComponentInstance", id, mock.Anything).Return(nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
 		db.On("GetComponentInstances", filter).Return([]entity.ComponentInstance{}, nil)
 		err := componentInstanceHandler.DeleteComponentInstance(id)

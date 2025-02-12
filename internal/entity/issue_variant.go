@@ -17,12 +17,13 @@ type IssueVariant struct {
 
 type IssueVariantFilter struct {
 	Paginated
-	Id                []*int64  `json:"id"`
-	SecondaryName     []*string `json:"secondary_name"`
-	IssueId           []*int64  `json:"issue_id"`
-	IssueRepositoryId []*int64  `json:"issue_repository_id"`
-	ServiceId         []*int64  `json:"service_id"`
-	IssueMatchId      []*int64  `json:"issue_match_id"`
+	Id                []*int64          `json:"id"`
+	SecondaryName     []*string         `json:"secondary_name"`
+	IssueId           []*int64          `json:"issue_id"`
+	IssueRepositoryId []*int64          `json:"issue_repository_id"`
+	ServiceId         []*int64          `json:"service_id"`
+	IssueMatchId      []*int64          `json:"issue_match_id"`
+	State             []StateFilterType `json:"state"`
 }
 
 func NewIssueVariantFilter() *IssueVariantFilter {
@@ -57,8 +58,9 @@ type ServiceIssueVariant struct {
 
 type ServiceIssueVariantFilter struct {
 	Paginated
-	ComponentInstanceId []*int64 `json:"component_instance_id"`
-	IssueId             []*int64 `json:"issue_id"`
+	ComponentInstanceId []*int64          `json:"component_instance_id"`
+	IssueId             []*int64          `json:"issue_id"`
+	State               []StateFilterType `json:"state"`
 }
 
 func NewServiceIssueVariantFilter() *ServiceIssueVariantFilter {

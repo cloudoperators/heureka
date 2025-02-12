@@ -56,10 +56,11 @@ type Evidence struct {
 
 type EvidenceFilter struct {
 	Paginated
-	Id           []*int64 `json:"id"`
-	ActivityId   []*int64 `json:"activity_id"`
-	IssueMatchId []*int64 `json:"issue_match_id"`
-	UserId       []*int64 `json:"user_id"`
+	Id           []*int64          `json:"id"`
+	ActivityId   []*int64          `json:"activity_id"`
+	IssueMatchId []*int64          `json:"issue_match_id"`
+	UserId       []*int64          `json:"user_id"`
+	State        []StateFilterType `json:"state"`
 }
 type EvidenceAggregations struct {
 }

@@ -196,7 +196,8 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	})
 
 	It("deletes supportGroup", func() {
-		db.On("DeleteSupportGroup", id).Return(nil)
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("DeleteSupportGroup", id, mock.Anything).Return(nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(db, er)
 		db.On("GetSupportGroups", filter).Return([]entity.SupportGroup{}, nil)
 		err := supportGroupHandler.DeleteSupportGroup(id)
