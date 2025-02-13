@@ -69,4 +69,27 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 
 		Expect(err).To(BeNil())
 	})
+
+	It("Retrieves list of scannerrun tags", func() {
+		db.On("GetScannerRunTags").Return([]string{"tag1", "tag2"}, nil)
+
+		scannerRunHandler = NewScannerRunHandler(db, er)
+		tags, err := scannerRunHandler.GetScannerRunTags()
+
+		Expect(err).To(BeNil())
+		Expect(tags).To(HaveLen(2))
+		Expect(tags).To(Equal([]string{"tag1", "tag2"}))
+	})
+
+	It("Retrieves list of scannerruns", func() {
+
+		db.On("GetScannerRuns", &entity.ScannerRunFilter{}).Return([]entity.ScannerRun{*sre}, nil)
+
+		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRuns, err := scannerRunHandler.GetScannerRuns(&entity.ScannerRunFilter{})
+
+		Expect(err).To(BeNil())
+		Expect(scannerRuns).To(HaveLen(1))
+		Expect(scannerRuns).To(Equal([]entity.ScannerRun{*sre}))
+	})
 })
