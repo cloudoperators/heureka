@@ -103,10 +103,11 @@ func (r *queryResolver) ComponentFilterValues(ctx context.Context) (*model.Compo
 }
 
 func (r *queryResolver) ScannerRunTagFilterValues(ctx context.Context) ([]*string, error) {
-	panic(fmt.Errorf("not implemented: ScannerRunTagFilterValues - ScannerRunTagFilterValues"))
+	return baseResolver.ScannerRunTagFilterValues(r.App, ctx)
 }
 
 func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) (*model.ScannerRunConnection, error) {
+	// TODO: Implement this method
 	panic(fmt.Errorf("not implemented: ScannerRuns - ScannerRuns"))
 }
 
