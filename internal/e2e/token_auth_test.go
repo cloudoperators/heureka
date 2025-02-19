@@ -10,7 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
 
-	. "github.com/cloudoperators/heureka/internal/api/graphql/access/test"
+	"github.com/cloudoperators/heureka/internal/api/graphql/access/test"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -43,55 +43,55 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 
 	When("trying to access query resource with valid token", func() {
 		It("respond with 200", func() {
-			token := GenerateJwt(cfg.AuthTokenSecret, 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
+			token := test.GenerateJwt(test.TokenStringHandler, cfg.AuthTokenSecret, 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(200))
 		})
 	})
 	When("trying to access query resource without 'X-Service-Authorization' header", func() {
 		It("respond with 401", func() {
-			resp := SendGetRequest(queryUrl, nil)
+			resp := test.SendGetRequest(queryUrl, nil)
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "TokenAuthMethod(No authorization header)")
+			test.ExpectErrorMessage(resp, "TokenAuthMethod(No authorization header)")
 		})
 	})
 	When("trying to access query resource with invalid 'X-Service-Authorization' header", func() {
 		It("respond with 401", func() {
-			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": "invalidHeader"})
+			resp := test.SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": "invalidHeader"})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
+			test.ExpectErrorMessage(resp, "TokenAuthMethod(Invalid authorization header)")
 		})
 	})
 	When("trying to access query resource with expired token", func() {
 		It("respond with 401", func() {
-			token := GenerateJwt(cfg.AuthTokenSecret, -1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
+			token := test.GenerateJwt(test.TokenStringHandler, cfg.AuthTokenSecret, -1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
+			test.ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
 		})
 	})
 	When("trying to access query resource with token created using invalid secret", func() {
 		It("respond with 401", func() {
-			token := GenerateJwt("invalidSecret", 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
+			token := test.GenerateJwt(test.TokenStringHandler, "invalidSecret", 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
+			test.ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
 		})
 	})
 	When("trying to access query resource with token created using invalid signing method", func() {
 		It("respond with 401", func() {
-			token := GenerateJwtWithInvalidSigningMethod(cfg.AuthTokenSecret, 1*time.Hour)
-			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
+			token := test.GenerateJwtWithRsaSignature(test.TokenStringHandler, test.GenerateRsaPrivateKey(), 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
+			test.ExpectErrorMessage(resp, "TokenAuthMethod(Token parsing error)")
 		})
 	})
 	When("trying to access query resource with invalid token", func() {
 		It("respond with 401", func() {
-			token := GenerateInvalidJwt(cfg.AuthTokenSecret)
-			resp := SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": token})
+			token := test.GenerateJwt(test.InvalidTokenStringHandler, cfg.AuthTokenSecret, 1*time.Hour)
+			resp := test.SendGetRequest(queryUrl, map[string]string{"X-Service-Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
-			ExpectErrorMessage(resp, "TokenAuthMethod(Missing ExpiresAt in token claims)")
+			test.ExpectErrorMessage(resp, "TokenAuthMethod(Missing ExpiresAt in token claims)")
 		})
 	})
 })
