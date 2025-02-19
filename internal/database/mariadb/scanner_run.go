@@ -116,9 +116,7 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
     `
 	queryArgs := []interface{}{}
 
-	if filter.HasArgs() {
-		baseQuery += " WHERE"
-	}
+	baseQuery += " WHERE"
 
 	for i := 0; filter.Tag != nil && i < len(filter.Tag); i++ {
 		baseQuery += " scannerrun_tag = ?"
@@ -129,10 +127,23 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 	}
 
 	if filter.Completed {
+		if len(filter.Tag) > 0 {
+			baseQuery += " AND"
+		}
 		baseQuery += " scannerrun_is_completed = TRUE"
 	}
 
+	if filter.HasArgs() {
+		baseQuery += " AND"
+	}
+
+	baseQuery += " scannerrun_run_id > ?"
+	queryArgs = append(queryArgs, *filter.After)
+
 	baseQuery += " ORDER BY scannerrun_run_id"
+
+	queryArgs = append(queryArgs, *filter.First)
+	baseQuery += " LIMIT ?"
 	rows, err := s.db.Query(baseQuery, queryArgs...)
 
 	if err != nil {
@@ -157,7 +168,7 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 }
 
 func (s *SqlDatabase) ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity.ScannerRunFilter {
-	var first int = 1000
+	var first int = 100
 	var after int64 = 0
 	if f == nil {
 		return &entity.ScannerRunFilter{
