@@ -18,7 +18,7 @@ input ScannerRunInput {
 
 type ScannerRunConnection implements Connection {
     totalCount:     Int!
-    edges:          [ScannerRun]
+    edges:          [ScannerRunEdge]
     pageInfo:       PageInfo
 }
 
@@ -28,6 +28,6 @@ type ScannerRunEdge implements Edge {
 }
 
 input ScannerRunFilter {
-    tag: [String],
-    completed: Boolean,
+    tag: [String!],
+    completed: Boolean!,
 }

@@ -74,7 +74,7 @@ func (srh *scannerRunHandler) GetScannerRunTags() ([]string, error) {
 	return res, nil
 }
 
-func (srh *scannerRunHandler) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.ScannerRun, error) {
+func (srh *scannerRunHandler) GetScannerRuns(filter *entity.ScannerRunFilter, listOptions *entity.ListOptions) ([]entity.ScannerRun, error) {
 	var res []entity.ScannerRun
 
 	res, err := srh.database.GetScannerRuns(filter)

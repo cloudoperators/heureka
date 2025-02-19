@@ -9,6 +9,6 @@ type ScannerRunHandler interface {
 	CompleteScannerRun(string) (bool, error)
 	CreateScannerRun(*entity.ScannerRun) (bool, error)
 	FailScannerRun(string, string) (bool, error)
-	GetScannerRuns(*entity.ScannerRunFilter) ([]entity.ScannerRun, error)
+	GetScannerRuns(*entity.ScannerRunFilter, *entity.ListOptions) ([]entity.ScannerRun, error)
 	GetScannerRunTags() ([]string, error)
 }

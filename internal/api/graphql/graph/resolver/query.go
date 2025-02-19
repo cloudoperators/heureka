@@ -105,7 +105,7 @@ func (r *queryResolver) ScannerRunTagFilterValues(ctx context.Context) ([]*strin
 	return baseResolver.ScannerRunTagFilterValues(r.App, ctx)
 }
 
-func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) ([]*model.ScannerRunConnection, error) {
+func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) (*model.ScannerRunConnection, error) {
 	return baseResolver.ScannerRuns(r.App, ctx, filter, first, after)
 }
 

@@ -20,5 +20,5 @@ type Query {
     ComponentInstanceFilterValues: ComponentInstanceFilterValue
     ComponentFilterValues: ComponentFilterValue
     ScannerRunTagFilterValues: [String]
-    ScannerRuns(filter: ScannerRunFilter, first: Int, after: String): [ScannerRunConnection]
+    ScannerRuns(filter: ScannerRunFilter, first: Int, after: String): ScannerRunConnection
 }
