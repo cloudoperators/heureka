@@ -186,5 +186,43 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				Expect(newRespData.Result).To(BeTrue())
 			})
 		})
+
 	})
+
+})
+
+var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func() {
+
+	var s *server.Server
+	var cfg util.Config
+
+	BeforeEach(func() {
+		_ = dbm.NewTestSchema()
+
+		cfg = dbm.DbConfig()
+		cfg.Port = util2.GetRandomFreePort()
+		s = server.NewServer(cfg)
+
+		s.NonBlockingStart()
+	})
+
+	AfterEach(func() {
+		s.BlockingStop()
+	})
+
+	When("the database is empty", func() {
+
+		Context("and a mutation query is performed", Label("create.graphql"), func() {
+			It("creates new ScannerRun", func() {
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/scannerruns.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				graphql.NewRequest(str)
+
+			})
+		})
+
+	})
+
 })

@@ -86,7 +86,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("GetScannerRuns", &entity.ScannerRunFilter{}).Return([]entity.ScannerRun{*sre}, nil)
 
 		scannerRunHandler = NewScannerRunHandler(db, er)
-		scannerRuns, err := scannerRunHandler.GetScannerRuns(&entity.ScannerRunFilter{})
+		scannerRuns, err := scannerRunHandler.GetScannerRuns(&entity.ScannerRunFilter{}, nil)
 
 		Expect(err).To(BeNil())
 		Expect(scannerRuns).To(HaveLen(1))
