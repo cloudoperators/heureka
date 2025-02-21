@@ -3,6 +3,7 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"remoteUser": "gopher",
 	"postCreateCommand": "make",
         "forwardPorts": [
            80,
@@ -11,7 +12,8 @@
 		"customizations": {
 			"vscode": {
 				"extensions": [
-					"dlipovetsky.ginkgo-tools"
+					"dlipovetsky.ginkgo-tools",
+					"golang.Go"
 				]
 			}
 		}
