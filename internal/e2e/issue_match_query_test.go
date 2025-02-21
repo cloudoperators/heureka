@@ -60,7 +60,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -98,7 +98,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()
@@ -132,7 +132,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 
@@ -200,6 +200,102 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 					Expect(len(respData.IssueMatches.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
 					Expect(*respData.IssueMatches.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 				})
+			})
+			Context("we use ordering", Label("withOrder.graphql"), func() {
+				var respData struct {
+					IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
+				}
+
+				It("can order by primaryName", Label("withOrder.graphql"), func() {
+					// create a queryCollection (safe to share across requests)
+					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/withOrder.graphql")
+
+					Expect(err).To(BeNil())
+					str := string(b)
+					req := graphql.NewRequest(str)
+
+					req.Var("filter", map[string]string{})
+					req.Var("first", 10)
+					req.Var("after", "")
+					req.Var("orderBy", []map[string]string{
+						{"by": "primaryName", "direction": "asc"},
+					})
+
+					req.Header.Set("Cache-Control", "no-cache")
+
+					ctx := context.Background()
+
+					err = client.Run(ctx, req, &respData)
+
+					Expect(err).To(BeNil(), "Error while unmarshaling")
+
+					By("- returns the correct result count", func() {
+						Expect(respData.IssueMatches.TotalCount).To(Equal(len(seedCollection.IssueMatchRows)))
+						Expect(len(respData.IssueMatches.Edges)).To(Equal(10))
+					})
+
+					By("- returns the expected content in order", func() {
+						var prev string = ""
+						for _, im := range respData.IssueMatches.Edges {
+							Expect(*im.Node.Issue.PrimaryName >= prev).Should(BeTrue())
+							prev = *im.Node.Issue.PrimaryName
+						}
+					})
+				})
+
+				It("can order by primaryName and targetRemediationDate", Label("withOrder.graphql"), func() {
+					// create a queryCollection (safe to share across requests)
+					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/withOrder.graphql")
+
+					Expect(err).To(BeNil())
+					str := string(b)
+					req := graphql.NewRequest(str)
+
+					req.Var("filter", map[string]string{})
+					req.Var("first", 10)
+					req.Var("after", "")
+					req.Var("orderBy", []map[string]string{
+						{"by": "primaryName", "direction": "asc"},
+						{"by": "targetRemediationDate", "direction": "desc"},
+					})
+
+					req.Header.Set("Cache-Control", "no-cache")
+
+					ctx := context.Background()
+
+					err = client.Run(ctx, req, &respData)
+
+					Expect(err).To(BeNil(), "Error while unmarshaling")
+
+					By("- returns the correct result count", func() {
+						Expect(respData.IssueMatches.TotalCount).To(Equal(len(seedCollection.IssueMatchRows)))
+						Expect(len(respData.IssueMatches.Edges)).To(Equal(10))
+					})
+
+					By("- returns the expected content in order", func() {
+						var prevPn string = ""
+						var prevTrd time.Time = time.Now()
+						for _, im := range respData.IssueMatches.Edges {
+							if *im.Node.Issue.PrimaryName == prevPn {
+								trd, err := time.Parse("2006-01-02T15:04:05Z", *im.Node.TargetRemediationDate)
+								Expect(err).To(BeNil())
+								Expect(trd.Before(prevTrd)).Should(BeTrue())
+								prevTrd = trd
+							} else {
+								Expect(*im.Node.Issue.PrimaryName > prevPn).To(BeTrue())
+								prevTrd = time.Now()
+							}
+							prevPn = *im.Node.Issue.PrimaryName
+						}
+					})
+				})
+
 			})
 		})
 	})

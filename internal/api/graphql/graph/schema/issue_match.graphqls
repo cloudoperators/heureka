@@ -66,3 +66,15 @@ enum IssueMatchStatusValues {
     false_positive
     mitigated
 }
+
+input IssueMatchOrderBy {
+    by: IssueMatchOrderByField
+    direction: OrderDirection
+}
+
+enum IssueMatchOrderByField {
+    primaryName
+    targetRemediationDate
+    componentInstanceCcrn
+    severity
+}

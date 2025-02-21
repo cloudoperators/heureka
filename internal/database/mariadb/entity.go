@@ -59,6 +59,38 @@ func GetUserTypeValue(v sql.NullInt64) entity.UserType {
 	}
 }
 
+// RowComposite is a composite type that contains all the row types for the database
+// This is used to unmarshal the database rows into the corresponding entity types in a dynamical manner
+type RowComposite struct {
+	*IssueRow
+	*IssueCountRow
+	*GetIssuesByRow
+	*IssueMatchRow
+	*IssueAggregationsRow
+	*IssueVariantRow
+	*BaseIssueRepositoryRow
+	*IssueRepositoryRow
+	*IssueVariantWithRepository
+	*ComponentRow
+	*ComponentInstanceRow
+	*ComponentVersionRow
+	*BaseServiceRow
+	*ServiceRow
+	*GetServicesByRow
+	*ServiceAggregationsRow
+	*ActivityRow
+	*UserRow
+	*EvidenceRow
+	*OwnerRow
+	*SupportGroupRow
+	*SupportGroupServiceRow
+	*ActivityHasIssueRow
+	*ActivityHasServiceRow
+	*IssueRepositoryServiceRow
+	*IssueMatchChangeRow
+	*ServiceIssueVariantRow
+}
+
 type DatabaseRow interface {
 	IssueRow |
 		IssueCountRow |
@@ -86,7 +118,8 @@ type DatabaseRow interface {
 		ActivityHasServiceRow |
 		IssueRepositoryServiceRow |
 		IssueMatchChangeRow |
-		ServiceIssueVariantRow
+		ServiceIssueVariantRow |
+		RowComposite
 }
 
 type IssueRow struct {
