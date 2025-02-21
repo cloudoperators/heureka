@@ -70,6 +70,8 @@ func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
 		order.By = entity.ComponentInstanceCcrn
 	case IssueMatchOrderByFieldTargetRemediationDate:
 		order.By = entity.IssueMatchTargetRemediationDate
+	case IssueMatchOrderByFieldSeverity:
+		order.By = entity.IssueMatchRating
 	}
 	order.Direction = imo.Direction.ToOrderDirectionEntity()
 	return order

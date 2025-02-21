@@ -76,4 +76,5 @@ enum IssueMatchOrderByField {
     primaryName
     targetRemediationDate
     componentInstanceCcrn
+    severity
 }
