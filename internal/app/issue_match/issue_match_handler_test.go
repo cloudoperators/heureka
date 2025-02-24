@@ -14,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
 	"github.com/cloudoperators/heureka/internal/app/severity"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 
 	"github.com/samber/lo"
 
@@ -39,7 +40,7 @@ var _ = BeforeSuite(func() {
 
 func getIssueMatchFilter() *entity.IssueMatchFilter {
 	return &entity.IssueMatchFilter{
-		Paginated: entity.Paginated{
+		PaginatedX: entity.PaginatedX{
 			First: nil,
 			After: nil,
 		},
@@ -71,7 +72,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, nil)
+			db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 			db.On("CountIssueMatches", filter).Return(int64(1337), nil)
 		})
 
@@ -89,16 +90,26 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			matches := test.NNewFakeIssueMatches(resElements)
-
-			var ids = lo.Map(matches, func(m entity.IssueMatch, _ int) int64 { return m.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			matches := []entity.IssueMatchResult{}
+			for _, im := range test.NNewFakeIssueMatches(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, im))
+				matches = append(matches, entity.IssueMatchResult{WithCursor: entity.WithCursor{Value: cursor}, IssueMatch: lo.ToPtr(im)})
 			}
-			db.On("GetIssueMatches", filter).Return(matches, nil)
-			db.On("GetAllIssueMatchIds", filter).Return(ids, nil)
+
+			var cursors = lo.Map(matches, func(m entity.IssueMatchResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, *m.IssueMatch))
+				return cursor
+			})
+
+			var i int64 = 0
+			for len(cursors) < dbElements {
+				i++
+				im := test.NewFakeIssueMatch()
+				c, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, im))
+				cursors = append(cursors, c)
+			}
+			db.On("GetIssueMatches", filter, []entity.Order{}).Return(matches, nil)
+			db.On("GetAllIssueMatchCursors", filter, []entity.Order{}).Return(cursors, nil)
 			issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 			res, err := issueMatchHandler.ListIssueMatches(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -121,7 +132,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		Context("and the given filter does not have any matches in the database", func() {
 
 			BeforeEach(func() {
-				db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, nil)
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 			})
 			It("should return an empty result", func() {
 
@@ -134,7 +145,11 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssueMatches", filter).Return(test.NNewFakeIssueMatches(15), nil)
+				issueMatches := []entity.IssueMatchResult{}
+				for _, im := range test.NNewFakeIssueMatches(15) {
+					issueMatches = append(issueMatches, entity.IssueMatchResult{IssueMatch: lo.ToPtr(im)})
+				}
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return(issueMatches, nil)
 			})
 			It("should return the expected matches in the result", func() {
 				issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
@@ -146,7 +161,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, errors.New("some error"))
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, errors.New("some error"))
 			})
 
 			It("should return the expected matches in the result", func() {
@@ -222,18 +237,17 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 	var (
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
-		issueMatch        entity.IssueMatch
+		issueMatch        entity.IssueMatchResult
 		filter            *entity.IssueMatchFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		issueMatch = test.NewFakeIssueMatch()
+		issueMatch = test.NewFakeIssueMatchResult()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.IssueMatchFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -242,7 +256,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 
 	It("updates issueMatch", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("UpdateIssueMatch", &issueMatch).Return(nil)
+		db.On("UpdateIssueMatch", issueMatch.IssueMatch).Return(nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		if issueMatch.Status == entity.NewIssueMatchStatusValue("new") {
 			issueMatch.Status = entity.NewIssueMatchStatusValue("risk_accepted")
@@ -250,8 +264,8 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 			issueMatch.Status = entity.NewIssueMatchStatusValue("new")
 		}
 		filter.Id = []*int64{&issueMatch.Id}
-		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
-		updatedIssueMatch, err := issueMatchHandler.UpdateIssueMatch(&issueMatch)
+		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
+		updatedIssueMatch, err := issueMatchHandler.UpdateIssueMatch(issueMatch.IssueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueMatch.TargetRemediationDate).To(BeEquivalentTo(issueMatch.TargetRemediationDate))
@@ -273,32 +287,33 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		issueMatchHandler im.IssueMatchHandler
 		id                int64
 		filter            *entity.IssueMatchFilter
+		options           *entity.ListOptions
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.IssueMatchFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
 		}
+		options = entity.NewListOptions()
 	})
 
 	It("deletes issueMatch", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueMatch", id, mock.Anything).Return(nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
-		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{}, nil)
+		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 		err := issueMatchHandler.DeleteIssueMatch(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, &entity.ListOptions{})
+		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, options)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatches.Elements).To(BeEmpty(), "no error should be thrown")
 	})
@@ -309,19 +324,18 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		evidence          entity.Evidence
-		issueMatch        entity.IssueMatch
+		issueMatch        entity.IssueMatchResult
 		filter            *entity.IssueMatchFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		issueMatch = test.NewFakeIssueMatch()
+		issueMatch = test.NewFakeIssueMatchResult()
 		evidence = test.NewFakeEvidenceEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.IssueMatchFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -331,7 +345,7 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 
 	It("adds evidence to issueMatch", func() {
 		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
+		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		issueMatch, err := issueMatchHandler.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -340,7 +354,7 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 
 	It("removes evidence from issueMatch", func() {
 		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter).Return([]entity.IssueMatch{issueMatch}, nil)
+		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil)
 		issueMatch, err := issueMatchHandler.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -468,7 +482,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 			})
 
 			It("should create issue matches for each issue", func() {
-				db.On("GetIssueMatches", mock.Anything).Return([]entity.IssueMatch{}, nil)
+				db.On("GetIssueMatches", mock.Anything, mock.Anything).Return([]entity.IssueMatchResult{}, nil)
 				// Mock CreateIssueMatch
 				db.On("CreateIssueMatch", mock.AnythingOfType("*entity.IssueMatch")).Return(&entity.IssueMatch{}, nil).Twice()
 				im.OnComponentVersionAssignmentToComponentInstance(db, componentInstanceID, componentVersionID)
@@ -480,10 +494,10 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 			Context("when issue matches already exist", func() {
 				BeforeEach(func() {
 					// Fake issues
-					issueMatch := test.NewFakeIssueMatch()
+					issueMatch := test.NewFakeIssueMatchResult()
 					issueMatch.IssueId = 2 // issue2.Id
 					//when issueid is 2 return a fake issue match
-					db.On("GetIssueMatches", mock.Anything).Return([]entity.IssueMatch{issueMatch}, nil).Once()
+					db.On("GetIssueMatches", mock.Anything, mock.Anything).Return([]entity.IssueMatchResult{issueMatch}, nil).Once()
 				})
 
 				It("should should not create new issues", func() {

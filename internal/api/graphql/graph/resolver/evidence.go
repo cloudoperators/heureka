@@ -48,7 +48,7 @@ func (r *evidenceResolver) Activity(ctx context.Context, obj *model.Evidence) (*
 }
 
 func (r *evidenceResolver) IssueMatches(ctx context.Context, obj *model.Evidence, filter *model.IssueMatchFilter, first *int, after *string) (*model.IssueMatchConnection, error) {
-	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
+	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.EvidenceNodeName,
 	})

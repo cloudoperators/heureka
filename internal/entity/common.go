@@ -52,6 +52,7 @@ type HeurekaEntity interface {
 		IssueAggregations |
 		Issue |
 		IssueMatch |
+		IssueMatchResult |
 		IssueMatchChange |
 		HeurekaFilter |
 		IssueCount |
@@ -98,6 +99,7 @@ type ListOptions struct {
 	ShowTotalCount      bool `json:"show_total_count"`
 	ShowPageInfo        bool `json:"show_page_info"`
 	IncludeAggregations bool `json:"include_aggregations"`
+	Order               []Order
 }
 
 func NewListOptions() *ListOptions {
@@ -105,6 +107,7 @@ func NewListOptions() *ListOptions {
 		ShowTotalCount:      false,
 		ShowPageInfo:        false,
 		IncludeAggregations: false,
+		Order:               []Order{},
 	}
 }
 
@@ -140,6 +143,11 @@ type TimeFilter struct {
 type Paginated struct {
 	First *int   `json:"first"`
 	After *int64 `json:"from"`
+}
+
+type PaginatedX struct {
+	First *int    `json:"first"`
+	After *string `json:"from"`
 }
 
 func MaxPaginated() Paginated {
