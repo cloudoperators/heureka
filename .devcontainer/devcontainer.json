@@ -3,7 +3,7 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-	"remoteUser": "gopher",
+	"remoteUser": "vscode",
 	"postCreateCommand": "make",
         "forwardPorts": [
            80,
