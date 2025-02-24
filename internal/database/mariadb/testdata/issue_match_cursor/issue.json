@@ -1,0 +1,102 @@
+[
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0001",
+    "description": "Authentication bypass vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0002",
+    "description": "Buffer overflow vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0003",
+    "description": "Command injection vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0004",
+    "description": "Cross-site request forgery"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0005",
+    "description": "Cross-site scripting vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0006",
+    "description": "Denial of service vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0007",
+    "description": "Directory traversal vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0008",
+    "description": "File inclusion vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0009",
+    "description": "Information disclosure vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0010",
+    "description": "Insecure direct object reference"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0011",
+    "description": "Memory leak vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0012",
+    "description": "Open redirect vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0013",
+    "description": "Path traversal vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0014",
+    "description": "Race condition vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0015",
+    "description": "Remote code execution vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0016",
+    "description": "Server-side request forgery"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0017",
+    "description": "SQL injection vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0018",
+    "description": "Timing attack vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0019",
+    "description": "XML external entity vulnerability"
+  },
+  {
+    "type": "vulnerability",
+    "primary_name": "CVE-2024-0020",
+    "description": "Zero-day vulnerability"
+  }
+]

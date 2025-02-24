@@ -115,6 +115,11 @@ type Metadata {
     updated_by: String
 }
 
+enum OrderDirection {
+    asc
+    desc
+}
+
 enum StateFilter {
     Active,
     Deleted
