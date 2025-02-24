@@ -10,17 +10,20 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
+const systemUserUniqueUserId = "S0000000"
+const unknownUser = int64(0)
+
 func GetCurrentUserId(db database.Database) (int64, error) {
-	return getUserIdFromDb(db, "S0000000")
+	return getUserIdFromDb(db, systemUserUniqueUserId)
 }
 
 func getUserIdFromDb(db database.Database, uniqueUserId string) (int64, error) {
 	filter := &entity.UserFilter{UniqueUserID: []*string{&uniqueUserId}}
 	ids, err := db.GetAllUserIds(filter)
 	if err != nil {
-		return 0, fmt.Errorf("Unable to get user ids %w", err)
+		return unknownUser, fmt.Errorf("Unable to get user ids %w", err)
 	} else if len(ids) < 1 {
-		return 0, nil
+		return unknownUser, nil
 	}
 	return ids[0], nil
 }

@@ -14,10 +14,11 @@ type BaseIssueRepository struct {
 
 type IssueRepositoryFilter struct {
 	Paginated
-	Id          []*int64  `json:"id"`
-	ServiceId   []*int64  `json:"service_id"`
-	Name        []*string `json:"name"`
-	ServiceCCRN []*string `json:"service_ccrn"`
+	Id          []*int64          `json:"id"`
+	ServiceId   []*int64          `json:"service_id"`
+	Name        []*string         `json:"name"`
+	ServiceCCRN []*string         `json:"service_ccrn"`
+	State       []StateFilterType `json:"state"`
 }
 
 func NewIssueRepositoryFilter() *IssueRepositoryFilter {

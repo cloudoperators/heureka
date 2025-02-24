@@ -388,7 +388,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			It("can delete supportGroup correctly", func() {
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
-				err := db.DeleteSupportGroup(supportGroup.Id)
+				err := db.DeleteSupportGroup(supportGroup.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

@@ -13,10 +13,10 @@ create table if not exists User
     user_unique_user_id varchar(64)                           not null,
     user_type           int unsigned,
     user_created_at     timestamp default current_timestamp() not null,
-    user_created_by     int unsigned                          null,
+    user_created_by     int unsigned                          null check (user_created_by <> 0),
     user_deleted_at     timestamp                             null,
     user_updated_at     timestamp default current_timestamp() not null on update current_timestamp(),
-    user_updated_by     int unsigned                          null,
+    user_updated_by     int unsigned                          null check (user_updated_by <> 0),
     constraint user_id_UNIQUE
         unique (user_id),
     constraint unique_user_id_UNIQUE

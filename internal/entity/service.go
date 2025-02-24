@@ -26,16 +26,17 @@ type ServiceWithAggregations struct {
 
 type ServiceFilter struct {
 	Paginated
-	SupportGroupCCRN    []*string `json:"support_group_ccrn"`
-	Id                  []*int64  `json:"id"`
-	CCRN                []*string `json:"ccrn"`
-	OwnerName           []*string `json:"owner_name"`
-	OwnerId             []*int64  `json:"owner_id"`
-	ActivityId          []*int64  `json:"activity_id"`
-	ComponentInstanceId []*int64  `json:"component_instance_id"`
-	IssueRepositoryId   []*int64  `json:"issue_repository_id"`
-	SupportGroupId      []*int64  `json:"support_group_id"`
-	Search              []*string `json:"search"`
+	SupportGroupCCRN    []*string         `json:"support_group_ccrn"`
+	Id                  []*int64          `json:"id"`
+	CCRN                []*string         `json:"ccrn"`
+	OwnerName           []*string         `json:"owner_name"`
+	OwnerId             []*int64          `json:"owner_id"`
+	ActivityId          []*int64          `json:"activity_id"`
+	ComponentInstanceId []*int64          `json:"component_instance_id"`
+	IssueRepositoryId   []*int64          `json:"issue_repository_id"`
+	SupportGroupId      []*int64          `json:"support_group_id"`
+	Search              []*string         `json:"search"`
+	State               []StateFilterType `json:"state"`
 }
 
 type Service struct {

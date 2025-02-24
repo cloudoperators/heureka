@@ -20,6 +20,7 @@ input IssueMatchChangeInput {
 
 input IssueMatchChangeFilter {
     action: [IssueMatchChangeActions]
+    state: [StateFilter!]
 }
 
 type IssueMatchChangeConnection implements Connection {

@@ -546,7 +546,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			It("can delete issueMatch correctly", func() {
 				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
 
-				err := db.DeleteIssueMatch(issueMatch.Id)
+				err := db.DeleteIssueMatch(issueMatch.Id, systemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
