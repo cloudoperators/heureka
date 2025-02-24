@@ -195,6 +195,7 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 	var s *server.Server
 	var cfg util.Config
+	var client *graphql.Client
 
 	BeforeEach(func() {
 		_ = dbm.NewTestSchema()
@@ -204,6 +205,7 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 		s = server.NewServer(cfg)
 
 		s.NonBlockingStart()
+		client = graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 	})
 
 	AfterEach(func() {
@@ -212,14 +214,33 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 	When("the database is empty", func() {
 
-		Context("and a mutation query is performed", Label("create.graphql"), func() {
-			It("creates new ScannerRun", func() {
+		Context("and a query for scannerruns is performed", Label("create.graphql"), func() {
+			It("returns an empty list", func() {
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/scannerruns.graphql")
 
 				Expect(err).To(BeNil())
 				str := string(b)
 				graphql.NewRequest(str)
 
+				new_req := graphql.NewRequest(str)
+
+				// new_req.Var("message", sampleMessage)
+				// new_req.Var("uuid", sampleUUID)
+
+				new_req.Header.Set("Cache-Control", "no-cache")
+				// create a queryCollection (safe to share across requests)
+				new_req.Var("filter", nil)
+				ctx := context.Background()
+
+				var newRespData struct {
+					Result int `json:"totalCount"`
+				}
+
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, new_req, &newRespData) }); err != nil {
+					logrus.WithError(err).WithField("request", new_req).Fatalln("Error while unmarshaling")
+				}
+
+				Expect(newRespData.Result).To(BeTrue())
 			})
 		})
 
