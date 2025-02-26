@@ -9,21 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"time"
 
 	"github.com/cloudoperators/heureka/scanner/nvd/models"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
-)
-
-const (
-	// Retry configuration
-	maxRetries     = 5
-	initialBackoff = 4 * time.Second
-	maxBackoff     = 60 * time.Second
-	backoffFactor  = 2.0
+	"k8s.io/client-go/util/retry"
 )
 
 type Scanner struct {
@@ -55,8 +47,6 @@ func NewScanner(cfg Config) *Scanner {
 	// window; the rate limit with an API key is 50 requests in a rolling 30 second window
 	rl := rate.NewLimiter(rate.Every(30*time.Second/50), 50)
 
-	// Initialize scanner
-
 	return &Scanner{
 		BaseURL:        cfg.NvdApiUrl,
 		ApiKey:         cfg.NvdApiKey,
@@ -66,100 +56,89 @@ func NewScanner(cfg Config) *Scanner {
 	}
 }
 
-// calculateBackoff determines the backoff duration with pure exponential increase
-func calculateBackoff(retry int) time.Duration {
-	// Calculate exponential backoff
-	backoff := float64(initialBackoff) * math.Pow(backoffFactor, float64(retry))
-
-	// Apply maximum backoff limit
-	if backoff > float64(maxBackoff) {
-		backoff = float64(maxBackoff)
-	}
-
-	return time.Duration(backoff)
-}
-
-// doWithRetry executes a request with exponential backoff retry using recursion
-func (s *Scanner) doWithRetry(req *http.Request, retryCount int) ([]byte, error) {
-	// Check if we've exceeded maximum retries
-	if retryCount > maxRetries {
-		return nil, fmt.Errorf("maximum retries exceeded")
-	}
-
-	// Clone the request to ensure a fresh request for each attempt
-	reqClone := req.Clone(req.Context())
-	reqClone.Header.Set("apiKey", s.ApiKey)
-
-	// Log retry attempts (except first attempt)
-	if retryCount > 0 {
-		log.WithFields(log.Fields{
-			"retry": retryCount,
-			"url":   reqClone.URL.String(),
-		}).Info("Retrying request after error")
-	}
-
-	// Execute the request through rate limiter
-	resp, err := s.Do(reqClone)
-
-	// Handle connection-level errors
+// performRequest executes an HTTP request with retry logic using client-go's retry utility
+func (s *Scanner) performRequest(url string) ([]byte, error) {
+	// Create a new request
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-			"retry": retryCount,
-		}).Warn("HTTP request failed")
-
-		// Calculate backoff and wait
-		backoff := calculateBackoff(retryCount)
-		log.WithFields(log.Fields{
-			"backoff": backoff.String(),
-		}).Debug("Backing off before retry")
-
-		time.Sleep(backoff)
-
-		// Recursively retry
-		return s.doWithRetry(req, retryCount+1)
+		return nil, fmt.Errorf("couldn't create new request: %w", err)
 	}
 
-	// Ensure response body is closed after we're done with it
-	defer resp.Body.Close()
+	// Add API key to the request
+	req.Header.Set("apiKey", s.ApiKey)
 
-	// Check HTTP status code
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		// Success! Read the body and return
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read response body: %w", err)
-		}
-		return body, nil
+	// Create a custom backoff for the retry
+	backoff := retry.DefaultBackoff
+	backoff.Steps = 5                  // Maximum 5 retries
+	backoff.Duration = 1 * time.Second // Start with 1 second delay
+	backoff.Factor = 2.0               // Double the delay each retry
+	backoff.Cap = 60 * time.Second     // Maximum delay of 60 seconds
+
+	var responseBody []byte
+
+	// Use client-go's retry utility with custom backoff and retry condition
+	err = retry.OnError(backoff,
+		// This function determines whether an error should trigger a retry
+		func(err error) bool {
+			// If it's a network error or HTTP status error we generated, retry
+			return err != nil
+		},
+		// This function performs the actual operation we want to retry
+		func() error {
+			// Clone the request to ensure a fresh request for each attempt
+			reqClone := req.Clone(req.Context())
+
+			// Execute the request through rate limiter
+			resp, err := s.Do(reqClone)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+					"url":   url,
+				}).Warn("HTTP request failed")
+				return err
+			}
+
+			// Ensure response body is closed after we're done with it
+			defer resp.Body.Close()
+
+			// Check if we got a successful response
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				// Read body before closing to get error details
+				body, _ := io.ReadAll(resp.Body)
+				errMsg := fmt.Sprintf("received HTTP %d: %s", resp.StatusCode, string(body))
+
+				log.WithFields(log.Fields{
+					"statusCode": resp.StatusCode,
+					"url":        url,
+					"response":   string(body),
+				}).Warn(errMsg)
+
+				// Return a custom error for the retry mechanism
+				// Only retry on server errors (5xx) and rate limiting (429)
+				if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+					return fmt.Errorf(errMsg)
+				}
+
+				// For other status codes (4xx except 429), don't retry
+				return retry.Permanent(fmt.Errorf(errMsg))
+			}
+
+			// Successfully got a 2xx response, read the body
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			// Store the response body in our outer variable
+			responseBody = body
+			return nil
+		})
+
+	if err != nil {
+		return nil, fmt.Errorf("request failed after retries: %w", err)
 	}
 
-	// Handle specific error status codes
-	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
-		// Read body before closing to get error details
-		body, _ := io.ReadAll(resp.Body)
-
-		log.WithFields(log.Fields{
-			"statusCode": resp.StatusCode,
-			"response":   string(body),
-			"retry":      retryCount,
-		}).Warn("Received error status code")
-
-		// Calculate exponential backoff
-		backoff := calculateBackoff(retryCount)
-
-		log.WithFields(log.Fields{
-			"backoff": backoff.String(),
-		}).Debug("Backing off before retry")
-
-		time.Sleep(backoff)
-
-		// Recursively retry
-		return s.doWithRetry(req, retryCount+1)
-	}
-
-	// Client errors (4xx) other than 429 are not retried
-	body, _ := io.ReadAll(resp.Body)
-	return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	return responseBody, nil
 }
 
 func (s *Scanner) GetCVEs(filter models.CveFilter) ([]models.CveItem, error) {
@@ -170,16 +149,10 @@ func (s *Scanner) GetCVEs(filter models.CveFilter) ([]models.CveItem, error) {
 	for index < totalResults {
 		url := s.createUrl(filter, index)
 
-		// Create a new request
-		req, err := http.NewRequest("GET", url, nil)
+		// Execute the request with retry logic
+		body, err := s.performRequest(url)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't create new request: %w", err)
-		}
-
-		// Execute the request with recursive retry logic (starting with retry count 0)
-		body, err := s.doWithRetry(req, 0)
-		if err != nil {
-			return nil, fmt.Errorf("request failed after retries: %w", err)
+			return nil, err
 		}
 
 		// Parse the response
