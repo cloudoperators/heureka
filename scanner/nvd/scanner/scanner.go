@@ -70,9 +70,9 @@ func (s *Scanner) performRequest(url string) ([]byte, error) {
 	// Create a custom backoff for the retry
 	backoff := retry.DefaultBackoff
 	backoff.Steps = 5                  // Maximum 5 retries
-	backoff.Duration = 1 * time.Second // Start with 1 second delay
+	backoff.Duration = 4 * time.Second // Start with 1 second delay
 	backoff.Factor = 2.0               // Double the delay each retry
-	backoff.Cap = 60 * time.Second     // Maximum delay of 60 seconds
+	backoff.Cap = 120 * time.Second    // Maximum delay of 60 seconds
 
 	var responseBody []byte
 
