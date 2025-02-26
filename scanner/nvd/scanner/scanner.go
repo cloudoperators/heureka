@@ -76,20 +76,14 @@ func (s *Scanner) performRequest(url string) ([]byte, error) {
 
 	var responseBody []byte
 
-	// Use client-go's retry utility with custom backoff and retry condition
+	// Use client-go's retry utility with custom backoff
 	err = retry.OnError(backoff,
-		// This function determines whether an error should trigger a retry
-		func(err error) bool {
-			// If it's a network error or HTTP status error we generated, retry
-			return err != nil
-		},
-		// This function performs the actual operation we want to retry
+		// Always retry on any error
+		func(err error) bool { return true },
+		// The operation to perform with retries
 		func() error {
-			// Clone the request to ensure a fresh request for each attempt
-			reqClone := req.Clone(req.Context())
-
 			// Execute the request through rate limiter
-			resp, err := s.Do(reqClone)
+			resp, err := s.Do(req)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
@@ -113,14 +107,7 @@ func (s *Scanner) performRequest(url string) ([]byte, error) {
 					"response":   string(body),
 				}).Warn(errMsg)
 
-				// Return a custom error for the retry mechanism
-				// Only retry on server errors (5xx) and rate limiting (429)
-				if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
-					return fmt.Errorf(errMsg)
-				}
-
-				// For other status codes (4xx except 429), don't retry
-				return retry.Permanent(fmt.Errorf(errMsg))
+				return fmt.Errorf(errMsg)
 			}
 
 			// Successfully got a 2xx response, read the body
