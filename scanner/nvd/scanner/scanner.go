@@ -144,25 +144,8 @@ func (s *Scanner) doWithRetry(req *http.Request, retryCount int) ([]byte, error)
 			"retry":      retryCount,
 		}).Warn("Received error status code")
 
-		// Get retry-after header if available
-		var backoff time.Duration
-
-		retryAfter := resp.Header.Get("Retry-After")
-		if retryAfter != "" {
-			// Try to parse Retry-After header as seconds
-			if seconds, err := time.ParseDuration(retryAfter + "s"); err == nil {
-				backoff = seconds
-				log.WithFields(log.Fields{
-					"retryAfter": retryAfter,
-					"backoff":    backoff.String(),
-				}).Debug("Using Retry-After header for backoff")
-			}
-		}
-
-		// If Retry-After header is not available or invalid, use exponential backoff
-		if backoff == 0 {
-			backoff = calculateBackoff(retryCount)
-		}
+		// Calculate exponential backoff
+		backoff := calculateBackoff(retryCount)
 
 		log.WithFields(log.Fields{
 			"backoff": backoff.String(),
