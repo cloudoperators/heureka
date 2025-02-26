@@ -224,12 +224,16 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 				new_req := graphql.NewRequest(str)
 
-				// new_req.Var("message", sampleMessage)
-				// new_req.Var("uuid", sampleUUID)
-
 				new_req.Header.Set("Cache-Control", "no-cache")
-				// create a queryCollection (safe to share across requests)
-				new_req.Var("filter", nil)
+
+				new_req.Var("filter", struct {
+					Tag       []string `json:"tag"`
+					Completed bool     `json:"completed"`
+				}{Tag: []string{}, Completed: false})
+
+				new_req.Var("first", 10)
+				new_req.Var("after", "")
+
 				ctx := context.Background()
 
 				var newRespData struct {
