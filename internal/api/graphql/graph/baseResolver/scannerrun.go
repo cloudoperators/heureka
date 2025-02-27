@@ -62,15 +62,18 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 		return nil, err
 	}
 
-	// todo IMPLEMENT ME
 	totalCount, err := app.ScannerRunsTotalCount()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO do some vodoo shit
 	hasNext := false
-	hasPrevious := false
+	if totalCount > *first+int(*value) {
+		hasNext = true
+	}
+
+	hasPrevious := len(*after) > 0
+
 	var edges []*model.ScannerRunEdge
 
 	for _, scannerRun := range scannerRuns {

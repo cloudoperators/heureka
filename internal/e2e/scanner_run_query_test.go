@@ -232,7 +232,7 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 				}{Tag: []string{}, Completed: false})
 
 				new_req.Var("first", 10)
-				new_req.Var("after", "")
+				new_req.Var("after", 0)
 
 				ctx := context.Background()
 
