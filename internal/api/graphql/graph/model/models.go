@@ -5,6 +5,7 @@ package model
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -569,6 +570,11 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 	return ComponentInstance{
 		ID:                 fmt.Sprintf("%d", componentInstance.Id),
 		Ccrn:               &componentInstance.CCRN,
+		Region:             &componentInstance.Region,
+		Cluster:            &componentInstance.Cluster,
+		Namespace:          &componentInstance.Namespace,
+		Domain:             &componentInstance.Domain,
+		Project:            &componentInstance.Project,
 		Count:              &count,
 		ComponentVersionID: util.Ptr(fmt.Sprintf("%d", componentInstance.ComponentVersionId)),
 		ServiceID:          util.Ptr(fmt.Sprintf("%d", componentInstance.ServiceId)),
@@ -576,11 +582,46 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 	}
 }
 
+type Ccrn struct {
+	Region    string
+	Cluster   string
+	Namespace string
+	Domain    string
+	Project   string
+}
+
+func getCcrnVal(rawCcrn string, k string) string {
+	pattern := k + `=([^,]+)`
+	rgx := regexp.MustCompile(pattern)
+	matches := rgx.FindAllStringSubmatch(rawCcrn, -1)
+	if len(matches) > 0 {
+		return matches[0][1]
+	}
+	return ""
+}
+
+func ParseCcrn(rawCcrn string) Ccrn {
+	var ccrn Ccrn
+	ccrn.Region = getCcrnVal(rawCcrn, "r")
+	ccrn.Cluster = getCcrnVal(rawCcrn, "c")
+	ccrn.Namespace = getCcrnVal(rawCcrn, "n")
+	ccrn.Domain = getCcrnVal(rawCcrn, "d")
+	ccrn.Project = getCcrnVal(rawCcrn, "p")
+	return ccrn
+}
+
 func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entity.ComponentInstance {
 	componentVersionId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ComponentVersionID), 10, 64)
 	serviceId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ServiceID), 10, 64)
+	rawCcrn := lo.FromPtr(componentInstance.Ccrn)
+	ccrn := ParseCcrn(rawCcrn)
 	return entity.ComponentInstance{
-		CCRN:               lo.FromPtr(componentInstance.Ccrn),
+		CCRN:               rawCcrn,
+		Region:             ccrn.Region,
+		Cluster:            ccrn.Cluster,
+		Namespace:          ccrn.Namespace,
+		Domain:             ccrn.Domain,
+		Project:            ccrn.Project,
 		Count:              int16(lo.FromPtr(componentInstance.Count)),
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,

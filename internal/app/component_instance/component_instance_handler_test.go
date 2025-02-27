@@ -9,6 +9,7 @@ import (
 
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	dbtest "github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -130,6 +131,11 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 		Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
 			Expect(newComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+			Expect(newComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
+			Expect(newComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+			Expect(newComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+			Expect(newComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
+			Expect(newComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
 			Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
@@ -163,13 +169,23 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentInstance", &componentInstance).Return(nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
-		componentInstance.CCRN = "NewCCRN"
+		componentInstance.Region = "NewRegion"
+		componentInstance.Cluster = "NewCluster"
+		componentInstance.Namespace = "NewNamespace"
+		componentInstance.Domain = "NewDomain"
+		componentInstance.Project = "NewProject"
+		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Region, componentInstance.Cluster, componentInstance.Namespace, componentInstance.Domain, componentInstance.Project)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter).Return([]entity.ComponentInstance{componentInstance}, nil)
 		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(&componentInstance)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+			Expect(updatedComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
+			Expect(updatedComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+			Expect(updatedComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+			Expect(updatedComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
+			Expect(updatedComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
 			Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))

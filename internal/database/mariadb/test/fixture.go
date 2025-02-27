@@ -931,6 +931,11 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 	query := `
 		INSERT INTO ComponentInstance (
 			componentinstance_ccrn,
+			componentinstance_region,
+			componentinstance_cluster,
+			componentinstance_namespace,
+			componentinstance_domain,
+			componentinstance_project,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -938,6 +943,11 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			componentinstance_updated_by
 		) VALUES (
 			:componentinstance_ccrn,
+			:componentinstance_region,
+			:componentinstance_cluster,
+			:componentinstance_namespace,
+			:componentinstance_domain,
+			:componentinstance_project,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
@@ -1291,13 +1301,27 @@ func NewFakeComponentVersion() mariadb.ComponentVersionRow {
 	}
 }
 
+func GenerateFakeCcrn(region string, cluster string, namespace string, domain string, project string) string {
+	return fmt.Sprintf("ccrn: s=kubernetes, v=v1, r=%s, d=%s, p=%s, o=gardener, res=PodInstance, c=%s, n=%s, id=audit-logger-xe9mtzmq8l-cmbp6", region, domain, project, cluster, namespace)
+}
+
 func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	n := gofakeit.Int16()
 	if n < 0 {
 		n = n * -1
 	}
+	region := gofakeit.UUID()
+	cluster := gofakeit.UUID()
+	namespace := gofakeit.UUID()
+	domain := gofakeit.UUID()
+	project := gofakeit.UUID()
 	return mariadb.ComponentInstanceRow{
-		CCRN:      sql.NullString{String: gofakeit.UUID(), Valid: true},
+		CCRN:      sql.NullString{String: GenerateFakeCcrn(region, cluster, namespace, domain, project), Valid: true},
+		Region:    sql.NullString{String: region, Valid: true},
+		Cluster:   sql.NullString{String: cluster, Valid: true},
+		Namespace: sql.NullString{String: namespace, Valid: true},
+		Domain:    sql.NullString{String: domain, Valid: true},
+		Project:   sql.NullString{String: project, Valid: true},
 		Count:     sql.NullInt16{Int16: n, Valid: true},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},

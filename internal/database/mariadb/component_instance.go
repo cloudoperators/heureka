@@ -70,6 +70,21 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	if componentInstance.CCRN != "" {
 		fl = append(fl, "componentinstance_ccrn = :componentinstance_ccrn")
 	}
+	if componentInstance.Region != "" {
+		fl = append(fl, "componentinstance_region = :componentinstance_region")
+	}
+	if componentInstance.Cluster != "" {
+		fl = append(fl, "componentinstance_cluster = :componentinstance_cluster")
+	}
+	if componentInstance.Namespace != "" {
+		fl = append(fl, "componentinstance_namespace = :componentinstance_namespace")
+	}
+	if componentInstance.Domain != "" {
+		fl = append(fl, "componentinstance_domain = :componentinstance_domain")
+	}
+	if componentInstance.Project != "" {
+		fl = append(fl, "componentinstance_project = :componentinstance_project")
+	}
 	if componentInstance.Count != 0 {
 		fl = append(fl, "componentinstance_count = :componentinstance_count")
 	}
@@ -223,6 +238,11 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 	query := `
 		INSERT INTO ComponentInstance (
 			componentinstance_ccrn,
+			componentinstance_region,
+			componentinstance_cluster,
+			componentinstance_namespace,
+			componentinstance_domain,
+			componentinstance_project,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -230,6 +250,11 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_updated_by
 		) VALUES (
 			:componentinstance_ccrn,
+			:componentinstance_region,
+			:componentinstance_cluster,
+			:componentinstance_namespace,
+			:componentinstance_domain,
+			:componentinstance_project,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
