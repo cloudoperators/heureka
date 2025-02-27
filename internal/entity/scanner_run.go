@@ -26,5 +26,5 @@ type ScannerRunFilter struct {
 }
 
 func (srf ScannerRunFilter) HasArgs() bool {
-	return srf.Tag != nil || srf.Completed
+	return len(srf.Tag) > 0 || srf.Completed
 }

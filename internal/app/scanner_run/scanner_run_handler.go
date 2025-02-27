@@ -85,3 +85,15 @@ func (srh *scannerRunHandler) GetScannerRuns(filter *entity.ScannerRunFilter, li
 
 	return res, nil
 }
+
+func (srh *scannerRunHandler) ScannerRunsTotalCount() (int, error) {
+	var res int
+
+	res, err := srh.database.ScannerRunsTotalCount()
+
+	if err != nil {
+		return -1, err
+	}
+
+	return res, nil
+}

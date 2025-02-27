@@ -35,19 +35,35 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 		return nil, err
 	}
 
-	efilter := entity.ScannerRunFilter{
-		Paginated: entity.Paginated{
-			First: first,
-			After: value,
-		},
-		Tag:       filter.Tag,
-		Completed: filter.Completed,
+	var efilter entity.ScannerRunFilter
+
+	if filter == nil {
+		efilter = entity.ScannerRunFilter{
+			Paginated: entity.Paginated{
+				First: first,
+				After: value,
+			},
+			Tag:       nil,
+			Completed: false,
+		}
+	} else {
+		efilter = entity.ScannerRunFilter{
+			Paginated: entity.Paginated{
+				First: first,
+				After: value,
+			},
+			Tag:       filter.Tag,
+			Completed: filter.Completed,
+		}
 	}
 
 	scannerRuns, err := app.GetScannerRuns(&efilter, listOptions)
+	if err != nil {
+		return nil, err
+	}
 
 	// todo IMPLEMENT ME
-	totalCount := 5
+	totalCount, err := app.ScannerRunsTotalCount()
 	if err != nil {
 		return nil, err
 	}

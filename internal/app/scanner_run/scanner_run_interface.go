@@ -11,4 +11,5 @@ type ScannerRunHandler interface {
 	FailScannerRun(string, string) (bool, error)
 	GetScannerRuns(*entity.ScannerRunFilter, *entity.ListOptions) ([]entity.ScannerRun, error)
 	GetScannerRunTags() ([]string, error)
+	ScannerRunsTotalCount() (int, error)
 }

@@ -244,7 +244,7 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 					logrus.WithError(err).WithField("request", new_req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(newRespData.Result).To(BeTrue())
+				Expect(newRespData.Result).To(Equal(0))
 			})
 		})
 

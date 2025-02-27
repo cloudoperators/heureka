@@ -114,7 +114,7 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 	baseQuery := `
 		SELECT * FROM ScannerRun
     `
-	queryArgs := []interface{}{}
+	queryArgs := []any{}
 
 	baseQuery += " WHERE"
 
@@ -137,8 +137,10 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 		baseQuery += " AND"
 	}
 
-	baseQuery += " scannerrun_run_id > ?"
-	queryArgs = append(queryArgs, *filter.After)
+	if filter.After != nil {
+		baseQuery += " scannerrun_run_id > ?"
+		queryArgs = append(queryArgs, *filter.After)
+	}
 
 	baseQuery += " ORDER BY scannerrun_run_id"
 
@@ -212,6 +214,23 @@ func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
 
 		res = append(res, tag)
 	}
+
+	return res, nil
+}
+
+func (s *SqlDatabase) ScannerRunsTotalCount() (int, error) {
+	query := `SELECT COUNT(*) AS ScannerRunCount 
+			  FROM ScannerRun`
+
+	row := s.db.QueryRow(query)
+
+	if row.Err() != nil {
+		return -1, row.Err()
+	}
+
+	var res int
+
+	row.Scan(&res)
 
 	return res, nil
 }

@@ -133,6 +133,7 @@ type Database interface {
 	ScannerRunByUUID(string) (*entity.ScannerRun, error)
 	GetScannerRuns(*entity.ScannerRunFilter) ([]entity.ScannerRun, error)
 	GetScannerRunTags() ([]string, error)
+	ScannerRunsTotalCount() (int, error)
 
 	CloseConnection() error
 }
