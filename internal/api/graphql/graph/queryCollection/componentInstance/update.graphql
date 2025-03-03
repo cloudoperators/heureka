@@ -9,6 +9,11 @@ mutation ($id: ID!, $input: ComponentInstanceInput!) {
         __typename
         id
         ccrn
+        region
+        cluster
+        namespace
+        domain
+        project
         count
         componentVersionId
         serviceId

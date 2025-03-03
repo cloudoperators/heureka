@@ -772,6 +772,11 @@ func (ar *ActivityRow) FromActivity(a *entity.Activity) {
 type ComponentInstanceRow struct {
 	Id                 sql.NullInt64  `db:"componentinstance_id" json:"id"`
 	CCRN               sql.NullString `db:"componentinstance_ccrn" json:"ccrn"`
+	Region             sql.NullString `db:"componentinstance_region" json:"region"`
+	Cluster            sql.NullString `db:"componentinstance_cluster" json:"cluster"`
+	Namespace          sql.NullString `db:"componentinstance_namespace" json:"namespace"`
+	Domain             sql.NullString `db:"componentinstance_domain" json:"domain"`
+	Project            sql.NullString `db:"componentinstance_project" json:"project"`
 	Count              sql.NullInt16  `db:"componentinstance_count" json:"count"`
 	ComponentVersionId sql.NullInt64  `db:"componentinstance_component_version_id"`
 	ServiceId          sql.NullInt64  `db:"componentinstance_service_id"`
@@ -786,6 +791,11 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 	return entity.ComponentInstance{
 		Id:                 GetInt64Value(cir.Id),
 		CCRN:               GetStringValue(cir.CCRN),
+		Region:             GetStringValue(cir.Region),
+		Cluster:            GetStringValue(cir.Cluster),
+		Namespace:          GetStringValue(cir.Namespace),
+		Domain:             GetStringValue(cir.Domain),
+		Project:            GetStringValue(cir.Project),
 		Count:              GetInt16Value(cir.Count),
 		ComponentVersion:   nil,
 		ComponentVersionId: GetInt64Value(cir.ComponentVersionId),
@@ -804,6 +814,11 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInstance) {
 	cir.Id = sql.NullInt64{Int64: ci.Id, Valid: true}
 	cir.CCRN = sql.NullString{String: ci.CCRN, Valid: true}
+	cir.Region = sql.NullString{String: ci.Region, Valid: true}
+	cir.Cluster = sql.NullString{String: ci.Cluster, Valid: true}
+	cir.Namespace = sql.NullString{String: ci.Namespace, Valid: true}
+	cir.Domain = sql.NullString{String: ci.Domain, Valid: true}
+	cir.Project = sql.NullString{String: ci.Project, Valid: true}
 	cir.Count = sql.NullInt16{Int16: ci.Count, Valid: true}
 	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}

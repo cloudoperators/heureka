@@ -265,6 +265,11 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 				}
 
 				Expect(*respData.ComponentInstance.Ccrn).To(Equal(componentInstance.CCRN))
+				Expect(*respData.ComponentInstance.Region).To(Equal(componentInstance.Region))
+				Expect(*respData.ComponentInstance.Cluster).To(Equal(componentInstance.Cluster))
+				Expect(*respData.ComponentInstance.Namespace).To(Equal(componentInstance.Namespace))
+				Expect(*respData.ComponentInstance.Domain).To(Equal(componentInstance.Domain))
+				Expect(*respData.ComponentInstance.Project).To(Equal(componentInstance.Project))
 				Expect(*respData.ComponentInstance.Count).To(Equal(int(componentInstance.Count)))
 				Expect(*respData.ComponentInstance.ComponentVersionID).To(Equal(fmt.Sprintf("%d", componentInstance.ComponentVersionId)))
 				Expect(*respData.ComponentInstance.ServiceID).To(Equal(fmt.Sprintf("%d", componentInstance.ServiceId)))
@@ -316,7 +321,12 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 				req := graphql.NewRequest(str)
 
 				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
-				componentInstance.CCRN = "NewCCRN"
+				region := "NewRegion"
+				cluster := "NewCluster"
+				namespace := "NewNamespace"
+				domain := "NewDomain"
+				project := "NewProject"
+				componentInstance.CCRN = test.GenerateFakeCcrn(region, cluster, namespace, domain, project)
 
 				req.Var("id", fmt.Sprintf("%d", componentInstance.Id))
 				req.Var("input", map[string]string{
@@ -334,6 +344,11 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 				}
 
 				Expect(*respData.ComponentInstance.Ccrn).To(Equal(componentInstance.CCRN))
+				Expect(*respData.ComponentInstance.Region).To(Equal(region))
+				Expect(*respData.ComponentInstance.Cluster).To(Equal(cluster))
+				Expect(*respData.ComponentInstance.Namespace).To(Equal(namespace))
+				Expect(*respData.ComponentInstance.Domain).To(Equal(domain))
+				Expect(*respData.ComponentInstance.Project).To(Equal(project))
 				Expect(*respData.ComponentInstance.Count).To(Equal(int(componentInstance.Count)))
 				Expect(*respData.ComponentInstance.ComponentVersionID).To(Equal(fmt.Sprintf("%d", componentInstance.ComponentVersionId)))
 				Expect(*respData.ComponentInstance.ServiceID).To(Equal(fmt.Sprintf("%d", componentInstance.ServiceId)))
