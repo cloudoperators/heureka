@@ -28,7 +28,7 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 		Id: parent.ChildIds,
 	}
 
-	opt := &entity.ListOptions{}
+	opt := entity.NewListOptions()
 
 	services, err := app.ListServices(f, opt)
 
@@ -53,18 +53,12 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 	return &service, nil
 }
 
-func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter, first *int, after *string, parent *model.NodeParent) (*model.ServiceConnection, error) {
+func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy, parent *model.NodeParent) (*model.ServiceConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called ServiceBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("ServiceBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("ServiceBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var activityId []*int64
 	var irId []*int64
@@ -95,7 +89,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	}
 
 	f := &entity.ServiceFilter{
-		Paginated:         entity.Paginated{First: first, After: afterId},
+		PaginatedX:        entity.PaginatedX{First: first, After: after},
 		SupportGroupCCRN:  filter.SupportGroupCcrn,
 		CCRN:              filter.ServiceCcrn,
 		OwnerName:         filter.UserName,
@@ -108,6 +102,9 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	}
 
 	opt := GetListOptions(requestedFields)
+	for _, o := range orderBy {
+		opt.Order = append(opt.Order, o.ToOrderEntity())
+	}
 
 	services, err := app.ListServices(f, opt)
 
@@ -156,7 +153,7 @@ func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	f := &entity.ServiceFilter{
-		Paginated:        entity.Paginated{},
+		PaginatedX:       entity.PaginatedX{},
 		SupportGroupCCRN: filter.SupportGroupCcrn,
 		CCRN:             filter.ServiceCcrn,
 		OwnerName:        filter.UserName,

@@ -15,8 +15,8 @@ import (
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *activityResolver) Services(ctx context.Context, obj *model.Activity, filter *model.ServiceFilter, first *int, after *string) (*model.ServiceConnection, error) {
-	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
+func (r *activityResolver) Services(ctx context.Context, obj *model.Activity, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
+	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ActivityNodeName,
 	})
