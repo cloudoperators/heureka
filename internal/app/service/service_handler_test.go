@@ -11,6 +11,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	s "github.com/cloudoperators/heureka/internal/app/service"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -33,18 +34,10 @@ var _ = BeforeSuite(func() {
 	er = event.NewEventRegistry(db)
 })
 
-func GetListOptions() *entity.ListOptions {
-	return &entity.ListOptions{
-		ShowTotalCount:      false,
-		ShowPageInfo:        false,
-		IncludeAggregations: false,
-	}
-}
-
 func getServiceFilter() *entity.ServiceFilter {
 	sgName := "SomeNotExistingSupportGroup"
 	return &entity.ServiceFilter{
-		Paginated: entity.Paginated{
+		PaginatedX: entity.PaginatedX{
 			First: nil,
 			After: nil,
 		},
@@ -64,7 +57,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		options = GetListOptions()
+		options = entity.NewListOptions()
 		filter = getServiceFilter()
 	})
 
@@ -72,7 +65,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetServices", filter).Return([]entity.Service{}, nil)
+			db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			db.On("CountServices", filter).Return(int64(1337), nil)
 		})
 
@@ -90,16 +83,26 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			services := test.NNewFakeServiceEntities(resElements)
-
-			var ids = lo.Map(services, func(s entity.Service, _ int) int64 { return s.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			services := []entity.ServiceResult{}
+			for _, s := range test.NNewFakeServiceEntities(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, s))
+				services = append(services, entity.ServiceResult{WithCursor: entity.WithCursor{Value: cursor}, Service: lo.ToPtr(s)})
 			}
-			db.On("GetServices", filter).Return(services, nil)
-			db.On("GetAllServiceIds", filter).Return(ids, nil)
+
+			var cursors = lo.Map(services, func(m entity.ServiceResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, *m.Service))
+				return cursor
+			})
+
+			var i int64 = 0
+			for len(cursors) < dbElements {
+				i++
+				service := test.NewFakeServiceEntity()
+				c, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, service))
+				cursors = append(cursors, c)
+			}
+			db.On("GetServices", filter, []entity.Order{}).Return(services, nil)
+			db.On("GetAllServiceCursors", filter, []entity.Order{}).Return(cursors, nil)
 			serviceHandler = s.NewServiceHandler(db, er)
 			res, err := serviceHandler.ListServices(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -119,7 +122,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		Context("and the given filter does not have any matches in the database", func() {
 
 			BeforeEach(func() {
-				db.On("GetServicesWithAggregations", filter).Return([]entity.ServiceWithAggregations{}, nil)
+				db.On("GetServicesWithAggregations", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
 
 			It("should return an empty result", func() {
@@ -132,8 +135,11 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				services := test.NNewFakeServiceEntitiesWithAggregations(10)
-				db.On("GetServicesWithAggregations", filter).Return(services, nil)
+				services := []entity.ServiceResult{}
+				for _, s := range test.NNewFakeServiceEntitiesWithAggregations(10) {
+					services = append(services, entity.ServiceResult{Service: &s.Service})
+				}
+				db.On("GetServicesWithAggregations", filter, []entity.Order{}).Return(services, nil)
 			})
 			It("should return the expected services in the result", func() {
 				serviceHandler = service.NewServiceHandler(db, er)
@@ -144,7 +150,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetServicesWithAggregations", filter).Return([]entity.ServiceWithAggregations{}, errors.New("some error"))
+				db.On("GetServicesWithAggregations", filter, []entity.Order{}).Return([]entity.ServiceResult{}, errors.New("some error"))
 			})
 
 			It("should return the expected services in the result", func() {
@@ -164,7 +170,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		Context("and the given filter does not have any matches in the database", func() {
 
 			BeforeEach(func() {
-				db.On("GetServices", filter).Return([]entity.Service{}, nil)
+				db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
 			It("should return an empty result", func() {
 
@@ -177,7 +183,11 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetServices", filter).Return(test.NNewFakeServiceEntities(15), nil)
+				services := []entity.ServiceResult{}
+				for _, s := range test.NNewFakeServiceEntitiesWithAggregations(15) {
+					services = append(services, entity.ServiceResult{Service: &s.Service})
+				}
+				db.On("GetServices", filter, []entity.Order{}).Return(services, nil)
 			})
 			It("should return the expected services in the result", func() {
 				serviceHandler = service.NewServiceHandler(db, er)
@@ -189,7 +199,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetServices", filter).Return([]entity.Service{}, errors.New("some error"))
+				db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, errors.New("some error"))
 			})
 
 			It("should return the expected services in the result", func() {
@@ -214,10 +224,9 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		db = mocks.NewMockDatabase(GinkgoT())
 		service = test.NewFakeServiceEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ServiceFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -228,7 +237,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		filter.CCRN = []*string{&service.CCRN}
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateService", &service).Return(&service, nil)
-		db.On("GetServices", filter).Return([]entity.Service{}, nil)
+		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 
 		serviceHandler = s.NewServiceHandler(db, er)
 		newService, err := serviceHandler.CreateService(&service)
@@ -318,18 +327,17 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 	var (
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
-		service        entity.Service
+		service        entity.ServiceResult
 		filter         *entity.ServiceFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		service = test.NewFakeServiceEntity()
+		service = test.NewFakeServiceResult()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ServiceFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -338,12 +346,12 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 
 	It("updates service", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("UpdateService", &service).Return(nil)
+		db.On("UpdateService", service.Service).Return(nil)
 		serviceHandler = s.NewServiceHandler(db, er)
 		service.CCRN = "SecretService"
 		filter.Id = []*int64{&service.Id}
-		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
-		updatedService, err := serviceHandler.UpdateService(&service)
+		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+		updatedService, err := serviceHandler.UpdateService(service.Service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedService.CCRN).To(BeEquivalentTo(service.CCRN))
@@ -363,10 +371,9 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ServiceFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -377,12 +384,13 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteService", id, mock.Anything).Return(nil)
 		serviceHandler = s.NewServiceHandler(db, er)
-		db.On("GetServices", filter).Return([]entity.Service{}, nil)
+		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 		err := serviceHandler.DeleteService(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		services, err := serviceHandler.ListServices(filter, &entity.ListOptions{})
+		lo := entity.NewListOptions()
+		services, err := serviceHandler.ListServices(filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(services.Elements).To(BeEmpty(), "no services should be found")
 	})
@@ -392,20 +400,19 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 	var (
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
-		service        entity.Service
+		service        entity.ServiceResult
 		owner          entity.User
 		filter         *entity.ServiceFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		service = test.NewFakeServiceEntity()
+		service = test.NewFakeServiceResult()
 		owner = test.NewFakeUserEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ServiceFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -415,7 +422,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 
 	It("adds owner to service", func() {
 		db.On("AddOwnerToService", service.Id, owner.Id).Return(nil)
-		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
+		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
 		serviceHandler = s.NewServiceHandler(db, er)
 		service, err := serviceHandler.AddOwnerToService(service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -424,7 +431,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 
 	It("removes owner from service", func() {
 		db.On("RemoveOwnerFromService", service.Id, owner.Id).Return(nil)
-		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
+		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
 		serviceHandler = s.NewServiceHandler(db, er)
 		service, err := serviceHandler.RemoveOwnerFromService(service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -436,7 +443,7 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 	var (
 		db              *mocks.MockDatabase
 		serviceHandler  s.ServiceHandler
-		service         entity.Service
+		service         entity.ServiceResult
 		issueRepository entity.IssueRepository
 		filter          *entity.ServiceFilter
 		priority        int64
@@ -444,13 +451,12 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		service = test.NewFakeServiceEntity()
+		service = test.NewFakeServiceResult()
 		issueRepository = test.NewFakeIssueRepositoryEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ServiceFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -461,7 +467,7 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 
 	It("adds issueRepository to service", func() {
 		db.On("AddIssueRepositoryToService", service.Id, issueRepository.Id, priority).Return(nil)
-		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
+		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
 		serviceHandler = s.NewServiceHandler(db, er)
 		service, err := serviceHandler.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -470,7 +476,7 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 
 	It("removes issueRepository from service", func() {
 		db.On("RemoveIssueRepositoryFromService", service.Id, issueRepository.Id).Return(nil)
-		db.On("GetServices", filter).Return([]entity.Service{service}, nil)
+		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
 		serviceHandler = s.NewServiceHandler(db, er)
 		service, err := serviceHandler.RemoveIssueRepositoryFromService(service.Id, issueRepository.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -489,7 +495,7 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		options = GetListOptions()
+		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		name = "f1"
 	})

@@ -77,6 +77,16 @@ func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
 	return order
 }
 
+func (so *ServiceOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *so.By {
+	case ServiceOrderByFieldCcrn:
+		order.By = entity.ServiceCcrn
+	}
+	order.Direction = so.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func NewPageInfo(p *entity.PageInfo) *PageInfo {
 	if p == nil {
 		return nil

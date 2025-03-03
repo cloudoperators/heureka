@@ -38,51 +38,15 @@ func NewServiceHandlerError(msg string) *ServiceHandlerError {
 	return &ServiceHandlerError{msg: msg}
 }
 
-func (s *serviceHandler) getServiceResultsWithAggregations(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
-	var serviceResults []entity.ServiceResult
-	services, err := s.database.GetServicesWithAggregations(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, s := range services {
-		cursor := fmt.Sprintf("%d", s.Id)
-		serviceResults = append(serviceResults, entity.ServiceResult{
-			WithCursor: entity.WithCursor{Value: cursor},
-			ServiceAggregations: &entity.ServiceAggregations{
-				IssueMatches:       s.ServiceAggregations.IssueMatches,
-				ComponentInstances: s.ServiceAggregations.ComponentInstances,
-			},
-			Service: &s.Service,
-		})
-	}
-	return serviceResults, nil
-}
-
-func (s *serviceHandler) getServiceResults(filter *entity.ServiceFilter) ([]entity.ServiceResult, error) {
-	var serviceResults []entity.ServiceResult
-	services, err := s.database.GetServices(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, s := range services {
-		service := s
-		cursor := fmt.Sprintf("%d", service.Id)
-		serviceResults = append(serviceResults, entity.ServiceResult{
-			WithCursor:          entity.WithCursor{Value: cursor},
-			ServiceAggregations: nil,
-			Service:             &service,
-		})
-	}
-	return serviceResults, nil
-}
-
 func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetServiceEventName,
 		"id":    serviceId,
 	})
 	serviceFilter := entity.ServiceFilter{Id: []*int64{&serviceId}}
-	services, err := s.ListServices(&serviceFilter, &entity.ListOptions{})
+	lo := entity.NewListOptions()
+
+	services, err := s.ListServices(&serviceFilter, lo)
 
 	if err != nil {
 		l.Error(err)
@@ -104,7 +68,7 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 	var res []entity.ServiceResult
 	var err error
 
-	common.EnsurePaginated(&filter.Paginated)
+	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListServicesEventName,
@@ -112,13 +76,13 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 	})
 
 	if options.IncludeAggregations {
-		res, err = s.getServiceResultsWithAggregations(filter)
+		res, err = s.database.GetServicesWithAggregations(filter, options.Order)
 		if err != nil {
 			l.Error(err)
 			return nil, NewServiceHandlerError("Internal error while retrieving list results with aggregations")
 		}
 	} else {
-		res, err = s.getServiceResults(filter)
+		res, err = s.database.GetServices(filter, options.Order)
 		if err != nil {
 			l.Error(err)
 			return nil, NewServiceHandlerError("Internal error while retrieving list results.")
@@ -127,13 +91,12 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := s.database.GetAllServiceIds(filter)
+			cursors, err := s.database.GetAllServiceCursors(filter, options.Order)
 			if err != nil {
-				l.Error(err)
-				return nil, NewServiceHandlerError("Error while getting all Ids")
+				return nil, NewServiceHandlerError("Error while getting all cursors")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = s.database.CountServices(filter)
@@ -171,8 +134,9 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 		return nil, NewServiceHandlerError("Internal error while creating service (GetUserId).")
 	}
 	service.BaseService.UpdatedBy = service.BaseService.CreatedBy
+	lo := entity.NewListOptions()
 
-	services, err := s.ListServices(f, &entity.ListOptions{})
+	services, err := s.ListServices(f, lo)
 
 	if err != nil {
 		l.Error(err)

@@ -29,7 +29,7 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 		Id: parent.ChildIds,
 	}
 
-	opt := &entity.ListOptions{}
+	opt := entity.NewListOptions()
 
 	issueMatches, err := app.ListIssueMatches(f, opt)
 

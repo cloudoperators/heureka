@@ -700,8 +700,8 @@ type GetServicesByRow struct {
 }
 
 type ServiceAggregationsRow struct {
-	ComponentInstances sql.NullInt64 `db:"agg_component_instances"`
-	IssueMatches       sql.NullInt64 `db:"agg_issue_matches"`
+	ComponentInstances sql.NullInt64 `db:"service_agg_component_instances"`
+	IssueMatches       sql.NullInt64 `db:"service_agg_issue_matches"`
 }
 
 func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggregations {
@@ -730,6 +730,13 @@ func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggre
 				Priority:          GetInt64Value(sbr.IssueRepositoryServiceRow.Priority),
 			},
 		},
+	}
+}
+
+func (sar *ServiceAggregationsRow) AsServiceAggregations() entity.ServiceAggregations {
+	return entity.ServiceAggregations{
+		ComponentInstances: lo.Max([]int64{0, GetInt64Value(sar.ComponentInstances)}),
+		IssueMatches:       lo.Max([]int64{0, GetInt64Value(sar.IssueMatches)}),
 	}
 }
 

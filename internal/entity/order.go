@@ -15,6 +15,9 @@ const (
 	IssueMatchTargetRemediationDate
 
 	SupportGroupName
+
+	ServiceId
+	ServiceCcrn
 )
 
 type OrderDirection int

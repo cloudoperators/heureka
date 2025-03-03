@@ -50,3 +50,10 @@ func NNewFakeServiceEntities(n int) []entity.Service {
 	}
 	return r
 }
+
+func NewFakeServiceResult() entity.ServiceResult {
+	service := NewFakeServiceEntity()
+	return entity.ServiceResult{
+		Service: &service,
+	}
+}
