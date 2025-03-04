@@ -4,7 +4,7 @@
 
 Heureka needs to keep track of scanner runs for two primary reasons:
 
-1. For compliance reasons Heureka needs to track that scanner runs where
+1. For compliance reasons Heureka needs to track that scanner runs were
 executed.
 2. Heureka needs information for detected security vulnerabilities to detect the
 presence, and absence of security vulnerabilities.
