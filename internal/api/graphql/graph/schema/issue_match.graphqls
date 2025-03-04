@@ -78,3 +78,11 @@ enum IssueMatchOrderByField {
     componentInstanceCcrn
     severity
 }
+
+type IssueMatchCounts {
+    critical: Int!
+    high: Int!
+    medium: Int!
+    low: Int!
+    none: Int!
+}

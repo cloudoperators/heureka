@@ -76,6 +76,21 @@ func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMat
 	return issueMatches.Elements[0].IssueMatch, nil
 }
 
+func (im *issueMatchHandler) GetIssueMatchCounts(filter *entity.IssueMatchFilter) ([]entity.IssueMatchCount, error) {
+	res, err := im.database.GetIssueMatchCounts(filter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	im.eventRegistry.PushEvent(&GetIssueMatcheCountsEvent{
+		Filter:  filter,
+		Results: res,
+	})
+
+	return res, nil
+}
+
 func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo

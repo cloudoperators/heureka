@@ -6,11 +6,12 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
-	"os"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -260,6 +261,69 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				Expect(len(respData.Services.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
 				Expect(*respData.Services.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 			})
+		})
+		Context("and we request issueMatchCounts", func() {
+			It("returns correct issueMatchCounts", func() {
+				issueMatchCounts := map[string]model.IssueMatchCounts{}
+				// Setup issueMatchCounts for all services
+				for _, service := range seedCollection.ServiceRows {
+					serviceId := fmt.Sprint(service.Id.Int64)
+					issueMatchCounts[serviceId] = model.IssueMatchCounts{}
+					counts := issueMatchCounts[serviceId]
+					for _, componentInstance := range seedCollection.ComponentInstanceRows {
+						if componentInstance.ServiceId.Int64 == service.Id.Int64 {
+							for _, issueMatch := range seedCollection.IssueMatchRows {
+								if issueMatch.ComponentInstanceId.Int64 == componentInstance.Id.Int64 {
+									switch issueMatch.Rating.String {
+									case "Critical":
+										counts.Critical++
+									case "High":
+										counts.High++
+									case "Medium":
+										counts.Medium++
+									case "Low":
+										counts.Low++
+									case "None":
+										counts.None++
+									}
+								}
+							}
+						}
+					}
+					issueMatchCounts[serviceId] = counts
+				}
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withIssueMatchCounts.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Var("filter", map[string]string{})
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Services model.ServiceConnection `json:"Services"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				for _, serviceEdge := range respData.Services.Edges {
+					imc := issueMatchCounts[serviceEdge.Node.ID]
+					Expect(serviceEdge.Node.IssueMatchCounts.Critical).To(Equal(imc.Critical))
+					Expect(serviceEdge.Node.IssueMatchCounts.High).To(Equal(imc.High))
+					Expect(serviceEdge.Node.IssueMatchCounts.Medium).To(Equal(imc.Medium))
+					Expect(serviceEdge.Node.IssueMatchCounts.Low).To(Equal(imc.Low))
+					Expect(serviceEdge.Node.IssueMatchCounts.None).To(Equal(imc.None))
+				}
+			})
+
 		})
 	})
 })

@@ -53,6 +53,27 @@ type HasToEntity interface {
 	ToOrderEntity() entity.Order
 }
 
+func NewIssueMatchCounts(counts []entity.IssueMatchCount) IssueMatchCounts {
+	imc := IssueMatchCounts{}
+	for _, c := range counts {
+		switch c.Rating {
+		case "Critical":
+			imc.Critical = int(c.Count)
+		case "High":
+			imc.High = int(c.Count)
+		case "Medium":
+			imc.Medium = int(c.Count)
+		case "Low":
+			imc.Low = int(c.Count)
+		case "None":
+			imc.None = int(c.Count)
+		default:
+			continue
+		}
+	}
+	return imc
+}
+
 func (od *OrderDirection) ToOrderDirectionEntity() entity.OrderDirection {
 	direction := entity.OrderDirectionAsc
 	if *od == OrderDirectionDesc {

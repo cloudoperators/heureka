@@ -196,6 +196,24 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					})
 				})
+				It("can count issueMatches by rating", func() {
+					res, err := db.GetIssueMatchCounts(nil)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					counts := map[string]int64{}
+					for _, r := range seedCollection.IssueMatchRows {
+						counts[r.Rating.String]++
+					}
+
+					By("returning the correct counts", func() {
+						for _, r := range res {
+							Expect(r.Count).Should(Equal(counts[r.Rating]))
+						}
+					})
+				})
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single issue match id that does exist", func() {
@@ -257,6 +275,41 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					for _, e := range seedCollection.IssueMatchRows {
 						if e.ComponentInstanceId.Int64 == issueMatch.ComponentInstanceId.Int64 {
 							imIds = append(imIds, e.Id.Int64)
+						}
+					}
+
+					entries, err := db.GetIssueMatches(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
+						}
+					})
+				})
+				It("can filter by a single service id that does exist", func() {
+					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					componentInstance := seedCollection.GetComponentInstanceById(issueMatch.ComponentInstanceId.Int64)
+
+					filter := &entity.IssueMatchFilter{
+						ServiceId: []*int64{&componentInstance.ServiceId.Int64},
+					}
+
+					var imIds []int64
+					for _, ci := range seedCollection.ComponentInstanceRows {
+						if ci.ServiceId.Int64 == componentInstance.ServiceId.Int64 {
+							for _, im := range seedCollection.IssueMatchRows {
+								if im.ComponentInstanceId.Int64 == ci.Id.Int64 {
+									imIds = append(imIds, im.Id.Int64)
+								}
+							}
 						}
 					}
 
@@ -343,6 +396,35 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 							Expect(found).To(BeTrue())
 						})
 					}
+				})
+				It("can count issueMatches for a services", func() {
+					service := seedCollection.ServiceRows[0]
+					filter := &entity.IssueMatchFilter{
+						AffectedServiceCCRN: []*string{&service.CCRN.String},
+					}
+
+					res, err := db.GetIssueMatchCounts(filter)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					counts := map[string]int64{}
+					for _, ci := range seedCollection.ComponentInstanceRows {
+						if ci.ServiceId.Int64 == service.Id.Int64 {
+							for _, im := range seedCollection.IssueMatchRows {
+								if im.ComponentInstanceId.Int64 == ci.Id.Int64 {
+									counts[im.Rating.String]++
+								}
+							}
+						}
+					}
+
+					By("returning the correct counts", func() {
+						for _, r := range res {
+							Expect(r.Count).Should(Equal(counts[r.Rating]))
+						}
+					})
 				})
 				Context("and and we use Pagination", func() {
 					DescribeTable("can correctly paginate ", func(pageSize int) {
@@ -671,7 +753,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 		})
 
 		By("returning the correct number of results", func() {
-			Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.IssueMatchRows)))
+			Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.GetValidIssueMatchRows())))
 		})
 
 		By("returning the correct order", func() {
@@ -744,19 +826,16 @@ var _ = Describe("Ordering IssueMatches", func() {
 		})
 
 		It("can order by rating", func() {
-			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				r1 := test.SeverityToNumerical(seedCollection.IssueMatchRows[i].Rating.String)
-				r2 := test.SeverityToNumerical(seedCollection.IssueMatchRows[j].Rating.String)
-				return r1 < r2
-			})
-
 			order := []entity.Order{
 				{By: entity.IssueMatchRating, Direction: entity.OrderDirectionAsc},
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				for i, r := range res {
-					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
+				var prev = -1
+				for _, r := range res {
+					severity := test.SeverityToNumerical(r.Severity.Value)
+					Expect(severity >= prev).Should(BeTrue())
+					prev = severity
 				}
 			})
 		})
@@ -848,19 +927,16 @@ var _ = Describe("Ordering IssueMatches", func() {
 		})
 
 		It("can order by rating", func() {
-			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				r1 := test.SeverityToNumerical(seedCollection.IssueMatchRows[i].Rating.String)
-				r2 := test.SeverityToNumerical(seedCollection.IssueMatchRows[j].Rating.String)
-				return r1 > r2
-			})
-
 			order := []entity.Order{
 				{By: entity.IssueMatchRating, Direction: entity.OrderDirectionDesc},
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				for i, r := range res {
-					Expect(r.Id).Should(BeEquivalentTo(seedCollection.IssueMatchRows[i].Id.Int64))
+				var prev = 9999
+				for _, r := range res {
+					severity := test.SeverityToNumerical(r.Severity.Value)
+					Expect(severity <= prev).Should(BeTrue())
+					prev = severity
 				}
 			})
 		})

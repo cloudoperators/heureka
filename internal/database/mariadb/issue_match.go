@@ -36,6 +36,7 @@ func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter)
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "IM.issuematch_component_instance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.EvidenceId, "IME.issuematchevidence_evidence_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.AffectedServiceCCRN, "S.service_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceId, "S.service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SeverityValue, "IM.issuematch_rating = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Status, "IM.issuematch_status = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
@@ -74,7 +75,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 		`)
 	}
 
-	if len(filter.AffectedServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.ComponentCCRN) > 0 {
+	if len(filter.AffectedServiceCCRN) > 0 || len(filter.ServiceId) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.ComponentCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on CI.componentinstance_id = IM.issuematch_component_instance_id
 			
@@ -87,7 +88,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 			`)
 		}
 
-		if len(filter.AffectedServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 {
+		if len(filter.AffectedServiceCCRN) > 0 || len(filter.ServiceId) > 0 || len(filter.SupportGroupCCRN) > 0 {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id
 			`)
@@ -210,6 +211,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.AffectedServiceCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
 	filterParameters = buildQueryParameters(filterParameters, filter.Status)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
@@ -362,6 +364,39 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
 	}
 
 	return performCountScan(stmt, filterParameters, l)
+}
+
+func (s *SqlDatabase) GetIssueMatchCounts(filter *entity.IssueMatchFilter) ([]entity.IssueMatchCount, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetIssueMatchCounts",
+	})
+
+	baseQuery := `
+		SELECT IM.issuematch_rating, COUNT(*) AS issuematch_rating_count %s FROM IssueMatch IM
+		%s
+		%s	
+		GROUP BY IM.issuematch_rating ORDER BY %s
+	`
+
+	order := []entity.Order{
+		{By: entity.IssueMatchRating, Direction: entity.OrderDirectionAsc},
+	}
+
+	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, order, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []entity.IssueMatchCount, e IssueMatchCountRow) []entity.IssueMatchCount {
+			return append(l, e.AsIssueMatchCount())
+		},
+	)
 }
 
 func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
