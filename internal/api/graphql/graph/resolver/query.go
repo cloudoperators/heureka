@@ -101,6 +101,14 @@ func (r *queryResolver) ComponentFilterValues(ctx context.Context) (*model.Compo
 	return &model.ComponentFilterValue{}, nil
 }
 
+func (r *queryResolver) ScannerRunTagFilterValues(ctx context.Context) ([]*string, error) {
+	return baseResolver.ScannerRunTagFilterValues(r.App, ctx)
+}
+
+func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) (*model.ScannerRunConnection, error) {
+	return baseResolver.ScannerRuns(r.App, ctx, filter, first, after)
+}
+
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }

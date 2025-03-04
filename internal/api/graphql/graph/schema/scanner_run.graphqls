@@ -18,11 +18,16 @@ input ScannerRunInput {
 
 type ScannerRunConnection implements Connection {
     totalCount:     Int!
-    edges:          [ScannerRun]
+    edges:          [ScannerRunEdge]
     pageInfo:       PageInfo
 }
 
 type ScannerRunEdge implements Edge {
     node:   ScannerRun!
     cursor: String
+}
+
+input ScannerRunFilter {
+    tag: [String!],
+    completed: Boolean!,
 }
