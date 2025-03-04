@@ -16,6 +16,7 @@ import (
 
 const (
 	ListIssueMatchesEventName             event.EventName = "ListIssueMatches"
+	GetIssueMatchCountsEventName          event.EventName = "GetIssueMatchCounts"
 	GetIssueMatchEventName                event.EventName = "GetIssueMatch"
 	CreateIssueMatchEventName             event.EventName = "CreateIssueMatch"
 	UpdateIssueMatchEventName             event.EventName = "UpdateIssueMatch"
@@ -33,6 +34,15 @@ type ListIssueMatchesEvent struct {
 
 func (e *ListIssueMatchesEvent) Name() event.EventName {
 	return ListIssueMatchesEventName
+}
+
+type GetIssueMatcheCountsEvent struct {
+	Filter  *entity.IssueMatchFilter
+	Results []entity.IssueMatchCount
+}
+
+func (e *GetIssueMatcheCountsEvent) Name() event.EventName {
+	return GetIssueMatchCountsEventName
 }
 
 type GetIssueMatchEvent struct {

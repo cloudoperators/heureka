@@ -66,6 +66,7 @@ type RowComposite struct {
 	*IssueCountRow
 	*GetIssuesByRow
 	*IssueMatchRow
+	*IssueMatchCountRow
 	*IssueAggregationsRow
 	*IssueVariantRow
 	*BaseIssueRepositoryRow
@@ -96,6 +97,7 @@ type DatabaseRow interface {
 		IssueCountRow |
 		GetIssuesByRow |
 		IssueMatchRow |
+		IssueMatchCountRow |
 		IssueAggregationsRow |
 		IssueVariantRow |
 		BaseIssueRepositoryRow |
@@ -296,6 +298,18 @@ func (imr *IssueMatchRow) FromIssueMatch(im *entity.IssueMatch) {
 	imr.DeletedAt = sql.NullTime{Time: im.DeletedAt, Valid: true}
 	imr.UpdatedAt = sql.NullTime{Time: im.UpdatedAt, Valid: true}
 	imr.UpdatedBy = sql.NullInt64{Int64: im.UpdatedBy, Valid: true}
+}
+
+type IssueMatchCountRow struct {
+	Rating sql.NullString `db:"issuematch_rating"`
+	Count  sql.NullInt64  `db:"issuematch_rating_count"`
+}
+
+func (imcr *IssueMatchCountRow) AsIssueMatchCount() entity.IssueMatchCount {
+	return entity.IssueMatchCount{
+		Rating: GetStringValue(imcr.Rating),
+		Count:  GetInt64Value(imcr.Count),
+	}
 }
 
 type IssueRepositoryRow struct {

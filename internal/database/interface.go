@@ -36,6 +36,7 @@ type Database interface {
 	GetDefaultRepositoryName() string
 
 	GetIssueMatches(*entity.IssueMatchFilter, []entity.Order) ([]entity.IssueMatchResult, error)
+	GetIssueMatchCounts(*entity.IssueMatchFilter) ([]entity.IssueMatchCount, error)
 	GetAllIssueMatchIds(*entity.IssueMatchFilter) ([]int64, error)
 	GetAllIssueMatchCursors(*entity.IssueMatchFilter, []entity.Order) ([]string, error)
 	CountIssueMatches(filter *entity.IssueMatchFilter) (int64, error)

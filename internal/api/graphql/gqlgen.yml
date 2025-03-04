@@ -147,6 +147,8 @@ models:
         resolver: true
       componentInstances:
         resolver: true
+      issueMatchCounts:
+        resolver: true
   SupportGroup:
     fields:
       users:

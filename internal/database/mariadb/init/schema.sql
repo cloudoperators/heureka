@@ -386,6 +386,8 @@ create table if not exists IssueMatch
         foreign key (issuematch_updated_by) references User (user_id)
 );
 
+CREATE INDEX if not exists idx_issuematch_rating ON IssueMatch (issuematch_rating);
+
 create table if not exists IssueMatchChange
 (
     issuematchchange_id             int unsigned auto_increment

@@ -5,6 +5,7 @@ package baseResolver
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
@@ -146,4 +147,64 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	}
 
 	return &connection, nil
+}
+
+func IssueMatchCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueMatchFilter, parent *model.NodeParent) (*model.IssueMatchCounts, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+		"parent":          parent,
+	}).Debug("Called IssueMatchBaseResolver")
+
+	var serviceId []*int64
+	if parent != nil {
+		parentId := parent.Parent.GetID()
+		pid, err := ParseCursor(&parentId)
+		if err != nil {
+			return nil, fmt.Errorf("IssueMatchBaseResolver: Error while parsing propagated ID: %w", err)
+		}
+
+		switch parent.ParentName {
+		case model.ServiceNodeName:
+			serviceId = []*int64{pid}
+		}
+	}
+
+	if filter == nil {
+		filter = &model.IssueMatchFilter{}
+	}
+
+	issue_match_ids := []*int64{}
+	for _, issue_match_id := range filter.ID {
+		filterById, err := ParseCursor(issue_match_id)
+		if err != nil {
+			return nil, fmt.Errorf("IssueMatchBaseResolver: Error while parsing filter, the value of the filter ID is invalid: %w", err)
+		}
+		issue_match_ids = append(issue_match_ids, filterById)
+	}
+
+	f := &entity.IssueMatchFilter{
+		Id:                  issue_match_ids,
+		PaginatedX:          entity.PaginatedX{},
+		AffectedServiceCCRN: filter.AffectedService,
+		ServiceId:           serviceId,
+		Status:              lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
+		SeverityValue:       lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
+		SupportGroupCCRN:    filter.SupportGroupCcrn,
+		Search:              filter.Search,
+		ComponentCCRN:       filter.ComponentCcrn,
+		PrimaryName:         filter.PrimaryName,
+		IssueType:           lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		State:               model.GetStateFilterType(filter.State),
+	}
+
+	issueMatchCounts, err := app.GetIssueMatchCounts(f)
+
+	if err != nil {
+		return nil, fmt.Errorf("IssueMatchBaseResolver: Error while GetIssueMatchCounts: %w", err)
+	}
+
+	imc := model.NewIssueMatchCounts(issueMatchCounts)
+
+	return &imc, nil
 }

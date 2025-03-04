@@ -55,6 +55,13 @@ func (r *serviceResolver) ComponentInstances(ctx context.Context, obj *model.Ser
 		})
 }
 
+func (r *serviceResolver) IssueMatchCounts(ctx context.Context, obj *model.Service, filter *model.IssueMatchFilter) (*model.IssueMatchCounts, error) {
+	return baseResolver.IssueMatchCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
+		Parent:     obj,
+		ParentName: model.ServiceNodeName,
+	})
+}
+
 func (r *Resolver) Service() graph.ServiceResolver { return &serviceResolver{r} }
 
 type serviceResolver struct{ *Resolver }

@@ -8,6 +8,7 @@ import "github.com/cloudoperators/heureka/internal/entity"
 type IssueMatchHandler interface {
 	ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error)
 	GetIssueMatch(int64) (*entity.IssueMatch, error)
+	GetIssueMatchCounts(*entity.IssueMatchFilter) ([]entity.IssueMatchCount, error)
 	CreateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)
 	UpdateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)
 	DeleteIssueMatch(int64) error

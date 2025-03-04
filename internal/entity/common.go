@@ -53,6 +53,7 @@ type HeurekaEntity interface {
 		Issue |
 		IssueMatch |
 		IssueMatchResult |
+		IssueMatchCount |
 		IssueMatchChange |
 		HeurekaFilter |
 		IssueCount |

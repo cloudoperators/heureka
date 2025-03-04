@@ -60,6 +60,7 @@ type IssueMatchFilter struct {
 	AffectedServiceCCRN []*string         `json:"affected_service_ccrn"`
 	SeverityValue       []*string         `json:"severity_value"`
 	Status              []*string         `json:"status"`
+	ServiceId           []*int64          `json:"service_id"`
 	IssueId             []*int64          `json:"issue_id"`
 	EvidenceId          []*int64          `json:"evidence_id"`
 	ComponentInstanceId []*int64          `json:"component_instance_id"`
@@ -74,4 +75,9 @@ type IssueMatchFilter struct {
 type IssueMatchResult struct {
 	WithCursor
 	*IssueMatch
+}
+
+type IssueMatchCount struct {
+	Rating string
+	Count  int64
 }
