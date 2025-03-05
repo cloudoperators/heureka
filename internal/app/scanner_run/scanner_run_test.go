@@ -41,18 +41,55 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	})
 
 	It("creates a scannerrun", func() {
-		db.On("CreateScannerRun", sre).Return(sre, nil)
+		db.On("CreateScannerRun", sre).Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(db, er)
-		scannerRunHandler.CreateScannerRun(sre)
+		_, err := scannerRunHandler.CreateScannerRun(sre)
+		Expect(err).To(BeNil())
 	})
 
 	It("creates a scannerrun and completes it", func() {
-		db.On("CreateScannerRun", sre).Return(sre, nil)
+		db.On("CreateScannerRun", sre).Return(true, nil)
 		db.On("CompleteScannerRun", sre.UUID).Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(db, er)
 		scannerRunHandler.CreateScannerRun(sre)
-		scannerRunHandler.CompleteScannerRun(sre.UUID)
+		_, err := scannerRunHandler.CompleteScannerRun(sre.UUID)
+
+		Expect(err).To(BeNil())
+	})
+
+	It("creates a scannerrun and fails it", func() {
+		db.On("CreateScannerRun", sre).Return(true, nil)
+		db.On("FailScannerRun", sre.UUID, "Booom!").Return(true, nil)
+
+		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRunHandler.CreateScannerRun(sre)
+		_, err := scannerRunHandler.FailScannerRun(sre.UUID, "Booom!")
+
+		Expect(err).To(BeNil())
+	})
+
+	It("Retrieves list of scannerrun tags", func() {
+		db.On("GetScannerRunTags").Return([]string{"tag1", "tag2"}, nil)
+
+		scannerRunHandler = NewScannerRunHandler(db, er)
+		tags, err := scannerRunHandler.GetScannerRunTags()
+
+		Expect(err).To(BeNil())
+		Expect(tags).To(HaveLen(2))
+		Expect(tags).To(Equal([]string{"tag1", "tag2"}))
+	})
+
+	It("Retrieves list of scannerruns", func() {
+
+		db.On("GetScannerRuns", &entity.ScannerRunFilter{}).Return([]entity.ScannerRun{*sre}, nil)
+
+		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRuns, err := scannerRunHandler.GetScannerRuns(&entity.ScannerRunFilter{}, nil)
+
+		Expect(err).To(BeNil())
+		Expect(scannerRuns).To(HaveLen(1))
+		Expect(scannerRuns).To(Equal([]entity.ScannerRun{*sre}))
 	})
 })

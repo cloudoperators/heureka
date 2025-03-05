@@ -5,8 +5,6 @@ mutation CreateScannerRun($input: ScannerRunInput!) {
     createScannerRun (
        input: $input
     ) {
-        id
-        tag
-        uuid
+        boolean
     }
 }
