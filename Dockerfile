@@ -1,10 +1,10 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23.6 AS builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.24.0 AS builder
 
 WORKDIR /go/src/github.com/cloudoperators/heureka
 ADD . .
 
 # generate mock code files
-RUN go install github.com/vektra/mockery/v2@v2.46.3
+RUN go install github.com/vektra/mockery/v2@v2.52.2
 RUN mockery
 # generate graphql code
 RUN cd internal/api/graphql && go run github.com/99designs/gqlgen generate

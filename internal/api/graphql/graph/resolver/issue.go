@@ -30,7 +30,7 @@ func (r *issueResolver) Activities(ctx context.Context, obj *model.Issue, filter
 }
 
 func (r *issueResolver) IssueMatches(ctx context.Context, obj *model.Issue, filter *model.IssueMatchFilter, first *int, after *string) (*model.IssueMatchConnection, error) {
-	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
+	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.IssueNodeName,
 	})

@@ -9,7 +9,8 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/cloudoperators/heureka/internal/e2e/common"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/onsi/ginkgo/v2/dsl/core"
@@ -44,6 +45,24 @@ type SeedCollection struct {
 	IssueMatchEvidenceRows     []mariadb.IssueMatchEvidenceRow
 	IssueMatchChangeRows       []mariadb.IssueMatchChangeRow
 	IssueRepositoryServiceRows []mariadb.IssueRepositoryServiceRow
+}
+
+func (s *SeedCollection) GetComponentInstanceById(id int64) *mariadb.ComponentInstanceRow {
+	for _, ci := range s.ComponentInstanceRows {
+		if ci.Id.Int64 == id {
+			return &ci
+		}
+	}
+	return nil
+}
+
+func (s *SeedCollection) GetIssueById(id int64) *mariadb.IssueRow {
+	for _, issue := range s.IssueRows {
+		if issue.Id.Int64 == id {
+			return &issue
+		}
+	}
+	return nil
 }
 
 func (s *SeedCollection) GetIssueVariantsByIssueId(id int64) []mariadb.IssueVariantRow {
