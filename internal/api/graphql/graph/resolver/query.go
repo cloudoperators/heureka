@@ -29,8 +29,8 @@ func (r *queryResolver) IssueMatchChanges(ctx context.Context, filter *model.Iss
 	return baseResolver.IssueMatchChangeBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) Services(ctx context.Context, filter *model.ServiceFilter, first *int, after *string) (*model.ServiceConnection, error) {
-	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, nil)
+func (r *queryResolver) Services(ctx context.Context, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
+	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
 func (r *queryResolver) Components(ctx context.Context, filter *model.ComponentFilter, first *int, after *string) (*model.ComponentConnection, error) {

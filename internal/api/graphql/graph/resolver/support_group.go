@@ -22,8 +22,8 @@ func (r *supportGroupResolver) Users(ctx context.Context, obj *model.SupportGrou
 	})
 }
 
-func (r *supportGroupResolver) Services(ctx context.Context, obj *model.SupportGroup, filter *model.ServiceFilter, first *int, after *string) (*model.ServiceConnection, error) {
-	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
+func (r *supportGroupResolver) Services(ctx context.Context, obj *model.SupportGroup, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
+	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.SupportGroupNodeName,
 	})

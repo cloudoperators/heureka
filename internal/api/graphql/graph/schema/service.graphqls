@@ -44,3 +44,12 @@ input ServiceFilter {
     search: [String]
     state: [StateFilter!]
 }
+
+input ServiceOrderBy {
+    by: ServiceOrderByField
+    direction: OrderDirection
+}
+
+enum ServiceOrderByField {
+    ccrn
+}

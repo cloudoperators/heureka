@@ -22,8 +22,8 @@ func (r *issueRepositoryResolver) IssueVariants(ctx context.Context, obj *model.
 	})
 }
 
-func (r *issueRepositoryResolver) Services(ctx context.Context, obj *model.IssueRepository, filter *model.ServiceFilter, first *int, after *string) (*model.ServiceConnection, error) {
-	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after,
+func (r *issueRepositoryResolver) Services(ctx context.Context, obj *model.IssueRepository, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
+	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy,
 		&model.NodeParent{
 			Parent:     obj,
 			ParentName: model.IssueRepositoryNodeName,
