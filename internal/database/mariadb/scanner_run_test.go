@@ -124,7 +124,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		})
 	})
 
-	When("Two ScannerRuns where created", Label("None"), func() {
+	When("Two ScannerRuns were created", Label("None"), func() {
 		Context("and the database is empty", func() {
 			It("GetScannerRuns should return one ScannerRun", func() {
 				{
@@ -157,7 +157,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		})
 	})
 
-	When("Two ScannerRuns where created", Label("None"), func() {
+	When("Two ScannerRuns were created", Label("None"), func() {
 		Context("and the database is empty", func() {
 			It("GetScannerRuns should find one ScannerRun by tag", func() {
 				{
@@ -192,7 +192,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		})
 	})
 
-	When("Two ScannerRuns where created", Label("None"), func() {
+	When("Two ScannerRuns were created", Label("None"), func() {
 		Context("and the database is empty", func() {
 			It("GetScannerRuns should find no ScannerRun by tag when nonexistant tag is provided", func() {
 				{
@@ -227,7 +227,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		})
 	})
 
-	When("Two ScannerRuns where created", Label("None"), func() {
+	When("Two ScannerRuns were created", Label("None"), func() {
 		Context("and the database is empty", func() {
 			It("GetScannerRuns should find two ScannerRuns by tag", func() {
 				{
@@ -262,7 +262,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		})
 	})
 
-	When("Two ScannerRuns where created", Label("None"), func() {
+	When("Two ScannerRuns were created", Label("None"), func() {
 		Context("and the database is empty and one ScannerIsComplete", func() {
 			It("GetScannerRuns should find one ScannerRun which is completed", func() {
 				{
@@ -302,7 +302,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		})
 	})
 
-	When("Two ScannerRuns where created", Label("None"), func() {
+	When("Two ScannerRuns were created", Label("None"), func() {
 		Context("and the database is empty and one ScannerIsComplete", func() {
 			It("GetScannerRunTags should find two ScannerRunTags", func() {
 				{
@@ -340,7 +340,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		})
 	})
 
-	When("Two ScannerRuns where created with the same tag", Label("None"), func() {
+	When("Two ScannerRuns were created with the same tag", Label("None"), func() {
 		Context("and the database is empty and one ScannerIsComplete", func() {
 			It("GetScannerRunTags should find one ScannerRunTag", func() {
 				{
