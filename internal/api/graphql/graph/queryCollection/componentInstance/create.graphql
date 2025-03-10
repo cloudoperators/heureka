@@ -7,6 +7,11 @@ mutation ($input: ComponentInstanceInput!) {
     ) {
         id
         ccrn
+        region
+        cluster
+        namespace
+        domain
+        project
         count
         componentVersionId
         serviceId

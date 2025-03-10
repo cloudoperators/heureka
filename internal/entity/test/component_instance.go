@@ -5,13 +5,24 @@ package test
 
 import (
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 func NewFakeComponentInstanceEntity() entity.ComponentInstance {
+	region := gofakeit.UUID()
+	cluster := gofakeit.UUID()
+	namespace := gofakeit.UUID()
+	domain := gofakeit.UUID()
+	project := gofakeit.UUID()
 	return entity.ComponentInstance{
 		Id:                 int64(gofakeit.Number(1, 10000000)),
-		CCRN:               gofakeit.URL(),
+		CCRN:               test.GenerateFakeCcrn(region, cluster, namespace, domain, project),
+		Region:             region,
+		Cluster:            cluster,
+		Namespace:          namespace,
+		Domain:             domain,
+		Project:            project,
 		Count:              int16(gofakeit.Number(1, 100)),
 		ComponentVersion:   nil,
 		ComponentVersionId: int64(gofakeit.Number(1, 10000000)),

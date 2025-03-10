@@ -47,7 +47,6 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CI.componentinstance_component_version_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.CCRN, "CI.componentinstance_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, componentInstanceWildCardFilterQuery, OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "CI.componentinstance"))
 
@@ -70,6 +69,21 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	fl := []string{}
 	if componentInstance.CCRN != "" {
 		fl = append(fl, "componentinstance_ccrn = :componentinstance_ccrn")
+	}
+	if componentInstance.Region != "" {
+		fl = append(fl, "componentinstance_region = :componentinstance_region")
+	}
+	if componentInstance.Cluster != "" {
+		fl = append(fl, "componentinstance_cluster = :componentinstance_cluster")
+	}
+	if componentInstance.Namespace != "" {
+		fl = append(fl, "componentinstance_namespace = :componentinstance_namespace")
+	}
+	if componentInstance.Domain != "" {
+		fl = append(fl, "componentinstance_domain = :componentinstance_domain")
+	}
+	if componentInstance.Project != "" {
+		fl = append(fl, "componentinstance_project = :componentinstance_project")
 	}
 	if componentInstance.Count != 0 {
 		fl = append(fl, "componentinstance_count = :componentinstance_count")
@@ -132,7 +146,6 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
@@ -225,6 +238,11 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 	query := `
 		INSERT INTO ComponentInstance (
 			componentinstance_ccrn,
+			componentinstance_region,
+			componentinstance_cluster,
+			componentinstance_namespace,
+			componentinstance_domain,
+			componentinstance_project,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -232,6 +250,11 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_updated_by
 		) VALUES (
 			:componentinstance_ccrn,
+			:componentinstance_region,
+			:componentinstance_cluster,
+			:componentinstance_namespace,
+			:componentinstance_domain,
+			:componentinstance_project,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
