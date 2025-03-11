@@ -138,6 +138,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 					By("returning expected ccrn", func() {
 						Expect(entries[0].CCRN).To(BeEquivalentTo(ciRow.CCRN.String))
+						Expect(entries[0].Region).To(BeEquivalentTo(ciRow.Region.String))
+						Expect(entries[0].Cluster).To(BeEquivalentTo(ciRow.Cluster.String))
+						Expect(entries[0].Namespace).To(BeEquivalentTo(ciRow.Namespace.String))
+						Expect(entries[0].Domain).To(BeEquivalentTo(ciRow.Domain.String))
+						Expect(entries[0].Project).To(BeEquivalentTo(ciRow.Project.String))
 					})
 
 				})
@@ -250,6 +255,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							for _, row := range seedCollection.ComponentInstanceRows {
 								if r.Id == row.Id.Int64 {
 									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "CCRN matches")
+									Expect(r.Region).Should(BeEquivalentTo(row.Region.String), "Region matches")
+									Expect(r.Cluster).Should(BeEquivalentTo(row.Cluster.String), "Cluster matches")
+									Expect(r.Namespace).Should(BeEquivalentTo(row.Namespace.String), "Namespace matches")
+									Expect(r.Domain).Should(BeEquivalentTo(row.Domain.String), "Domain matches")
+									Expect(r.Project).Should(BeEquivalentTo(row.Project.String), "Project matches")
 									Expect(r.Count).Should(BeEquivalentTo(row.Count.Int16), "Count matches")
 									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
@@ -494,6 +504,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 				By("setting fields", func() {
 					Expect(ci[0].CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+					Expect(ci[0].Region).To(BeEquivalentTo(componentInstance.Region))
+					Expect(ci[0].Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+					Expect(ci[0].Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+					Expect(ci[0].Domain).To(BeEquivalentTo(componentInstance.Domain))
+					Expect(ci[0].Project).To(BeEquivalentTo(componentInstance.Project))
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
@@ -530,6 +545,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 				By("setting fields", func() {
 					Expect(ci[0].CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+					Expect(ci[0].Region).To(BeEquivalentTo(componentInstance.Region))
+					Expect(ci[0].Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+					Expect(ci[0].Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+					Expect(ci[0].Domain).To(BeEquivalentTo(componentInstance.Domain))
+					Expect(ci[0].Project).To(BeEquivalentTo(componentInstance.Project))
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
@@ -608,63 +628,41 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 			})
 			Context("and using a CCRN filter", func() {
-
-				var filter *entity.ComponentInstanceFilter
-				var expectedCCRN []string
-				BeforeEach(func() {
-					namePointers := []*string{}
-
-					ccrnValue := "ca9d963d-b441-4167-b08d-086e76186653"
-					namePointers = append(namePointers, &ccrnValue)
-
-					filter = &entity.ComponentInstanceFilter{
-						CCRN: namePointers,
+				It("using existing value can fetch the filtered items correctly", func() {
+					expectedCCRN := seedCollection.ComponentInstanceRows[0].CCRN.String
+					filter := &entity.ComponentInstanceFilter{
+						CCRN: []*string{&expectedCCRN},
 					}
 
-					It("can fetch the filtered items correctly", func() {
-						res, err := db.GetCcrn(filter)
+					res, err := db.GetCcrn(filter)
 
-						By("throwing no error", func() {
-							Expect(err).Should(BeNil())
-						})
-
-						By("returning the correct number of results", func() {
-							Expect(len(res)).Should(BeIdenticalTo(len(expectedCCRN)))
-						})
-
-						By("returning the correct names", func() {
-							left, right := lo.Difference(res, expectedCCRN)
-							Expect(left).Should(BeEmpty())
-							Expect(right).Should(BeEmpty())
-						})
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
 					})
-					It("and using another filter", func() {
 
-						var anotherFilter *entity.ComponentInstanceFilter
-						BeforeEach(func() {
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeEquivalentTo(1))
+					})
 
-							nonExistentCCRN := "NonexistentCCRN"
+					By("returning the correct names", func() {
+						left, right := lo.Difference(res, []string{expectedCCRN})
+						Expect(left).Should(BeEmpty())
+						Expect(right).Should(BeEmpty())
+					})
+				})
+				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
+					nonExistentCCRN := "NonexistentCCRN"
+					anotherFilter := &entity.ComponentInstanceFilter{
+						CCRN: []*string{&nonExistentCCRN},
+					}
 
-							nonExistentCCRNs := []*string{&nonExistentCCRN}
+					res, err := db.GetCcrn(anotherFilter)
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
 
-							anotherFilter = &entity.ComponentInstanceFilter{
-								CCRN: nonExistentCCRNs,
-							}
-
-							It("returns an empty list when no CCRN match the filter", func() {
-								res, err := db.GetCcrn(anotherFilter)
-								Expect(err).Should(BeNil())
-								Expect(res).Should(BeEmpty())
-
-								By("throwing no error", func() {
-									Expect(err).Should(BeNil())
-								})
-
-								By("returning an empty list", func() {
-									Expect(res).Should(BeEmpty())
-								})
-							})
-						})
+					By("returning an empty list", func() {
+						Expect(res).Should(BeEmpty())
 					})
 				})
 			})

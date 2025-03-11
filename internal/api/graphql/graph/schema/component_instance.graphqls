@@ -4,6 +4,11 @@
 type ComponentInstance implements Node {
     id: ID!
     ccrn: String
+    region: String
+    cluster: String
+    namespace: String
+    domain: String
+    project: String
     count: Int
     componentVersionId: String
     componentVersion: ComponentVersion
