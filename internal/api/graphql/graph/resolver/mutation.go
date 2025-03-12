@@ -887,20 +887,28 @@ func (r *mutationResolver) RemoveIssueFromActivity(ctx context.Context, activity
 	return &a, nil
 }
 
-func (r *mutationResolver) CreateScannerRun(ctx context.Context, input model.ScannerRunInput) (*model.ScannerRun, error) {
+func (r *mutationResolver) CreateScannerRun(ctx context.Context, input model.ScannerRunInput) (bool, error) {
 	scannerRun := model.NewScannerRunEntity(&input)
-	newScannerRun, err := r.App.CreateScannerRun(&scannerRun)
+	_, err := r.App.CreateScannerRun(&scannerRun)
 	if err != nil {
-		return nil, baseResolver.NewResolverError("CreateScannerRunMutationResolver", "Internal Error - when creating scannerRun")
+		return false, baseResolver.NewResolverError("CreateScannerRunMutationResolver", "Internal Error - when creating scannerRun")
 	}
-	sr := model.NewScannerRun(newScannerRun)
-	return &sr, nil
+
+	return true, nil
 }
 
 func (r *mutationResolver) CompleteScannerRun(ctx context.Context, uuid string) (bool, error) {
 	_, err := r.App.CompleteScannerRun(uuid)
 	if err != nil {
 		return false, baseResolver.NewResolverError("CompleteScannerRunMutationResolver", "Internal Error - when completing scannerRun")
+	}
+	return true, nil
+}
+
+func (r *mutationResolver) FailScannerRun(ctx context.Context, uuid string, message string) (bool, error) {
+	_, err := r.App.FailScannerRun(uuid, message)
+	if err != nil {
+		return false, baseResolver.NewResolverError("FailScannerRunMutationResolver", "Internal Error - when failing scannerRun")
 	}
 	return true, nil
 }

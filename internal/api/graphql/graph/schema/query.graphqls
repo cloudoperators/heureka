@@ -5,7 +5,7 @@ type Query {
     Issues(filter: IssueFilter, first: Int, after: String): IssueConnection
     IssueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     IssueMatchChanges(filter: IssueMatchChangeFilter, first: Int, after: String): IssueMatchChangeConnection
-    Services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
+    Services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     Components(filter: ComponentFilter, first: Int, after: String): ComponentConnection
     ComponentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
     ComponentInstances(filter: ComponentInstanceFilter, first: Int, after: String): ComponentInstanceConnection
@@ -19,4 +19,6 @@ type Query {
     IssueMatchFilterValues: IssueMatchFilterValue
     ComponentInstanceFilterValues: ComponentInstanceFilterValue
     ComponentFilterValues: ComponentFilterValue
+    ScannerRunTagFilterValues: [String]
+    ScannerRuns(filter: ScannerRunFilter, first: Int, after: String): ScannerRunConnection
 }

@@ -6,7 +6,7 @@ type IssueRepository implements Node {
     name: String
     url: String
     issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
-    services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
+    services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     metadata: Metadata
 }
 

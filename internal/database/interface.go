@@ -52,8 +52,9 @@ type Database interface {
 	AddEvidenceToIssueMatch(int64, int64) error
 	RemoveEvidenceFromIssueMatch(int64, int64) error
 
-	GetServices(*entity.ServiceFilter) ([]entity.Service, error)
-	GetServicesWithAggregations(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)
+	GetServices(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
+	GetServicesWithAggregations(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
+	GetAllServiceCursors(*entity.ServiceFilter, []entity.Order) ([]string, error)
 	GetAllServiceIds(*entity.ServiceFilter) ([]int64, error)
 	CountServices(*entity.ServiceFilter) (int64, error)
 	CreateService(*entity.Service) (*entity.Service, error)
@@ -127,8 +128,13 @@ type Database interface {
 	UpdateComponentVersion(*entity.ComponentVersion) error
 	DeleteComponentVersion(int64, int64) error
 
-	CreateScannerRun(*entity.ScannerRun) (*entity.ScannerRun, error)
+	CreateScannerRun(*entity.ScannerRun) (bool, error)
 	CompleteScannerRun(string) (bool, error)
+	FailScannerRun(string, string) (bool, error)
+	ScannerRunByUUID(string) (*entity.ScannerRun, error)
+	GetScannerRuns(*entity.ScannerRunFilter) ([]entity.ScannerRun, error)
+	GetScannerRunTags() ([]string, error)
+	CountScannerRuns() (int, error)
 
 	CloseConnection() error
 }
