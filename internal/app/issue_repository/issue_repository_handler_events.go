@@ -68,7 +68,7 @@ func OnIssueRepositoryCreate(db database.Database, e event.Event) {
 		l.WithField("event-step", "GetIssueRepository").Debug("Fetching Issue Repository by name")
 
 		// Fetch services
-		services, err := db.GetServices(&entity.ServiceFilter{})
+		services, err := db.GetServices(&entity.ServiceFilter{}, []entity.Order{})
 
 		if err != nil {
 			l.WithField("event-step", "GetServices").WithError(err).Error("Error while fetching services")
