@@ -65,7 +65,7 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 		return nil, err
 	}
 
-	totalCount, err := app.CountScannerRuns()
+	totalCount, err := app.CountScannerRuns(&efilter)
 	if err != nil {
 		return nil, err
 	}

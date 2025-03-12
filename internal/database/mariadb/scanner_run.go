@@ -218,7 +218,7 @@ func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
 	return res, nil
 }
 
-func (s *SqlDatabase) CountScannerRuns() (int, error) {
+func (s *SqlDatabase) CountScannerRuns(filter *entity.ScannerRunFilter) (int, error) {
 	query := `SELECT COUNT(*) AS ScannerRunCount 
 			  FROM ScannerRun`
 
