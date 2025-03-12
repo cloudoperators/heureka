@@ -1,3 +1,4 @@
 {
-    "go.testEnvFile": "${workspaceFolder}/.testenv-devcontainer"
+    "go.testEnvFile": "${workspaceFolder}/.testenv-devcontainer",
+    "ginkgotools.ginkgoPath": "go run github.com/onsi/ginkgo/v2/ginkgo"
 }

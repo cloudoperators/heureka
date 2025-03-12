@@ -25,28 +25,355 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 					UUID: "6809de35-9716-4914-b090-15273f82e8ab",
 					Tag:  "tag",
 				}
-				_, err := db.CreateScannerRun(sr)
+				res, err := db.CreateScannerRun(sr)
 				Expect(err).To(BeNil())
-				Expect(sr.RunID).To(BeNumerically(">=", 0))
-				Expect(sr.IsCompleted()).To(BeFalse())
+				Expect(res).To(BeTrue())
 			})
 		})
 	})
 
-	When("Creating a new ScannerRun and marking it as complete", Label("Create"), func() {
+	When("Creating a new ScannerRun and marking it as complete", Label("Update"), func() {
 		Context("and the database is empty", func() {
 			It("should be marked as completed correctly", func() {
 				sr := &entity.ScannerRun{
 					UUID: "6809de35-9716-4914-b090-15273f82e8ab",
 					Tag:  "tag",
 				}
-				_, err := db.CreateScannerRun(sr)
+				res, err := db.CreateScannerRun(sr)
+
 				Expect(err).To(BeNil())
+				Expect(res).To(BeTrue())
 
 				success, err := db.CompleteScannerRun(sr.UUID)
 
 				Expect(err).To(BeNil())
 				Expect(success).To(BeTrue())
+			})
+		})
+	})
+
+	When("Creating a new ScannerRun and retrieving it by UUID should work", Label("ByUUID"), func() {
+		Context("and the database is empty", func() {
+			It("should be marked as completed correctly", func() {
+				sr := &entity.ScannerRun{
+					UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+					Tag:  "tag",
+				}
+				res, err := db.CreateScannerRun(sr)
+
+				Expect(err).To(BeNil())
+				Expect(res).To(BeTrue())
+
+				newsr, err := db.ScannerRunByUUID(sr.UUID)
+
+				Expect(err).To(BeNil())
+				Expect(newsr.Tag).To(Equal(sr.Tag))
+			})
+		})
+	})
+	When("Creating a new ScannerRun", Label("ByUUID"), func() {
+		Context("and the database is empty", func() {
+			It("should be marked as failed correctly", func() {
+				sr := &entity.ScannerRun{
+					UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+					Tag:  "tag",
+				}
+				res, err := db.CreateScannerRun(sr)
+
+				Expect(err).To(BeNil())
+				Expect(res).To(BeTrue())
+
+				success, err := db.FailScannerRun(sr.UUID, "All your base are belong to us")
+
+				Expect(err).To(BeNil())
+				Expect(success).To(BeTrue())
+			})
+		})
+	})
+
+	When("No ScannerRun Was Created", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should return an empty list", func() {
+				res, err := db.GetScannerRuns(nil)
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(0))
+			})
+		})
+	})
+
+	When("One ScannerRun was created", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should return one ScannerRun", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				res, err := db.GetScannerRuns(nil)
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(1))
+			})
+		})
+	})
+
+	When("Two ScannerRuns were created", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should return one ScannerRun", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "otherTag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				res, err := db.GetScannerRuns(nil)
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(2))
+			})
+		})
+	})
+
+	When("Two ScannerRuns were created", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should find one ScannerRun by tag", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "otherTag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				res, err := db.GetScannerRuns(&entity.ScannerRunFilter{
+					Tag: []string{"tag"},
+				})
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(1))
+			})
+		})
+	})
+
+	When("Two ScannerRuns were created", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should find no ScannerRun by tag when nonexistant tag is provided", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "otherTag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				res, err := db.GetScannerRuns(&entity.ScannerRunFilter{
+					Tag: []string{"nonexistant"},
+				})
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(0))
+			})
+		})
+	})
+
+	When("Two ScannerRuns were created", Label("None"), func() {
+		Context("and the database is empty", func() {
+			It("GetScannerRuns should find two ScannerRuns by tag", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "otherTag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				res, err := db.GetScannerRuns(&entity.ScannerRunFilter{
+					Tag: []string{"tag", "otherTag"},
+				})
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(2))
+			})
+		})
+	})
+
+	When("Two ScannerRuns were created", Label("None"), func() {
+		Context("and the database is empty and one ScannerIsComplete", func() {
+			It("GetScannerRuns should find one ScannerRun which is completed", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "otherTag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					_, err := db.CompleteScannerRun("6809de35-9716-4914-b090-15273f82e8ab")
+					Expect(err).To(BeNil())
+				}
+
+				res, err := db.GetScannerRuns(&entity.ScannerRunFilter{
+					Completed: true,
+				})
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(1))
+			})
+		})
+	})
+
+	When("Two ScannerRuns were created", Label("None"), func() {
+		Context("and the database is empty and one ScannerIsComplete", func() {
+			It("GetScannerRunTags should find two ScannerRunTags", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "otherTag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					_, err := db.CompleteScannerRun("6809de35-9716-4914-b090-15273f82e8ab")
+					Expect(err).To(BeNil())
+				}
+
+				res, err := db.GetScannerRunTags()
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(2))
+			})
+		})
+	})
+
+	When("Two ScannerRuns were created with the same tag", Label("None"), func() {
+		Context("and the database is empty and one ScannerIsComplete", func() {
+			It("GetScannerRunTags should find one ScannerRunTag", func() {
+				{
+					sr := &entity.ScannerRun{
+						UUID: "6809de35-9716-4914-b090-15273f82e8ab",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					sr := &entity.ScannerRun{
+						UUID: "0af596d5-091c-4446-92aa-741f63f13dda",
+						Tag:  "tag",
+					}
+					res, err := db.CreateScannerRun(sr)
+
+					Expect(err).To(BeNil())
+					Expect(res).To(BeTrue())
+				}
+
+				{
+					_, err := db.CompleteScannerRun("6809de35-9716-4914-b090-15273f82e8ab")
+					Expect(err).To(BeNil())
+				}
+
+				res, err := db.GetScannerRunTags()
+
+				Expect(err).To(BeNil())
+				Expect(len(res)).To(Equal(1))
 			})
 		})
 	})

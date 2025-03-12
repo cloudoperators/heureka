@@ -17,3 +17,14 @@ type ScannerRun struct {
 func (sc ScannerRun) IsCompleted() bool {
 	return sc.Completed
 }
+
+type ScannerRunFilter struct {
+	Paginated
+
+	Tag       []string `json:"tag"`
+	Completed bool     `json:"is_completed"`
+}
+
+func (srf ScannerRunFilter) HasArgs() bool {
+	return len(srf.Tag) > 0 || srf.Completed
+}
