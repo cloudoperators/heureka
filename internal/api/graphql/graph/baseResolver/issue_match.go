@@ -64,6 +64,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	var eId []*int64
 	var ciId []*int64
 	var issueId []*int64
+	var serviceId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -79,6 +80,8 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 			ciId = []*int64{pid}
 		case model.IssueNodeName:
 			issueId = []*int64{pid}
+		case model.ServiceNodeName:
+			serviceId = []*int64{pid}
 		}
 	}
 
@@ -105,6 +108,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		SupportGroupCCRN:    filter.SupportGroupCcrn,
 		IssueId:             issueId,
 		EvidenceId:          eId,
+		ServiceId:           serviceId,
 		ComponentInstanceId: ciId,
 		Search:              filter.Search,
 		ComponentCCRN:       filter.ComponentCcrn,

@@ -253,6 +253,14 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 						})
 						Expect(ciFound).To(BeTrue(), "attached componentInstance does exist and belongs to service")
 					}
+
+					for _, im := range service.Node.IssueMatches.Edges {
+						Expect(im.Node.ID).ToNot(BeNil(), "issueMatch has a ID set")
+						Expect(im.Node.Status).ToNot(BeNil(), "issueMatch has a status set")
+						Expect(im.Node.RemediationDate).ToNot(BeNil(), "issueMatch has a remediationDate set")
+						Expect(im.Node.DiscoveryDate).ToNot(BeNil(), "issueMatch has a discoveryDate set")
+						Expect(im.Node.TargetRemediationDate).ToNot(BeNil(), "issueMatch has a targetRemediationDate set")
+					}
 				}
 			})
 			It("- returns the expected PageInfo", func() {
