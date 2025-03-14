@@ -63,6 +63,7 @@ type IssueMatchFilter struct {
 	IssueId             []*int64          `json:"issue_id"`
 	EvidenceId          []*int64          `json:"evidence_id"`
 	ComponentInstanceId []*int64          `json:"component_instance_id"`
+	ServiceId           []*int64          `json:"service_id"`
 	SupportGroupCCRN    []*string         `json:"support_group_ccrn"`
 	Search              []*string         `json:"search"`
 	ComponentCCRN       []*string         `json:"component_ccrn"`
