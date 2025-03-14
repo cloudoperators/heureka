@@ -228,7 +228,7 @@ func (s *SqlDatabase) CountScannerRuns(filter *entity.ScannerRunFilter) (int, er
 			  FROM ScannerRun`
 
 	args, query := applyScannerRunFilter(query, filter)
-	row := s.db.QueryRow(query, args)
+	row := s.db.QueryRow(query, args...)
 
 	if row.Err() != nil {
 		return -1, row.Err()

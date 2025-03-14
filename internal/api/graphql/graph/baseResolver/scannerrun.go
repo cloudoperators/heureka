@@ -98,6 +98,5 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 		},
 		Edges: edges,
 	}
-
 	return &src, nil
 }
