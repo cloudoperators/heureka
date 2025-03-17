@@ -305,6 +305,43 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					})
 				})
+				It("can filter by a single service id that does exist", func() {
+					service := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+
+					filter := &entity.IssueMatchFilter{
+						ServiceId: []*int64{&service.Id.Int64},
+					}
+
+					var ciIds []int64
+					for _, ci := range seedCollection.ComponentInstanceRows {
+						if ci.ServiceId.Int64 == service.Id.Int64 {
+							ciIds = append(ciIds, ci.Id.Int64)
+						}
+					}
+
+					var imIds []int64
+					for _, im := range seedCollection.IssueMatchRows {
+						if lo.Contains(ciIds, im.ComponentInstanceId.Int64) {
+							imIds = append(imIds, im.Id.Int64)
+						}
+					}
+
+					entries, err := db.GetIssueMatches(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
+						}
+					})
+				})
 				It("can filter by a single support group name that does exist", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					componentInstance, _ := lo.Find(seedCollection.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow) bool {
