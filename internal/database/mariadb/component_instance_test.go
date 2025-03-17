@@ -586,7 +586,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 		})
 	})
-	When("Getting CCRN", Label("GetCCRN"), func() {
+	When("Getting Component Instances", Label("GetComponentInstances"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetCcrn(nil)
@@ -598,7 +598,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 			})
 		})
-		Context("and we have 10 CCRNs in the database", func() {
+		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -629,7 +629,8 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using a CCRN filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
-					expectedCCRN := seedCollection.ComponentInstanceRows[0].CCRN.String
+					executeCICcrnFilterAndExpectItems(db, []string{seedCollection.ComponentInstanceRows[0].CCRN.String})
+					/*expectedCCRN := seedCollection.ComponentInstanceRows[0].CCRN.String
 					filter := &entity.ComponentInstanceFilter{
 						CCRN: []*string{&expectedCCRN},
 					}
@@ -648,10 +649,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						left, right := lo.Difference(res, []string{expectedCCRN})
 						Expect(left).Should(BeEmpty())
 						Expect(right).Should(BeEmpty())
-					})
+					})*/
 				})
 				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
-					nonExistentCCRN := "NonexistentCCRN"
+					executeCICcrnFilterAndExpectNoItems(db, []string{"NonexistentCCRN"})
+					/*nonExistentCCRN := "NonexistentCCRN"
 					anotherFilter := &entity.ComponentInstanceFilter{
 						CCRN: []*string{&nonExistentCCRN},
 					}
@@ -663,9 +665,182 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 					By("returning an empty list", func() {
 						Expect(res).Should(BeEmpty())
-					})
+					})*/
 				})
 			})
+			Context("and using a Region filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					executeCIRegionFilterAndExpectItems(db, []string{seedCollection.ComponentInstanceRows[0].CCRN.String})
+				})
+				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
+					executeCIRegionFilterAndExpectNoItems(db, []string{"NonexistentCCRN"})
+				})
+			})
+			Context("and using a Cluster filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					executeCIClusterFilterAndExpectItems(db, []string{seedCollection.ComponentInstanceRows[0].CCRN.String})
+				})
+				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
+					executeCIClusterFilterAndExpectNoItems(db, []string{"NonexistentCCRN"})
+				})
+			})
+			Context("and using a Namespace filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					executeCINamespaceFilterAndExpectItems(db, []string{seedCollection.ComponentInstanceRows[0].CCRN.String})
+				})
+				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
+					executeCINamespaceFilterAndExpectNoItems(db, []string{"NonexistentCCRN"})
+				})
+			})
+			Context("and using a Domain filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					executeCIDomainFilterAndExpectItems(db, []string{seedCollection.ComponentInstanceRows[0].CCRN.String})
+				})
+				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
+					executeCIDomainFilterAndExpectNoItems(db, []string{"NonexistentCCRN"})
+				})
+			})
+			Context("and using a Project filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					executeCIProjectFilterAndExpectItems(db, []string{seedCollection.ComponentInstanceRows[0].CCRN.String})
+				})
+				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
+					executeCIProjectFilterAndExpectNoItems(db, []string{"NonexistentCCRN"})
+				})
+			})
+
 		})
 	})
 })
+
+
+func executeCIFilterWithExpectItems(getCmd func(*mariadb.SqlDatabase, []string) ([]string, error), db *mariadb.SqlDatabase, filterItems []string, expectedItems []string) {
+	res, err := getCmd(db, filterItems)
+	By("throwing no error", func() {
+		Expect(err).Should(BeNil())
+	})
+
+	By("returning the correct number of results", func() {
+		Expect(len(res)).Should(BeEquivalentTo(len(expectedItems)))
+	})
+
+	By("returning the correct names", func() {
+		left, right := lo.Difference(res, expectedItems)
+		Expect(left).Should(BeEmpty())
+		Expect(right).Should(BeEmpty())
+	})
+}
+
+func executeCICcrnFilter(db *mariadb.SqlDatabase, items []string) ([]string, error) {
+	ccrnList := []*string{}
+	for _, e := range items {
+		ccrnList = append(ccrnList, &e)
+	}
+	filter := &entity.ComponentInstanceFilter{
+		CCRN: ccrnList,
+	}
+	return db.GetCcrn(filter)
+}
+
+func executeCIRegionFilter(db *mariadb.SqlDatabase, items []string) ([]string, error) {
+	regionList := []*string{}
+	for _, e := range items {
+		regionList = append(regionList, &e)
+	}
+	filter := &entity.ComponentInstanceFilter{
+		Region: regionList,
+	}
+	return db.GetCcrn(filter)
+}
+
+func executeCIClusterFilter(db *mariadb.SqlDatabase, items []string) ([]string, error) {
+	clusterList := []*string{}
+	for _, e := range items {
+		clusterList = append(clusterList, &e)
+	}
+	filter := &entity.ComponentInstanceFilter{
+		Cluster: clusterList,
+	}
+	return db.GetCcrn(filter)
+}
+
+func executeCINamespaceFilter(db *mariadb.SqlDatabase, items []string) ([]string, error) {
+	namespaceList := []*string{}
+	for _, e := range items {
+		namespaceList = append(namespaceList, &e)
+	}
+	filter := &entity.ComponentInstanceFilter{
+		Namespace: namespaceList,
+	}
+	return db.GetCcrn(filter)
+}
+
+func executeCIDomainFilter(db *mariadb.SqlDatabase, items []string) ([]string, error) {
+	domainList := []*string{}
+	for _, e := range items {
+		domainList = append(domainList, &e)
+	}
+	filter := &entity.ComponentInstanceFilter{
+		Domain: domainList,
+	}
+	return db.GetCcrn(filter)
+}
+
+func executeCIProjectFilter(db *mariadb.SqlDatabase, items []string) ([]string, error) {
+	projectList := []*string{}
+	for _, e := range items {
+		projectList = append(projectList, &e)
+	}
+	filter := &entity.ComponentInstanceFilter{
+		Project: projectList,
+	}
+	return db.GetCcrn(filter)
+}
+
+func executeCICcrnFilterAndExpectItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCICcrnFilter, db, items, items)
+}
+
+func executeCICcrnFilterAndExpectNoItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCICcrnFilter, db, items, []string{})
+}
+
+func executeCIRegionFilterAndExpectItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCIRegionFilter, db, items, items)
+}
+
+func executeCIRegionFilterAndExpectNoItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCIRegionFilter, db, items, []string{})
+}
+
+func executeCIClusterFilterAndExpectItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCIClusterFilter, db, items, items)
+}
+
+func executeCIClusterFilterAndExpectNoItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCIClusterFilter, db, items, []string{})
+}
+
+func executeCINamespaceFilterAndExpectItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCINamespaceFilter, db, items, items)
+}
+
+func executeCINamespaceFilterAndExpectNoItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCINamespaceFilter, db, items, []string{})
+}
+
+func executeCIDomainFilterAndExpectItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCIDomainFilter, db, items, items)
+}
+
+func executeCIDomainFilterAndExpectNoItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCIDomainFilter, db, items, []string{})
+}
+
+func executeCIProjectFilterAndExpectItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCIProjectFilter, db, items, items)
+}
+
+func executeCIProjectFilterAndExpectNoItems(db *mariadb.SqlDatabase, items []string) {
+	executeCIFilterWithExpectItems(executeCIProjectFilter, db, items, []string{})
+}
