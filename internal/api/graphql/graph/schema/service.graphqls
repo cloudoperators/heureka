@@ -9,6 +9,7 @@ type Service implements Node {
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     issueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
     componentInstances(filter: ComponentInstanceFilter, first: Int, after: String): ComponentInstanceConnection
+    issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     objectMetadata: ServiceMetadata
     metadata: Metadata
 
@@ -43,4 +44,13 @@ input ServiceFilter {
     supportGroupCcrn: [String]
     search: [String]
     state: [StateFilter!]
+}
+
+input ServiceOrderBy {
+    by: ServiceOrderByField
+    direction: OrderDirection
+}
+
+enum ServiceOrderByField {
+    ccrn
 }

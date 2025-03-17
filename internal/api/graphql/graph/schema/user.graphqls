@@ -7,7 +7,7 @@ type User implements Node {
     type: Int!
     name: String
     supportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
-    services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
+    services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     metadata: Metadata
 }
 

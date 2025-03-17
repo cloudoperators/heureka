@@ -25,7 +25,7 @@ type ServiceWithAggregations struct {
 }
 
 type ServiceFilter struct {
-	Paginated
+	PaginatedX
 	SupportGroupCCRN    []*string         `json:"support_group_ccrn"`
 	Id                  []*int64          `json:"id"`
 	CCRN                []*string         `json:"ccrn"`

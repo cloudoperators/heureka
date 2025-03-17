@@ -42,6 +42,7 @@ type HeurekaEntity interface {
 		Service |
 		ServiceAggregations |
 		ServiceWithAggregations |
+		ServiceResult |
 		SupportGroup |
 		SupportGroupAggregations |
 		SupportGroupService |

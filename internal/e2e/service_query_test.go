@@ -6,11 +6,13 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+
+	"os"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
-	"os"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -60,7 +62,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -96,7 +98,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 				ctx := context.Background()
@@ -127,7 +129,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 				ctx := context.Background()
@@ -170,7 +172,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 
@@ -251,6 +253,14 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 						})
 						Expect(ciFound).To(BeTrue(), "attached componentInstance does exist and belongs to service")
 					}
+
+					for _, im := range service.Node.IssueMatches.Edges {
+						Expect(im.Node.ID).ToNot(BeNil(), "issueMatch has a ID set")
+						Expect(im.Node.Status).ToNot(BeNil(), "issueMatch has a status set")
+						Expect(im.Node.RemediationDate).ToNot(BeNil(), "issueMatch has a remediationDate set")
+						Expect(im.Node.DiscoveryDate).ToNot(BeNil(), "issueMatch has a discoveryDate set")
+						Expect(im.Node.TargetRemediationDate).ToNot(BeNil(), "issueMatch has a targetRemediationDate set")
+					}
 				}
 			})
 			It("- returns the expected PageInfo", func() {
@@ -260,6 +270,52 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				Expect(len(respData.Services.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
 				Expect(*respData.Services.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 			})
+		})
+		Context("and we use order", Label("withOrder.graphql"), func() {
+			var respData struct {
+				Services model.ServiceConnection `json:"Services"`
+			}
+
+			It("can order by ccrn", Label("withOrder.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withOrder.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Var("filter", map[string]string{})
+				req.Var("first", 10)
+				req.Var("after", "")
+				req.Var("orderBy", []map[string]string{
+					{"by": "ccrn", "direction": "asc"},
+				})
+
+				req.Header.Set("Cache-Control", "no-cache")
+
+				ctx := context.Background()
+
+				err = client.Run(ctx, req, &respData)
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the correct result count", func() {
+					Expect(respData.Services.TotalCount).To(Equal(len(seedCollection.ServiceRows)))
+					Expect(len(respData.Services.Edges)).To(Equal(10))
+				})
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, im := range respData.Services.Edges {
+						Expect(*im.Node.Ccrn >= prev).Should(BeTrue())
+						prev = *im.Node.Ccrn
+					}
+				})
+			})
+
 		})
 	})
 })
