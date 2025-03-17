@@ -41,6 +41,14 @@ enum SeverityValues {
     Critical
 }
 
+type SeverityCounts {
+    critical: Int!
+    high: Int!
+    medium: Int!
+    low: Int!
+    none: Int!
+}
+
 input DateTimeFilter {
     after: DateTime,
     before: DateTime,
