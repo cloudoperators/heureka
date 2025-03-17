@@ -2,14 +2,14 @@ module github.com/cloudoperators/heureka
 
 go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.24.1
 
 require (
 	github.com/99designs/gqlgen v0.17.66
 	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/coreos/go-oidc v2.3.0+incompatible
 	github.com/docker/docker v28.0.1+incompatible
-	github.com/docker/docker-credential-helpers v0.9.2
+	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/docker/go-connections v0.5.0
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-gonic/gin v1.10.0
