@@ -22,6 +22,7 @@ const (
 	RemoveComponentVersionFromIssueEventName event.EventName = "RemoveComponentVersionFromIssue"
 	ListIssuesEventName                      event.EventName = "ListIssues"
 	GetIssueEventName                        event.EventName = "GetIssue"
+	GetIssueSeverityCountsEventName          event.EventName = "GetIssueSeverityCounts"
 	ListIssueNamesEventName                  event.EventName = "ListIssueNames"
 )
 
@@ -94,6 +95,15 @@ type ListIssueNamesEvent struct {
 
 func (e *ListIssueNamesEvent) Name() event.EventName {
 	return ListIssueNamesEventName
+}
+
+type GetIssueSeverityCountsEvent struct {
+	Filter *entity.IssueFilter
+	Counts *entity.IssueSeverityCounts
+}
+
+func (e *GetIssueSeverityCountsEvent) Name() event.EventName {
+	return GetIssueSeverityCountsEventName
 }
 
 // OnComponentVersionAttachmentToIssue is an event handler whenever a ComponentVersion

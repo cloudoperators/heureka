@@ -5,6 +5,7 @@ package issue
 import (
 	"errors"
 	"fmt"
+
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
@@ -325,4 +326,19 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 	})
 
 	return issueNames, nil
+}
+
+func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
+	counts, err := is.database.CountIssueRatings(filter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	is.eventRegistry.PushEvent(&GetIssueSeverityCountsEvent{
+		Filter: filter,
+		Counts: counts,
+	})
+
+	return counts, nil
 }

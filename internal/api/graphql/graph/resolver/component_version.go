@@ -49,6 +49,13 @@ func (r *componentVersionResolver) ComponentInstances(ctx context.Context, obj *
 	})
 }
 
+func (r *componentVersionResolver) IssueCounts(ctx context.Context, obj *model.ComponentVersion, filter *model.IssueFilter) (*model.SeverityCounts, error) {
+	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
+		Parent:     obj,
+		ParentName: model.ComponentVersionNodeName,
+	})
+}
+
 func (r *Resolver) ComponentVersion() graph.ComponentVersionResolver {
 	return &componentVersionResolver{r}
 }
