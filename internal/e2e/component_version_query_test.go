@@ -6,11 +6,12 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
-	"os"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -184,6 +185,69 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 				Expect(respData.ComponentVersions.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
 				Expect(len(respData.ComponentVersions.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
 				Expect(*respData.ComponentVersions.PageInfo.PageNumber).To(Equal(1), "Correct page number")
+			})
+		})
+		Context("and we request issueCounts", func() {
+			It("returns correct issueCounts", func() {
+				severityCounts := map[string]model.SeverityCounts{}
+				// Setup severityCounts for all componentVersions
+				for _, cv := range seedCollection.ComponentVersionRows {
+					cvId := fmt.Sprint(cv.Id.Int64)
+					severityCounts[cvId] = model.SeverityCounts{}
+					counts := severityCounts[cvId]
+					for _, cvir := range seedCollection.ComponentVersionIssueRows {
+						if cv.Id.Int64 == cvir.ComponentVersionId.Int64 {
+							for _, iv := range seedCollection.IssueVariantRows {
+								if cvir.IssueId.Int64 == iv.IssueId.Int64 {
+									switch iv.Rating.String {
+									case "Critical":
+										counts.Critical++
+									case "High":
+										counts.High++
+									case "Medium":
+										counts.Medium++
+									case "Low":
+										counts.Low++
+									case "None":
+										counts.None++
+									}
+								}
+							}
+						}
+					}
+					severityCounts[cvId] = counts
+				}
+
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/withIssueCounts.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Var("filter", map[string]string{})
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				for _, cvEdge := range respData.ComponentVersions.Edges {
+					sc := severityCounts[cvEdge.Node.ID]
+					Expect(cvEdge.Node.IssueCounts.Critical).To(Equal(sc.Critical))
+					Expect(cvEdge.Node.IssueCounts.High).To(Equal(sc.High))
+					Expect(cvEdge.Node.IssueCounts.Medium).To(Equal(sc.Medium))
+					Expect(cvEdge.Node.IssueCounts.Low).To(Equal(sc.Low))
+					Expect(cvEdge.Node.IssueCounts.None).To(Equal(sc.None))
+				}
 			})
 		})
 	})

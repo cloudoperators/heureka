@@ -8,6 +8,7 @@ type ComponentVersion implements Node {
     component: Component
     issues(first: Int, after: String): IssueConnection
     componentInstances(first: Int, after: String): ComponentInstanceConnection
+    issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata
 }
 
@@ -32,5 +33,7 @@ input ComponentVersionFilter {
     componentCcrn: [String]
     issueId: [String]
     version: [String]
+    serviceId: [String]
+    serviceCcrn: [String]
     state: [StateFilter!]
 }
