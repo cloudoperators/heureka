@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/pointer"
@@ -201,4 +202,56 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	}
 
 	return &filterItem, nil
+}
+
+func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter, parent *model.NodeParent) (*model.SeverityCounts, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called IssueCountsBaseResolver")
+
+	if filter == nil {
+		filter = &model.IssueFilter{}
+	}
+
+	irIds, err := util.ConvertStrToIntSlice(filter.IssueRepositoryID)
+
+	if err != nil {
+		return nil, NewResolverError("IssueCountsBaseResolver", err.Error())
+	}
+
+	var cvId []*int64
+	if parent != nil {
+		parentId := parent.Parent.GetID()
+		pid, err := ParseCursor(&parentId)
+		if err != nil {
+			return nil, NewResolverError("IssueCountsBaseResolver", "Bad Request - Error while parsing propagated ID")
+		}
+
+		switch parent.ParentName {
+		case model.ComponentVersionNodeName:
+			cvId = []*int64{pid}
+		}
+	}
+
+	f := &entity.IssueFilter{
+		Paginated:          entity.Paginated{},
+		ServiceCCRN:        filter.AffectedService,
+		PrimaryName:        filter.PrimaryName,
+		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		Search:             filter.Search,
+		IssueRepositoryId:  irIds,
+		ComponentVersionId: cvId,
+		State:              model.GetStateFilterType(filter.State),
+	}
+
+	counts, err := app.GetIssueSeverityCounts(f)
+
+	if err != nil {
+		return nil, NewResolverError("IssueCountsBaseReolver", err.Error())
+	}
+
+	severityCounts := model.NewSeverityCounts(counts)
+
+	return &severityCounts, nil
 }

@@ -133,6 +133,8 @@ models:
         resolver: true
       componentInstances:
         resolver: true
+      issueCounts:
+        resolver: true
   Service:
     fields:
       owners:
@@ -146,6 +148,8 @@ models:
       issueRepositories:
         resolver: true
       componentInstances:
+        resolver: true
+      issueMatches:
         resolver: true
   SupportGroup:
     fields:

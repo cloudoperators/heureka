@@ -90,6 +90,18 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
                         }
                     }
                 }
+                issueMatches {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            status
+                            remediationDate
+                            discoveryDate
+                            targetRemediationDate
+                        }
+                    }
+                }
             }
             cursor
         }

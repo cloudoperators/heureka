@@ -59,6 +59,7 @@ type IssueFilter struct {
 	IssueMatchId                    []*int64          `json:"issue_match_id"`
 	ComponentVersionId              []*int64          `json:"component_version_id"`
 	IssueVariantId                  []*int64          `json:"issue_variant_id"`
+	IssueRepositoryId               []*int64          `json:"issue_repository_id"`
 	Search                          []*string         `json:"search"`
 	IssueMatchStatus                []*string         `json:"issue_match_status"`
 	IssueMatchDiscoveryDate         *TimeFilter       `json:"issue_match_discovery_date"`
@@ -89,14 +90,22 @@ type Issue struct {
 }
 
 type IssueCount struct {
-	Count int64     `json:"count"`
-	Type  IssueType `json:"type"`
+	Count int64  `json:"issue_count"`
+	Value string `json:"issue_value"`
 }
 
 type IssueTypeCounts struct {
 	VulnerabilityCount   int64 `json:"vulnerability_count"`
 	PolicyViolationCount int64 `json:"policy_violation_count"`
 	SecurityEventCount   int64 `json:"security_event_count"`
+}
+
+type IssueSeverityCounts struct {
+	Critical int64 `json:"critical"`
+	High     int64 `json:"high"`
+	Medium   int64 `json:"medium"`
+	Low      int64 `json:"low"`
+	None     int64 `json:"none"`
 }
 
 func (itc *IssueTypeCounts) TotalIssueCount() int64 {

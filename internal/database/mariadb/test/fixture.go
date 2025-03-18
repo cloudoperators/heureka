@@ -866,6 +866,7 @@ func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVarian
 		INSERT INTO IssueVariant (
 			issuevariant_secondary_name,
 			issuevariant_vector,
+			issuevariant_rating,
 			issuevariant_issue_id,
 			issuevariant_repository_id,
 			issuevariant_description,
@@ -874,6 +875,7 @@ func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVarian
 		) VALUES (
 			:issuevariant_secondary_name,
 			:issuevariant_vector,
+			:issuevariant_rating,
 			:issuevariant_issue_id,
 			:issuevariant_repository_id,
 			:issuevariant_description,

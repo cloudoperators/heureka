@@ -219,13 +219,13 @@ func (ibr *GetIssuesByRow) AsIssue() entity.Issue {
 
 type IssueCountRow struct {
 	Count sql.NullInt64  `db:"issue_count"`
-	Type  sql.NullString `db:"issue_type"`
+	Value sql.NullString `db:"issue_value"`
 }
 
 func (icr *IssueCountRow) AsIssueCount() entity.IssueCount {
 	return entity.IssueCount{
 		Count: GetInt64Value(icr.Count),
-		Type:  entity.NewIssueType(GetStringValue(icr.Type)),
+		Value: GetStringValue(icr.Value),
 	}
 }
 
