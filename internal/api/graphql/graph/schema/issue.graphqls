@@ -61,6 +61,7 @@ input IssueFilter {
     issueMatchStatus: [IssueMatchStatusValues],
     issueType: [IssueTypes],
     state: [StateFilter!],
+    issueRepositoryId: [String],
 
     componentVersionId: [String],
 

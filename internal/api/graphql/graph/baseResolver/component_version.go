@@ -94,11 +94,19 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		}
 	}
 
+	serviceIds, err := util.ConvertStrToIntSlice(filter.ServiceID)
+
+	if err != nil {
+		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter service ID")
+	}
+
 	f := &entity.ComponentVersionFilter{
 		Paginated:     entity.Paginated{First: first, After: afterId},
 		IssueId:       issueId,
 		ComponentId:   componentId,
 		ComponentCCRN: filter.ComponentCcrn,
+		ServiceCCRN:   filter.ServiceCcrn,
+		ServiceId:     serviceIds,
 		Version:       filter.Version,
 		State:         model.GetStateFilterType(filter.State),
 	}

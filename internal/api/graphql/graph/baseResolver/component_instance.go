@@ -93,6 +93,11 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	f := &entity.ComponentInstanceFilter{
 		Paginated:          entity.Paginated{First: first, After: afterId},
 		CCRN:               filter.Ccrn,
+		Region:             filter.Region,
+		Cluster:            filter.Cluster,
+		Namespace:          filter.Namespace,
+		Domain:             filter.Domain,
+		Project:            filter.Project,
 		IssueMatchId:       imId,
 		ServiceId:          serviceId,
 		ServiceCcrn:        filter.ServiceCcrn,
@@ -145,9 +150,14 @@ func CcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.Compon
 	}
 
 	f := &entity.ComponentInstanceFilter{
-		CCRN:   filter.Ccrn,
-		Search: filter.Search,
-		State:  model.GetStateFilterType(filter.State),
+		CCRN:      filter.Ccrn,
+		Region:    filter.Region,
+		Cluster:   filter.Cluster,
+		Namespace: filter.Namespace,
+		Domain:    filter.Domain,
+		Project:   filter.Project,
+		Search:    filter.Search,
+		State:     model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
