@@ -11,6 +11,11 @@ type ComponentInstanceFilter struct {
 	ComponentVersionId []*int64          `json:"component_version_id"`
 	Id                 []*int64          `json:"id"`
 	CCRN               []*string         `json:"ccrn"`
+	Region             []*string         `json:"region"`
+	Cluster            []*string         `json:"cluster"`
+	Namespace          []*string         `json:"namespace"`
+	Domain             []*string         `json:"domain"`
+	Project            []*string         `json:"project"`
 	Search             []*string         `json:"search"`
 	State              []StateFilterType `json:"state"`
 }

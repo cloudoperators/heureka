@@ -43,6 +43,11 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.CCRN, "CI.componentinstance_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Region, "CI.componentinstance_region = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Cluster, "CI.componentinstance_cluster = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Namespace, "CI.componentinstance_namespace = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Domain, "CI.componentinstance_domain = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Project, "CI.componentinstance_project = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
@@ -142,6 +147,11 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.Region)
+	filterParameters = buildQueryParameters(filterParameters, filter.Cluster)
+	filterParameters = buildQueryParameters(filterParameters, filter.Namespace)
+	filterParameters = buildQueryParameters(filterParameters, filter.Domain)
+	filterParameters = buildQueryParameters(filterParameters, filter.Project)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
