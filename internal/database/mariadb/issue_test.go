@@ -7,13 +7,12 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 
 	"math/rand"
-
-	"github.com/cloudoperators/heureka/pkg/util"
 )
 
 var _ = Describe("Issue", Label("database", "Issue"), func() {
@@ -479,6 +478,21 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		})
 	})
 	When("Counting Issues", Label("CountIssues"), func() {
+		var testIssueSeverityCount = func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
+			issueSeverityCounts, err := db.CountIssueRatings(filter)
+
+			By("throwing no error", func() {
+				Expect(err).To(BeNil())
+			})
+
+			By("returning the correct counts", func() {
+				Expect(issueSeverityCounts.Critical).To(BeEquivalentTo(counts.Critical))
+				Expect(issueSeverityCounts.High).To(BeEquivalentTo(counts.High))
+				Expect(issueSeverityCounts.Medium).To(BeEquivalentTo(counts.Medium))
+				Expect(issueSeverityCounts.Low).To(BeEquivalentTo(counts.Low))
+				Expect(issueSeverityCounts.None).To(BeEquivalentTo(counts.None))
+			})
+		}
 		Context("and using no filter", func() {
 			DescribeTable("it returns correct count", func(x int) {
 				_ = seeder.SeedDbWithNFakeData(x)
@@ -496,7 +510,68 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				Entry("when page size is 0", 0),
 				Entry("when page size is 1", 1),
 				Entry("when page size is 11", 11),
-				Entry("when page size is 100", 100))
+				Entry("when page size is 100", 100),
+			)
+			Context("and counting issue types", func() {
+				var seedCollection *test.SeedCollection
+				BeforeEach(func() {
+					seedCollection = seeder.SeedDbWithNFakeData(20)
+				})
+				It("returns the correct count for each issue type", func() {
+					vulnerabilityCount := 0
+					policyViolationCount := 0
+					securityEventCount := 0
+
+					for _, issue := range seedCollection.IssueRows {
+						switch issue.Type.String {
+						case entity.IssueTypeVulnerability.String():
+							vulnerabilityCount++
+						case entity.IssueTypePolicyViolation.String():
+							policyViolationCount++
+						case entity.IssueTypeSecurityEvent.String():
+							securityEventCount++
+						}
+					}
+
+					issueTypeCounts, err := db.CountIssueTypes(nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning the correct counts", func() {
+						Expect(issueTypeCounts.VulnerabilityCount).To(BeEquivalentTo(vulnerabilityCount))
+						Expect(issueTypeCounts.PolicyViolationCount).To(BeEquivalentTo(policyViolationCount))
+						Expect(issueTypeCounts.SecurityEventCount).To(BeEquivalentTo(securityEventCount))
+					})
+
+				})
+			})
+		})
+		Context("and counting issue severities", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(50)
+			})
+			It("returns the correct count for all issues", func() {
+				counts := entity.IssueSeverityCounts{}
+				for _, iv := range seedCollection.IssueVariantRows {
+					switch iv.Rating.String {
+					case entity.SeverityValuesCritical.String():
+						counts.Critical++
+					case entity.SeverityValuesHigh.String():
+						counts.High++
+					case entity.SeverityValuesMedium.String():
+						counts.Medium++
+					case entity.SeverityValuesLow.String():
+						counts.Low++
+					case entity.SeverityValuesNone.String():
+						counts.None++
+					}
+				}
+
+				testIssueSeverityCount(nil, counts)
+			})
 		})
 		Context("and using a filter", func() {
 			Context("and having 20 elements in the Database", func() {
@@ -548,39 +623,73 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 			})
 		})
-		Context("and counting issue types", func() {
+		Context("and counting issue severities", func() {
 			var seedCollection *test.SeedCollection
 			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(20)
+				seedCollection = seeder.SeedDbWithNFakeData(50)
 			})
-			It("returns the correct count for each issue type", func() {
-				vulnerabilityCount := 0
-				policyViolationCount := 0
-				securityEventCount := 0
 
-				for _, issue := range seedCollection.IssueRows {
-					switch issue.Type.String {
-					case entity.IssueTypeVulnerability.String():
-						vulnerabilityCount++
-					case entity.IssueTypePolicyViolation.String():
-						policyViolationCount++
-					case entity.IssueTypeSecurityEvent.String():
-						securityEventCount++
+			It("returns the correct count for specific issue", func() {
+				issueVariant := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+
+				counts := entity.IssueSeverityCounts{}
+
+				for _, iv := range seedCollection.IssueVariantRows {
+					if iv.IssueId.Int64 == issueVariant.IssueId.Int64 {
+						switch iv.Rating.String {
+						case entity.SeverityValuesCritical.String():
+							counts.Critical++
+						case entity.SeverityValuesHigh.String():
+							counts.High++
+						case entity.SeverityValuesMedium.String():
+							counts.Medium++
+						case entity.SeverityValuesLow.String():
+							counts.Low++
+						case entity.SeverityValuesNone.String():
+							counts.None++
+						}
 					}
 				}
 
-				issueTypeCounts, err := db.CountIssueTypes(nil)
+				filter := &entity.IssueFilter{
+					Id: []*int64{&issueVariant.IssueId.Int64},
+				}
 
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
+				testIssueSeverityCount(filter, counts)
+			})
+			It("returns the correct count for component version issues", func() {
+				cvi := seedCollection.ComponentVersionIssueRows[rand.Intn(len(seedCollection.ComponentVersionIssueRows))]
+				issueIds := []int64{}
+				for _, cviRow := range seedCollection.ComponentVersionIssueRows {
+					if cviRow.ComponentVersionId.Int64 == cvi.ComponentVersionId.Int64 {
+						issueIds = append(issueIds, cviRow.IssueId.Int64)
+					}
+				}
 
-				By("returning the correct counts", func() {
-					Expect(issueTypeCounts.VulnerabilityCount).To(BeEquivalentTo(vulnerabilityCount))
-					Expect(issueTypeCounts.PolicyViolationCount).To(BeEquivalentTo(policyViolationCount))
-					Expect(issueTypeCounts.SecurityEventCount).To(BeEquivalentTo(securityEventCount))
-				})
+				counts := entity.IssueSeverityCounts{}
 
+				for _, iv := range seedCollection.IssueVariantRows {
+					if lo.Contains(issueIds, iv.IssueId.Int64) {
+						switch iv.Rating.String {
+						case entity.SeverityValuesCritical.String():
+							counts.Critical++
+						case entity.SeverityValuesHigh.String():
+							counts.High++
+						case entity.SeverityValuesMedium.String():
+							counts.Medium++
+						case entity.SeverityValuesLow.String():
+							counts.Low++
+						case entity.SeverityValuesNone.String():
+							counts.None++
+						}
+					}
+				}
+
+				filter := &entity.IssueFilter{
+					ComponentVersionId: []*int64{&cvi.ComponentVersionId.Int64},
+				}
+
+				testIssueSeverityCount(filter, counts)
 			})
 		})
 	})

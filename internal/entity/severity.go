@@ -13,6 +13,10 @@ const (
 	SeverityValuesCritical SeverityValues = "Critical"
 )
 
+func (s SeverityValues) String() string {
+	return string(s)
+}
+
 type SeverityFilter struct {
 	IssueMatchId []*int64 `json:"issue_match_id"`
 	IssueId      []*int64 `json:"issue_id"`

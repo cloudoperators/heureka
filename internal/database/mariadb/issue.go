@@ -30,6 +30,7 @@ func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, wit
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
 	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
@@ -50,6 +51,7 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.IssueVariantId, "IV.issuevariant_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "I.issue_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "I.issue"))
 
@@ -83,7 +85,7 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter) string {
 		`)
 	}
 
-	if len(filter.IssueVariantId) > 0 || len(filter.Search) > 0 {
+	if len(filter.IssueRepositoryId) > 0 || len(filter.IssueVariantId) > 0 || len(filter.Search) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueVariant IV ON I.issue_id = IV.issuevariant_issue_id
 		`)
@@ -301,7 +303,7 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 	})
 
 	baseQuery := `
-		SELECT I.issue_type, COUNT(distinct I.issue_id) as issue_count FROM Issue I
+		SELECT I.issue_type AS issue_value, COUNT(distinct I.issue_id) as issue_count FROM Issue I
 		%s
 		%s
 		GROUP BY I.issue_type
@@ -330,17 +332,75 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 
 	var issueTypeCounts entity.IssueTypeCounts
 	for _, count := range counts {
-		switch count.Type {
-		case entity.IssueTypeVulnerability:
+		switch count.Value {
+		case entity.IssueTypeVulnerability.String():
 			issueTypeCounts.VulnerabilityCount = count.Count
-		case entity.IssueTypePolicyViolation:
+		case entity.IssueTypePolicyViolation.String():
 			issueTypeCounts.PolicyViolationCount = count.Count
-		case entity.IssueTypeSecurityEvent:
+		case entity.IssueTypeSecurityEvent.String():
 			issueTypeCounts.SecurityEventCount = count.Count
 		}
 	}
 
 	return &issueTypeCounts, nil
+}
+
+func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.CountIssueRatings",
+	})
+
+	filter = s.ensureIssueFilter(filter)
+
+	baseQuery := `
+		SELECT IV.issuevariant_rating AS issue_value, COUNT(IV.issuevariant_rating) AS issue_count FROM Issue I
+		%s
+		%s
+		GROUP BY IV.issuevariant_rating
+	`
+
+	if len(filter.IssueRepositoryId) == 0 {
+		baseQuery = fmt.Sprintf(baseQuery, "%s", "LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id %s")
+	}
+
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	counts, err := performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []entity.IssueCount, e IssueCountRow) []entity.IssueCount {
+			return append(l, e.AsIssueCount())
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var issueSeverityCounts entity.IssueSeverityCounts
+	for _, count := range counts {
+		switch count.Value {
+		case entity.SeverityValuesCritical.String():
+			issueSeverityCounts.Critical = count.Count
+		case entity.SeverityValuesHigh.String():
+			issueSeverityCounts.High = count.Count
+		case entity.SeverityValuesMedium.String():
+			issueSeverityCounts.Medium = count.Count
+		case entity.SeverityValuesLow.String():
+			issueSeverityCounts.Low = count.Count
+		case entity.SeverityValuesNone.String():
+			issueSeverityCounts.None = count.Count
+		}
+	}
+
+	return &issueSeverityCounts, nil
 }
 
 func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error) {
