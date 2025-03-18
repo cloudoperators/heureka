@@ -270,6 +270,54 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						}
 					})
 				})
+				It("can filter by a service id", func() {
+					s := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+
+					cvs := []int64{}
+					for _, ci := range seedCollection.ComponentInstanceRows {
+						if ci.ServiceId.Int64 == s.Id.Int64 {
+							cvs = append(cvs, ci.ComponentVersionId.Int64)
+						}
+					}
+
+					filter := &entity.ComponentVersionFilter{ServiceId: []*int64{&s.Id.Int64}}
+
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(cvs, entry.Id)).To(BeTrue())
+						}
+					})
+				})
+				It("can filter by a service ccrn", func() {
+					s := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+
+					cvs := []int64{}
+					for _, ci := range seedCollection.ComponentInstanceRows {
+						if ci.ServiceId.Int64 == s.Id.Int64 {
+							cvs = append(cvs, ci.ComponentVersionId.Int64)
+						}
+					}
+
+					filter := &entity.ComponentVersionFilter{ServiceCCRN: []*string{&s.CCRN.String}}
+
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(cvs, entry.Id)).To(BeTrue())
+						}
+					})
+				})
 			})
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
