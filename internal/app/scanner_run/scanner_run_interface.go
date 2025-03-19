@@ -3,13 +3,15 @@
 
 package scanner_run
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type ScannerRunHandler interface {
-	CompleteScannerRun(string) (bool, error)
 	CreateScannerRun(*entity.ScannerRun) (bool, error)
+	CompleteScannerRun(string) (bool, error)
 	FailScannerRun(string, string) (bool, error)
 	GetScannerRuns(*entity.ScannerRunFilter, *entity.ListOptions) ([]entity.ScannerRun, error)
 	GetScannerRunTags() ([]string, error)
-	CountScannerRuns() (int, error)
+	CountScannerRuns(*entity.ScannerRunFilter) (int, error)
 }
