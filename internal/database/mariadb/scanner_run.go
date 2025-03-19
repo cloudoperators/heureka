@@ -114,6 +114,31 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 	baseQuery := `
 		SELECT * FROM ScannerRun
     `
+	queryArgs, baseQuery := applyScannerRunFilter(baseQuery, filter)
+	rows, err := s.db.Query(baseQuery, queryArgs...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	result := []entity.ScannerRun{}
+
+	for rows.Next() {
+		srr := ScannerRunRow{}
+		err = rows.Scan(&srr.RunID, &srr.UUID, &srr.Tag, &srr.StartRun, &srr.EndRun, &srr.IsCompleted)
+
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, srr.AsScannerRun())
+	}
+
+	return result, nil
+}
+
+func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([]any, string) {
 	queryArgs := []any{}
 
 	baseQuery += " WHERE"
@@ -146,27 +171,7 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 
 	queryArgs = append(queryArgs, *filter.First)
 	baseQuery += " LIMIT ?"
-	rows, err := s.db.Query(baseQuery, queryArgs...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-	result := []entity.ScannerRun{}
-
-	for rows.Next() {
-		srr := ScannerRunRow{}
-		err = rows.Scan(&srr.RunID, &srr.UUID, &srr.Tag, &srr.StartRun, &srr.EndRun, &srr.IsCompleted)
-
-		if err != nil {
-			return nil, err
-		}
-
-		result = append(result, srr.AsScannerRun())
-	}
-
-	return result, nil
+	return queryArgs, baseQuery
 }
 
 func (s *SqlDatabase) ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity.ScannerRunFilter {
@@ -218,11 +223,12 @@ func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
 	return res, nil
 }
 
-func (s *SqlDatabase) CountScannerRuns() (int, error) {
+func (s *SqlDatabase) CountScannerRuns(filter *entity.ScannerRunFilter) (int, error) {
 	query := `SELECT COUNT(*) AS ScannerRunCount 
 			  FROM ScannerRun`
 
-	row := s.db.QueryRow(query)
+	args, query := applyScannerRunFilter(query, filter)
+	row := s.db.QueryRow(query, args...)
 
 	if row.Err() != nil {
 		return -1, row.Err()
