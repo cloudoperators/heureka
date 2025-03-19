@@ -27,6 +27,7 @@ func (s *SqlDatabase) ensureComponentVersionFilter(f *entity.ComponentVersionFil
 			IssueId:       nil,
 			ComponentCCRN: nil,
 			ComponentId:   nil,
+			Tag:           nil,
 		}
 	}
 	if f.First == nil {
@@ -57,6 +58,9 @@ func (s *SqlDatabase) getComponentVersionUpdateFields(componentVersion *entity.C
 	if componentVersion.ComponentId != 0 {
 		fl = append(fl, "componentversion_component_id = :componentversion_component_id")
 	}
+	if componentVersion.Tag != "" {
+		fl = append(fl, "componentversion_tag = :componentversion_tag")
+	}
 	if componentVersion.UpdatedBy != 0 {
 		fl = append(fl, "componentversion_updated_by = :componentversion_updated_by")
 	}
@@ -69,6 +73,7 @@ func (s *SqlDatabase) getComponentVersionFilterString(filter *entity.ComponentVe
 	fl = append(fl, buildFilterQuery(filter.IssueId, "CVI.componentversionissue_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Version, "CV.componentversion_version = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Tag, "CV.componentversion_tag = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "CV.componentversion"))
 
@@ -118,6 +123,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Version)
+	filterParameters = buildQueryParameters(filterParameters, filter.Tag)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentCCRN)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
@@ -213,11 +219,13 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 		INSERT INTO ComponentVersion (
 			componentversion_component_id,
 			componentversion_version,
+			componentversion_tag,
 			componentversion_created_by,
 			componentversion_updated_by
 		) VALUES (
 			:componentversion_component_id,
 			:componentversion_version,
+			:componentversion_tag,
 			:componentversion_created_by,
 			:componentversion_updated_by
 		)
