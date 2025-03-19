@@ -560,6 +560,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		ID:          fmt.Sprintf("%d", componentVersion.Id),
 		Version:     &componentVersion.Version,
 		ComponentID: util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
+		Tag:         &componentVersion.Tag,
 		Metadata:    getModelMetadata(componentVersion.Metadata),
 	}
 }
@@ -569,10 +570,12 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 	if err != nil {
 		componentId = 0
 	}
-	return entity.ComponentVersion{
+	cvr := entity.ComponentVersion{
 		Version:     lo.FromPtr(componentVersion.Version),
 		ComponentId: componentId,
+		Tag:         lo.FromPtr(componentVersion.Tag),
 	}
+	return cvr
 }
 
 func NewComponentInstance(componentInstance *entity.ComponentInstance) ComponentInstance {

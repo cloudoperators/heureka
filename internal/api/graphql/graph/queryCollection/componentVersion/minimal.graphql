@@ -12,6 +12,7 @@ query ($filter: ComponentVersionFilter, $first: Int, $after: String) {
             node {
                 id
                 version
+                tag
             }
             cursor
         }
