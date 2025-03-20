@@ -570,12 +570,11 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 	if err != nil {
 		componentId = 0
 	}
-	cvr := entity.ComponentVersion{
+	return entity.ComponentVersion{
 		Version:     lo.FromPtr(componentVersion.Version),
 		ComponentId: componentId,
 		Tag:         lo.FromPtr(componentVersion.Tag),
 	}
-	return cvr
 }
 
 func NewComponentInstance(componentInstance *entity.ComponentInstance) ComponentInstance {
