@@ -97,6 +97,39 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
 	})
+	When("filtering by tag", func() {
+		It("filters results correctly", func() {
+			// Create test data with a specific tag
+			testTag := "test-filter-tag"
+			componentVersions := test.NNewFakeComponentVersionEntities(3)
+			for i := range componentVersions {
+				componentVersions[i].Tag = testTag
+			}
+
+			// Set up the filter
+			tagFilter := getComponentVersionFilter()
+			tagFilter.Tag = []*string{&testTag}
+
+			// Mock database calls
+			db.On("GetComponentVersions", tagFilter).Return(componentVersions, nil)
+			if options.ShowTotalCount {
+				db.On("CountComponentVersions", tagFilter).Return(int64(len(componentVersions)), nil)
+			}
+
+			// Execute the handler
+			componenVersionService = cv.NewComponentVersionHandler(db, er)
+			result, err := componenVersionService.ListComponentVersions(tagFilter, options)
+
+			// Verify results
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(len(result.Elements)).To(Equal(len(componentVersions)))
+
+			// Verify all results have the correct tag
+			for _, element := range result.Elements {
+				Expect(element.ComponentVersion.Tag).To(Equal(testTag))
+			}
+		})
+	})
 })
 
 var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponentVersion"), func() {
@@ -121,6 +154,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		By("setting fields", func() {
 			Expect(newComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
 			Expect(newComponentVersion.ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+			Expect(newComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
 		})
 	})
 })
@@ -152,6 +186,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		db.On("UpdateComponentVersion", &componentVersion).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		componentVersion.Version = "7.3.3.1"
+		componentVersion.Tag = "updated-tag"
 		filter.Id = []*int64{&componentVersion.Id}
 		db.On("GetComponentVersions", filter).Return([]entity.ComponentVersion{componentVersion}, nil)
 		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(&componentVersion)
@@ -159,6 +194,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		By("setting fields", func() {
 			Expect(updatedComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
 			Expect(updatedComponentVersion.ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+			Expect(updatedComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
 		})
 	})
 })
