@@ -61,7 +61,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -97,7 +97,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 				ctx := context.Background()
@@ -132,7 +132,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 				ctx := context.Background()
@@ -258,6 +258,95 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 					Expect(cvEdge.Node.IssueCounts.None).To(Equal(sc.None))
 				}
 			})
+		})
+	})
+})
+
+var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
+	var seeder *test.DatabaseSeeder
+	var s *server.Server
+	var cfg util.Config
+	var respData struct {
+		ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+	}
+
+	BeforeEach(func() {
+		var err error
+		_ = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+		cfg = dbm.DbConfig()
+		cfg.Port = util2.GetRandomFreePort()
+		s = server.NewServer(cfg)
+
+		s.NonBlockingStart()
+	})
+
+	AfterEach(func() {
+		s.BlockingStop()
+	})
+
+	var loadTestData = func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
+		if err != nil {
+			return nil, nil, err
+		}
+		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/component_version_issue.json"))
+		if err != nil {
+			return nil, nil, err
+		}
+		return issueVariants, cvIssues, nil
+	}
+
+	When("ordering by severity", func() {
+		BeforeEach(func() {
+			seeder.SeedIssueRepositories()
+			seeder.SeedIssues(10)
+			components := seeder.SeedComponents(1)
+			seeder.SeedComponentVersions(10, components)
+			issueVariants, componentVersionIssues, err := loadTestData()
+			Expect(err).To(BeNil())
+			// Important: the order need to be preserved
+			for _, iv := range issueVariants {
+				_, err := seeder.InsertFakeIssueVariant(iv)
+				Expect(err).To(BeNil())
+			}
+			for _, cvi := range componentVersionIssues {
+				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
+				Expect(err).To(BeNil())
+			}
+		})
+
+		var runOrderTest = func(orderDirection string, expectedOrder []string) {
+			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/withOrder.graphql")
+			Expect(err).To(BeNil())
+			str := string(b)
+			req := graphql.NewRequest(str)
+			req.Var("filter", map[string]string{})
+			req.Var("first", 10)
+			req.Var("after", "")
+			req.Var("orderBy", []map[string]string{
+				{"by": "severity", "direction": orderDirection},
+			})
+			req.Header.Set("Cache-Control", "no-cache")
+			ctx := context.Background()
+			err = client.Run(ctx, req, &respData)
+			Expect(err).To(BeNil(), "Error while unmarshaling")
+			Expect(respData.ComponentVersions.TotalCount).To(Equal(10))
+			Expect(len(respData.ComponentVersions.Edges)).To(Equal(10))
+			for i, id := range expectedOrder {
+				Expect(respData.ComponentVersions.Edges[i].Node.ID).To(BeEquivalentTo(id))
+			}
+		}
+
+		It("can order descending by severity", func() {
+			runOrderTest("desc", []string{"3", "8", "2", "7", "1", "6", "5", "4", "10", "9"})
+		})
+
+		It("can order ascending by severity", func() {
+			runOrderTest("asc", []string{"9", "10", "4", "5", "6", "1", "7", "2", "8", "3"})
 		})
 	})
 })

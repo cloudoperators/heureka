@@ -53,18 +53,12 @@ func SingleComponentVersionBaseResolver(app app.Heureka, ctx context.Context, pa
 	return &componentVersion, nil
 }
 
-func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentVersionFilter, first *int, after *string, parent *model.NodeParent) (*model.ComponentVersionConnection, error) {
+func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentVersionFilter, first *int, after *string, orderBy []*model.ComponentVersionOrderBy, parent *model.NodeParent) (*model.ComponentVersionConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called ComponentVersionBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("ComponentVersionBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	if filter == nil {
 		filter = &model.ComponentVersionFilter{}
@@ -72,6 +66,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 
 	var issueId []*int64
 	var componentId []*int64
+	var err error
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -100,18 +95,33 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter service ID")
 	}
 
+	repositoryIds, err := util.ConvertStrToIntSlice(filter.IssueRepositoryID)
+
+	if err != nil {
+		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter service ID")
+	}
+
 	f := &entity.ComponentVersionFilter{
-		Paginated:     entity.Paginated{First: first, After: afterId},
-		IssueId:       issueId,
-		ComponentId:   componentId,
-		ComponentCCRN: filter.ComponentCcrn,
-		ServiceCCRN:   filter.ServiceCcrn,
-		ServiceId:     serviceIds,
-		Version:       filter.Version,
-		State:         model.GetStateFilterType(filter.State),
+		PaginatedX:        entity.PaginatedX{First: first, After: after},
+		IssueId:           issueId,
+		ComponentId:       componentId,
+		ComponentCCRN:     filter.ComponentCcrn,
+		ServiceCCRN:       filter.ServiceCcrn,
+		ServiceId:         serviceIds,
+		IssueRepositoryId: repositoryIds,
+		Version:           filter.Version,
+		State:             model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
+	for _, o := range orderBy {
+		if *o.By == model.ComponentVersionOrderByFieldSeverity {
+			opt.Order = append(opt.Order, entity.Order{By: entity.CriticalCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.HighCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.MediumCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.LowCount, Direction: o.Direction.ToOrderDirectionEntity()})
+		}
+	}
 
 	componentVersions, err := app.ListComponentVersions(f, opt)
 

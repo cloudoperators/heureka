@@ -31,3 +31,10 @@ func NNewFakeComponentVersionEntities(n int) []entity.ComponentVersion {
 	}
 	return r
 }
+
+func NewFakeComponentVersionResult() entity.ComponentVersionResult {
+	componentVersion := NewFakeComponentVersionEntity()
+	return entity.ComponentVersionResult{
+		ComponentVersion: &componentVersion,
+	}
+}
