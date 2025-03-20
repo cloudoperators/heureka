@@ -338,6 +338,11 @@ func (p *Processor) ProcessContainer(
 		return fmt.Errorf("cannot create Component (one or more containerInfo fields are empty)")
 	}
 
+	// we only consider main registry for now
+	if strings.HasPrefix(containerInfo.ImageRegistry, "keppel") {
+		containerInfo.ImageRegistry = "keppel.eu-de-1.cloud.sap"
+	}
+
 	componentCcrn := fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository)
 
 	componentId, err := p.getComponent(ctx, componentCcrn)

@@ -2,14 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 type ComponentVersion implements Node {
-  id: ID!
-  version: String
-  componentId: String
-  component: Component
-  issues(first: Int, after: String): IssueConnection
-  componentInstances(first: Int, after: String): ComponentInstanceConnection
-  metadata: Metadata
-  tag: String
+    id: ID!
+    version: String
+    componentId: String
+    component: Component
+    issues(first: Int, after: String): IssueConnection
+    componentInstances(first: Int, after: String): ComponentInstanceConnection
+    issueCounts(filter: IssueFilter): SeverityCounts
+    metadata: Metadata
+    tag: String
 }
 
 input ComponentVersionInput {
@@ -30,10 +31,12 @@ type ComponentVersionEdge implements Edge {
 }
 
 input ComponentVersionFilter {
-  componentId: [String]
-  componentCcrn: [String]
-  issueId: [String]
-  version: [String]
-  state: [StateFilter!]
-  tag: [String]
+    componentId: [String]
+    componentCcrn: [String]
+    issueId: [String]
+    version: [String]
+    serviceId: [String]
+    serviceCcrn: [String]
+    state: [StateFilter!]
+    tag: [String]
 }

@@ -10,6 +10,7 @@ type Database interface {
 	GetIssuesWithAggregations(*entity.IssueFilter) ([]entity.IssueWithAggregations, error)
 	CountIssues(*entity.IssueFilter) (int64, error)
 	CountIssueTypes(*entity.IssueFilter) (*entity.IssueTypeCounts, error)
+	CountIssueRatings(*entity.IssueFilter) (*entity.IssueSeverityCounts, error)
 	GetAllIssueIds(*entity.IssueFilter) ([]int64, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
@@ -134,7 +135,7 @@ type Database interface {
 	ScannerRunByUUID(string) (*entity.ScannerRun, error)
 	GetScannerRuns(*entity.ScannerRunFilter) ([]entity.ScannerRun, error)
 	GetScannerRunTags() ([]string, error)
-	CountScannerRuns() (int, error)
+	CountScannerRuns(*entity.ScannerRunFilter) (int, error)
 
 	CloseConnection() error
 }

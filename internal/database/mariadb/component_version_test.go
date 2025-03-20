@@ -272,44 +272,54 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						}
 					})
 				})
-				It("can filter by tag", func() {
-					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
-					componentVersion := cv.AsComponentVersion()
 
-					// Create a new component version with a specific tag for testing
-					testTag := "specific-test-tag-for-filtering"
-					componentVersion.Tag = testTag
+				It("can filter by a service id", func() {
+					s := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 
-					err := db.UpdateComponentVersion(&componentVersion)
-					Expect(err).To(BeNil())
+					cvs := []int64{}
+					for _, ci := range seedCollection.ComponentInstanceRows {
+						if ci.ServiceId.Int64 == s.Id.Int64 {
+							cvs = append(cvs, ci.ComponentVersionId.Int64)
+						}
+					}
 
-					// Do the filtering
-					filter := &entity.ComponentVersionFilter{Tag: []*string{&testTag}}
+					filter := &entity.ComponentVersionFilter{ServiceId: []*int64{&s.Id.Int64}}
+
 					entries, err := db.GetComponentVersions(filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
 
-					By("returning at least one result", func() {
-						Expect(entries).NotTo(BeEmpty())
-					})
 
-					By("ensuring all returned entries have the correct tag", func() {
+					By("returning expected elements", func() {
 						for _, entry := range entries {
-							Expect(entry.Tag).To(Equal(testTag))
+							Expect(lo.Contains(cvs, entry.Id)).To(BeTrue())
 						}
 					})
+				})
+				It("can filter by a service ccrn", func() {
+					s := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 
-					By("including our updated component version", func() {
-						found := false
-						for _, entry := range entries {
-							if entry.Id == componentVersion.Id {
-								found = true
-								break
-							}
+					cvs := []int64{}
+					for _, ci := range seedCollection.ComponentInstanceRows {
+						if ci.ServiceId.Int64 == s.Id.Int64 {
+							cvs = append(cvs, ci.ComponentVersionId.Int64)
 						}
-						Expect(found).To(BeTrue())
+					}
+
+					filter := &entity.ComponentVersionFilter{ServiceCCRN: []*string{&s.CCRN.String}}
+
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(cvs, entry.Id)).To(BeTrue())
+						}
 					})
 
 				})

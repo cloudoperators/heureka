@@ -209,6 +209,16 @@ func NewSeverityEntity(severity *SeverityInput) entity.Severity {
 	return entity.NewSeverity(*severity.Vector)
 }
 
+func NewSeverityCounts(counts *entity.IssueSeverityCounts) SeverityCounts {
+	return SeverityCounts{
+		Critical: int(counts.Critical),
+		High:     int(counts.High),
+		Medium:   int(counts.Medium),
+		Low:      int(counts.Low),
+		None:     int(counts.None),
+	}
+}
+
 func NewIssue(issue *entity.Issue) Issue {
 	lastModified := issue.UpdatedAt.String()
 	issueType := IssueTypes(issue.Type.String())

@@ -47,6 +47,13 @@ func (s *SqlDatabase) getComponentVersionJoins(filter *entity.ComponentVersionFi
 	if len(filter.ComponentCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, "LEFT JOIN Component C on CV.componentversion_component_id = C.component_id")
 	}
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, "LEFT JOIN ComponentInstance CI on CV.componentversion_id = CI.componentinstance_component_version_id")
+
+		if len(filter.ServiceCCRN) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, "LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id")
+		}
+	}
 	return joins
 }
 
@@ -75,6 +82,8 @@ func (s *SqlDatabase) getComponentVersionFilterString(filter *entity.ComponentVe
 	fl = append(fl, buildFilterQuery(filter.Version, "CV.componentversion_version = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Tag, "CV.componentversion_tag = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "CV.componentversion"))
 
 	return combineFilterQueries(fl, OP_AND)
@@ -125,6 +134,8 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	filterParameters = buildQueryParameters(filterParameters, filter.Version)
 	filterParameters = buildQueryParameters(filterParameters, filter.Tag)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
 		filterParameters = append(filterParameters, cursor.Limit)

@@ -586,7 +586,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 		})
 	})
-	When("Getting CCRN", Label("GetCCRN"), func() {
+	When("Getting Component Instances", Label("GetComponentInstances"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
 				res, err := db.GetCcrn(nil)
@@ -598,7 +598,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 			})
 		})
-		Context("and we have 10 CCRNs in the database", func() {
+		Context("and we have 10 Component Instances in the database", func() {
 			var seedCollection *test.SeedCollection
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -629,43 +629,160 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using a CCRN filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
-					expectedCCRN := seedCollection.ComponentInstanceRows[0].CCRN.String
-					filter := &entity.ComponentInstanceFilter{
-						CCRN: []*string{&expectedCCRN},
-					}
-
-					res, err := db.GetCcrn(filter)
-
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeEquivalentTo(1))
-					})
-
-					By("returning the correct names", func() {
-						left, right := lo.Difference(res, []string{expectedCCRN})
-						Expect(left).Should(BeEmpty())
-						Expect(right).Should(BeEmpty())
-					})
+					cir := seedCollection.ComponentInstanceRows[0]
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{CCRN: []*string{&cir.CCRN.String}},
+						[]string{cir.CCRN.String},
+					)
 				})
 				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
-					nonExistentCCRN := "NonexistentCCRN"
-					anotherFilter := &entity.ComponentInstanceFilter{
-						CCRN: []*string{&nonExistentCCRN},
-					}
-
-					res, err := db.GetCcrn(anotherFilter)
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning an empty list", func() {
-						Expect(res).Should(BeEmpty())
-					})
+					notexistentCcrn := "NotexistentCCRN"
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{CCRN: []*string{&notexistentCcrn}},
+						[]string{},
+					)
+				})
+			})
+			Context("and using a Region filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					cir := seedCollection.ComponentInstanceRows[0]
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Region: []*string{&cir.Region.String}},
+						[]string{cir.CCRN.String},
+					)
+				})
+				It("and using notexisting value returns an empty list when no Region match the filter", func() {
+					notexistentRegion := "NotexistentRegion"
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{CCRN: []*string{&notexistentRegion}},
+						[]string{},
+					)
+				})
+			})
+			Context("and using a Cluster filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					cir := seedCollection.ComponentInstanceRows[0]
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Cluster: []*string{&cir.Cluster.String}},
+						[]string{cir.CCRN.String},
+					)
+				})
+				It("and using notexisting value returns an empty list when no Cluster match the filter", func() {
+					notexistentCluster := "NotexistentCluster"
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Cluster: []*string{&notexistentCluster}},
+						[]string{},
+					)
+				})
+			})
+			Context("and using a Namespace filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					cir := seedCollection.ComponentInstanceRows[0]
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Namespace: []*string{&cir.Namespace.String}},
+						[]string{cir.CCRN.String},
+					)
+				})
+				It("and using notexisting value returns an empty list when no Namespace match the filter", func() {
+					notexistentNamespace := "NotexistentNamespace"
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Namespace: []*string{&notexistentNamespace}},
+						[]string{},
+					)
+				})
+			})
+			Context("and using a Domain filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					cir := seedCollection.ComponentInstanceRows[0]
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Domain: []*string{&cir.Domain.String}},
+						[]string{cir.CCRN.String},
+					)
+				})
+				It("and using notexisting value returns an empty list when no Domain match the filter", func() {
+					notexistentDomain := "NotexistentDomain"
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Domain: []*string{&notexistentDomain}},
+						[]string{},
+					)
+				})
+			})
+			Context("and using a Project filter", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					cir := seedCollection.ComponentInstanceRows[0]
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Project: []*string{&cir.Project.String}},
+						[]string{cir.CCRN.String},
+					)
+				})
+				It("and using notexisting value returns an empty list when no Project match the filter", func() {
+					notexistentProject := "NotexistentProject"
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{Project: []*string{&notexistentProject}},
+						[]string{},
+					)
+				})
+			})
+			Context("and using multiple filter attributes", func() {
+				It("using existing values of CCRN attributes can fetch the filtered items correctly", func() {
+					cir := seedCollection.ComponentInstanceRows[0]
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{
+							Region:    []*string{&cir.Region.String},
+							Cluster:   []*string{&cir.Cluster.String},
+							Namespace: []*string{&cir.Namespace.String},
+							Domain:    []*string{&cir.Domain.String},
+							Project:   []*string{&cir.Project.String},
+						},
+						[]string{cir.CCRN.String},
+					)
+				})
+				It("using one notexisting value of all CCRN attributes returns an empty list", func() {
+					cir := seedCollection.ComponentInstanceRows[0]
+					notexistentProject := "NotexistentProject"
+					issueComponentInstanceFilterWithExpectCcrn(
+						db,
+						&entity.ComponentInstanceFilter{
+							Region:    []*string{&cir.Region.String},
+							Cluster:   []*string{&cir.Cluster.String},
+							Namespace: []*string{&cir.Namespace.String},
+							Domain:    []*string{&cir.Domain.String},
+							Project:   []*string{&notexistentProject},
+						},
+						[]string{},
+					)
 				})
 			})
 		})
 	})
 })
+
+func issueComponentInstanceFilterWithExpectCcrn(db *mariadb.SqlDatabase, cifilter *entity.ComponentInstanceFilter, expectedCcrn []string) {
+	res, err := db.GetCcrn(cifilter)
+	By("throwing no error", func() {
+		Expect(err).Should(BeNil())
+	})
+
+	By("returning the correct number of results", func() {
+		Expect(len(res)).Should(BeEquivalentTo(len(expectedCcrn)))
+	})
+
+	By("returning the correct names", func() {
+		left, right := lo.Difference(res, expectedCcrn)
+		Expect(left).Should(BeEmpty())
+		Expect(right).Should(BeEmpty())
+	})
+}
