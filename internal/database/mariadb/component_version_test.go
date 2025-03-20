@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -145,6 +146,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 							for _, row := range seedCollection.ComponentVersionRows {
 								if r.Id == row.Id.Int64 {
 									Expect(r.Version).Should(BeEquivalentTo(row.Version.String), "Name should match")
+									Expect(r.Tag).Should(BeEquivalentTo(row.Tag.String), "Tag matches")
 									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
@@ -270,6 +272,47 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						}
 					})
 				})
+				It("can filter by tag", func() {
+					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					componentVersion := cv.AsComponentVersion()
+
+					// Create a new component version with a specific tag for testing
+					testTag := "specific-test-tag-for-filtering"
+					componentVersion.Tag = testTag
+
+					err := db.UpdateComponentVersion(&componentVersion)
+					Expect(err).To(BeNil())
+
+					// Do the filtering
+					filter := &entity.ComponentVersionFilter{Tag: []*string{&testTag}}
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning at least one result", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("ensuring all returned entries have the correct tag", func() {
+						for _, entry := range entries {
+							Expect(entry.Tag).To(Equal(testTag))
+						}
+					})
+
+					By("including our updated component version", func() {
+						found := false
+						for _, entry := range entries {
+							if entry.Id == componentVersion.Id {
+								found = true
+								break
+							}
+						}
+						Expect(found).To(BeTrue())
+					})
+
+				})
 			})
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
@@ -359,7 +402,16 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 					newComponentVersionRow = test.NewFakeComponentVersion()
 					newComponentVersionRow.ComponentId = seedCollection.ComponentRows[0].Id
+
+					// Set a specific tag value on the row
+					testTag := "insert-test-tag"
+					newComponentVersionRow.Tag.String = testTag
+					newComponentVersionRow.Tag.Valid = true
+
 					newComponentVersion = newComponentVersionRow.AsComponentVersion()
+
+					// Ensure the entity also has the tag set
+					Expect(newComponentVersion.Tag).To(Equal(testTag))
 				})
 				It("can insert correctly", func() {
 					componentVersion, err := db.CreateComponentVersion(&newComponentVersion)
@@ -384,6 +436,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 					By("setting fields", func() {
 						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
+						Expect(cv[0].Tag).To(BeEquivalentTo(componentVersion.Tag))
 						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
 					})
 				})
@@ -444,6 +497,47 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						Expect(len(cv)).To(BeEquivalentTo(1))
 					})
 					By("setting fields", func() {
+						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
+						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
+						Expect(cv[0].ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+					})
+				})
+
+				It("can update tag correctly", func() {
+					// Get an existing component version to update
+					componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
+
+					// Set a unique updated tag value
+					updatedTag := "updated-tag-" + fmt.Sprintf("%d", rand.Int())
+					componentVersion.Tag = updatedTag
+
+					// Perform the update
+					err := db.UpdateComponentVersion(&componentVersion)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					// Retrieve the updated component version
+					componentVersionFilter := &entity.ComponentVersionFilter{
+						Id: []*int64{&componentVersion.Id},
+					}
+
+					cv, err := db.GetComponentVersions(componentVersionFilter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning componentVersion", func() {
+						Expect(len(cv)).To(BeEquivalentTo(1))
+					})
+
+					By("setting the tag field correctly", func() {
+						Expect(cv[0].Tag).To(BeEquivalentTo(updatedTag))
+					})
+
+					By("preserving other fields", func() {
 						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
 						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
 						Expect(cv[0].ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
