@@ -12,6 +12,7 @@ func NewFakeComponentVersionEntity() entity.ComponentVersion {
 	return entity.ComponentVersion{
 		Id:                 int64(gofakeit.Number(1, 10000000)),
 		Version:            gofakeit.AppVersion(),
+		Tag:                gofakeit.UUID(),
 		ComponentId:        0,
 		ComponentInstances: nil,
 		Issues:             nil,
