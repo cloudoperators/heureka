@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 
@@ -1607,4 +1608,32 @@ func (s *DatabaseSeeder) SeedRealSupportGroupService(services map[string]mariadb
 		sgs = append(sgs, sgsr)
 	}
 	return sgs
+}
+
+func (s *DatabaseSeeder) SeedScannerRuns(tag string, isCompleted bool, timestamps ...time.Time) error {
+	var err error
+
+	query := `
+		INSERT INTO ScannerRun (
+			scannerrun_uuid,
+			scannerrun_tag,
+			scannerrun_start_run,
+			scannerrun_end_run,
+			scannerrun_is_completed
+		) VALUES (
+			?,
+			?,
+			?,
+			?,
+			?,
+		)
+	`
+	for _, ts := range timestamps {
+		_, err := s.db.Exec(query, gofakeit.UUID(), tag, ts, ts, isCompleted)
+		if err != nil {
+			return err
+
+		}
+	}
+	return err
 }
