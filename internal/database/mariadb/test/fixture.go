@@ -1632,7 +1632,7 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 			?,
 			?,
 			?,
-			?,
+			?
 		)
 	`
 	for _, srd := range scannerRunDefs {
@@ -1647,11 +1647,11 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 						INSERT INTO Issue (
 							issue_type,
 							issue_primary_name,
-							issue_description,
+							issue_description
 						) VALUES (
 							'Vulnerability',
 							?,
-							?,
+							?
 						)
 					`
 			_, err := s.db.Exec(query, issue, issue)
