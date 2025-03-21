@@ -88,8 +88,9 @@ type Database interface {
 	RemoveUserFromSupportGroup(int64, int64) error
 	GetSupportGroupCcrns(*entity.SupportGroupFilter) ([]string, error)
 
-	GetComponentInstances(*entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error)
+	GetComponentInstances(*entity.ComponentInstanceFilter, []entity.Order) ([]entity.ComponentInstanceResult, error)
 	GetAllComponentInstanceIds(*entity.ComponentInstanceFilter) ([]int64, error)
+	GetAllComponentInstanceCursors(*entity.ComponentInstanceFilter, []entity.Order) ([]string, error)
 	CountComponentInstances(*entity.ComponentInstanceFilter) (int64, error)
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
 	UpdateComponentInstance(*entity.ComponentInstance) error

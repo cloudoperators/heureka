@@ -8,7 +8,7 @@ type Query {
     Services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     Components(filter: ComponentFilter, first: Int, after: String): ComponentConnection
     ComponentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
-    ComponentInstances(filter: ComponentInstanceFilter, first: Int, after: String): ComponentInstanceConnection
+    ComponentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
     Activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     IssueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     IssueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
