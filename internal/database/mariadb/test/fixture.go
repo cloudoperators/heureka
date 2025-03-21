@@ -1614,6 +1614,7 @@ type ScannerRunDef struct {
 	Tag         string
 	IsCompleted bool
 	Timestamp   time.Time
+	Issues      []string
 }
 
 func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error {
@@ -1638,6 +1639,26 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 		_, err := s.db.Exec(query, gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
 		if err != nil {
 			return err
+
+		}
+
+		for _, issue := range srd.Issues {
+			query := `
+						INSERT INTO Issue (
+							issue_type,
+							issue_primary_name,
+							issue_description,
+						) VALUES (
+							'Vulnerability',
+							?,
+							?,
+						)
+					`
+			_, err := s.db.Exec(query, issue, issue)
+			if err != nil {
+				return err
+
+			}
 
 		}
 	}

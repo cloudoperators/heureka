@@ -79,5 +79,19 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 				Expect(res).To(BeFalse())
 			})
 		})
+
+		Context("and the database has one scannerrun with one issue", func() {
+			It("Autoclose should return false and no error", func() {
+				databaseSeeder.SeedScannerRuns(test.ScannerRunDef{
+					Tag:         "ScannerRunTag1",
+					IsCompleted: true,
+					Timestamp:   time.Now(),
+					Issues:      []string{"Issue1"},
+				})
+				res, err := db.Autoclose()
+				Expect(err).To(BeNil())
+				Expect(res).To(BeFalse())
+			})
+		})
 	})
 })
