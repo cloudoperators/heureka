@@ -98,7 +98,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 	repositoryIds, err := util.ConvertStrToIntSlice(filter.IssueRepositoryID)
 
 	if err != nil {
-		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter service ID")
+		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter issue repository ID")
 	}
 
 	f := &entity.ComponentVersionFilter{
