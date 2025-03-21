@@ -323,20 +323,16 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				})
 
 				It("can filter by tag", func() {
-					// First, find a component version to update with a known tag
+					// Get an existing component version from the fixtures
 					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
-					componentVersion := cv.AsComponentVersion()
 
-					// Set a specific test tag
-					testTag := "specific-test-tag-for-filtering"
-					componentVersion.Tag = testTag
+					// Get the tag value directly from the fixture
+					tagToFilterBy := cv.Tag.String
 
-					// Update the existing component version with our test tag
-					err := db.UpdateComponentVersion(&componentVersion)
-					Expect(err).To(BeNil())
+					// Create a filter using the existing tag value
+					filter := &entity.ComponentVersionFilter{Tag: []*string{&tagToFilterBy}}
 
-					// Now filter by the specific tag we just set
-					filter := &entity.ComponentVersionFilter{Tag: []*string{&testTag}}
+					// Execute the query
 					entries, err := db.GetComponentVersions(filter)
 
 					By("throwing no error", func() {
@@ -349,14 +345,14 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					By("ensuring all returned entries have the correct tag", func() {
 						for _, entry := range entries {
-							Expect(entry.Tag).To(Equal(testTag))
+							Expect(entry.Tag).To(Equal(tagToFilterBy))
 						}
 					})
 
-					By("including our updated component version", func() {
+					By("including our expected component version", func() {
 						found := false
 						for _, entry := range entries {
-							if entry.Id == componentVersion.Id {
+							if entry.Id == cv.Id.Int64 {
 								found = true
 								break
 							}
@@ -555,9 +551,14 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 				})
 
-				It("can update tag correctly", func() {
+				It("can update tag correctly", Label("UpdateComponentVersion", "GetComponentVersions"), func() {
 					// Get an existing component version to update
 					componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
+
+					// Store the original values for comparison
+					originalId := componentVersion.Id
+					originalVersion := componentVersion.Version
+					originalComponentId := componentVersion.ComponentId
 
 					// Set a unique updated tag value
 					updatedTag := "updated-tag-" + fmt.Sprintf("%d", rand.Int())
@@ -566,33 +567,38 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					// Perform the update
 					err := db.UpdateComponentVersion(&componentVersion)
 
-					By("throwing no error", func() {
+					By("throwing no error during update", func() {
 						Expect(err).To(BeNil())
 					})
 
-					// Retrieve the updated component version
-					componentVersionFilter := &entity.ComponentVersionFilter{
-						Id: []*int64{&componentVersion.Id},
-					}
+					// Retrieve all component versions and find our updated one manually
+					// This avoids relying on the filter functionality
+					allVersions, err := db.GetComponentVersions(nil)
 
-					cv, err := db.GetComponentVersions(componentVersionFilter)
-
-					By("throwing no error", func() {
+					By("throwing no error during retrieval", func() {
 						Expect(err).To(BeNil())
 					})
 
-					By("returning componentVersion", func() {
-						Expect(len(cv)).To(BeEquivalentTo(1))
-					})
+					By("being able to find the updated version", func() {
+						found := false
+						var updatedCV entity.ComponentVersion
 
-					By("setting the tag field correctly", func() {
-						Expect(cv[0].Tag).To(BeEquivalentTo(updatedTag))
-					})
+						for _, cv := range allVersions {
+							if cv.Id == originalId {
+								found = true
+								updatedCV = cv
+								break
+							}
+						}
 
-					By("preserving other fields", func() {
-						Expect(cv[0].Id).To(BeEquivalentTo(componentVersion.Id))
-						Expect(cv[0].Version).To(BeEquivalentTo(componentVersion.Version))
-						Expect(cv[0].ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+						Expect(found).To(BeTrue(), "Updated component version should be retrievable")
+
+						if found {
+							Expect(updatedCV.Tag).To(BeEquivalentTo(updatedTag), "Tag should be updated")
+							Expect(updatedCV.Id).To(BeEquivalentTo(originalId), "ID should be preserved")
+							Expect(updatedCV.Version).To(BeEquivalentTo(originalVersion), "Version should be preserved")
+							Expect(updatedCV.ComponentId).To(BeEquivalentTo(originalComponentId), "ComponentId should be preserved")
+						}
 					})
 				})
 			})

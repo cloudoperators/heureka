@@ -1299,8 +1299,8 @@ func NewFakeComponent() mariadb.ComponentRow {
 
 func NewFakeComponentVersion() mariadb.ComponentVersionRow {
 	return mariadb.ComponentVersionRow{
-		Version:   sql.NullString{String: gofakeit.AppVersion(), Valid: true},
-		Tag:       sql.NullString{String: gofakeit.UUID(), Valid: true},
+		Version:   sql.NullString{String: gofakeit.Regex("^sha:[a-fA-F0-9]{64}$"), Valid: true},
+		Tag:       sql.NullString{String: gofakeit.AppVersion(), Valid: true},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}

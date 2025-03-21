@@ -12,7 +12,7 @@ type ComponentVersionFilter struct {
 	Version       []*string         `json:"version"`
 	ServiceId     []*int64          `json:"service_id"`
 	ServiceCCRN   []*string         `json:"service_ccrn"`
-  Tag           []*string         `json:"tag"`
+	Tag           []*string         `json:"tag"`
 	State         []StateFilterType `json:"state"`
 }
 
