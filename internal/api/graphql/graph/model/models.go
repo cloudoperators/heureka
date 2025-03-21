@@ -624,11 +624,11 @@ func getCcrnVal(rawCcrn string, k string) string {
 
 func ParseCcrn(rawCcrn string) Ccrn {
 	var ccrn Ccrn
-	ccrn.Region = getCcrnVal(rawCcrn, "r")
-	ccrn.Cluster = getCcrnVal(rawCcrn, "c")
-	ccrn.Namespace = getCcrnVal(rawCcrn, "n")
-	ccrn.Domain = getCcrnVal(rawCcrn, "d")
-	ccrn.Project = getCcrnVal(rawCcrn, "p")
+	ccrn.Region = getCcrnVal(rawCcrn, "region")
+	ccrn.Cluster = getCcrnVal(rawCcrn, "cluster")
+	ccrn.Namespace = getCcrnVal(rawCcrn, "namespace")
+	ccrn.Domain = getCcrnVal(rawCcrn, "domain")
+	ccrn.Project = getCcrnVal(rawCcrn, "project")
 	return ccrn
 }
 
