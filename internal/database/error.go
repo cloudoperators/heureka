@@ -3,7 +3,9 @@
 
 package database
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type DuplicateEntryDatabaseError struct {
 	msg string

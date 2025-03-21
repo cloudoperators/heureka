@@ -46,4 +46,6 @@ spec:
               value: {{ .Values.scanner.k8s_cluster_region }}
             - name: KUBE_CONFIG_TYPE
               value: "in-cluster"
+            - name: CONFIG_PATH
+              value: {{ .Values.scanner.config_mount_path }}
           restartPolicy: OnFailure

@@ -1,2 +1,4 @@
-config:
-    some_key: some_value
+side_cars:
+    - name: linkerd-proxy
+      service: linkerd
+      support_group: containers

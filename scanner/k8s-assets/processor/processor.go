@@ -317,6 +317,28 @@ func (p *Processor) ProcessContainer(
 		componentVersionId  string
 		componentInstanceId string
 	)
+
+	// Is this a sidecar mapped to a specific service?
+	advCfg, err := p.config.LoadAdvancedConfig()
+	if err != nil {
+		log.WithError(err).Error("failed to load advanced config")
+	} else {
+
+		if podSideCar, ok := advCfg.GetSideCar(containerInfo.Name); ok {
+			// get the service id
+			sid, err := p.ProcessService(ctx, scanner.ServiceInfo{
+				SupportGroup: podSideCar.SupportGroup,
+				CCRN:         podSideCar.ServiceName,
+			})
+			if err != nil {
+				log.WithError(err).Error("failed to process service")
+			} else {
+				//overwrite the ServiceID for the component instance
+				serviceID = sid
+			}
+		}
+	}
+
 	// Create new CCRN
 	ccrn := CCRN{
 		Region:    p.config.RegionName,
@@ -345,7 +367,7 @@ func (p *Processor) ProcessContainer(
 
 	componentCcrn := fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository)
 
-	componentId, err := p.getComponent(ctx, componentCcrn)
+	componentId, err = p.getComponent(ctx, componentCcrn)
 
 	if err != nil {
 		componentId, err = p.createComponent(ctx, &client.ComponentInput{
@@ -390,6 +412,7 @@ func (p *Processor) ProcessContainer(
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
 	}
+
 	if err == nil {
 		componentInstanceId, err = p.updateComponentInstance(ctx, componentInstanceId, input)
 		if err != nil {
