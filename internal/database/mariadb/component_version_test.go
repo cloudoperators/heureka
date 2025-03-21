@@ -334,7 +334,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					filter := &entity.ComponentVersionFilter{Tag: []*string{&tagToFilterBy}}
 
 					// Execute the query
-					entries, err := db.GetComponentVersions(filter)
+					entries, err := db.GetComponentVersions(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -578,7 +578,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					// Retrieve all component versions and find our updated one manually
 					// This avoids relying on the filter functionality
-					allVersions, err := db.GetComponentVersions(nil)
+					allVersions, err := db.GetComponentVersions(nil, nil)
 
 					By("throwing no error during retrieval", func() {
 						Expect(err).To(BeNil())
@@ -591,7 +591,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						for _, cv := range allVersions {
 							if cv.Id == originalId {
 								found = true
-								updatedCV = cv
+								updatedCV = *cv.ComponentVersion
 								break
 							}
 						}

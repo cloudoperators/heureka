@@ -112,7 +112,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		It("filters results correctly", func() {
 			// Create test data with a specific tag
 			testTag := "test-filter-tag"
-			componentVersions := test.NNewFakeComponentVersionEntities(3)
+			componentVersions := test.NNewFakeComponentVersionResults(3)
 			for i := range componentVersions {
 				componentVersions[i].Tag = testTag
 			}
@@ -122,14 +122,14 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			tagFilter.Tag = []*string{&testTag}
 
 			// Mock database calls
-			db.On("GetComponentVersions", tagFilter).Return(componentVersions, nil)
+			db.On("GetComponentVersions", tagFilter, []entity.Order{}).Return(componentVersions, nil)
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", tagFilter).Return(int64(len(componentVersions)), nil)
 			}
 
 			// Execute the handler
-			componenVersionService = cv.NewComponentVersionHandler(db, er)
-			result, err := componenVersionService.ListComponentVersions(tagFilter, options)
+			cvHandler = cv.NewComponentVersionHandler(db, er)
+			result, err := cvHandler.ListComponentVersions(tagFilter, options)
 
 			// Verify results
 			Expect(err).To(BeNil(), "no error should be thrown")

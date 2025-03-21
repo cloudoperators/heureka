@@ -38,3 +38,11 @@ func NewFakeComponentVersionResult() entity.ComponentVersionResult {
 		ComponentVersion: &componentVersion,
 	}
 }
+
+func NNewFakeComponentVersionResults(n int) []entity.ComponentVersionResult {
+	r := make([]entity.ComponentVersionResult, n)
+	for i := 0; i < n; i++ {
+		r[i] = NewFakeComponentVersionResult()
+	}
+	return r
+}
