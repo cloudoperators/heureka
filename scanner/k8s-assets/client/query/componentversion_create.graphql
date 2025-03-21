@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 mutation CreateComponentVersion($input: ComponentVersionInput!) {
-     # @genqlient(typename: "ComponentVersion")
-    createComponentVersion (
-        input: $input
-    ) {
-        id
-        version
-        componentId
-    }
+  # @genqlient(typename: "ComponentVersion")
+  createComponentVersion(input: $input) {
+    id
+    version
+    componentId
+    tag
+  }
 }

@@ -556,6 +556,7 @@ func (cr *ComponentRow) FromComponent(c *entity.Component) {
 type ComponentVersionRow struct {
 	Id          sql.NullInt64  `db:"componentversion_id" json:"id"`
 	Version     sql.NullString `db:"componentversion_version" json:"version"`
+	Tag         sql.NullString `db:"componentversion_tag" json:"tag"`
 	ComponentId sql.NullInt64  `db:"componentversion_component_id"`
 	CreatedAt   sql.NullTime   `db:"componentversion_created_at" json:"created_at"`
 	CreatedBy   sql.NullInt64  `db:"componentversion_created_by" json:"created_by"`
@@ -568,6 +569,7 @@ func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 	return entity.ComponentVersion{
 		Id:          GetInt64Value(cvr.Id),
 		Version:     GetStringValue(cvr.Version),
+		Tag:         GetStringValue(cvr.Tag),
 		ComponentId: GetInt64Value(cvr.ComponentId),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cvr.CreatedAt),
@@ -582,6 +584,7 @@ func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion) {
 	cvr.Id = sql.NullInt64{Int64: cv.Id, Valid: true}
 	cvr.Version = sql.NullString{String: cv.Version, Valid: true}
+	cvr.Tag = sql.NullString{String: cv.Tag, Valid: true}
 	cvr.ComponentId = sql.NullInt64{Int64: cv.ComponentId, Valid: true}
 	cvr.CreatedAt = sql.NullTime{Time: cv.CreatedAt, Valid: true}
 	cvr.CreatedBy = sql.NullInt64{Int64: cv.CreatedBy, Valid: true}

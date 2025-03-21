@@ -177,6 +177,15 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 						Expect(cv.Node.Component.Ccrn).ToNot(BeNil(), "component has a ccrn set")
 						Expect(cv.Node.Component.Type).ToNot(BeNil(), "component has a type set")
 					}
+
+					if cv.Node.Tag != nil {
+						// If there's a tag value in the database, verify it matches
+						for _, row := range seedCollection.ComponentVersionRows {
+							if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Tag.Valid {
+								Expect(*cv.Node.Tag).To(Equal(row.Tag.String))
+							}
+						}
+					}
 				}
 			})
 			It("- returns the expected PageInfo", func() {
@@ -299,9 +308,12 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 				str := string(b)
 				req := graphql.NewRequest(str)
 
+				testTag := "test-tag-e2e"
+
 				req.Var("input", map[string]string{
 					"version":     componentVersion.Version,
 					"componentId": fmt.Sprintf("%d", componentId),
+					"tag":         testTag,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -316,6 +328,7 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 
 				Expect(*respData.ComponentVersion.Version).To(Equal(componentVersion.Version))
 				Expect(*respData.ComponentVersion.ComponentID).To(Equal(fmt.Sprintf("%d", componentId)))
+				Expect(*respData.ComponentVersion.Tag).To(Equal(testTag))
 			})
 		})
 	})
@@ -365,10 +378,12 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 
 				componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
 				componentVersion.Version = "4.2.0"
+				componentVersion.Tag = "updated-tag-e2e"
 
 				req.Var("id", fmt.Sprintf("%d", componentVersion.Id))
 				req.Var("input", map[string]string{
 					"version": componentVersion.Version,
+					"tag":     componentVersion.Tag,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -382,6 +397,7 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 				}
 
 				Expect(*respData.ComponentVersion.Version).To(Equal(componentVersion.Version))
+				Expect(*respData.ComponentVersion.Tag).To(Equal(componentVersion.Tag))
 			})
 		})
 	})
