@@ -56,7 +56,7 @@ enum IssueStatusValues {
 }
 
 input IssueFilter {
-    affectedService: [String],
+    serviceCcrn: [String],
     primaryName: [String],
     issueMatchStatus: [IssueMatchStatusValues],
     issueType: [IssueTypes],

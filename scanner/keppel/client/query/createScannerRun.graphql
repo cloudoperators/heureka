@@ -4,7 +4,5 @@
 mutation CreateScannerRun($input: ScannerRunInput!) {
     createScannerRun (
        input: $input
-    ) {
-        boolean
-    }
+    )
 }

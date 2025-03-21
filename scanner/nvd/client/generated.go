@@ -98,16 +98,18 @@ type IssueConnectionEdgesIssueEdge struct {
 func (v *IssueConnectionEdgesIssueEdge) GetNode() *Issue { return v.Node }
 
 type IssueFilter struct {
-	AffectedService    []string                 `json:"affectedService"`
+	ServiceCcrn        []string                 `json:"serviceCcrn"`
 	PrimaryName        []string                 `json:"primaryName"`
 	IssueMatchStatus   []IssueMatchStatusValues `json:"issueMatchStatus"`
 	IssueType          []IssueTypes             `json:"issueType"`
+	State              []StateFilter            `json:"state"`
+	IssueRepositoryId  []string                 `json:"issueRepositoryId"`
 	ComponentVersionId []string                 `json:"componentVersionId"`
 	Search             []string                 `json:"search"`
 }
 
-// GetAffectedService returns IssueFilter.AffectedService, and is useful for accessing the field via an interface.
-func (v *IssueFilter) GetAffectedService() []string { return v.AffectedService }
+// GetServiceCcrn returns IssueFilter.ServiceCcrn, and is useful for accessing the field via an interface.
+func (v *IssueFilter) GetServiceCcrn() []string { return v.ServiceCcrn }
 
 // GetPrimaryName returns IssueFilter.PrimaryName, and is useful for accessing the field via an interface.
 func (v *IssueFilter) GetPrimaryName() []string { return v.PrimaryName }
@@ -117,6 +119,12 @@ func (v *IssueFilter) GetIssueMatchStatus() []IssueMatchStatusValues { return v.
 
 // GetIssueType returns IssueFilter.IssueType, and is useful for accessing the field via an interface.
 func (v *IssueFilter) GetIssueType() []IssueTypes { return v.IssueType }
+
+// GetState returns IssueFilter.State, and is useful for accessing the field via an interface.
+func (v *IssueFilter) GetState() []StateFilter { return v.State }
+
+// GetIssueRepositoryId returns IssueFilter.IssueRepositoryId, and is useful for accessing the field via an interface.
+func (v *IssueFilter) GetIssueRepositoryId() []string { return v.IssueRepositoryId }
 
 // GetComponentVersionId returns IssueFilter.ComponentVersionId, and is useful for accessing the field via an interface.
 func (v *IssueFilter) GetComponentVersionId() []string { return v.ComponentVersionId }
@@ -191,9 +199,10 @@ type IssueRepositoryConnectionEdgesIssueRepositoryEdge struct {
 func (v *IssueRepositoryConnectionEdgesIssueRepositoryEdge) GetNode() *IssueRepository { return v.Node }
 
 type IssueRepositoryFilter struct {
-	ServiceCcrn []string `json:"serviceCcrn"`
-	ServiceId   []string `json:"serviceId"`
-	Name        []string `json:"name"`
+	ServiceCcrn []string      `json:"serviceCcrn"`
+	ServiceId   []string      `json:"serviceId"`
+	Name        []string      `json:"name"`
+	State       []StateFilter `json:"state"`
 }
 
 // GetServiceCcrn returns IssueRepositoryFilter.ServiceCcrn, and is useful for accessing the field via an interface.
@@ -204,6 +213,9 @@ func (v *IssueRepositoryFilter) GetServiceId() []string { return v.ServiceId }
 
 // GetName returns IssueRepositoryFilter.Name, and is useful for accessing the field via an interface.
 func (v *IssueRepositoryFilter) GetName() []string { return v.Name }
+
+// GetState returns IssueRepositoryFilter.State, and is useful for accessing the field via an interface.
+func (v *IssueRepositoryFilter) GetState() []StateFilter { return v.State }
 
 type IssueRepositoryInput struct {
 	Name string `json:"name"`
@@ -282,6 +294,13 @@ const (
 	SeverityValuesMedium   SeverityValues = "Medium"
 	SeverityValuesHigh     SeverityValues = "High"
 	SeverityValuesCritical SeverityValues = "Critical"
+)
+
+type StateFilter string
+
+const (
+	StateFilterActive  StateFilter = "Active"
+	StateFilterDeleted StateFilter = "Deleted"
 )
 
 // __CreateIssueInput is used internally by genqlient

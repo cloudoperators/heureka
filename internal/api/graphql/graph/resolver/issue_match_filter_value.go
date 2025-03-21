@@ -24,12 +24,12 @@ func (r *issueMatchFilterValueResolver) PrimaryName(ctx context.Context, obj *mo
 	return item, nil
 }
 
-func (r *issueMatchFilterValueResolver) AffectedService(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+func (r *issueMatchFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.IssueMatchFilterAffectedService
+	item.FilterName = &baseResolver.IssueMatchFilterServiceCcrn
 	return item, nil
 }
 

@@ -6,7 +6,7 @@ type IssueMatchFilterValue {
     severity: FilterItem
     issueType: FilterItem
     primaryName(filter: IssueFilter): FilterItem
-    affectedService(filter: ServiceFilter): FilterItem
+    serviceCcrn(filter: ServiceFilter): FilterItem
     componentCcrn(filter: ComponentFilter): FilterItem
     supportGroupCcrn(filter: SupportGroupFilter): FilterItem
 }

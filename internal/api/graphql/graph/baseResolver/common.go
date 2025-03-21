@@ -37,7 +37,7 @@ var (
 	IssueMatchFilterIssueType        string = "issueType"
 	IssueMatchFilterStatus           string = "status"
 	IssueMatchFilterSeverity         string = "severity"
-	IssueMatchFilterAffectedService  string = "affectedService"
+	IssueMatchFilterServiceCcrn      string = "serviceCcrn"
 	IssueMatchFilterSupportGroupCcrn string = "supportGroupCcrn"
 
 	ComponentFilterComponentCcrn string = "componentCcrn"
