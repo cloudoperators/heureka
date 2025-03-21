@@ -13,6 +13,8 @@ func ColumnName(f entity.OrderByField) string {
 	switch f {
 	case entity.ComponentInstanceCcrn:
 		return "componentinstance_ccrn"
+	case entity.ComponentVersionId:
+		return "componentversion_id"
 	case entity.IssuePrimaryName:
 		return "issue_primary_name"
 	case entity.IssueMatchId:
@@ -27,6 +29,16 @@ func ColumnName(f entity.OrderByField) string {
 		return "service_id"
 	case entity.ServiceCcrn:
 		return "service_ccrn"
+	case entity.CriticalCount:
+		return "critical_count"
+	case entity.HighCount:
+		return "high_count"
+	case entity.MediumCount:
+		return "medium_count"
+	case entity.LowCount:
+		return "low_count"
+	case entity.NoneCount:
+		return "none_count"
 	default:
 		return ""
 	}

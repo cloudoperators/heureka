@@ -34,9 +34,20 @@ input ComponentVersionFilter {
     componentId: [String]
     componentCcrn: [String]
     issueId: [String]
+    # Used for ordering by severity
+    issueRepositoryId: [String]
     version: [String]
     serviceId: [String]
     serviceCcrn: [String]
     state: [StateFilter!]
     tag: [String]
+}
+
+input ComponentVersionOrderBy {
+    by: ComponentVersionOrderByField
+    direction: OrderDirection
+}
+
+enum ComponentVersionOrderByField {
+    severity
 }
