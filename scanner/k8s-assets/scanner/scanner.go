@@ -48,12 +48,14 @@ type ImageInfo struct {
 	Account      string
 	Organization string
 	Repository   string
+	Tag          string
 }
 
 type ContainerInfo struct {
 	Name            string
 	Image           string
 	ImageHash       string
+	ImageTag        string
 	ImageRegistry   string
 	ImageRepository string
 	ImageAccount    string
@@ -141,6 +143,7 @@ func (s *Scanner) extractImageInfo(image string) (ImageInfo, error) {
 	info := ImageInfo{
 		Registry:   tokens[0],
 		Repository: tokens[len(tokens)-1],
+		Tag:        parts[1],
 	}
 
 	if len(tokens) == 3 {
@@ -183,6 +186,7 @@ func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 			Name:            containerStatus.Name,
 			Image:           containerStatus.Image,
 			ImageHash:       containerStatus.ImageID,
+			ImageTag:        imageInfo.Tag,
 			ImageRegistry:   imageInfo.Registry,
 			ImageRepository: imageRepository,
 			ImageAccount:    imageInfo.Account,
