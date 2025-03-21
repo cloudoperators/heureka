@@ -33,7 +33,11 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 		})
 		Context("and the database has one empty scannerrun", func() {
 			It("Autoclose should return false and no error", func() {
-				databaseSeeder.SeedScannerRuns("ScannerRunTag1", true, time.Now())
+				databaseSeeder.SeedScannerRuns(test.ScannerRunDef{
+					Tag:         "ScannerRunTag1",
+					IsCompleted: true,
+					Timestamp:   time.Now(),
+				})
 				res, err := db.Autoclose()
 				Expect(err).To(BeNil())
 				Expect(res).To(BeFalse())
@@ -41,7 +45,15 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 		})
 		Context("and the database has two empty scannerruns", func() {
 			It("Autoclose should return false and no error", func() {
-				databaseSeeder.SeedScannerRuns("ScannerRunTag1", true, time.Now(), time.Now().Add(time.Hour))
+				databaseSeeder.SeedScannerRuns(test.ScannerRunDef{
+					Tag:         "ScannerRunTag1",
+					IsCompleted: true,
+					Timestamp:   time.Now(),
+				}, test.ScannerRunDef{
+					Tag:         "ScannerRunTag1",
+					IsCompleted: true,
+					Timestamp:   time.Now().Add(time.Minute),
+				})
 				res, err := db.Autoclose()
 				Expect(err).To(BeNil())
 				Expect(res).To(BeFalse())
@@ -49,7 +61,19 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 		})
 		Context("and the database has three empty scannerruns", func() {
 			It("Autoclose should return false and no error", func() {
-				databaseSeeder.SeedScannerRuns("ScannerRunTag1", true, time.Now(), time.Now().Add(time.Minute), time.Now().Add(time.Hour))
+				databaseSeeder.SeedScannerRuns(test.ScannerRunDef{
+					Tag:         "ScannerRunTag1",
+					IsCompleted: true,
+					Timestamp:   time.Now(),
+				}, test.ScannerRunDef{
+					Tag:         "ScannerRunTag1",
+					IsCompleted: true,
+					Timestamp:   time.Now().Add(time.Minute),
+				}, test.ScannerRunDef{
+					Tag:         "ScannerRunTag1",
+					IsCompleted: true,
+					Timestamp:   time.Now().Add(time.Hour),
+				})
 				res, err := db.Autoclose()
 				Expect(err).To(BeNil())
 				Expect(res).To(BeFalse())

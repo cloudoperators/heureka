@@ -1610,7 +1610,13 @@ func (s *DatabaseSeeder) SeedRealSupportGroupService(services map[string]mariadb
 	return sgs
 }
 
-func (s *DatabaseSeeder) SeedScannerRuns(tag string, isCompleted bool, timestamps ...time.Time) error {
+type ScannerRunDef struct {
+	Tag         string
+	IsCompleted bool
+	Timestamp   time.Time
+}
+
+func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error {
 	var err error
 
 	query := `
@@ -1628,8 +1634,8 @@ func (s *DatabaseSeeder) SeedScannerRuns(tag string, isCompleted bool, timestamp
 			?,
 		)
 	`
-	for _, ts := range timestamps {
-		_, err := s.db.Exec(query, gofakeit.UUID(), tag, ts, ts, isCompleted)
+	for _, srd := range scannerRunDefs {
+		_, err := s.db.Exec(query, gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
 		if err != nil {
 			return err
 
