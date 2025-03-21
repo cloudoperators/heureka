@@ -9,6 +9,7 @@ import (
 
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	dbtest "github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -33,20 +34,12 @@ var _ = BeforeSuite(func() {
 
 func componentInstanceFilter() *entity.ComponentInstanceFilter {
 	return &entity.ComponentInstanceFilter{
-		Paginated: entity.Paginated{
+		PaginatedX: entity.PaginatedX{
 			First: nil,
 			After: nil,
 		},
 		IssueMatchId: nil,
 		CCRN:         nil,
-	}
-}
-
-func componentInstanceListOptions() *entity.ListOptions {
-	return &entity.ListOptions{
-		ShowTotalCount:      false,
-		ShowPageInfo:        false,
-		IncludeAggregations: false,
 	}
 }
 
@@ -60,7 +53,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		options = componentInstanceListOptions()
+		options = entity.NewListOptions()
 		filter = componentInstanceFilter()
 	})
 
@@ -68,7 +61,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetComponentInstances", filter).Return([]entity.ComponentInstance{}, nil)
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
 			db.On("CountComponentInstances", filter).Return(int64(1337), nil)
 		})
 
@@ -86,16 +79,26 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			componentInstances := test.NNewFakeComponentInstances(resElements)
-
-			var ids = lo.Map(componentInstances, func(ci entity.ComponentInstance, _ int) int64 { return ci.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			componentInstances := []entity.ComponentInstanceResult{}
+			for _, ci := range test.NNewFakeComponentInstances(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, ci))
+				componentInstances = append(componentInstances, entity.ComponentInstanceResult{WithCursor: entity.WithCursor{Value: cursor}, ComponentInstance: lo.ToPtr(ci)})
 			}
-			db.On("GetComponentInstances", filter).Return(componentInstances, nil)
-			db.On("GetAllComponentInstanceIds", filter).Return(ids, nil)
+
+			var cursors = lo.Map(componentInstances, func(m entity.ComponentInstanceResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, *m.ComponentInstance))
+				return cursor
+			})
+
+			var i int64 = 0
+			for len(cursors) < dbElements {
+				i++
+				componentInstance := test.NewFakeComponentInstanceEntity()
+				c, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, componentInstance))
+				cursors = append(cursors, c)
+			}
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return(componentInstances, nil)
+			db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).Return(cursors, nil)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
 			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -147,18 +150,17 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 	var (
 		db                       *mocks.MockDatabase
 		componentInstanceHandler ci.ComponentInstanceHandler
-		componentInstance        entity.ComponentInstance
+		componentInstance        entity.ComponentInstanceResult
 		filter                   *entity.ComponentInstanceFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		componentInstance = test.NewFakeComponentInstanceEntity()
+		componentInstance = test.NewFakeComponentInstanceResult()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ComponentInstanceFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -167,7 +169,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 
 	It("updates componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("UpdateComponentInstance", &componentInstance).Return(nil)
+		db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
 		componentInstance.Region = "NewRegion"
 		componentInstance.Cluster = "NewCluster"
@@ -176,8 +178,8 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.Project = "NewProject"
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Region, componentInstance.Cluster, componentInstance.Namespace, componentInstance.Domain, componentInstance.Project)
 		filter.Id = []*int64{&componentInstance.Id}
-		db.On("GetComponentInstances", filter).Return([]entity.ComponentInstance{componentInstance}, nil)
-		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(&componentInstance)
+		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
+		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
@@ -205,10 +207,9 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ComponentInstanceFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -219,12 +220,13 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentInstance", id, mock.Anything).Return(nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
-		db.On("GetComponentInstances", filter).Return([]entity.ComponentInstance{}, nil)
+		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
 		err := componentInstanceHandler.DeleteComponentInstance(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, &entity.ListOptions{})
+		lo := entity.NewListOptions()
+		componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(componentInstances.Elements).To(BeEmpty(), "no error should be thrown")
 	})
@@ -241,7 +243,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		options = componentInstanceListOptions()
+		options = entity.NewListOptions()
 		filter = componentInstanceFilter()
 		CCRN = "ca9d963d-b441-4167-b08d-086e76186653"
 	})

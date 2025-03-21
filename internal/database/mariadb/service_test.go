@@ -999,10 +999,6 @@ var _ = Describe("Ordering Services", func() {
 		})
 
 		It("can order by ccrn", func() {
-			sort.Slice(seedCollection.ServiceRows, func(i, j int) bool {
-				return seedCollection.ServiceRows[i].CCRN.String < seedCollection.ServiceRows[j].CCRN.String
-			})
-
 			order := []entity.Order{
 				{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc},
 			}
@@ -1041,10 +1037,6 @@ var _ = Describe("Ordering Services", func() {
 		})
 
 		It("can order by ccrn", func() {
-			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				return seedCollection.ServiceRows[i].CCRN.String > seedCollection.ServiceRows[j].CCRN.String
-			})
-
 			order := []entity.Order{
 				{By: entity.ServiceCcrn, Direction: entity.OrderDirectionDesc},
 			}

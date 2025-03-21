@@ -52,18 +52,12 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 	return &componentInstance, nil
 }
 
-func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter, first *int, after *string, parent *model.NodeParent) (*model.ComponentInstanceConnection, error) {
+func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy, parent *model.NodeParent) (*model.ComponentInstanceConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called ComponentInstanceBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("ComponentInstanceBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("ComponentInstanceBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var imId []*int64
 	var serviceId []*int64
@@ -91,7 +85,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	}
 
 	f := &entity.ComponentInstanceFilter{
-		Paginated:          entity.Paginated{First: first, After: afterId},
+		PaginatedX:         entity.PaginatedX{First: first, After: after},
 		CCRN:               filter.Ccrn,
 		Region:             filter.Region,
 		Cluster:            filter.Cluster,
@@ -107,6 +101,9 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	}
 
 	opt := GetListOptions(requestedFields)
+	for _, o := range orderBy {
+		opt.Order = append(opt.Order, o.ToOrderEntity())
+	}
 
 	componentInstances, err := app.ListComponentInstances(f, opt)
 

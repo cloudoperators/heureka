@@ -62,6 +62,26 @@ func (od *OrderDirection) ToOrderDirectionEntity() entity.OrderDirection {
 	return direction
 }
 
+func (cio *ComponentInstanceOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *cio.By {
+	case ComponentInstanceOrderByFieldCcrn:
+		order.By = entity.ComponentInstanceCcrn
+	case ComponentInstanceOrderByFieldRegion:
+		order.By = entity.ComponentInstanceRegion
+	case ComponentInstanceOrderByFieldCluster:
+		order.By = entity.ComponentInstanceCluster
+	case ComponentInstanceOrderByFieldNamespace:
+		order.By = entity.ComponentInstanceNamespace
+	case ComponentInstanceOrderByFieldDomain:
+		order.By = entity.ComponentInstanceDomain
+	case ComponentInstanceOrderByFieldProject:
+		order.By = entity.ComponentInstanceProject
+	}
+	order.Direction = cio.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
 	switch *imo.By {

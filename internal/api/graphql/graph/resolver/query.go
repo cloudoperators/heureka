@@ -41,8 +41,8 @@ func (r *queryResolver) ComponentVersions(ctx context.Context, filter *model.Com
 	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) ComponentInstances(ctx context.Context, filter *model.ComponentInstanceFilter, first *int, after *string) (*model.ComponentInstanceConnection, error) {
-	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, filter, first, after, nil)
+func (r *queryResolver) ComponentInstances(ctx context.Context, filter *model.ComponentInstanceFilter, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy) (*model.ComponentInstanceConnection, error) {
+	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
 func (r *queryResolver) Activities(ctx context.Context, filter *model.ActivityFilter, first *int, after *string) (*model.ActivityConnection, error) {

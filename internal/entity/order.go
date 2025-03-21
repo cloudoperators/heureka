@@ -7,6 +7,12 @@ type OrderByField int
 
 const (
 	ComponentInstanceCcrn OrderByField = iota
+	ComponentInstanceId
+	ComponentInstanceRegion
+	ComponentInstanceCluster
+	ComponentInstanceNamespace
+	ComponentInstanceDomain
+	ComponentInstanceProject
 
 	IssuePrimaryName
 

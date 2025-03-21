@@ -42,8 +42,8 @@ func (r *componentVersionResolver) Issues(ctx context.Context, obj *model.Compon
 	})
 }
 
-func (r *componentVersionResolver) ComponentInstances(ctx context.Context, obj *model.ComponentVersion, first *int, after *string) (*model.ComponentInstanceConnection, error) {
-	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, nil, first, after, &model.NodeParent{
+func (r *componentVersionResolver) ComponentInstances(ctx context.Context, obj *model.ComponentVersion, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy) (*model.ComponentInstanceConnection, error) {
+	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, nil, first, after, orderBy, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ComponentVersionNodeName,
 	})

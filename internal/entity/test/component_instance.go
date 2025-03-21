@@ -43,3 +43,10 @@ func NNewFakeComponentInstances(n int) []entity.ComponentInstance {
 	}
 	return r
 }
+
+func NewFakeComponentInstanceResult() entity.ComponentInstanceResult {
+	componentInstance := NewFakeComponentInstanceEntity()
+	return entity.ComponentInstanceResult{
+		ComponentInstance: &componentInstance,
+	}
+}
