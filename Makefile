@@ -63,6 +63,7 @@ run:
 
 gqlgen: install-build-dependencies
 	cd internal/api/graphql && gqlgen generate
+	cd scanner/k8s-assets/client && gqlgen generate
 
 mockery: install-build-dependencies
 	mockery
