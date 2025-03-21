@@ -291,7 +291,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						Expect(err).To(BeNil())
 					})
 
-
 					By("returning expected elements", func() {
 						for _, entry := range entries {
 							Expect(lo.Contains(cvs, entry.Id)).To(BeTrue())
@@ -321,9 +320,52 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 							Expect(lo.Contains(cvs, entry.Id)).To(BeTrue())
 						}
 					})
+				})
 
+				It("can filter by tag", func() {
+					// First, find a component version to update with a known tag
+					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					componentVersion := cv.AsComponentVersion()
+
+					// Set a specific test tag
+					testTag := "specific-test-tag-for-filtering"
+					componentVersion.Tag = testTag
+
+					// Update the existing component version with our test tag
+					err := db.UpdateComponentVersion(&componentVersion)
+					Expect(err).To(BeNil())
+
+					// Now filter by the specific tag we just set
+					filter := &entity.ComponentVersionFilter{Tag: []*string{&testTag}}
+					entries, err := db.GetComponentVersions(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning at least one result", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("ensuring all returned entries have the correct tag", func() {
+						for _, entry := range entries {
+							Expect(entry.Tag).To(Equal(testTag))
+						}
+					})
+
+					By("including our updated component version", func() {
+						found := false
+						for _, entry := range entries {
+							if entry.Id == componentVersion.Id {
+								found = true
+								break
+							}
+						}
+						Expect(found).To(BeTrue())
+					})
 				})
 			})
+
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
 					test.TestPaginationOfList(
