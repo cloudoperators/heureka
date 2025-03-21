@@ -61,9 +61,11 @@ push:
 run:
 	go run cmd/heureka/main.go
 
-gqlgen: install-build-dependencies
+gqlgen: install-build-dependencies gqlclient
 	cd internal/api/graphql && gqlgen generate
-	cd scanner/k8s-assets/client && gqlgen generate
+
+gqlclient:
+	cd scanner/k8s-assets/client && go run github.com/Khan/genqlient
 
 mockery: install-build-dependencies
 	mockery
