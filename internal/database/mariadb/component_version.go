@@ -102,15 +102,15 @@ func (s *SqlDatabase) getComponentVersionColumns(order []entity.Order) string {
 	for _, o := range order {
 		switch o.By {
 		case entity.CriticalCount:
-			columns = fmt.Sprintf("%s, SUM(CASE WHEN IV.issuevariant_rating = 'Critical' THEN 1 ELSE 0 END) as critical_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END) as critical_count", columns)
 		case entity.HighCount:
-			columns = fmt.Sprintf("%s, SUM(CASE WHEN IV.issuevariant_rating = 'High' THEN 1 ELSE 0 END) as high_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'High' THEN IV.issuevariant_issue_id END) as high_count", columns)
 		case entity.MediumCount:
-			columns = fmt.Sprintf("%s, SUM(CASE WHEN IV.issuevariant_rating = 'Medium' THEN 1 ELSE 0 END) as medium_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Medium' THEN IV.issuevariant_issue_id END) as medium_count", columns)
 		case entity.LowCount:
-			columns = fmt.Sprintf("%s, SUM(CASE WHEN IV.issuevariant_rating = 'Low' THEN 1 ELSE 0 END) as low_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Low' THEN IV.issuevariant_issue_id END) as low_count", columns)
 		case entity.NoneCount:
-			columns = fmt.Sprintf("%s, SUM(CASE WHEN IV.issuevariant_rating = 'None' THEN 1 ELSE 0 END) as none_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) as none_count", columns)
 		}
 	}
 	return columns
