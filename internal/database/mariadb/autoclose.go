@@ -5,6 +5,7 @@ package mariadb
 
 func (s *SqlDatabase) Autoclose() (bool, error) {
 	var err error
+	var autoclosed bool
 
 	rows, err := s.db.Query("SELECT scannerrun_tag AS Tag, COUNT(*) AS Count FROM ScannerRun WHERE scannerrun_is_completed = TRUE GROUP BY scannerrun_tag")
 
@@ -19,7 +20,7 @@ func (s *SqlDatabase) Autoclose() (bool, error) {
 		err = rows.Scan(&tag, &count)
 
 		if err != nil {
-			return false, err
+			return autoclosed, err
 		}
 
 		if count >= 2 {
@@ -27,58 +28,54 @@ func (s *SqlDatabase) Autoclose() (bool, error) {
 			{
 				rows, err := s.db.Query("SELECT scannerrun_run_id AS ID FROM ScannerRun WHERE scannerrun_tag=? ORDER BY scannerrun_run_id DESC LIMIT 2", tag)
 				if err != nil {
-					return false, err
+					return autoclosed, err
 				}
 				defer rows.Close()
 				rows.Next()
 
 				if rows.Err() != nil {
-					return false, rows.Err()
+					return autoclosed, rows.Err()
 				}
 
 				err = rows.Scan(&id1)
 
 				if err != nil {
-					return false, err
+					return autoclosed, err
 				}
 
 				rows.Next()
 
 				if rows.Err() != nil {
-					return false, rows.Err()
+					return autoclosed, rows.Err()
 				}
 
 				err = rows.Scan(&id2)
 
 				if err != nil {
-					return false, err
+					return autoclosed, err
 				}
 			}
 
 			row := s.db.QueryRow(`
 				SELECT COUNT(DISTINCT scannerrunissuetracker_issue_id) 
 				FROM ScannerRunIssueTracker WHERE 
-					scannerrunissuetracker_issue_id NOT IN 
-						(SELECT scannerrunissuetracker_issue_id FROM ScannerRunIssueTracker WHERE scannerrunissuetracker_scannerrun_run_id = ?) AND 
-					scannerrunissuetracker_issue_id IN 
-						(SELECT scannerrunissuetracker_issue_id FROM ScannerRunIssueTracker WHERE scannerrunissuetracker_scannerrun_run_id = ?)`, id1, id2)
+					(scannerrunissuetracker_issue_id NOT IN 
+						(SELECT scannerrunissuetracker_issue_id FROM ScannerRunIssueTracker WHERE scannerrunissuetracker_scannerrun_run_id = ?)) AND 
+					(scannerrunissuetracker_issue_id IN 
+						(SELECT scannerrunissuetracker_issue_id FROM ScannerRunIssueTracker WHERE scannerrunissuetracker_scannerrun_run_id = ?))`, id1, id2)
 
 			var issueCount int
 			err = row.Scan(&issueCount)
 			if err != nil {
-				return false, err
+				return autoclosed, err
 			}
-
-			if count > 0 {
-				return true, nil
-			}
-
+			autoclosed = autoclosed || (issueCount > 0)
 		}
 	}
 
 	if rows.Err() != nil {
-		return false, rows.Err()
+		return autoclosed, rows.Err()
 	}
 
-	return false, nil
+	return autoclosed, nil
 }
