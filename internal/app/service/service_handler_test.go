@@ -5,6 +5,7 @@ package service_test
 
 import (
 	"errors"
+	event2 "github.com/cloudoperators/heureka/internal/event"
 	"math"
 	"testing"
 
@@ -31,7 +32,7 @@ var er event.EventRegistry
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event2.NewEventRegistry(db)
 })
 
 func getServiceFilter() *entity.ServiceFilter {
@@ -261,7 +262,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				}
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
-				var event event.Event = createEvent
+				var event event2.Event = createEvent
 
 				// Create IssueRepository
 				defaultRepoName := "nvd"
@@ -288,7 +289,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				invalidEvent := &s.UpdateServiceEvent{}
 
 				// Use type assertion to convert
-				var event event.Event = invalidEvent
+				var event event2.Event = invalidEvent
 
 				s.OnServiceCreate(db, event)
 
@@ -307,7 +308,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				}
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
-				var event event.Event = createEvent
+				var event event2.Event = createEvent
 
 				defaultRepoName := "nvd"
 				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{

@@ -4,8 +4,9 @@
 package issue_match_change
 
 import (
-	"github.com/cloudoperators/heureka/internal/app/event"
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/event"
 )
 
 const (
@@ -21,12 +22,24 @@ type ListIssueMatchChangesEvent struct {
 	Results *entity.List[entity.IssueMatchChangeResult]
 }
 
+func (e ListIssueMatchChangesEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListIssueMatchChangesEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListIssueMatchChangesEvent) Name() event.EventName {
 	return ListIssueMatchChangesEventName
 }
 
 type CreateIssueMatchChangeEvent struct {
 	IssueMatchChange *entity.IssueMatchChange
+}
+
+func (e CreateIssueMatchChangeEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateIssueMatchChangeEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *CreateIssueMatchChangeEvent) Name() event.EventName {
@@ -37,12 +50,24 @@ type UpdateIssueMatchChangeEvent struct {
 	IssueMatchChange *entity.IssueMatchChange
 }
 
+func (e UpdateIssueMatchChangeEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateIssueMatchChangeEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateIssueMatchChangeEvent) Name() event.EventName {
 	return UpdateIssueMatchChangeEventName
 }
 
 type DeleteIssueMatchChangeEvent struct {
 	IssueMatchChangeID int64
+}
+
+func (e DeleteIssueMatchChangeEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteIssueMatchChangeEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteIssueMatchChangeEvent) Name() event.EventName {

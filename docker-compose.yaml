@@ -10,6 +10,7 @@ services:
     restart: always
     profiles:
       - db
+      - storage
     environment:
       MARIADB_USER: ${DB_USER}
       MARIADB_PASSWORD: ${DB_PASSWORD}
@@ -30,6 +31,17 @@ services:
       - ./internal/database/mariadb/init/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     ports:
       - "3306:3306"
+
+  heureka-nats:
+    image: nats:latest
+    container_name: nats
+    restart: always
+    profiles:
+      - queue
+      - storage
+    ports:
+      - "4222:4222"
+      - "8222:8222"
 
   heureka-app:
     build: .

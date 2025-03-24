@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -37,6 +36,7 @@ func main() {
 		if err != nil {
 			logrus.WithError(err).Fatalln("Error while resetting database schema.")
 		}
+
 		err = dbManager.Setup()
 		if err != nil {
 			logrus.WithError(err).Fatalln("Error while setting up database.")

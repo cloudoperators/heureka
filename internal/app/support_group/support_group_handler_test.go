@@ -4,6 +4,7 @@
 package support_group_test
 
 import (
+	event2 "github.com/cloudoperators/heureka/internal/event"
 	"math"
 	"testing"
 
@@ -27,7 +28,7 @@ var er event.EventRegistry
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event2.NewEventRegistry(db)
 })
 
 func getSupportGroupFilter() *entity.SupportGroupFilter {

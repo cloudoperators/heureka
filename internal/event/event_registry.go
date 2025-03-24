@@ -5,27 +5,8 @@ package event
 
 import (
 	"context"
-
 	"github.com/cloudoperators/heureka/internal/database"
 )
-
-// Implement same logic as in the net/http std lib
-type EventHandler interface {
-	HandleEvent(database.Database, Event)
-}
-
-type EventHandlerFunc func(database.Database, Event)
-
-func (f EventHandlerFunc) HandleEvent(db database.Database, e Event) {
-	f(db, e)
-}
-
-// EventRegistry is the central point for managing handlers for all kind of events
-type EventRegistry interface {
-	RegisterEventHandler(EventName, EventHandler)
-	PushEvent(Event)
-	Run(ctx context.Context)
-}
 
 type eventRegistry struct {
 	handlers map[EventName][]EventHandler
@@ -51,7 +32,7 @@ func (er *eventRegistry) PushEvent(event Event) {
 
 // NewEventRegistry returns an event registry where for each incoming event a list of
 // handlers is called. We use a buffered channel for the worker go routines.
-func NewEventRegistry(db database.Database) EventRegistry {
+func NewEventRegistry(db database.Database) *eventRegistry {
 	return &eventRegistry{
 		handlers: make(map[EventName][]EventHandler),
 		ch:       make(chan Event, 1000),

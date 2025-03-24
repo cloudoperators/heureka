@@ -4,9 +4,10 @@
 package issue_repository
 
 import (
-	"github.com/cloudoperators/heureka/internal/app/event"
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/event"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,12 +24,24 @@ type ListIssueRepositoriesEvent struct {
 	Results *entity.List[entity.IssueRepositoryResult]
 }
 
+func (e ListIssueRepositoriesEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListIssueRepositoriesEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListIssueRepositoriesEvent) Name() event.EventName {
 	return ListIssueRepositoriesEventName
 }
 
 type CreateIssueRepositoryEvent struct {
 	IssueRepository *entity.IssueRepository
+}
+
+func (e CreateIssueRepositoryEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateIssueRepositoryEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *CreateIssueRepositoryEvent) Name() event.EventName {
@@ -39,12 +52,24 @@ type UpdateIssueRepositoryEvent struct {
 	IssueRepository *entity.IssueRepository
 }
 
+func (e UpdateIssueRepositoryEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateIssueRepositoryEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateIssueRepositoryEvent) Name() event.EventName {
 	return UpdateIssueRepositoryEventName
 }
 
 type DeleteIssueRepositoryEvent struct {
 	IssueRepositoryID int64
+}
+
+func (e DeleteIssueRepositoryEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteIssueRepositoryEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteIssueRepositoryEvent) Name() event.EventName {
