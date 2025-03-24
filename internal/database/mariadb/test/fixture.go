@@ -1640,7 +1640,7 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 	`
 
 	insertIssue := `
-						INSERT IGNORE INTO Issue (
+						INSERT INTO Issue (
 							issue_type,
 							issue_primary_name,
 							issue_description

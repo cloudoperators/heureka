@@ -7,7 +7,14 @@ func (s *SqlDatabase) Autoclose() (bool, error) {
 	var err error
 	var autoclosed bool
 
-	rows, err := s.db.Query("SELECT scannerrun_tag AS Tag, COUNT(*) AS Count FROM ScannerRun WHERE scannerrun_is_completed = TRUE GROUP BY scannerrun_tag")
+	rows, err := s.db.Query(`
+		SELECT
+		 	scannerrun_tag AS Tag,
+			COUNT(*) AS Count 
+			FROM ScannerRun 
+			WHERE 
+				scannerrun_is_completed = TRUE
+			GROUP BY scannerrun_tag`)
 
 	if err != nil {
 		return false, err
@@ -26,7 +33,11 @@ func (s *SqlDatabase) Autoclose() (bool, error) {
 		if count >= 2 {
 			var id1, id2 int
 			{
-				rows, err := s.db.Query("SELECT scannerrun_run_id AS ID FROM ScannerRun WHERE scannerrun_tag=? ORDER BY scannerrun_run_id DESC LIMIT 2", tag)
+				rows, err := s.db.Query(`
+					SELECT scannerrun_run_id AS ID 
+					FROM ScannerRun 
+					WHERE scannerrun_tag=? 
+					ORDER BY scannerrun_run_id DESC LIMIT 2`, tag)
 				if err != nil {
 					return autoclosed, err
 				}
