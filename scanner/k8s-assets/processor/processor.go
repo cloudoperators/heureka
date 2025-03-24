@@ -19,8 +19,9 @@ import (
 )
 
 type Processor struct {
-	Client *graphql.Client
-	config Config
+	Client    *graphql.Client
+	config    Config
+	advConfig *AdvancedConfig
 }
 
 type CCRN struct {
@@ -71,9 +72,14 @@ func (c CCRN) String() string {
 func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
+	advCfg, err := cfg.LoadAdvancedConfig()
+	if err != nil {
+		log.WithError(err).Error("failed to load advanced config")
+	}
 	return &Processor{
-		config: cfg,
-		Client: &gClient,
+		config:    cfg,
+		Client:    &gClient,
+		advConfig: advCfg,
 	}
 }
 
@@ -318,13 +324,9 @@ func (p *Processor) ProcessContainer(
 		componentInstanceId string
 	)
 
-	// Is this a sidecar mapped to a specific service?
-	advCfg, err := p.config.LoadAdvancedConfig()
-	if err != nil {
-		log.WithError(err).Error("failed to load advanced config")
-	} else {
+	if p.advConfig != nil {
 
-		if podSideCar, ok := advCfg.GetSideCar(containerInfo.Name); ok {
+		if podSideCar, ok := p.advConfig.GetSideCar(containerInfo.Name); ok {
 			// get the service id
 			sid, err := p.ProcessService(ctx, scanner.ServiceInfo{
 				SupportGroup: podSideCar.SupportGroup,
@@ -367,7 +369,7 @@ func (p *Processor) ProcessContainer(
 
 	componentCcrn := fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository)
 
-	componentId, err = p.getComponent(ctx, componentCcrn)
+	componentId, err := p.getComponent(ctx, componentCcrn)
 
 	if err != nil {
 		componentId, err = p.createComponent(ctx, &client.ComponentInput{
