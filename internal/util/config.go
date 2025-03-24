@@ -38,6 +38,7 @@ type Config struct {
 	AuthOidcUrl           string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
 	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
 	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
+	EventRegistryType     string `envconfig:"EVENT_REGISTRY_TYPE" required:"true" json:"eventRegistryType" default:"channel"`
 }
 
 func (c *Config) ConfigToConsole() {

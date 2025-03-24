@@ -4,10 +4,11 @@
 package issue
 
 import (
+	"github.com/cloudoperators/heureka/internal/event"
 	"time"
 
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/app/common"
-	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -30,6 +31,12 @@ type CreateIssueEvent struct {
 	Issue *entity.Issue
 }
 
+func (e CreateIssueEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateIssueEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *CreateIssueEvent) Name() event.EventName {
 	return CreateIssueEventName
 }
@@ -38,12 +45,24 @@ type UpdateIssueEvent struct {
 	Issue *entity.Issue
 }
 
+func (e UpdateIssueEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateIssueEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateIssueEvent) Name() event.EventName {
 	return UpdateIssueEventName
 }
 
 type DeleteIssueEvent struct {
 	IssueID int64
+}
+
+func (e DeleteIssueEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteIssueEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteIssueEvent) Name() event.EventName {
@@ -55,6 +74,12 @@ type AddComponentVersionToIssueEvent struct {
 	ComponentVersionID int64
 }
 
+func (e AddComponentVersionToIssueEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &AddComponentVersionToIssueEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *AddComponentVersionToIssueEvent) Name() event.EventName {
 	return AddComponentVersionToIssueEventName
 }
@@ -62,6 +87,12 @@ func (e *AddComponentVersionToIssueEvent) Name() event.EventName {
 type RemoveComponentVersionFromIssueEvent struct {
 	IssueID            int64
 	ComponentVersionID int64
+}
+
+func (e RemoveComponentVersionFromIssueEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &RemoveComponentVersionFromIssueEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *RemoveComponentVersionFromIssueEvent) Name() event.EventName {
@@ -74,6 +105,12 @@ type ListIssuesEvent struct {
 	Issues  *entity.IssueList
 }
 
+func (e ListIssuesEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListIssuesEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListIssuesEvent) Name() event.EventName {
 	return ListIssuesEventName
 }
@@ -81,6 +118,12 @@ func (e *ListIssuesEvent) Name() event.EventName {
 type GetIssueEvent struct {
 	IssueID int64
 	Issue   *entity.Issue
+}
+
+func (e GetIssueEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &GetIssueEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *GetIssueEvent) Name() event.EventName {
@@ -93,6 +136,12 @@ type ListIssueNamesEvent struct {
 	Names   []string
 }
 
+func (e ListIssueNamesEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListIssueNamesEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListIssueNamesEvent) Name() event.EventName {
 	return ListIssueNamesEventName
 }
@@ -100,6 +149,12 @@ func (e *ListIssueNamesEvent) Name() event.EventName {
 type GetIssueSeverityCountsEvent struct {
 	Filter *entity.IssueFilter
 	Counts *entity.IssueSeverityCounts
+}
+
+func (e GetIssueSeverityCountsEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &GetIssueSeverityCountsEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *GetIssueSeverityCountsEvent) Name() event.EventName {

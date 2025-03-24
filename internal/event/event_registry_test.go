@@ -34,9 +34,13 @@ func (e *TestEvent) Name() EventName {
 	return EventName(e.name)
 }
 
+func (e *TestEvent) Unmarshal(data []byte) (Event, error) {
+	return e, nil
+}
+
 var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func() {
 	var (
-		er     EventRegistry
+		er     *eventRegistry
 		db     *mocks.MockDatabase
 		ctx    context.Context
 		cancel context.CancelFunc

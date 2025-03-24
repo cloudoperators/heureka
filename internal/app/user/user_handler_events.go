@@ -4,8 +4,9 @@
 package user
 
 import (
-	"github.com/cloudoperators/heureka/internal/app/event"
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/event"
 )
 
 const (
@@ -23,12 +24,24 @@ type ListUsersEvent struct {
 	Users   *entity.List[entity.UserResult]
 }
 
+func (e ListUsersEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListUsersEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListUsersEvent) Name() event.EventName {
 	return ListUsersEventName
 }
 
 type CreateUserEvent struct {
 	User *entity.User
+}
+
+func (e CreateUserEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateUserEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *CreateUserEvent) Name() event.EventName {
@@ -39,12 +52,24 @@ type UpdateUserEvent struct {
 	User *entity.User
 }
 
+func (e UpdateUserEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateUserEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateUserEvent) Name() event.EventName {
 	return UpdateUserEventName
 }
 
 type DeleteUserEvent struct {
 	UserID int64
+}
+
+func (e DeleteUserEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteUserEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteUserEvent) Name() event.EventName {
@@ -57,6 +82,12 @@ type ListUserNamesEvent struct {
 	Names   []string
 }
 
+func (e ListUserNamesEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListUserNamesEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListUserNamesEvent) Name() event.EventName {
 	return ListUserNamesEventName
 }
@@ -65,6 +96,12 @@ type ListUniqueUserIDsEvent struct {
 	Filter  *entity.UserFilter
 	Options *entity.ListOptions
 	IDs     []string
+}
+
+func (e ListUniqueUserIDsEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListUniqueUserIDsEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *ListUniqueUserIDsEvent) Name() event.EventName {

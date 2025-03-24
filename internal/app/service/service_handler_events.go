@@ -4,9 +4,10 @@
 package service
 
 import (
-	"github.com/cloudoperators/heureka/internal/app/event"
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/event"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,6 +28,12 @@ type CreateServiceEvent struct {
 	Service *entity.Service
 }
 
+func (e CreateServiceEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateServiceEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *CreateServiceEvent) Name() event.EventName {
 	return CreateServiceEventName
 }
@@ -35,12 +42,24 @@ type UpdateServiceEvent struct {
 	Service *entity.Service
 }
 
+func (e UpdateServiceEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateServiceEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateServiceEvent) Name() event.EventName {
 	return UpdateServiceEventName
 }
 
 type DeleteServiceEvent struct {
 	ServiceID int64
+}
+
+func (e DeleteServiceEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteServiceEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteServiceEvent) Name() event.EventName {
@@ -52,6 +71,12 @@ type AddOwnerToServiceEvent struct {
 	OwnerID   int64
 }
 
+func (e AddOwnerToServiceEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &AddOwnerToServiceEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *AddOwnerToServiceEvent) Name() event.EventName {
 	return AddOwnerToServiceEventName
 }
@@ -59,6 +84,12 @@ func (e *AddOwnerToServiceEvent) Name() event.EventName {
 type RemoveOwnerFromServiceEvent struct {
 	ServiceID int64
 	OwnerID   int64
+}
+
+func (e RemoveOwnerFromServiceEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &RemoveOwnerFromServiceEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *RemoveOwnerFromServiceEvent) Name() event.EventName {
@@ -71,6 +102,12 @@ type ListServicesEvent struct {
 	Services *entity.List[entity.ServiceResult]
 }
 
+func (e ListServicesEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListServicesEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListServicesEvent) Name() event.EventName {
 	return ListServicesEventName
 }
@@ -78,6 +115,12 @@ func (e *ListServicesEvent) Name() event.EventName {
 type GetServiceEvent struct {
 	ServiceID int64
 	Service   *entity.Service
+}
+
+func (e GetServiceEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &GetServiceEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *GetServiceEvent) Name() event.EventName {
@@ -90,6 +133,12 @@ type ListServiceCcrnsEvent struct {
 	Ccrns   []string
 }
 
+func (e ListServiceCcrnsEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListServiceCcrnsEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListServiceCcrnsEvent) Name() event.EventName {
 	return ListServiceCcrnsEventName
 }
@@ -99,6 +148,12 @@ type AddIssueRepositoryToServiceEvent struct {
 	RepositoryID int64
 }
 
+func (e AddIssueRepositoryToServiceEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &AddIssueRepositoryToServiceEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *AddIssueRepositoryToServiceEvent) Name() event.EventName {
 	return AddIssueRepositoryToServiceEventName
 }
@@ -106,6 +161,12 @@ func (e *AddIssueRepositoryToServiceEvent) Name() event.EventName {
 type RemoveIssueRepositoryFromServiceEvent struct {
 	ServiceID    int64
 	RepositoryID int64
+}
+
+func (e RemoveIssueRepositoryFromServiceEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &RemoveIssueRepositoryFromServiceEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *RemoveIssueRepositoryFromServiceEvent) Name() event.EventName {

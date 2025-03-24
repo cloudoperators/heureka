@@ -4,8 +4,9 @@
 package support_group
 
 import (
-	"github.com/cloudoperators/heureka/internal/app/event"
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/event"
 )
 
 const (
@@ -27,6 +28,12 @@ type ListSupportGroupsEvent struct {
 	SupportGroups *entity.List[entity.SupportGroupResult]
 }
 
+func (e ListSupportGroupsEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListSupportGroupsEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListSupportGroupsEvent) Name() event.EventName {
 	return ListSupportGroupsEventName
 }
@@ -34,6 +41,12 @@ func (e *ListSupportGroupsEvent) Name() event.EventName {
 type GetSupportGroupEvent struct {
 	SupportGroupID int64
 	SupportGroup   *entity.SupportGroup
+}
+
+func (e GetSupportGroupEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &GetSupportGroupEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *GetSupportGroupEvent) Name() event.EventName {
@@ -44,6 +57,12 @@ type CreateSupportGroupEvent struct {
 	SupportGroup *entity.SupportGroup
 }
 
+func (e CreateSupportGroupEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateSupportGroupEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *CreateSupportGroupEvent) Name() event.EventName {
 	return CreateSupportGroupEventName
 }
@@ -52,12 +71,24 @@ type UpdateSupportGroupEvent struct {
 	SupportGroup *entity.SupportGroup
 }
 
+func (e UpdateSupportGroupEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateSupportGroupEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateSupportGroupEvent) Name() event.EventName {
 	return UpdateSupportGroupEventName
 }
 
 type DeleteSupportGroupEvent struct {
 	SupportGroupID int64
+}
+
+func (e DeleteSupportGroupEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteSupportGroupEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteSupportGroupEvent) Name() event.EventName {
@@ -69,6 +100,12 @@ type AddServiceToSupportGroupEvent struct {
 	ServiceID      int64
 }
 
+func (e AddServiceToSupportGroupEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &AddServiceToSupportGroupEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *AddServiceToSupportGroupEvent) Name() event.EventName {
 	return AddServiceToSupportGroupEventName
 }
@@ -76,6 +113,12 @@ func (e *AddServiceToSupportGroupEvent) Name() event.EventName {
 type RemoveServiceFromSupportGroupEvent struct {
 	SupportGroupID int64
 	ServiceID      int64
+}
+
+func (e RemoveServiceFromSupportGroupEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &RemoveServiceFromSupportGroupEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *RemoveServiceFromSupportGroupEvent) Name() event.EventName {
@@ -87,6 +130,12 @@ type AddUserToSupportGroupEvent struct {
 	UserID         int64
 }
 
+func (e AddUserToSupportGroupEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &AddUserToSupportGroupEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *AddUserToSupportGroupEvent) Name() event.EventName {
 	return AddUserToSupportGroupEventName
 }
@@ -94,6 +143,12 @@ func (e *AddUserToSupportGroupEvent) Name() event.EventName {
 type RemoveUserFromSupportGroupEvent struct {
 	SupportGroupID int64
 	UserID         int64
+}
+
+func (e RemoveUserFromSupportGroupEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &RemoveUserFromSupportGroupEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *RemoveUserFromSupportGroupEvent) Name() event.EventName {
@@ -104,6 +159,12 @@ type ListSupportGroupCcrnsEvent struct {
 	Filter  *entity.SupportGroupFilter
 	Options *entity.ListOptions
 	Ccrns   []string
+}
+
+func (e ListSupportGroupCcrnsEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListSupportGroupCcrnsEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *ListSupportGroupCcrnsEvent) Name() event.EventName {

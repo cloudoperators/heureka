@@ -4,7 +4,8 @@
 package app
 
 import (
-	"context"
+	events "github.com/cloudoperators/heureka/internal/event"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/component"
@@ -46,12 +47,11 @@ type HeurekaApp struct {
 	database      database.Database
 }
 
-func NewHeurekaApp(db database.Database) *HeurekaApp {
-	er := event.NewEventRegistry(db)
+// todo: inject event registry
+func NewHeurekaApp(db database.Database, er event.EventRegistry) *HeurekaApp {
 	rh := issue_repository.NewIssueRepositoryHandler(db, er)
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
 	sh := severity.NewSeverityHandler(db, er, ivh)
-	er.Run(context.Background())
 	heureka := &HeurekaApp{
 		ActivityHandler:          activity.NewActivityHandler(db, er),
 		ComponentHandler:         component.NewComponentHandler(db, er),
@@ -71,34 +71,62 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 		eventRegistry:            er,
 		database:                 db,
 	}
-	heureka.SubscribeHandlers()
 	return heureka
 }
 
+// todo: move to event package of app package
 func (h *HeurekaApp) SubscribeHandlers() {
+
+	h.eventRegistry.RegisterEventHandler(
+		component_instance.ListComponentInstancesEventName,
+		events.EventHandler{
+			func(db database.Database, event events.Event) {
+				//do nothing
+				log.Info("Received ListComponentInstancesEvent and calling handler....")
+				if listEvent, ok := event.(*component_instance.ListComponentInstancesEvent); ok {
+					log.WithField("event", listEvent).Infof("Marshalled event")
+				}
+				return
+			},
+			component_instance.ListComponentInstancesEvent{}.Unmarshal,
+		},
+	)
 
 	// Event handlers for Components
 	h.eventRegistry.RegisterEventHandler(
 		component_instance.CreateComponentInstanceEventName,
-		event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
+		events.EventHandler{
+			//todo: move handler to component_instance?
+			issue_match.OnComponentInstanceCreate,
+			component_instance.CreateComponentInstanceEvent{}.Unmarshal,
+		},
 	)
 
 	// Event handlers for Services
 	h.eventRegistry.RegisterEventHandler(
 		service.CreateServiceEventName,
-		event.EventHandlerFunc(service.OnServiceCreate),
+		events.EventHandler{
+			service.OnServiceCreate,
+			service.CreateServiceEvent{}.Unmarshal,
+		},
 	)
 
 	// Event handlers for IssueRepositories
 	h.eventRegistry.RegisterEventHandler(
 		issue_repository.CreateIssueRepositoryEventName,
-		event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate),
+		events.EventHandler{
+			issue_repository.OnIssueRepositoryCreate,
+			issue_repository.CreateIssueRepositoryEvent{}.Unmarshal,
+		},
 	)
 
 	// Event handlers for ComponentVersion attachments to Issues
 	h.eventRegistry.RegisterEventHandler(
 		issue.AddComponentVersionToIssueEventName,
-		event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue),
+		events.EventHandler{
+			issue.OnComponentVersionAttachmentToIssue,
+			issue.AddComponentVersionToIssueEvent{}.Unmarshal,
+		},
 	)
 }
 

@@ -4,8 +4,9 @@
 package component_version
 
 import (
-	"github.com/cloudoperators/heureka/internal/app/event"
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/event"
 )
 
 const (
@@ -21,12 +22,24 @@ type ListComponentVersionsEvent struct {
 	ComponentVersions *entity.List[entity.ComponentVersionResult]
 }
 
+func (e ListComponentVersionsEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListComponentVersionsEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListComponentVersionsEvent) Name() event.EventName {
 	return ListComponentVersionsEventName
 }
 
 type CreateComponentVersionEvent struct {
 	ComponentVersion *entity.ComponentVersion
+}
+
+func (e CreateComponentVersionEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateComponentVersionEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *CreateComponentVersionEvent) Name() event.EventName {
@@ -37,12 +50,24 @@ type UpdateComponentVersionEvent struct {
 	ComponentVersion *entity.ComponentVersion
 }
 
+func (e UpdateComponentVersionEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateComponentVersionEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateComponentVersionEvent) Name() event.EventName {
 	return UpdateComponentVersionEventName
 }
 
 type DeleteComponentVersionEvent struct {
 	ComponentVersionID int64
+}
+
+func (e DeleteComponentVersionEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteComponentVersionEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteComponentVersionEvent) Name() event.EventName {

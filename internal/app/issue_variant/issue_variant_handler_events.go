@@ -4,8 +4,9 @@
 package issue_variant
 
 import (
-	"github.com/cloudoperators/heureka/internal/app/event"
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/event"
 )
 
 const (
@@ -22,6 +23,12 @@ type ListIssueVariantsEvent struct {
 	Results *entity.List[entity.IssueVariantResult]
 }
 
+func (e ListIssueVariantsEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListIssueVariantsEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListIssueVariantsEvent) Name() event.EventName {
 	return ListIssueVariantsEventName
 }
@@ -32,12 +39,24 @@ type ListEffectiveIssueVariantsEvent struct {
 	Results *entity.List[entity.IssueVariantResult]
 }
 
+func (e ListEffectiveIssueVariantsEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListEffectiveIssueVariantsEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListEffectiveIssueVariantsEvent) Name() event.EventName {
 	return ListEffectiveIssueVariantsEventName
 }
 
 type CreateIssueVariantEvent struct {
 	IssueVariant *entity.IssueVariant
+}
+
+func (e CreateIssueVariantEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateIssueVariantEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *CreateIssueVariantEvent) Name() event.EventName {
@@ -48,12 +67,24 @@ type UpdateIssueVariantEvent struct {
 	IssueVariant *entity.IssueVariant
 }
 
+func (e UpdateIssueVariantEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateIssueVariantEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateIssueVariantEvent) Name() event.EventName {
 	return UpdateIssueVariantEventName
 }
 
 type DeleteIssueVariantEvent struct {
 	IssueVariantID int64
+}
+
+func (e DeleteIssueVariantEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteIssueVariantEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteIssueVariantEvent) Name() event.EventName {

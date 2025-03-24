@@ -32,7 +32,9 @@ func (srh *scannerRunHandler) CreateScannerRun(sr *entity.ScannerRun) (bool, err
 		return false, &ScannerRunHandlerError{msg: "Error creating scanner run"}
 	}
 
-	srh.eventRegistry.PushEvent(&CreateScannerRunEvent{sr})
+	srh.eventRegistry.PushEvent(&CreateScannerRunEvent{
+		ScannerRun: sr,
+	})
 	return true, nil
 }
 

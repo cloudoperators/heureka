@@ -4,10 +4,11 @@
 package issue_match
 
 import (
+	"github.com/cloudoperators/heureka/internal/event"
 	"time"
 
+	"encoding/json"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
-	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -31,6 +32,12 @@ type ListIssueMatchesEvent struct {
 	Results *entity.List[entity.IssueMatchResult]
 }
 
+func (e ListIssueMatchesEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &ListIssueMatchesEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *ListIssueMatchesEvent) Name() event.EventName {
 	return ListIssueMatchesEventName
 }
@@ -38,6 +45,12 @@ func (e *ListIssueMatchesEvent) Name() event.EventName {
 type GetIssueMatchEvent struct {
 	IssueMatchID int64
 	Result       *entity.IssueMatch
+}
+
+func (e GetIssueMatchEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &GetIssueMatchEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *GetIssueMatchEvent) Name() event.EventName {
@@ -48,6 +61,18 @@ type CreateIssueMatchEvent struct {
 	IssueMatch *entity.IssueMatch
 }
 
+func (e CreateIssueMatchEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &CreateIssueMatchEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
+func OnComponentInstanceCreate(db database.Database, event event.Event) {
+	if createEvent, ok := event.(*component_instance.CreateComponentInstanceEvent); ok {
+		OnComponentVersionAssignmentToComponentInstance(db, createEvent.ComponentInstance.Id, createEvent.ComponentInstance.ComponentVersionId)
+	}
+}
+
 func (e *CreateIssueMatchEvent) Name() event.EventName {
 	return CreateIssueMatchEventName
 }
@@ -56,12 +81,24 @@ type UpdateIssueMatchEvent struct {
 	IssueMatch *entity.IssueMatch
 }
 
+func (e UpdateIssueMatchEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &UpdateIssueMatchEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *UpdateIssueMatchEvent) Name() event.EventName {
 	return UpdateIssueMatchEventName
 }
 
 type DeleteIssueMatchEvent struct {
 	IssueMatchID int64
+}
+
+func (e DeleteIssueMatchEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &DeleteIssueMatchEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
 func (e *DeleteIssueMatchEvent) Name() event.EventName {
@@ -73,6 +110,12 @@ type AddEvidenceToIssueMatchEvent struct {
 	EvidenceID   int64
 }
 
+func (e AddEvidenceToIssueMatchEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &AddEvidenceToIssueMatchEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
+}
+
 func (e *AddEvidenceToIssueMatchEvent) Name() event.EventName {
 	return AddEvidenceToIssueMatchEventName
 }
@@ -82,14 +125,14 @@ type RemoveEvidenceFromIssueMatchEvent struct {
 	EvidenceID   int64
 }
 
-func (e *RemoveEvidenceFromIssueMatchEvent) Name() event.EventName {
-	return RemoveEvidenceFromIssueMatchEventName
+func (e RemoveEvidenceFromIssueMatchEvent) Unmarshal(data []byte) (event.Event, error) {
+	event := &RemoveEvidenceFromIssueMatchEvent{}
+	err := json.Unmarshal(data, event)
+	return event, err
 }
 
-func OnComponentInstanceCreate(db database.Database, event event.Event) {
-	if createEvent, ok := event.(*component_instance.CreateComponentInstanceEvent); ok {
-		OnComponentVersionAssignmentToComponentInstance(db, createEvent.ComponentInstance.Id, createEvent.ComponentInstance.ComponentVersionId)
-	}
+func (e *RemoveEvidenceFromIssueMatchEvent) Name() event.EventName {
+	return RemoveEvidenceFromIssueMatchEventName
 }
 
 // BuildIssueVariantMap builds a map of issue id to issue variant for the given issues and component instance id

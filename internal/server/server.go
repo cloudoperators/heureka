@@ -6,6 +6,9 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/cloudoperators/heureka/internal/app/event"
+	events "github.com/cloudoperators/heureka/internal/event"
+	"github.com/cloudoperators/heureka/internal/event/nats"
 	"log"
 	"net/http"
 	"os/signal"
@@ -41,7 +44,23 @@ func NewServer(cfg util.Config) *Server {
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
 	}
-	application := app.NewHeurekaApp(db)
+	var er event.EventRegistry
+	switch cfg.EventRegistryType {
+	case "channel":
+		er = events.NewEventRegistry(db)
+	case "nats":
+		er = nats.NewEventRegistry(db)
+	default:
+
+		logrus.WithField("event_registry_type", cfg.EventRegistryType).Fatalln("Unknown event registry type")
+	}
+
+	application := app.NewHeurekaApp(db, er)
+
+	if cfg.EventRegistryType == "channel" {
+		application.SubscribeHandlers()
+		er.Run(context.Background())
+	}
 
 	s := Server{
 		router:     &gin.Engine{},
