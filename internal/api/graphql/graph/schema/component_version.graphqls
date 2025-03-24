@@ -10,30 +10,44 @@ type ComponentVersion implements Node {
     componentInstances(first: Int, after: String): ComponentInstanceConnection
     issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata
+    tag: String
 }
 
 input ComponentVersionInput {
-    version: String
-    componentId: String
+  version: String
+  componentId: String
+  tag: String
 }
 
 type ComponentVersionConnection implements Connection {
-    totalCount: Int!
-    edges: [ComponentVersionEdge]!
-    pageInfo: PageInfo
+  totalCount: Int!
+  edges: [ComponentVersionEdge]!
+  pageInfo: PageInfo
 }
 
 type ComponentVersionEdge implements Edge {
-    node: ComponentVersion!
-    cursor: String
+  node: ComponentVersion!
+  cursor: String
 }
 
 input ComponentVersionFilter {
     componentId: [String]
     componentCcrn: [String]
     issueId: [String]
+    # Used for ordering by severity
+    issueRepositoryId: [String]
     version: [String]
     serviceId: [String]
     serviceCcrn: [String]
     state: [StateFilter!]
+    tag: [String]
+}
+
+input ComponentVersionOrderBy {
+    by: ComponentVersionOrderByField
+    direction: OrderDirection
+}
+
+enum ComponentVersionOrderByField {
+    severity
 }

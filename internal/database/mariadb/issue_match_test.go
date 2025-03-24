@@ -4,12 +4,7 @@
 package mariadb_test
 
 import (
-	"database/sql"
-	"encoding/json"
 	"math/rand"
-	"os"
-	"path/filepath"
-	"runtime"
 	"sort"
 	"time"
 
@@ -1022,107 +1017,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 	})
 })
 
-// getTestDataPath returns the path to the test data directory relative to the calling file
-func getTestDataPath(f string) string {
-	// Get the current file path
-	_, filename, _, _ := runtime.Caller(1)
-	// Get the directory containing the current file
-	dir := filepath.Dir(filename)
-	// Return path to test data directory (adjust the relative path as needed)
-	return filepath.Join(dir, "testdata", "issue_match_cursor", f)
-}
-
-// LoadIssueMatches loads issue matches from JSON file
-func LoadIssueMatches(filename string) ([]mariadb.IssueMatchRow, error) {
-	// Read JSON file
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	// Parse JSON into temporary struct that matches the JSON format
-	type tempIssueMatch struct {
-		Status                string    `json:"status"`
-		Rating                string    `json:"rating"`
-		Vector                string    `json:"vector"`
-		UserID                int64     `json:"user_id"`
-		ComponentInstanceID   int64     `json:"component_instance_id"`
-		IssueID               int64     `json:"issue_id"`
-		TargetRemediationDate time.Time `json:"target_remediation_date"`
-	}
-	var tempMatches []tempIssueMatch
-	if err := json.Unmarshal(data, &tempMatches); err != nil {
-		return nil, err
-	}
-	// Convert to IssueMatchRow format
-	matches := make([]mariadb.IssueMatchRow, len(tempMatches))
-	for i, tm := range tempMatches {
-		matches[i] = mariadb.IssueMatchRow{
-			Status:                sql.NullString{String: tm.Status, Valid: true},
-			Rating:                sql.NullString{String: tm.Rating, Valid: true},
-			Vector:                sql.NullString{String: tm.Vector, Valid: true},
-			UserId:                sql.NullInt64{Int64: tm.UserID, Valid: true},
-			ComponentInstanceId:   sql.NullInt64{Int64: tm.ComponentInstanceID, Valid: true},
-			IssueId:               sql.NullInt64{Int64: tm.IssueID, Valid: true},
-			TargetRemediationDate: sql.NullTime{Time: tm.TargetRemediationDate, Valid: true},
-		}
-	}
-	return matches, nil
-}
-
-// LoadIssues loads issues from JSON file
-func LoadIssues(filename string) ([]mariadb.IssueRow, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	type tempIssue struct {
-		Type        string `json:"type"`
-		PrimaryName string `json:"primary_name"`
-		Description string `json:"description"`
-	}
-	var tempIssues []tempIssue
-	if err := json.Unmarshal(data, &tempIssues); err != nil {
-		return nil, err
-	}
-	issues := make([]mariadb.IssueRow, len(tempIssues))
-	for i, ti := range tempIssues {
-		issues[i] = mariadb.IssueRow{
-			Type:        sql.NullString{String: ti.Type, Valid: true},
-			PrimaryName: sql.NullString{String: ti.PrimaryName, Valid: true},
-			Description: sql.NullString{String: ti.Description, Valid: true},
-		}
-	}
-	return issues, nil
-}
-
-// LoadComponentInstances loads component instances from JSON file
-func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	type tempComponentInstance struct {
-		CCRN               string `json:"ccrn"`
-		Count              int16  `json:"count"`
-		ComponentVersionID int64  `json:"component_version_id"`
-		ServiceID          int64  `json:"service_id"`
-	}
-	var tempComponents []tempComponentInstance
-	if err := json.Unmarshal(data, &tempComponents); err != nil {
-		return nil, err
-	}
-	components := make([]mariadb.ComponentInstanceRow, len(tempComponents))
-	for i, tc := range tempComponents {
-		components[i] = mariadb.ComponentInstanceRow{
-			CCRN:               sql.NullString{String: tc.CCRN, Valid: true},
-			Count:              sql.NullInt16{Int16: tc.Count, Valid: true},
-			ComponentVersionId: sql.NullInt64{Int64: tc.ComponentVersionID, Valid: true},
-			ServiceId:          sql.NullInt64{Int64: tc.ServiceID, Valid: true},
-		}
-	}
-	return components, nil
-}
-
 var _ = Describe("Using the Cursor on IssueMatches", func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -1133,15 +1027,15 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	var loadTestData = func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
-		matches, err := LoadIssueMatches(getTestDataPath("issue_match.json"))
+		matches, err := test.LoadIssueMatches(test.GetTestDataPath("testdata/issue_match_cursor/issue_match.json"))
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		issues, err := LoadIssues(getTestDataPath("issue.json"))
+		issues, err := test.LoadIssues(test.GetTestDataPath("testdata/issue_match_cursor/issue.json"))
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		components, err := LoadComponentInstances(getTestDataPath("component_instance.json"))
+		components, err := test.LoadComponentInstances(test.GetTestDataPath("testdata/issue_match_cursor/component_instance.json"))
 		if err != nil {
 			return nil, nil, nil, err
 		}
