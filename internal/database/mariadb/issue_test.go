@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"fmt"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -555,7 +557,13 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			})
 			It("returns the correct count for all issues", func() {
 				counts := entity.IssueSeverityCounts{}
+				// avoid counting duplicates
+				issueIds := map[string]bool{}
 				for _, iv := range seedCollection.IssueVariantRows {
+					key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
+					if _, ok := issueIds[key]; ok || !iv.Id.Valid {
+						continue
+					}
 					switch iv.Rating.String {
 					case entity.SeverityValuesCritical.String():
 						counts.Critical++
@@ -568,6 +576,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					case entity.SeverityValuesNone.String():
 						counts.None++
 					}
+					issueIds[key] = true
 				}
 
 				testIssueSeverityCount(nil, counts)
@@ -634,7 +643,13 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 				counts := entity.IssueSeverityCounts{}
 
+				// avoid counting duplicates
+				issueIds := map[string]bool{}
 				for _, iv := range seedCollection.IssueVariantRows {
+					key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
+					if _, ok := issueIds[key]; ok || !iv.Id.Valid {
+						continue
+					}
 					if iv.IssueId.Int64 == issueVariant.IssueId.Int64 {
 						switch iv.Rating.String {
 						case entity.SeverityValuesCritical.String():
@@ -649,6 +664,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 							counts.None++
 						}
 					}
+					issueIds[key] = true
 				}
 
 				filter := &entity.IssueFilter{
@@ -668,7 +684,13 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 				counts := entity.IssueSeverityCounts{}
 
+				// avoid counting duplicates
+				ratingIssueIds := map[string]bool{}
 				for _, iv := range seedCollection.IssueVariantRows {
+					key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
+					if _, ok := ratingIssueIds[key]; ok || !iv.Id.Valid {
+						continue
+					}
 					if lo.Contains(issueIds, iv.IssueId.Int64) {
 						switch iv.Rating.String {
 						case entity.SeverityValuesCritical.String():
@@ -683,6 +705,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 							counts.None++
 						}
 					}
+					ratingIssueIds[key] = true
 				}
 
 				filter := &entity.IssueFilter{
