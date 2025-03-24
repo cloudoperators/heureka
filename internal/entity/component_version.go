@@ -4,16 +4,18 @@
 package entity
 
 type ComponentVersionFilter struct {
-	Paginated
-	Id            []*int64          `json:"id"`
-	IssueId       []*int64          `json:"issue_id"`
-	ComponentCCRN []*string         `json:"component_ccrn"`
-	ComponentId   []*int64          `json:"component_id"`
-	Version       []*string         `json:"version"`
-	ServiceId     []*int64          `json:"service_id"`
-	ServiceCCRN   []*string         `json:"service_ccrn"`
-	Tag           []*string         `json:"tag"`
-	State         []StateFilterType `json:"state"`
+	PaginatedX
+	Id            []*int64  `json:"id"`
+	IssueId       []*int64  `json:"issue_id"`
+	ComponentCCRN []*string `json:"component_ccrn"`
+	ComponentId   []*int64  `json:"component_id"`
+	// Used for ordering by severity/rating
+	IssueRepositoryId []*int64          `json:"issue_repository_id"`
+	Version           []*string         `json:"version"`
+	ServiceId         []*int64          `json:"service_id"`
+	ServiceCCRN       []*string         `json:"service_ccrn"`
+	State             []StateFilterType `json:"state"`
+	Tag               []*string         `json:"tag"`
 }
 
 type ComponentVersionAggregations struct {

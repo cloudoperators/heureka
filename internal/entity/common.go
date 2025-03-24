@@ -35,6 +35,7 @@ type HeurekaEntity interface {
 		ComponentInstance |
 		ComponentInstanceAggregations |
 		ComponentVersion |
+		ComponentVersionResult |
 		ComponentVersionAggregations |
 		Evidence |
 		EvidenceAggregations |

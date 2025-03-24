@@ -122,7 +122,8 @@ type Database interface {
 	UpdateComponent(*entity.Component) error
 	DeleteComponent(int64, int64) error
 
-	GetComponentVersions(*entity.ComponentVersionFilter) ([]entity.ComponentVersion, error)
+	GetComponentVersions(*entity.ComponentVersionFilter, []entity.Order) ([]entity.ComponentVersionResult, error)
+	GetAllComponentVersionCursors(*entity.ComponentVersionFilter, []entity.Order) ([]string, error)
 	GetAllComponentVersionIds(*entity.ComponentVersionFilter) ([]int64, error)
 	CountComponentVersions(*entity.ComponentVersionFilter) (int64, error)
 	CreateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)

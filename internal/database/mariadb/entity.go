@@ -89,6 +89,7 @@ type RowComposite struct {
 	*IssueRepositoryServiceRow
 	*IssueMatchChangeRow
 	*ServiceIssueVariantRow
+	*RatingCount
 }
 
 type DatabaseRow interface {
@@ -120,6 +121,14 @@ type DatabaseRow interface {
 		IssueMatchChangeRow |
 		ServiceIssueVariantRow |
 		RowComposite
+}
+
+type RatingCount struct {
+	Critical sql.NullInt64 `db:"critical_count"`
+	High     sql.NullInt64 `db:"high_count"`
+	Medium   sql.NullInt64 `db:"medium_count"`
+	Low      sql.NullInt64 `db:"low_count"`
+	None     sql.NullInt64 `db:"none_count"`
 }
 
 type IssueRow struct {

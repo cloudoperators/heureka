@@ -5,7 +5,7 @@ type Component implements Node {
     id: ID!
     ccrn: String
     type: ComponentTypeValues
-    componentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
+    componentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     metadata: Metadata
 }
 

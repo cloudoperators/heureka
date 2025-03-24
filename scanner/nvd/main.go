@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/cloudoperators/heureka/scanner/nvd/models"
 	p "github.com/cloudoperators/heureka/scanner/nvd/processor"
@@ -11,6 +12,8 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"runtime"
+	"sync"
 	"time"
 )
 
@@ -74,13 +77,72 @@ func scanAndProcess(scanner *s.Scanner, processor *p.Processor, yesterday string
 		}).Error("Couldn't get CVEs")
 	}
 
+	contextWithTimeout, _ := context.WithTimeout(context.Background(), time.Duration(2)*time.Hour)
+	processCVESConcurrently(contextWithTimeout, processor, cves)
+}
+
+type WorkerResult struct {
+	Error error
+	CveId string
+}
+
+func processCVESConcurrently(ctx context.Context, processor *p.Processor, cves []models.CveItem) {
+	maxConcurrency := runtime.GOMAXPROCS(0)
+
+	// sem is an unbuffered channel meaning that sending onto it will block
+	// until there's a corresponding receive operation
+	sem := make(chan struct{})
+	results := make(chan WorkerResult, len(cves))
+	var wg sync.WaitGroup
+
+	// Start maxConcurrency number of worker goroutines
+	for i := 0; i < maxConcurrency; i++ {
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					// Context cancelled!
+					return
+				case sem <- struct{}{}:
+					// Go routines will constantly try to send this empty struct to this channel. This will block until
+					// there is a corresponding receive operation.
+				}
+			}
+		}()
+	}
+	// Process cves concurrently.
+	// processing data at a given time. Any additional Go routines will be blocked (waiting for a slot to become
+	// available)
 	for _, cve := range cves {
-		err = processor.Process(&cve.Cve)
-		if err != nil {
+		wg.Add(1)
+		go func(c models.CveItem) {
+			defer wg.Done()
+			<-sem // Wait for an available slot
+			err := processor.Process(&c.Cve)
+			results <- WorkerResult{
+				Error: err,
+				CveId: c.Cve.Id,
+			}
+		}(cve)
+	}
+
+	// Close results channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect and process results
+	for result := range results {
+		if result.Error != nil {
 			log.WithFields(log.Fields{
-				"error": err,
-				"CVEID": &cve.Cve.Id,
-			}).Warn("Couldn't process CVE")
+				"error": result.Error,
+				"cve":   result.CveId,
+			}).Error("Failed to process cve")
+		} else {
+			log.WithFields(log.Fields{
+				"cve": result.CveId,
+			}).Error("Successfully processed CVE.")
 		}
 	}
 }
