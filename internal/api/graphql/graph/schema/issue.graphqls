@@ -12,7 +12,7 @@ type Issue implements Node {
     issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
-    componentVersions(filter: ComponentVersionFilter, first: Int, after: String): ComponentVersionConnection
+    componentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     objectMetadata: IssueMetadata
     metadata: Metadata
 }

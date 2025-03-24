@@ -1009,11 +1009,13 @@ func (s *DatabaseSeeder) InsertFakeComponentVersion(cv mariadb.ComponentVersionR
 		INSERT INTO ComponentVersion (
 			componentversion_version,
 			componentversion_component_id,
+            componentversion_tag,
 			componentversion_created_by,
 			componentversion_updated_by
 		) VALUES (
 			:componentversion_version,
 			:componentversion_component_id,
+            :componentversion_tag,
 			:componentversion_created_by,
 			:componentversion_updated_by
 		)`
@@ -1298,7 +1300,8 @@ func NewFakeComponent() mariadb.ComponentRow {
 
 func NewFakeComponentVersion() mariadb.ComponentVersionRow {
 	return mariadb.ComponentVersionRow{
-		Version:   sql.NullString{String: gofakeit.AppVersion(), Valid: true},
+		Version:   sql.NullString{String: gofakeit.Regex("^sha:[a-fA-F0-9]{64}$"), Valid: true},
+		Tag:       sql.NullString{String: gofakeit.AppVersion(), Valid: true},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}

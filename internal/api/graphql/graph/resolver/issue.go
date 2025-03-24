@@ -36,8 +36,8 @@ func (r *issueResolver) IssueMatches(ctx context.Context, obj *model.Issue, filt
 	})
 }
 
-func (r *issueResolver) ComponentVersions(ctx context.Context, obj *model.Issue, filter *model.ComponentVersionFilter, first *int, after *string) (*model.ComponentVersionConnection, error) {
-	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
+func (r *issueResolver) ComponentVersions(ctx context.Context, obj *model.Issue, filter *model.ComponentVersionFilter, first *int, after *string, orderBy []*model.ComponentVersionOrderBy) (*model.ComponentVersionConnection, error) {
+	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.IssueNodeName,
 	})
