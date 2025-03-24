@@ -1623,7 +1623,7 @@ type ScannerRunDef struct {
 func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error {
 	var err error
 
-	query := `
+	insertScannerRun := `
 		INSERT INTO ScannerRun (
 			scannerrun_uuid,
 			scannerrun_tag,
@@ -1638,16 +1638,9 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 			?
 		)
 	`
-	for _, srd := range scannerRunDefs {
-		_, err := s.db.Exec(query, gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
-		if err != nil {
-			return err
 
-		}
-
-		for _, issue := range srd.Issues {
-			query := `
-						INSERT INTO Issue (
+	insertIssue := `
+						INSERT IGNORE INTO Issue (
 							issue_type,
 							issue_primary_name,
 							issue_description
@@ -1657,12 +1650,56 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 							?
 						)
 					`
-			_, err := s.db.Exec(query, issue, issue)
+
+	insertScannerRunIssueTracker := `
+						INSERT INTO ScannerRunIssueTracker (
+							scannerrunissuetracker_scannerrun_run_id,
+							scannerrunissuetracker_issue_id
+						) VALUES (
+							?,
+							?
+						)
+					`
+
+	knownIssues := make(map[string]int)
+	for _, srd := range scannerRunDefs {
+		res, err := s.db.Exec(insertScannerRun, gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
+
+		if err != nil {
+			return err
+
+		}
+
+		scannerrunId, err := res.LastInsertId()
+		if err != nil {
+			return err
+		}
+
+		for _, issue := range srd.Issues {
+
+			if _, ok := knownIssues[issue]; !ok {
+				res, err := s.db.Exec(insertIssue, issue, issue)
+				if err != nil {
+					return err
+
+				}
+				issueId, err := res.LastInsertId()
+				if err != nil {
+					return err
+				}
+
+				knownIssues[issue] = int(issueId)
+			}
+
+			if err != nil {
+				return err
+			}
+
+			_, err = s.db.Exec(insertScannerRunIssueTracker, scannerrunId, knownIssues[issue])
 			if err != nil {
 				return err
 
 			}
-
 		}
 	}
 	return err
