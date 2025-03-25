@@ -84,6 +84,9 @@ test-e2e: gqlgen install-build-dependencies
 test-app: gqlgen install-build-dependencies
 	ginkgo -r internal/app
 
+test-access: gqlgen install-build-dependencies
+	ginkgo -r internal/api/graphql/access
+
 test-db: gqlgen install-build-dependencies
 	ginkgo -r internal/database/mariadb
 
