@@ -353,7 +353,7 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	filter = s.ensureIssueFilter(filter)
 
 	baseQuery := `
-		SELECT IV.issuevariant_rating AS issue_value, COUNT(IV.issuevariant_rating) AS issue_count FROM Issue I
+		SELECT IV.issuevariant_rating AS issue_value, COUNT(distinct IV.issuevariant_issue_id) AS issue_count FROM Issue I
 		%s
 		%s
 		GROUP BY IV.issuevariant_rating
