@@ -76,7 +76,6 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 }
 
 func (h *HeurekaApp) SubscribeHandlers() {
-
 	// Event handlers for Components
 	h.eventRegistry.RegisterEventHandler(
 		component_instance.CreateComponentInstanceEventName,
