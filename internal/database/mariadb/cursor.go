@@ -175,3 +175,19 @@ func WithComponentInstance(order []entity.Order, ci entity.ComponentInstance) Ne
 		return nil
 	}
 }
+
+func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion) NewCursor {
+
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.ComponentVersionId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionId, Value: cv.Id, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}

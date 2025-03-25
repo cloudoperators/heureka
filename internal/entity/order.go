@@ -14,11 +14,19 @@ const (
 	ComponentInstanceDomain
 	ComponentInstanceProject
 
+	ComponentVersionId
+
 	IssuePrimaryName
 
 	IssueMatchId
 	IssueMatchRating
 	IssueMatchTargetRemediationDate
+
+	CriticalCount
+	HighCount
+	MediumCount
+	LowCount
+	NoneCount
 
 	SupportGroupName
 

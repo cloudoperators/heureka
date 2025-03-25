@@ -395,7 +395,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order []entity.Order) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetIssueAllServiceCursors",
+		"event":  "database.GetAllServiceCursors",
 	})
 
 	baseQuery := `

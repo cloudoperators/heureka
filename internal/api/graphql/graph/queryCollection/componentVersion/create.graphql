@@ -8,5 +8,6 @@ mutation ($input: ComponentVersionInput!) {
         id
         version
         componentId
+        tag
     }
 }
