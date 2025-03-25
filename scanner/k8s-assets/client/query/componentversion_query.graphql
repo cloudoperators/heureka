@@ -3,9 +3,7 @@
 
 query ListComponentVersions($filter: ComponentVersionFilter) {
   # @genqlient(typename: "ComponentVersionConnection")
-  ComponentVersions (
-    filter: $filter,
-  ) {
+  ComponentVersions(filter: $filter) {
     totalCount
     edges {
       # @genqlient(typename: "ComponentVersion")
@@ -14,6 +12,8 @@ query ListComponentVersions($filter: ComponentVersionFilter) {
         version
         componentId
         tag
+        repository
+        organization
       }
     }
   }
