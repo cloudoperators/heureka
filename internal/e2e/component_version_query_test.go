@@ -214,7 +214,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 				Expect(*respData.ComponentVersions.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 			})
 		})
-		Context("and we request issueCounts", func() {
+		Context("and we request issueCounts", Label("issueCount"), func() {
 			It("returns correct issueCounts", func() {
 				severityCounts := map[string]model.SeverityCounts{}
 				// Setup severityCounts for all componentVersions
@@ -224,8 +224,14 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 					counts := severityCounts[cvId]
 					for _, cvir := range seedCollection.ComponentVersionIssueRows {
 						if cv.Id.Int64 == cvir.ComponentVersionId.Int64 {
+							// avoid counting duplicates
+							issueIds := map[string]bool{}
 							for _, iv := range seedCollection.IssueVariantRows {
 								if cvir.IssueId.Int64 == iv.IssueId.Int64 {
+									key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
+									if _, ok := issueIds[key]; ok || !iv.Id.Valid {
+										continue
+									}
 									switch iv.Rating.String {
 									case "Critical":
 										counts.Critical++
@@ -238,6 +244,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 									case "None":
 										counts.None++
 									}
+									issueIds[key] = true
 								}
 							}
 						}
