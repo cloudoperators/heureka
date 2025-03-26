@@ -567,11 +567,13 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 
 func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVersion {
 	return ComponentVersion{
-		ID:          fmt.Sprintf("%d", componentVersion.Id),
-		Version:     &componentVersion.Version,
-		ComponentID: util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
-		Tag:         &componentVersion.Tag,
-		Metadata:    getModelMetadata(componentVersion.Metadata),
+		ID:           fmt.Sprintf("%d", componentVersion.Id),
+		Version:      &componentVersion.Version,
+		ComponentID:  util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
+		Repository:   &componentVersion.Repository,
+		Organization: &componentVersion.Organization,
+		Tag:          &componentVersion.Tag,
+		Metadata:     getModelMetadata(componentVersion.Metadata),
 	}
 }
 
@@ -581,9 +583,11 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 		componentId = 0
 	}
 	return entity.ComponentVersion{
-		Version:     lo.FromPtr(componentVersion.Version),
-		ComponentId: componentId,
-		Tag:         lo.FromPtr(componentVersion.Tag),
+		Version:      lo.FromPtr(componentVersion.Version),
+		ComponentId:  componentId,
+		Repository:   lo.FromPtr(componentVersion.Repository),
+		Organization: lo.FromPtr(componentVersion.Organization),
+		Tag:          lo.FromPtr(componentVersion.Tag),
 	}
 }
 
