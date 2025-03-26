@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"time"
@@ -33,9 +34,14 @@ type Provider struct {
 	authCodeNonceMap map[string]string
 }
 
-func NewProvider(url string) *Provider {
+func NewProvider(url string, enableLog bool) *Provider {
+	l := logrus.New()
+	if !enableLog {
+		l.SetOutput(ioutil.Discard)
+	}
+	gin.DefaultWriter = l.Writer()
 	oidcProvider := Provider{
-		log:              logrus.New(),
+		log:              l,
 		url:              url,
 		router:           gin.New(),
 		clientId:         "mock-client-id",
@@ -48,6 +54,7 @@ func NewProvider(url string) *Provider {
 
 func (p *Provider) Start() {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
+
 	p.server = &http.Server{Handler: p.router.Handler()}
 
 	serverAddr := "'default'"
@@ -59,7 +66,7 @@ func (p *Provider) Start() {
 	}
 
 	go func() {
-		p.log.Printf("Starting OIDC provider on %s\n", serverAddr)
+		p.log.Printf("Starting OIDC provider on %s", serverAddr)
 		if err := p.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			p.log.Fatalf("Server failed: %v", err)
 		}
@@ -77,7 +84,7 @@ func (p *Provider) StartForeground() {
 		serverAddr = p.server.Addr
 	}
 
-	p.log.Printf("Starting server on %s\n", serverAddr)
+	p.log.Printf("Starting server on %s", serverAddr)
 	if err := p.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		p.log.Fatalf("Server failed: %v", err)
 	}

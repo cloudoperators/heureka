@@ -145,7 +145,7 @@ func (s *Server) NonBlockingStart() {
 		Handler: s.router.Handler(),
 	}
 
-	util2.FirstListenThenServe(s.nonBlockingSrv)
+	util2.FirstListenThenServe(s.nonBlockingSrv, logrus.New())
 }
 
 func (s *Server) BlockingStop() {

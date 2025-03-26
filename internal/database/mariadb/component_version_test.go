@@ -361,6 +361,39 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						Expect(found).To(BeTrue())
 					})
 				})
+
+				It("can filter by a repository", func() {
+					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					filter := &entity.ComponentVersionFilter{Repository: []*string{&cv.Repository.String}}
+					entries, err := db.GetComponentVersions(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(entry.Repository).To(BeEquivalentTo(cv.Repository.String))
+						}
+					})
+				})
+
+				It("can filter by an organization", func() {
+					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					filter := &entity.ComponentVersionFilter{Organization: []*string{&cv.Organization.String}}
+					entries, err := db.GetComponentVersions(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						for _, entry := range entries {
+							Expect(entry.Organization).To(BeEquivalentTo(cv.Organization.String))
+						}
+					})
+				})
+
 			})
 
 			Context("and using pagination", func() {

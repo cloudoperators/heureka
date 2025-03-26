@@ -155,7 +155,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 		ComponentInstanceId: []*int64{&componentInstanceID},
 	}, componentVersionID)
 
-	l.WithField("issueVariantMap", issueVariantMap)
+	l = l.WithField("serviceIssueVariantCount", len(issueVariantMap))
 	if err != nil {
 		l.WithField("event-step", "BuildIssueVariants").WithError(err).Error("Error while fetching issues related to component instance")
 		return

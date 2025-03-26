@@ -13,6 +13,18 @@ func ColumnName(f entity.OrderByField) string {
 	switch f {
 	case entity.ComponentInstanceCcrn:
 		return "componentinstance_ccrn"
+	case entity.ComponentInstanceId:
+		return "componentinstance_id"
+	case entity.ComponentInstanceRegion:
+		return "componentinstance_region"
+	case entity.ComponentInstanceCluster:
+		return "componentinstance_cluster"
+	case entity.ComponentInstanceNamespace:
+		return "componentinstance_namespace"
+	case entity.ComponentInstanceDomain:
+		return "componentinstance_domain"
+	case entity.ComponentInstanceProject:
+		return "componentinstance_project"
 	case entity.ComponentVersionId:
 		return "componentversion_id"
 	case entity.IssuePrimaryName:

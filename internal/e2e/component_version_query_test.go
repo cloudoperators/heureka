@@ -186,6 +186,24 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 							}
 						}
 					}
+
+					if cv.Node.Repository != nil {
+						// If there's a repository value in the database, verify it matches
+						for _, row := range seedCollection.ComponentVersionRows {
+							if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Repository.Valid {
+								Expect(*cv.Node.Repository).To(Equal(row.Repository.String))
+							}
+						}
+					}
+
+					if cv.Node.Organization != nil {
+						// If there's an organization value in the database, verify it matches
+						for _, row := range seedCollection.ComponentVersionRows {
+							if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Organization.Valid {
+								Expect(*cv.Node.Organization).To(Equal(row.Organization.String))
+							}
+						}
+					}
 				}
 			})
 			It("- returns the expected PageInfo", func() {
@@ -196,7 +214,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 				Expect(*respData.ComponentVersions.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 			})
 		})
-		Context("and we request issueCounts", func() {
+		Context("and we request issueCounts", Label("issueCount"), func() {
 			It("returns correct issueCounts", func() {
 				severityCounts := map[string]model.SeverityCounts{}
 				// Setup severityCounts for all componentVersions
@@ -206,8 +224,14 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 					counts := severityCounts[cvId]
 					for _, cvir := range seedCollection.ComponentVersionIssueRows {
 						if cv.Id.Int64 == cvir.ComponentVersionId.Int64 {
+							// avoid counting duplicates
+							issueIds := map[string]bool{}
 							for _, iv := range seedCollection.IssueVariantRows {
 								if cvir.IssueId.Int64 == iv.IssueId.Int64 {
+									key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
+									if _, ok := issueIds[key]; ok || !iv.Id.Valid {
+										continue
+									}
 									switch iv.Rating.String {
 									case "Critical":
 										counts.Critical++
@@ -220,6 +244,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 									case "None":
 										counts.None++
 									}
+									issueIds[key] = true
 								}
 							}
 						}

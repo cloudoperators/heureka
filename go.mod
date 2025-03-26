@@ -13,9 +13,9 @@ require (
 	github.com/docker/go-connections v0.5.0
 	github.com/gin-contrib/cors v1.7.4
 	github.com/gin-gonic/gin v1.10.0
-	github.com/go-sql-driver/mysql v1.9.0
+	github.com/go-sql-driver/mysql v1.9.1
 	github.com/goark/go-cvss v1.6.7
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/machinebox/graphql v0.2.2
