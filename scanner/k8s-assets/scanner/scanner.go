@@ -140,12 +140,19 @@ func (s *Scanner) extractImageInfo(image string) (ImageInfo, error) {
 		return ImageInfo{}, fmt.Errorf("invalid image string format: expected 3 or 4 tokens")
 	}
 
+	// Set tag (default value)
+	imageTag := ""
+	if len(parts) > 1 {
+		imageTag = parts[1]
+	}
+
 	info := ImageInfo{
 		Registry:   tokens[0],
 		Repository: tokens[len(tokens)-1],
-		Tag:        parts[1],
+		Tag:        imageTag,
 	}
 
+	// Set organization and account
 	if len(tokens) == 3 {
 		info.Account = tokens[1]
 	} else { // len(tokens) == 4

@@ -16,6 +16,8 @@ type ComponentVersionFilter struct {
 	ServiceCCRN       []*string         `json:"service_ccrn"`
 	State             []StateFilterType `json:"state"`
 	Tag               []*string         `json:"tag"`
+	Repository        []*string         `json:"repository"`
+	Organization      []*string         `json:"organization"`
 }
 
 type ComponentVersionAggregations struct {
@@ -34,6 +36,8 @@ type ComponentVersion struct {
 	Component          *Component          `json:"component,omitempty"`
 	ComponentId        int64               `db:"componentversion_component_id"`
 	Tag                string              `json:"tag"`
+	Repository         string              `json:"repository"`
+	Organization       string              `json:"organization"`
 	ComponentInstances []ComponentInstance `json:"component_instances,omitempty"`
 	Issues             []Issue             `json:"issues,omitempty"`
 }
