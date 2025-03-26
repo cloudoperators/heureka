@@ -148,6 +148,7 @@ type ComponentInstanceInput struct {
 	Count              int    `json:"count"`
 	ComponentVersionId string `json:"componentVersionId"`
 	ServiceId          string `json:"serviceId"`
+	Uuid               string `json:"uuid"`
 }
 
 // GetCcrn returns ComponentInstanceInput.Ccrn, and is useful for accessing the field via an interface.
@@ -161,6 +162,9 @@ func (v *ComponentInstanceInput) GetComponentVersionId() string { return v.Compo
 
 // GetServiceId returns ComponentInstanceInput.ServiceId, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceInput) GetServiceId() string { return v.ServiceId }
+
+// GetUuid returns ComponentInstanceInput.Uuid, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetUuid() string { return v.Uuid }
 
 type ComponentTypeValues string
 

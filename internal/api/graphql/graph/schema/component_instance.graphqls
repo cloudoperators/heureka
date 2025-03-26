@@ -23,6 +23,7 @@ input ComponentInstanceInput {
     count: Int
     componentVersionId: String
     serviceId: String
+    uuid: String
 }
 
 type ComponentInstanceConnection implements Connection {

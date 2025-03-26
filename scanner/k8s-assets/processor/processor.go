@@ -431,6 +431,7 @@ func (p *Processor) ProcessContainer(
 		Count:              containerInfo.Count,
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
+		Uuid:               p.uuid,
 	}
 
 	if err == nil {
