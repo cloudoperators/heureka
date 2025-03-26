@@ -4,7 +4,7 @@
 package entity
 
 type ComponentInstanceFilter struct {
-	Paginated
+	PaginatedX
 	IssueMatchId       []*int64          `json:"issue_match_id"`
 	ServiceId          []*int64          `json:"service_id"`
 	ServiceCcrn        []*string         `json:"service_ccrn"`

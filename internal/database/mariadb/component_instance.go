@@ -9,15 +9,16 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/jmoiron/sqlx"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
 func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
 	var first int = 1000
-	var after int64 = 0
+	var after string = ""
 	if f == nil {
 		return &entity.ComponentInstanceFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -106,31 +107,40 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *entity.ComponentInstanceFilter, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *entity.ComponentInstanceFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
 	var query string
 	filter = s.ensureComponentInstanceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := s.getComponentInstanceFilterString(filter)
+	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	if err != nil {
+		return nil, nil, err
+	}
+	cursorQuery := CreateCursorQuery("", cursorFields)
+
+	order = GetDefaultOrder(order, entity.ComponentInstanceId, entity.OrderDirectionAsc)
+	orderStr := CreateOrderString(order)
 	joins := s.getComponentInstanceJoins(filter)
-	cursor := getCursor(filter.Paginated, filterStr, "CI.componentinstance_id > ?")
 
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
 	}
 
+	if filterStr != "" && withCursor && cursorQuery != "" {
+		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+	}
+
 	// construct final query
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
 	var stmt *sqlx.Stmt
-	var err error
-
 	stmt, err = s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -158,8 +168,13 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		filterParameters = append(filterParameters, cursor.Value)
-		filterParameters = append(filterParameters, cursor.Limit)
+		p := CreateCursorParameters([]any{}, cursorFields)
+		filterParameters = append(filterParameters, p...)
+		if filter.PaginatedX.First == nil {
+			filterParameters = append(filterParameters, 1000)
+		} else {
+			filterParameters = append(filterParameters, filter.PaginatedX.First)
+		}
 	}
 
 	return stmt, filterParameters, nil
@@ -173,10 +188,10 @@ func (s *SqlDatabase) GetAllComponentInstanceIds(filter *entity.ComponentInstanc
 	baseQuery := `
 		SELECT CI.componentinstance_id FROM ComponentInstance CI 
 		%s
-	 	%s GROUP BY CI.componentinstance_id ORDER BY CI.componentinstance_id
+	 	%s GROUP BY CI.componentinstance_id ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, []entity.Order{}, l)
 
 	if err != nil {
 		return nil, err
@@ -187,7 +202,7 @@ func (s *SqlDatabase) GetAllComponentInstanceIds(filter *entity.ComponentInstanc
 	return performIdScan(stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilter) ([]entity.ComponentInstance, error) {
+func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilter, order []entity.Order) ([]entity.ComponentInstanceResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetComponentInstances",
 	})
@@ -195,10 +210,10 @@ func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilt
 			SELECT CI.* FROM ComponentInstance CI
 			%s
 			%s
-			%s GROUP BY CI.componentinstance_id ORDER BY CI.componentinstance_id LIMIT ? 
+			%s GROUP BY CI.componentinstance_id ORDER BY %s LIMIT ? 
 		`
 
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, true, l)
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, true, order, l)
 
 	if err != nil {
 		return nil, err
@@ -210,10 +225,61 @@ func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilt
 		stmt,
 		filterParameters,
 		l,
-		func(l []entity.ComponentInstance, e ComponentInstanceRow) []entity.ComponentInstance {
-			return append(l, e.AsComponentInstance())
+		func(l []entity.ComponentInstanceResult, e RowComposite) []entity.ComponentInstanceResult {
+			ci := e.AsComponentInstance()
+
+			cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
+
+			cir := entity.ComponentInstanceResult{
+				WithCursor: entity.WithCursor{
+					Value: cursor,
+				},
+				ComponentInstance: &ci,
+			}
+
+			return append(l, cir)
 		},
 	)
+}
+
+func (s *SqlDatabase) GetAllComponentInstanceCursors(filter *entity.ComponentInstanceFilter, order []entity.Order) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetAllComponentInstanceCursors",
+	})
+
+	baseQuery := `
+		SELECT CI.* FROM ComponentInstance CI 
+		%s
+	    %s GROUP BY CI.componentinstance_id ORDER BY %s
+    `
+
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, order, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []RowComposite, e RowComposite) []RowComposite {
+			return append(l, e)
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return lo.Map(rows, func(row RowComposite, _ int) string {
+		ci := row.AsComponentInstance()
+
+		cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
+
+		return cursor
+	}), nil
 }
 
 func (s *SqlDatabase) CountComponentInstances(filter *entity.ComponentInstanceFilter) (int64, error) {
@@ -226,9 +292,10 @@ func (s *SqlDatabase) CountComponentInstances(filter *entity.ComponentInstanceFi
 		SELECT count(distinct CI.componentinstance_id) FROM ComponentInstance CI
 		%s
 		%s 
+		ORDER BY %s
 	`
 
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, []entity.Order{}, l)
 
 	if err != nil {
 		return -1, err
@@ -343,14 +410,18 @@ func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string,
     SELECT CI.componentinstance_ccrn FROM ComponentInstance CI 
     %s
     %s
-    ORDER BY CI.componentinstance_ccrn
+    ORDER BY %s
     `
 
 	// Ensure the filter is initialized
 	filter = s.ensureComponentInstanceFilter(filter)
 
+	order := []entity.Order{
+		{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
+	}
+
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, order, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err
