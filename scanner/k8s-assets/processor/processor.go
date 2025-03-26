@@ -15,6 +15,7 @@ import (
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/client"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/scanner"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,6 +23,21 @@ type Processor struct {
 	Client    *graphql.Client
 	config    Config
 	advConfig *AdvancedConfig
+	uuid      string
+	tag       string
+}
+
+func (p *Processor) CreateScannerRun(ctx context.Context) error {
+	_, err := client.CreateScannerRun(ctx, *p.Client, &client.ScannerRunInput{
+		Uuid: p.uuid,
+		Tag:  p.tag,
+	})
+	return err
+}
+
+func (p *Processor) CompleteScannerRun(ctx context.Context) error {
+	_, err := client.CompleteScannerRun(ctx, *p.Client, p.uuid)
+	return err
 }
 
 type CCRN struct {
@@ -69,7 +85,7 @@ func (c CCRN) String() string {
 	return buf.String()
 }
 
-func NewProcessor(cfg Config) *Processor {
+func NewProcessor(cfg Config, tag string) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
 	advCfg, err := cfg.LoadAdvancedConfig()
@@ -80,6 +96,8 @@ func NewProcessor(cfg Config) *Processor {
 		config:    cfg,
 		Client:    &gClient,
 		advConfig: advCfg,
+		uuid:      uuid.New().String(),
+		tag:       tag,
 	}
 }
 
