@@ -29,6 +29,8 @@ func (s *SqlDatabase) ensureComponentVersionFilter(f *entity.ComponentVersionFil
 			ComponentCCRN: nil,
 			ComponentId:   nil,
 			Tag:           nil,
+			Repository:    nil,
+			Organization:  nil,
 		}
 	}
 	if f.First == nil {
@@ -75,6 +77,12 @@ func (s *SqlDatabase) getComponentVersionUpdateFields(componentVersion *entity.C
 	if componentVersion.Tag != "" {
 		fl = append(fl, "componentversion_tag = :componentversion_tag")
 	}
+	if componentVersion.Repository != "" {
+		fl = append(fl, "componentversion_repository = :componentversion_repository")
+	}
+	if componentVersion.Organization != "" {
+		fl = append(fl, "componentversion_organization = :componentversion_organization")
+	}
 	if componentVersion.UpdatedBy != 0 {
 		fl = append(fl, "componentversion_updated_by = :componentversion_updated_by")
 	}
@@ -88,6 +96,8 @@ func (s *SqlDatabase) getComponentVersionFilterString(filter *entity.ComponentVe
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Version, "CV.componentversion_version = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Tag, "CV.componentversion_tag = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Repository, "CV.componentversion_repository = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Organization, "CV.componentversion_organization = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
@@ -170,6 +180,8 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Version)
 	filterParameters = buildQueryParameters(filterParameters, filter.Tag)
+	filterParameters = buildQueryParameters(filterParameters, filter.Repository)
+	filterParameters = buildQueryParameters(filterParameters, filter.Organization)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
@@ -323,12 +335,16 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 			componentversion_component_id,
 			componentversion_version,
 			componentversion_tag,
+			componentversion_repository,
+			componentversion_organization,
 			componentversion_created_by,
 			componentversion_updated_by
 		) VALUES (
 			:componentversion_component_id,
 			:componentversion_version,
 			:componentversion_tag,
+			:componentversion_repository,
+			:componentversion_organization,
 			:componentversion_created_by,
 			:componentversion_updated_by
 		)

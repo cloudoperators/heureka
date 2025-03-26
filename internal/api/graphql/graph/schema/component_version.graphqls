@@ -7,16 +7,20 @@ type ComponentVersion implements Node {
     componentId: String
     component: Component
     issues(first: Int, after: String): IssueConnection
-    componentInstances(first: Int, after: String): ComponentInstanceConnection
+    componentInstances(first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
     issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata
     tag: String
+    repository: String
+    organization: String
 }
 
 input ComponentVersionInput {
   version: String
   componentId: String
   tag: String
+  repository: String
+  organization: String
 }
 
 type ComponentVersionConnection implements Connection {
@@ -41,6 +45,8 @@ input ComponentVersionFilter {
     serviceCcrn: [String]
     state: [StateFilter!]
     tag: [String]
+    repository: [String]
+    organization: [String]
 }
 
 input ComponentVersionOrderBy {

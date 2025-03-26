@@ -25,7 +25,7 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 	graphQLAPI := GraphQLAPI{
 		Server: handler.NewDefaultServer(graph.NewExecutableSchema(resolver.NewResolver(a))),
 		App:    a,
-		auth:   middleware.NewAuth(&cfg),
+		auth:   middleware.NewAuth(&cfg, true),
 	}
 	return &graphQLAPI
 }
