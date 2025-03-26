@@ -6,12 +6,14 @@ package test
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
 )
@@ -27,18 +29,25 @@ type TestServer struct {
 	ctx            context.Context
 	srv            *http.Server
 	lastRequestCtx context.Context
+	log            *logrus.Logger
 }
 
-func NewTestServer(auth *middleware.Auth) *TestServer {
+func NewTestServer(auth *middleware.Auth, enableLog bool) *TestServer {
 	port := util2.GetRandomFreePort()
+	log := logrus.New()
+	if !enableLog {
+		log.SetOutput(ioutil.Discard)
+	}
 	return &TestServer{
 		port: port,
 		auth: auth,
+		log:  log,
 	}
 }
 
 func (ts *TestServer) StartInBackground() {
 	ts.lastRequestCtx = context.TODO()
+	gin.DefaultWriter = ts.log.Writer()
 	r := gin.Default()
 	r.Use(ts.auth.Middleware())
 	r.GET(testEndpoint, func(c *gin.Context) {
@@ -49,21 +58,21 @@ func (ts *TestServer) StartInBackground() {
 	ts.ctx, ts.cancel = context.WithCancel(context.Background())
 
 	ts.srv = &http.Server{Addr: fmt.Sprintf(":%s", ts.port), Handler: r}
-	util2.FirstListenThenServe(ts.srv)
+	util2.FirstListenThenServe(ts.srv, ts.log)
 }
 
 func (ts *TestServer) Stop() {
-	fmt.Println("Shuting down the server...")
+	ts.log.Info("Shuting down the server...")
 	ts.cancel()
 
 	ctxTimeout, cancelTimeout := context.WithTimeout(ts.ctx, 5*time.Second)
 	defer cancelTimeout()
 
 	if err := ts.srv.Shutdown(ctxTimeout); err != nil {
-		fmt.Println("Server forced to shutdown: ", err)
+		ts.log.Error("Server forced to shutdown: ", err)
 	}
 
-	fmt.Println("Server exiting")
+	ts.log.Info("Server exiting")
 }
 
 func (ts *TestServer) Context() context.Context {

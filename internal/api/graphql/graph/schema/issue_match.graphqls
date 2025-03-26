@@ -38,7 +38,7 @@ input IssueMatchFilter {
     issueType: [IssueTypes]
     status: [IssueMatchStatusValues]
     severity: [SeverityValues]
-    affectedService: [String]
+    serviceCcrn: [String]
     supportGroupCcrn: [String]
     state: [StateFilter!]
 }

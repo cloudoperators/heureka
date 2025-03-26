@@ -119,7 +119,7 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 		l.WithField("event-step", "GetComponentInstances").Debug("Get Component Instances by ComponentVersionId")
 		componentInstances, err := db.GetComponentInstances(&entity.ComponentInstanceFilter{
 			ComponentVersionId: []*int64{&attachmentEvent.ComponentVersionID},
-		})
+		}, []entity.Order{})
 
 		if err != nil {
 			l.WithField("event-step", "GetComponentInstances").WithError(err).Error("Error while fetching ComponentInstances")
