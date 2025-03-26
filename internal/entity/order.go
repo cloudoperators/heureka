@@ -8,13 +8,24 @@ type OrderByField int
 const (
 	ComponentInstanceCcrn OrderByField = iota
 
+	ComponentVersionId
+
 	IssuePrimaryName
 
 	IssueMatchId
 	IssueMatchRating
 	IssueMatchTargetRemediationDate
 
+	CriticalCount
+	HighCount
+	MediumCount
+	LowCount
+	NoneCount
+
 	SupportGroupName
+
+	ServiceId
+	ServiceCcrn
 )
 
 type OrderDirection int

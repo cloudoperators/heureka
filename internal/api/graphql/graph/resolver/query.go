@@ -29,16 +29,16 @@ func (r *queryResolver) IssueMatchChanges(ctx context.Context, filter *model.Iss
 	return baseResolver.IssueMatchChangeBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) Services(ctx context.Context, filter *model.ServiceFilter, first *int, after *string) (*model.ServiceConnection, error) {
-	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, nil)
+func (r *queryResolver) Services(ctx context.Context, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
+	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
 func (r *queryResolver) Components(ctx context.Context, filter *model.ComponentFilter, first *int, after *string) (*model.ComponentConnection, error) {
 	return baseResolver.ComponentBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) ComponentVersions(ctx context.Context, filter *model.ComponentVersionFilter, first *int, after *string) (*model.ComponentVersionConnection, error) {
-	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, nil)
+func (r *queryResolver) ComponentVersions(ctx context.Context, filter *model.ComponentVersionFilter, first *int, after *string, orderBy []*model.ComponentVersionOrderBy) (*model.ComponentVersionConnection, error) {
+	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
 func (r *queryResolver) ComponentInstances(ctx context.Context, filter *model.ComponentInstanceFilter, first *int, after *string) (*model.ComponentInstanceConnection, error) {
@@ -99,6 +99,14 @@ func (r *queryResolver) ComponentInstanceFilterValues(ctx context.Context) (*mod
 
 func (r *queryResolver) ComponentFilterValues(ctx context.Context) (*model.ComponentFilterValue, error) {
 	return &model.ComponentFilterValue{}, nil
+}
+
+func (r *queryResolver) ScannerRunTagFilterValues(ctx context.Context) ([]*string, error) {
+	return baseResolver.ScannerRunTagFilterValues(r.App, ctx)
+}
+
+func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) (*model.ScannerRunConnection, error) {
+	return baseResolver.ScannerRuns(r.App, ctx, filter, first, after)
 }
 
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }

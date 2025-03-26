@@ -9,6 +9,7 @@ import (
 
 	cv "github.com/cloudoperators/heureka/internal/app/component_version"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -32,7 +33,7 @@ var _ = BeforeSuite(func() {
 
 func getComponentVersionFilter() *entity.ComponentVersionFilter {
 	return &entity.ComponentVersionFilter{
-		Paginated: entity.Paginated{
+		PaginatedX: entity.PaginatedX{
 			First: nil,
 			After: nil,
 		},
@@ -41,10 +42,10 @@ func getComponentVersionFilter() *entity.ComponentVersionFilter {
 
 var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVersions"), func() {
 	var (
-		db                     *mocks.MockDatabase
-		componenVersionService cv.ComponentVersionHandler
-		filter                 *entity.ComponentVersionFilter
-		options                *entity.ListOptions
+		db        *mocks.MockDatabase
+		cvHandler cv.ComponentVersionHandler
+		filter    *entity.ComponentVersionFilter
+		options   *entity.ListOptions
 	)
 
 	BeforeEach(func() {
@@ -57,13 +58,13 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetComponentVersions", filter).Return([]entity.ComponentVersion{}, nil)
+			db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
 			db.On("CountComponentVersions", filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
-			componenVersionService = cv.NewComponentVersionHandler(db, er)
-			res, err := componenVersionService.ListComponentVersions(filter, options)
+			cvHandler = cv.NewComponentVersionHandler(db, er)
+			res, err := cvHandler.ListComponentVersions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -75,18 +76,28 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			componentVersions := test.NNewFakeComponentVersionEntities(resElements)
-
-			var ids = lo.Map(componentVersions, func(cv entity.ComponentVersion, _ int) int64 { return cv.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			componentVersions := []entity.ComponentVersionResult{}
+			for _, cv := range test.NNewFakeComponentVersionEntities(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, cv))
+				componentVersions = append(componentVersions, entity.ComponentVersionResult{WithCursor: entity.WithCursor{Value: cursor}, ComponentVersion: lo.ToPtr(cv)})
 			}
-			db.On("GetComponentVersions", filter).Return(componentVersions, nil)
-			db.On("GetAllComponentVersionIds", filter).Return(ids, nil)
-			componenVersionService = cv.NewComponentVersionHandler(db, er)
-			res, err := componenVersionService.ListComponentVersions(filter, options)
+
+			var cursors = lo.Map(componentVersions, func(m entity.ComponentVersionResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *m.ComponentVersion))
+				return cursor
+			})
+
+			var i int64 = 0
+			for len(cursors) < dbElements {
+				i++
+				componentVersion := test.NewFakeComponentVersionEntity()
+				c, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, componentVersion))
+				cursors = append(cursors, c)
+			}
+			db.On("GetComponentVersions", filter, []entity.Order{}).Return(componentVersions, nil)
+			db.On("GetAllComponentVersionCursors", filter, []entity.Order{}).Return(cursors, nil)
+			cvHandler = cv.NewComponentVersionHandler(db, er)
+			res, err := cvHandler.ListComponentVersions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -96,6 +107,39 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
+	})
+	When("filtering by tag", func() {
+		It("filters results correctly", func() {
+			// Create test data with a specific tag
+			testTag := "test-filter-tag"
+			componentVersions := test.NNewFakeComponentVersionResults(3)
+			for i := range componentVersions {
+				componentVersions[i].Tag = testTag
+			}
+
+			// Set up the filter
+			tagFilter := getComponentVersionFilter()
+			tagFilter.Tag = []*string{&testTag}
+
+			// Mock database calls
+			db.On("GetComponentVersions", tagFilter, []entity.Order{}).Return(componentVersions, nil)
+			if options.ShowTotalCount {
+				db.On("CountComponentVersions", tagFilter).Return(int64(len(componentVersions)), nil)
+			}
+
+			// Execute the handler
+			cvHandler = cv.NewComponentVersionHandler(db, er)
+			result, err := cvHandler.ListComponentVersions(tagFilter, options)
+
+			// Verify results
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(len(result.Elements)).To(Equal(len(componentVersions)))
+
+			// Verify all results have the correct tag
+			for _, element := range result.Elements {
+				Expect(element.ComponentVersion.Tag).To(Equal(testTag))
+			}
+		})
 	})
 })
 
@@ -121,6 +165,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		By("setting fields", func() {
 			Expect(newComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
 			Expect(newComponentVersion.ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+			Expect(newComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
 		})
 	})
 })
@@ -129,18 +174,17 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 	var (
 		db                     *mocks.MockDatabase
 		componenVersionService cv.ComponentVersionHandler
-		componentVersion       entity.ComponentVersion
+		componentVersion       entity.ComponentVersionResult
 		filter                 *entity.ComponentVersionFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		componentVersion = test.NewFakeComponentVersionEntity()
+		componentVersion = test.NewFakeComponentVersionResult()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ComponentVersionFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -149,16 +193,18 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 
 	It("updates componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("UpdateComponentVersion", &componentVersion).Return(nil)
+		db.On("UpdateComponentVersion", componentVersion.ComponentVersion).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(db, er)
 		componentVersion.Version = "7.3.3.1"
+		componentVersion.Tag = "updated-tag"
 		filter.Id = []*int64{&componentVersion.Id}
-		db.On("GetComponentVersions", filter).Return([]entity.ComponentVersion{componentVersion}, nil)
-		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(&componentVersion)
+		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{componentVersion}, nil)
+		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(componentVersion.ComponentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
 			Expect(updatedComponentVersion.ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+			Expect(updatedComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
 		})
 	})
 })
@@ -175,10 +221,9 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ComponentVersionFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -189,12 +234,13 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(db, er)
-		db.On("GetComponentVersions", filter).Return([]entity.ComponentVersion{}, nil)
+		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
 		err := componenVersionService.DeleteComponentVersion(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		componentVersions, err := componenVersionService.ListComponentVersions(filter, &entity.ListOptions{})
+		lo := entity.NewListOptions()
+		componentVersions, err := componenVersionService.ListComponentVersions(filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(componentVersions.Elements).To(BeEmpty(), "no error should be thrown")
 	})

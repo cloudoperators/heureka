@@ -5,7 +5,7 @@ type SupportGroup implements Node {
     id: ID!
     ccrn: String
     users(filter: UserFilter, first: Int, after: String): UserConnection
-    services(filter: ServiceFilter, first: Int, after: String): ServiceConnection
+    services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     metadata: Metadata
 }
 

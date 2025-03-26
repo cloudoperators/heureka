@@ -78,6 +78,16 @@ func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
 	return order
 }
 
+func (so *ServiceOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *so.By {
+	case ServiceOrderByFieldCcrn:
+		order.By = entity.ServiceCcrn
+	}
+	order.Direction = so.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func NewPageInfo(p *entity.PageInfo) *PageInfo {
 	if p == nil {
 		return nil
@@ -197,6 +207,16 @@ func NewSeverityEntity(severity *SeverityInput) entity.Severity {
 	// both rating and vector or only vector was passed
 	// either way, use the vector as the primary source of information
 	return entity.NewSeverity(*severity.Vector)
+}
+
+func NewSeverityCounts(counts *entity.IssueSeverityCounts) SeverityCounts {
+	return SeverityCounts{
+		Critical: int(counts.Critical),
+		High:     int(counts.High),
+		Medium:   int(counts.Medium),
+		Low:      int(counts.Low),
+		None:     int(counts.None),
+	}
 }
 
 func NewIssue(issue *entity.Issue) Issue {
@@ -550,6 +570,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		ID:          fmt.Sprintf("%d", componentVersion.Id),
 		Version:     &componentVersion.Version,
 		ComponentID: util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
+		Tag:         &componentVersion.Tag,
 		Metadata:    getModelMetadata(componentVersion.Metadata),
 	}
 }
@@ -562,6 +583,7 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 	return entity.ComponentVersion{
 		Version:     lo.FromPtr(componentVersion.Version),
 		ComponentId: componentId,
+		Tag:         lo.FromPtr(componentVersion.Tag),
 	}
 }
 

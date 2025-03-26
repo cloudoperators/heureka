@@ -1,0 +1,72 @@
+[
+    {
+        "issue_id": 1,
+        "issue_repository_id": 1,
+        "rating": "Critical",
+        "secondary_name": "GHSA-2025-0000",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 2,
+        "issue_repository_id": 1,
+        "rating": "Critical",
+        "secondary_name": "GHSA-2025-0001",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 3,
+        "issue_repository_id": 1,
+        "rating": "High",
+        "secondary_name": "GHSA-2025-0002",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 4,
+        "issue_repository_id": 1,
+        "rating": "High",
+        "secondary_name": "GHSA-2025-0003",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 5,
+        "issue_repository_id": 1,
+        "rating": "Medium",
+        "secondary_name": "GHSA-2025-0004",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 6,
+        "issue_repository_id": 1,
+        "rating": "Medium",
+        "secondary_name": "GHSA-2025-0005",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 7,
+        "issue_repository_id": 1,
+        "rating": "Low",
+        "secondary_name": "GHSA-2025-0006",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 8,
+        "issue_repository_id": 1,
+        "rating": "Low",
+        "secondary_name": "GHSA-2025-0007",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 9,
+        "issue_repository_id": 1,
+        "rating": "None",
+        "secondary_name": "GHSA-2025-0008",
+        "description": "Authentication bypass vulnerability"
+    },
+    {
+        "issue_id": 10,
+        "issue_repository_id": 1,
+        "rating": "None",
+        "secondary_name": "GHSA-2025-0009",
+        "description": "Authentication bypass vulnerability"
+    }
+]

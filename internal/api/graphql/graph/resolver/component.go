@@ -15,8 +15,8 @@ import (
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *componentResolver) ComponentVersions(ctx context.Context, obj *model.Component, filter *model.ComponentVersionFilter, first *int, after *string) (*model.ComponentVersionConnection, error) {
-	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after,
+func (r *componentResolver) ComponentVersions(ctx context.Context, obj *model.Component, filter *model.ComponentVersionFilter, first *int, after *string, orderBy []*model.ComponentVersionOrderBy) (*model.ComponentVersionConnection, error) {
+	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, orderBy,
 		&model.NodeParent{
 			Parent:     obj,
 			ParentName: model.ComponentNodeName,

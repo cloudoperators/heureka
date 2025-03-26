@@ -10,6 +10,7 @@ type Database interface {
 	GetIssuesWithAggregations(*entity.IssueFilter) ([]entity.IssueWithAggregations, error)
 	CountIssues(*entity.IssueFilter) (int64, error)
 	CountIssueTypes(*entity.IssueFilter) (*entity.IssueTypeCounts, error)
+	CountIssueRatings(*entity.IssueFilter) (*entity.IssueSeverityCounts, error)
 	GetAllIssueIds(*entity.IssueFilter) ([]int64, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
@@ -52,8 +53,9 @@ type Database interface {
 	AddEvidenceToIssueMatch(int64, int64) error
 	RemoveEvidenceFromIssueMatch(int64, int64) error
 
-	GetServices(*entity.ServiceFilter) ([]entity.Service, error)
-	GetServicesWithAggregations(*entity.ServiceFilter) ([]entity.ServiceWithAggregations, error)
+	GetServices(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
+	GetServicesWithAggregations(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
+	GetAllServiceCursors(*entity.ServiceFilter, []entity.Order) ([]string, error)
 	GetAllServiceIds(*entity.ServiceFilter) ([]int64, error)
 	CountServices(*entity.ServiceFilter) (int64, error)
 	CreateService(*entity.Service) (*entity.Service, error)
@@ -120,15 +122,21 @@ type Database interface {
 	UpdateComponent(*entity.Component) error
 	DeleteComponent(int64, int64) error
 
-	GetComponentVersions(*entity.ComponentVersionFilter) ([]entity.ComponentVersion, error)
+	GetComponentVersions(*entity.ComponentVersionFilter, []entity.Order) ([]entity.ComponentVersionResult, error)
+	GetAllComponentVersionCursors(*entity.ComponentVersionFilter, []entity.Order) ([]string, error)
 	GetAllComponentVersionIds(*entity.ComponentVersionFilter) ([]int64, error)
 	CountComponentVersions(*entity.ComponentVersionFilter) (int64, error)
 	CreateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)
 	UpdateComponentVersion(*entity.ComponentVersion) error
 	DeleteComponentVersion(int64, int64) error
 
-	CreateScannerRun(*entity.ScannerRun) (*entity.ScannerRun, error)
+	CreateScannerRun(*entity.ScannerRun) (bool, error)
 	CompleteScannerRun(string) (bool, error)
+	FailScannerRun(string, string) (bool, error)
+	ScannerRunByUUID(string) (*entity.ScannerRun, error)
+	GetScannerRuns(*entity.ScannerRunFilter) ([]entity.ScannerRun, error)
+	GetScannerRunTags() ([]string, error)
+	CountScannerRuns(*entity.ScannerRunFilter) (int, error)
 
 	CloseConnection() error
 }

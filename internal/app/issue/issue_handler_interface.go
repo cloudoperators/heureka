@@ -13,4 +13,5 @@ type IssueHandler interface {
 	AddComponentVersionToIssue(int64, int64) (*entity.Issue, error)
 	RemoveComponentVersionFromIssue(int64, int64) (*entity.Issue, error)
 	ListIssueNames(*entity.IssueFilter, *entity.ListOptions) ([]string, error)
+	GetIssueSeverityCounts(*entity.IssueFilter) (*entity.IssueSeverityCounts, error)
 }

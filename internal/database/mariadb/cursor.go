@@ -129,3 +129,39 @@ func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
 		return nil
 	}
 }
+
+func WithService(order []entity.Order, s entity.Service) NewCursor {
+
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.ServiceId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ServiceId, Value: s.Id, Order: o.Direction})
+			case entity.ServiceCcrn:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ServiceCcrn, Value: s.CCRN, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+
+		return nil
+	}
+}
+
+func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion) NewCursor {
+
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.ComponentVersionId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionId, Value: cv.Id, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+
+		return nil
+	}
+}

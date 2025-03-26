@@ -11,7 +11,8 @@ import (
 func NewFakeComponentVersionEntity() entity.ComponentVersion {
 	return entity.ComponentVersion{
 		Id:                 int64(gofakeit.Number(1, 10000000)),
-		Version:            gofakeit.AppVersion(),
+		Version:            gofakeit.Regex("^sha:[a-fA-F0-9]{64}$"),
+		Tag:                gofakeit.AppVersion(),
 		ComponentId:        0,
 		ComponentInstances: nil,
 		Issues:             nil,
@@ -27,6 +28,21 @@ func NNewFakeComponentVersionEntities(n int) []entity.ComponentVersion {
 	r := make([]entity.ComponentVersion, n)
 	for i := 0; i < n; i++ {
 		r[i] = NewFakeComponentVersionEntity()
+	}
+	return r
+}
+
+func NewFakeComponentVersionResult() entity.ComponentVersionResult {
+	componentVersion := NewFakeComponentVersionEntity()
+	return entity.ComponentVersionResult{
+		ComponentVersion: &componentVersion,
+	}
+}
+
+func NNewFakeComponentVersionResults(n int) []entity.ComponentVersionResult {
+	r := make([]entity.ComponentVersionResult, n)
+	for i := 0; i < n; i++ {
+		r[i] = NewFakeComponentVersionResult()
 	}
 	return r
 }

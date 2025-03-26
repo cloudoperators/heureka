@@ -29,7 +29,7 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 		Id: parent.ChildIds,
 	}
 
-	opt := &entity.ListOptions{}
+	opt := entity.NewListOptions()
 
 	issueMatches, err := app.ListIssueMatches(f, opt)
 
@@ -64,6 +64,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	var eId []*int64
 	var ciId []*int64
 	var issueId []*int64
+	var serviceId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -79,6 +80,8 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 			ciId = []*int64{pid}
 		case model.IssueNodeName:
 			issueId = []*int64{pid}
+		case model.ServiceNodeName:
+			serviceId = []*int64{pid}
 		}
 	}
 
@@ -99,12 +102,13 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	f := &entity.IssueMatchFilter{
 		Id:                  issue_match_ids,
 		PaginatedX:          entity.PaginatedX{First: first, After: after},
-		AffectedServiceCCRN: filter.AffectedService,
+		ServiceCCRN:         filter.ServiceCcrn,
 		Status:              lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
 		SeverityValue:       lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
 		SupportGroupCCRN:    filter.SupportGroupCcrn,
 		IssueId:             issueId,
 		EvidenceId:          eId,
+		ServiceId:           serviceId,
 		ComponentInstanceId: ciId,
 		Search:              filter.Search,
 		ComponentCCRN:       filter.ComponentCcrn,

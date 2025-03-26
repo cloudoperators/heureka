@@ -5,7 +5,7 @@ package component_version
 
 import (
 	"errors"
-	"fmt"
+
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
@@ -37,36 +37,18 @@ func (e *ComponentVersionHandlerError) Error() string {
 	return e.message
 }
 
-func (cv *componentVersionHandler) getComponentVersionResults(filter *entity.ComponentVersionFilter) ([]entity.ComponentVersionResult, error) {
-	var componentVersionResults []entity.ComponentVersionResult
-	componentVersions, err := cv.database.GetComponentVersions(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, cv := range componentVersions {
-		componentVersion := cv
-		cursor := fmt.Sprintf("%d", componentVersion.Id)
-		componentVersionResults = append(componentVersionResults, entity.ComponentVersionResult{
-			WithCursor:                   entity.WithCursor{Value: cursor},
-			ComponentVersionAggregations: nil,
-			ComponentVersion:             &componentVersion,
-		})
-	}
-	return componentVersionResults, nil
-}
-
 func (cv *componentVersionHandler) ListComponentVersions(filter *entity.ComponentVersionFilter, options *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginated(&filter.Paginated)
+	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListComponentVersionsEventName,
 		"filter": filter,
 	})
 
-	res, err := cv.getComponentVersionResults(filter)
+	res, err := cv.database.GetComponentVersions(filter, options.Order)
 
 	if err != nil {
 		l.Error(err)
@@ -75,13 +57,13 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := cv.database.GetAllComponentVersionIds(filter)
+			cursors, err := cv.database.GetAllComponentVersionCursors(filter, options.Order)
 			if err != nil {
 				l.Error(err)
-				return nil, NewComponentVersionHandlerError("Error while getting all Ids")
+				return nil, NewComponentVersionHandlerError("Error while getting all cursors")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = cv.database.CountComponentVersions(filter)
@@ -91,21 +73,19 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 		}
 	}
 
-	cv.eventRegistry.PushEvent(&ListComponentVersionsEvent{
-		Filter:  filter,
-		Options: options,
-		ComponentVersions: &entity.List[entity.ComponentVersionResult]{
-			TotalCount: &count,
-			PageInfo:   pageInfo,
-			Elements:   res,
-		},
-	})
-
-	return &entity.List[entity.ComponentVersionResult]{
+	ret := &entity.List[entity.ComponentVersionResult]{
 		TotalCount: &count,
 		PageInfo:   pageInfo,
 		Elements:   res,
-	}, nil
+	}
+
+	cv.eventRegistry.PushEvent(&ListComponentVersionsEvent{
+		Filter:            filter,
+		Options:           options,
+		ComponentVersions: ret,
+	})
+
+	return ret, nil
 }
 
 func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
@@ -160,7 +140,8 @@ func (cv *componentVersionHandler) UpdateComponentVersion(componentVersion *enti
 		return nil, NewComponentVersionHandlerError("Internal error while updating componentVersion.")
 	}
 
-	componentVersionResult, err := cv.ListComponentVersions(&entity.ComponentVersionFilter{Id: []*int64{&componentVersion.Id}}, &entity.ListOptions{})
+	lo := entity.NewListOptions()
+	componentVersionResult, err := cv.ListComponentVersions(&entity.ComponentVersionFilter{Id: []*int64{&componentVersion.Id}}, lo)
 
 	if err != nil {
 		l.Error(err)

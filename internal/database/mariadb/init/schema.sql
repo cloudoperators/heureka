@@ -62,6 +62,7 @@ create table if not exists ComponentVersion
         primary key,
     componentversion_version      varchar(255)                          not null,
     componentversion_component_id int unsigned                          not null,
+    componentversion_tag          varchar(255)                          null,
     componentversion_created_at   timestamp default current_timestamp() not null,
     componentversion_created_by   int unsigned                          null,
     componentversion_deleted_at   timestamp                             null,
@@ -475,6 +476,15 @@ create table if not exists ScannerRunIssueTracker
     scannerrunissuetracker_scannerrun_run_id int unsigned not null,
     scannerrunissuetracker_issue_id  int unsigned not null,
 
-    constraint fk_run_id foreign key (scannerrunissuetracker_scannerrun_run_id) references ScannerRun (scannerrun_run_id) on update cascade,
-    constraint fk_issue_id foreign key (scannerrunissuetracker_issue_id) references Issue (issue_id) on update cascade
+    constraint fk_srit_sr_id foreign key (scannerrunissuetracker_scannerrun_run_id) references ScannerRun (scannerrun_run_id) on update cascade,
+    constraint fk_srit_i_id foreign key (scannerrunissuetracker_issue_id) references Issue (issue_id) on update cascade
+);
+
+
+create table if not exists ScannerRunError
+(
+    scannerrunerror_scannerrun_run_id int unsigned not null,
+    error                             text not null,
+
+    constraint fk_sre_sr_id foreign key (scannerrunerror_scannerrun_run_id) references ScannerRun (scannerrun_run_id) on update cascade
 );

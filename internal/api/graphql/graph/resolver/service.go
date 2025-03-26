@@ -55,6 +55,13 @@ func (r *serviceResolver) ComponentInstances(ctx context.Context, obj *model.Ser
 		})
 }
 
+func (r *serviceResolver) IssueMatches(ctx context.Context, obj *model.Service, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
+	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
+		Parent:     obj,
+		ParentName: model.ServiceNodeName,
+	})
+}
+
 func (r *Resolver) Service() graph.ServiceResolver { return &serviceResolver{r} }
 
 type serviceResolver struct{ *Resolver }
