@@ -400,18 +400,21 @@ func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
 
 	return err
 }
-func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error) {
+
+func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.ComponentInstanceFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetCcrn",
+		"event":  "database.getComponentInstanceAttr",
 	})
 
 	baseQuery := `
-    SELECT CI.componentinstance_ccrn FROM ComponentInstance CI 
+    SELECT CI.componentinstance_%s FROM ComponentInstance CI
     %s
     %s
     ORDER BY %s
     `
+
+	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
 	filter = s.ensureComponentInstanceFilter(filter)
@@ -437,19 +440,43 @@ func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string,
 	defer rows.Close()
 
 	// Collect the results
-	ccrn := []string{}
+	attrVal := []string{}
 	var name string
 	for rows.Next() {
 		if err := rows.Scan(&name); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
-		ccrn = append(ccrn, name)
+		attrVal = append(attrVal, name)
 	}
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
 	}
 
-	return ccrn, nil
+	return attrVal, nil
+}
+
+func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("ccrn", filter)
+}
+
+func (s *SqlDatabase) GetRegion(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("region", filter)
+}
+
+func (s *SqlDatabase) GetCluster(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("cluster", filter)
+}
+
+func (s *SqlDatabase) GetNamespace(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("namespace", filter)
+}
+
+func (s *SqlDatabase) GetDomain(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("domain", filter)
+}
+
+func (s *SqlDatabase) GetProject(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("project", filter)
 }
