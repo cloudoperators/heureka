@@ -1312,8 +1312,8 @@ func NewFakeComponentVersion() mariadb.ComponentVersionRow {
 	}
 }
 
-func GenerateFakeCcrn(region string, cluster string, namespace string, domain string, project string) string {
-	return fmt.Sprintf("ccrn: s=kubernetes, v=v1, r=%s, d=%s, p=%s, o=gardener, res=PodInstance, c=%s, n=%s, id=audit-logger-xe9mtzmq8l-cmbp6", region, domain, project, cluster, namespace)
+func GenerateFakeCcrn(cluster string, namespace string) string {
+	return fmt.Sprintf("ccrn: apiVersion=k8s-registry.ccrn.sap.cloud/v1, kind=container, cluster=%s, namespace=%s, name=audit-logger-xe9mtzmq8l-cmbp6", cluster, namespace)
 }
 
 func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
@@ -1327,7 +1327,7 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	domain := gofakeit.UUID()
 	project := gofakeit.UUID()
 	return mariadb.ComponentInstanceRow{
-		CCRN:      sql.NullString{String: GenerateFakeCcrn(region, cluster, namespace, domain, project), Valid: true},
+		CCRN:      sql.NullString{String: GenerateFakeCcrn(cluster, namespace), Valid: true},
 		Region:    sql.NullString{String: region, Valid: true},
 		Cluster:   sql.NullString{String: cluster, Valid: true},
 		Namespace: sql.NullString{String: namespace, Valid: true},
