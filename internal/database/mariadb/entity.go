@@ -563,27 +563,27 @@ func (cr *ComponentRow) FromComponent(c *entity.Component) {
 }
 
 type ComponentVersionRow struct {
-	Id          sql.NullInt64  `db:"componentversion_id" json:"id"`
-	Version     sql.NullString `db:"componentversion_version" json:"version"`
-	Tag         sql.NullString `db:"componentversion_tag" json:"tag"`
-	Repository  sql.NullString `db:"componentversion_repository" json:"repository"`
+	Id           sql.NullInt64  `db:"componentversion_id" json:"id"`
+	Version      sql.NullString `db:"componentversion_version" json:"version"`
+	Tag          sql.NullString `db:"componentversion_tag" json:"tag"`
+	Repository   sql.NullString `db:"componentversion_repository" json:"repository"`
 	Organization sql.NullString `db:"componentversion_organization" json:"organization"`
-	ComponentId sql.NullInt64  `db:"componentversion_component_id"`
-	CreatedAt   sql.NullTime   `db:"componentversion_created_at" json:"created_at"`
-	CreatedBy   sql.NullInt64  `db:"componentversion_created_by" json:"created_by"`
-	DeletedAt   sql.NullTime   `db:"componentversion_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt   sql.NullTime   `db:"componentversion_updated_at" json:"updated_at"`
-	UpdatedBy   sql.NullInt64  `db:"componentversion_updated_by" json:"updated_by"`
+	ComponentId  sql.NullInt64  `db:"componentversion_component_id"`
+	CreatedAt    sql.NullTime   `db:"componentversion_created_at" json:"created_at"`
+	CreatedBy    sql.NullInt64  `db:"componentversion_created_by" json:"created_by"`
+	DeletedAt    sql.NullTime   `db:"componentversion_deleted_at" json:"deleted_at,omitempty"`
+	UpdatedAt    sql.NullTime   `db:"componentversion_updated_at" json:"updated_at"`
+	UpdatedBy    sql.NullInt64  `db:"componentversion_updated_by" json:"updated_by"`
 }
 
 func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 	return entity.ComponentVersion{
-		Id:          GetInt64Value(cvr.Id),
-		Version:     GetStringValue(cvr.Version),
-		Tag:         GetStringValue(cvr.Tag),
-		Repository:  GetStringValue(cvr.Repository),
+		Id:           GetInt64Value(cvr.Id),
+		Version:      GetStringValue(cvr.Version),
+		Tag:          GetStringValue(cvr.Tag),
+		Repository:   GetStringValue(cvr.Repository),
 		Organization: GetStringValue(cvr.Organization),
-		ComponentId: GetInt64Value(cvr.ComponentId),
+		ComponentId:  GetInt64Value(cvr.ComponentId),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cvr.CreatedAt),
 			CreatedBy: GetInt64Value(cvr.CreatedBy),
