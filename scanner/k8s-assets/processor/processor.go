@@ -19,8 +19,9 @@ import (
 )
 
 type Processor struct {
-	Client *graphql.Client
-	config Config
+	Client    *graphql.Client
+	config    Config
+	advConfig *AdvancedConfig
 }
 
 type CCRN struct {
@@ -73,9 +74,14 @@ func (c CCRN) String() string {
 func NewProcessor(cfg Config) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
+	advCfg, err := cfg.LoadAdvancedConfig()
+	if err != nil {
+		log.WithError(err).Error("failed to load advanced config")
+	}
 	return &Processor{
-		config: cfg,
-		Client: &gClient,
+		config:    cfg,
+		Client:    &gClient,
+		advConfig: advCfg,
 	}
 }
 
@@ -319,6 +325,24 @@ func (p *Processor) ProcessContainer(
 		componentVersionId  string
 		componentInstanceId string
 	)
+
+	if p.advConfig != nil {
+
+		if podSideCar, ok := p.advConfig.GetSideCar(containerInfo.Name); ok {
+			// get the service id
+			sid, err := p.ProcessService(ctx, scanner.ServiceInfo{
+				SupportGroup: podSideCar.SupportGroup,
+				CCRN:         podSideCar.ServiceName,
+			})
+			if err != nil {
+				log.WithError(err).Error("failed to process service")
+			} else {
+				//overwrite the ServiceID for the component instance
+				serviceID = sid
+			}
+		}
+	}
+
 	// Create new CCRN
 	ccrn := CCRN{
 		Region:    p.config.RegionName,
@@ -379,7 +403,14 @@ func (p *Processor) ProcessContainer(
 			"id": containerInfo.ImageHash,
 		}).Info("ComponentVersion not found")
 
-		componentVersionId, err = p.createComponentVersion(ctx, iv.Version, componentId, containerInfo.ImageTag)
+		componentVersionId, err = p.createComponentVersion(
+			ctx,
+			iv.Version,
+			componentId,
+			containerInfo.ImageTag,
+			containerInfo.ImageRepository,
+			containerInfo.ImageAccount,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to create ComponentVersion: %w", err)
 		}
@@ -392,6 +423,7 @@ func (p *Processor) ProcessContainer(
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
 	}
+
 	if err == nil {
 		componentInstanceId, err = p.updateComponentInstance(ctx, componentInstanceId, input)
 		if err != nil {
@@ -436,11 +468,20 @@ func (p *Processor) createComponent(ctx context.Context, input *client.Component
 }
 
 // createComponentVersion create a new ComponentVersion based on a container image hash
-func (p *Processor) createComponentVersion(ctx context.Context, version string, componentId string, tag string) (string, error) {
+func (p *Processor) createComponentVersion(
+	ctx context.Context,
+	version string,
+	componentId string,
+	tag string,
+	repository string,
+	organization string,
+) (string, error) {
 	componentVersionInput := &client.ComponentVersionInput{
-		Version:     version,
-		ComponentId: componentId,
-		Tag:         tag,
+		Version:      version,
+		ComponentId:  componentId,
+		Tag:          tag,
+		Repository:   repository,
+		Organization: organization,
 	}
 	createCompVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, componentVersionInput)
 	if err != nil {
@@ -452,6 +493,8 @@ func (p *Processor) createComponentVersion(ctx context.Context, version string, 
 	log.WithFields(log.Fields{
 		"componentVersionId": createCompVersionResp.CreateComponentVersion.Id,
 		"tag":                tag,
+		"repository":         repository,
+		"organization":       organization,
 	}).Info("ComponentVersion created")
 
 	return createCompVersionResp.CreateComponentVersion.Id, nil

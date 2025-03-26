@@ -141,6 +141,72 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 		})
 	})
+	When("filtering by repository", func() {
+		It("filters results correctly", func() {
+			// Create test data with a specific repository
+			testRepo := "test-filter-repo"
+			componentVersions := test.NNewFakeComponentVersionResults(3)
+			for i := range componentVersions {
+				componentVersions[i].Repository = testRepo
+			}
+
+			// Set up the filter
+			repoFilter := getComponentVersionFilter()
+			repoFilter.Repository = []*string{&testRepo}
+
+			// Mock database calls
+			db.On("GetComponentVersions", repoFilter, []entity.Order{}).Return(componentVersions, nil)
+			if options.ShowTotalCount {
+				db.On("CountComponentVersions", repoFilter).Return(int64(len(componentVersions)), nil)
+			}
+
+			// Execute the handler
+			cvHandler = cv.NewComponentVersionHandler(db, er)
+			result, err := cvHandler.ListComponentVersions(repoFilter, options)
+
+			// Verify results
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(len(result.Elements)).To(Equal(len(componentVersions)))
+
+			// Verify all results have the correct repository
+			for _, element := range result.Elements {
+				Expect(element.ComponentVersion.Repository).To(Equal(testRepo))
+			}
+		})
+	})
+	When("filtering by organization", func() {
+		It("filters results correctly", func() {
+			// Create test data with a specific organization
+			testOrg := "test-filter-org"
+			componentVersions := test.NNewFakeComponentVersionResults(3)
+			for i := range componentVersions {
+				componentVersions[i].Organization = testOrg
+			}
+
+			// Set up the filter
+			orgFilter := getComponentVersionFilter()
+			orgFilter.Organization = []*string{&testOrg}
+
+			// Mock database calls
+			db.On("GetComponentVersions", orgFilter, []entity.Order{}).Return(componentVersions, nil)
+			if options.ShowTotalCount {
+				db.On("CountComponentVersions", orgFilter).Return(int64(len(componentVersions)), nil)
+			}
+
+			// Execute the handler
+			cvHandler = cv.NewComponentVersionHandler(db, er)
+			result, err := cvHandler.ListComponentVersions(orgFilter, options)
+
+			// Verify results
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(len(result.Elements)).To(Equal(len(componentVersions)))
+
+			// Verify all results have the correct organization
+			for _, element := range result.Elements {
+				Expect(element.ComponentVersion.Organization).To(Equal(testOrg))
+			}
+		})
+	})
 })
 
 var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponentVersion"), func() {

@@ -11,12 +11,16 @@ type ComponentVersion implements Node {
     issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata
     tag: String
+    repository: String
+    organization: String
 }
 
 input ComponentVersionInput {
   version: String
   componentId: String
   tag: String
+  repository: String
+  organization: String
 }
 
 type ComponentVersionConnection implements Connection {
@@ -41,6 +45,8 @@ input ComponentVersionFilter {
     serviceCcrn: [String]
     state: [StateFilter!]
     tag: [String]
+    repository: [String]
+    organization: [String]
 }
 
 input ComponentVersionOrderBy {
