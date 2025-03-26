@@ -186,6 +186,24 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 							}
 						}
 					}
+
+					if cv.Node.Repository != nil {
+						// If there's a repository value in the database, verify it matches
+						for _, row := range seedCollection.ComponentVersionRows {
+							if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Repository.Valid {
+								Expect(*cv.Node.Repository).To(Equal(row.Repository.String))
+							}
+						}
+					}
+
+					if cv.Node.Organization != nil {
+						// If there's an organization value in the database, verify it matches
+						for _, row := range seedCollection.ComponentVersionRows {
+							if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Organization.Valid {
+								Expect(*cv.Node.Organization).To(Equal(row.Organization.String))
+							}
+						}
+					}
 				}
 			})
 			It("- returns the expected PageInfo", func() {
