@@ -110,7 +110,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 	}, nil
 }
 
-func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID string) (*entity.ComponentInstance, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentInstanceEventName,
 		"object": componentInstance,
@@ -125,6 +125,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 	componentInstance.UpdatedBy = componentInstance.CreatedBy
 
 	newComponentInstance, err := ci.database.CreateComponentInstance(componentInstance)
+	ci.database.CreateScannerRunComponentInstanceTracker(newComponentInstance.Id, scannerRunUUID)
 
 	if err != nil {
 		l.Error(err)

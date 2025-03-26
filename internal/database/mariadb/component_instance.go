@@ -382,3 +382,24 @@ func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string,
 
 	return ccrn, nil
 }
+
+func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {
+	query := `
+        INSERT INTO scanner_run_component_instance_tracker (
+			component_instance_id, 
+			scannerruncomponentinstance_scannerrun_run_id
+		)
+        VALUES (?, ?)
+    `
+
+	sr, err := s.ScannerRunByUUID(scannerRunUUID)
+
+	if err != nil {
+		return fmt.Errorf("failed to create scanner run component instance tracker: %w", err)
+	}
+	_, err = s.db.Exec(query, componentInstanceId, sr.RunID)
+	if err != nil {
+		return fmt.Errorf("failed to create scanner run component instance tracker: %w", err)
+	}
+	return nil
+}
