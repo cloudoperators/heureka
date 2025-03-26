@@ -8,7 +8,7 @@ type Service implements Node {
     supportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     issueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
-    componentInstances(filter: ComponentInstanceFilter, first: Int, after: String): ComponentInstanceConnection
+    componentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     objectMetadata: ServiceMetadata
     metadata: Metadata

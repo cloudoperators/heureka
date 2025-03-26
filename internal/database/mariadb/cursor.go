@@ -149,6 +149,33 @@ func WithService(order []entity.Order, s entity.Service) NewCursor {
 	}
 }
 
+func WithComponentInstance(order []entity.Order, ci entity.ComponentInstance) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.ComponentInstanceId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.ComponentInstanceId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceId, Value: ci.Id, Order: o.Direction})
+			case entity.ComponentInstanceCcrn:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceCcrn, Value: ci.CCRN, Order: o.Direction})
+			case entity.ComponentInstanceRegion:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceRegion, Value: ci.Region, Order: o.Direction})
+			case entity.ComponentInstanceCluster:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceCluster, Value: ci.Cluster, Order: o.Direction})
+			case entity.ComponentInstanceNamespace:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceNamespace, Value: ci.Namespace, Order: o.Direction})
+			case entity.ComponentInstanceDomain:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceDomain, Value: ci.Domain, Order: o.Direction})
+			case entity.ComponentInstanceProject:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceProject, Value: ci.Project, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}
+
 func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion) NewCursor {
 
 	return func(cursors *cursors) error {
@@ -161,7 +188,6 @@ func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion) NewC
 				continue
 			}
 		}
-
 		return nil
 	}
 }

@@ -20,8 +20,11 @@ import (
 )
 
 const (
-	clientId     = "mock-client-id"
-	testUserName = "dummyUserName"
+	clientId                = "mock-client-id"
+	testUserName            = "dummyUserName"
+	enableOidcProviderLog   = false
+	enableOidcMiddlewareLog = false
+	enableOidcServerLog     = false
 )
 
 var _ = Describe("Pass OIDC token data via context when using OIDC auth middleware", Label("api", "OidcAuthorization"), func() {
@@ -31,11 +34,11 @@ var _ = Describe("Pass OIDC token data via context when using OIDC auth middlewa
 
 	BeforeEach(func() {
 		oidcProviderUrl := fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
-		oidcProvider = oidc.NewProvider(oidcProviderUrl)
+		oidcProvider = oidc.NewProvider(oidcProviderUrl, enableOidcProviderLog)
 		oidcProvider.Start()
 
-		a := middleware.NewAuth(&util.Config{AuthOidcUrl: oidcProviderUrl, AuthOidcClientId: clientId})
-		testServer = test.NewTestServer(a)
+		a := middleware.NewAuth(&util.Config{AuthOidcUrl: oidcProviderUrl, AuthOidcClientId: clientId}, enableOidcMiddlewareLog)
+		testServer = test.NewTestServer(a, enableOidcServerLog)
 		testServer.StartInBackground()
 
 		oidcTokenStringHandler = test.CreateOidcTokenStringHandler(oidcProviderUrl, clientId, testUserName)
