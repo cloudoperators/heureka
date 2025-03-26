@@ -70,17 +70,17 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 	})
 
 	Context("when handling a single component instance", func() {
-		var componentInstance entity.ComponentInstance
+		var componentInstance entity.ComponentInstanceResult
 
 		BeforeEach(func() {
-			componentInstance = test.NewFakeComponentInstanceEntity()
+			componentInstance = test.NewFakeComponentInstanceResult()
 			componentInstance.Id = 58708
 			componentInstance.ComponentVersionId = componentVersion.Id
 
 			// // Setup mock expectations for happy path
 			db.On("GetComponentInstances", &entity.ComponentInstanceFilter{
 				ComponentVersionId: []*int64{&componentVersion.Id},
-			}).Return([]entity.ComponentInstance{componentInstance}, nil)
+			}, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
 		})
 
 		It("creates an issue match for the component instance", func() {

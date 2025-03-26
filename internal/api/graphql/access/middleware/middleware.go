@@ -5,6 +5,7 @@ package middleware
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 
@@ -16,8 +17,8 @@ import (
 	. "github.com/cloudoperators/heureka/internal/api/graphql/access/auth"
 )
 
-func NewAuth(cfg *util.Config) *Auth {
-	l := newLogger()
+func NewAuth(cfg *util.Config, enableLog bool) *Auth {
+	l := newLogger(enableLog)
 	auth := Auth{logger: l}
 	auth.appendInstance(NewTokenAuthMethod(l, cfg))
 	auth.appendInstance(NewOidcAuthMethod(l, cfg))
@@ -64,6 +65,10 @@ func (a *Auth) appendInstance(am authMethod) {
 	}
 }
 
-func newLogger() *logrus.Logger {
-	return logrus.New()
+func newLogger(enableLog bool) *logrus.Logger {
+	l := logrus.New()
+	if !enableLog {
+		l.SetOutput(ioutil.Discard)
+	}
+	return l
 }

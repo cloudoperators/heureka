@@ -11,11 +11,13 @@ import (
 	"github.com/cloudoperators/heureka/pkg/oidc"
 )
 
+const enableLog = true
+
 func main() {
 	url := os.Getenv("OIDC_PROVIDER_URL")
 	if url == "" {
 		log.Fatal("Could not start OIDC provider. OIDC_PROVIDER_URL is not set.")
 	}
-    oidcProvider := oidc.NewProvider(url)
+    oidcProvider := oidc.NewProvider(url, enableLog)
     oidcProvider.StartForeground()
 }
