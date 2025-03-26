@@ -13,20 +13,20 @@ import (
 
 // FirstListenThenServe is a utility function that ensures that first a listener is spin up then the http server is setup for serving asynchronously
 // this is requried to ensure in tests that the server is spinned up before jumping to tests.
-func FirstListenThenServe(srv *http.Server) {
+func FirstListenThenServe(srv *http.Server, log *logrus.Logger) {
 	var waitGroup sync.WaitGroup
 	waitGroup.Add(1)
 	go func() {
-		logrus.Info("Starting Non Blocking HTTP Server...")
+		log.Info("Starting Non Blocking HTTP Server...")
 		ln, err := net.Listen("tcp", srv.Addr)
 		if err != nil {
-			logrus.WithError(err).Fatalf("Error while start listening...")
+			log.WithError(err).Fatalf("Error while start listening...")
 		}
 		go func() {
 			waitGroup.Done()
 		}()
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			logrus.WithError(err).Fatalf("Error while serving HTTP Server.")
+			log.WithError(err).Fatalf("Error while serving HTTP Server.")
 		}
 	}()
 	waitGroup.Wait()
