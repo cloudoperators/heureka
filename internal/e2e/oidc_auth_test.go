@@ -5,7 +5,6 @@ package e2e_test
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/server"
@@ -18,13 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func getHostname() string {
-	hostname, err := os.Hostname()
-	if err != nil {
-		return "localhost"
-	}
-	return hostname
-}
+const enableOidcProviderLog = false
 
 var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), func() {
 	var oidcProvider *oidc.Provider
@@ -42,10 +35,10 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 		cfg.Port = util2.GetRandomFreePort()
 		cfg.AuthOidcClientId = "mock-client-id"
 		cfg.AuthOidcUrl = fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
-		oidcProvider = oidc.NewProvider(cfg.AuthOidcUrl)
+		oidcProvider = oidc.NewProvider(cfg.AuthOidcUrl, enableOidcProviderLog)
 		oidcProvider.Start()
 
-		queryUrl = fmt.Sprintf("http://%s:%s/query", getHostname(), cfg.Port)
+		queryUrl = fmt.Sprintf("http://localhost:%s/query", cfg.Port)
 		s = server.NewServer(cfg)
 		s.NonBlockingStart()
 

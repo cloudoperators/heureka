@@ -16,16 +16,18 @@ import (
 )
 
 const (
-	testScannerName = "testAccessScanner"
-	authTokenSecret = "xxx"
+	testScannerName          = "testAccessScanner"
+	authTokenSecret          = "xxx"
+	enableTokenMiddlewareLog = false
+	enableTokenServerLog     = false
 )
 
 var _ = Describe("Pass token data via context when using token auth middleware", Label("api", "TokenAuthorization"), func() {
 	var testServer *test.TestServer
 
 	BeforeEach(func() {
-		a := middleware.NewAuth(&util.Config{AuthTokenSecret: authTokenSecret})
-		testServer = test.NewTestServer(a)
+		a := middleware.NewAuth(&util.Config{AuthTokenSecret: authTokenSecret}, enableTokenMiddlewareLog)
+		testServer = test.NewTestServer(a, enableTokenServerLog)
 		testServer.StartInBackground()
 	})
 
