@@ -1323,9 +1323,10 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	}
 	region := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"})
 	cluster := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1", "a-test-de-1", "a-test-de-2", "a-test-us-1", "a-test-jp-2", "a-test-jp-1", "v-test-de-1", "v-test-de-2", "v-test-us-1", "v-test-jp-2", "v-test-jp-1", "s-test-de-1", "s-test-de-2", "s-test-us-1", "s-test-jp-2", "s-test-jp-1"})
-	namespace := gofakeit.ProductName()
-	domain := gofakeit.SongName()
-	project := gofakeit.BeerName()
+	//make lower case to avoid conflicts in different lexicographical ordering between sql and golang due to collation
+	namespace := strings.ToLower(gofakeit.ProductName())
+	domain := strings.ToLower(gofakeit.SongName())
+	project := strings.ToLower(gofakeit.BeerName())
 	return mariadb.ComponentInstanceRow{
 		CCRN:      sql.NullString{String: GenerateFakeCcrn(cluster, namespace), Valid: true},
 		Region:    sql.NullString{String: region, Valid: true},
