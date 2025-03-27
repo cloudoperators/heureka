@@ -83,7 +83,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 	})
 
 	It("should handle concurrent event pushing", func() {
-		const numEvents = 1000
+		const numEvents = 1000000
 		var eventHandled int64
 
 		handler := func(db database.Database, e Event) {
