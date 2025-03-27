@@ -82,11 +82,12 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		Expect(atomic.LoadInt32(&eventHandled)).To(Equal(int32(2)))
 	})
 
-	It("should handle concurrent event pushing", func() {
-		const numEvents = 1000000
+	It("should handle massive event counts with process overlap", func() {
+		const numEvents = 10000
 		var eventHandled int64
 
 		handler := func(db database.Database, e Event) {
+			time.Sleep(2 * time.Millisecond) //important to ensure that the events are shortly blocking and force channel resizing
 			atomic.AddInt64(&eventHandled, 1)
 		}
 
@@ -104,10 +105,24 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 		wg.Wait()
 
-		// Give a short time for any remaining events to be processed
-		time.Sleep(500 * time.Millisecond)
+		// Increase wait time and add polling for completion
+		// assuming a 5 seconds on 10k events setting 10 second deadline to be sure
+		deadline := time.After(10 * time.Second)
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
 
-		Expect(atomic.LoadInt64(&eventHandled)).To(Equal(int64(numEvents)))
+		for {
+			select {
+			case <-deadline:
+				Fail(fmt.Sprintf("Timeout waiting for events to be processed. Processed: %d, Expected: %d",
+					atomic.LoadInt64(&eventHandled), numEvents))
+				return
+			case <-ticker.C:
+				if atomic.LoadInt64(&eventHandled) == int64(numEvents) {
+					return // All events processed
+				}
+			}
+		}
 	})
 
 	It("should handle channel capacity overflow", func() {

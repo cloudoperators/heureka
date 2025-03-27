@@ -46,71 +46,98 @@ func (er *eventRegistry) RegisterEventHandler(event EventName, handler EventHand
 }
 
 func (er *eventRegistry) PushEvent(event Event) {
-	er.mu.Lock()
-	defer er.mu.Unlock()
-
+	// Try to push the event without locking first
 	select {
 	case er.ch <- event:
 		// Event successfully pushed to the channel
+		return
 	default:
-		// Channel is full, create a new channel with twice as large buffer
-		newCh := make(chan Event, cap(er.ch)*2)
-		go func(oldCh, newCh chan Event) {
-			for e := range oldCh {
-				newCh <- e
+		// Channel might be full, acquire lock and try again
+		er.mu.Lock()
+		defer er.mu.Unlock()
+
+		// Try again with lock held
+		select {
+		case er.ch <- event:
+			// Event successfully pushed to the channel
+		default:
+			// Channel is definitely full, increase its size
+			newCap := cap(er.ch) * 2
+			if newCap < 1024 {
+				newCap = 1024 // Set a reasonable minimum for large batches
 			}
-			close(newCh)
-		}(er.ch, newCh)
-		er.stopWorkers()
-		er.ch = newCh
-		er.reinitWorkers()
-		er.ch <- event
-	}
-}
 
-func (er *eventRegistry) stopWorkers() {
-	close(er.ch)
-	er.wg.Wait()
-}
+			newCh := make(chan Event, newCap)
 
-func (er *eventRegistry) reinitWorkers() {
-	for i := 0; i < er.workerCount; i++ {
-		er.wg.Add(1)
-		go er.worker()
+			// Push the current event to the new channel
+			newCh <- event
+
+			// Replace the channel
+			oldCh := er.ch
+			er.ch = newCh
+
+			// Drain the old channel in a separate goroutine
+			go func() {
+				for e := range oldCh {
+					er.ch <- e // Forward all events to the new channel
+				}
+			}()
+		}
 	}
 }
 
 func NewEventRegistry(db database.Database) EventRegistry {
-	bufferSize := 500
+	initialBufferSize := 1024 // Start with a larger buffer
 	workerCount := 4
 	er := &eventRegistry{
 		handlers:    make(map[EventName][]EventHandler),
-		ch:          make(chan Event, bufferSize),
+		ch:          make(chan Event, initialBufferSize),
 		db:          db,
 		workerCount: workerCount,
-	}
-
-	for i := 0; i < workerCount; i++ {
-		er.wg.Add(1)
-		go er.worker()
 	}
 
 	return er
 }
 
 func (er *eventRegistry) Run(ctx context.Context) {
+	// Start workers
+	for i := 0; i < er.workerCount; i++ {
+		er.wg.Add(1)
+		go er.worker(ctx)
+	}
+
+	// Wait for context cancellation
 	go func() {
 		<-ctx.Done() // Block until context is canceled
+		er.mu.Lock()
 		close(er.ch) // Close the channel
+		er.mu.Unlock()
 		er.wg.Wait() // Wait for all workers to finish
 	}()
 }
 
-func (er *eventRegistry) worker() {
+func (er *eventRegistry) worker(ctx context.Context) {
 	defer er.wg.Done()
-	for event := range er.ch { // Infinite loop to listen for events
-		for _, handler := range er.handlers[event.Name()] {
-			handler.HandleEvent(er.db, event)
+	for {
+		select {
+		case <-ctx.Done():
+			return // Exit when context is canceled
+		case event, ok := <-er.ch:
+			if !ok {
+				return // Channel closed
+			}
+
+			er.processEvent(event)
 		}
+	}
+}
+
+func (er *eventRegistry) processEvent(event Event) {
+	er.mu.Lock()
+	handlers := er.handlers[event.Name()]
+	er.mu.Unlock()
+
+	for _, handler := range handlers {
+		handler.HandleEvent(er.db, event)
 	}
 }
