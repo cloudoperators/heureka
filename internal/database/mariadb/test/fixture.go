@@ -1312,8 +1312,8 @@ func NewFakeComponentVersion() mariadb.ComponentVersionRow {
 	}
 }
 
-func GenerateFakeCcrn(region string, cluster string, namespace string, domain string, project string) string {
-	return fmt.Sprintf("ccrn: s=kubernetes, v=v1, r=%s, d=%s, p=%s, o=gardener, res=PodInstance, c=%s, n=%s, id=audit-logger-xe9mtzmq8l-cmbp6", region, domain, project, cluster, namespace)
+func GenerateFakeCcrn(cluster string, namespace string) string {
+	return fmt.Sprintf("ccrn: apiVersion=k8s-registry.ccrn.sap.cloud/v1, kind=container, cluster=%s, namespace=%s, name=audit-logger-xe9mtzmq8l-cmbp6", cluster, namespace)
 }
 
 func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
@@ -1321,13 +1321,14 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	if n < 0 {
 		n = n * -1
 	}
-	region := gofakeit.UUID()
-	cluster := gofakeit.UUID()
-	namespace := gofakeit.UUID()
-	domain := gofakeit.UUID()
-	project := gofakeit.UUID()
+	region := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"})
+	cluster := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1", "a-test-de-1", "a-test-de-2", "a-test-us-1", "a-test-jp-2", "a-test-jp-1", "v-test-de-1", "v-test-de-2", "v-test-us-1", "v-test-jp-2", "v-test-jp-1", "s-test-de-1", "s-test-de-2", "s-test-us-1", "s-test-jp-2", "s-test-jp-1"})
+	//make lower case to avoid conflicts in different lexicographical ordering between sql and golang due to collation
+	namespace := strings.ToLower(gofakeit.ProductName())
+	domain := strings.ToLower(gofakeit.SongName())
+	project := strings.ToLower(gofakeit.BeerName())
 	return mariadb.ComponentInstanceRow{
-		CCRN:      sql.NullString{String: GenerateFakeCcrn(region, cluster, namespace, domain, project), Valid: true},
+		CCRN:      sql.NullString{String: GenerateFakeCcrn(cluster, namespace), Valid: true},
 		Region:    sql.NullString{String: region, Valid: true},
 		Cluster:   sql.NullString{String: cluster, Valid: true},
 		Namespace: sql.NullString{String: namespace, Valid: true},

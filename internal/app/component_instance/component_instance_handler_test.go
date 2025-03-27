@@ -176,7 +176,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.Namespace = "NewNamespace"
 		componentInstance.Domain = "NewDomain"
 		componentInstance.Project = "NewProject"
-		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Region, componentInstance.Cluster, componentInstance.Namespace, componentInstance.Domain, componentInstance.Project)
+		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
 		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance)
