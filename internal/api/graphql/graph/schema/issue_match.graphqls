@@ -41,6 +41,8 @@ input IssueMatchFilter {
     serviceCcrn: [String]
     supportGroupCcrn: [String]
     state: [StateFilter!]
+    serviceOwnerUsername: [String]
+    serviceOwnerUniqueUserId: [String]
 }
 
 #type CCloudSeverity {
