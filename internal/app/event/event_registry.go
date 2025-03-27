@@ -58,10 +58,16 @@ func (er *eventRegistry) PushEvent(event Event) {
 			}
 			close(newCh)
 		}(er.ch, newCh)
+		er.stopWorkers()
 		er.ch = newCh
 		er.reinitWorkers()
 		er.ch <- event
 	}
+}
+
+func (er *eventRegistry) stopWorkers() {
+	close(er.ch)
+	er.wg.Wait()
 }
 
 func (er *eventRegistry) reinitWorkers() {
