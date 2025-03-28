@@ -158,6 +158,26 @@ func (s *SeedCollection) GetComponentInstanceByIssueMatches(im []mariadb.IssueMa
 	return expectedComponentInstances, ids
 }
 
+func (s *SeedCollection) GetComponentInstance() mariadb.ComponentInstanceRow {
+	return s.ComponentInstanceRows[0]
+}
+
+func (s *SeedCollection) GetComponentInstanceWithPredicateVal(predicate func(picked, iter mariadb.ComponentInstanceRow) (string, bool)) (mariadb.ComponentInstanceRow, []string) {
+	picked := s.ComponentInstanceRows[0]
+	return picked, lo.FilterMap(
+		s.ComponentInstanceRows,
+		func(iter mariadb.ComponentInstanceRow, _ int) (string, bool) {
+			return predicate(picked, iter)
+		},
+	)
+}
+
+func (s *SeedCollection) GetComponentInstanceVal(predicate func(cir mariadb.ComponentInstanceRow) string) []string {
+	return lo.Map(s.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow, _ int) string {
+		return predicate(cir)
+	})
+}
+
 func (s *SeedCollection) GetValidComponentInstanceRows() []mariadb.ComponentInstanceRow {
 	var valid []mariadb.ComponentInstanceRow
 	var added []int64
