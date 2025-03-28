@@ -131,6 +131,16 @@ type RatingCount struct {
 	None     sql.NullInt64 `db:"none_count"`
 }
 
+func (rc *RatingCount) AsIssueSeverityCounts() entity.IssueSeverityCounts {
+	return entity.IssueSeverityCounts{
+		Critical: GetInt64Value(rc.Critical),
+		High:     GetInt64Value(rc.High),
+		Medium:   GetInt64Value(rc.Medium),
+		Low:      GetInt64Value(rc.Low),
+		None:     GetInt64Value(rc.None),
+	}
+}
+
 type IssueRow struct {
 	Id          sql.NullInt64  `db:"issue_id" json:"id"`
 	Type        sql.NullString `db:"issue_type" json:"type"`

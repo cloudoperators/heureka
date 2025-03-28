@@ -85,13 +85,14 @@ func GetPages(firstCursor *string, ids []int64, pageSize int) ([]entity.Page, en
 }
 
 func GetCursorPages(firstCursor *string, cursors []string, pageSize int) ([]entity.Page, entity.Page) {
-	var currentCursor = ""
 	var pages []entity.Page
 	var currentPage entity.Page
 	var i = 0
 	var pN = 0
 	var isCurrent bool
-	for _, c := range cursors {
+	// declare variable so it can be used outside the loop
+	var c string
+	for _, c = range cursors {
 		i++
 		if i == 1 {
 			pN++
@@ -101,9 +102,8 @@ func GetCursorPages(firstCursor *string, cursors []string, pageSize int) ([]enti
 			isCurrent = true
 		}
 		if i >= pageSize {
-			currentCursor = c
 			pages = append(pages, entity.Page{
-				After:      util.Ptr(currentCursor),
+				After:      util.Ptr(c),
 				IsCurrent:  isCurrent,
 				PageCount:  util.Ptr(i),
 				PageNumber: util.Ptr(pN),
@@ -116,7 +116,7 @@ func GetCursorPages(firstCursor *string, cursors []string, pageSize int) ([]enti
 	}
 	if len(cursors)%pageSize != 0 {
 		pages = append(pages, entity.Page{
-			After:      util.Ptr(currentCursor),
+			After:      util.Ptr(c),
 			IsCurrent:  isCurrent,
 			PageCount:  util.Ptr(i),
 			PageNumber: util.Ptr(pN),

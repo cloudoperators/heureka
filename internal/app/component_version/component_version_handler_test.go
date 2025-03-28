@@ -78,12 +78,12 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			filter.First = &pageSize
 			componentVersions := []entity.ComponentVersionResult{}
 			for _, cv := range test.NNewFakeComponentVersionEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, cv))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, cv, entity.IssueSeverityCounts{}))
 				componentVersions = append(componentVersions, entity.ComponentVersionResult{WithCursor: entity.WithCursor{Value: cursor}, ComponentVersion: lo.ToPtr(cv)})
 			}
 
 			var cursors = lo.Map(componentVersions, func(m entity.ComponentVersionResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *m.ComponentVersion))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *m.ComponentVersion, entity.IssueSeverityCounts{}))
 				return cursor
 			})
 
@@ -91,7 +91,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			for len(cursors) < dbElements {
 				i++
 				componentVersion := test.NewFakeComponentVersionEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, componentVersion))
+				c, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, componentVersion, entity.IssueSeverityCounts{}))
 				cursors = append(cursors, c)
 			}
 			db.On("GetComponentVersions", filter, []entity.Order{}).Return(componentVersions, nil)
