@@ -176,17 +176,31 @@ func WithComponentInstance(order []entity.Order, ci entity.ComponentInstance) Ne
 	}
 }
 
-func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion) NewCursor {
+func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc entity.IssueSeverityCounts) NewCursor {
 
 	return func(cursors *cursors) error {
-		order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
+		var containsId bool
 		for _, o := range order {
 			switch o.By {
 			case entity.ComponentVersionId:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionId, Value: cv.Id, Order: o.Direction})
+				containsId = true
+			case entity.CriticalCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.CriticalCount, Value: isc.Critical, Order: o.Direction})
+			case entity.HighCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.HighCount, Value: isc.High, Order: o.Direction})
+			case entity.MediumCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.MediumCount, Value: isc.Medium, Order: o.Direction})
+			case entity.LowCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.LowCount, Value: isc.Low, Order: o.Direction})
+			case entity.NoneCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.NoneCount, Value: isc.None, Order: o.Direction})
 			default:
 				continue
 			}
+		}
+		if !containsId {
+			cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionId, Value: cv.Id, Order: entity.OrderDirectionAsc})
 		}
 		return nil
 	}
