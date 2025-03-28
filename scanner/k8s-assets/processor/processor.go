@@ -67,8 +67,7 @@ func (c CCRN) String() string {
 		log.Error("Couldn't create CCRN string")
 		return ""
 	}
-	ccrnString := buf.String()
-	return ccrnString
+	return buf.String()
 }
 
 func NewProcessor(cfg Config) *Processor {
