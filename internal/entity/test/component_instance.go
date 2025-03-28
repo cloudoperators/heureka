@@ -17,7 +17,7 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 	project := gofakeit.UUID()
 	return entity.ComponentInstance{
 		Id:                 int64(gofakeit.Number(1, 10000000)),
-		CCRN:               test.GenerateFakeCcrn(region, cluster, namespace, domain, project),
+		CCRN:               test.GenerateFakeCcrn(cluster, namespace),
 		Region:             region,
 		Cluster:            cluster,
 		Namespace:          namespace,
@@ -42,4 +42,11 @@ func NNewFakeComponentInstances(n int) []entity.ComponentInstance {
 		r[i] = NewFakeComponentInstanceEntity()
 	}
 	return r
+}
+
+func NewFakeComponentInstanceResult() entity.ComponentInstanceResult {
+	componentInstance := NewFakeComponentInstanceEntity()
+	return entity.ComponentInstanceResult{
+		ComponentInstance: &componentInstance,
+	}
 }

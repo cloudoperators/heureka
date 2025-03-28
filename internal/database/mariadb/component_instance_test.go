@@ -5,6 +5,7 @@ package mariadb_test
 
 import (
 	"math/rand"
+	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
@@ -106,7 +107,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						ServiceCcrn: []*string{&serviceRow.CCRN.String},
 					}
 
-					entries, err := db.GetComponentInstances(filter)
+					entries, err := db.GetComponentInstances(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -126,7 +127,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						CCRN: []*string{&ciRow.CCRN.String},
 					}
 
-					entries, err := db.GetComponentInstances(filter)
+					entries, err := db.GetComponentInstances(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -187,7 +188,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					searchStr := row.CCRN.String[start:end]
 					filter := &entity.ComponentInstanceFilter{Search: []*string{&searchStr}}
 
-					entries, err := db.GetComponentInstances(filter)
+					entries, err := db.GetComponentInstances(filter, nil)
 
 					ccrn := []string{}
 					for _, entry := range entries {
@@ -213,7 +214,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 	When("Getting ComponentInstances", Label("GetComponentInstance"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetComponentInstances(nil)
+				res, err := db.GetComponentInstances(nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -230,7 +231,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using no filter", func() {
 
 				It("can fetch the items correctly", func() {
-					res, err := db.GetComponentInstances(nil)
+					res, err := db.GetComponentInstances(nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -276,7 +277,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						Id: []*int64{&ci.Id.Int64},
 					}
 
-					entries, err := db.GetComponentInstances(filter)
+					entries, err := db.GetComponentInstances(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -295,11 +296,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					rnd := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					ciId := rnd.ComponentInstanceId.Int64
 					filter := &entity.ComponentInstanceFilter{
-						Paginated:    entity.Paginated{},
+						PaginatedX:   entity.PaginatedX{},
 						IssueMatchId: []*int64{&rnd.Id.Int64},
 					}
 
-					entries, err := db.GetComponentInstances(filter)
+					entries, err := db.GetComponentInstances(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -317,11 +318,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				It("can filter by a single service id that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
 					filter := &entity.ComponentInstanceFilter{
-						Paginated: entity.Paginated{},
-						ServiceId: []*int64{&cir.ServiceId.Int64},
+						PaginatedX: entity.PaginatedX{},
+						ServiceId:  []*int64{&cir.ServiceId.Int64},
 					}
 
-					entries, err := db.GetComponentInstances(filter)
+					entries, err := db.GetComponentInstances(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -342,7 +343,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(seedCollection.IssueMatchRows)
 					filter := &entity.ComponentInstanceFilter{IssueMatchId: ids}
 
-					entries, err := db.GetComponentInstances(filter)
+					entries, err := db.GetComponentInstances(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -355,18 +356,19 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using Pagination", func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
-					test.TestPaginationOfList(
+					test.TestPaginationOfListWithOrder(
 						db.GetComponentInstances,
-						func(first *int, after *int64) *entity.ComponentInstanceFilter {
+						func(first *int, after *int64, afterX *string) *entity.ComponentInstanceFilter {
 							return &entity.ComponentInstanceFilter{
-								Paginated: entity.Paginated{
-									First: first,
-									After: after,
-								},
+								PaginatedX: entity.PaginatedX{First: first, After: afterX},
 							}
 						},
-						func(entries []entity.ComponentInstance) *int64 { return &entries[len(entries)-1].Id },
-						10,
+						[]entity.Order{},
+						func(entries []entity.ComponentInstanceResult) string {
+							after, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, *entries[len(entries)-1].ComponentInstance))
+							return after
+						},
+						len(seedCollection.ComponentInstanceRows),
 						pageSize,
 					)
 				},
@@ -419,7 +421,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				It("can count", func() {
 					f := 10
 					filter := &entity.ComponentInstanceFilter{
-						Paginated: entity.Paginated{
+						PaginatedX: entity.PaginatedX{
 							First: &f,
 							After: nil,
 						},
@@ -442,7 +444,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(imCol)
 
 					filter := &entity.ComponentInstanceFilter{
-						Paginated: entity.Paginated{
+						PaginatedX: entity.PaginatedX{
 							First: &pageSize,
 							After: nil,
 						},
@@ -495,7 +497,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Id: []*int64{&componentInstance.Id},
 				}
 
-				ci, err := db.GetComponentInstances(componentInstanceFilter)
+				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -536,7 +538,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Id: []*int64{&componentInstance.Id},
 				}
 
-				ci, err := db.GetComponentInstances(componentInstanceFilter)
+				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -576,7 +578,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Id: []*int64{&componentInstance.Id},
 				}
 
-				ci, err := db.GetComponentInstances(componentInstanceFilter)
+				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -603,6 +605,24 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
+			var testOrder = func(
+				order []entity.Order,
+				verifyFunc func(res []entity.ComponentInstanceResult),
+			) {
+				res, err := db.GetComponentInstances(nil, order)
+
+				By("throwing no error", func() {
+					Expect(err).Should(BeNil())
+				})
+
+				By("returning the correct number of results", func() {
+					Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentInstanceRows)))
+				})
+
+				By("returning the correct order", func() {
+					verifyFunc(res)
+				})
+			}
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
@@ -648,10 +668,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Region filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Region.String == cir.Region.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Region: []*string{&cir.Region.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Region match the filter", func() {
@@ -666,10 +693,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Cluster filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Cluster.String == cir.Cluster.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Cluster: []*string{&cir.Cluster.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Cluster match the filter", func() {
@@ -684,10 +718,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Namespace filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Namespace.String == cir.Namespace.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Namespace: []*string{&cir.Namespace.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Namespace match the filter", func() {
@@ -702,10 +743,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Domain filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Domain.String == cir.Domain.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Domain: []*string{&cir.Domain.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Domain match the filter", func() {
@@ -720,10 +768,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Project filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Project.String == cir.Project.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Project: []*string{&cir.Project.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Project match the filter", func() {
@@ -737,7 +792,20 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using multiple filter attributes", func() {
 				It("using existing values of CCRN attributes can fetch the filtered items correctly", func() {
+
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String,
+								s.Project.String == cir.Project.String &&
+									s.Domain.String == cir.Domain.String &&
+									s.Namespace.String == cir.Namespace.String &&
+									s.Cluster.String == cir.Cluster.String &&
+									s.Region.String == cir.Region.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{
@@ -747,7 +815,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Domain:    []*string{&cir.Domain.String},
 							Project:   []*string{&cir.Project.String},
 						},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("using one notexisting value of all CCRN attributes returns an empty list", func() {
@@ -764,6 +832,196 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						},
 						[]string{},
 					)
+				})
+			})
+			Context("and using asc order", func() {
+				It("can order by id", func() {
+					sort.Slice(seedCollection.ComponentInstanceRows, func(i, j int) bool {
+						return seedCollection.ComponentInstanceRows[i].Id.Int64 < seedCollection.ComponentInstanceRows[j].Id.Int64
+					})
+
+					order := []entity.Order{
+						{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						for i, r := range res {
+							Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentInstanceRows[i].Id.Int64))
+						}
+					})
+				})
+				It("can order by ccrn", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = ""
+						for _, r := range res {
+							Expect(r.ComponentInstance.CCRN >= prev).Should(BeTrue())
+							prev = r.ComponentInstance.CCRN
+						}
+					})
+				})
+				It("can order by region", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceRegion, Direction: entity.OrderDirectionAsc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = ""
+						for _, r := range res {
+							Expect(r.ComponentInstance.Region >= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Region
+						}
+					})
+				})
+				It("can order by namespace", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceNamespace, Direction: entity.OrderDirectionAsc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = ""
+						for _, r := range res {
+							Expect(r.ComponentInstance.Namespace >= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Namespace
+						}
+					})
+				})
+				It("can order by cluster", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceCluster, Direction: entity.OrderDirectionAsc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = ""
+						for _, r := range res {
+							Expect(r.ComponentInstance.Cluster >= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Cluster
+						}
+					})
+				})
+				It("can order by domain", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceDomain, Direction: entity.OrderDirectionAsc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = ""
+						for _, r := range res {
+							Expect(r.ComponentInstance.Domain >= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Domain
+						}
+					})
+				})
+				It("can order by project", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceProject, Direction: entity.OrderDirectionAsc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = ""
+						for _, r := range res {
+							Expect(r.ComponentInstance.Project >= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Project
+						}
+					})
+				})
+			})
+			Context("and using desc order", func() {
+				It("can order by id", func() {
+					sort.Slice(seedCollection.ComponentInstanceRows, func(i, j int) bool {
+						return seedCollection.ComponentInstanceRows[i].Id.Int64 > seedCollection.ComponentInstanceRows[j].Id.Int64
+					})
+
+					order := []entity.Order{
+						{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionDesc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						for i, r := range res {
+							Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentInstanceRows[i].Id.Int64))
+						}
+					})
+				})
+				It("can order by ccrn", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionDesc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = "\U0010FFFF"
+						for _, r := range res {
+							Expect(r.ComponentInstance.CCRN <= prev).Should(BeTrue())
+							prev = r.ComponentInstance.CCRN
+						}
+					})
+				})
+				It("can order by region", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceRegion, Direction: entity.OrderDirectionDesc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = "\U0010FFFF"
+						for _, r := range res {
+							Expect(r.ComponentInstance.Region <= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Region
+						}
+					})
+				})
+				It("can order by namespace", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceNamespace, Direction: entity.OrderDirectionDesc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = "\U0010FFFF"
+						for _, r := range res {
+							Expect(r.ComponentInstance.Namespace <= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Namespace
+						}
+					})
+				})
+				It("can order by cluster", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceCluster, Direction: entity.OrderDirectionDesc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = "\U0010FFFF"
+						for _, r := range res {
+							Expect(r.ComponentInstance.Cluster <= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Cluster
+						}
+					})
+				})
+				It("can order by domain", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceDomain, Direction: entity.OrderDirectionDesc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = "\U0010FFFF"
+						for _, r := range res {
+							Expect(r.ComponentInstance.Domain <= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Domain
+						}
+					})
+				})
+				It("can order by project", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceProject, Direction: entity.OrderDirectionDesc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev string = "\U0010FFFF"
+						for _, r := range res {
+							Expect(r.ComponentInstance.Project <= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Project
+						}
+					})
 				})
 			})
 		})

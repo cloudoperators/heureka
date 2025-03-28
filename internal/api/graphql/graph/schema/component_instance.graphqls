@@ -49,3 +49,17 @@ input ComponentInstanceFilter {
     search:[String],
     state: [StateFilter!],
 }
+
+input ComponentInstanceOrderBy {
+    by: ComponentInstanceOrderByField
+    direction: OrderDirection
+}
+
+enum ComponentInstanceOrderByField {
+    ccrn
+    region
+    namespace
+    cluster
+    domain
+    project
+}

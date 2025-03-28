@@ -8,5 +8,7 @@ mutation CreateComponentVersion($input: ComponentVersionInput!) {
     version
     componentId
     tag
+    repository
+    organization
   }
 }

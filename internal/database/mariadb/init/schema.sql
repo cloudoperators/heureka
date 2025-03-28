@@ -63,6 +63,8 @@ create table if not exists ComponentVersion
     componentversion_version      varchar(255)                          not null,
     componentversion_component_id int unsigned                          not null,
     componentversion_tag          varchar(255)                          null,
+    componentversion_repository   varchar(255)                          null,
+    componentversion_organization varchar(255)                          null,
     componentversion_created_at   timestamp default current_timestamp() not null,
     componentversion_created_by   int unsigned                          null,
     componentversion_deleted_at   timestamp                             null,

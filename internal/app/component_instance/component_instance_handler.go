@@ -4,8 +4,6 @@
 package component_instance
 
 import (
-	"fmt"
-
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
@@ -37,38 +35,18 @@ func (e *ComponentInstanceHandlerError) Error() string {
 	return e.message
 }
 
-func (ci *componentInstanceHandler) getComponentInstanceResults(filter *entity.ComponentInstanceFilter) ([]entity.ComponentInstanceResult, error) {
-	var componentInstanceResults []entity.ComponentInstanceResult
-	entries, err := ci.database.GetComponentInstances(filter)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, ci := range entries {
-		componentInstance := ci
-		cursor := fmt.Sprintf("%d", componentInstance.Id)
-		componentInstanceResults = append(componentInstanceResults, entity.ComponentInstanceResult{
-			WithCursor:                    entity.WithCursor{Value: cursor},
-			ComponentInstanceAggregations: nil,
-			ComponentInstance:             &componentInstance,
-		})
-	}
-
-	return componentInstanceResults, nil
-}
-
 func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginated(&filter.Paginated)
+	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListComponentInstancesEventName,
 		"filter": filter,
 	})
 
-	res, err := ci.getComponentInstanceResults(filter)
+	res, err := ci.database.GetComponentInstances(filter, options.Order)
 
 	if err != nil {
 		l.Error(err)
@@ -77,13 +55,12 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := ci.database.GetAllComponentInstanceIds(filter)
+			cursors, err := ci.database.GetAllComponentInstanceCursors(filter, options.Order)
 			if err != nil {
-				l.Error(err)
-				return nil, NewComponentInstanceHandlerError("Error while getting all Ids")
+				return nil, NewComponentInstanceHandlerError("Error while getting all cursors")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = ci.database.CountComponentInstances(filter)
@@ -159,7 +136,9 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 		return nil, NewComponentInstanceHandlerError("Internal error while updating componentInstance.")
 	}
 
-	componentInstanceResult, err := ci.ListComponentInstances(&entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, &entity.ListOptions{})
+	lo := entity.NewListOptions()
+
+	componentInstanceResult, err := ci.ListComponentInstances(&entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, lo)
 
 	if err != nil {
 		l.Error(err)

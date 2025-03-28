@@ -43,6 +43,8 @@ func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter)
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueType, "I.issue_type = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceOwnerUsername, "U.user_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceOwnerUniqueUserId, "U.user_unique_user_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "IM.issuematch"))
 
@@ -75,7 +77,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 		`)
 	}
 
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.ComponentCCRN) > 0 {
+	if orderByCiCcrn || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.ComponentCCRN) > 0 || len(filter.ServiceOwnerUsername) > 0 || len(filter.ServiceOwnerUniqueUserId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on CI.componentinstance_id = IM.issuematch_component_instance_id
 			
@@ -96,16 +98,16 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 
 		if len(filter.SupportGroupCCRN) > 0 {
 			joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
-			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
-		`)
+				LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
+				LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
+			`)
 		}
-	}
-
-	if orderByCiCcrn {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ComponentInstance CI on CI.componentinstance_id = IM.issuematch_component_instance_id
-		`)
+		if len(filter.ServiceOwnerUsername) > 0 || len(filter.ServiceOwnerUniqueUserId) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+				LEFT JOIN Owner O on O.owner_service_id = CI.componentinstance_service_id
+				LEFT JOIN User U on U.user_id = O.owner_user_id
+			`)
+		}
 	}
 
 	return joins
@@ -218,6 +220,8 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueType)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceOwnerUsername)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceOwnerUniqueUserId)
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 
 	if withCursor {

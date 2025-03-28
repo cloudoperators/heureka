@@ -179,10 +179,12 @@ const (
 
 // ComponentVersion includes the requested fields of the GraphQL type ComponentVersion.
 type ComponentVersion struct {
-	Id          string `json:"id"`
-	Version     string `json:"version"`
-	ComponentId string `json:"componentId"`
-	Tag         string `json:"tag"`
+	Id           string `json:"id"`
+	Version      string `json:"version"`
+	ComponentId  string `json:"componentId"`
+	Tag          string `json:"tag"`
+	Repository   string `json:"repository"`
+	Organization string `json:"organization"`
 }
 
 // GetId returns ComponentVersion.Id, and is useful for accessing the field via an interface.
@@ -196,6 +198,12 @@ func (v *ComponentVersion) GetComponentId() string { return v.ComponentId }
 
 // GetTag returns ComponentVersion.Tag, and is useful for accessing the field via an interface.
 func (v *ComponentVersion) GetTag() string { return v.Tag }
+
+// GetRepository returns ComponentVersion.Repository, and is useful for accessing the field via an interface.
+func (v *ComponentVersion) GetRepository() string { return v.Repository }
+
+// GetOrganization returns ComponentVersion.Organization, and is useful for accessing the field via an interface.
+func (v *ComponentVersion) GetOrganization() string { return v.Organization }
 
 // ComponentVersionConnection includes the requested fields of the GraphQL type ComponentVersionConnection.
 type ComponentVersionConnection struct {
@@ -231,6 +239,8 @@ type ComponentVersionFilter struct {
 	ServiceCcrn       []string      `json:"serviceCcrn"`
 	State             []StateFilter `json:"state"`
 	Tag               []string      `json:"tag"`
+	Repository        []string      `json:"repository"`
+	Organization      []string      `json:"organization"`
 }
 
 // GetComponentId returns ComponentVersionFilter.ComponentId, and is useful for accessing the field via an interface.
@@ -260,10 +270,18 @@ func (v *ComponentVersionFilter) GetState() []StateFilter { return v.State }
 // GetTag returns ComponentVersionFilter.Tag, and is useful for accessing the field via an interface.
 func (v *ComponentVersionFilter) GetTag() []string { return v.Tag }
 
+// GetRepository returns ComponentVersionFilter.Repository, and is useful for accessing the field via an interface.
+func (v *ComponentVersionFilter) GetRepository() []string { return v.Repository }
+
+// GetOrganization returns ComponentVersionFilter.Organization, and is useful for accessing the field via an interface.
+func (v *ComponentVersionFilter) GetOrganization() []string { return v.Organization }
+
 type ComponentVersionInput struct {
-	Version     string `json:"version"`
-	ComponentId string `json:"componentId"`
-	Tag         string `json:"tag"`
+	Version      string `json:"version"`
+	ComponentId  string `json:"componentId"`
+	Tag          string `json:"tag"`
+	Repository   string `json:"repository"`
+	Organization string `json:"organization"`
 }
 
 // GetVersion returns ComponentVersionInput.Version, and is useful for accessing the field via an interface.
@@ -274,6 +292,12 @@ func (v *ComponentVersionInput) GetComponentId() string { return v.ComponentId }
 
 // GetTag returns ComponentVersionInput.Tag, and is useful for accessing the field via an interface.
 func (v *ComponentVersionInput) GetTag() string { return v.Tag }
+
+// GetRepository returns ComponentVersionInput.Repository, and is useful for accessing the field via an interface.
+func (v *ComponentVersionInput) GetRepository() string { return v.Repository }
+
+// GetOrganization returns ComponentVersionInput.Organization, and is useful for accessing the field via an interface.
+func (v *ComponentVersionInput) GetOrganization() string { return v.Organization }
 
 // CreateComponentInstanceResponse is returned by CreateComponentInstance on success.
 type CreateComponentInstanceResponse struct {
@@ -829,6 +853,8 @@ mutation CreateComponentVersion ($input: ComponentVersionInput!) {
 		version
 		componentId
 		tag
+		repository
+		organization
 	}
 }
 `
@@ -1015,6 +1041,8 @@ query ListComponentVersions ($filter: ComponentVersionFilter) {
 				version
 				componentId
 				tag
+				repository
+				organization
 			}
 		}
 	}

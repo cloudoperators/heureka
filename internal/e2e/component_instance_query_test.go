@@ -6,11 +6,12 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
-	"os"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -61,7 +62,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -97,7 +98,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 				ctx := context.Background()
@@ -132,7 +133,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 
@@ -198,6 +199,114 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(*respData.ComponentInstances.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 			})
 		})
+		Context("and we use order", Label("withOrder.graphql"), func() {
+			var respData struct {
+				ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
+			}
+
+			var sendOrderRequest = func(orderBy []map[string]string) (*model.ComponentInstanceConnection, error) {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstance/withOrder.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Var("orderBy", orderBy)
+				req.Header.Set("Cache-Control", "no-cache")
+
+				ctx := context.Background()
+
+				err = client.Run(ctx, req, &respData)
+
+				if err != nil {
+					return nil, err
+				}
+
+				return &respData.ComponentInstances, nil
+
+			}
+
+			It("can order by region", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "region", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Region >= prev).Should(BeTrue())
+						prev = *ci.Node.Region
+					}
+				})
+			})
+			It("can order by namespace", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "namespace", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Namespace >= prev).Should(BeTrue())
+						prev = *ci.Node.Namespace
+					}
+				})
+			})
+			It("can order by cluster", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "cluster", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Cluster >= prev).Should(BeTrue())
+						prev = *ci.Node.Cluster
+					}
+				})
+			})
+			It("can order by domain", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "domain", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Domain >= prev).Should(BeTrue())
+						prev = *ci.Node.Domain
+					}
+				})
+			})
+			It("can order by project", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "project", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Project >= prev).Should(BeTrue())
+						prev = *ci.Node.Project
+					}
+				})
+			})
+
+		})
 	})
 })
 
@@ -236,7 +345,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 		})
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
-			It("creates new componentInstance", func() {
+			It("creates new componentInstance by deriving attributes from the CCRN", func() {
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
@@ -265,11 +374,8 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 				}
 
 				Expect(*respData.ComponentInstance.Ccrn).To(Equal(componentInstance.CCRN))
-				Expect(*respData.ComponentInstance.Region).To(Equal(componentInstance.Region))
 				Expect(*respData.ComponentInstance.Cluster).To(Equal(componentInstance.Cluster))
 				Expect(*respData.ComponentInstance.Namespace).To(Equal(componentInstance.Namespace))
-				Expect(*respData.ComponentInstance.Domain).To(Equal(componentInstance.Domain))
-				Expect(*respData.ComponentInstance.Project).To(Equal(componentInstance.Project))
 				Expect(*respData.ComponentInstance.Count).To(Equal(int(componentInstance.Count)))
 				Expect(*respData.ComponentInstance.ComponentVersionID).To(Equal(fmt.Sprintf("%d", componentInstance.ComponentVersionId)))
 				Expect(*respData.ComponentInstance.ServiceID).To(Equal(fmt.Sprintf("%d", componentInstance.ServiceId)))
@@ -321,12 +427,10 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 				req := graphql.NewRequest(str)
 
 				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
-				region := "NewRegion"
+
 				cluster := "NewCluster"
 				namespace := "NewNamespace"
-				domain := "NewDomain"
-				project := "NewProject"
-				componentInstance.CCRN = test.GenerateFakeCcrn(region, cluster, namespace, domain, project)
+				componentInstance.CCRN = test.GenerateFakeCcrn(cluster, namespace)
 
 				req.Var("id", fmt.Sprintf("%d", componentInstance.Id))
 				req.Var("input", map[string]string{
@@ -344,11 +448,8 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 				}
 
 				Expect(*respData.ComponentInstance.Ccrn).To(Equal(componentInstance.CCRN))
-				Expect(*respData.ComponentInstance.Region).To(Equal(region))
 				Expect(*respData.ComponentInstance.Cluster).To(Equal(cluster))
 				Expect(*respData.ComponentInstance.Namespace).To(Equal(namespace))
-				Expect(*respData.ComponentInstance.Domain).To(Equal(domain))
-				Expect(*respData.ComponentInstance.Project).To(Equal(project))
 				Expect(*respData.ComponentInstance.Count).To(Equal(int(componentInstance.Count)))
 				Expect(*respData.ComponentInstance.ComponentVersionID).To(Equal(fmt.Sprintf("%d", componentInstance.ComponentVersionId)))
 				Expect(*respData.ComponentInstance.ServiceID).To(Equal(fmt.Sprintf("%d", componentInstance.ServiceId)))

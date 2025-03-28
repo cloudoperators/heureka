@@ -13,6 +13,8 @@ func NewFakeComponentVersionEntity() entity.ComponentVersion {
 		Id:                 int64(gofakeit.Number(1, 10000000)),
 		Version:            gofakeit.Regex("^sha:[a-fA-F0-9]{64}$"),
 		Tag:                gofakeit.AppVersion(),
+		Repository:         gofakeit.AppName(),
+		Organization:       gofakeit.Username(),
 		ComponentId:        0,
 		ComponentInstances: nil,
 		Issues:             nil,

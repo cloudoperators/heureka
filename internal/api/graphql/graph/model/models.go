@@ -62,6 +62,26 @@ func (od *OrderDirection) ToOrderDirectionEntity() entity.OrderDirection {
 	return direction
 }
 
+func (cio *ComponentInstanceOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *cio.By {
+	case ComponentInstanceOrderByFieldCcrn:
+		order.By = entity.ComponentInstanceCcrn
+	case ComponentInstanceOrderByFieldRegion:
+		order.By = entity.ComponentInstanceRegion
+	case ComponentInstanceOrderByFieldCluster:
+		order.By = entity.ComponentInstanceCluster
+	case ComponentInstanceOrderByFieldNamespace:
+		order.By = entity.ComponentInstanceNamespace
+	case ComponentInstanceOrderByFieldDomain:
+		order.By = entity.ComponentInstanceDomain
+	case ComponentInstanceOrderByFieldProject:
+		order.By = entity.ComponentInstanceProject
+	}
+	order.Direction = cio.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
 	switch *imo.By {
@@ -567,11 +587,13 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 
 func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVersion {
 	return ComponentVersion{
-		ID:          fmt.Sprintf("%d", componentVersion.Id),
-		Version:     &componentVersion.Version,
-		ComponentID: util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
-		Tag:         &componentVersion.Tag,
-		Metadata:    getModelMetadata(componentVersion.Metadata),
+		ID:           fmt.Sprintf("%d", componentVersion.Id),
+		Version:      &componentVersion.Version,
+		ComponentID:  util.Ptr(fmt.Sprintf("%d", componentVersion.ComponentId)),
+		Repository:   &componentVersion.Repository,
+		Organization: &componentVersion.Organization,
+		Tag:          &componentVersion.Tag,
+		Metadata:     getModelMetadata(componentVersion.Metadata),
 	}
 }
 
@@ -581,9 +603,11 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 		componentId = 0
 	}
 	return entity.ComponentVersion{
-		Version:     lo.FromPtr(componentVersion.Version),
-		ComponentId: componentId,
-		Tag:         lo.FromPtr(componentVersion.Tag),
+		Version:      lo.FromPtr(componentVersion.Version),
+		ComponentId:  componentId,
+		Repository:   lo.FromPtr(componentVersion.Repository),
+		Organization: lo.FromPtr(componentVersion.Organization),
+		Tag:          lo.FromPtr(componentVersion.Tag),
 	}
 }
 
@@ -624,11 +648,11 @@ func getCcrnVal(rawCcrn string, k string) string {
 
 func ParseCcrn(rawCcrn string) Ccrn {
 	var ccrn Ccrn
-	ccrn.Region = getCcrnVal(rawCcrn, "r")
-	ccrn.Cluster = getCcrnVal(rawCcrn, "c")
-	ccrn.Namespace = getCcrnVal(rawCcrn, "n")
-	ccrn.Domain = getCcrnVal(rawCcrn, "d")
-	ccrn.Project = getCcrnVal(rawCcrn, "p")
+	ccrn.Region = getCcrnVal(rawCcrn, "region")
+	ccrn.Cluster = getCcrnVal(rawCcrn, "cluster")
+	ccrn.Namespace = getCcrnVal(rawCcrn, "namespace")
+	ccrn.Domain = getCcrnVal(rawCcrn, "domain")
+	ccrn.Project = getCcrnVal(rawCcrn, "project")
 	return ccrn
 }
 
