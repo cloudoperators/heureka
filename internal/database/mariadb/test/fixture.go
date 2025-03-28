@@ -75,6 +75,21 @@ func (s *SeedCollection) GetIssueVariantsByIssueId(id int64) []mariadb.IssueVari
 	return r
 }
 
+func (s *SeedCollection) GetIssueMatchesByServiceOwner(owner mariadb.OwnerRow) []mariadb.IssueMatchRow {
+	serviceIds := lo.FilterMap(s.OwnerRows, func(o mariadb.OwnerRow, _ int) (int64, bool) {
+		return o.ServiceId.Int64, o.UserId.Int64 == owner.UserId.Int64
+	})
+
+	ciIds := lo.FilterMap(s.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
+		return c.Id.Int64, lo.Contains(serviceIds, c.ServiceId.Int64)
+	})
+
+	return lo.Filter(s.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) bool {
+		return lo.Contains(ciIds, im.ComponentInstanceId.Int64)
+
+	})
+}
+
 func (s *SeedCollection) GetIssueVariantsByService(service *mariadb.BaseServiceRow) []mariadb.IssueVariantRow {
 	var issueVariants []mariadb.IssueVariantRow
 	for _, irs := range s.IssueRepositoryServiceRows {

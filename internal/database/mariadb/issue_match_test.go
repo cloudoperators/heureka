@@ -376,6 +376,64 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						})
 					}
 				})
+				It("can filter by a single service owner name that does exist", func() {
+					owner := seedCollection.OwnerRows[rand.Intn(len(seedCollection.OwnerRows))]
+
+					user, _ := lo.Find(seedCollection.UserRows, func(u mariadb.UserRow) bool {
+						return u.Id.Int64 == owner.UserId.Int64
+					})
+
+					ims := seedCollection.GetIssueMatchesByServiceOwner(owner)
+
+					imIds := lo.Map(ims, func(im mariadb.IssueMatchRow, _ int) int64 {
+						return im.Id.Int64
+					})
+
+					filter := &entity.IssueMatchFilter{
+						ServiceOwnerUsername: []*string{&user.Name.String},
+					}
+
+					entries, err := db.GetIssueMatches(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("entries contain im", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
+						}
+					})
+				})
+				It("can filter by a single service owner unique user id that does exist", func() {
+					owner := seedCollection.OwnerRows[rand.Intn(len(seedCollection.OwnerRows))]
+
+					user, _ := lo.Find(seedCollection.UserRows, func(u mariadb.UserRow) bool {
+						return u.Id.Int64 == owner.UserId.Int64
+					})
+
+					ims := seedCollection.GetIssueMatchesByServiceOwner(owner)
+
+					imIds := lo.Map(ims, func(im mariadb.IssueMatchRow, _ int) int64 {
+						return im.Id.Int64
+					})
+
+					filter := &entity.IssueMatchFilter{
+						ServiceOwnerUniqueUserId: []*string{&user.UniqueUserID.String},
+					}
+
+					entries, err := db.GetIssueMatches(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("entries contain im", func() {
+						for _, entry := range entries {
+							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
+						}
+					})
+				})
 				Context("and and we use Pagination", func() {
 					DescribeTable("can correctly paginate ", func(pageSize int) {
 						test.TestPaginationOfListWithOrder(

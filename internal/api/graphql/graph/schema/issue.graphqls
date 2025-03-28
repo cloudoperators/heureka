@@ -11,7 +11,7 @@ type Issue implements Node {
     lastModified: DateTime
     issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
-    issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
+    issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     componentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     objectMetadata: IssueMetadata
     metadata: Metadata

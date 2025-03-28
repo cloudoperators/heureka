@@ -56,20 +56,22 @@ type IssueMatch struct {
 
 type IssueMatchFilter struct {
 	PaginatedX
-	Id                  []*int64          `json:"id"`
-	ServiceCCRN         []*string         `json:"service_ccrn"`
-	SeverityValue       []*string         `json:"severity_value"`
-	Status              []*string         `json:"status"`
-	IssueId             []*int64          `json:"issue_id"`
-	EvidenceId          []*int64          `json:"evidence_id"`
-	ComponentInstanceId []*int64          `json:"component_instance_id"`
-	ServiceId           []*int64          `json:"service_id"`
-	SupportGroupCCRN    []*string         `json:"support_group_ccrn"`
-	Search              []*string         `json:"search"`
-	ComponentCCRN       []*string         `json:"component_ccrn"`
-	PrimaryName         []*string         `json:"primary_name"`
-	IssueType           []*string         `json:"issue_type"`
-	State               []StateFilterType `json:"state"`
+	Id                       []*int64          `json:"id"`
+	ServiceCCRN              []*string         `json:"service_ccrn"`
+	SeverityValue            []*string         `json:"severity_value"`
+	Status                   []*string         `json:"status"`
+	IssueId                  []*int64          `json:"issue_id"`
+	EvidenceId               []*int64          `json:"evidence_id"`
+	ComponentInstanceId      []*int64          `json:"component_instance_id"`
+	ServiceId                []*int64          `json:"service_id"`
+	SupportGroupCCRN         []*string         `json:"support_group_ccrn"`
+	Search                   []*string         `json:"search"`
+	ComponentCCRN            []*string         `json:"component_ccrn"`
+	PrimaryName              []*string         `json:"primary_name"`
+	IssueType                []*string         `json:"issue_type"`
+	State                    []StateFilterType `json:"state"`
+	ServiceOwnerUsername     []*string         `json:"service_owner_username"`
+	ServiceOwnerUniqueUserId []*string         `json:"service_owner_unique_user_id"`
 }
 
 type IssueMatchResult struct {
