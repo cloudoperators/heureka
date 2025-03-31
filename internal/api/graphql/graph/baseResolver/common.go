@@ -25,6 +25,11 @@ var (
 	FilterDisplayIssuePrimaryName string = "Issue Name"
 	FilterDisplayIssueSeverity    string = "Severity"
 	FilterDisplayCcrn             string = "CCRN"
+	FilterDisplayRegion           string = "Region"
+	FilterDisplayCluster          string = "Cluster"
+	FilterDisplayNamespace        string = "Namespace"
+	FilterDisplayDomain           string = "Domain"
+	FilterDisplayProject          string = "Project"
 
 	ServiceFilterServiceCcrn      string = "serviceCcrn"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"

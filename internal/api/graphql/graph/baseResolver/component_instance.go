@@ -137,10 +137,39 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 }
 
 func CcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListCcrns, ctx, filter, &FilterDisplayCcrn)
+}
+
+func RegionBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListRegions, ctx, filter, &FilterDisplayRegion)
+}
+
+func ClusterBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListClusters, ctx, filter, &FilterDisplayCluster)
+}
+
+func NamespaceBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListNamespaces, ctx, filter, &FilterDisplayNamespace)
+}
+
+func DomainBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListDomains, ctx, filter, &FilterDisplayDomain)
+}
+
+func ProjectBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListProjects, ctx, filter, &FilterDisplayProject)
+}
+
+func ComponentInstanceFilterBaseResolver(
+	appCall func(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error),
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+	filterDisplay *string) (*model.FilterItem, error) {
+
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called CcrnBaseResolver")
+	}).Debug("Called ComponentInstanceFilterBaseResolver (%s)", filterDisplay)
 
 	if filter == nil {
 		filter = &model.ComponentInstanceFilter{}
@@ -159,10 +188,10 @@ func CcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.Compon
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListCcrns(f, opt)
+	names, err := appCall(f, opt)
 
 	if err != nil {
-		return nil, NewResolverError("CcrnBaseResolver", err.Error())
+		return nil, NewResolverError("ComponentInstanceFilterBaseResolver", err.Error())
 	}
 
 	var pointerNames []*string
@@ -172,7 +201,7 @@ func CcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.Compon
 	}
 
 	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplayCcrn,
+		DisplayName: filterDisplay,
 		Values:      pointerNames,
 	}
 

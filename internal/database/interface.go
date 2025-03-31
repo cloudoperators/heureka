@@ -97,6 +97,11 @@ type Database interface {
 	DeleteComponentInstance(int64, int64) error
 	GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error)
 	GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetRegion(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetCluster(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetNamespace(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetDomain(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetProject(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
 	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)

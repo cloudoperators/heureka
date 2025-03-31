@@ -5,4 +5,9 @@ type ComponentInstanceFilterValue {
     serviceCcrn(filter: ServiceFilter): FilterItem
     supportGroupCcrn(filter: SupportGroupFilter): FilterItem
     ccrn(filter: ComponentInstanceFilter): FilterItem
+    region(filter: ComponentInstanceFilter): FilterItem
+    cluster(filter: ComponentInstanceFilter): FilterItem
+    namespace(filter: ComponentInstanceFilter): FilterItem
+    domain(filter: ComponentInstanceFilter): FilterItem
+    project(filter: ComponentInstanceFilter): FilterItem
 }
