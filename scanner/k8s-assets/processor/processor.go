@@ -396,7 +396,7 @@ func (p *Processor) ProcessContainer(
 		}).Error("cannot extract image and version from imagehash")
 		return fmt.Errorf("cannot extract image version: %w", err)
 	}
-	componentVersionId, err = p.getComponentVersion(ctx, iv.Image, iv.Version)
+	componentVersionId, err = p.getComponentVersion(ctx, componentCcrn, iv.Version)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"id": containerInfo.ImageHash,
