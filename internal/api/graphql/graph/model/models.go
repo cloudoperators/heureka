@@ -660,14 +660,13 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 	componentVersionId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ComponentVersionID), 10, 64)
 	serviceId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ServiceID), 10, 64)
 	rawCcrn := lo.FromPtr(componentInstance.Ccrn)
-	ccrn := ParseCcrn(rawCcrn)
 	return entity.ComponentInstance{
 		CCRN:               rawCcrn,
-		Region:             ccrn.Region,
-		Cluster:            ccrn.Cluster,
-		Namespace:          ccrn.Namespace,
-		Domain:             ccrn.Domain,
-		Project:            ccrn.Project,
+		Region:             lo.FromPtr(componentInstance.Region),
+		Cluster:            lo.FromPtr(componentInstance.Cluster),
+		Namespace:          lo.FromPtr(componentInstance.Namespace),
+		Domain:             lo.FromPtr(componentInstance.Domain),
+		Project:            lo.FromPtr(componentInstance.Project),
 		Count:              int16(lo.FromPtr(componentInstance.Count)),
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,

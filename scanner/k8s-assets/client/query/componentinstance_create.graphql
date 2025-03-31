@@ -11,5 +11,10 @@ mutation CreateComponentInstance ($input: ComponentInstanceInput!) {
         count
         componentVersionId
         serviceId
+        region
+        cluster
+        namespace
+        domain
+        project
     }
 }
