@@ -407,7 +407,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						},
 						[]entity.Order{},
 						func(entries []entity.ComponentVersionResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *entries[len(entries)-1].ComponentVersion))
+							after, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *entries[len(entries)-1].ComponentVersion, entity.IssueSeverityCounts{}))
 							return after
 						},
 						len(seedCollection.ComponentVersionRows),

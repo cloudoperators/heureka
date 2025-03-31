@@ -254,7 +254,11 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(filter *entity.ComponentVers
 
 	return lo.Map(rows, func(row RowComposite, _ int) string {
 		cv := row.AsComponentVersion()
-		cursor, _ := EncodeCursor(WithComponentVersion(order, cv))
+		var isc entity.IssueSeverityCounts
+		if row.RatingCount != nil {
+			isc = row.AsIssueSeverityCounts()
+		}
+		cursor, _ := EncodeCursor(WithComponentVersion(order, cv, isc))
 
 		return cursor
 	}), nil
@@ -289,7 +293,12 @@ func (s *SqlDatabase) GetComponentVersions(filter *entity.ComponentVersionFilter
 		func(l []entity.ComponentVersionResult, e RowComposite) []entity.ComponentVersionResult {
 			cv := e.AsComponentVersion()
 
-			cursor, _ := EncodeCursor((WithComponentVersion(order, cv)))
+			var isc entity.IssueSeverityCounts
+			if e.RatingCount != nil {
+				isc = e.AsIssueSeverityCounts()
+			}
+
+			cursor, _ := EncodeCursor((WithComponentVersion(order, cv, isc)))
 
 			cvr := entity.ComponentVersionResult{
 				WithCursor: entity.WithCursor{
