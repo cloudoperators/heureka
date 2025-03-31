@@ -5,10 +5,10 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/99designs/gqlgen v0.17.68
+	github.com/99designs/gqlgen v0.17.70
 	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/coreos/go-oidc v2.3.0+incompatible
-	github.com/docker/docker v28.0.1+incompatible
+	github.com/docker/docker v28.0.2+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/docker/go-connections v0.5.0
 	github.com/gin-contrib/cors v1.7.4

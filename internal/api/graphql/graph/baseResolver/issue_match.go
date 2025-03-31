@@ -100,21 +100,23 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	}
 
 	f := &entity.IssueMatchFilter{
-		Id:                  issue_match_ids,
-		PaginatedX:          entity.PaginatedX{First: first, After: after},
-		ServiceCCRN:         filter.ServiceCcrn,
-		Status:              lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
-		SeverityValue:       lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
-		SupportGroupCCRN:    filter.SupportGroupCcrn,
-		IssueId:             issueId,
-		EvidenceId:          eId,
-		ServiceId:           serviceId,
-		ComponentInstanceId: ciId,
-		Search:              filter.Search,
-		ComponentCCRN:       filter.ComponentCcrn,
-		PrimaryName:         filter.PrimaryName,
-		IssueType:           lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
-		State:               model.GetStateFilterType(filter.State),
+		Id:                       issue_match_ids,
+		PaginatedX:               entity.PaginatedX{First: first, After: after},
+		ServiceCCRN:              filter.ServiceCcrn,
+		Status:                   lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
+		SeverityValue:            lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
+		SupportGroupCCRN:         filter.SupportGroupCcrn,
+		IssueId:                  issueId,
+		EvidenceId:               eId,
+		ServiceId:                serviceId,
+		ComponentInstanceId:      ciId,
+		Search:                   filter.Search,
+		ComponentCCRN:            filter.ComponentCcrn,
+		PrimaryName:              filter.PrimaryName,
+		IssueType:                lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		ServiceOwnerUsername:     filter.ServiceOwnerUsername,
+		ServiceOwnerUniqueUserId: filter.ServiceOwnerUniqueUserID,
+		State:                    model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

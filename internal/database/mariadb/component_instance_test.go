@@ -668,10 +668,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Region filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Region.String == cir.Region.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Region: []*string{&cir.Region.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Region match the filter", func() {
@@ -686,10 +693,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Cluster filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Cluster.String == cir.Cluster.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Cluster: []*string{&cir.Cluster.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Cluster match the filter", func() {
@@ -704,10 +718,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Namespace filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Namespace.String == cir.Namespace.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Namespace: []*string{&cir.Namespace.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Namespace match the filter", func() {
@@ -722,10 +743,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Domain filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Domain.String == cir.Domain.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Domain: []*string{&cir.Domain.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Domain match the filter", func() {
@@ -740,10 +768,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			Context("and using a Project filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String, s.Project.String == cir.Project.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{Project: []*string{&cir.Project.String}},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("and using notexisting value returns an empty list when no Project match the filter", func() {
@@ -757,7 +792,20 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using multiple filter attributes", func() {
 				It("using existing values of CCRN attributes can fetch the filtered items correctly", func() {
+
 					cir := seedCollection.ComponentInstanceRows[0]
+
+					filteredSeed := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, index int) (string, bool) {
+							return s.CCRN.String,
+								s.Project.String == cir.Project.String &&
+									s.Domain.String == cir.Domain.String &&
+									s.Namespace.String == cir.Namespace.String &&
+									s.Cluster.String == cir.Cluster.String &&
+									s.Region.String == cir.Region.String
+						})
+
 					issueComponentInstanceFilterWithExpectCcrn(
 						db,
 						&entity.ComponentInstanceFilter{
@@ -767,7 +815,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Domain:    []*string{&cir.Domain.String},
 							Project:   []*string{&cir.Project.String},
 						},
-						[]string{cir.CCRN.String},
+						filteredSeed,
 					)
 				})
 				It("using one notexisting value of all CCRN attributes returns an empty list", func() {
