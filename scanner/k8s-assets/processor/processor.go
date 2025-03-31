@@ -421,6 +421,11 @@ func (p *Processor) ProcessContainer(
 		Count:              containerInfo.Count,
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceID,
+		Region:             ccrn.Region,
+		Namespace:          ccrn.Namespace,
+		Cluster:            ccrn.Cluster,
+		Domain:             ccrn.Domain,
+		Project:            ccrn.Project,
 	}
 
 	if err == nil {

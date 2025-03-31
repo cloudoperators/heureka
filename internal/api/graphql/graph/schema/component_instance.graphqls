@@ -23,6 +23,11 @@ input ComponentInstanceInput {
     count: Int
     componentVersionId: String
     serviceId: String
+    region: String
+    cluster: String
+    namespace: String
+    domain: String
+    project: String
 }
 
 type ComponentInstanceConnection implements Connection {

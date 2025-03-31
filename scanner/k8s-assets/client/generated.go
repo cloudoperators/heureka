@@ -86,6 +86,11 @@ type ComponentInstance struct {
 	Count              int    `json:"count"`
 	ComponentVersionId string `json:"componentVersionId"`
 	ServiceId          string `json:"serviceId"`
+	Region             string `json:"region"`
+	Cluster            string `json:"cluster"`
+	Namespace          string `json:"namespace"`
+	Domain             string `json:"domain"`
+	Project            string `json:"project"`
 }
 
 // GetId returns ComponentInstance.Id, and is useful for accessing the field via an interface.
@@ -102,6 +107,21 @@ func (v *ComponentInstance) GetComponentVersionId() string { return v.ComponentV
 
 // GetServiceId returns ComponentInstance.ServiceId, and is useful for accessing the field via an interface.
 func (v *ComponentInstance) GetServiceId() string { return v.ServiceId }
+
+// GetRegion returns ComponentInstance.Region, and is useful for accessing the field via an interface.
+func (v *ComponentInstance) GetRegion() string { return v.Region }
+
+// GetCluster returns ComponentInstance.Cluster, and is useful for accessing the field via an interface.
+func (v *ComponentInstance) GetCluster() string { return v.Cluster }
+
+// GetNamespace returns ComponentInstance.Namespace, and is useful for accessing the field via an interface.
+func (v *ComponentInstance) GetNamespace() string { return v.Namespace }
+
+// GetDomain returns ComponentInstance.Domain, and is useful for accessing the field via an interface.
+func (v *ComponentInstance) GetDomain() string { return v.Domain }
+
+// GetProject returns ComponentInstance.Project, and is useful for accessing the field via an interface.
+func (v *ComponentInstance) GetProject() string { return v.Project }
 
 type ComponentInstanceFilter struct {
 	ServiceCcrn  []string      `json:"serviceCcrn"`
@@ -151,6 +171,11 @@ type ComponentInstanceInput struct {
 	Count              int    `json:"count"`
 	ComponentVersionId string `json:"componentVersionId"`
 	ServiceId          string `json:"serviceId"`
+	Region             string `json:"region"`
+	Cluster            string `json:"cluster"`
+	Namespace          string `json:"namespace"`
+	Domain             string `json:"domain"`
+	Project            string `json:"project"`
 }
 
 // GetCcrn returns ComponentInstanceInput.Ccrn, and is useful for accessing the field via an interface.
@@ -164,6 +189,21 @@ func (v *ComponentInstanceInput) GetComponentVersionId() string { return v.Compo
 
 // GetServiceId returns ComponentInstanceInput.ServiceId, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceInput) GetServiceId() string { return v.ServiceId }
+
+// GetRegion returns ComponentInstanceInput.Region, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetRegion() string { return v.Region }
+
+// GetCluster returns ComponentInstanceInput.Cluster, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetCluster() string { return v.Cluster }
+
+// GetNamespace returns ComponentInstanceInput.Namespace, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetNamespace() string { return v.Namespace }
+
+// GetDomain returns ComponentInstanceInput.Domain, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetDomain() string { return v.Domain }
+
+// GetProject returns ComponentInstanceInput.Project, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetProject() string { return v.Project }
 
 type ComponentTypeValues string
 
@@ -784,6 +824,11 @@ mutation CreateComponentInstance ($input: ComponentInstanceInput!) {
 		count
 		componentVersionId
 		serviceId
+		region
+		cluster
+		namespace
+		domain
+		project
 	}
 }
 `
@@ -1142,6 +1187,11 @@ mutation UpdateComponentInstance ($id: ID!, $input: ComponentInstanceInput!) {
 		count
 		componentVersionId
 		serviceId
+		region
+		cluster
+		namespace
+		domain
+		project
 	}
 }
 `
