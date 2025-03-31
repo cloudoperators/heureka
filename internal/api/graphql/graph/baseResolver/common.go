@@ -45,12 +45,12 @@ var (
 	IssueMatchFilterServiceCcrn      string = "serviceCcrn"
 	IssueMatchFilterSupportGroupCcrn string = "supportGroupCcrn"
 
-	ComponentFilterComponentCcrn      string = "componentCcrn"
-	ComponentFilterComponentRegion    string = "region"
-	ComponentFilterComponentCluster   string = "cluster"
-	ComponentFilterComponentNamespace string = "namespace"
-	ComponentFilterComponentDomain    string = "domain"
-	ComponentFilterComponentProject   string = "project"
+	ComponentInstanceFilterComponentCcrn string = "componentCcrn"
+	ComponentInstanceFilterRegion        string = "region"
+	ComponentInstanceFilterCluster       string = "cluster"
+	ComponentInstanceFilterNamespace     string = "namespace"
+	ComponentInstanceFilterDomain        string = "domain"
+	ComponentInstanceFilterProject       string = "project"
 )
 
 type ResolverError struct {
