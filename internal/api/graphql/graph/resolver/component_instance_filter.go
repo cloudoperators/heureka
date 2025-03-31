@@ -40,7 +40,52 @@ func (r *componentInstanceFilterValueResolver) Ccrn(ctx context.Context, obj *mo
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.FilterDisplayCcrn
+	item.FilterName = &baseResolver.ComponentFilterComponentCcrn
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Region(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.RegionBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentFilterComponentRegion
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Cluster(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ClusterBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentFilterComponentCluster
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Namespace(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.NamespaceBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentFilterComponentNamespace
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Domain(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.DomainBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentFilterComponentDomain
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Project(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ProjectBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentFilterComponentProject
 	return item, err
 }
 
