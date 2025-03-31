@@ -227,6 +227,16 @@ models:
         resolver: true
       ccrn:
         resolver: true
+      region:
+        resolver: true
+      cluster:
+        resolver: true
+      namespace:
+        resolver: true
+      domain:
+        resolver: true
+      project:
+        resolver: true
   ComponentFilterValue:
     fields:
       componentCcrn:
