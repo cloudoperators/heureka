@@ -19,9 +19,9 @@ const (
 
 func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool, cursorFields []Field) []interface{} {
 	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
