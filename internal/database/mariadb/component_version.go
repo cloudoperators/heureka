@@ -144,12 +144,13 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	orderStr := CreateOrderString(order)
 
 	whereClause := ""
-	if filterStr != "" || withCursor {
+	if filterStr != "" {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
 	}
 
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+	if withCursor && cursorQuery != "" {
+		// cursor uses aggregated values that need to be used with having
+		cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
 	}
 
 	// construct final query
@@ -273,7 +274,7 @@ func (s *SqlDatabase) GetComponentVersions(filter *entity.ComponentVersionFilter
 		SELECT CV.* %s FROM ComponentVersion CV 
 		%s
 		%s
-		%s GROUP BY CV.componentversion_id ORDER BY %s LIMIT ?
+		GROUP BY CV.componentversion_id %s ORDER BY %s LIMIT ?
     `
 
 	filter = s.ensureComponentVersionFilter(filter)
