@@ -53,6 +53,7 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CI.componentinstance_component_version_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ComponentVersionVersion, "CV.componentversion_version = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, componentInstanceWildCardFilterQuery, OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "CI.componentinstance"))
 
@@ -67,6 +68,9 @@ func (s *SqlDatabase) getComponentInstanceJoins(filter *entity.ComponentInstance
 	}
 	if len(filter.ServiceCcrn) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, "INNER JOIN Service S on CI.componentinstance_service_id = S.service_id")
+	}
+	if len(filter.ComponentVersionVersion) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, "INNER JOIN ComponentVersion CV on CI.componentinstance_component_version_id = CV.componentversion_id")
 	}
 	return joins
 }
@@ -166,6 +170,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionVersion)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
 		p := CreateCursorParameters([]any{}, cursorFields)
