@@ -40,7 +40,7 @@ func (r *componentInstanceFilterValueResolver) Ccrn(ctx context.Context, obj *mo
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentCcrn
+	item.FilterName = &baseResolver.ComponentInstanceFilterComponentCcrn
 	return item, err
 }
 
@@ -49,7 +49,7 @@ func (r *componentInstanceFilterValueResolver) Region(ctx context.Context, obj *
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentRegion
+	item.FilterName = &baseResolver.ComponentInstanceFilterRegion
 	return item, err
 }
 
@@ -58,7 +58,7 @@ func (r *componentInstanceFilterValueResolver) Cluster(ctx context.Context, obj 
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentCluster
+	item.FilterName = &baseResolver.ComponentInstanceFilterCluster
 	return item, err
 }
 
@@ -67,7 +67,7 @@ func (r *componentInstanceFilterValueResolver) Namespace(ctx context.Context, ob
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentNamespace
+	item.FilterName = &baseResolver.ComponentInstanceFilterNamespace
 	return item, err
 }
 
@@ -76,7 +76,7 @@ func (r *componentInstanceFilterValueResolver) Domain(ctx context.Context, obj *
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentDomain
+	item.FilterName = &baseResolver.ComponentInstanceFilterDomain
 	return item, err
 }
 
@@ -85,7 +85,7 @@ func (r *componentInstanceFilterValueResolver) Project(ctx context.Context, obj 
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentProject
+	item.FilterName = &baseResolver.ComponentInstanceFilterProject
 	return item, err
 }
 
