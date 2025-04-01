@@ -42,6 +42,7 @@ type ComponentInstanceEdge implements Edge {
 }
 
 input ComponentInstanceFilter {
+    componentVersionDigest: [String],
     serviceCcrn: [String],
     ccrn: [String],
     region: [String],

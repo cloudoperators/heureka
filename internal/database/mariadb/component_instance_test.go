@@ -332,6 +332,58 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 
 				})
+				It("can filter by a single component version id that does exist", func() {
+					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
+					filter := &entity.ComponentInstanceFilter{
+						PaginatedX:         entity.PaginatedX{},
+						ComponentVersionId: []*int64{&cir.ComponentVersionId.Int64},
+					}
+
+					entries, err := db.GetComponentInstances(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(Not(BeZero()))
+					})
+
+					By("returning expected elements", func() {
+						for i := range entries {
+							Expect(entries[i].ComponentVersionId).To(BeEquivalentTo(cir.ComponentVersionId.Int64))
+						}
+					})
+
+				})
+				It("can filter by a single component version version that does exist", func() {
+					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
+					cvr, _ := lo.Find(seedCollection.ComponentVersionRows, func(cv mariadb.ComponentVersionRow) bool {
+						return cv.Id.Int64 == cir.ComponentVersionId.Int64
+					})
+
+					filter := &entity.ComponentInstanceFilter{
+						PaginatedX:              entity.PaginatedX{},
+						ComponentVersionVersion: []*string{&cvr.Version.String},
+					}
+
+					entries, err := db.GetComponentInstances(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(Not(BeZero()))
+					})
+
+					By("returning expected elements", func() {
+						for i := range entries {
+							Expect(entries[i].ComponentVersionId).To(BeEquivalentTo(cir.ComponentVersionId.Int64))
+						}
+					})
+
+				})
 				It("can filter by all existing issue match ids ", func() {
 					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(seedCollection.IssueMatchRows)
 					filter := &entity.ComponentInstanceFilter{IssueMatchId: ids}

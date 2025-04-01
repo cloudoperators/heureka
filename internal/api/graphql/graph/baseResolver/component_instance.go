@@ -85,19 +85,20 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	}
 
 	f := &entity.ComponentInstanceFilter{
-		PaginatedX:         entity.PaginatedX{First: first, After: after},
-		CCRN:               filter.Ccrn,
-		Region:             filter.Region,
-		Cluster:            filter.Cluster,
-		Namespace:          filter.Namespace,
-		Domain:             filter.Domain,
-		Project:            filter.Project,
-		IssueMatchId:       imId,
-		ServiceId:          serviceId,
-		ServiceCcrn:        filter.ServiceCcrn,
-		ComponentVersionId: copmonentVersionId,
-		Search:             filter.Search,
-		State:              model.GetStateFilterType(filter.State),
+		PaginatedX:              entity.PaginatedX{First: first, After: after},
+		CCRN:                    filter.Ccrn,
+		Region:                  filter.Region,
+		Cluster:                 filter.Cluster,
+		Namespace:               filter.Namespace,
+		Domain:                  filter.Domain,
+		Project:                 filter.Project,
+		IssueMatchId:            imId,
+		ServiceId:               serviceId,
+		ServiceCcrn:             filter.ServiceCcrn,
+		ComponentVersionId:      copmonentVersionId,
+		ComponentVersionVersion: filter.ComponentVersionDigest,
+		Search:                  filter.Search,
+		State:                   model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
