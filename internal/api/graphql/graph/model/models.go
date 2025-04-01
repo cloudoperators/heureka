@@ -415,6 +415,7 @@ func NewIssueVariant(issueVariant *entity.IssueVariant) IssueVariant {
 		ID:                fmt.Sprintf("%d", issueVariant.Id),
 		SecondaryName:     &issueVariant.SecondaryName,
 		Description:       &issueVariant.Description,
+		ExternalURL:       &issueVariant.ExternalUrl,
 		Severity:          NewSeverity(issueVariant.Severity),
 		IssueID:           util.Ptr(fmt.Sprintf("%d", issueVariant.IssueId)),
 		IssueRepositoryID: util.Ptr(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)),
@@ -439,6 +440,7 @@ func NewIssueVariantEntity(issueVariant *IssueVariantInput) entity.IssueVariant 
 	return entity.IssueVariant{
 		SecondaryName:     lo.FromPtr(issueVariant.SecondaryName),
 		Description:       lo.FromPtr(issueVariant.Description),
+		ExternalUrl:       lo.FromPtr(issueVariant.ExternalURL),
 		Severity:          NewSeverityEntity(issueVariant.Severity),
 		IssueId:           issueId,
 		IssueRepositoryId: irId,

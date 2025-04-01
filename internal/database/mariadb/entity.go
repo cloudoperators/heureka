@@ -414,6 +414,7 @@ type IssueVariantRow struct {
 	Vector            sql.NullString `db:"issuevariant_vector" json:"vector"`
 	Rating            sql.NullString `db:"issuevariant_rating" json:"rating"`
 	Description       sql.NullString `db:"issuevariant_description" json:"description"`
+	ExternalUrl       sql.NullString `db:"issuevariant_external_url" json:"external_url"`
 	CreatedAt         sql.NullTime   `db:"issuevariant_created_at" json:"created_at"`
 	CreatedBy         sql.NullInt64  `db:"issuevariant_created_by" json:"created_by"`
 	DeletedAt         sql.NullTime   `db:"issuevariant_deleted_at" json:"deleted_at,omitempty"`
@@ -438,6 +439,7 @@ func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) e
 		Issue:             nil,
 		Severity:          severity,
 		Description:       GetStringValue(ivr.Description),
+		ExternalUrl:       GetStringValue(ivr.ExternalUrl),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ivr.CreatedAt),
 			CreatedBy: GetInt64Value(ivr.CreatedBy),
@@ -456,6 +458,7 @@ func (ivr *IssueVariantRow) FromIssueVariant(iv *entity.IssueVariant) {
 	ivr.Vector = sql.NullString{String: iv.Severity.Cvss.Vector, Valid: true}
 	ivr.Rating = sql.NullString{String: iv.Severity.Value, Valid: true}
 	ivr.Description = sql.NullString{String: iv.Description, Valid: true}
+	ivr.ExternalUrl = sql.NullString{String: iv.ExternalUrl, Valid: true}
 	ivr.CreatedAt = sql.NullTime{Time: iv.CreatedAt, Valid: true}
 	ivr.CreatedBy = sql.NullInt64{Int64: iv.CreatedBy, Valid: true}
 	ivr.DeletedAt = sql.NullTime{Time: iv.DeletedAt, Valid: true}
@@ -487,6 +490,7 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 		Issue:             nil,
 		Severity:          severity,
 		Description:       GetStringValue(ivwr.Description),
+		ExternalUrl:       GetStringValue(ivwr.ExternalUrl),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ivwr.IssueVariantRow.CreatedAt),
 			CreatedBy: GetInt64Value(ivwr.CreatedBy),

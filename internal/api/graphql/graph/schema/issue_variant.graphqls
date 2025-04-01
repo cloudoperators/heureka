@@ -5,6 +5,7 @@ type IssueVariant implements Node {
     id: ID!
     secondaryName: String
     description: String
+    externalUrl: String
     severity: Severity
     issueRepositoryId: String
     issueRepository: IssueRepository
@@ -17,6 +18,7 @@ input IssueVariantInput {
     secondaryName: String
     description: String
     issueRepositoryId: String
+    externalUrl: String
     issueId: String
     severity: SeverityInput
 }
