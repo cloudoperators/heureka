@@ -178,7 +178,8 @@ func NewSeverity(sev entity.Severity) *Severity {
 		Value: &severity,
 		Score: &sev.Score,
 		Cvss: &Cvss{
-			Vector: &sev.Cvss.Vector,
+			Vector:      &sev.Cvss.Vector,
+			ExternalURL: &sev.Cvss.ExternalUrl,
 			Base: &CVSSBase{
 				Score:                 &baseScore,
 				AttackVector:          &av,

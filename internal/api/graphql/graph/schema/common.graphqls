@@ -93,6 +93,7 @@ type CVSSEnvironmental {
 
 type CVSS {
     vector: String
+    externalUrl: String
     base: CVSSBase
     temporal: CVSSTemporal
     environmental: CVSSEnvironmental
