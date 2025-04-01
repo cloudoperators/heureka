@@ -13,6 +13,8 @@ const (
 	ComponentInstanceNamespace
 	ComponentInstanceDomain
 	ComponentInstanceProject
+	ComponentInstancePod
+	ComponentInstanceContainer
 
 	ComponentVersionId
 

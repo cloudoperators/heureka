@@ -168,6 +168,10 @@ func WithComponentInstance(order []entity.Order, ci entity.ComponentInstance) Ne
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceDomain, Value: ci.Domain, Order: o.Direction})
 			case entity.ComponentInstanceProject:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceProject, Value: ci.Project, Order: o.Direction})
+			case entity.ComponentInstancePod:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstancePod, Value: ci.Pod, Order: o.Direction})
+			case entity.ComponentInstanceContainer:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceContainer, Value: ci.Container, Order: o.Direction})
 			default:
 				continue
 			}

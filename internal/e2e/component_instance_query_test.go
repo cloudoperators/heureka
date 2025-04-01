@@ -305,6 +305,36 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 					}
 				})
 			})
+			It("can order by pod", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "pod", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Pod >= prev).Should(BeTrue())
+						prev = *ci.Node.Pod
+					}
+				})
+			})
+			It("can order by container", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "container", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Container >= prev).Should(BeTrue())
+						prev = *ci.Node.Container
+					}
+				})
+			})
 
 		})
 	})
@@ -363,6 +393,8 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 					"cluster":            componentInstance.Cluster,
 					"domain":             componentInstance.Domain,
 					"project":            componentInstance.Project,
+					"pod":                componentInstance.Pod,
+					"container":          componentInstance.Container,
 					"count":              fmt.Sprintf("%d", componentInstance.Count),
 					"componentVersionId": fmt.Sprintf("%d", componentInstance.ComponentVersionId),
 					"serviceId":          fmt.Sprintf("%d", componentInstance.ServiceId),

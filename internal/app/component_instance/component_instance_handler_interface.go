@@ -16,4 +16,6 @@ type ComponentInstanceHandler interface {
 	ListNamespaces(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListDomains(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListProjects(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
+	ListPods(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
+	ListContainers(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 }

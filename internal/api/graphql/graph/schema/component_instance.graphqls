@@ -9,6 +9,8 @@ type ComponentInstance implements Node {
     namespace: String
     domain: String
     project: String
+    pod: String
+    container: String
     count: Int
     componentVersionId: String
     componentVersion: ComponentVersion
@@ -28,6 +30,8 @@ input ComponentInstanceInput {
     namespace: String
     domain: String
     project: String
+    pod: String
+    container: String
 }
 
 type ComponentInstanceConnection implements Connection {
@@ -50,6 +54,8 @@ input ComponentInstanceFilter {
     namespace: [String],
     domain: [String],
     project: [String],
+    pod: [String],
+    container: [String],
     supportGroup: [String],
     search:[String],
     state: [StateFilter!],
@@ -67,4 +73,6 @@ enum ComponentInstanceOrderByField {
     cluster
     domain
     project
+    pod
+    container
 }

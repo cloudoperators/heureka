@@ -975,6 +975,8 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			componentinstance_namespace,
 			componentinstance_domain,
 			componentinstance_project,
+			componentinstance_pod,
+			componentinstance_container,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -987,6 +989,8 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			:componentinstance_namespace,
 			:componentinstance_domain,
 			:componentinstance_project,
+			:componentinstance_pod,
+			:componentinstance_container,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
@@ -1366,6 +1370,8 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	namespace := strings.ToLower(gofakeit.ProductName())
 	domain := strings.ToLower(gofakeit.SongName())
 	project := strings.ToLower(gofakeit.BeerName())
+	pod := strings.ToLower(gofakeit.UUID())
+	container := strings.ToLower(gofakeit.UUID())
 	return mariadb.ComponentInstanceRow{
 		CCRN:      sql.NullString{String: GenerateFakeCcrn(cluster, namespace), Valid: true},
 		Region:    sql.NullString{String: region, Valid: true},
@@ -1373,6 +1379,8 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 		Namespace: sql.NullString{String: namespace, Valid: true},
 		Domain:    sql.NullString{String: domain, Valid: true},
 		Project:   sql.NullString{String: project, Valid: true},
+		Pod:       sql.NullString{String: pod, Valid: true},
+		Container: sql.NullString{String: container, Valid: true},
 		Count:     sql.NullInt16{Int16: n, Valid: true},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},

@@ -49,6 +49,8 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.Namespace, "CI.componentinstance_namespace = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Domain, "CI.componentinstance_domain = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Project, "CI.componentinstance_project = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Pod, "CI.componentinstance_pod = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Container, "CI.componentinstance_container = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
@@ -94,6 +96,12 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	}
 	if componentInstance.Project != "" {
 		fl = append(fl, "componentinstance_project = :componentinstance_project")
+	}
+	if componentInstance.Pod != "" {
+		fl = append(fl, "componentinstance_pod = :componentinstance_pod")
+	}
+	if componentInstance.Container != "" {
+		fl = append(fl, "componentinstance_container = :componentinstance_container")
 	}
 	if componentInstance.Count != 0 {
 		fl = append(fl, "componentinstance_count = :componentinstance_count")
@@ -166,6 +174,8 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.Namespace)
 	filterParameters = buildQueryParameters(filterParameters, filter.Domain)
 	filterParameters = buildQueryParameters(filterParameters, filter.Project)
+	filterParameters = buildQueryParameters(filterParameters, filter.Pod)
+	filterParameters = buildQueryParameters(filterParameters, filter.Container)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
@@ -325,6 +335,8 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_namespace,
 			componentinstance_domain,
 			componentinstance_project,
+			componentinstance_pod,
+			componentinstance_container,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -337,6 +349,8 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			:componentinstance_namespace,
 			:componentinstance_domain,
 			:componentinstance_project,
+			:componentinstance_pod,
+			:componentinstance_container,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
@@ -484,4 +498,12 @@ func (s *SqlDatabase) GetDomain(filter *entity.ComponentInstanceFilter) ([]strin
 
 func (s *SqlDatabase) GetProject(filter *entity.ComponentInstanceFilter) ([]string, error) {
 	return s.getComponentInstanceAttr("project", filter)
+}
+
+func (s *SqlDatabase) GetPod(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("pod", filter)
+}
+
+func (s *SqlDatabase) GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("container", filter)
 }

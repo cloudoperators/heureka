@@ -30,6 +30,8 @@ var (
 	FilterDisplayNamespace        string = "Namespace"
 	FilterDisplayDomain           string = "Domain"
 	FilterDisplayProject          string = "Project"
+	FilterDisplayPod              string = "Pod"
+	FilterDisplayContainer        string = "Container"
 
 	ServiceFilterServiceCcrn      string = "serviceCcrn"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"
@@ -51,6 +53,8 @@ var (
 	ComponentInstanceFilterNamespace     string = "namespace"
 	ComponentInstanceFilterDomain        string = "domain"
 	ComponentInstanceFilterProject       string = "project"
+	ComponentInstanceFilterPod           string = "pod"
+	ComponentInstanceFilterContainer     string = "container"
 )
 
 type ResolverError struct {

@@ -92,6 +92,8 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		Namespace:               filter.Namespace,
 		Domain:                  filter.Domain,
 		Project:                 filter.Project,
+		Pod:                     filter.Pod,
+		Container:               filter.Container,
 		IssueMatchId:            imId,
 		ServiceId:               serviceId,
 		ServiceCcrn:             filter.ServiceCcrn,
@@ -161,6 +163,14 @@ func ProjectBaseResolver(app app.Heureka, ctx context.Context, filter *model.Com
 	return ComponentInstanceFilterBaseResolver(app.ListProjects, ctx, filter, &FilterDisplayProject)
 }
 
+func PodBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListPods, ctx, filter, &FilterDisplayPod)
+}
+
+func ContainerBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListContainers, ctx, filter, &FilterDisplayContainer)
+}
+
 func ComponentInstanceFilterBaseResolver(
 	appCall func(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error),
 	ctx context.Context,
@@ -183,6 +193,8 @@ func ComponentInstanceFilterBaseResolver(
 		Namespace: filter.Namespace,
 		Domain:    filter.Domain,
 		Project:   filter.Project,
+		Pod:       filter.Pod,
+		Container: filter.Container,
 		Search:    filter.Search,
 		State:     model.GetStateFilterType(filter.State),
 	}

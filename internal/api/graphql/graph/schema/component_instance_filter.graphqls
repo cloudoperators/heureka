@@ -10,4 +10,6 @@ type ComponentInstanceFilterValue {
     namespace(filter: ComponentInstanceFilter): FilterItem
     domain(filter: ComponentInstanceFilter): FilterItem
     project(filter: ComponentInstanceFilter): FilterItem
+    pod(filter: ComponentInstanceFilter): FilterItem
+    container(filter: ComponentInstanceFilter): FilterItem
 }

@@ -89,6 +89,24 @@ func (r *componentInstanceFilterValueResolver) Project(ctx context.Context, obj 
 	return item, err
 }
 
+func (r *componentInstanceFilterValueResolver) Pod(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.PodBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterPod
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Container(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ContainerBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterContainer
+	return item, err
+}
+
 func (r *Resolver) ComponentInstanceFilterValue() graph.ComponentInstanceFilterValueResolver {
 	return &componentInstanceFilterValueResolver{r}
 }

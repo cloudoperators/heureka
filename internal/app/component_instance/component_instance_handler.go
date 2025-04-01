@@ -283,3 +283,37 @@ func (s *componentInstanceHandler) ListProjects(filter *entity.ComponentInstance
 
 	return projects, nil
 }
+func (s *componentInstanceHandler) ListPods(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListPodsEventName,
+		"filter": filter,
+	})
+
+	pods, err := s.database.GetPod(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Pod.")
+	}
+
+	s.eventRegistry.PushEvent(&ListPodsEvent{Filter: filter, Pods: pods})
+
+	return pods, nil
+}
+func (s *componentInstanceHandler) ListContainers(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListContainersEventName,
+		"filter": filter,
+	})
+
+	containers, err := s.database.GetContainer(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Container.")
+	}
+
+	s.eventRegistry.PushEvent(&ListContainersEvent{Filter: filter, Containers: containers})
+
+	return containers, nil
+}

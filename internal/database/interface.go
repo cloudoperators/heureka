@@ -102,6 +102,8 @@ type Database interface {
 	GetNamespace(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetDomain(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetProject(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetPod(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
 	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)

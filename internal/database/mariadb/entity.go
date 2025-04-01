@@ -816,6 +816,8 @@ type ComponentInstanceRow struct {
 	Namespace          sql.NullString `db:"componentinstance_namespace" json:"namespace"`
 	Domain             sql.NullString `db:"componentinstance_domain" json:"domain"`
 	Project            sql.NullString `db:"componentinstance_project" json:"project"`
+	Pod                sql.NullString `db:"componentinstance_pod" json:"pod"`
+	Container          sql.NullString `db:"componentinstance_container" json:"container"`
 	Count              sql.NullInt16  `db:"componentinstance_count" json:"count"`
 	ComponentVersionId sql.NullInt64  `db:"componentinstance_component_version_id"`
 	ServiceId          sql.NullInt64  `db:"componentinstance_service_id"`
@@ -835,6 +837,8 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 		Namespace:          GetStringValue(cir.Namespace),
 		Domain:             GetStringValue(cir.Domain),
 		Project:            GetStringValue(cir.Project),
+		Pod:                GetStringValue(cir.Pod),
+		Container:          GetStringValue(cir.Container),
 		Count:              GetInt16Value(cir.Count),
 		ComponentVersion:   nil,
 		ComponentVersionId: GetInt64Value(cir.ComponentVersionId),
@@ -858,6 +862,8 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 	cir.Namespace = sql.NullString{String: ci.Namespace, Valid: true}
 	cir.Domain = sql.NullString{String: ci.Domain, Valid: true}
 	cir.Project = sql.NullString{String: ci.Project, Valid: true}
+	cir.Pod = sql.NullString{String: ci.Pod, Valid: true}
+	cir.Container = sql.NullString{String: ci.Container, Valid: true}
 	cir.Count = sql.NullInt16{Int16: ci.Count, Valid: true}
 	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}

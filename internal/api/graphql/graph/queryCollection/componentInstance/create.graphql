@@ -12,6 +12,8 @@ mutation ($input: ComponentInstanceInput!) {
         namespace
         domain
         project
+        pod 
+        container
         count
         componentVersionId
         serviceId
