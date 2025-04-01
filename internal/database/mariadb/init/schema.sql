@@ -309,7 +309,7 @@ create table if not exists IssueVariant
     issuevariant_rating         enum ('None','Low','Medium', 'High', 'Critical') not null,
     issuevariant_secondary_name varchar(255)                                     not null,
     issuevariant_description    longtext                                         not null,
-    issuevariant_external_url   varchar(512)                                     null,
+    issuevariant_external_url   varchar(2048)                                     null,
     issuevariant_created_at     timestamp default current_timestamp()            not null,
     issuevariant_created_by     int unsigned                                     null,
     issuevariant_deleted_at     timestamp                                        null,
