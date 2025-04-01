@@ -13,6 +13,7 @@ type IssueVariant struct {
 	Issue             *Issue           `json:"issue"`
 	Severity          Severity         `json:"severity"`
 	Description       string           `json:"description"`
+	ExternalUrl       string           `json:"external_url"`
 }
 
 type IssueVariantFilter struct {

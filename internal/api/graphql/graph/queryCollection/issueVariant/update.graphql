@@ -10,6 +10,7 @@ mutation ($id: ID!, $input: IssueVariantInput!) {
         id
         secondaryName
         description
+        externalUrl
         severity {
             value
             score

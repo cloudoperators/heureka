@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"time"
+
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/scanner/nvd/client"
 	"github.com/cloudoperators/heureka/scanner/nvd/models"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 type Processor struct {
@@ -20,6 +21,7 @@ type Processor struct {
 	IssueRepositoryName string
 	IssueRepositoryId   string
 	IssueRepositoryUrl  string
+	CveDetailsUrl       string
 }
 
 // NewProcessor
@@ -29,6 +31,7 @@ func NewProcessor(cfg Config) *Processor {
 		GraphqlClient:       graphql.NewClient(cfg.HeurekaUrl, &httpClient),
 		IssueRepositoryName: cfg.IssueRepositoryName,
 		IssueRepositoryUrl:  cfg.IssueRepositoryUrl,
+		CveDetailsUrl:       cfg.CveDetailsUrl,
 	}
 }
 
@@ -101,6 +104,7 @@ func (p *Processor) Process(cve *models.Cve) error {
 	issueVariantInput := client.IssueVariantInput{
 		SecondaryName:     cve.Id,
 		Description:       cve.GetDescription("en"),
+		ExternalUrl:       p.CveDetailsUrl + cve.Id,
 		IssueRepositoryId: p.IssueRepositoryId,
 		IssueId:           issueId,
 		Severity: &client.SeverityInput{

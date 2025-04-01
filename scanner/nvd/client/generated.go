@@ -256,6 +256,7 @@ type IssueVariantInput struct {
 	SecondaryName     string         `json:"secondaryName"`
 	Description       string         `json:"description"`
 	IssueRepositoryId string         `json:"issueRepositoryId"`
+	ExternalUrl       string         `json:"externalUrl"`
 	IssueId           string         `json:"issueId"`
 	Severity          *SeverityInput `json:"severity,omitempty"`
 }
@@ -268,6 +269,9 @@ func (v *IssueVariantInput) GetDescription() string { return v.Description }
 
 // GetIssueRepositoryId returns IssueVariantInput.IssueRepositoryId, and is useful for accessing the field via an interface.
 func (v *IssueVariantInput) GetIssueRepositoryId() string { return v.IssueRepositoryId }
+
+// GetExternalUrl returns IssueVariantInput.ExternalUrl, and is useful for accessing the field via an interface.
+func (v *IssueVariantInput) GetExternalUrl() string { return v.ExternalUrl }
 
 // GetIssueId returns IssueVariantInput.IssueId, and is useful for accessing the field via an interface.
 func (v *IssueVariantInput) GetIssueId() string { return v.IssueId }

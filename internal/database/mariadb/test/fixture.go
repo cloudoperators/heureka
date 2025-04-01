@@ -905,6 +905,7 @@ func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVarian
 			issuevariant_issue_id,
 			issuevariant_repository_id,
 			issuevariant_description,
+			issuevariant_external_url,
 			issuevariant_created_by,
 			issuevariant_updated_by
 		) VALUES (
@@ -914,6 +915,7 @@ func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVarian
 			:issuevariant_issue_id,
 			:issuevariant_repository_id,
 			:issuevariant_description,
+			:issuevariant_external_url,
 			:issuevariant_created_by,
 			:issuevariant_updated_by
 		)`
@@ -1271,11 +1273,13 @@ func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.
 	v := GenerateRandomCVSS31Vector()
 	cvss, _ := metric.NewEnvironmental().Decode(v)
 	rating := cvss.Severity().String()
+	externalUrl := gofakeit.URL()
 	return mariadb.IssueVariantRow{
 		SecondaryName: sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 9999)), Valid: true},
 		Description:   sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
 		Vector:        sql.NullString{String: v, Valid: true},
 		Rating:        sql.NullString{String: rating, Valid: true},
+		ExternalUrl:   sql.NullString{String: externalUrl, Valid: true},
 		IssueRepositoryId: sql.NullInt64{
 			Int64: repos[rand.Intn(len(repos))].Id.Int64,
 			Valid: true,
