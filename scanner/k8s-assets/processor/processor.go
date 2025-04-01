@@ -426,6 +426,8 @@ func (p *Processor) ProcessContainer(
 		Cluster:            ccrn.Cluster,
 		Domain:             ccrn.Domain,
 		Project:            ccrn.Project,
+		Pod:                ccrn.Pod,
+		Container:          ccrn.Container,
 	}
 
 	if err == nil {
