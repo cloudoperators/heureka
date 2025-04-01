@@ -96,7 +96,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		ServiceId:               serviceId,
 		ServiceCcrn:             filter.ServiceCcrn,
 		ComponentVersionId:      copmonentVersionId,
-		ComponentVersionVersion: filter.ComponentVersionVersion,
+		ComponentVersionVersion: filter.ComponentVersionDigest,
 		Search:                  filter.Search,
 		State:                   model.GetStateFilterType(filter.State),
 	}
