@@ -237,6 +237,10 @@ models:
         resolver: true
       project:
         resolver: true
+      pod:
+        resolver: true
+      container:
+        resolver: true
   ComponentFilterValue:
     fields:
       componentCcrn:

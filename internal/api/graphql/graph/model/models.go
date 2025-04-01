@@ -77,6 +77,10 @@ func (cio *ComponentInstanceOrderBy) ToOrderEntity() entity.Order {
 		order.By = entity.ComponentInstanceDomain
 	case ComponentInstanceOrderByFieldProject:
 		order.By = entity.ComponentInstanceProject
+	case ComponentInstanceOrderByFieldPod:
+		order.By = entity.ComponentInstancePod
+	case ComponentInstanceOrderByFieldContainer:
+		order.By = entity.ComponentInstanceContainer
 	}
 	order.Direction = cio.Direction.ToOrderDirectionEntity()
 	return order
@@ -624,6 +628,8 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 		Namespace:          &componentInstance.Namespace,
 		Domain:             &componentInstance.Domain,
 		Project:            &componentInstance.Project,
+		Pod:                &componentInstance.Pod,
+		Container:          &componentInstance.Container,
 		Count:              &count,
 		ComponentVersionID: util.Ptr(fmt.Sprintf("%d", componentInstance.ComponentVersionId)),
 		ServiceID:          util.Ptr(fmt.Sprintf("%d", componentInstance.ServiceId)),

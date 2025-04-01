@@ -216,6 +216,31 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 						return cifv.Project.Values
 					})
 			})
+			It("returns correct pod", func() {
+				existingPods := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
+					return cir.Pod.String
+				})
+				queryComponentInstanceFilterAndExpectVal(
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentInstanceFilter/pod.graphqls",
+					existingPods,
+					func(cifv model.ComponentInstanceFilterValue) []*string {
+						return cifv.Pod.Values
+					})
+			})
+			It("returns correct container", func() {
+				existingContainers := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
+					return cir.Container.String
+				})
+				queryComponentInstanceFilterAndExpectVal(
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentInstanceFilter/container.graphqls",
+					existingContainers,
+					func(cifv model.ComponentInstanceFilterValue) []*string {
+						return cifv.Container.Values
+					})
+			})
+
 		})
 	})
 })

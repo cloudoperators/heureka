@@ -17,6 +17,8 @@ type ComponentInstanceFilter struct {
 	Namespace               []*string         `json:"namespace"`
 	Domain                  []*string         `json:"domain"`
 	Project                 []*string         `json:"project"`
+	Pod                     []*string         `json:"pod"`
+	Container               []*string         `json:"container"`
 	Search                  []*string         `json:"search"`
 	State                   []StateFilterType `json:"state"`
 }
@@ -39,6 +41,8 @@ type ComponentInstance struct {
 	Namespace          string            `json:"namespace"`
 	Domain             string            `json:"domain"`
 	Project            string            `json:"project"`
+	Pod                string            `json:"pod"`
+	Container          string            `json:"container"`
 	Count              int16             `json:"count"`
 	ComponentVersion   *ComponentVersion `json:"component_version,omitempty"`
 	ComponentVersionId int64             `db:"componentinstance_component_version_id"`
