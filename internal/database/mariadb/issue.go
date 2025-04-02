@@ -22,6 +22,7 @@ const (
 func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, withCursor bool, cursor entity.Cursor) []interface{} {
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
@@ -43,6 +44,7 @@ func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, wit
 func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id= ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "I.issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchStatus, "IM.issuematch_status = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
@@ -66,17 +68,21 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter) string {
          	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 {
+	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
-	if len(filter.ServiceCCRN) > 0 {
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
-			LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
-			LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
 		`)
+		if len(filter.ServiceCCRN) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+				LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
+				LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
+			`)
+		}
 	}
 
 	if len(filter.ComponentVersionId) > 0 {
@@ -110,6 +116,7 @@ func (s *SqlDatabase) ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilt
 			IssueMatchDiscoveryDate:         nil,
 			IssueMatchTargetRemediationDate: nil,
 			IssueMatchId:                    nil,
+			ServiceId:                       nil,
 			ComponentVersionId:              nil,
 			IssueVariantId:                  nil,
 			Type:                            nil,

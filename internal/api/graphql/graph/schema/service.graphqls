@@ -11,6 +11,7 @@ type Service implements Node {
     componentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     objectMetadata: ServiceMetadata
+    issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata
 
 }

@@ -221,6 +221,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	var cvId []*int64
+	var serviceId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -231,6 +232,8 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		switch parent.ParentName {
 		case model.ComponentVersionNodeName:
 			cvId = []*int64{pid}
+		case model.ServiceNodeName:
+			serviceId = []*int64{pid}
 		}
 	}
 
@@ -242,6 +245,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		Search:             filter.Search,
 		IssueRepositoryId:  irIds,
 		ComponentVersionId: cvId,
+		ServiceId:          serviceId,
 		State:              model.GetStateFilterType(filter.State),
 	}
 

@@ -151,6 +151,8 @@ models:
         resolver: true
       issueMatches:
         resolver: true
+      issueCounts:
+        resolver: true
   SupportGroup:
     fields:
       users:
