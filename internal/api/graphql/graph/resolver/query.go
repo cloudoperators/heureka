@@ -109,6 +109,10 @@ func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRu
 	return baseResolver.ScannerRuns(r.App, ctx, filter, first, after)
 }
 
+func (r *queryResolver) IssueCounts(ctx context.Context, filter *model.IssueFilter) (*model.SeverityCounts, error) {
+	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, nil)
+}
+
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }
