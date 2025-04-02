@@ -101,6 +101,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	f := &entity.IssueFilter{
 		Paginated:          entity.Paginated{First: first, After: afterId},
 		ServiceCCRN:        filter.ServiceCcrn,
+		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		ActivityId:         activityId,
 		ComponentVersionId: cvId,
 		PrimaryName:        filter.PrimaryName,
@@ -174,6 +175,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 		Paginated:                       entity.Paginated{},
 		ServiceCCRN:                     filter.ServiceCcrn,
 		PrimaryName:                     filter.PrimaryName,
+		SupportGroupCCRN:                filter.SupportGroupCcrn,
 		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 		Search:                          filter.Search,
 		IssueMatchStatus:                nil, //@todo Implement
@@ -240,6 +242,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	f := &entity.IssueFilter{
 		Paginated:          entity.Paginated{},
 		ServiceCCRN:        filter.ServiceCcrn,
+		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		PrimaryName:        filter.PrimaryName,
 		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 		Search:             filter.Search,

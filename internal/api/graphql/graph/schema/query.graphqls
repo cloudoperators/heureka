@@ -21,4 +21,5 @@ type Query {
     ComponentFilterValues: ComponentFilterValue
     ScannerRunTagFilterValues: [String]
     ScannerRuns(filter: ScannerRunFilter, first: Int, after: String): ScannerRunConnection
+    IssueCounts(filter: IssueFilter): SeverityCounts
 }

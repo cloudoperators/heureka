@@ -32,6 +32,7 @@ func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, wit
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
 	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
@@ -54,6 +55,7 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Type, "I.issue_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "I.issue"))
 
@@ -68,12 +70,12 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter) string {
          	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 {
+	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 		`)
@@ -81,6 +83,12 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter) string {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
 				LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
+			`)
+		}
+		if len(filter.SupportGroupCCRN) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+				LEFT JOIN SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id
+				LEFT JOIN SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id
 			`)
 		}
 	}
