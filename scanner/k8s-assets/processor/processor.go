@@ -204,7 +204,7 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 	return "", fmt.Errorf("ListServices returned no ServiceID")
 }
 
-// CollectUniqueContainers processes a PodReplicaSet and returns a slice of
+// CollectUniqueContainers processes a PodSet and returns a slice of
 // unique container name, image name, and image ID combinations with their
 // respective counts across all pods in the replica set.
 //
@@ -213,17 +213,17 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 // times each unique combination appears across all pods in the replica set.
 //
 // Parameters:
-//   - podReplicaSet: A scanner.PodReplicaSet object representing a group of related pods.
+//   - podReplicaSet: A scanner.PodSet object representing a group of related pods.
 //
 // Returns:
 //   - []UniqueContainerInfo: A slice of UniqueContainerInfo structs. Each struct contains:
 //   - ContainerInfo: The original container information (Name, Image, ImageHash).
-//   - Count: The number of times this unique combination appears in the PodReplicaSet.
+//   - Count: The number of times this unique combination appears in the PodSet.
 //
 // The returned slice will contain one entry for each unique combination of
-// container name, image name, and image ID found in the PodReplicaSet, along
+// container name, image name, and image ID found in the PodSet, along
 // with a count of its occurrences.
-func (p *Processor) CollectUniqueContainers(podReplicaSet scanner.PodReplicaSet) []UniqueContainerInfo {
+func (p *Processor) CollectUniqueContainers(podReplicaSet scanner.PodSet) []UniqueContainerInfo {
 	uniqueContainers := make(map[string]*UniqueContainerInfo)
 
 	for _, pod := range podReplicaSet.Pods {
@@ -249,7 +249,7 @@ func (p *Processor) CollectUniqueContainers(podReplicaSet scanner.PodReplicaSet)
 	return result
 }
 
-func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, serviceID string, podReplicaSet scanner.PodReplicaSet) error {
+func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, serviceID string, podReplicaSet scanner.PodSet) error {
 	uniqueContainers := p.CollectUniqueContainers(podReplicaSet)
 
 	for _, containerInfo := range uniqueContainers {
@@ -272,7 +272,7 @@ func (p *Processor) getComponentInstance(ctx context.Context, ccrn string) (stri
 		return "", fmt.Errorf("Couldn't list ComponentInstances")
 	}
 
-	if listComponentInstancesResp != nil && listComponentInstancesResp.ComponentInstances != nil && listComponentInstancesResp.ComponentInstances.TotalCount > 0 {
+	if listComponentInstancesResp != nil && listComponentInstancesResp.ComponentInstances != nil && len(listComponentInstancesResp.ComponentInstances.Edges) > 0 {
 		return listComponentInstancesResp.ComponentInstances.Edges[0].Node.Id, nil
 	}
 

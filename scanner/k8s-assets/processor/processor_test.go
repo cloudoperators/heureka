@@ -20,7 +20,7 @@ var _ = Describe("Processor", func() {
 	Describe("CollectUniqueContainers", func() {
 		Context("with a single pod and single container", func() {
 			It("should return one unique container", func() {
-				podReplicaSet := scanner.PodReplicaSet{
+				podReplicaSet := scanner.PodSet{
 					GenerateName: "test-pod",
 					Pods: []scanner.PodInfo{
 						{
@@ -42,7 +42,7 @@ var _ = Describe("Processor", func() {
 
 		Context("with multiple pods having overlapping containers", func() {
 			It("should return all unique containers", func() {
-				podReplicaSet := scanner.PodReplicaSet{
+				podReplicaSet := scanner.PodSet{
 					GenerateName: "test-pod",
 					Pods: []scanner.PodInfo{
 						{
@@ -80,7 +80,7 @@ var _ = Describe("Processor", func() {
 
 		Context("with multiple pods having different image hashes", func() {
 			It("should return containers with different image hashes and correct counts", func() {
-				podReplicaSet := scanner.PodReplicaSet{
+				podReplicaSet := scanner.PodSet{
 					GenerateName: "test-pod",
 					Pods: []scanner.PodInfo{
 						{
@@ -139,14 +139,14 @@ var _ = Describe("Processor", func() {
 
 		Context("with edge cases", func() {
 			It("should handle empty pods, no containers, and empty replica sets", func() {
-				emptyPodReplicaSet := scanner.PodReplicaSet{
+				emptyPodReplicaSet := scanner.PodSet{
 					GenerateName: "empty-pods",
 					Pods:         []scanner.PodInfo{{}},
 				}
 				result := p.CollectUniqueContainers(emptyPodReplicaSet)
 				Expect(result).To(BeEmpty())
 
-				noContainersPodReplicaSet := scanner.PodReplicaSet{
+				noContainersPodReplicaSet := scanner.PodSet{
 					GenerateName: "no-containers",
 					Pods: []scanner.PodInfo{
 						{Name: "pod1", Containers: []scanner.ContainerInfo{}},
@@ -156,7 +156,7 @@ var _ = Describe("Processor", func() {
 				result = p.CollectUniqueContainers(noContainersPodReplicaSet)
 				Expect(result).To(BeEmpty())
 
-				emptyReplicaSet := scanner.PodReplicaSet{
+				emptyReplicaSet := scanner.PodSet{
 					GenerateName: "empty-replica-set",
 					Pods:         []scanner.PodInfo{},
 				}
@@ -165,7 +165,7 @@ var _ = Describe("Processor", func() {
 			})
 
 			It("should handle containers with empty names or image hashes", func() {
-				podReplicaSet := scanner.PodReplicaSet{
+				podReplicaSet := scanner.PodSet{
 					GenerateName: "empty-fields",
 					Pods: []scanner.PodInfo{
 						{Name: "pod1", Containers: []scanner.ContainerInfo{
@@ -182,7 +182,7 @@ var _ = Describe("Processor", func() {
 
 			It("should handle when all containers across all pods are identical", func() {
 				container := scanner.ContainerInfo{Name: "container", Image: "image", ImageHash: "hash"}
-				podReplicaSet := scanner.PodReplicaSet{
+				podReplicaSet := scanner.PodSet{
 					GenerateName: "all-identical",
 					Pods: []scanner.PodInfo{
 						{Name: "pod1", Containers: []scanner.ContainerInfo{container, container}},
