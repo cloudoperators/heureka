@@ -676,6 +676,8 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 		Namespace:          lo.FromPtr(componentInstance.Namespace),
 		Domain:             lo.FromPtr(componentInstance.Domain),
 		Project:            lo.FromPtr(componentInstance.Project),
+		Pod:                lo.FromPtr(componentInstance.Pod),
+		Container:          lo.FromPtr(componentInstance.Container),
 		Count:              int16(lo.FromPtr(componentInstance.Count)),
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,
