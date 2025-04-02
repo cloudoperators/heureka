@@ -240,6 +240,27 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(entries[0].Id).To(BeEquivalentTo(row.Id.Int64))
 					})
 				})
+				It("can filter by a single service Id", func() {
+					serviceRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					ciIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
+						return c.Id.Int64, serviceRow.Id.Int64 == c.ServiceId.Int64
+					})
+					issueIds := lo.FilterMap(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
+						return im.IssueId.Int64, lo.Contains(ciIds, im.ComponentInstanceId.Int64)
+					})
+
+					filter := &entity.IssueFilter{ServiceId: []*int64{&serviceRow.Id.Int64}}
+
+					entries, err := db.GetIssues(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning the expected element", func() {
+						Expect(lo.Contains(issueIds, entries[0].Id)).To(BeTrue())
+					})
+				})
 				It("can filter by a single activity id", func() {
 					// select an activity
 					activityRow := seedCollection.ActivityRows[rand.Intn(len(seedCollection.ActivityRows))]
@@ -630,6 +651,29 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(count).To(BeEquivalentTo(len(issueRows)))
 					})
 				})
+				It("does show the correct amount when filtering for a service id", func() {
+					var row mariadb.BaseServiceRow
+					searchingRow := true
+					var issueRows []mariadb.IssueRow
+
+					//get a service that should return at least 1 issue
+					for searchingRow {
+						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+						issueRows = seedCollection.GetIssueByService(&row)
+						searchingRow = len(issueRows) > 0
+					}
+					filter := &entity.IssueFilter{ServiceId: []*int64{&row.Id.Int64}}
+
+					count, err := db.CountIssues(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning the correct count", func() {
+						Expect(count).To(BeEquivalentTo(len(issueRows)))
+					})
+				})
 			})
 		})
 		Context("and counting issue severities", func() {
@@ -710,6 +754,49 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 				filter := &entity.IssueFilter{
 					ComponentVersionId: []*int64{&cvi.ComponentVersionId.Int64},
+				}
+
+				testIssueSeverityCount(filter, counts)
+			})
+			It("returns the correct count for services", func() {
+				service := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+
+				ciIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
+					return c.Id.Int64, service.Id.Int64 == c.ServiceId.Int64
+				})
+
+				issueIds := lo.FilterMap(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
+					return im.IssueId.Int64, lo.Contains(ciIds, im.ComponentInstanceId.Int64)
+				})
+
+				counts := entity.IssueSeverityCounts{}
+
+				// avoid counting duplicates
+				ratingIssueIds := map[string]bool{}
+				for _, iv := range seedCollection.IssueVariantRows {
+					key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
+					if _, ok := ratingIssueIds[key]; ok || !iv.Id.Valid {
+						continue
+					}
+					if lo.Contains(issueIds, iv.IssueId.Int64) {
+						switch iv.Rating.String {
+						case entity.SeverityValuesCritical.String():
+							counts.Critical++
+						case entity.SeverityValuesHigh.String():
+							counts.High++
+						case entity.SeverityValuesMedium.String():
+							counts.Medium++
+						case entity.SeverityValuesLow.String():
+							counts.Low++
+						case entity.SeverityValuesNone.String():
+							counts.None++
+						}
+					}
+					ratingIssueIds[key] = true
+				}
+
+				filter := &entity.IssueFilter{
+					ServiceId: []*int64{&service.Id.Int64},
 				}
 
 				testIssueSeverityCount(filter, counts)
