@@ -166,7 +166,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	}
 
 	f := &entity.IssueFilter{
-		PaginatedX:                      entity.PaginatedX{},
+		Paginated:                       entity.Paginated{},
 		ServiceCCRN:                     filter.ServiceCcrn,
 		PrimaryName:                     filter.PrimaryName,
 		SupportGroupCCRN:                filter.SupportGroupCcrn,
