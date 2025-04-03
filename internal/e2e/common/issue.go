@@ -131,7 +131,7 @@ func QueryGetIssue(port string, issuePrimaryName string) *model.IssueConnection 
 	vars := map[string]interface{}{
 		"filter": map[string]interface{}{"primaryName": issuePrimaryName, "state": []string{model.StateFilterActive.String(), model.StateFilterDeleted.String()}},
 		"first":  1,
-		"after":  0,
+		"after":  "",
 	}
 	return QueryGetIssueWithReqVars(port, vars)
 }
