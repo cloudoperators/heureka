@@ -53,6 +53,15 @@ func (r *serviceFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *
 	return item, err
 }
 
+func (r *serviceFilterValueResolver) User(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterValueItem, error) {
+	item, err := baseResolver.UserNameWithIdBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterUserNameWithId
+	return item, err
+}
+
 func (r *Resolver) ServiceFilterValue() graph.ServiceFilterValueResolver {
 	return &serviceFilterValueResolver{r}
 }

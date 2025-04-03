@@ -239,3 +239,24 @@ func (u *userHandler) ListUniqueUserIDs(filter *entity.UserFilter, options *enti
 
 	return uniqueUserID, nil
 }
+
+func (u *userHandler) ListUserNamesAndIds(filter *entity.UserFilter, options *entity.ListOptions) ([]string, []string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListUserNamesAndIdsEventName,
+		"filter": filter,
+	})
+
+	users, err := u.database.GetUsers(filter)
+	if err != nil {
+		l.Error(err)
+		return nil, nil, NewUserHandlerError("Internal error while retrieving user.")
+	}
+	names := []string{}
+	ids := []string{}
+	for _, u := range users {
+		names = append(names, u.Name)
+		ids = append(ids, u.UniqueUserID)
+	}
+	u.eventRegistry.PushEvent(&ListUserNamesAndIdsEvent{Filter: filter, Options: options, Names: names, Ids: ids})
+	return names, ids, nil
+}

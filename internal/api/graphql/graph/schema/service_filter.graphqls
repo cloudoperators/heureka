@@ -6,7 +6,5 @@ type ServiceFilterValue {
     uniqueUserId(filter: UserFilter): FilterItem
     userName(filter: UserFilter): FilterItem
     supportGroupCcrn(filter: SupportGroupFilter): FilterItem
+    user(filter: UserFilter): FilterValueItem
 }
-
-
-

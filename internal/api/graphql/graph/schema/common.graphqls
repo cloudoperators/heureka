@@ -116,6 +116,17 @@ type FilterItem {
     values: [String]
 }
 
+type ValueItem {
+    display: String
+    value: String
+}
+
+type FilterValueItem {
+    displayName: String
+    filterName: String
+    values: [ValueItem]
+}
+
 type Metadata {
     created_at: DateTime
     created_by: String
