@@ -221,6 +221,8 @@ models:
         resolver: true
       supportGroupCcrn:
         resolver: true
+      user:
+        resolver: true
   ComponentInstanceFilterValue:
     fields:
       serviceCcrn:

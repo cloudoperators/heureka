@@ -12,4 +12,5 @@ type UserHandler interface {
 	DeleteUser(int64) error
 	ListUserNames(*entity.UserFilter, *entity.ListOptions) ([]string, error)
 	ListUniqueUserIDs(*entity.UserFilter, *entity.ListOptions) ([]string, error)
+	ListUserNamesAndIds(*entity.UserFilter, *entity.ListOptions) ([]string, []string, error)
 }
