@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -61,7 +62,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -99,7 +100,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()
@@ -133,7 +134,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()
@@ -213,7 +214,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()
@@ -237,6 +238,76 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 						Expect(issueEdge.Node.ObjectMetadata.ActivityCount).To(Equal(issueEdge.Node.Activities.TotalCount), "ActivityCount is correct")
 						Expect(issueEdge.Node.ObjectMetadata.ServiceCount).To(Equal(len(serviceIdSet)), "ServiceCount is correct")
 					}
+				})
+			})
+			Context("and we use order", Label("withOrder.graphql"), func() {
+				var respData struct {
+					Issues model.IssueConnection `json:"Issues"`
+				}
+
+				var sendOrderRequest = func(orderBy []map[string]string) (*model.IssueConnection, error) {
+					// create a queryCollection (safe to share across requests)
+					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/withOrder.graphql")
+
+					Expect(err).To(BeNil())
+					str := string(b)
+					req := graphql.NewRequest(str)
+
+					req.Var("orderBy", orderBy)
+					req.Header.Set("Cache-Control", "no-cache")
+
+					ctx := context.Background()
+
+					err = client.Run(ctx, req, &respData)
+
+					if err != nil {
+						return nil, err
+					}
+
+					return &respData.Issues, nil
+
+				}
+
+				It("can order by primaryName", Label("withOrder.graphql"), func() {
+					issues, err := sendOrderRequest([]map[string]string{
+						{"by": "primaryName", "direction": "asc"},
+					})
+
+					Expect(err).To(BeNil(), "Error while unmarshaling")
+
+					By("- returns the expected content in order", func() {
+						var prev string = ""
+						for _, i := range issues.Edges {
+							Expect(*i.Node.PrimaryName >= prev).Should(BeTrue())
+							prev = *i.Node.PrimaryName
+						}
+					})
+				})
+				It("can order by severity", Label("withOrder.graphql"), func() {
+					issues, err := sendOrderRequest([]map[string]string{
+						{"by": "severity", "direction": "asc"},
+					})
+
+					Expect(err).To(BeNil(), "Error while unmarshaling")
+
+					By("- returns the expected content in order", func() {
+						prev := -10
+						for _, i := range issues.Edges {
+							if len(i.Node.IssueVariants.Edges) > 0 {
+								id, err := strconv.ParseInt(i.Node.ID, 10, 64)
+								Expect(err).To(BeNil(), "Error while parsing ID")
+								variants := seedCollection.GetIssueVariantsByIssueId(id)
+								ratings := lo.Map(variants, func(iv mariadb.IssueVariantRow, _ int) int {
+									return test.SeverityToNumerical(iv.Rating.String)
+								})
+								highestRating := lo.Max(ratings)
+								Expect(highestRating >= prev).Should(BeTrue())
+							}
+						}
+					})
 				})
 			})
 		})

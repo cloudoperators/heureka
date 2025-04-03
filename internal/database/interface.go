@@ -6,12 +6,13 @@ package database
 import "github.com/cloudoperators/heureka/internal/entity"
 
 type Database interface {
-	GetIssues(*entity.IssueFilter) ([]entity.Issue, error)
-	GetIssuesWithAggregations(*entity.IssueFilter) ([]entity.IssueWithAggregations, error)
+	GetIssues(*entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
+	GetIssuesWithAggregations(*entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
 	CountIssues(*entity.IssueFilter) (int64, error)
 	CountIssueTypes(*entity.IssueFilter) (*entity.IssueTypeCounts, error)
 	CountIssueRatings(*entity.IssueFilter) (*entity.IssueSeverityCounts, error)
 	GetAllIssueIds(*entity.IssueFilter) ([]int64, error)
+	GetAllIssueCursors(*entity.IssueFilter, []entity.Order) ([]string, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
 	DeleteIssue(int64, int64) error

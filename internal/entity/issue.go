@@ -50,7 +50,7 @@ type IssueResult struct {
 }
 
 type IssueFilter struct {
-	Paginated
+	PaginatedX
 	PrimaryName                     []*string         `json:"primary_name"`
 	ServiceCCRN                     []*string         `json:"service_ccrn"`
 	SupportGroupCCRN                []*string         `json:"support_group_ccrn"`

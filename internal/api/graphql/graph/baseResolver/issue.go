@@ -93,7 +93,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:          entity.Paginated{},
+		PaginatedX:         entity.PaginatedX{First: first, After: after},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		ActivityId:         activityId,
@@ -110,6 +110,9 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	opt := GetIssueListOptions(requestedFields)
+	for _, o := range orderBy {
+		opt.Order = append(opt.Order, o.ToOrderEntity())
+	}
 
 	issues, err := app.ListIssues(f, opt)
 
@@ -166,7 +169,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:                       entity.Paginated{},
+		PaginatedX:                      entity.PaginatedX{},
 		ServiceCCRN:                     filter.ServiceCcrn,
 		PrimaryName:                     filter.PrimaryName,
 		SupportGroupCCRN:                filter.SupportGroupCcrn,
@@ -234,7 +237,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:          entity.Paginated{},
+		PaginatedX:         entity.PaginatedX{},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		PrimaryName:        filter.PrimaryName,

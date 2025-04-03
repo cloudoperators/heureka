@@ -413,6 +413,7 @@ type IssueVariantRow struct {
 	SecondaryName     sql.NullString `db:"issuevariant_secondary_name" json:"secondary_name"`
 	Vector            sql.NullString `db:"issuevariant_vector" json:"vector"`
 	Rating            sql.NullString `db:"issuevariant_rating" json:"rating"`
+	RatingNumerical   sql.NullInt64  `db:"issuevariant_rating_num" json:"rating_numerical"`
 	Description       sql.NullString `db:"issuevariant_description" json:"description"`
 	ExternalUrl       sql.NullString `db:"issuevariant_external_url" json:"external_url"`
 	CreatedAt         sql.NullTime   `db:"issuevariant_created_at" json:"created_at"`
