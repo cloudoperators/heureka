@@ -258,6 +258,39 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 					Expect(lo.Contains(existingUniqueUserIds, *name)).To(BeTrue())
 				}
 			})
+			It("returns correct Name With Id", func() {
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/userNamesWithIds.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					ServiceFilterValues model.ServiceFilterValue `json:"ServiceFilterValues"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				e2e_common.ExpectNonSystemUserCount(len(respData.ServiceFilterValues.User.Values), len(seedCollection.UserRows))
+
+				existingDisplays := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
+					return fmt.Sprintf("%s (%s)", s.Name.String, s.UniqueUserID.String)
+				})
+				existingValues := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
+					return s.UniqueUserID.String
+				})
+
+				for _, valueItem := range e2e_common.SubtractSystemUserNameFromValueItems(respData.ServiceFilterValues.User.Values) {
+					Expect(lo.Contains(existingDisplays, *valueItem.Display)).To(BeTrue())
+					Expect(lo.Contains(existingValues, *valueItem.Value)).To(BeTrue())
+				}
+			})
 		})
 	})
 })

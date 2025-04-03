@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	ListUsersEventName         event.EventName = "ListUsers"
-	CreateUserEventName        event.EventName = "CreateUser"
-	UpdateUserEventName        event.EventName = "UpdateUser"
-	DeleteUserEventName        event.EventName = "DeleteUser"
-	ListUserNamesEventName     event.EventName = "ListUserNames"
-	ListUniqueUserIDsEventName event.EventName = "ListUniqueUserIDs"
+	ListUsersEventName           event.EventName = "ListUsers"
+	CreateUserEventName          event.EventName = "CreateUser"
+	UpdateUserEventName          event.EventName = "UpdateUser"
+	DeleteUserEventName          event.EventName = "DeleteUser"
+	ListUserNamesEventName       event.EventName = "ListUserNames"
+	ListUniqueUserIDsEventName   event.EventName = "ListUniqueUserIDs"
+	ListUserNamesAndIdsEventName event.EventName = "ListUserNamesAndIds"
 )
 
 type ListUsersEvent struct {
@@ -69,4 +70,15 @@ type ListUniqueUserIDsEvent struct {
 
 func (e *ListUniqueUserIDsEvent) Name() event.EventName {
 	return ListUniqueUserIDsEventName
+}
+
+type ListUserNamesAndIdsEvent struct {
+	Filter  *entity.UserFilter
+	Options *entity.ListOptions
+	Names   []string
+	Ids     []string
+}
+
+func (e *ListUserNamesAndIdsEvent) Name() event.EventName {
+	return ListUserNamesAndIdsEventName
 }

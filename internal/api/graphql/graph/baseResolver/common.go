@@ -17,6 +17,7 @@ var (
 	FilterDisplayServiceCcrn      string = "Service"
 	FilterDisplaySupportGroupCcrn string = "Support Group"
 	FilterDisplayUserName         string = "User Name"
+	FilterDisplayUserNameWithId   string = "User Name with ID"
 	FilterDisplayUniqueUserId     string = "Unique User ID"
 	FilterDisplayComponentCcrn    string = "Pod"
 	FilterDisplayIssueType        string = "Issue Type"
@@ -38,6 +39,7 @@ var (
 	ServiceFilterType             string = "type"
 	ServiceFilterUserName         string = "userName"
 	ServiceFilterSupportGroupCcrn string = "supportGroupCcrn"
+	ServiceFilterUserNameWithId   string = "userNameWithId"
 
 	IssueMatchFilterPrimaryName      string = "primaryName"
 	IssueMatchFilterComponentCcrn    string = "componentCcrn"
