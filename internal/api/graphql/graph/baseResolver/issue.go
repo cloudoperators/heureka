@@ -247,7 +247,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		ComponentVersionId: cvId,
 		ServiceId:          serviceId,
 		State:              model.GetStateFilterType(filter.State),
-		AllServices:        filter.AllServices,
+		AllServices:        lo.FromPtr(filter.AllServices),
 	}
 
 	counts, err := app.GetIssueSeverityCounts(f)

@@ -144,7 +144,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 
 	if lo.Contains(requestedFields, "issueCounts") {
 		icFilter := &model.IssueFilter{
-			AllServices: true,
+			AllServices: lo.ToPtr(true),
 		}
 		severityCounts, err := IssueCountsBaseResolver(app, ctx, icFilter, nil)
 		if err != nil {

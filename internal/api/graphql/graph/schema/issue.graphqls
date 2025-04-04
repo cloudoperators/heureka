@@ -67,7 +67,7 @@ input IssueFilter {
     componentVersionId: [String],
 
     search: [String],
-    allServices: Boolean!,
+    allServices: Boolean,
 
     # leave away for MVP
     # cveDescription: [String]
