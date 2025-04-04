@@ -114,6 +114,8 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		if *o.By == model.IssueOrderByFieldSeverity {
 			opt.Order = append(opt.Order, o.ToOrderEntity())
 			opt.Order = append(opt.Order, entity.Order{By: entity.IssueId, Direction: o.Direction.ToOrderDirectionEntity()})
+		} else {
+			opt.Order = append(opt.Order, o.ToOrderEntity())
 		}
 	}
 
