@@ -27,6 +27,7 @@ input ServiceInput {
 
 type ServiceConnection implements Connection {
     totalCount: Int!
+    issueCounts: SeverityCounts
     edges: [ServiceEdge]
     pageInfo: PageInfo
 }

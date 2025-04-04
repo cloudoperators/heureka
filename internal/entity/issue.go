@@ -53,6 +53,7 @@ type IssueFilter struct {
 	PaginatedX
 	PrimaryName                     []*string         `json:"primary_name"`
 	ServiceCCRN                     []*string         `json:"service_ccrn"`
+	AllServices                     bool              `json:"all_services"`
 	SupportGroupCCRN                []*string         `json:"support_group_ccrn"`
 	Type                            []*string         `json:"type"`
 	Id                              []*int64          `json:"id"`
