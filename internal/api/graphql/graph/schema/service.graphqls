@@ -54,4 +54,5 @@ input ServiceOrderBy {
 
 enum ServiceOrderByField {
     ccrn
+    severity
 }
