@@ -114,6 +114,12 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
 		`)
 	}
 
+	if filter.AllServices {
+		joins = fmt.Sprintf("%s\n%s", joins, `
+			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
+		`)
+	}
+
 	return joins
 }
 
