@@ -10,7 +10,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,49 +37,16 @@ func NewIssueHandlerError(msg string) *IssueHandlerError {
 	return &IssueHandlerError{msg: msg}
 }
 
-func (is *issueHandler) getIssueResultsWithAggregations(filter *entity.IssueFilter) ([]entity.IssueResult, error) {
-	var issueResults []entity.IssueResult
-	issues, err := is.database.GetIssuesWithAggregations(filter)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, issue := range issues {
-		cursor := fmt.Sprintf("%d", issue.Id)
-		issueResults = append(issueResults, entity.IssueResult{
-			WithCursor:        entity.WithCursor{Value: cursor},
-			IssueAggregations: util.Ptr(issue.IssueAggregations),
-			Issue:             util.Ptr(issue.Issue),
-		})
-	}
-
-	return issueResults, nil
-}
-
-func (is *issueHandler) getIssueResults(filter *entity.IssueFilter) ([]entity.IssueResult, error) {
-	var issueResults []entity.IssueResult
-	issues, err := is.database.GetIssues(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, issue := range issues {
-		cursor := fmt.Sprintf("%d", issue.Id)
-		issueResults = append(issueResults, entity.IssueResult{
-			WithCursor:        entity.WithCursor{Value: cursor},
-			IssueAggregations: nil,
-			Issue:             util.Ptr(issue),
-		})
-	}
-	return issueResults, nil
-}
-
 func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetIssueEventName,
 		"id":    id,
 	})
 
-	issues, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&id}}, &entity.IssueListOptions{})
+	lo := entity.IssueListOptions{
+		ListOptions: *entity.NewListOptions(),
+	}
+	issues, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&id}}, &lo)
 
 	if err != nil {
 		l.Error(err)
@@ -109,16 +75,16 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 		"filter": filter,
 	})
 
-	common.EnsurePaginated(&filter.Paginated)
+	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	if options.IncludeAggregations {
-		res, err = is.getIssueResultsWithAggregations(filter)
+		res, err = is.database.GetIssuesWithAggregations(filter, options.Order)
 		if err != nil {
 			l.Error(err)
 			return nil, NewIssueHandlerError("Internal error while retrieving list results witis aggregations")
 		}
 	} else {
-		res, err = is.getIssueResults(filter)
+		res, err = is.database.GetIssues(filter, options.Order)
 		if err != nil {
 			l.Error(err)
 			return nil, NewIssueHandlerError("Internal error while retrieving list results.")
@@ -129,12 +95,12 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := is.database.GetAllIssueIds(filter)
+			cursors, err := is.database.GetAllIssueCursors(filter, options.Order)
 			if err != nil {
 				l.Error(err)
-				return nil, NewIssueHandlerError("Error while getting all Ids")
+				return nil, NewIssueHandlerError("Error while getting all cursors")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
+			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
 			issueList.PageInfo = pageInfo
 		}
 	}
@@ -179,7 +145,10 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	}
 	issue.UpdatedBy = issue.CreatedBy
 
-	issues, err := is.ListIssues(f, &entity.IssueListOptions{})
+	lo := entity.IssueListOptions{
+		ListOptions: *entity.NewListOptions(),
+	}
+	issues, err := is.ListIssues(f, &lo)
 
 	if err != nil {
 		l.Error(err)
@@ -221,7 +190,10 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		return nil, NewIssueHandlerError("Internal error while updating issue.")
 	}
 
-	issueResult, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &entity.IssueListOptions{})
+	lo := entity.IssueListOptions{
+		ListOptions: *entity.NewListOptions(),
+	}
+	issueResult, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &lo)
 
 	if err != nil {
 		l.Error(err)

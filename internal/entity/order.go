@@ -18,7 +18,10 @@ const (
 
 	ComponentVersionId
 
+	IssueId
 	IssuePrimaryName
+
+	IssueVariantRating
 
 	IssueMatchId
 	IssueMatchRating

@@ -63,18 +63,12 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 	return &issue, nil
 }
 
-func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueConnection, error) {
+func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy, parent *model.NodeParent) (*model.IssueConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called IssueBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("IssueBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("IssueBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var activityId []*int64
 	var cvId []*int64
@@ -99,7 +93,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:          entity.Paginated{First: first, After: afterId},
+		PaginatedX:         entity.PaginatedX{First: first, After: after},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		ActivityId:         activityId,
@@ -116,6 +110,9 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	opt := GetIssueListOptions(requestedFields)
+	for _, o := range orderBy {
+		opt.Order = append(opt.Order, o.ToOrderEntity())
+	}
 
 	issues, err := app.ListIssues(f, opt)
 
@@ -172,7 +169,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:                       entity.Paginated{},
+		PaginatedX:                      entity.PaginatedX{},
 		ServiceCCRN:                     filter.ServiceCcrn,
 		PrimaryName:                     filter.PrimaryName,
 		SupportGroupCCRN:                filter.SupportGroupCcrn,
@@ -240,7 +237,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:          entity.Paginated{},
+		PaginatedX:         entity.PaginatedX{},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		PrimaryName:        filter.PrimaryName,

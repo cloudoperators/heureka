@@ -55,6 +55,7 @@ type HeurekaEntity interface {
 		IssueWithAggregations |
 		IssueAggregations |
 		Issue |
+		IssueResult |
 		IssueMatch |
 		IssueMatchResult |
 		IssueMatchChange |

@@ -60,3 +60,34 @@ func NNewFakeIssueEntities(n int) []entity.Issue {
 	}
 	return r
 }
+
+func NewFakeIssueResult() entity.IssueResult {
+	issue := NewFakeIssueEntity()
+	return entity.IssueResult{
+		Issue: &issue,
+	}
+}
+
+func NNewFakeIssueResults(n int) []entity.IssueResult {
+	r := make([]entity.IssueResult, n)
+	for i := 0; i < n; i++ {
+		r[i] = NewFakeIssueResult()
+	}
+	return r
+}
+
+func NewFakeIssueResultWithAggregations() entity.IssueResult {
+	issue := NewFakeIssueWithAggregationsEntity()
+	return entity.IssueResult{
+		Issue:             &issue.Issue,
+		IssueAggregations: &issue.IssueAggregations,
+	}
+}
+
+func NNewFakeIssueResultsWithAggregations(n int) []entity.IssueResult {
+	r := make([]entity.IssueResult, n)
+	for i := 0; i < n; i++ {
+		r[i] = NewFakeIssueResultWithAggregations()
+	}
+	return r
+}

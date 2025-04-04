@@ -80,3 +80,13 @@ enum IssueTypes {
     PolicyViolation,
     SecurityEvent
 }
+
+input IssueOrderBy {
+    by: IssueOrderByField
+    direction: OrderDirection
+}
+
+enum IssueOrderByField {
+    severity
+    primaryName
+}

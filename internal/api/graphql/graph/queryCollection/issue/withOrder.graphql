@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+query ($filter: IssueFilter, $first: Int, $after: String, $orderBy: [IssueOrderBy]) {
+    Issues (
+        filter: $filter,
+        first: $first,
+        after: $after,
+        orderBy: $orderBy
+    ) {
+        totalCount
+        edges { 
+            node { 
+                id
+                primaryName
+                issueVariants{
+                    edges{
+                        node{
+                            severity{
+                                value
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
