@@ -206,7 +206,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	}
 
 	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+		cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
 	}
 
 	// construct final query
@@ -249,7 +249,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
         LEFT JOIN ComponentInstance CI on IM.issuematch_component_instance_id = CI.componentinstance_id
         %s
         %s
-        %s GROUP BY I.issue_id ORDER BY %s LIMIT ?
+        GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
     `
 
 	baseAggQuery := `
@@ -271,7 +271,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
         LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
 		%s
 		%s
-		%s GROUP BY I.issue_id ORDER BY %s LIMIT ?
+		GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
     `
 
 	baseQuery := `
@@ -569,7 +569,7 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 		SELECT I.* %s FROM Issue I
 		%s
 		%s
-		%s GROUP BY I.issue_id ORDER BY %s LIMIT ?
+		GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
     `
 
 	filter = s.ensureIssueFilter(filter)
