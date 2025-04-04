@@ -103,6 +103,9 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 
 	opt := GetListOptions(requestedFields)
 	for _, o := range orderBy {
+		if *o.By == model.ServiceOrderByFieldSeverity {
+			continue
+		}
 		opt.Order = append(opt.Order, o.ToOrderEntity())
 	}
 
