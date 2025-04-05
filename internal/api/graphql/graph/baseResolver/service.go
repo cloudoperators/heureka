@@ -109,7 +109,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 			opt.Order = append(opt.Order, entity.Order{By: entity.MediumCount, Direction: o.Direction.ToOrderDirectionEntity()})
 			opt.Order = append(opt.Order, entity.Order{By: entity.LowCount, Direction: o.Direction.ToOrderDirectionEntity()})
 			opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: o.Direction.ToOrderDirectionEntity()})
-			opt.Order = append(opt.Order, entity.Order{By: entity.ComponentVersionId, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.ServiceId, Direction: o.Direction.ToOrderDirectionEntity()})
 		} else {
 			opt.Order = append(opt.Order, o.ToOrderEntity())
 		}

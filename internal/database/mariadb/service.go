@@ -326,7 +326,6 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	baseImQuery := `
         SELECT %s, COUNT(IM.issuematch_id) AS service_agg_issue_matches FROM Service S
         %s
-        LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
         LEFT JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id
         %s
         GROUP BY S.service_id %s ORDER BY %s LIMIT ?
@@ -335,10 +334,18 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	baseCiQuery := `
         SELECT %s, SUM(CI.componentinstance_count) AS service_agg_component_instances FROM Service S
         %s
-        LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
         %s
         GROUP BY S.service_id %s ORDER BY %s LIMIT ?
     `
+
+	orderBySeverity := lo.ContainsBy(order, func(o entity.Order) bool {
+		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
+	})
+
+	if !orderBySeverity {
+		baseImQuery = fmt.Sprintf(baseImQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
+		baseCiQuery = fmt.Sprintf(baseImQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
+	}
 
 	baseQuery := `
         WITH IssueMatchCounts AS (
