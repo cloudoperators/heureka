@@ -130,7 +130,7 @@ func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
 	}
 }
 
-func WithService(order []entity.Order, s entity.Service) NewCursor {
+func WithService(order []entity.Order, s entity.Service, isc entity.IssueSeverityCounts) NewCursor {
 
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
@@ -140,6 +140,16 @@ func WithService(order []entity.Order, s entity.Service) NewCursor {
 				cursors.fields = append(cursors.fields, Field{Name: entity.ServiceId, Value: s.Id, Order: o.Direction})
 			case entity.ServiceCcrn:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ServiceCcrn, Value: s.CCRN, Order: o.Direction})
+			case entity.CriticalCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.CriticalCount, Value: isc.Critical, Order: o.Direction})
+			case entity.HighCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.HighCount, Value: isc.High, Order: o.Direction})
+			case entity.MediumCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.MediumCount, Value: isc.Medium, Order: o.Direction})
+			case entity.LowCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.LowCount, Value: isc.Low, Order: o.Direction})
+			case entity.NoneCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.NoneCount, Value: isc.None, Order: o.Direction})
 			default:
 				continue
 			}

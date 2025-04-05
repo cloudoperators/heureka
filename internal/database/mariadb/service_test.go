@@ -425,7 +425,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.ServiceResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, *entries[len(entries)-1].Service))
+							after, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, *entries[len(entries)-1].Service, entity.IssueSeverityCounts{}))
 							return after
 						},
 						len(seedCollection.ServiceRows),
@@ -945,7 +945,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	})
 })
 
-var _ = Describe("Ordering Services", func() {
+var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	var seedCollection *test.SeedCollection
@@ -975,6 +975,80 @@ var _ = Describe("Ordering Services", func() {
 			verifyFunc(res)
 		})
 	}
+
+	var loadTestData = func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("testdata/component_version_order/issue_variant.json"))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("testdata/service_order/component_version_issue.json"))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		componentInstances, err := test.LoadComponentInstances(test.GetTestDataPath("testdata/service_order/component_instance.json"))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		return componentInstances, issueVariants, cvIssues, nil
+	}
+
+	When("order by count is used", func() {
+		BeforeEach(func() {
+			seeder.SeedIssueRepositories()
+			seeder.SeedIssues(10)
+			components := seeder.SeedComponents(1)
+			seeder.SeedComponentVersions(10, components)
+			seeder.SeedServices(5)
+			componentInstances, issueVariants, componentVersionIssues, err := loadTestData()
+			Expect(err).To(BeNil())
+			// Important: the order need to be preserved
+			for _, iv := range issueVariants {
+				_, err := seeder.InsertFakeIssueVariant(iv)
+				Expect(err).To(BeNil())
+			}
+			for _, cvi := range componentVersionIssues {
+				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
+				Expect(err).To(BeNil())
+			}
+			for _, ci := range componentInstances {
+				_, err := seeder.InsertFakeComponentInstance(ci)
+				Expect(err).To(BeNil())
+			}
+		})
+		It("can order desc by critical, high, medium, low and none", func() {
+			order := []entity.Order{
+				{By: entity.CriticalCount, Direction: entity.OrderDirectionDesc},
+				{By: entity.HighCount, Direction: entity.OrderDirectionDesc},
+				{By: entity.MediumCount, Direction: entity.OrderDirectionDesc},
+				{By: entity.LowCount, Direction: entity.OrderDirectionDesc},
+				{By: entity.NoneCount, Direction: entity.OrderDirectionDesc},
+			}
+			services, err := db.GetServices(nil, order)
+			Expect(err).To(BeNil())
+			Expect(services[0].Id).To(BeEquivalentTo(1))
+			Expect(services[1].Id).To(BeEquivalentTo(3))
+			Expect(services[2].Id).To(BeEquivalentTo(4))
+			Expect(services[3].Id).To(BeEquivalentTo(5))
+			Expect(services[4].Id).To(BeEquivalentTo(2))
+		})
+		It("can order asc by critical, high, medium, low and none", func() {
+			order := []entity.Order{
+				{By: entity.CriticalCount, Direction: entity.OrderDirectionAsc},
+				{By: entity.HighCount, Direction: entity.OrderDirectionAsc},
+				{By: entity.MediumCount, Direction: entity.OrderDirectionAsc},
+				{By: entity.LowCount, Direction: entity.OrderDirectionAsc},
+				{By: entity.NoneCount, Direction: entity.OrderDirectionAsc},
+			}
+			services, err := db.GetServices(nil, order)
+			Expect(err).To(BeNil())
+			Expect(services[0].Id).To(BeEquivalentTo(2))
+			Expect(services[1].Id).To(BeEquivalentTo(5))
+			Expect(services[2].Id).To(BeEquivalentTo(4))
+			Expect(services[3].Id).To(BeEquivalentTo(3))
+			Expect(services[4].Id).To(BeEquivalentTo(1))
+		})
+	})
 
 	When("with ASC order", Label("ServiceASCOrder"), func() {
 
