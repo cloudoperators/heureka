@@ -344,7 +344,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 
 	if !orderBySeverity {
 		baseImQuery = fmt.Sprintf(baseImQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
-		baseCiQuery = fmt.Sprintf(baseImQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
+		baseCiQuery = fmt.Sprintf(baseCiQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
 	}
 
 	baseQuery := `
