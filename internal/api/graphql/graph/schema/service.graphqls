@@ -11,6 +11,7 @@ type Service implements Node {
     componentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     objectMetadata: ServiceMetadata
+    issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata
 
 }
@@ -26,6 +27,7 @@ input ServiceInput {
 
 type ServiceConnection implements Connection {
     totalCount: Int!
+    issueCounts: SeverityCounts
     edges: [ServiceEdge]
     pageInfo: PageInfo
 }
@@ -53,4 +55,5 @@ input ServiceOrderBy {
 
 enum ServiceOrderByField {
     ccrn
+    severity
 }

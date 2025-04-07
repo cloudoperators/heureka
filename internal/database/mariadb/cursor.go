@@ -205,3 +205,23 @@ func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc 
 		return nil
 	}
 }
+
+func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCursor {
+
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.IssueId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueId, Value: issue.Id, Order: o.Direction})
+			case entity.IssuePrimaryName:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssuePrimaryName, Value: issue.Id, Order: o.Direction})
+			case entity.IssueVariantRating:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueVariantRating, Value: ivRating, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}

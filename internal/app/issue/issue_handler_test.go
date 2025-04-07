@@ -9,13 +9,15 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue"
+	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/samber/lo"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -32,17 +34,11 @@ var _ = BeforeSuite(func() {
 })
 
 func getIssueFilter() *entity.IssueFilter {
-	serviceCcrn := "SomeNotExistingService"
 	return &entity.IssueFilter{
-		Paginated: entity.Paginated{
+		PaginatedX: entity.PaginatedX{
 			First: nil,
 			After: nil,
 		},
-		ServiceCCRN:                     []*string{&serviceCcrn},
-		Id:                              nil,
-		IssueMatchStatus:                nil,
-		IssueMatchDiscoveryDate:         nil,
-		IssueMatchTargetRemediationDate: nil,
 	}
 }
 
@@ -83,7 +79,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
+			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
 		})
 
@@ -94,25 +90,34 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
 	})
-
 	When("the list option does include the PageInfo", func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
-			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			matches := test.NNewFakeIssueEntities(resElements)
-
-			var ids = lo.Map(matches, func(m entity.Issue, _ int) int64 { return m.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			issues := []entity.IssueResult{}
+			for _, i := range test.NNewFakeIssueEntities(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0))
+				issues = append(issues, entity.IssueResult{WithCursor: entity.WithCursor{Value: cursor}, Issue: lo.ToPtr(i)})
 			}
-			db.On("GetIssues", filter).Return(matches, nil)
-			db.On("GetAllIssueIds", filter).Return(ids, nil)
-			issueHandler = issue.NewIssueHandler(db, er)
+
+			var cursors = lo.Map(issues, func(ir entity.IssueResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0))
+				return cursor
+			})
+
+			var i int64 = 0
+			for len(cursors) < dbElements {
+				i++
+				issue := test.NewFakeIssueEntity()
+				c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0))
+				cursors = append(cursors, c)
+			}
+			db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
+			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
+			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
+			issueHandler = appIssue.NewIssueHandler(db, er)
 			res, err := issueHandler.ListIssues(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -123,6 +128,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			Entry("When pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
 			Entry("When pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
+
 	})
 
 	When("the list options does include aggregations", func() {
@@ -132,11 +138,10 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		Context("and the given filter does not have any matches in the database", func() {
 
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter).Return([]entity.IssueWithAggregations{}, nil)
+				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			})
 
 			It("should return an empty result", func() {
-
 				issueHandler = issue.NewIssueHandler(db, er)
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -146,7 +151,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter).Return(test.NNewFakeIssueEntitiesWithAggregations(10), nil)
+				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return(test.NNewFakeIssueResultsWithAggregations(10), nil)
 			})
 			It("should return the expected issues in the result", func() {
 				issueHandler = issue.NewIssueHandler(db, er)
@@ -157,7 +162,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter).Return([]entity.IssueWithAggregations{}, errors.New("some error"))
+				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return([]entity.IssueResult{}, errors.New("some error"))
 			})
 
 			It("should return the expected issues in the result", func() {
@@ -177,7 +182,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		Context("and the given filter does not have any matches in the database", func() {
 
 			BeforeEach(func() {
-				db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
+				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			})
 			It("should return an empty result", func() {
 
@@ -190,7 +195,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssues", filter).Return(test.NNewFakeIssueEntities(15), nil)
+				db.On("GetIssues", filter, []entity.Order{}).Return(test.NNewFakeIssueResults(15), nil)
 			})
 			It("should return the expected issues in the result", func() {
 				issueHandler = issue.NewIssueHandler(db, er)
@@ -202,7 +207,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 		Context("and  the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssues", filter).Return([]entity.Issue{}, errors.New("some error"))
+				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, errors.New("some error"))
 			})
 
 			It("should return the expected issues in the result", func() {
@@ -227,10 +232,9 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		issueEntity = test.NewFakeIssueEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.IssueFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -241,7 +245,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		filter.PrimaryName = []*string{&issueEntity.PrimaryName}
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssue", &issueEntity).Return(&issueEntity, nil)
-		db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
+		db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 		issueHandler = issue.NewIssueHandler(db, er)
 		newIssue, err := issueHandler.CreateIssue(&issueEntity)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -258,18 +262,17 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	var (
 		db           *mocks.MockDatabase
 		issueHandler issue.IssueHandler
-		issueEntity  entity.Issue
+		issueResult  entity.IssueResult
 		filter       *entity.IssueFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		issueEntity = test.NewFakeIssueEntity()
+		issueResult = test.NewFakeIssueResult()
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.IssueFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -278,17 +281,17 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 
 	It("updates issueEntity", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("UpdateIssue", &issueEntity).Return(nil)
+		db.On("UpdateIssue", issueResult.Issue).Return(nil)
 		issueHandler = issue.NewIssueHandler(db, er)
-		issueEntity.Description = "New Description"
-		filter.Id = []*int64{&issueEntity.Id}
-		db.On("GetIssues", filter).Return([]entity.Issue{issueEntity}, nil)
-		updatedIssue, err := issueHandler.UpdateIssue(&issueEntity)
+		issueResult.Issue.Description = "New Description"
+		filter.Id = []*int64{&issueResult.Issue.Id}
+		db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{issueResult}, nil)
+		updatedIssue, err := issueHandler.UpdateIssue(issueResult.Issue)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
-			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issueEntity.PrimaryName))
-			Expect(updatedIssue.Description).To(BeEquivalentTo(issueEntity.Description))
-			Expect(updatedIssue.Type.String()).To(BeEquivalentTo(issueEntity.Type.String()))
+			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issueResult.Issue.PrimaryName))
+			Expect(updatedIssue.Description).To(BeEquivalentTo(issueResult.Issue.Description))
+			Expect(updatedIssue.Type.String()).To(BeEquivalentTo(issueResult.Issue.Type.String()))
 		})
 	})
 })
@@ -305,10 +308,9 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.IssueFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -319,12 +321,15 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssue", id, mock.Anything).Return(nil)
 		issueHandler = issue.NewIssueHandler(db, er)
-		db.On("GetIssues", filter).Return([]entity.Issue{}, nil)
+		db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 		err := issueHandler.DeleteIssue(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issues, err := issueHandler.ListIssues(filter, &entity.IssueListOptions{})
+		lo := entity.IssueListOptions{
+			ListOptions: *entity.NewListOptions(),
+		}
+		issues, err := issueHandler.ListIssues(filter, &lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issues.Elements).To(BeEmpty(), "no error should be thrown")
 	})
@@ -334,41 +339,30 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 	var (
 		db               *mocks.MockDatabase
 		issueHandler     issue.IssueHandler
-		issueEntity      entity.Issue
+		issueResult      entity.IssueResult
 		componentVersion entity.ComponentVersion
-		filter           *entity.IssueFilter
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		issueEntity = test.NewFakeIssueEntity()
+		issueResult = test.NewFakeIssueResult()
 		componentVersion = test.NewFakeComponentVersionEntity()
-		first := 10
-		var after int64
-		after = 0
-		filter = &entity.IssueFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			Id: []*int64{&issueEntity.Id},
-		}
 	})
 
 	It("adds componentVersion to issueEntity", func() {
-		db.On("AddComponentVersionToIssue", issueEntity.Id, componentVersion.Id).Return(nil)
-		db.On("GetIssues", filter).Return([]entity.Issue{issueEntity}, nil)
+		db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
+		db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
 		issueHandler = issue.NewIssueHandler(db, er)
-		issue, err := issueHandler.AddComponentVersionToIssue(issueEntity.Id, componentVersion.Id)
+		issue, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
 	})
 
 	It("removes componentVersion from issueEntity", func() {
-		db.On("RemoveComponentVersionFromIssue", issueEntity.Id, componentVersion.Id).Return(nil)
-		db.On("GetIssues", filter).Return([]entity.Issue{issueEntity}, nil)
+		db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
+		db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
 		issueHandler = issue.NewIssueHandler(db, er)
-		issue, err := issueHandler.RemoveComponentVersionFromIssue(issueEntity.Id, componentVersion.Id)
+		issue, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
 	})

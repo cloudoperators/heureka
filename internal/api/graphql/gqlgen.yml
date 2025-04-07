@@ -151,6 +151,8 @@ models:
         resolver: true
       issueMatches:
         resolver: true
+      issueCounts:
+        resolver: true
   SupportGroup:
     fields:
       users:
@@ -218,6 +220,8 @@ models:
       userName:
         resolver: true
       supportGroupCcrn:
+        resolver: true
+      user:
         resolver: true
   ComponentInstanceFilterValue:
     fields:

@@ -22,13 +22,14 @@ func (r *activityResolver) Services(ctx context.Context, obj *model.Activity, fi
 	})
 }
 
-func (r *activityResolver) Issues(ctx context.Context, obj *model.Activity, filter *model.IssueFilter, first *int, after *string) (*model.IssueConnection, error) {
+func (r *activityResolver) Issues(ctx context.Context, obj *model.Activity, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy) (*model.IssueConnection, error) {
 	return baseResolver.IssueBaseResolver(
 		r.App,
 		ctx,
 		filter,
 		first,
 		after,
+		orderBy,
 		&model.NodeParent{
 			Parent:     obj,
 			ParentName: model.ActivityNodeName,

@@ -57,6 +57,7 @@ enum IssueStatusValues {
 
 input IssueFilter {
     serviceCcrn: [String],
+    supportGroupCcrn: [String],
     primaryName: [String],
     issueMatchStatus: [IssueMatchStatusValues],
     issueType: [IssueTypes],
@@ -66,6 +67,7 @@ input IssueFilter {
     componentVersionId: [String],
 
     search: [String],
+    allServices: Boolean,
 
     # leave away for MVP
     # cveDescription: [String]
@@ -78,4 +80,14 @@ enum IssueTypes {
     Vulnerability,
     PolicyViolation,
     SecurityEvent
+}
+
+input IssueOrderBy {
+    by: IssueOrderByField
+    direction: OrderDirection
+}
+
+enum IssueOrderByField {
+    severity
+    primaryName
 }

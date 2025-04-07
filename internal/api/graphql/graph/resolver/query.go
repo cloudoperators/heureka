@@ -17,8 +17,8 @@ import (
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *queryResolver) Issues(ctx context.Context, filter *model.IssueFilter, first *int, after *string) (*model.IssueConnection, error) {
-	return baseResolver.IssueBaseResolver(r.App, ctx, filter, first, after, nil)
+func (r *queryResolver) Issues(ctx context.Context, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy) (*model.IssueConnection, error) {
+	return baseResolver.IssueBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
 func (r *queryResolver) IssueMatches(ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
@@ -107,6 +107,10 @@ func (r *queryResolver) ScannerRunTagFilterValues(ctx context.Context) ([]*strin
 
 func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) (*model.ScannerRunConnection, error) {
 	return baseResolver.ScannerRuns(r.App, ctx, filter, first, after)
+}
+
+func (r *queryResolver) IssueCounts(ctx context.Context, filter *model.IssueFilter) (*model.SeverityCounts, error) {
+	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, nil)
 }
 
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }

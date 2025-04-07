@@ -62,6 +62,18 @@ func (od *OrderDirection) ToOrderDirectionEntity() entity.OrderDirection {
 	return direction
 }
 
+func (io *IssueOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *io.By {
+	case IssueOrderByFieldPrimaryName:
+		order.By = entity.IssuePrimaryName
+	case IssueOrderByFieldSeverity:
+		order.By = entity.IssueVariantRating
+	}
+	order.Direction = io.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func (cio *ComponentInstanceOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
 	switch *cio.By {

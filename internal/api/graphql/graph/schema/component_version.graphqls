@@ -6,7 +6,7 @@ type ComponentVersion implements Node {
     version: String
     componentId: String
     component: Component
-    issues(first: Int, after: String): IssueConnection
+    issues(filter: IssueFilter, first: Int, after: String, orderBy: [IssueOrderBy]): IssueConnection
     componentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
     issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata
