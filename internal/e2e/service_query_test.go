@@ -317,6 +317,151 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			})
 
 		})
+		Context("and we request issueCounts", Label("issueCount"), func() {
+			It("returns correct issueCounts", func() {
+				severityCounts := map[string]model.SeverityCounts{}
+				// Setup severityCounts for all componentVersions
+				for _, service := range seedCollection.ServiceRows {
+					serviceId := fmt.Sprint(service.Id.Int64)
+					severityCounts[serviceId] = model.SeverityCounts{}
+					counts := severityCounts[serviceId]
+					ciIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
+						return c.Id.Int64, service.Id.Int64 == c.ServiceId.Int64
+					})
+
+					issueIds := lo.FilterMap(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
+						return im.IssueId.Int64, lo.Contains(ciIds, im.ComponentInstanceId.Int64)
+					})
+
+					// avoid counting duplicates
+					ratingIssueIds := map[string]bool{}
+					for _, iv := range seedCollection.IssueVariantRows {
+						key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
+						if _, ok := ratingIssueIds[key]; ok || !iv.Id.Valid {
+							continue
+						}
+						if lo.Contains(issueIds, iv.IssueId.Int64) {
+							switch iv.Rating.String {
+							case entity.SeverityValuesCritical.String():
+								counts.Critical++
+							case entity.SeverityValuesHigh.String():
+								counts.High++
+							case entity.SeverityValuesMedium.String():
+								counts.Medium++
+							case entity.SeverityValuesLow.String():
+								counts.Low++
+							case entity.SeverityValuesNone.String():
+								counts.None++
+							}
+						}
+						ratingIssueIds[key] = true
+					}
+					severityCounts[serviceId] = counts
+				}
+
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withIssueCounts.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Services model.ServiceConnection `json:"Services"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				for _, sEdge := range respData.Services.Edges {
+					sc := severityCounts[sEdge.Node.ID]
+					Expect(sEdge.Node.IssueCounts.Critical).To(Equal(sc.Critical))
+					Expect(sEdge.Node.IssueCounts.High).To(Equal(sc.High))
+					Expect(sEdge.Node.IssueCounts.Medium).To(Equal(sc.Medium))
+					Expect(sEdge.Node.IssueCounts.Low).To(Equal(sc.Low))
+					Expect(sEdge.Node.IssueCounts.None).To(Equal(sc.None))
+				}
+			})
+		})
+	})
+	var loadTestData = func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("../database/mariadb/testdata/service_order/component_version_issue.json"))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		componentInstances, err := test.LoadComponentInstances(test.GetTestDataPath("../database/mariadb/testdata/service_order/component_instance.json"))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		return componentInstances, issueVariants, cvIssues, nil
+	}
+	When("ordering by severity", func() {
+		BeforeEach(func() {
+			seeder.SeedIssueRepositories()
+			seeder.SeedIssues(10)
+			components := seeder.SeedComponents(1)
+			seeder.SeedComponentVersions(10, components)
+			seeder.SeedServices(5)
+			componentInstances, issueVariants, componentVersionIssues, err := loadTestData()
+			Expect(err).To(BeNil())
+			// Important: the order need to be preserved
+			for _, iv := range issueVariants {
+				_, err := seeder.InsertFakeIssueVariant(iv)
+				Expect(err).To(BeNil())
+			}
+			for _, cvi := range componentVersionIssues {
+				_, err := seeder.InsertFakeComponentVersionIssue(cvi)
+				Expect(err).To(BeNil())
+			}
+			for _, ci := range componentInstances {
+				_, err := seeder.InsertFakeComponentInstance(ci)
+				Expect(err).To(BeNil())
+			}
+		})
+
+		var runOrderTest = func(orderDirection string, expectedOrder []string) {
+			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withOrder.graphql")
+			Expect(err).To(BeNil())
+			str := string(b)
+			req := graphql.NewRequest(str)
+			req.Var("filter", map[string]string{})
+			req.Var("first", 10)
+			req.Var("after", "")
+			req.Var("orderBy", []map[string]string{
+				{"by": "severity", "direction": orderDirection},
+			})
+			req.Header.Set("Cache-Control", "no-cache")
+			ctx := context.Background()
+			var respData struct {
+				Services model.ServiceConnection `json:"Services"`
+			}
+			err = client.Run(ctx, req, &respData)
+			Expect(err).To(BeNil(), "Error while unmarshaling")
+			Expect(respData.Services.TotalCount).To(Equal(5))
+			Expect(len(respData.Services.Edges)).To(Equal(5))
+			for i, id := range expectedOrder {
+				Expect(respData.Services.Edges[i].Node.ID).To(BeEquivalentTo(id))
+			}
+		}
+
+		It("can order descending by severity", func() {
+			runOrderTest("desc", []string{"1", "3", "4", "5", "2"})
+		})
+
+		It("can order ascending by severity", func() {
+			runOrderTest("asc", []string{"2", "5", "4", "3", "1"})
+		})
 	})
 })
 

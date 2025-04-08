@@ -199,3 +199,122 @@ func (s *componentInstanceHandler) ListCcrns(filter *entity.ComponentInstanceFil
 
 	return ccrn, nil
 }
+func (s *componentInstanceHandler) ListRegions(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListRegionsEventName,
+		"filter": filter,
+	})
+
+	regions, err := s.database.GetRegion(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Region.")
+	}
+
+	s.eventRegistry.PushEvent(&ListRegionsEvent{Filter: filter, Regions: regions})
+
+	return regions, nil
+}
+func (s *componentInstanceHandler) ListClusters(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListClustersEventName,
+		"filter": filter,
+	})
+
+	clusters, err := s.database.GetCluster(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Cluster.")
+	}
+
+	s.eventRegistry.PushEvent(&ListClustersEvent{Filter: filter, Clusters: clusters})
+
+	return clusters, nil
+}
+func (s *componentInstanceHandler) ListNamespaces(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListNamespacesEventName,
+		"filter": filter,
+	})
+
+	namespaces, err := s.database.GetNamespace(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Namespace.")
+	}
+
+	s.eventRegistry.PushEvent(&ListNamespacesEvent{Filter: filter, Namespaces: namespaces})
+
+	return namespaces, nil
+}
+func (s *componentInstanceHandler) ListDomains(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListDomainsEventName,
+		"filter": filter,
+	})
+
+	domains, err := s.database.GetDomain(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Domain.")
+	}
+
+	s.eventRegistry.PushEvent(&ListDomainsEvent{Filter: filter, Domains: domains})
+
+	return domains, nil
+}
+func (s *componentInstanceHandler) ListProjects(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListProjectsEventName,
+		"filter": filter,
+	})
+
+	projects, err := s.database.GetProject(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Project.")
+	}
+
+	s.eventRegistry.PushEvent(&ListProjectsEvent{Filter: filter, Projects: projects})
+
+	return projects, nil
+}
+func (s *componentInstanceHandler) ListPods(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListPodsEventName,
+		"filter": filter,
+	})
+
+	pods, err := s.database.GetPod(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Pod.")
+	}
+
+	s.eventRegistry.PushEvent(&ListPodsEvent{Filter: filter, Pods: pods})
+
+	return pods, nil
+}
+func (s *componentInstanceHandler) ListContainers(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListContainersEventName,
+		"filter": filter,
+	})
+
+	containers, err := s.database.GetContainer(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Container.")
+	}
+
+	s.eventRegistry.PushEvent(&ListContainersEvent{Filter: filter, Containers: containers})
+
+	return containers, nil
+}

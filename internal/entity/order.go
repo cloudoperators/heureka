@@ -13,10 +13,15 @@ const (
 	ComponentInstanceNamespace
 	ComponentInstanceDomain
 	ComponentInstanceProject
+	ComponentInstancePod
+	ComponentInstanceContainer
 
 	ComponentVersionId
 
+	IssueId
 	IssuePrimaryName
+
+	IssueVariantRating
 
 	IssueMatchId
 	IssueMatchRating

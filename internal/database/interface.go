@@ -6,12 +6,13 @@ package database
 import "github.com/cloudoperators/heureka/internal/entity"
 
 type Database interface {
-	GetIssues(*entity.IssueFilter) ([]entity.Issue, error)
-	GetIssuesWithAggregations(*entity.IssueFilter) ([]entity.IssueWithAggregations, error)
+	GetIssues(*entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
+	GetIssuesWithAggregations(*entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
 	CountIssues(*entity.IssueFilter) (int64, error)
 	CountIssueTypes(*entity.IssueFilter) (*entity.IssueTypeCounts, error)
 	CountIssueRatings(*entity.IssueFilter) (*entity.IssueSeverityCounts, error)
 	GetAllIssueIds(*entity.IssueFilter) ([]int64, error)
+	GetAllIssueCursors(*entity.IssueFilter, []entity.Order) ([]string, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
 	DeleteIssue(int64, int64) error
@@ -97,6 +98,13 @@ type Database interface {
 	DeleteComponentInstance(int64, int64) error
 	GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error)
 	GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetRegion(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetCluster(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetNamespace(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetDomain(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetProject(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetPod(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
 	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)

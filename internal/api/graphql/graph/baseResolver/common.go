@@ -17,6 +17,7 @@ var (
 	FilterDisplayServiceCcrn      string = "Service"
 	FilterDisplaySupportGroupCcrn string = "Support Group"
 	FilterDisplayUserName         string = "User Name"
+	FilterDisplayUserNameWithId   string = "User"
 	FilterDisplayUniqueUserId     string = "Unique User ID"
 	FilterDisplayComponentCcrn    string = "Pod"
 	FilterDisplayIssueType        string = "Issue Type"
@@ -25,12 +26,20 @@ var (
 	FilterDisplayIssuePrimaryName string = "Issue Name"
 	FilterDisplayIssueSeverity    string = "Severity"
 	FilterDisplayCcrn             string = "CCRN"
+	FilterDisplayRegion           string = "Region"
+	FilterDisplayCluster          string = "Cluster"
+	FilterDisplayNamespace        string = "Namespace"
+	FilterDisplayDomain           string = "Domain"
+	FilterDisplayProject          string = "Project"
+	FilterDisplayPod              string = "Pod"
+	FilterDisplayContainer        string = "Container"
 
 	ServiceFilterServiceCcrn      string = "serviceCcrn"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"
 	ServiceFilterType             string = "type"
 	ServiceFilterUserName         string = "userName"
 	ServiceFilterSupportGroupCcrn string = "supportGroupCcrn"
+	ServiceFilterUserNameWithId   string = "uniqueUserId"
 
 	IssueMatchFilterPrimaryName      string = "primaryName"
 	IssueMatchFilterComponentCcrn    string = "componentCcrn"
@@ -40,7 +49,14 @@ var (
 	IssueMatchFilterServiceCcrn      string = "serviceCcrn"
 	IssueMatchFilterSupportGroupCcrn string = "supportGroupCcrn"
 
-	ComponentFilterComponentCcrn string = "componentCcrn"
+	ComponentInstanceFilterComponentCcrn string = "componentCcrn"
+	ComponentInstanceFilterRegion        string = "region"
+	ComponentInstanceFilterCluster       string = "cluster"
+	ComponentInstanceFilterNamespace     string = "namespace"
+	ComponentInstanceFilterDomain        string = "domain"
+	ComponentInstanceFilterProject       string = "project"
+	ComponentInstanceFilterPod           string = "pod"
+	ComponentInstanceFilterContainer     string = "container"
 )
 
 type ResolverError struct {

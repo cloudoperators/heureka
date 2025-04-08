@@ -4,6 +4,7 @@
 package baseResolver
 
 import (
+	"fmt"
 	"context"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
@@ -200,6 +201,47 @@ func UniqueUserIDBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	filterItem := model.FilterItem{
 		DisplayName: &FilterDisplayUniqueUserId,
 		Values:      pointerNames,
+	}
+
+	return &filterItem, nil
+}
+
+func UserNameWithIdBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFilter) (*model.FilterValueItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called UserNameWithIdBaseResolver")
+
+	if filter == nil {
+		filter = &model.UserFilter{}
+	}
+
+	f := &entity.UserFilter{
+		Paginated:    entity.Paginated{},
+		Name:         filter.UserName,
+		UniqueUserID: filter.UniqueUserID,
+		State:        model.GetStateFilterType(filter.State),
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, ids, err := app.ListUserNamesAndIds(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("UserNameWithIdBaseResolver", err.Error())
+	}
+
+	var valueItems []*model.ValueItem
+
+	for i := range ids {
+		display := fmt.Sprintf("%s (%s)", names[i], ids[i])
+		valueItem := model.ValueItem{Display: &display, Value: &ids[i]}
+		valueItems = append(valueItems, &valueItem)
+	}
+
+	filterItem := model.FilterValueItem{
+		DisplayName: &FilterDisplayUserNameWithId,
+		Values:      valueItems,
 	}
 
 	return &filterItem, nil

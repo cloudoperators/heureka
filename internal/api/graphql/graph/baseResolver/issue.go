@@ -63,18 +63,12 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 	return &issue, nil
 }
 
-func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueConnection, error) {
+func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy, parent *model.NodeParent) (*model.IssueConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called IssueBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("IssueBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("IssueBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var activityId []*int64
 	var cvId []*int64
@@ -99,8 +93,9 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:          entity.Paginated{First: first, After: afterId},
+		PaginatedX:         entity.PaginatedX{First: first, After: after},
 		ServiceCCRN:        filter.ServiceCcrn,
+		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		ActivityId:         activityId,
 		ComponentVersionId: cvId,
 		PrimaryName:        filter.PrimaryName,
@@ -115,6 +110,14 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	opt := GetIssueListOptions(requestedFields)
+	for _, o := range orderBy {
+		if *o.By == model.IssueOrderByFieldSeverity {
+			opt.Order = append(opt.Order, o.ToOrderEntity())
+			opt.Order = append(opt.Order, entity.Order{By: entity.IssueId, Direction: o.Direction.ToOrderDirectionEntity()})
+		} else {
+			opt.Order = append(opt.Order, o.ToOrderEntity())
+		}
+	}
 
 	issues, err := app.ListIssues(f, opt)
 
@@ -171,9 +174,10 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:                       entity.Paginated{},
+		PaginatedX:                      entity.PaginatedX{},
 		ServiceCCRN:                     filter.ServiceCcrn,
 		PrimaryName:                     filter.PrimaryName,
+		SupportGroupCCRN:                filter.SupportGroupCcrn,
 		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 		Search:                          filter.Search,
 		IssueMatchStatus:                nil, //@todo Implement
@@ -221,6 +225,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	var cvId []*int64
+	var serviceId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -231,18 +236,23 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		switch parent.ParentName {
 		case model.ComponentVersionNodeName:
 			cvId = []*int64{pid}
+		case model.ServiceNodeName:
+			serviceId = []*int64{pid}
 		}
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:          entity.Paginated{},
+		PaginatedX:         entity.PaginatedX{},
 		ServiceCCRN:        filter.ServiceCcrn,
+		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		PrimaryName:        filter.PrimaryName,
 		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 		Search:             filter.Search,
 		IssueRepositoryId:  irIds,
 		ComponentVersionId: cvId,
+		ServiceId:          serviceId,
 		State:              model.GetStateFilterType(filter.State),
+		AllServices:        lo.FromPtr(filter.AllServices),
 	}
 
 	counts, err := app.GetIssueSeverityCounts(f)

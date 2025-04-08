@@ -149,6 +149,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 									Expect(r.SecondaryName).Should(BeEquivalentTo(row.SecondaryName.String), "Name matches")
 									Expect(r.Description).Should(BeEquivalentTo(row.Description.String), "Description matches")
+									Expect(r.ExternalUrl).Should(BeEquivalentTo(row.ExternalUrl.String), "ExternalUrl matches")
 									Expect(r.Severity.Cvss.Vector).Should(BeEquivalentTo(row.Vector.String), "Vector matches")
 									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
@@ -478,6 +479,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Expect(iv[0].Id).To(BeEquivalentTo(issueVariant.Id))
 						Expect(iv[0].SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
 						Expect(iv[0].Description).To(BeEquivalentTo(issueVariant.Description))
+						Expect(iv[0].ExternalUrl).To(BeEquivalentTo(issueVariant.ExternalUrl))
 						Expect(iv[0].IssueRepositoryId).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
 						Expect(iv[0].IssueId).To(BeEquivalentTo(issueVariant.IssueId))
 						Expect(iv[0].Severity.Cvss.Vector).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
@@ -532,6 +534,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Expect(iv[0].Id).To(BeEquivalentTo(issueVariant.Id))
 						Expect(iv[0].SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
 						Expect(iv[0].Description).To(BeEquivalentTo(issueVariant.Description))
+						Expect(iv[0].ExternalUrl).To(BeEquivalentTo(issueVariant.ExternalUrl))
 						Expect(iv[0].IssueRepositoryId).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
 						Expect(iv[0].IssueId).To(BeEquivalentTo(issueVariant.IssueId))
 						Expect(iv[0].Severity.Cvss.Vector).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))

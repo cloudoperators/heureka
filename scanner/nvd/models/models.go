@@ -311,9 +311,7 @@ type CveFilter struct {
 	ModEndDate   string
 }
 
-//
 // Models for Issue
-//
 type Issue struct {
 	Id          string `json:"id"`
 	Type        string `json:"type"`
@@ -331,18 +329,14 @@ type IssueConnection struct {
 	Edges      []*IssueEdge `json:"edges"`
 }
 
-//
 // Models for IssueVariant
-//
 type IssueVariant struct {
 	Id            string `json:"id"`
 	SecondaryName string `json:"secondary_name"`
 	IssueId       int64  `json:"issue_id"`
 }
 
-//
 // Models for IssueRepository
-//
 type IssueRepository struct {
 	Id        string  `json:"id"`
 	Name      *string `json:"name,omitempty"`

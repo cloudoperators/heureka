@@ -140,6 +140,8 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			Expect(newComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
 			Expect(newComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
 			Expect(newComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
+			Expect(newComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
+			Expect(newComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
 			Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
@@ -177,6 +179,8 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.Namespace = "NewNamespace"
 		componentInstance.Domain = "NewDomain"
 		componentInstance.Project = "NewProject"
+		componentInstance.Pod = "NewPod"
+		componentInstance.Container = "NewContainer"
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
@@ -189,6 +193,8 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			Expect(updatedComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
 			Expect(updatedComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
 			Expect(updatedComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
+			Expect(updatedComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
+			Expect(updatedComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
 			Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))

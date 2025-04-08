@@ -85,12 +85,12 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			filter.First = &pageSize
 			services := []entity.ServiceResult{}
 			for _, s := range test.NNewFakeServiceEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, s))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, s, entity.IssueSeverityCounts{}))
 				services = append(services, entity.ServiceResult{WithCursor: entity.WithCursor{Value: cursor}, Service: lo.ToPtr(s)})
 			}
 
 			var cursors = lo.Map(services, func(m entity.ServiceResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, *m.Service))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, *m.Service, entity.IssueSeverityCounts{}))
 				return cursor
 			})
 
@@ -98,7 +98,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			for len(cursors) < dbElements {
 				i++
 				service := test.NewFakeServiceEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, service))
+				c, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, service, entity.IssueSeverityCounts{}))
 				cursors = append(cursors, c)
 			}
 			db.On("GetServices", filter, []entity.Order{}).Return(services, nil)

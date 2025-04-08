@@ -29,18 +29,21 @@ type ServiceInfo struct {
 	Pods         []PodInfo
 }
 
-type PodReplicaSet struct {
+type PodSet struct {
 	GenerateName string
+	SetKind      string
 	Pods         []PodInfo
 }
 
 type PodInfo struct {
-	Labels       PodLabels
-	Name         string
-	GenerateName string
-	Namespace    string
-	UID          string
-	Containers   []ContainerInfo
+	ControlledByKind string
+	ControlledByName string
+	Labels           PodLabels
+	Name             string
+	GenerateName     string
+	Namespace        string
+	UID              string
+	Containers       []ContainerInfo
 }
 
 type ImageInfo struct {
@@ -164,13 +167,23 @@ func (s *Scanner) extractImageInfo(image string) (ImageInfo, error) {
 }
 
 func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
+
+	controlledByName := ""
+	controlledByKind := ""
+	if len(pod.OwnerReferences) > 0 {
+		controlledByName = pod.OwnerReferences[0].Name
+		controlledByKind = pod.OwnerReferences[0].Kind
+	}
+
 	podInfo := PodInfo{
-		Name:         pod.Name,
-		GenerateName: pod.GenerateName,
-		UID:          string(pod.UID),
-		Namespace:    pod.Namespace,
-		Labels:       s.GetRelevantLabels(pod),
-		Containers:   make([]ContainerInfo, 0, len(pod.Spec.Containers)),
+		ControlledByKind: controlledByKind,
+		ControlledByName: controlledByName,
+		Name:             pod.Name,
+		GenerateName:     pod.GenerateName,
+		UID:              string(pod.UID),
+		Namespace:        pod.Namespace,
+		Labels:           s.GetRelevantLabels(pod),
+		Containers:       make([]ContainerInfo, 0, len(pod.Spec.Containers)),
 	}
 
 	for _, containerStatus := range pod.Status.ContainerStatuses {
@@ -204,23 +217,38 @@ func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
 }
 
 // GroupPodsByGenerateName will group pod replicas by "GenerateName"
-// wll return a list pf PodReplicaSet
-func (s *Scanner) GroupPodsByGenerateName(pods []v1.Pod) []PodReplicaSet {
+// wll return a list pf PodSet
+func (s *Scanner) GroupPodsByGenerateName(pods []v1.Pod) []PodSet {
 	podGroups := make(map[string][]PodInfo)
 
 	for _, pod := range pods {
 		podInfo := s.GetPodInfo(pod)
-		key := podInfo.GenerateName
-		if key == "" {
-			key = podInfo.Name // Use Name if GenerateName is empty
+
+		key := podInfo.Name
+		if podInfo.ControlledByKind == "Job" {
+			key = podInfo.ControlledByName
+			if idx := strings.LastIndex(key, "-"); idx != -1 {
+				key = key[:idx]
+			}
+		} else {
+			key = podInfo.GenerateName
 		}
+
 		podGroups[key] = append(podGroups[key], podInfo)
 	}
 
-	result := make([]PodReplicaSet, 0, len(podGroups))
+	result := make([]PodSet, 0, len(podGroups))
+
 	for generateName, pods := range podGroups {
-		result = append(result, PodReplicaSet{
+
+		setKind := ""
+		if len(pods) > 0 {
+			setKind = pods[0].ControlledByKind
+		}
+
+		result = append(result, PodSet{
 			GenerateName: generateName,
+			SetKind:      setKind,
 			Pods:         pods,
 		})
 	}

@@ -130,7 +130,7 @@ func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
 	}
 }
 
-func WithService(order []entity.Order, s entity.Service) NewCursor {
+func WithService(order []entity.Order, s entity.Service, isc entity.IssueSeverityCounts) NewCursor {
 
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
@@ -140,6 +140,16 @@ func WithService(order []entity.Order, s entity.Service) NewCursor {
 				cursors.fields = append(cursors.fields, Field{Name: entity.ServiceId, Value: s.Id, Order: o.Direction})
 			case entity.ServiceCcrn:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ServiceCcrn, Value: s.CCRN, Order: o.Direction})
+			case entity.CriticalCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.CriticalCount, Value: isc.Critical, Order: o.Direction})
+			case entity.HighCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.HighCount, Value: isc.High, Order: o.Direction})
+			case entity.MediumCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.MediumCount, Value: isc.Medium, Order: o.Direction})
+			case entity.LowCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.LowCount, Value: isc.Low, Order: o.Direction})
+			case entity.NoneCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.NoneCount, Value: isc.None, Order: o.Direction})
 			default:
 				continue
 			}
@@ -168,6 +178,10 @@ func WithComponentInstance(order []entity.Order, ci entity.ComponentInstance) Ne
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceDomain, Value: ci.Domain, Order: o.Direction})
 			case entity.ComponentInstanceProject:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceProject, Value: ci.Project, Order: o.Direction})
+			case entity.ComponentInstancePod:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstancePod, Value: ci.Pod, Order: o.Direction})
+			case entity.ComponentInstanceContainer:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentInstanceContainer, Value: ci.Container, Order: o.Direction})
 			default:
 				continue
 			}
@@ -176,7 +190,7 @@ func WithComponentInstance(order []entity.Order, ci entity.ComponentInstance) Ne
 	}
 }
 
-func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion) NewCursor {
+func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc entity.IssueSeverityCounts) NewCursor {
 
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
@@ -184,6 +198,36 @@ func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion) NewC
 			switch o.By {
 			case entity.ComponentVersionId:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionId, Value: cv.Id, Order: o.Direction})
+			case entity.CriticalCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.CriticalCount, Value: isc.Critical, Order: o.Direction})
+			case entity.HighCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.HighCount, Value: isc.High, Order: o.Direction})
+			case entity.MediumCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.MediumCount, Value: isc.Medium, Order: o.Direction})
+			case entity.LowCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.LowCount, Value: isc.Low, Order: o.Direction})
+			case entity.NoneCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.NoneCount, Value: isc.None, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}
+
+func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCursor {
+
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.IssueId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueId, Value: issue.Id, Order: o.Direction})
+			case entity.IssuePrimaryName:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssuePrimaryName, Value: issue.Id, Order: o.Direction})
+			case entity.IssueVariantRating:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueVariantRating, Value: ivRating, Order: o.Direction})
 			default:
 				continue
 			}

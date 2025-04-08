@@ -35,15 +35,15 @@ func (r *componentVersionResolver) Component(ctx context.Context, obj *model.Com
 		})
 }
 
-func (r *componentVersionResolver) Issues(ctx context.Context, obj *model.ComponentVersion, first *int, after *string) (*model.IssueConnection, error) {
-	return baseResolver.IssueBaseResolver(r.App, ctx, nil, first, after, &model.NodeParent{
+func (r *componentVersionResolver) Issues(ctx context.Context, obj *model.ComponentVersion, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy) (*model.IssueConnection, error) {
+	return baseResolver.IssueBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ComponentVersionNodeName,
 	})
 }
 
-func (r *componentVersionResolver) ComponentInstances(ctx context.Context, obj *model.ComponentVersion, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy) (*model.ComponentInstanceConnection, error) {
-	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, nil, first, after, orderBy, &model.NodeParent{
+func (r *componentVersionResolver) ComponentInstances(ctx context.Context, obj *model.ComponentVersion, filter *model.ComponentInstanceFilter, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy) (*model.ComponentInstanceConnection, error) {
+	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ComponentVersionNodeName,
 	})

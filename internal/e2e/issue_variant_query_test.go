@@ -156,6 +156,7 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 					Expect(issueVariant.Node.ID).ToNot(BeNil(), "issueVariant has a ID set")
 					Expect(issueVariant.Node.SecondaryName).ToNot(BeNil(), "issueVariant has a name set")
 					Expect(issueVariant.Node.Description).ToNot(BeNil(), "issueVariant has a description set")
+					Expect(issueVariant.Node.ExternalURL).ToNot(BeNil(), "issueVariant has an external url set")
 					Expect(issueVariant.Node.Severity.Value).ToNot(BeNil(), "issueVariant has a severity value set")
 					Expect(issueVariant.Node.Severity.Score).ToNot(BeNil(), "issueVariant has a severity score set")
 
@@ -275,6 +276,7 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 				req.Var("input", map[string]interface{}{
 					"secondaryName":     issueVariant.SecondaryName,
 					"description":       issueVariant.Description,
+					"externalUrl":       issueVariant.ExternalUrl,
 					"issueRepositoryId": fmt.Sprintf("%d", issueVariant.IssueRepositoryId),
 					"issueId":           fmt.Sprintf("%d", issueVariant.IssueId),
 					"severity": map[string]string{
@@ -294,6 +296,7 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 
 				Expect(*respData.IssueVariant.SecondaryName).To(Equal(issueVariant.SecondaryName))
 				Expect(*respData.IssueVariant.Description).To(Equal(issueVariant.Description))
+				Expect(*respData.IssueVariant.ExternalURL).To(Equal(issueVariant.ExternalUrl))
 				Expect(*respData.IssueVariant.IssueRepositoryID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)))
 				Expect(*respData.IssueVariant.IssueID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueId)))
 				Expect(string(*respData.IssueVariant.Severity.Value)).To(Equal(issueVariant.Severity.Value))
@@ -347,10 +350,12 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 				ir := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
 				issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant(&ir)
 				issueVariant.SecondaryName = "SecretIssueVariant"
+				issueVariant.ExternalUrl = "https://new.com"
 
 				req.Var("id", fmt.Sprintf("%d", issueVariant.Id))
 				req.Var("input", map[string]string{
 					"secondaryName": issueVariant.SecondaryName,
+					"externalUrl":   issueVariant.ExternalUrl,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -365,6 +370,7 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 				}
 
 				Expect(*respData.IssueVariant.SecondaryName).To(Equal(issueVariant.SecondaryName))
+				Expect(*respData.IssueVariant.ExternalURL).To(Equal(issueVariant.ExternalUrl))
 			})
 			It("updates issueVariant severity with rating", func() {
 				// create a queryCollection (safe to share across requests)

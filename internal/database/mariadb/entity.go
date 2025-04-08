@@ -131,6 +131,16 @@ type RatingCount struct {
 	None     sql.NullInt64 `db:"none_count"`
 }
 
+func (rc *RatingCount) AsIssueSeverityCounts() entity.IssueSeverityCounts {
+	return entity.IssueSeverityCounts{
+		Critical: GetInt64Value(rc.Critical),
+		High:     GetInt64Value(rc.High),
+		Medium:   GetInt64Value(rc.Medium),
+		Low:      GetInt64Value(rc.Low),
+		None:     GetInt64Value(rc.None),
+	}
+}
+
 type IssueRow struct {
 	Id          sql.NullInt64  `db:"issue_id" json:"id"`
 	Type        sql.NullString `db:"issue_type" json:"type"`
@@ -403,7 +413,9 @@ type IssueVariantRow struct {
 	SecondaryName     sql.NullString `db:"issuevariant_secondary_name" json:"secondary_name"`
 	Vector            sql.NullString `db:"issuevariant_vector" json:"vector"`
 	Rating            sql.NullString `db:"issuevariant_rating" json:"rating"`
+	RatingNumerical   sql.NullInt64  `db:"issuevariant_rating_num" json:"rating_numerical"`
 	Description       sql.NullString `db:"issuevariant_description" json:"description"`
+	ExternalUrl       sql.NullString `db:"issuevariant_external_url" json:"external_url"`
 	CreatedAt         sql.NullTime   `db:"issuevariant_created_at" json:"created_at"`
 	CreatedBy         sql.NullInt64  `db:"issuevariant_created_by" json:"created_by"`
 	DeletedAt         sql.NullTime   `db:"issuevariant_deleted_at" json:"deleted_at,omitempty"`
@@ -428,6 +440,7 @@ func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) e
 		Issue:             nil,
 		Severity:          severity,
 		Description:       GetStringValue(ivr.Description),
+		ExternalUrl:       GetStringValue(ivr.ExternalUrl),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ivr.CreatedAt),
 			CreatedBy: GetInt64Value(ivr.CreatedBy),
@@ -446,6 +459,7 @@ func (ivr *IssueVariantRow) FromIssueVariant(iv *entity.IssueVariant) {
 	ivr.Vector = sql.NullString{String: iv.Severity.Cvss.Vector, Valid: true}
 	ivr.Rating = sql.NullString{String: iv.Severity.Value, Valid: true}
 	ivr.Description = sql.NullString{String: iv.Description, Valid: true}
+	ivr.ExternalUrl = sql.NullString{String: iv.ExternalUrl, Valid: true}
 	ivr.CreatedAt = sql.NullTime{Time: iv.CreatedAt, Valid: true}
 	ivr.CreatedBy = sql.NullInt64{Int64: iv.CreatedBy, Valid: true}
 	ivr.DeletedAt = sql.NullTime{Time: iv.DeletedAt, Valid: true}
@@ -477,6 +491,7 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 		Issue:             nil,
 		Severity:          severity,
 		Description:       GetStringValue(ivwr.Description),
+		ExternalUrl:       GetStringValue(ivwr.ExternalUrl),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ivwr.IssueVariantRow.CreatedAt),
 			CreatedBy: GetInt64Value(ivwr.CreatedBy),
@@ -802,6 +817,8 @@ type ComponentInstanceRow struct {
 	Namespace          sql.NullString `db:"componentinstance_namespace" json:"namespace"`
 	Domain             sql.NullString `db:"componentinstance_domain" json:"domain"`
 	Project            sql.NullString `db:"componentinstance_project" json:"project"`
+	Pod                sql.NullString `db:"componentinstance_pod" json:"pod"`
+	Container          sql.NullString `db:"componentinstance_container" json:"container"`
 	Count              sql.NullInt16  `db:"componentinstance_count" json:"count"`
 	ComponentVersionId sql.NullInt64  `db:"componentinstance_component_version_id"`
 	ServiceId          sql.NullInt64  `db:"componentinstance_service_id"`
@@ -821,6 +838,8 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 		Namespace:          GetStringValue(cir.Namespace),
 		Domain:             GetStringValue(cir.Domain),
 		Project:            GetStringValue(cir.Project),
+		Pod:                GetStringValue(cir.Pod),
+		Container:          GetStringValue(cir.Container),
 		Count:              GetInt16Value(cir.Count),
 		ComponentVersion:   nil,
 		ComponentVersionId: GetInt64Value(cir.ComponentVersionId),
@@ -844,6 +863,8 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 	cir.Namespace = sql.NullString{String: ci.Namespace, Valid: true}
 	cir.Domain = sql.NullString{String: ci.Domain, Valid: true}
 	cir.Project = sql.NullString{String: ci.Project, Valid: true}
+	cir.Pod = sql.NullString{String: ci.Pod, Valid: true}
+	cir.Container = sql.NullString{String: ci.Container, Valid: true}
 	cir.Count = sql.NullInt16{Int16: ci.Count, Valid: true}
 	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}

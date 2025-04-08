@@ -39,6 +39,12 @@ func SubtractSystemUserName(v []*string) []*string {
 	})
 }
 
+func SubtractSystemUserNameFromValueItems(v []*model.ValueItem) []*model.ValueItem {
+	return lo.Filter(v, func(val *model.ValueItem, _ int) bool {
+		return val == nil || *val.Value != SystemUserUniqueUserId
+	})
+}
+
 func SubtractSystemUserUniqueUserId(v []*string) []*string {
 	return lo.Filter(v, func(val *string, _ int) bool {
 		return val == nil || *val != SystemUserUniqueUserId

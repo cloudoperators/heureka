@@ -151,6 +151,8 @@ models:
         resolver: true
       issueMatches:
         resolver: true
+      issueCounts:
+        resolver: true
   SupportGroup:
     fields:
       users:
@@ -219,6 +221,8 @@ models:
         resolver: true
       supportGroupCcrn:
         resolver: true
+      user:
+        resolver: true
   ComponentInstanceFilterValue:
     fields:
       serviceCcrn:
@@ -226,6 +230,20 @@ models:
       supportGroupCcrn:
         resolver: true
       ccrn:
+        resolver: true
+      region:
+        resolver: true
+      cluster:
+        resolver: true
+      namespace:
+        resolver: true
+      domain:
+        resolver: true
+      project:
+        resolver: true
+      pod:
+        resolver: true
+      container:
         resolver: true
   ComponentFilterValue:
     fields:

@@ -21,7 +21,7 @@ func (r *componentFilterValueResolver) ComponentCcrn(ctx context.Context, obj *m
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.ComponentFilterComponentCcrn
+	item.FilterName = &baseResolver.ComponentInstanceFilterComponentCcrn
 	return item, err
 }
 

@@ -159,6 +159,26 @@ func (s *SeedCollection) GetComponentInstanceByIssueMatches(im []mariadb.IssueMa
 	return expectedComponentInstances, ids
 }
 
+func (s *SeedCollection) GetComponentInstance() mariadb.ComponentInstanceRow {
+	return s.ComponentInstanceRows[0]
+}
+
+func (s *SeedCollection) GetComponentInstanceWithPredicateVal(predicate func(picked, iter mariadb.ComponentInstanceRow) (string, bool)) (mariadb.ComponentInstanceRow, []string) {
+	picked := s.ComponentInstanceRows[0]
+	return picked, lo.FilterMap(
+		s.ComponentInstanceRows,
+		func(iter mariadb.ComponentInstanceRow, _ int) (string, bool) {
+			return predicate(picked, iter)
+		},
+	)
+}
+
+func (s *SeedCollection) GetComponentInstanceVal(predicate func(cir mariadb.ComponentInstanceRow) string) []string {
+	return lo.Map(s.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow, _ int) string {
+		return predicate(cir)
+	})
+}
+
 func (s *SeedCollection) GetValidComponentInstanceRows() []mariadb.ComponentInstanceRow {
 	var valid []mariadb.ComponentInstanceRow
 	var added []int64
@@ -886,6 +906,7 @@ func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVarian
 			issuevariant_issue_id,
 			issuevariant_repository_id,
 			issuevariant_description,
+			issuevariant_external_url,
 			issuevariant_created_by,
 			issuevariant_updated_by
 		) VALUES (
@@ -895,6 +916,7 @@ func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVarian
 			:issuevariant_issue_id,
 			:issuevariant_repository_id,
 			:issuevariant_description,
+			:issuevariant_external_url,
 			:issuevariant_created_by,
 			:issuevariant_updated_by
 		)`
@@ -954,6 +976,8 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			componentinstance_namespace,
 			componentinstance_domain,
 			componentinstance_project,
+			componentinstance_pod,
+			componentinstance_container,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -966,6 +990,8 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			:componentinstance_namespace,
 			:componentinstance_domain,
 			:componentinstance_project,
+			:componentinstance_pod,
+			:componentinstance_container,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
@@ -1252,11 +1278,13 @@ func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.
 	v := GenerateRandomCVSS31Vector()
 	cvss, _ := metric.NewEnvironmental().Decode(v)
 	rating := cvss.Severity().String()
+	externalUrl := gofakeit.URL()
 	return mariadb.IssueVariantRow{
 		SecondaryName: sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 9999)), Valid: true},
 		Description:   sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
 		Vector:        sql.NullString{String: v, Valid: true},
 		Rating:        sql.NullString{String: rating, Valid: true},
+		ExternalUrl:   sql.NullString{String: externalUrl, Valid: true},
 		IssueRepositoryId: sql.NullInt64{
 			Int64: repos[rand.Intn(len(repos))].Id.Int64,
 			Valid: true,
@@ -1343,6 +1371,8 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	namespace := strings.ToLower(gofakeit.ProductName())
 	domain := strings.ToLower(gofakeit.SongName())
 	project := strings.ToLower(gofakeit.BeerName())
+	pod := strings.ToLower(gofakeit.UUID())
+	container := strings.ToLower(gofakeit.UUID())
 	return mariadb.ComponentInstanceRow{
 		CCRN:      sql.NullString{String: GenerateFakeCcrn(cluster, namespace), Valid: true},
 		Region:    sql.NullString{String: region, Valid: true},
@@ -1350,6 +1380,8 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 		Namespace: sql.NullString{String: namespace, Valid: true},
 		Domain:    sql.NullString{String: domain, Valid: true},
 		Project:   sql.NullString{String: project, Valid: true},
+		Pod:       sql.NullString{String: pod, Valid: true},
+		Container: sql.NullString{String: container, Valid: true},
 		Count:     sql.NullInt16{Int16: n, Valid: true},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},

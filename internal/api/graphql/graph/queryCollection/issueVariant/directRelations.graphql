@@ -14,6 +14,7 @@ query ($filter: IssueVariantFilter, $first: Int, $after: String) {
                 id
                 secondaryName
                 description
+                externalUrl
                 severity { 
                     value
                     score

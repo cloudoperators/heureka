@@ -11,7 +11,7 @@ type Issue implements Node {
     lastModified: DateTime
     issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
-    issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
+    issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     componentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     objectMetadata: IssueMetadata
     metadata: Metadata
@@ -57,6 +57,7 @@ enum IssueStatusValues {
 
 input IssueFilter {
     serviceCcrn: [String],
+    supportGroupCcrn: [String],
     primaryName: [String],
     issueMatchStatus: [IssueMatchStatusValues],
     issueType: [IssueTypes],
@@ -66,6 +67,7 @@ input IssueFilter {
     componentVersionId: [String],
 
     search: [String],
+    allServices: Boolean,
 
     # leave away for MVP
     # cveDescription: [String]
@@ -78,4 +80,14 @@ enum IssueTypes {
     Vulnerability,
     PolicyViolation,
     SecurityEvent
+}
+
+input IssueOrderBy {
+    by: IssueOrderByField
+    direction: OrderDirection
+}
+
+enum IssueOrderByField {
+    severity
+    primaryName
 }

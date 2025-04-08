@@ -103,7 +103,16 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 
 	opt := GetListOptions(requestedFields)
 	for _, o := range orderBy {
-		opt.Order = append(opt.Order, o.ToOrderEntity())
+		if *o.By == model.ServiceOrderByFieldSeverity {
+			opt.Order = append(opt.Order, entity.Order{By: entity.CriticalCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.HighCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.MediumCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.LowCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.ServiceId, Direction: o.Direction.ToOrderDirectionEntity()})
+		} else {
+			opt.Order = append(opt.Order, o.ToOrderEntity())
+		}
 	}
 
 	services, err := app.ListServices(f, opt)
@@ -137,6 +146,17 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		TotalCount: tc,
 		Edges:      edges,
 		PageInfo:   model.NewPageInfo(services.PageInfo),
+	}
+
+	if lo.Contains(requestedFields, "issueCounts") {
+		icFilter := &model.IssueFilter{
+			AllServices: lo.ToPtr(true),
+		}
+		severityCounts, err := IssueCountsBaseResolver(app, ctx, icFilter, nil)
+		if err != nil {
+			return nil, NewResolverError("ServiceBaseResolver", err.Error())
+		}
+		connection.IssueCounts = severityCounts
 	}
 
 	return &connection, nil

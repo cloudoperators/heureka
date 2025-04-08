@@ -4,6 +4,7 @@
 package entity
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -54,6 +55,7 @@ type HeurekaEntity interface {
 		IssueWithAggregations |
 		IssueAggregations |
 		Issue |
+		IssueResult |
 		IssueMatch |
 		IssueMatchResult |
 		IssueMatchChange |
@@ -203,6 +205,16 @@ func NewSeverity(url string) Severity {
 		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
 	}
 
+	var externalUrl string
+	switch ev.Ver {
+	case metric.V3_0:
+		externalUrl = fmt.Sprintf("https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.0", url)
+	case metric.V3_1:
+		externalUrl = fmt.Sprintf("https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.1", url)
+	case metric.VUnknown:
+		externalUrl = ""
+	}
+
 	severity := "unkown"
 	score := 0.0
 	cvss := Cvss{}
@@ -211,6 +223,7 @@ func NewSeverity(url string) Severity {
 		score = ev.Score()
 		cvss = Cvss{
 			Vector:        url,
+			ExternalUrl:   externalUrl,
 			Base:          ev.Base,
 			Temporal:      ev.Temporal,
 			Environmental: ev,
@@ -226,6 +239,7 @@ func NewSeverity(url string) Severity {
 
 type Cvss struct {
 	Vector        string
+	ExternalUrl   string
 	Base          *metric.Base
 	Temporal      *metric.Temporal
 	Environmental *metric.Environmental

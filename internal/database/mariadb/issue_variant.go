@@ -91,6 +91,9 @@ func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVari
 	if issueVariant.Description != "" {
 		fl = append(fl, "issuevariant_description = :issuevariant_description")
 	}
+	if issueVariant.ExternalUrl != "" {
+		fl = append(fl, "issuevariant_external_url = :issuevariant_external_url")
+	}
 	if issueVariant.IssueId != 0 {
 		fl = append(fl, "issuevariant_issue_id = :issuevariant_issue_id")
 	}
@@ -247,6 +250,7 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 			issuevariant_rating,
 			issuevariant_secondary_name,
 			issuevariant_description,
+			issuevariant_external_url,
 			issuevariant_created_by,
 			issuevariant_updated_by
 		) VALUES (
@@ -256,6 +260,7 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 			:issuevariant_rating,
 			:issuevariant_secondary_name,
 			:issuevariant_description,
+			:issuevariant_external_url,
 			:issuevariant_created_by,
 			:issuevariant_updated_by
 		)

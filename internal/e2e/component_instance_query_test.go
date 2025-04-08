@@ -305,6 +305,36 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 					}
 				})
 			})
+			It("can order by pod", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "pod", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Pod >= prev).Should(BeTrue())
+						prev = *ci.Node.Pod
+					}
+				})
+			})
+			It("can order by container", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "container", "direction": "asc"},
+				})
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, ci := range componentInstances.Edges {
+						Expect(*ci.Node.Container >= prev).Should(BeTrue())
+						prev = *ci.Node.Container
+					}
+				})
+			})
 
 		})
 	})
@@ -345,7 +375,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 		})
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
-			It("creates new componentInstance by deriving attributes from the CCRN", func() {
+			It("creates new componentInstance", func() {
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
@@ -358,6 +388,13 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 
 				req.Var("input", map[string]string{
 					"ccrn":               componentInstance.CCRN,
+					"region":             componentInstance.Region,
+					"namespace":          componentInstance.Namespace,
+					"cluster":            componentInstance.Cluster,
+					"domain":             componentInstance.Domain,
+					"project":            componentInstance.Project,
+					"pod":                componentInstance.Pod,
+					"container":          componentInstance.Container,
 					"count":              fmt.Sprintf("%d", componentInstance.Count),
 					"componentVersionId": fmt.Sprintf("%d", componentInstance.ComponentVersionId),
 					"serviceId":          fmt.Sprintf("%d", componentInstance.ServiceId),
@@ -430,11 +467,11 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 
 				cluster := "NewCluster"
 				namespace := "NewNamespace"
-				componentInstance.CCRN = test.GenerateFakeCcrn(cluster, namespace)
 
 				req.Var("id", fmt.Sprintf("%d", componentInstance.Id))
 				req.Var("input", map[string]string{
-					"ccrn": componentInstance.CCRN,
+					"cluster":   cluster,
+					"namespace": namespace,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -447,7 +484,6 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(*respData.ComponentInstance.Ccrn).To(Equal(componentInstance.CCRN))
 				Expect(*respData.ComponentInstance.Cluster).To(Equal(cluster))
 				Expect(*respData.ComponentInstance.Namespace).To(Equal(namespace))
 				Expect(*respData.ComponentInstance.Count).To(Equal(int(componentInstance.Count)))

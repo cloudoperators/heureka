@@ -49,10 +49,13 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.Namespace, "CI.componentinstance_namespace = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Domain, "CI.componentinstance_domain = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Project, "CI.componentinstance_project = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Pod, "CI.componentinstance_pod = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Container, "CI.componentinstance_container = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CI.componentinstance_component_version_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ComponentVersionVersion, "CV.componentversion_version = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, componentInstanceWildCardFilterQuery, OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "CI.componentinstance"))
 
@@ -67,6 +70,9 @@ func (s *SqlDatabase) getComponentInstanceJoins(filter *entity.ComponentInstance
 	}
 	if len(filter.ServiceCcrn) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, "INNER JOIN Service S on CI.componentinstance_service_id = S.service_id")
+	}
+	if len(filter.ComponentVersionVersion) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, "INNER JOIN ComponentVersion CV on CI.componentinstance_component_version_id = CV.componentversion_id")
 	}
 	return joins
 }
@@ -90,6 +96,12 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	}
 	if componentInstance.Project != "" {
 		fl = append(fl, "componentinstance_project = :componentinstance_project")
+	}
+	if componentInstance.Pod != "" {
+		fl = append(fl, "componentinstance_pod = :componentinstance_pod")
+	}
+	if componentInstance.Container != "" {
+		fl = append(fl, "componentinstance_container = :componentinstance_container")
 	}
 	if componentInstance.Count != 0 {
 		fl = append(fl, "componentinstance_count = :componentinstance_count")
@@ -162,10 +174,13 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.Namespace)
 	filterParameters = buildQueryParameters(filterParameters, filter.Domain)
 	filterParameters = buildQueryParameters(filterParameters, filter.Project)
+	filterParameters = buildQueryParameters(filterParameters, filter.Pod)
+	filterParameters = buildQueryParameters(filterParameters, filter.Container)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionVersion)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
 		p := CreateCursorParameters([]any{}, cursorFields)
@@ -320,6 +335,8 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_namespace,
 			componentinstance_domain,
 			componentinstance_project,
+			componentinstance_pod,
+			componentinstance_container,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -332,6 +349,8 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			:componentinstance_namespace,
 			:componentinstance_domain,
 			:componentinstance_project,
+			:componentinstance_pod,
+			:componentinstance_container,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
@@ -400,18 +419,21 @@ func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
 
 	return err
 }
-func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error) {
+
+func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.ComponentInstanceFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetCcrn",
+		"event":  "database.getComponentInstanceAttr",
 	})
 
 	baseQuery := `
-    SELECT CI.componentinstance_ccrn FROM ComponentInstance CI 
+    SELECT CI.componentinstance_%s FROM ComponentInstance CI
     %s
     %s
     ORDER BY %s
     `
+
+	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
 	filter = s.ensureComponentInstanceFilter(filter)
@@ -437,21 +459,53 @@ func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string,
 	defer rows.Close()
 
 	// Collect the results
-	ccrn := []string{}
+	attrVal := []string{}
 	var name string
 	for rows.Next() {
 		if err := rows.Scan(&name); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
-		ccrn = append(ccrn, name)
+		attrVal = append(attrVal, name)
 	}
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
 	}
 
-	return ccrn, nil
+	return attrVal, nil
+}
+
+func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("ccrn", filter)
+}
+
+func (s *SqlDatabase) GetRegion(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("region", filter)
+}
+
+func (s *SqlDatabase) GetCluster(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("cluster", filter)
+}
+
+func (s *SqlDatabase) GetNamespace(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("namespace", filter)
+}
+
+func (s *SqlDatabase) GetDomain(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("domain", filter)
+}
+
+func (s *SqlDatabase) GetProject(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("project", filter)
+}
+
+func (s *SqlDatabase) GetPod(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("pod", filter)
+}
+
+func (s *SqlDatabase) GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("container", filter)
 }
 
 func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {

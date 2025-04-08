@@ -62,6 +62,18 @@ func (od *OrderDirection) ToOrderDirectionEntity() entity.OrderDirection {
 	return direction
 }
 
+func (io *IssueOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *io.By {
+	case IssueOrderByFieldPrimaryName:
+		order.By = entity.IssuePrimaryName
+	case IssueOrderByFieldSeverity:
+		order.By = entity.IssueVariantRating
+	}
+	order.Direction = io.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func (cio *ComponentInstanceOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
 	switch *cio.By {
@@ -77,6 +89,10 @@ func (cio *ComponentInstanceOrderBy) ToOrderEntity() entity.Order {
 		order.By = entity.ComponentInstanceDomain
 	case ComponentInstanceOrderByFieldProject:
 		order.By = entity.ComponentInstanceProject
+	case ComponentInstanceOrderByFieldPod:
+		order.By = entity.ComponentInstancePod
+	case ComponentInstanceOrderByFieldContainer:
+		order.By = entity.ComponentInstanceContainer
 	}
 	order.Direction = cio.Direction.ToOrderDirectionEntity()
 	return order
@@ -178,7 +194,8 @@ func NewSeverity(sev entity.Severity) *Severity {
 		Value: &severity,
 		Score: &sev.Score,
 		Cvss: &Cvss{
-			Vector: &sev.Cvss.Vector,
+			Vector:      &sev.Cvss.Vector,
+			ExternalURL: &sev.Cvss.ExternalUrl,
 			Base: &CVSSBase{
 				Score:                 &baseScore,
 				AttackVector:          &av,
@@ -415,6 +432,7 @@ func NewIssueVariant(issueVariant *entity.IssueVariant) IssueVariant {
 		ID:                fmt.Sprintf("%d", issueVariant.Id),
 		SecondaryName:     &issueVariant.SecondaryName,
 		Description:       &issueVariant.Description,
+		ExternalURL:       &issueVariant.ExternalUrl,
 		Severity:          NewSeverity(issueVariant.Severity),
 		IssueID:           util.Ptr(fmt.Sprintf("%d", issueVariant.IssueId)),
 		IssueRepositoryID: util.Ptr(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)),
@@ -439,6 +457,7 @@ func NewIssueVariantEntity(issueVariant *IssueVariantInput) entity.IssueVariant 
 	return entity.IssueVariant{
 		SecondaryName:     lo.FromPtr(issueVariant.SecondaryName),
 		Description:       lo.FromPtr(issueVariant.Description),
+		ExternalUrl:       lo.FromPtr(issueVariant.ExternalURL),
 		Severity:          NewSeverityEntity(issueVariant.Severity),
 		IssueId:           issueId,
 		IssueRepositoryId: irId,
@@ -621,6 +640,8 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 		Namespace:          &componentInstance.Namespace,
 		Domain:             &componentInstance.Domain,
 		Project:            &componentInstance.Project,
+		Pod:                &componentInstance.Pod,
+		Container:          &componentInstance.Container,
 		Count:              &count,
 		ComponentVersionID: util.Ptr(fmt.Sprintf("%d", componentInstance.ComponentVersionId)),
 		ServiceID:          util.Ptr(fmt.Sprintf("%d", componentInstance.ServiceId)),
@@ -660,14 +681,15 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 	componentVersionId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ComponentVersionID), 10, 64)
 	serviceId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ServiceID), 10, 64)
 	rawCcrn := lo.FromPtr(componentInstance.Ccrn)
-	ccrn := ParseCcrn(rawCcrn)
 	return entity.ComponentInstance{
 		CCRN:               rawCcrn,
-		Region:             ccrn.Region,
-		Cluster:            ccrn.Cluster,
-		Namespace:          ccrn.Namespace,
-		Domain:             ccrn.Domain,
-		Project:            ccrn.Project,
+		Region:             lo.FromPtr(componentInstance.Region),
+		Cluster:            lo.FromPtr(componentInstance.Cluster),
+		Namespace:          lo.FromPtr(componentInstance.Namespace),
+		Domain:             lo.FromPtr(componentInstance.Domain),
+		Project:            lo.FromPtr(componentInstance.Project),
+		Pod:                lo.FromPtr(componentInstance.Pod),
+		Container:          lo.FromPtr(componentInstance.Container),
 		Count:              int16(lo.FromPtr(componentInstance.Count)),
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,

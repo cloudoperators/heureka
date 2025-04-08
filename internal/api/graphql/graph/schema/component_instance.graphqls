@@ -9,6 +9,8 @@ type ComponentInstance implements Node {
     namespace: String
     domain: String
     project: String
+    pod: String
+    container: String
     count: Int
     componentVersionId: String
     componentVersion: ComponentVersion
@@ -23,6 +25,13 @@ input ComponentInstanceInput {
     count: Int
     componentVersionId: String
     serviceId: String
+    region: String
+    cluster: String
+    namespace: String
+    domain: String
+    project: String
+    pod: String
+    container: String
     uuid: String
 }
 
@@ -38,6 +47,7 @@ type ComponentInstanceEdge implements Edge {
 }
 
 input ComponentInstanceFilter {
+    componentVersionDigest: [String],
     serviceCcrn: [String],
     ccrn: [String],
     region: [String],
@@ -45,6 +55,8 @@ input ComponentInstanceFilter {
     namespace: [String],
     domain: [String],
     project: [String],
+    pod: [String],
+    container: [String],
     supportGroup: [String],
     search:[String],
     state: [StateFilter!],
@@ -62,4 +74,6 @@ enum ComponentInstanceOrderByField {
     cluster
     domain
     project
+    pod
+    container
 }

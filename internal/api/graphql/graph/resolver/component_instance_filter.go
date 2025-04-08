@@ -40,7 +40,70 @@ func (r *componentInstanceFilterValueResolver) Ccrn(ctx context.Context, obj *mo
 	if err != nil {
 		return nil, err
 	}
-	item.FilterName = &baseResolver.FilterDisplayCcrn
+	item.FilterName = &baseResolver.ComponentInstanceFilterComponentCcrn
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Region(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.RegionBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterRegion
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Cluster(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ClusterBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterCluster
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Namespace(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.NamespaceBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterNamespace
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Domain(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.DomainBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterDomain
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Project(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ProjectBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterProject
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Pod(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.PodBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterPod
+	return item, err
+}
+
+func (r *componentInstanceFilterValueResolver) Container(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ContainerBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterContainer
 	return item, err
 }
 
