@@ -58,8 +58,11 @@ func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) strin
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter) string {
+func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []entity.Order) string {
 	joins := ""
+	orderByCount := lo.ContainsBy(order, func(o entity.Order) bool {
+		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
+	})
 	if len(filter.OwnerName) > 0 || len(filter.OwnerId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN Owner O on S.service_id = O.owner_service_id
@@ -86,7 +89,7 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter) string {
          	LEFT JOIN Activity A on AHS.activityhasservice_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.ComponentInstanceId) > 0 {
+	if len(filter.ComponentInstanceId) > 0 || orderByCount {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
 		`)
@@ -96,13 +99,34 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter) string {
 			LEFT JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
 		`)
 	}
+	if orderByCount {
+		joins = fmt.Sprintf("%s\n%s", joins, `
+			LEFT JOIN ComponentVersion CV ON CV.componentversion_id = CI.componentinstance_component_version_id
+			LEFT JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id
+			LEFT JOIN IssueVariant IV on IV.issuevariant_issue_id = CVI.componentversionissue_issue_id
+		`)
+	}
 	return joins
 }
 
-func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter) string {
+func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []entity.Order) string {
 	columns := "S.*"
 	if len(filter.IssueRepositoryId) > 0 {
 		columns = fmt.Sprintf("%s, %s", columns, "IRS.*")
+	}
+	for _, o := range order {
+		switch o.By {
+		case entity.CriticalCount:
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END) as critical_count", columns)
+		case entity.HighCount:
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'High' THEN IV.issuevariant_issue_id END) as high_count", columns)
+		case entity.MediumCount:
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Medium' THEN IV.issuevariant_issue_id END) as medium_count", columns)
+		case entity.LowCount:
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Low' THEN IV.issuevariant_issue_id END) as low_count", columns)
+		case entity.NoneCount:
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) as none_count", columns)
+		}
 	}
 	return columns
 }
@@ -160,7 +184,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 
 	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-	joins := s.getServiceJoins(filter)
+	joins := s.getServiceJoins(filter, order)
 
 	whereClause := ""
 	if filterStr != "" || withCursor {
@@ -168,7 +192,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	}
 
 	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
 	}
 
 	// construct final query
@@ -252,11 +276,11 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.O
 		SELECT %s FROM Service S
 		%s
 		%s
-		%s GROUP BY S.service_id ORDER BY %s LIMIT ?
+		GROUP BY S.service_id %s ORDER BY %s LIMIT ?
     `
 
 	filter = s.ensureServiceFilter(filter)
-	columns := s.getServiceColumns(filter)
+	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, true, order, l)
@@ -276,7 +300,12 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.O
 				BaseService: e.AsBaseService(),
 			}
 
-			cursor, _ := EncodeCursor(WithService(order, s))
+			var isc entity.IssueSeverityCounts
+			if e.RatingCount != nil {
+				isc = e.AsIssueSeverityCounts()
+			}
+
+			cursor, _ := EncodeCursor(WithService(order, s, isc))
 
 			sr := entity.ServiceResult{
 				WithCursor: entity.WithCursor{
@@ -297,19 +326,26 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	baseImQuery := `
         SELECT %s, COUNT(IM.issuematch_id) AS service_agg_issue_matches FROM Service S
         %s
-        LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
         LEFT JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id
         %s
-        %s GROUP BY S.service_id ORDER BY %s LIMIT ?
+        GROUP BY S.service_id %s ORDER BY %s LIMIT ?
     `
 
 	baseCiQuery := `
         SELECT %s, SUM(CI.componentinstance_count) AS service_agg_component_instances FROM Service S
         %s
-        LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
         %s
-        %s GROUP BY S.service_id ORDER BY %s LIMIT ?
+        GROUP BY S.service_id %s ORDER BY %s LIMIT ?
     `
+
+	orderBySeverity := lo.ContainsBy(order, func(o entity.Order) bool {
+		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
+	})
+
+	if !orderBySeverity {
+		baseImQuery = fmt.Sprintf(baseImQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
+		baseCiQuery = fmt.Sprintf(baseCiQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
+	}
 
 	baseQuery := `
         WITH IssueMatchCounts AS (
@@ -326,8 +362,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	filterStr := s.getServiceFilterString(filter)
 	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-	joins := s.getServiceJoins(filter)
-	columns := s.getServiceColumns(filter)
+	joins := s.getServiceJoins(filter, order)
+	columns := s.getServiceColumns(filter, order)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, err
@@ -340,7 +376,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	}
 
 	if filterStr != "" && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
 	}
 
 	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, orderStr)
@@ -377,8 +413,12 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 				BaseService: e.AsBaseService(),
 			}
 			aggregations := e.AsServiceAggregations()
+			var isc entity.IssueSeverityCounts
+			if e.RatingCount != nil {
+				isc = e.AsIssueSeverityCounts()
+			}
 
-			cursor, _ := EncodeCursor(WithService(order, service))
+			cursor, _ := EncodeCursor(WithService(order, service, isc))
 
 			sr := entity.ServiceResult{
 				WithCursor: entity.WithCursor{
@@ -399,11 +439,14 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 	})
 
 	baseQuery := `
-		SELECT S.* FROM Service S 
+		SELECT %s FROM Service S 
 		%s
 	    %s GROUP BY S.service_id ORDER BY %s
     `
 
+	filter = s.ensureServiceFilter(filter)
+	columns := s.getServiceColumns(filter, order)
+	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, order, l)
 
 	if err != nil {
@@ -428,7 +471,12 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 			BaseService: row.AsBaseService(),
 		}
 
-		cursor, _ := EncodeCursor(WithService(order, s))
+		var isc entity.IssueSeverityCounts
+		if row.RatingCount != nil {
+			isc = row.AsIssueSeverityCounts()
+		}
+
+		cursor, _ := EncodeCursor(WithService(order, s, isc))
 
 		return cursor
 	}), nil
