@@ -23,10 +23,7 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 	var queryUrl string
 
 	BeforeEach(func() {
-		var err error
 		_ = dbm.NewTestSchema()
-		Expect(err).To(BeNil(), "Database Seeder Setup should work")
-
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
 		cfg.AuthTokenSecret = "xxx"
