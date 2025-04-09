@@ -12,7 +12,6 @@
 		"customizations": {
 			"vscode": {
 				"extensions": [
-					"dlipovetsky.ginkgo-tools",
 					"golang.Go"
 				]
 			}
