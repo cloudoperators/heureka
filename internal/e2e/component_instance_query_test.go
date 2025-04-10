@@ -395,6 +395,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 					"project":            componentInstance.Project,
 					"pod":                componentInstance.Pod,
 					"container":          componentInstance.Container,
+					"uuid":               "4b6d3167-473a-4150-87b3-01da70096727",
 					"count":              fmt.Sprintf("%d", componentInstance.Count),
 					"componentVersionId": fmt.Sprintf("%d", componentInstance.ComponentVersionId),
 					"serviceId":          fmt.Sprintf("%d", componentInstance.ServiceId),
