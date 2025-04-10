@@ -1,0 +1,5 @@
+CREATE TABLE A_USER (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL
+);
