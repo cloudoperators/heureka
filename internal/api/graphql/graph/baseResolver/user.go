@@ -4,8 +4,8 @@
 package baseResolver
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
