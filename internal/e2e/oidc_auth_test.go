@@ -27,10 +27,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 	var oidcTokenStringHandler func(j *test.Jwt) string
 
 	BeforeEach(func() {
-		var err error
 		_ = dbm.NewTestSchema()
-		Expect(err).To(BeNil(), "Database Seeder Setup should work")
-
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
 		cfg.AuthOidcClientId = "mock-client-id"
