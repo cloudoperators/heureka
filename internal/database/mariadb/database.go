@@ -14,6 +14,9 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
@@ -152,6 +155,70 @@ func (s *SqlDatabase) GetDefaultIssuePriority() int64 {
 
 func (s *SqlDatabase) GetDefaultRepositoryName() string {
 	return s.defaultRepositoryName
+}
+
+func (s *SqlDatabase) GetVersion() (string, error) {
+	m, err := s.openMigration()
+	if err != nil {
+		return "", err
+	}
+
+	v, d, err := s.getMigrationVersion(m)
+	if err != nil {
+		return "", err
+	}
+
+	return versionToString(v, d), nil
+}
+
+func (s *SqlDatabase) RunMigrations() error {
+	m, err := s.openMigration()
+	if err != nil {
+		return err
+	}
+
+	err = m.Up()
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
+}
+
+func versionToString(v uint, dirty bool) string {
+	var dirtyStr string
+	if dirty {
+		dirtyStr = " (DIRTY)"
+	}
+	return fmt.Sprintf("%d%s", v, dirtyStr)
+}
+
+func (s *SqlDatabase) getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
+	version, dirty, err := m.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		return 0, false, err
+	}
+	return version, dirty, nil
+}
+
+func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
+	d, err := iofs.New(MigrationFiles, "migrations")
+	if err != nil {
+		return nil, err
+	}
+
+	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := migrate.NewWithInstance(
+		"iofs", d,
+		"mysql", driver)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func combineFilterQueries(filterQueries []string, op string) string {
