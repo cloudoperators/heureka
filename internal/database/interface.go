@@ -36,6 +36,8 @@ type Database interface {
 	DeleteIssueRepository(int64, int64) error
 	GetDefaultIssuePriority() int64
 	GetDefaultRepositoryName() string
+	RunMigrations() error
+	GetVersion() (string, error)
 
 	GetIssueMatches(*entity.IssueMatchFilter, []entity.Order) ([]entity.IssueMatchResult, error)
 	GetAllIssueMatchIds(*entity.IssueMatchFilter) ([]int64, error)
