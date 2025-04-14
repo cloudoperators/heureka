@@ -47,8 +47,7 @@ func TestConnection(cfg util.Config, backOff int) error {
 
 	//before each try wait 1 Second
 	time.Sleep(1 * time.Second)
-	connectionString := getConnectionString(cfg)
-	db, err := sqlx.Connect("mysql", connectionString)
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		return TestConnection(cfg, backOff-1)
 	}
@@ -61,14 +60,17 @@ func TestConnection(cfg util.Config, backOff int) error {
 	return nil
 }
 
+func getSqlxConnection(cfg util.Config) (*sqlx.DB, error) {
+	connectionString := getConnectionString(cfg)
+	return sqlx.Connect("mysql", connectionString)
+}
+
 func getConnectionString(cfg util.Config) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
 }
 
 func Connect(cfg util.Config) (*sqlx.DB, error) {
-	connectionString := getConnectionString(cfg)
-
-	db, err := sqlx.Connect("mysql", connectionString)
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		logrus.WithError(err).Error(err)
 		return nil, err
@@ -151,8 +153,7 @@ func (s *SqlDatabase) GetDefaultRepositoryName() string {
 }
 
 func GetVersion(cfg util.Config) (string, error) {
-	connectionString := getConnectionString(cfg)
-	db, err := sqlx.Connect("mysql", connectionString)
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		return "", err
 	}
@@ -173,8 +174,7 @@ func GetVersion(cfg util.Config) (string, error) {
 }
 
 func RunMigrations(cfg util.Config) error {
-	connectionString := getConnectionString(cfg)
-	db, err := sqlx.Connect("mysql", connectionString)
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		return err
 	}

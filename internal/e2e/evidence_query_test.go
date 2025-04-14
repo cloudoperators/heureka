@@ -30,12 +30,11 @@ var _ = Describe("Getting Evidences via API", Label("e2e", "Evidences"), func() 
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -48,7 +47,6 @@ var _ = Describe("Getting Evidences via API", Label("e2e", "Evidences"), func() 
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {
@@ -202,12 +200,11 @@ var _ = Describe("Creating Evidence via API", Label("e2e", "Evidences"), func() 
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 	var evidence entity.Evidence
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -220,7 +217,6 @@ var _ = Describe("Creating Evidence via API", Label("e2e", "Evidences"), func() 
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -280,11 +276,10 @@ var _ = Describe("Updating evidence via API", Label("e2e", "Evidences"), func() 
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -297,7 +292,6 @@ var _ = Describe("Updating evidence via API", Label("e2e", "Evidences"), func() 
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -353,11 +347,10 @@ var _ = Describe("Deleting Evidence via API", Label("e2e", "Evidences"), func() 
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -370,7 +363,6 @@ var _ = Describe("Deleting Evidence via API", Label("e2e", "Evidences"), func() 
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
