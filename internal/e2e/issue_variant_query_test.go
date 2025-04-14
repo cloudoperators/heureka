@@ -29,11 +29,10 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -46,7 +45,6 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {
@@ -199,11 +197,10 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 	var s *server.Server
 	var cfg util.Config
 	var issueVariant entity.IssueVariant
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -216,7 +213,6 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -314,11 +310,10 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -331,7 +326,6 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -428,11 +422,10 @@ var _ = Describe("Deleting IssueVariant via API", Label("e2e", "IssueVariants"),
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -445,7 +438,6 @@ var _ = Describe("Deleting IssueVariant via API", Label("e2e", "IssueVariants"),
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {

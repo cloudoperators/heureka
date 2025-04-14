@@ -12,7 +12,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
-	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/machinebox/graphql"
@@ -25,10 +24,9 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
@@ -39,7 +37,6 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {
@@ -198,11 +195,10 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 	var client *graphql.Client
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
@@ -214,7 +210,6 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {

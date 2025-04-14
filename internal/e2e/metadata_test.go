@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/server"
@@ -88,10 +87,9 @@ func parseTimeExpectNoError(t string) time.Time {
 var _ = Describe("Creating, updating and state filtering of entity via API", Label("e2e", "Entities"), func() {
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
@@ -102,7 +100,6 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("New issue is created via API", func() {
