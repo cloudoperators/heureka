@@ -87,9 +87,10 @@ func parseTimeExpectNoError(t string) time.Time {
 var _ = Describe("Creating, updating and state filtering of entity via API", Label("e2e", "Entities"), func() {
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
@@ -100,6 +101,7 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("New issue is created via API", func() {

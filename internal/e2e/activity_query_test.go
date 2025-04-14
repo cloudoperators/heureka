@@ -28,11 +28,12 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -44,6 +45,7 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {
@@ -189,11 +191,12 @@ var _ = Describe("Creating Activity via API", Label("e2e", "Activities"), func()
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 	var activity entity.Activity
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -206,6 +209,7 @@ var _ = Describe("Creating Activity via API", Label("e2e", "Activities"), func()
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -253,10 +257,11 @@ var _ = Describe("Updating activity via API", Label("e2e", "Activities"), func()
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -269,6 +274,7 @@ var _ = Describe("Updating activity via API", Label("e2e", "Activities"), func()
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -318,10 +324,11 @@ var _ = Describe("Deleting Activity via API", Label("e2e", "Activities"), func()
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -334,6 +341,7 @@ var _ = Describe("Deleting Activity via API", Label("e2e", "Activities"), func()
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -380,10 +388,11 @@ var _ = Describe("Modifying Services of Activity via API", Label("e2e", "Service
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -396,6 +405,7 @@ var _ = Describe("Modifying Services of Activity via API", Label("e2e", "Service
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -498,10 +508,11 @@ var _ = Describe("Modifying Issues of Activity via API", Label("e2e", "ServiceIs
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -514,6 +525,7 @@ var _ = Describe("Modifying Issues of Activity via API", Label("e2e", "ServiceIs
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {

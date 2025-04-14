@@ -30,10 +30,11 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -46,6 +47,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {
@@ -319,11 +321,12 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 	var issue entity.Issue
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -336,6 +339,7 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -386,10 +390,11 @@ var _ = Describe("Updating issue via API", Label("e2e", "Issues"), func() {
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -402,6 +407,7 @@ var _ = Describe("Updating issue via API", Label("e2e", "Issues"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -452,10 +458,11 @@ var _ = Describe("Deleting Issue via API", Label("e2e", "Issues"), func() {
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -468,6 +475,7 @@ var _ = Describe("Deleting Issue via API", Label("e2e", "Issues"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -514,10 +522,11 @@ var _ = Describe("Modifying relationship of ComponentVersion of Issue via API", 
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -530,6 +539,7 @@ var _ = Describe("Modifying relationship of ComponentVersion of Issue via API", 
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {

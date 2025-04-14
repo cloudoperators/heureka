@@ -31,10 +31,11 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -47,6 +48,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {
@@ -202,10 +204,11 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 	var s *server.Server
 	var cfg util.Config
 	var user entity.User
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -214,6 +217,7 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 		s = server.NewServer(cfg)
 
 		s.NonBlockingStart()
+		db.CloseConnection()
 	})
 
 	AfterEach(func() {
@@ -243,10 +247,11 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -259,6 +264,7 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -286,10 +292,11 @@ var _ = Describe("Deleting User via API", Label("e2e", "Users"), func() {
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -302,6 +309,7 @@ var _ = Describe("Deleting User via API", Label("e2e", "Users"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {

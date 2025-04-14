@@ -31,10 +31,11 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -47,6 +48,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {
@@ -219,11 +221,12 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 	var supportGroup entity.SupportGroup
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -236,6 +239,7 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -282,10 +286,11 @@ var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"),
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -298,6 +303,7 @@ var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"),
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -348,10 +354,11 @@ var _ = Describe("Deleting SupportGroup via API", Label("e2e", "SupportGroups"),
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -364,6 +371,7 @@ var _ = Describe("Deleting SupportGroup via API", Label("e2e", "SupportGroups"),
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -410,10 +418,11 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -426,6 +435,7 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -528,10 +538,11 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -544,6 +555,7 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
