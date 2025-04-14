@@ -7,7 +7,6 @@ import (
 	"embed"
 	"io/fs"
 	"regexp"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -62,7 +61,7 @@ func getBMigrationVersion() string {
 }
 
 func dbVersionShouldBeZero(cfg *util.Config) {
-	v, err := db.GetVersion()
+	v, err := mariadb.GetVersion(*cfg)
 	Expect(err).To(BeNil())
 	Expect(v).To(Equal("0"))
 	dbShouldNotContainAMigrationData(cfg)
@@ -70,14 +69,14 @@ func dbVersionShouldBeZero(cfg *util.Config) {
 }
 
 func dbVersionShouldBeA(cfg *util.Config) {
-	v, err := db.GetVersion()
+	v, err := mariadb.GetVersion(*cfg)
 	Expect(err).To(BeNil())
 	Expect(v).To(Equal(getAMigrationVersion()))
 	dbShouldNotContainBMigrationData(cfg)
 }
 
-func dbVersionShouldBeB(db *mariadb.SqlDatabase) {
-	v, err := db.GetVersion()
+func dbVersionShouldBeB(cfg *util.Config) {
+	v, err := mariadb.GetVersion(*cfg)
 	Expect(err).To(BeNil())
 	Expect(v).To(Equal(getBMigrationVersion()))
 }
@@ -87,7 +86,7 @@ func dbVersionIsZero(cfg *util.Config) {
 	setDbABMigrationFiles()
 }
 
-func dbVersionIsA(db *mariadb.SqlDatabase, cfg *util.Config) {
+func dbVersionIsA(cfg *util.Config) {
 	dbVersionShouldBeZero(cfg)
 	setDbAMigrationFiles()
 	createHeurekaServer(cfg)
@@ -96,22 +95,17 @@ func dbVersionIsA(db *mariadb.SqlDatabase, cfg *util.Config) {
 	setDbABMigrationFiles()
 }
 
-func dbVersionIsB(db *mariadb.SqlDatabase, cfg *util.Config) {
+func dbVersionIsB(cfg *util.Config) {
 	dbVersionShouldBeZero(cfg)
 	setDbABMigrationFiles()
 	createHeurekaServer(cfg)
 	dbShouldContainAMigrationData(cfg)
 	dbShouldContainBMigrationData(cfg)
-	dbVersionShouldBeB(db)
+	dbVersionShouldBeB(cfg)
 }
 
 func createHeurekaServer(cfg *util.Config) {
-	s := server.NewServer(*cfg)
-	time.Sleep(5 * time.Second)
-	s.NonBlockingStart()
-	time.Sleep(5 * time.Second)
-	s.BlockingStop()
-	time.Sleep(5 * time.Second)
+	server.NewServer(*cfg)
 }
 
 func tableExists(db *sqlx.DB, tableName string) bool {
@@ -158,42 +152,39 @@ func dbShouldNotContainBMigrationData(cfg *util.Config) {
 	Expect(exists).To(BeFalse())
 }
 
-func dbShouldContainAllMigrations(db *mariadb.SqlDatabase, cfg *util.Config) {
+func dbShouldContainAllMigrations(cfg *util.Config) {
 	dbShouldContainAMigrationData(cfg)
 	dbShouldContainBMigrationData(cfg)
-	dbVersionShouldBeB(db)
+	dbVersionShouldBeB(cfg)
 }
 
 var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrations"), func() {
 	var cfg util.Config
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-	})
-	AfterEach(func() {
-		db.CloseConnection()
 	})
 	When("creating app with zero version of db", func() {
 		It("executes all available migrations", func() {
 			dbVersionIsZero(&cfg)
 			createHeurekaServer(&cfg)
-			dbShouldContainAllMigrations(db, &cfg)
+			dbShouldContainAllMigrations(&cfg)
 		})
 	})
 	When("creating app with some version of db", func() {
 		It("exectues only new versions of migrations", func() {
-			dbVersionIsA(db, &cfg)
+			dbVersionIsA(&cfg)
 			createHeurekaServer(&cfg)
-			dbShouldContainAllMigrations(db, &cfg)
+			dbShouldContainAllMigrations(&cfg)
 		})
 	})
 	When("creating app with newest version of db", func() {
 		It("executes no migration", func() {
-			dbVersionIsB(db, &cfg)
+			dbVersionIsB(&cfg)
 			createHeurekaServer(&cfg)
-			dbShouldContainAllMigrations(db, &cfg)
+			dbShouldContainAllMigrations(&cfg)
 		})
 	})
 })

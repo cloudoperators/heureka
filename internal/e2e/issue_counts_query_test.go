@@ -25,11 +25,10 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		_ = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -42,7 +41,6 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
 	})
 
 	When("the database has entries", func() {
