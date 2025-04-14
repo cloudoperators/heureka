@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
 
@@ -20,11 +21,12 @@ import (
 var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), func() {
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 	var queryUrl string
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
@@ -39,6 +41,7 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("trying to access query resource with valid token", func() {

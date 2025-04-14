@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/oidc"
@@ -23,12 +24,13 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 	var oidcProvider *oidc.Provider
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 	var queryUrl string
 	var oidcTokenStringHandler func(j *test.Jwt) string
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
@@ -47,6 +49,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 		oidcProvider.Stop()
 	})
 

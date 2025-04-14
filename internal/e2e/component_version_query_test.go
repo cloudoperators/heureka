@@ -29,11 +29,12 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -45,6 +46,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database is empty", func() {
@@ -291,13 +293,14 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 	var respData struct {
 		ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
 	}
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -310,6 +313,7 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	var loadTestData = func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
@@ -382,12 +386,13 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 	var seedCollection *test.SeedCollection
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 	var componentVersion entity.ComponentVersion
 	var componentId int64
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -400,6 +405,7 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -453,10 +459,11 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -469,6 +476,7 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
@@ -522,10 +530,11 @@ var _ = Describe("Deleting ComponentVersion via API", Label("e2e", "ComponentVer
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -538,6 +547,7 @@ var _ = Describe("Deleting ComponentVersion via API", Label("e2e", "ComponentVer
 
 	AfterEach(func() {
 		s.BlockingStop()
+		db.CloseConnection()
 	})
 
 	When("the database has 10 entries", func() {
