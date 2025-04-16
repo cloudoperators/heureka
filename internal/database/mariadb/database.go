@@ -47,7 +47,7 @@ func TestConnection(cfg util.Config, backOff int) error {
 
 	//before each try wait 1 Second
 	time.Sleep(1 * time.Second)
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+	connectionString := getConnectionString(cfg)
 	db, err := sqlx.Connect("mysql", connectionString)
 	if err != nil {
 		return TestConnection(cfg, backOff-1)
@@ -61,8 +61,12 @@ func TestConnection(cfg util.Config, backOff int) error {
 	return nil
 }
 
+func getConnectionString(cfg util.Config) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+}
+
 func Connect(cfg util.Config) (*sqlx.DB, error) {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+	connectionString := getConnectionString(cfg)
 
 	db, err := sqlx.Connect("mysql", connectionString)
 	if err != nil {
@@ -146,13 +150,21 @@ func (s *SqlDatabase) GetDefaultRepositoryName() string {
 	return s.defaultRepositoryName
 }
 
-func (s *SqlDatabase) GetVersion() (string, error) {
-	m, err := s.openMigration()
+func GetVersion(cfg util.Config) (string, error) {
+	connectionString := getConnectionString(cfg)
+	db, err := sqlx.Connect("mysql", connectionString)
 	if err != nil {
 		return "", err
 	}
+	defer db.Close()
 
-	v, d, err := s.getMigrationVersion(m)
+	m, err := openMigration(db.DB)
+	if err != nil {
+		return "", err
+	}
+	defer m.Close()
+
+	v, d, err := getMigrationVersion(m)
 	if err != nil {
 		return "", err
 	}
@@ -160,11 +172,19 @@ func (s *SqlDatabase) GetVersion() (string, error) {
 	return versionToString(v, d), nil
 }
 
-func (s *SqlDatabase) RunMigrations() error {
-	m, err := s.openMigration()
+func RunMigrations(cfg util.Config) error {
+	connectionString := getConnectionString(cfg)
+	db, err := sqlx.Connect("mysql", connectionString)
 	if err != nil {
 		return err
 	}
+	defer db.Close()
+
+	m, err := openMigration(db.DB)
+	if err != nil {
+		return err
+	}
+	defer m.Close()
 
 	err = m.Up()
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
@@ -182,7 +202,7 @@ func versionToString(v uint, dirty bool) string {
 	return fmt.Sprintf("%d%s", v, dirtyStr)
 }
 
-func (s *SqlDatabase) getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
+func getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
 	version, dirty, err := m.Version()
 	if err != nil && err != migrate.ErrNilVersion {
 		return 0, false, err
@@ -190,13 +210,13 @@ func (s *SqlDatabase) getMigrationVersion(m *migrate.Migrate) (uint, bool, error
 	return version, dirty, nil
 }
 
-func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
+func openMigration(db *sql.DB) (*migrate.Migrate, error) {
 	d, err := iofs.New(MigrationFiles, "migrations")
 	if err != nil {
 		return nil, err
 	}
 
-	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{})
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
 	if err != nil {
 		return nil, err
 	}

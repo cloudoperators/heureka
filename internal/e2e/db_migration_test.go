@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 package e2e_test
-/*
+
 import (
 	"embed"
 	"io/fs"
@@ -196,4 +196,4 @@ var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrat
 			dbShouldContainAllMigrations(db, &cfg)
 		})
 	})
-})*/
+})
