@@ -145,17 +145,19 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 						IsCompleted: true,
 						Timestamp:   time.Now(),
 						Issues:      []string{"Issue1"},
+						Components:  []string{"Component1"},
 					},
 					test.ScannerRunDef{
 						Tag:         "ScannerRunTag1",
 						IsCompleted: true,
 						Timestamp:   time.Now(),
 						Issues:      []string{"Issue1"},
+						Components:  []string{"Component2"},
 					})
 				Expect(err).To(BeNil())
 				res, err := db.Autoclose()
 				Expect(err).To(BeNil())
-				Expect(res).To(BeFalse())
+				Expect(res).To(BeTrue())
 			})
 		})
 	})
