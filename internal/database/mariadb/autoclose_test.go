@@ -136,5 +136,27 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 				Expect(res).To(BeFalse())
 			})
 		})
+
+		Context("and the database has two scannerruns where the first run found an componentinstance issue and the second one found none", func() {
+			It("Autoclose should return true and no error", func() {
+				err := databaseSeeder.SeedScannerRuns(
+					test.ScannerRunDef{
+						Tag:         "ScannerRunTag1",
+						IsCompleted: true,
+						Timestamp:   time.Now(),
+						Issues:      []string{"Issue1"},
+					},
+					test.ScannerRunDef{
+						Tag:         "ScannerRunTag1",
+						IsCompleted: true,
+						Timestamp:   time.Now(),
+						Issues:      []string{"Issue1"},
+					})
+				Expect(err).To(BeNil())
+				res, err := db.Autoclose()
+				Expect(err).To(BeNil())
+				Expect(res).To(BeFalse())
+			})
+		})
 	})
 })
