@@ -15,6 +15,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type authedTransport struct {
+	wrapped http.RoundTripper
+	token   string
+}
+
+func (t *authedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("X-Service-Authorization", "Bearer "+t.token)
+	return t.wrapped.RoundTrip(req)
+}
+
 type Processor struct {
 	uuid   string
 	tag    string
@@ -22,8 +32,7 @@ type Processor struct {
 }
 
 func NewProcessor(cfg Config, tag string) *Processor {
-	httpClient := http.Client{}
-	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
+	gClient := graphql.NewClient(cfg.HeurekaUrl, &http.Client{Transport: &authedTransport{wrapped: http.DefaultTransport, token: cfg.HeurekaApiToken}})
 	return &Processor{
 		Client: &gClient,
 		uuid:   uuid.New().String(),

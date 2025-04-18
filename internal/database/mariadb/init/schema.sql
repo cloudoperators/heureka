@@ -10,7 +10,7 @@ create table if not exists User
     user_id         int unsigned auto_increment
         primary key,
     user_name           varchar(255)                          not null,
-    user_unique_user_id varchar(64)                           not null,
+    user_unique_user_id varchar(255)                          not null,
     user_type           int unsigned,
     user_created_at     timestamp default current_timestamp() not null,
     user_created_by     int unsigned                          null check (user_created_by <> 0),
