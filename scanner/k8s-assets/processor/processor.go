@@ -70,7 +70,7 @@ type UniqueContainerInfo struct {
 func (c CCRN) String() string {
 	//actual CCRN template as per the CCRN spec of k8s_regsitry
 	// Reference: https://github.wdf.sap.corp/PlusOne/resource-name/blob/main/ccrn-chart/templates/crds/k8s_registry/container.yaml
-	ccrnTemplate := `ccrn: apiVersion=k8s-registry.ccrn.sap.cloud/v1, kind=container, cluster={.Cluster}, namespace={.Namespace}, pod={.Pod}, name={.Container}`
+	ccrnTemplate := `ccrn: apiVersion=k8s-registry.ccrn.sap.cloud/v1, kind=container, cluster={{.Cluster}}, namespace={{.Namespace}}, pod={{.Pod}}, name={{.Container}}`
 
 	tmpl, err := template.New("ccrn").Parse(ccrnTemplate)
 	if err != nil {
@@ -107,7 +107,7 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 	var serviceId string
 
 	if serviceInfo.CCRN == "" {
-		serviceInfo.CCRN = "none"
+		serviceInfo.CCRN = fmt.Sprintf("Unknown-%s", serviceInfo.SupportGroup)
 	}
 
 	// The Service might already exist in the DB
