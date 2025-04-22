@@ -59,6 +59,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 	When("the database has entries", func() {
 
 		var supportGroups []mariadb.SupportGroupRow
+		var severityCounts model.SeverityCounts
 		BeforeEach(func() {
 			supportGroups = seeder.SeedSupportGroups(1)
 			services := seeder.SeedServices(3)
@@ -69,10 +70,28 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 			seeder.SeedComponentInstances(10, componentVersions, services)
 			issueVariants, issueMatches, err := loadTestData()
 			Expect(err).To(BeNil())
-			// Important: the order need to be preserved
+			// avoid counting duplicates
+			issueIds := map[string]bool{}
 			for _, iv := range issueVariants {
 				_, err := seeder.InsertFakeIssueVariant(iv)
 				Expect(err).To(BeNil())
+				key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
+				if _, ok := issueIds[key]; ok {
+					continue
+				}
+				switch iv.Rating.String {
+				case "Critical":
+					severityCounts.Critical++
+				case "High":
+					severityCounts.High++
+				case "Medium":
+					severityCounts.Medium++
+				case "Low":
+					severityCounts.Low++
+				case "None":
+					severityCounts.None++
+				}
+				issueIds[key] = true
 			}
 			for _, im := range issueMatches {
 				_, err := seeder.InsertFakeIssueMatch(im)
@@ -112,11 +131,11 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(respData.IssueCounts.Critical).To(Equal(2))
-				Expect(respData.IssueCounts.High).To(Equal(2))
-				Expect(respData.IssueCounts.Medium).To(Equal(2))
-				Expect(respData.IssueCounts.Low).To(Equal(2))
-				Expect(respData.IssueCounts.None).To(Equal(2))
+				Expect(respData.IssueCounts.Critical).To(Equal(severityCounts.Critical))
+				Expect(respData.IssueCounts.High).To(Equal(severityCounts.High))
+				Expect(respData.IssueCounts.Medium).To(Equal(severityCounts.Medium))
+				Expect(respData.IssueCounts.Low).To(Equal(severityCounts.Low))
+				Expect(respData.IssueCounts.None).To(Equal(severityCounts.None))
 			})
 		})
 	})
