@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 
@@ -1664,4 +1665,96 @@ func (s *DatabaseSeeder) SeedRealSupportGroupService(services map[string]mariadb
 		sgs = append(sgs, sgsr)
 	}
 	return sgs
+}
+
+type ScannerRunDef struct {
+	Tag         string
+	IsCompleted bool
+	Timestamp   time.Time
+	Issues      []string
+}
+
+func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error {
+	var err error
+
+	insertScannerRun := `
+		INSERT INTO ScannerRun (
+			scannerrun_uuid,
+			scannerrun_tag,
+			scannerrun_start_run,
+			scannerrun_end_run,
+			scannerrun_is_completed
+		) VALUES (
+			?,
+			?,
+			?,
+			?,
+			?
+		)
+	`
+
+	insertIssue := `
+						INSERT INTO Issue (
+							issue_type,
+							issue_primary_name,
+							issue_description
+						) VALUES (
+							'Vulnerability',
+							?,
+							?
+						)
+					`
+
+	insertScannerRunIssueTracker := `
+						INSERT INTO ScannerRunIssueTracker (
+							scannerrunissuetracker_scannerrun_run_id,
+							scannerrunissuetracker_issue_id
+						) VALUES (
+							?,
+							?
+						)
+					`
+
+	knownIssues := make(map[string]int)
+	for _, srd := range scannerRunDefs {
+		res, err := s.db.Exec(insertScannerRun, gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
+
+		if err != nil {
+			return err
+
+		}
+
+		scannerrunId, err := res.LastInsertId()
+		if err != nil {
+			return err
+		}
+
+		for _, issue := range srd.Issues {
+
+			if _, ok := knownIssues[issue]; !ok {
+				res, err := s.db.Exec(insertIssue, issue, issue)
+				if err != nil {
+					return err
+
+				}
+				issueId, err := res.LastInsertId()
+				if err != nil {
+					return err
+				}
+
+				knownIssues[issue] = int(issueId)
+			}
+
+			if err != nil {
+				return err
+			}
+
+			_, err = s.db.Exec(insertScannerRunIssueTracker, scannerrunId, knownIssues[issue])
+			if err != nil {
+				return err
+
+			}
+		}
+	}
+	return err
 }

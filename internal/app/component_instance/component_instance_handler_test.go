@@ -128,8 +128,9 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 	It("creates componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
+		db.On("CreateScannerRunComponentInstanceTracker", componentInstance.Id, "").Return(nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
-		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance)
+		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, "")
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
