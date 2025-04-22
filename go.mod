@@ -8,7 +8,7 @@ require (
 	github.com/99designs/gqlgen v0.17.70
 	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/coreos/go-oidc v2.3.0+incompatible
-	github.com/docker/docker v28.0.2+incompatible
+	github.com/docker/docker v28.1.1+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/docker/go-connections v0.5.0
 	github.com/gin-contrib/cors v1.7.5
@@ -72,6 +72,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
+	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
