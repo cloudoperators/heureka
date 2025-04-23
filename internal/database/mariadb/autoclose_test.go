@@ -149,17 +149,41 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 						IssueMatchComponents: []string{"Issue1", "Component1"},
 					},
 					test.ScannerRunDef{
-						Tag:                  "ScannerRunTag1",
-						IsCompleted:          true,
-						Timestamp:            time.Now(),
-						Issues:               []string{"Issue1"},
-						Components:           []string{"Component2"},
-						IssueMatchComponents: []string{"Issue1", "Component2"},
+						Tag:         "ScannerRunTag1",
+						IsCompleted: true,
+						Timestamp:   time.Now(),
+						Components:  []string{"Component2"},
 					})
 				Expect(err).To(BeNil())
 				res, err := db.Autoclose()
 				Expect(err).To(BeNil())
 				Expect(res).To(BeTrue())
+			})
+		})
+
+		Context("and the database has two scannerruns where the first run found an componentinstance issue and the second one found the same", func() {
+			It("Autoclose should return false and no error", func() {
+				err := databaseSeeder.SeedScannerRuns(
+					test.ScannerRunDef{
+						Tag:                  "ScannerRunTag1",
+						IsCompleted:          true,
+						Timestamp:            time.Now(),
+						Issues:               []string{"Issue1"},
+						Components:           []string{"Component1"},
+						IssueMatchComponents: []string{"Issue1", "Component1"},
+					},
+					test.ScannerRunDef{
+						Tag:                  "ScannerRunTag1",
+						IsCompleted:          true,
+						Timestamp:            time.Now(),
+						Issues:               []string{"Issue1"},
+						Components:           []string{"Component1"},
+						IssueMatchComponents: []string{"Issue1", "Component1"},
+					})
+				Expect(err).To(BeNil())
+				res, err := db.Autoclose()
+				Expect(err).To(BeNil())
+				Expect(res).To(BeFalse())
 			})
 		})
 	})
