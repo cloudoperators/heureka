@@ -3,6 +3,13 @@
 
 package mariadb
 
+var autoCloseComponents = `
+	UPDATE IssueMatch 
+	SET
+		issuematch_status = 'hello, wolrd'
+		 	
+`
+
 func (s *SqlDatabase) Autoclose() (bool, error) {
 	var err error
 	var autoclosed bool
@@ -88,5 +95,14 @@ func (s *SqlDatabase) Autoclose() (bool, error) {
 		return autoclosed, rows.Err()
 	}
 
+	if res, err := s.db.Exec(autoCloseComponents); err != nil {
+		return autoclosed, err
+	} else {
+		if rowsAffected, err := res.RowsAffected(); err != nil {
+			return autoclosed, err
+		} else if rowsAffected > 0 {
+			autoclosed = true
+		}
+	}
 	return autoclosed, nil
 }

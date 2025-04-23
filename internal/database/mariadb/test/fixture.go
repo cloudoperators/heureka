@@ -1673,7 +1673,7 @@ type ScannerRunDef struct {
 	Timestamp            time.Time
 	Issues               []string
 	Components           []string
-	IssueMatchComponents []string
+	IssueMatchComponents []string // WARNING: This needs pairs of Issue name and compoenent name
 }
 
 func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error {
@@ -1763,7 +1763,26 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 		)
 	`
 
+	insertIntoIssueMatchComponent := `
+		INSERT INTO IssueMatch (
+			issuematch_status,
+			issuematch_rating,
+			issuematch_target_remediation_date,
+			issuematch_user_id,
+			issuematch_issue_id,
+			issuematch_component_instance_id
+		) VALUES (
+			'new',
+			'CRITICAL',
+			current_timestamp(),
+			1,
+			?,
+			?
+		)
+	`
+
 	knownIssues := make(map[string]int)
+	knownComponentInstance := make(map[string]int)
 	serviceCounter := 0
 	componentCounter := 0
 	componentVersionCounter := 0
@@ -1825,9 +1844,29 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 			}
 			componentVersionCounter++
 			for _, component := range srd.Components {
-				_, err = s.db.Exec(insertIntoComponentInstance, component)
+				res, err = s.db.Exec(insertIntoComponentInstance, component)
 				if err != nil {
 					return fmt.Errorf("bad things insertintocomponentinstance: %v", err)
+				}
+				if resId, err := res.LastInsertId(); err != nil {
+					return fmt.Errorf("bad things insertintocomponentinstance get lastInsertId %v", err)
+				} else {
+					knownComponentInstance[component] = int(resId)
+				}
+			}
+		}
+
+		if len(srd.IssueMatchComponents) > 0 {
+			for i, _ := range srd.IssueMatchComponents {
+				if i%2 != 0 {
+					continue
+				}
+
+				issueName := srd.IssueMatchComponents[i]
+				componentName := srd.IssueMatchComponents[i+1]
+				_, err = s.db.Exec(insertIntoIssueMatchComponent, knownIssues[issueName], knownComponentInstance[componentName])
+				if err != nil {
+					return fmt.Errorf("InsertIntoIssueMatchComponent failed: %v", err)
 				}
 			}
 		}

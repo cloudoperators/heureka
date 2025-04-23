@@ -141,18 +141,20 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 			It("Autoclose should return true and no error", func() {
 				err := databaseSeeder.SeedScannerRuns(
 					test.ScannerRunDef{
-						Tag:         "ScannerRunTag1",
-						IsCompleted: true,
-						Timestamp:   time.Now(),
-						Issues:      []string{"Issue1"},
-						Components:  []string{"Component1"},
+						Tag:                  "ScannerRunTag1",
+						IsCompleted:          true,
+						Timestamp:            time.Now(),
+						Issues:               []string{"Issue1"},
+						Components:           []string{"Component1"},
+						IssueMatchComponents: []string{"Issue1", "Component1"},
 					},
 					test.ScannerRunDef{
-						Tag:         "ScannerRunTag1",
-						IsCompleted: true,
-						Timestamp:   time.Now(),
-						Issues:      []string{"Issue1"},
-						Components:  []string{"Component2"},
+						Tag:                  "ScannerRunTag1",
+						IsCompleted:          true,
+						Timestamp:            time.Now(),
+						Issues:               []string{"Issue1"},
+						Components:           []string{"Component2"},
+						IssueMatchComponents: []string{"Issue1", "Component2"},
 					})
 				Expect(err).To(BeNil())
 				res, err := db.Autoclose()
