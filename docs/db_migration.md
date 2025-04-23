@@ -110,6 +110,43 @@ DROP TABLE IF EXISTS users;
 
 ---
 
+## 📄 `schema_migrations` Table (Migration State Tracking)
+
+When using [golang-migrate](https://github.com/golang-migrate/migrate), the tool automatically manages migration state through a table called `schema_migrations`.
+
+### 🔍 Purpose
+
+This table keeps track of the current migration version applied to the database. It ensures that:
+- Migrations are applied in order.
+- No migration is re-applied.
+- Failed migrations are flagged to prevent partial application.
+
+### 🧱 Table Structure
+
+```sql
+CREATE TABLE schema_migrations (
+  version bigint NOT NULL,
+  dirty boolean NOT NULL
+);
+```
+
+- **`version`**: The version number of the last successfully applied migration (based on the filename prefix, e.g., `001_init.up.sql` → version `1`).
+- **`dirty`**: Set to `true` if the last migration did not complete successfully. This must be resolved before further migrations can be applied.
+
+### ⚠️ Notes
+
+- This table is automatically created by `golang-migrate` upon first run.
+- Do **not** manually modify this table unless you're intentionally correcting a migration state (e.g., rolling back a failed migration).
+- `golang-migrate` does **not** verify the contents of migration files using checksums (like MD5); it solely tracks versions via filenames and this metadata table.
+
+### ✅ Best Practices
+
+- Always version your migration files clearly using the numeric prefix (e.g., `001_`, `002_`, etc.).
+- Commit your migration files to version control to prevent tampering or accidental modification.
+- Use the `dirty` flag as an indicator in CI/CD to detect failed or partial deployments.
+
+---
+
 ## References
 
 - [golang-migrate CLI](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
