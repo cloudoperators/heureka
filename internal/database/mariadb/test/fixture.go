@@ -1844,6 +1844,9 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 			}
 			componentVersionCounter++
 			for _, component := range srd.Components {
+				if _, ok := knownComponentInstance[component]; ok {
+					continue
+				}
 				res, err = s.db.Exec(insertIntoComponentInstance, component)
 				if err != nil {
 					return fmt.Errorf("bad things insertintocomponentinstance: %v", err)
