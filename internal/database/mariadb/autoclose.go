@@ -6,9 +6,28 @@ package mariadb
 var autoCloseComponents = `
 	UPDATE IssueMatch 
 	SET
-		issuematch_status = 'hello, wolrd'
-		 	
-`
+		issuematch_status = 'mitigated'
+	WHERE 
+		issuematch_id IN (
+			SELECT DISTINCT issuematch_id FROM IssueMatch WHERE issuematch_component_instance_id NOT IN (
+				SELECT DISTINCT scannerruncomponentinstance_component_instance_id 
+				FROM  
+					ScannerRunComponentInstanceTracker
+				WHERE
+					scannerruncomponentinstance_scannerrun_run_id IN (
+					SELECT scannerrun_run_id 
+						FROM ScannerRun 
+						WHERE scannerrun_is_completed = TRUE
+						AND scannerrun_run_id IN (
+							SELECT scanner_run_id 
+								FROM	(SELECT scannerrun_run_id, ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
+									FROM ScannerRun
+								)
+								WHERE row_num = 2
+							)
+						)
+					)
+			)`
 
 func (s *SqlDatabase) Autoclose() (bool, error) {
 	var err error
@@ -16,7 +35,7 @@ func (s *SqlDatabase) Autoclose() (bool, error) {
 
 	rows, err := s.db.Query(`
 		SELECT
-		 	scannerrun_tag AS Tag,
+		 	DISTINCT scannerrun_tag AS Tag,
 			COUNT(*) AS Count 
 			FROM ScannerRun 
 			WHERE 
