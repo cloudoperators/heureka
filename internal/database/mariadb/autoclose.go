@@ -17,11 +17,16 @@ var autoCloseComponents = `
 					scannerruncomponentinstance_scannerrun_run_id IN (
 					SELECT scannerrun_run_id 
 						FROM ScannerRun 
-						WHERE scannerrun_is_completed = TRUE
-						AND scannerrun_run_id IN (
+						WHERE scannerrun_run_id IN (
 							SELECT scannerrun_run_id 
-								FROM	(SELECT scannerrun_run_id, ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
-									FROM ScannerRun
+								FROM	(
+									SELECT 
+										scannerrun_run_id, 
+										ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
+									FROM 
+										ScannerRun
+									WHERE 
+										scannerrun_is_completed = TRUE
 								) AS before_last
 								WHERE row_num = 2
 							)
