@@ -32,7 +32,33 @@ var autoCloseComponents = `
 							)
 						)
 					)
-			)`
+			) AND
+		issuematch_id NOT IN(
+			SELECT DISTINCT issuematch_id FROM IssueMatch WHERE issuematch_component_instance_id NOT IN (
+				SELECT DISTINCT scannerruncomponentinstance_component_instance_id 
+				FROM  
+					ScannerRunComponentInstanceTracker
+				WHERE
+					scannerruncomponentinstance_scannerrun_run_id IN (
+					SELECT scannerrun_run_id 
+						FROM ScannerRun 
+						WHERE scannerrun_run_id IN (
+							SELECT scannerrun_run_id 
+								FROM	(
+									SELECT 
+										scannerrun_run_id, 
+										ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
+									FROM 
+										ScannerRun
+									WHERE 
+										scannerrun_is_completed = TRUE
+								) AS last
+								WHERE row_num = 1
+							)
+						)
+					)
+			)
+			`
 
 func (s *SqlDatabase) Autoclose() (bool, error) {
 	var err error
