@@ -353,6 +353,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 							case entity.SeverityValuesNone.String():
 								counts.None++
 							}
+							counts.Total++
 						}
 						ratingIssueIds[key] = true
 					}
@@ -386,6 +387,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 					Expect(sEdge.Node.IssueCounts.Medium).To(Equal(sc.Medium))
 					Expect(sEdge.Node.IssueCounts.Low).To(Equal(sc.Low))
 					Expect(sEdge.Node.IssueCounts.None).To(Equal(sc.None))
+					Expect(sEdge.Node.IssueCounts.Total).To(Equal(sc.Total))
 				}
 			})
 		})

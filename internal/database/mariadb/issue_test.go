@@ -547,6 +547,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				Expect(issueSeverityCounts.Medium).To(BeEquivalentTo(counts.Medium))
 				Expect(issueSeverityCounts.Low).To(BeEquivalentTo(counts.Low))
 				Expect(issueSeverityCounts.None).To(BeEquivalentTo(counts.None))
+				Expect(issueSeverityCounts.Total).To(BeEquivalentTo(counts.Total))
 			})
 		}
 		Context("and using no filter", func() {
@@ -630,6 +631,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					case entity.SeverityValuesNone.String():
 						counts.None++
 					}
+					counts.Total++
 					issueIds[key] = true
 				}
 
@@ -740,6 +742,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						case entity.SeverityValuesNone.String():
 							counts.None++
 						}
+						counts.Total++
 					}
 					issueIds[key] = true
 				}
@@ -781,6 +784,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						case entity.SeverityValuesNone.String():
 							counts.None++
 						}
+						counts.Total++
 					}
 					ratingIssueIds[key] = true
 				}
@@ -824,6 +828,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						case entity.SeverityValuesNone.String():
 							counts.None++
 						}
+						counts.Total++
 					}
 					ratingIssueIds[key] = true
 				}

@@ -488,6 +488,7 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 		case entity.SeverityValuesNone.String():
 			issueSeverityCounts.None = count.Count
 		}
+		issueSeverityCounts.Total += count.Count
 	}
 
 	return &issueSeverityCounts, nil

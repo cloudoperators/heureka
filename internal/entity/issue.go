@@ -109,6 +109,7 @@ type IssueSeverityCounts struct {
 	Medium   int64 `json:"medium"`
 	Low      int64 `json:"low"`
 	None     int64 `json:"none"`
+	Total    int64 `json:"total"`
 }
 
 func (itc *IssueTypeCounts) TotalIssueCount() int64 {

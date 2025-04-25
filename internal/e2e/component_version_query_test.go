@@ -244,6 +244,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 									case "None":
 										counts.None++
 									}
+									counts.Total++
 									issueIds[key] = true
 								}
 							}
@@ -281,6 +282,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 					Expect(cvEdge.Node.IssueCounts.Medium).To(Equal(sc.Medium))
 					Expect(cvEdge.Node.IssueCounts.Low).To(Equal(sc.Low))
 					Expect(cvEdge.Node.IssueCounts.None).To(Equal(sc.None))
+					Expect(cvEdge.Node.IssueCounts.Total).To(Equal(sc.Total))
 				}
 			})
 		})

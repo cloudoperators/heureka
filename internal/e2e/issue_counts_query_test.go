@@ -91,6 +91,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 				case "None":
 					severityCounts.None++
 				}
+				severityCounts.Total++
 				issueIds[key] = true
 			}
 			for _, im := range issueMatches {
@@ -136,6 +137,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 				Expect(respData.IssueCounts.Medium).To(Equal(severityCounts.Medium))
 				Expect(respData.IssueCounts.Low).To(Equal(severityCounts.Low))
 				Expect(respData.IssueCounts.None).To(Equal(severityCounts.None))
+				Expect(respData.IssueCounts.Total).To(Equal(severityCounts.Total))
 			})
 		})
 	})
