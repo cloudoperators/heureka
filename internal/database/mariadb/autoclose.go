@@ -19,10 +19,10 @@ var autoCloseComponents = `
 						FROM ScannerRun 
 						WHERE scannerrun_is_completed = TRUE
 						AND scannerrun_run_id IN (
-							SELECT scanner_run_id 
+							SELECT scannerrun_run_id 
 								FROM	(SELECT scannerrun_run_id, ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
 									FROM ScannerRun
-								)
+								) AS before_last
 								WHERE row_num = 2
 							)
 						)
