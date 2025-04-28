@@ -6,6 +6,7 @@ package test
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -257,4 +258,37 @@ func LoadComponentVersionIssues(filename string) ([]mariadb.ComponentVersionIssu
 		}
 	}
 	return componentVersionIssues, nil
+}
+
+func LoadServiceIssueCounts(filename string) (map[string]entity.IssueSeverityCounts, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	type tempIssueCount struct {
+		Critical  int64 `json:"critical"`
+		High      int64 `json:"high"`
+		Medium    int64 `json:"medium"`
+		Low       int64 `json:"low"`
+		None      int64 `json:"none"`
+		Total     int64 `json:"total"`
+		ServiceId int64 `json:"service_id"`
+	}
+	var tempIssueCounts []tempIssueCount
+	if err := json.Unmarshal(data, &tempIssueCounts); err != nil {
+		return nil, err
+	}
+	issueCounts := make(map[string]entity.IssueSeverityCounts, len(tempIssueCounts))
+	for _, tic := range tempIssueCounts {
+		serviceId := fmt.Sprintf("%d", tic.ServiceId)
+		issueCounts[serviceId] = entity.IssueSeverityCounts{
+			Critical: tic.Critical,
+			High:     tic.High,
+			Medium:   tic.Medium,
+			Low:      tic.Low,
+			None:     tic.None,
+			Total:    tic.Total,
+		}
+	}
+	return issueCounts, nil
 }

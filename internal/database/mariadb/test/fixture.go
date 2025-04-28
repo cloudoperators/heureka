@@ -1278,6 +1278,9 @@ func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.
 	v := GenerateRandomCVSS31Vector()
 	cvss, _ := metric.NewEnvironmental().Decode(v)
 	rating := cvss.Severity().String()
+	if rating == "" {
+		rating = "None"
+	}
 	externalUrl := gofakeit.URL()
 	return mariadb.IssueVariantRow{
 		SecondaryName: sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 9999)), Valid: true},
