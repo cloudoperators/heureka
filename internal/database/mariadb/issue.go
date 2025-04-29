@@ -84,11 +84,17 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 {
+	if filter.AllServices {
+		joins = fmt.Sprintf("%s\n%s", joins, `
+			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
+		`)
+	}
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
+
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 		`)
-		if len(filter.ServiceCCRN) > 0 {
+		if len(filter.ServiceCCRN) > 0 || filter.AllServices {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
 				LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
@@ -111,12 +117,6 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
 	if len(filter.IssueRepositoryId) > 0 || len(filter.IssueVariantId) > 0 || len(filter.Search) > 0 || orderByRating {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueVariant IV ON I.issue_id = IV.issuevariant_issue_id
-		`)
-	}
-
-	if filter.AllServices {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
 
