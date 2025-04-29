@@ -79,15 +79,15 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
          	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
-		`)
-	}
 	if filter.AllServices {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
+	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, `
+			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
+		`)
+
 	}
 	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
 
