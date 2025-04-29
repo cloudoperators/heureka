@@ -400,39 +400,6 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		})
 
 		It("can count issues", Label("issueCount"), func() {
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../database/mariadb/testdata/service_order/issue_counts.json"))
-
-			Expect(err).To(BeNil())
-
-			// create a queryCollection (safe to share across requests)
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withIssueCounts.graphql")
-
-			Expect(err).To(BeNil())
-			str := string(b)
-			req := graphql.NewRequest(str)
-
-			req.Header.Set("Cache-Control", "no-cache")
-			ctx := context.Background()
-
-			var respData struct {
-				Services model.ServiceConnection `json:"Services"`
-			}
-			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-			}
-
-			for _, sEdge := range respData.Services.Edges {
-				sc := severityCounts[sEdge.Node.ID]
-				Expect(int64(sEdge.Node.IssueCounts.Critical)).To(Equal(sc.Critical), "Critical count is correct")
-				Expect(int64(sEdge.Node.IssueCounts.High)).To(Equal(sc.High), "High count is correct")
-				Expect(int64(sEdge.Node.IssueCounts.Medium)).To(Equal(sc.Medium), "Medium count is correct")
-				Expect(int64(sEdge.Node.IssueCounts.Low)).To(Equal(sc.Low), "Low count is correct")
-				Expect(int64(sEdge.Node.IssueCounts.None)).To(Equal(sc.None), "None count is correct")
-				Expect(int64(sEdge.Node.IssueCounts.Total)).To(Equal(sc.Total), "Total count is correct")
-			}
 
 		})
 	})

@@ -605,39 +605,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 			})
 		})
-		Context("and counting issue severities", func() {
-			var seedCollection *test.SeedCollection
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(50)
-			})
-			It("returns the correct count for all issues", func() {
-				counts := entity.IssueSeverityCounts{}
-				// avoid counting duplicates
-				issueIds := map[string]bool{}
-				for _, iv := range seedCollection.IssueVariantRows {
-					key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
-					if _, ok := issueIds[key]; ok || !iv.Id.Valid {
-						continue
-					}
-					switch iv.Rating.String {
-					case entity.SeverityValuesCritical.String():
-						counts.Critical++
-					case entity.SeverityValuesHigh.String():
-						counts.High++
-					case entity.SeverityValuesMedium.String():
-						counts.Medium++
-					case entity.SeverityValuesLow.String():
-						counts.Low++
-					case entity.SeverityValuesNone.String():
-						counts.None++
-					}
-					counts.Total++
-					issueIds[key] = true
-				}
-
-				testIssueSeverityCount(nil, counts)
-			})
-		})
 		Context("and using a filter", func() {
 			Context("and having 20 elements in the Database", func() {
 				var seedCollection *test.SeedCollection
@@ -1213,6 +1180,91 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 				}
 			})
 		})
+	})
+
+})
+
+var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
+	var db *mariadb.SqlDatabase
+	var seeder *test.DatabaseSeeder
+	var seedCollection *test.SeedCollection
+
+	var testIssueSeverityCount = func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
+		issueSeverityCounts, err := db.CountIssueRatings(filter)
+
+		By("throwing no error", func() {
+			Expect(err).To(BeNil())
+		})
+
+		By("returning the correct counts", func() {
+			Expect(issueSeverityCounts.Critical).To(BeEquivalentTo(counts.Critical))
+			Expect(issueSeverityCounts.High).To(BeEquivalentTo(counts.High))
+			Expect(issueSeverityCounts.Medium).To(BeEquivalentTo(counts.Medium))
+			Expect(issueSeverityCounts.Low).To(BeEquivalentTo(counts.Low))
+			Expect(issueSeverityCounts.None).To(BeEquivalentTo(counts.None))
+			Expect(issueSeverityCounts.Total).To(BeEquivalentTo(counts.Total))
+		})
+	}
+
+	BeforeEach(func() {
+		var err error
+		db = dbm.NewTestSchema()
+		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+		seedCollection, err = seeder.SeedForIssueCounts()
+		Expect(err).To(BeNil())
+	})
+
+	It("returns the correct count for all issues", func() {
+		severityCounts, err := test.LoadIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_severity.json"))
+		Expect(err).To(BeNil())
+		testIssueSeverityCount(nil, severityCounts)
+	})
+	It("returns the correct count for component version issues", func() {
+		severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
+		Expect(err).To(BeNil())
+
+		for _, cvi := range seedCollection.ComponentVersionIssueRows {
+			cvId := cvi.ComponentVersionId.Int64
+			filter := &entity.IssueFilter{
+				ComponentVersionId: []*int64{&cvId},
+			}
+
+			strId := fmt.Sprintf("%d", cvId)
+
+			testIssueSeverityCount(filter, severityCounts[strId])
+		}
+
+	})
+	It("returns the correct count for services", func() {
+		severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+		Expect(err).To(BeNil())
+
+		for _, service := range seedCollection.ServiceRows {
+			serviceId := service.Id.Int64
+
+			filter := &entity.IssueFilter{
+				ServiceId: []*int64{&serviceId},
+			}
+
+			strId := fmt.Sprintf("%d", serviceId)
+
+			testIssueSeverityCount(filter, severityCounts[strId])
+		}
+	})
+	It("returns the correct count for supportgroup", func() {
+		severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+		Expect(err).To(BeNil())
+
+		for _, sg := range seedCollection.SupportGroupRows {
+			filter := &entity.IssueFilter{
+				SupportGroupCCRN: []*string{&sg.CCRN.String},
+			}
+
+			strId := fmt.Sprintf("%d", sg.Id.Int64)
+
+			testIssueSeverityCount(filter, severityCounts[strId])
+		}
 	})
 
 })
