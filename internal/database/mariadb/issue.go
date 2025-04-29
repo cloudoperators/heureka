@@ -89,6 +89,7 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
 		`)
 
 	}
+
 	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
 
 		joins = fmt.Sprintf("%s\n%s", joins, `
