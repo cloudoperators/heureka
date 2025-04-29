@@ -3,6 +3,9 @@
 
 package mariadb
 
+// autoCloseComponents is a SQL query that updates the IssueMatch table, setting the issuematch_status to 'mitigated'
+// for issues that are present in the second to last completed scanner run but not in the last completed scanner run.
+// It identifies these issues by comparing the component instances associated with each issue across the two most recent scanner runs.
 var autoCloseComponents = `
 	UPDATE IssueMatch 
 	SET
