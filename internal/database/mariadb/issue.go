@@ -84,11 +84,17 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 {
+	if filter.AllServices {
+		joins = fmt.Sprintf("%s\n%s", joins, `
+			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
+		`)
+	}
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
+
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 		`)
-		if len(filter.ServiceCCRN) > 0 {
+		if len(filter.ServiceCCRN) > 0 || filter.AllServices {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
 				LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
@@ -111,12 +117,6 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
 	if len(filter.IssueRepositoryId) > 0 || len(filter.IssueVariantId) > 0 || len(filter.Search) > 0 || orderByRating {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueVariant IV ON I.issue_id = IV.issuevariant_issue_id
-		`)
-	}
-
-	if filter.AllServices {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
 
@@ -442,12 +442,28 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	filter = s.ensureIssueFilter(filter)
 
 	baseQuery := `
-		SELECT IV.issuevariant_rating AS issue_value, COUNT(distinct IV.issuevariant_issue_id) AS issue_count FROM %s Issue I
+		SELECT IV.issuevariant_rating AS issue_value, %s AS issue_count FROM %s Issue I
 		%s
 		%s
 		%s
 		GROUP BY IV.issuevariant_rating ORDER BY %s
 	`
+
+	var countColumn string
+	if filter.AllServices {
+		// Count issues that appear in multiple services and in multiple component versions per service
+		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id))"
+	} else if len(filter.SupportGroupCCRN) > 0 {
+		// Count issues that appear in multiple support groups
+		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))"
+	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
+		// Count issues that appear in multiple component versions
+		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id))"
+	} else {
+		countColumn = "COUNT(distinct IV.issuevariant_issue_id)"
+	}
+
+	baseQuery = fmt.Sprintf(baseQuery, countColumn, "%s", "%s", "%s", "%s", "%s")
 
 	if len(filter.IssueRepositoryId) == 0 {
 		baseQuery = fmt.Sprintf(baseQuery, "%s", "LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id", "%s", "%s", "%s")
@@ -488,6 +504,7 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 		case entity.SeverityValuesNone.String():
 			issueSeverityCounts.None = count.Count
 		}
+		issueSeverityCounts.Total += count.Count
 	}
 
 	return &issueSeverityCounts, nil

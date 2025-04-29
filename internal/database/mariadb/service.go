@@ -117,15 +117,15 @@ func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []en
 	for _, o := range order {
 		switch o.By {
 		case entity.CriticalCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END) as critical_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as critical_count", columns)
 		case entity.HighCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'High' THEN IV.issuevariant_issue_id END) as high_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'High' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as high_count", columns)
 		case entity.MediumCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Medium' THEN IV.issuevariant_issue_id END) as medium_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Medium' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as medium_count", columns)
 		case entity.LowCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Low' THEN IV.issuevariant_issue_id END) as low_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Low' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as low_count", columns)
 		case entity.NoneCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) as none_count", columns)
+			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as none_count", columns)
 		}
 	}
 	return columns
