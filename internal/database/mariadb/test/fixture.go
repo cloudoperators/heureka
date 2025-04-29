@@ -461,6 +461,90 @@ func (s *DatabaseSeeder) SeedDbForNestedIssueVariantTest() *SeedCollection {
 	}
 }
 
+func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
+	issueRepositories := s.SeedIssueRepositories()
+	supportGroups := s.SeedSupportGroups(2)
+	issues := s.SeedIssues(10)
+	components := s.SeedComponents(1)
+	componentVersions := s.SeedComponentVersions(10, components)
+	services := s.SeedServices(5)
+	issueVariants, err := LoadIssueVariants(GetTestDataPath("../testdata/component_version_order/issue_variant.json"))
+	if err != nil {
+		return nil, err
+	}
+	cvIssueRows, err := LoadComponentVersionIssues(GetTestDataPath("../testdata/service_order/component_version_issue.json"))
+	if err != nil {
+		return nil, err
+	}
+	componentInstances, err := LoadComponentInstances(GetTestDataPath("../testdata/service_order/component_instance.json"))
+	if err != nil {
+		return nil, err
+	}
+	issueMatches, err := LoadIssueMatches(GetTestDataPath("../testdata/service_order/issue_match.json"))
+	if err != nil {
+		return nil, err
+	}
+	supportGroupServices, err := LoadSupportGroupServices(GetTestDataPath("../testdata/issue_counts/support_group_service.json"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Important: the order need to be preserved
+	for _, iv := range issueVariants {
+		_, err := s.InsertFakeIssueVariant(iv)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, cvi := range cvIssueRows {
+		_, err := s.InsertFakeComponentVersionIssue(cvi)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, ci := range componentInstances {
+		_, err := s.InsertFakeComponentInstance(ci)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, im := range issueMatches {
+		_, err := s.InsertFakeIssueMatch(im)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, sgs := range supportGroupServices {
+		_, err := s.InsertFakeSupportGroupService(sgs)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &SeedCollection{
+		IssueVariantRows:           issueVariants,
+		IssueRepositoryRows:        issueRepositories,
+		UserRows:                   nil,
+		IssueRows:                  issues,
+		IssueMatchRows:             issueMatches,
+		ActivityRows:               nil,
+		EvidenceRows:               nil,
+		ComponentInstanceRows:      componentInstances,
+		ComponentVersionRows:       componentVersions,
+		ComponentRows:              components,
+		ServiceRows:                services,
+		SupportGroupUserRows:       nil,
+		SupportGroupRows:           supportGroups,
+		SupportGroupServiceRows:    supportGroupServices,
+		OwnerRows:                  nil,
+		ActivityHasServiceRows:     nil,
+		ActivityHasIssueRows:       nil,
+		ComponentVersionIssueRows:  cvIssueRows,
+		IssueMatchEvidenceRows:     nil,
+		IssueRepositoryServiceRows: nil,
+		IssueMatchChangeRows:       nil,
+	}, nil
+}
+
 func (s *DatabaseSeeder) SeedIssueRepositories() []mariadb.BaseIssueRepositoryRow {
 	variants := []string{
 		"Converged Cloud",
@@ -1278,6 +1362,9 @@ func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.
 	v := GenerateRandomCVSS31Vector()
 	cvss, _ := metric.NewEnvironmental().Decode(v)
 	rating := cvss.Severity().String()
+	if rating == "" {
+		rating = "None"
+	}
 	externalUrl := gofakeit.URL()
 	return mariadb.IssueVariantRow{
 		SecondaryName: sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 9999)), Valid: true},

@@ -17,6 +17,7 @@ query ($filter: ComponentVersionFilter, $first: Int, $after: String) {
                     medium
                     low
                     none
+                    total
                 }
             }
         }

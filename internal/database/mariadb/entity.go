@@ -132,13 +132,15 @@ type RatingCount struct {
 }
 
 func (rc *RatingCount) AsIssueSeverityCounts() entity.IssueSeverityCounts {
-	return entity.IssueSeverityCounts{
+	isc := entity.IssueSeverityCounts{
 		Critical: GetInt64Value(rc.Critical),
 		High:     GetInt64Value(rc.High),
 		Medium:   GetInt64Value(rc.Medium),
 		Low:      GetInt64Value(rc.Low),
 		None:     GetInt64Value(rc.None),
 	}
+	isc.Total = isc.Critical + isc.High + isc.Medium + isc.Low + isc.None
+	return isc
 }
 
 type IssueRow struct {
