@@ -14,25 +14,12 @@ import (
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
-
-var loadTestData = func() ([]mariadb.IssueVariantRow, []mariadb.IssueMatchRow, error) {
-	issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
-	if err != nil {
-		return nil, nil, err
-	}
-	issueMatches, err := test.LoadIssueMatches(test.GetTestDataPath("../database/mariadb/testdata/issue_counts/issue_matches.json"))
-	if err != nil {
-		return nil, nil, err
-	}
-	return issueVariants, issueMatches, nil
-}
 
 var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), func() {
 	var seeder *test.DatabaseSeeder
@@ -58,56 +45,16 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 
 	When("the database has entries", func() {
 
-		var supportGroups []mariadb.SupportGroupRow
-		var severityCounts model.SeverityCounts
+		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
-			supportGroups = seeder.SeedSupportGroups(1)
-			services := seeder.SeedServices(3)
-			seeder.SeedIssueRepositories()
-			seeder.SeedIssues(10)
-			components := seeder.SeedComponents(1)
-			componentVersions := seeder.SeedComponentVersions(10, components)
-			seeder.SeedComponentInstances(10, componentVersions, services)
-			issueVariants, issueMatches, err := loadTestData()
-			Expect(err).To(BeNil())
-			// avoid counting duplicates
-			issueIds := map[string]bool{}
-			for _, iv := range issueVariants {
-				_, err := seeder.InsertFakeIssueVariant(iv)
-				Expect(err).To(BeNil())
-				key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
-				if _, ok := issueIds[key]; ok {
-					continue
-				}
-				switch iv.Rating.String {
-				case "Critical":
-					severityCounts.Critical++
-				case "High":
-					severityCounts.High++
-				case "Medium":
-					severityCounts.Medium++
-				case "Low":
-					severityCounts.Low++
-				case "None":
-					severityCounts.None++
-				}
-				issueIds[key] = true
-			}
-			for _, im := range issueMatches {
-				_, err := seeder.InsertFakeIssueMatch(im)
-				Expect(err).To(BeNil())
-			}
-			for _, s := range services {
-				sgs := mariadb.SupportGroupServiceRow{
-					SupportGroupId: supportGroups[0].Id,
-					ServiceId:      s.Id,
-				}
-				_, err := seeder.InsertFakeSupportGroupService(sgs)
-				Expect(err).To(BeNil())
-			}
+			var err error
+			seedCollection, err = seeder.SeedForIssueCounts()
+			Expect(err).To(BeNil(), "Seeding should work")
 		})
 		Context("and a filter is used", func() {
 			It("correct filters by support group", func() {
+				severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../database/mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+				Expect(err).To(BeNil())
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
@@ -117,8 +64,9 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 				Expect(err).To(BeNil())
 				str := string(b)
 				req := graphql.NewRequest(str)
+				sg := seedCollection.SupportGroupRows[0]
 				req.Var("filter", map[string]string{
-					"supportGroupCcrn": supportGroups[0].CCRN.String,
+					"supportGroupCcrn": sg.CCRN.String,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -131,11 +79,50 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(respData.IssueCounts.Critical).To(Equal(severityCounts.Critical))
-				Expect(respData.IssueCounts.High).To(Equal(severityCounts.High))
-				Expect(respData.IssueCounts.Medium).To(Equal(severityCounts.Medium))
-				Expect(respData.IssueCounts.Low).To(Equal(severityCounts.Low))
-				Expect(respData.IssueCounts.None).To(Equal(severityCounts.None))
+				strId := fmt.Sprintf("%d", sg.Id.Int64)
+
+				Expect(int64(respData.IssueCounts.Critical)).To(Equal(severityCounts[strId].Critical))
+				Expect(int64(respData.IssueCounts.High)).To(Equal(severityCounts[strId].High))
+				Expect(int64(respData.IssueCounts.Medium)).To(Equal(severityCounts[strId].Medium))
+				Expect(int64(respData.IssueCounts.Low)).To(Equal(severityCounts[strId].Low))
+				Expect(int64(respData.IssueCounts.None)).To(Equal(severityCounts[strId].None))
+				Expect(int64(respData.IssueCounts.Total)).To(Equal(severityCounts[strId].Total))
+			})
+			It("it can filter by service in services query", func() {
+				severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../database/mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+
+				Expect(err).To(BeNil())
+
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withIssueCounts.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Services model.ServiceConnection `json:"Services"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				for _, sEdge := range respData.Services.Edges {
+					sc := severityCounts[sEdge.Node.ID]
+					Expect(int64(sEdge.Node.IssueCounts.Critical)).To(Equal(sc.Critical), "Critical count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.High)).To(Equal(sc.High), "High count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.Medium)).To(Equal(sc.Medium), "Medium count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.Low)).To(Equal(sc.Low), "Low count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.None)).To(Equal(sc.None), "None count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.Total)).To(Equal(sc.Total), "Total count is correct")
+				}
+
 			})
 		})
 	})

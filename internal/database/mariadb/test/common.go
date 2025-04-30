@@ -6,6 +6,7 @@ package test
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -257,4 +258,80 @@ func LoadComponentVersionIssues(filename string) ([]mariadb.ComponentVersionIssu
 		}
 	}
 	return componentVersionIssues, nil
+}
+
+func LoadSupportGroupServices(filename string) ([]mariadb.SupportGroupServiceRow, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	type tempSupportGroupService struct {
+		ServiceId      int64 `json:"service_id"`
+		SupportGroupId int64 `json:"support_group_id"`
+	}
+	var tempSupportGroupServices []tempSupportGroupService
+	if err := json.Unmarshal(data, &tempSupportGroupServices); err != nil {
+		return nil, err
+	}
+	supportGroupServices := make([]mariadb.SupportGroupServiceRow, len(tempSupportGroupServices))
+	for i, tsgs := range tempSupportGroupServices {
+		supportGroupServices[i] = mariadb.SupportGroupServiceRow{
+			ServiceId:      sql.NullInt64{Int64: tsgs.ServiceId, Valid: true},
+			SupportGroupId: sql.NullInt64{Int64: tsgs.SupportGroupId, Valid: true},
+		}
+	}
+	return supportGroupServices, nil
+}
+
+func loadIssueCountsFromFile(filename string, idKey string) (map[string]entity.IssueSeverityCounts, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var tempIssueCounts []map[string]int64
+	if err := json.Unmarshal(data, &tempIssueCounts); err != nil {
+		return nil, err
+	}
+
+	issueCounts := make(map[string]entity.IssueSeverityCounts, len(tempIssueCounts))
+	for _, tic := range tempIssueCounts {
+		id := fmt.Sprintf("%v", tic[idKey])
+		issueCounts[id] = entity.IssueSeverityCounts{
+			Critical: tic["critical"],
+			High:     tic["high"],
+			Medium:   tic["medium"],
+			Low:      tic["low"],
+			None:     tic["none"],
+			Total:    tic["total"],
+		}
+	}
+
+	return issueCounts, nil
+}
+
+func LoadServiceIssueCounts(filename string) (map[string]entity.IssueSeverityCounts, error) {
+	return loadIssueCountsFromFile(filename, "service_id")
+}
+
+func LoadComponentVersionIssueCounts(filename string) (map[string]entity.IssueSeverityCounts, error) {
+	return loadIssueCountsFromFile(filename, "component_version_id")
+}
+
+func LoadSupportGroupIssueCounts(filename string) (map[string]entity.IssueSeverityCounts, error) {
+	return loadIssueCountsFromFile(filename, "support_group_id")
+}
+
+func LoadIssueCounts(filename string) (entity.IssueSeverityCounts, error) {
+	data, err := os.ReadFile(filename)
+	var issueCounts entity.IssueSeverityCounts
+	if err != nil {
+		return issueCounts, err
+	}
+
+	if err := json.Unmarshal(data, &issueCounts); err != nil {
+		return entity.IssueSeverityCounts{}, err
+	}
+
+	return issueCounts, nil
 }
