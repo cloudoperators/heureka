@@ -125,5 +125,39 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 
 			})
 		})
+		It("correct filters by component version id", func() {
+			severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../database/mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
+			Expect(err).To(BeNil())
+			// create a queryCollection (safe to share across requests)
+			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueCounts/query.graphql")
+
+			Expect(err).To(BeNil())
+			str := string(b)
+			req := graphql.NewRequest(str)
+			cvId := fmt.Sprintf("%d", seedCollection.ComponentVersionIssueRows[0].ComponentVersionId.Int64)
+			req.Var("filter", map[string]string{
+				"componentVersionId": cvId,
+			})
+
+			req.Header.Set("Cache-Control", "no-cache")
+			ctx := context.Background()
+
+			var respData struct {
+				IssueCounts model.SeverityCounts `json:"IssueCounts"`
+			}
+			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+			}
+
+			Expect(int64(respData.IssueCounts.Critical)).To(Equal(severityCounts[cvId].Critical))
+			Expect(int64(respData.IssueCounts.High)).To(Equal(severityCounts[cvId].High))
+			Expect(int64(respData.IssueCounts.Medium)).To(Equal(severityCounts[cvId].Medium))
+			Expect(int64(respData.IssueCounts.Low)).To(Equal(severityCounts[cvId].Low))
+			Expect(int64(respData.IssueCounts.None)).To(Equal(severityCounts[cvId].None))
+			Expect(int64(respData.IssueCounts.Total)).To(Equal(severityCounts[cvId].Total))
+		})
 	})
 })
