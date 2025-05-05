@@ -30,7 +30,6 @@ type SqlDatabase struct {
 	db                    *sqlx.DB
 	defaultIssuePriority  int64
 	defaultRepositoryName string
-	config                *util.Config
 }
 
 func (s *SqlDatabase) CloseConnection() error {
