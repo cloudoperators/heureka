@@ -107,9 +107,9 @@ func (dbm *LocalTestDataBaseManager) Setup() error {
 	dbm.loadDBClientIfNeeded()
 
 	//setup base schema to ensure schema loading works
-	err = dbm.dbClient.SetupSchema(dbm.Config.Config)
+	err = dbm.dbClient.RunMigrations()
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting up management Schema")
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting up migrations Schema")
 		return err
 	}
 
@@ -134,7 +134,8 @@ func (dbm *LocalTestDataBaseManager) ResetSchema() error {
 		return err
 	}
 
-	err = dbm.dbClient.SetupSchema(dbm.Config.Config)
+	err = dbm.dbClient.RunMigrations()
+
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while creating database")
 		return err
@@ -162,9 +163,9 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 	dbm.Config.DBName = fmt.Sprintf("heureka%s", util2.GenerateRandomString(15, util2.Ptr("abcdefghijklmnopqrstuvwxyz0123456789")))
 	dbm.Schemas = append(dbm.Schemas, dbm.Config.DBName)
 
-	err := dbm.dbClient.SetupSchema(dbm.Config.Config)
+	err := dbm.dbClient.RunMigrations()
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting up new Schema")
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting up new Migration Schema")
 	}
 
 	err = dbm.dbClient.GrantAccess(dbm.Config.DBUser, dbm.Config.DBName, "%")
@@ -270,22 +271,15 @@ func (dbm *ContainerizedTestDataBaseManager) Setup() error {
 		ExposedPorts: nat.PortSet{
 			MARIADB_DEFAULT_PORT: struct{}{},
 		},
-		Volumes: map[string]struct{}{
-			"./internal/database/mariadb/init/schema.sql": struct{}{},
-		},
 
 		Env: []string{
 			fmt.Sprintf("%s=%s", "MARIADB_USER", dbm.Config.DBUser),
 			fmt.Sprintf("%s=%s", "MARIADB_PASSWORD", dbm.Config.DBPassword),
 			fmt.Sprintf("%s=%s", "MARIADB_DATABASE", dbm.Config.DBName),
-			fmt.Sprintf("%s=%s", "MARIADB_DATABASE", dbm.Config.DBName),
 			fmt.Sprintf("%s=%s", "MARIADB_ROOT_PASSWORD", dbm.Config.DBRootPassword),
 		},
 	}, &container.HostConfig{
 		// Other host configuration options...
-		Binds: []string{
-			fmt.Sprintf("%s:%s", dbm.Config.DBSchema, "/docker-entrypoint-initdb.d/schema.sql"),
-		},
 		PortBindings: nat.PortMap{
 			MARIADB_DEFAULT_PORT: []nat.PortBinding{
 				{

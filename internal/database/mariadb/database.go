@@ -6,17 +6,16 @@ package mariadb
 import (
 	"database/sql"
 	"fmt"
-	"os"
+	"io"
+	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
@@ -106,7 +105,7 @@ func (s *SqlDatabase) DropSchemaByName(name string) error {
 }
 
 func (s *SqlDatabase) DropSchema() error {
-	return s.DropSchemaByName("heureka")
+	return s.DropSchemaByName(s.config.DBName)
 }
 
 func (s *SqlDatabase) GrantAccess(username string, database string, host string) error {
@@ -118,9 +117,9 @@ func (s *SqlDatabase) GrantAccess(username string, database string, host string)
 	return err
 }
 
-func (s *SqlDatabase) SetupSchema(cfg util.Config) error {
+/*func (s *SqlDatabase) SetupSchema(cfg util.Config) error {
 	var sf string
-	if strings.HasPrefix(cfg.DBSchema, "/") {
+	if strings.HasPrefix(cfg.DBSchema, "/") { //TODO: remove
 		sf = cfg.DBSchema
 	} else {
 		pr, err := util2.GetProjectRoot()
@@ -146,7 +145,7 @@ func (s *SqlDatabase) SetupSchema(cfg util.Config) error {
 		return err
 	}
 	return nil
-}
+}*/
 
 // GetDefaultIssuePriority ...
 func (s *SqlDatabase) GetDefaultIssuePriority() int64 {
@@ -163,13 +162,47 @@ func (s *SqlDatabase) GetVersion() (string, error) {
 		return "", err
 	}
 
-	v, d, err := s.getMigrationVersion(m)
+	v, d, err := getMigrationVersion(m)
 	if err != nil {
 		return "", err
 	}
 
 	return versionToString(v, d), nil
 }
+
+func GetVersion(cfg util.Config) (string, error) {
+    db, err := NewSqlDatabase(cfg)
+    if err != nil {
+        return "", fmt.Errorf("Error while Creating Db")
+    }
+
+    v, err := db.GetVersion()
+    if err != nil {
+        return "", fmt.Errorf("Error while Migrating Db")
+    }
+	return v, nil
+}
+
+/*func GetVersion(cfg util.Config) (string, error) { //TODO: move to SqlDatabase
+	db, err := getSqlxConnection(cfg)
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+
+	m, err := openMigration(db.DB)
+	if err != nil {
+		return "", err
+	}
+	defer m.Close()
+
+	v, d, err := getMigrationVersion(m)
+	if err != nil {
+		return "", err
+	}
+
+	return versionToString(v, d), nil
+}*/
 
 func (s *SqlDatabase) RunMigrations() error {
 	m, err := s.openMigration()
@@ -178,12 +211,33 @@ func (s *SqlDatabase) RunMigrations() error {
 	}
 
 	err = m.Up()
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange && err != io.EOF {
 		return err
 	}
 
 	return nil
 }
+
+/*func RunMigrations(cfg util.Config) error { //TODO: move to SqlDatabase
+	db, err := getSqlxConnection(cfg)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	m, err := openMigration(db.DB)
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+
+	err = m.Up()
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
+}*/
 
 func versionToString(v uint, dirty bool) string {
 	var dirtyStr string
@@ -193,7 +247,7 @@ func versionToString(v uint, dirty bool) string {
 	return fmt.Sprintf("%d%s", v, dirtyStr)
 }
 
-func (s *SqlDatabase) getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
+func getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
 	version, dirty, err := m.Version()
 	if err != nil && err != migrate.ErrNilVersion {
 		return 0, false, err
@@ -201,20 +255,30 @@ func (s *SqlDatabase) getMigrationVersion(m *migrate.Migrate) (uint, bool, error
 	return version, dirty, nil
 }
 
-func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
-	d, err := iofs.New(MigrationFiles, "migrations")
+func (s *SqlDatabase)openMigration() (*migrate.Migrate, error) {
+	memMigrations, err := loadMigrations()
 	if err != nil {
 		return nil, err
 	}
+	initVersion, ok := getLowestVersionOfMigration(memMigrations)
+	if !ok {
+		return nil, fmt.Errorf("No migration file available")
+	}
+	memMigrations[initVersion] = strings.Replace(memMigrations[initVersion], "heureka", s.config.DBName, 2)       //TODO: all s.config access has to be switched to string dbName passed by arg
+	fmt.Printf("Applying migrations for %s\n", s.config.DBName)
+	debug.PrintStack()
 
-	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{})
+	src := &stringMigrationSource{migrations: memMigrations}
+
+	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{DatabaseName: s.config.DBName})
 	if err != nil {
 		return nil, err
 	}
 
 	m, err := migrate.NewWithInstance(
-		"iofs", d,
+		"mem", src,
 		"mysql", driver)
+
 	if err != nil {
 		return nil, err
 	}

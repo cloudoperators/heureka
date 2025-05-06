@@ -22,7 +22,6 @@ type Config struct {
 	DBRootPassword       string `envconfig:"DB_ROOT_PASSWORD" required:"true" json:"-"`
 	DBPort               string `envconfig:"DB_PORT" required:"true" json:"dbPort"`
 	DBName               string `envconfig:"DB_NAME" required:"true" json:"dbDbName"`
-	DBSchema             string `envconfig:"DB_SCHEMA" required:"true" json:"dbSchema"`
 	DBMaxIdleConnections int    `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"10" json:"dBMaxIdleConnections"`
 	DBMaxOpenConnections int    `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"100" json:"dbMaxOpenConnections"`
 	//VasApiAddress      string   `envconfig:"VAS_API_ADDRESS" required:"true" json:"vasApiAddress"`
@@ -50,7 +49,6 @@ func (c *Config) ConfigToConsole() {
 		{"Database Address", c.DBAddress},
 		{"Database Port", c.DBPort},
 		{"Database Name", c.DBName},
-		{"Database Name", c.DBSchema},
 		{"Database Username", c.DBUser},
 		{"Database Password", strings.Repeat("*", 10)},
 		//{"VAS API Address", c.VasApiAddress},
