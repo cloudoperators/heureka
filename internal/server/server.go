@@ -37,15 +37,16 @@ type Server struct {
 }
 
 func NewServer(cfg util.Config) *Server {
-	err := mariadb.RunMigrations(cfg)
-	if err != nil {
-		logrus.WithError(err).Fatalln("Error while Migrating Db")
-	}
-
 	db, err := mariadb.NewSqlDatabase(cfg)
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
 	}
+
+	err = db.RunMigrations()
+	if err != nil {
+		logrus.WithError(err).Fatalln("Error while Migrating Db")
+	}
+
 	application := app.NewHeurekaApp(db)
 
 	s := Server{
