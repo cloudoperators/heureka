@@ -457,6 +457,8 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	} else if len(filter.SupportGroupCCRN) > 0 {
 		// Count issues that appear in multiple support groups
 		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))"
+	} else if len(filter.ComponentVersionId) > 0 {
+		countColumn = "COUNT(DISTINCT CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id)) "
 	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
 		// Count issues that appear in multiple component versions
 		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id))"
