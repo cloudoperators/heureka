@@ -3,13 +3,73 @@
 
 package mariadb
 
+// autoCloseComponents is a SQL query that updates the IssueMatch table, setting the issuematch_status to 'mitigated'
+// for issues that are present in the second to last completed scanner run but not in the last completed scanner run.
+// It identifies these issues by comparing the component instances associated with each issue across the two most recent scanner runs.
+var autoCloseComponents = `
+	UPDATE IssueMatch 
+	SET
+		issuematch_status = 'mitigated'
+	WHERE 
+		issuematch_id IN (
+			SELECT DISTINCT issuematch_id FROM IssueMatch WHERE issuematch_component_instance_id NOT IN (
+				SELECT DISTINCT scannerruncomponentinstance_component_instance_id 
+				FROM  
+					ScannerRunComponentInstanceTracker
+				WHERE
+					scannerruncomponentinstance_scannerrun_run_id IN (
+					SELECT scannerrun_run_id 
+						FROM ScannerRun 
+						WHERE scannerrun_run_id IN (
+							SELECT scannerrun_run_id 
+								FROM	(
+									SELECT 
+										scannerrun_run_id, 
+										ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
+									FROM 
+										ScannerRun
+									WHERE 
+										scannerrun_is_completed = TRUE
+								) AS before_last
+								WHERE row_num = 2
+							)
+						)
+					)
+			) AND
+		issuematch_id NOT IN(
+			SELECT DISTINCT issuematch_id FROM IssueMatch WHERE issuematch_component_instance_id NOT IN (
+				SELECT DISTINCT scannerruncomponentinstance_component_instance_id 
+				FROM  
+					ScannerRunComponentInstanceTracker
+				WHERE
+					scannerruncomponentinstance_scannerrun_run_id IN (
+					SELECT scannerrun_run_id 
+						FROM ScannerRun 
+						WHERE scannerrun_run_id IN (
+							SELECT scannerrun_run_id 
+								FROM	(
+									SELECT 
+										scannerrun_run_id, 
+										ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
+									FROM 
+										ScannerRun
+									WHERE 
+										scannerrun_is_completed = TRUE
+								) AS last
+								WHERE row_num = 1
+							)
+						)
+					)
+			)
+			`
+
 func (s *SqlDatabase) Autoclose() (bool, error) {
 	var err error
 	var autoclosed bool
 
 	rows, err := s.db.Query(`
 		SELECT
-		 	scannerrun_tag AS Tag,
+		 	DISTINCT scannerrun_tag AS Tag,
 			COUNT(*) AS Count 
 			FROM ScannerRun 
 			WHERE 
@@ -88,5 +148,14 @@ func (s *SqlDatabase) Autoclose() (bool, error) {
 		return autoclosed, rows.Err()
 	}
 
+	if res, err := s.db.Exec(autoCloseComponents); err != nil {
+		return autoclosed, err
+	} else {
+		if rowsAffected, err := res.RowsAffected(); err != nil {
+			return autoclosed, err
+		} else if rowsAffected > 0 {
+			autoclosed = true
+		}
+	}
 	return autoclosed, nil
 }
