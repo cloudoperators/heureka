@@ -47,6 +47,7 @@ type SeverityCounts {
     medium: Int!
     low: Int!
     none: Int!
+    total: Int!
 }
 
 input DateTimeFilter {
