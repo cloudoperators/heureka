@@ -107,7 +107,11 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 	var serviceId string
 
 	if serviceInfo.CCRN == "" {
-		serviceInfo.CCRN = fmt.Sprintf("Unknown-%s", serviceInfo.SupportGroup)
+		if serviceInfo.SupportGroup == "" {
+			serviceInfo.CCRN = "Unknown"
+		} else {
+			serviceInfo.CCRN = fmt.Sprintf("Unknown-%s", serviceInfo.SupportGroup)
+		}
 	}
 
 	// The Service might already exist in the DB

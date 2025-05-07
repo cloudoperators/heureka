@@ -224,7 +224,13 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		return nil, NewResolverError("IssueCountsBaseResolver", err.Error())
 	}
 
-	var cvId []*int64
+	var cvIds []*int64
+	cvIds, err = util.ConvertStrToIntSlice(filter.ComponentVersionID)
+
+	if err != nil {
+		return nil, NewResolverError("IssueCountsBaseResolver", err.Error())
+	}
+
 	var serviceId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
@@ -235,7 +241,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 
 		switch parent.ParentName {
 		case model.ComponentVersionNodeName:
-			cvId = []*int64{pid}
+			cvIds = []*int64{pid}
 		case model.ServiceNodeName:
 			serviceId = []*int64{pid}
 		}
@@ -249,7 +255,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 		Search:             filter.Search,
 		IssueRepositoryId:  irIds,
-		ComponentVersionId: cvId,
+		ComponentVersionId: cvIds,
 		ServiceId:          serviceId,
 		State:              model.GetStateFilterType(filter.State),
 		AllServices:        lo.FromPtr(filter.AllServices),

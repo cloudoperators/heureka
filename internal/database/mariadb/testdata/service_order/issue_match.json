@@ -7,59 +7,59 @@
         "status": "Open"
     },
     {
-        "issue_id": 2,
+        "issue_id": 7,
         "component_instance_id": 2,
         "user_id": 1,
-        "rating": "Critical",
-        "status": "Open"
-    },
-    {
-        "issue_id": 3,
-        "component_instance_id": 3,
-        "user_id": 1,
-        "rating": "High",
-        "status": "Open"
-    },
-    {
-        "issue_id": 4,
-        "component_instance_id": 4,
-        "user_id": 1,
-        "rating": "High",
+        "rating": "Low",
         "status": "Open"
     },
     {
         "issue_id": 5,
-        "component_instance_id": 5,
-        "user_id": 1,
-        "rating": "High",
-        "status": "Open"
-    },
-    {
-        "issue_id": 6,
-        "component_instance_id": 6,
-        "user_id": 1,
-        "rating": "Medium",
-        "status": "Open"
-    },
-    {
-        "issue_id": 7,
-        "component_instance_id": 7,
+        "component_instance_id": 3,
         "user_id": 1,
         "rating": "Medium",
         "status": "Open"
     },
     {
         "issue_id": 8,
-        "component_instance_id": 8,
+        "component_instance_id": 4,
         "user_id": 1,
         "rating": "Low",
         "status": "Open"
     },
     {
+        "issue_id": 2,
+        "component_instance_id": 5,
+        "user_id": 1,
+        "rating": "Critical",
+        "status": "Open"
+    },
+    {
         "issue_id": 9,
+        "component_instance_id": 6,
+        "user_id": 1,
+        "rating": "None",
+        "status": "Open"
+    },
+    {
+        "issue_id": 3,
+        "component_instance_id": 7,
+        "user_id": 1,
+        "rating": "High",
+        "status": "Open"
+    },
+    {
+        "issue_id": 6,
+        "component_instance_id": 8,
+        "user_id": 1,
+        "rating": "Medium",
+        "status": "Open"
+    },
+    {
+        "issue_id": 4,
         "component_instance_id": 9,
         "user_id": 1,
-        "rating": "Low",
+        "rating": "High",
         "status": "Open"
     },
     {
