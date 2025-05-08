@@ -71,10 +71,17 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 	}
 
 	hasNext := false
+	if first == nil {
+		first = pointer.Int(0)
+	}
+
 	if totalCount > *first+int(*value) {
 		hasNext = true
 	}
 
+	if after == nil {
+		after = pointer.String("")
+	}
 	hasPrevious := len(*after) > 0
 
 	var edges []*model.ScannerRunEdge
