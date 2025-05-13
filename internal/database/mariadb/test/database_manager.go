@@ -30,35 +30,21 @@ const (
 	MARIADB_DEFAULT_PORT = "3306/tcp"
 )
 
-
 func NewDatabaseManager() (TestDatabaseManager, error) {
-    backOff := 20
-    localTestDB := os.Getenv("LOCAL_TEST_DB")
+	backOff := 20
+	localTestDB := os.Getenv("LOCAL_TEST_DB")
+	var tdm TestDatabaseManager
 
-    if localTestDB != "true" {
-        cDbm := NewContainerizedTestDatabaseManager()
-		if err := cDbm.Setup(); err != nil {
-			return nil, fmt.Errorf("Setup of centralized test database should work: %w", err)
-		}
-        //set dbConfig after Setup
-
-        // We test the connection with n(backoff) amounts of tries in a 500ms interval
-        if err := mariadb.TestConnection(cDbm.Config.Config, backOff); err != nil {
-			return nil, fmt.Errorf("Database should be reachable within %d Seconds: %w", backOff/2, err)
-		}
-        return cDbm, nil
-    } else {
-        lDbm := NewLocalTestDatabaseManager()
-
-        if err := lDbm.Setup(); err != nil {
-			return nil, fmt.Errorf("Setup of local test database should work: %w", err)
-		}
-        // We test the connection with n(backoff) amounts of tries in a 500ms interval
-        if err := mariadb.TestConnection(lDbm.Config.Config, backOff); err != nil {
-			return nil, fmt.Errorf("Database should be reachable within %d Seconds: %w", backOff/2, err)
-		}
-        return lDbm, nil
-    }
+	if localTestDB != "true" {
+		tdm = NewContainerizedTestDatabaseManager()
+	} else {
+		tdm = NewLocalTestDatabaseManager()
+	}
+	// We test the connection with n(backoff) amounts of tries in a 500ms interval
+	if err := mariadb.TestConnection(tdm.DbConfig(), backOff); err != nil {
+		return nil, fmt.Errorf("Database should be reachable within %d Seconds: %w", backOff/2, err)
+	}
+	return tdm, nil
 }
 
 type TestDatabaseManager interface {
@@ -173,16 +159,15 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 	dbm.loadDBClientIfNeeded()
 
 	// using only lowercase characters as in local scenarios the schema name is case-insensitive but the db file names are not leading to errors
-	schemaName := fmt.Sprintf("heureka%s", util2.GenerateRandomString(15, util2.Ptr("abcdefghijklmnopqrstuvwxyz0123456789")))
-	dbm.Schemas = append(dbm.Schemas, schemaName)
-	dbm.Config.DBName = schemaName
+	dbm.Config.DBName = fmt.Sprintf("heureka%s", util2.GenerateRandomString(15, util2.Ptr("abcdefghijklmnopqrstuvwxyz0123456789")))
+	dbm.Schemas = append(dbm.Schemas, dbm.Config.DBName)
 
 	err := dbm.dbClient.SetupSchema(dbm.Config.Config)
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting up new Schema")
 	}
 
-	err = dbm.dbClient.GrantAccess(dbm.Config.DBUser, schemaName, "%")
+	err = dbm.dbClient.GrantAccess(dbm.Config.DBUser, dbm.Config.DBName, "%")
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while granting privileges for new Schema ")
 	}
