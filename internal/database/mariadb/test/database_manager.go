@@ -30,6 +30,37 @@ const (
 	MARIADB_DEFAULT_PORT = "3306/tcp"
 )
 
+
+func NewDatabaseManager() (TestDatabaseManager, error) {
+    backOff := 20
+    localTestDB := os.Getenv("LOCAL_TEST_DB")
+
+    if localTestDB != "true" {
+        cDbm := NewContainerizedTestDatabaseManager()
+		if err := cDbm.Setup(); err != nil {
+			return nil, fmt.Errorf("Setup of centralized test database should work: %w", err)
+		}
+        //set dbConfig after Setup
+
+        // We test the connection with n(backoff) amounts of tries in a 500ms interval
+        if err := mariadb.TestConnection(cDbm.Config.Config, backOff); err != nil {
+			return nil, fmt.Errorf("Database should be reachable within %d Seconds: %w", backOff/2, err)
+		}
+        return cDbm, nil
+    } else {
+        lDbm := NewLocalTestDatabaseManager()
+
+        if err := lDbm.Setup(); err != nil {
+			return nil, fmt.Errorf("Setup of local test database should work: %w", err)
+		}
+        // We test the connection with n(backoff) amounts of tries in a 500ms interval
+        if err := mariadb.TestConnection(lDbm.Config.Config, backOff); err != nil {
+			return nil, fmt.Errorf("Database should be reachable within %d Seconds: %w", backOff/2, err)
+		}
+        return lDbm, nil
+    }
+}
+
 type TestDatabaseManager interface {
 	NewTestSchema() *mariadb.SqlDatabase
 	Setup() error
