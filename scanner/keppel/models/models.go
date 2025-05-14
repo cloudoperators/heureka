@@ -4,6 +4,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
@@ -41,8 +42,15 @@ type Manifest struct {
 	LastPulledAt        uint64 `json:"last_pulled_at"`
 	VulnerabilityStatus string `json:"vulnerability_status"`
 	Labels              Labels
-	MaxLayerCreatedAt   int64 `json:"max_layer_created_at"`
-	MinLayerCreatedAt   int64 `json:"min_layer_created_at"`
+	Children            []Manifest `json:"manifests"`
+	MaxLayerCreatedAt   int64      `json:"max_layer_created_at"`
+	MinLayerCreatedAt   int64      `json:"min_layer_created_at"`
+	Platform            Platform   `json:"platform"`
+}
+
+type Platform struct {
+	Architecture string `json:"architecture"`
+	OS           string `json:"os"`
 }
 
 type ManifestResponse struct {
@@ -74,4 +82,13 @@ type TrivyMetadata struct {
 	RepoTags    []string       `json:",omitempty"`
 	RepoDigests []string       `json:",omitempty"`
 	ImageConfig map[string]any `json:",omitempty"`
+}
+
+type HTTPError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("HTTP error: status code %d, body: %s", e.StatusCode, e.Body)
 }
