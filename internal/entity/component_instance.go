@@ -6,8 +6,14 @@ package entity
 type ComponentInstanceType string
 
 const (
+	ComponentInstanceTypeUnknown       ComponentInstanceType = "Unknown"
+	ComponentInstanceTypeProject       ComponentInstanceType = "Project"
 	ComponentInstanceTypeServer        ComponentInstanceType = "Server"
 	ComponentInstanceTypeSecurityGroup ComponentInstanceType = "SecurityGroup"
+	ComponentInstanceTypeDnsZone       ComponentInstanceType = "DnsZone"
+	ComponentInstanceTypeFloatingIp    ComponentInstanceType = "FloatingIp"
+	ComponentInstanceTypeRbacPolicy    ComponentInstanceType = "RbacPolicy"
+	ComponentInstanceTypeUser          ComponentInstanceType = "User"
 )
 
 func (e ComponentInstanceType) String() string {
@@ -16,17 +22,35 @@ func (e ComponentInstanceType) String() string {
 
 func NewComponentInstanceType(s string) ComponentInstanceType {
 	switch s {
+	case ComponentInstanceTypeUnknown.String():
+		return ComponentInstanceTypeUnknown
+	case ComponentInstanceTypeProject.String():
+		return ComponentInstanceTypeProject
 	case ComponentInstanceTypeServer.String():
 		return ComponentInstanceTypeServer
 	case ComponentInstanceTypeSecurityGroup.String():
 		return ComponentInstanceTypeSecurityGroup
+	case ComponentInstanceTypeDnsZone.String():
+		return ComponentInstanceTypeDnsZone
+	case ComponentInstanceTypeFloatingIp.String():
+		return ComponentInstanceTypeFloatingIp
+	case ComponentInstanceTypeRbacPolicy.String():
+		return ComponentInstanceTypeRbacPolicy
+	case ComponentInstanceTypeUser.String():
+		return ComponentInstanceTypeUser
 	}
-	return ComponentInstanceTypeServer
+	return ComponentInstanceTypeUnknown
 }
 
 var AllComponentInstanceType = []string{
+	ComponentInstanceTypeUnknown.String(),
+	ComponentInstanceTypeProject.String(),
 	ComponentInstanceTypeServer.String(),
 	ComponentInstanceTypeSecurityGroup.String(),
+	ComponentInstanceTypeDnsZone.String(),
+	ComponentInstanceTypeFloatingIp.String(),
+	ComponentInstanceTypeRbacPolicy.String(),
+	ComponentInstanceTypeUser.String(),
 }
 
 type ComponentInstanceFilter struct {

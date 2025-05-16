@@ -71,8 +71,14 @@ input ComponentInstanceOrderBy {
 }
 
 enum ComponentInstanceTypes {
-    Server,
-    SecurityGroup
+    Unknown,
+	Project,
+	Server,
+	SecurityGroup,
+	DnsZone,
+	FloatingIp,
+	RbacPolicy,
+	User
 }
 
 enum ComponentInstanceOrderByField {

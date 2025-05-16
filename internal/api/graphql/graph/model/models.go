@@ -51,8 +51,14 @@ var AllIssueMatchStatusValuesOrdered = []IssueMatchStatusValues{
 }
 
 var AllComponentInstanceTypesOrdered = []ComponentInstanceTypes{
+	ComponentInstanceTypesUnknown,
+	ComponentInstanceTypesProject,
 	ComponentInstanceTypesServer,
 	ComponentInstanceTypesSecurityGroup,
+	ComponentInstanceTypesDNSZone,
+	ComponentInstanceTypesFloatingIP,
+	ComponentInstanceTypesRbacPolicy,
+	ComponentInstanceTypesUser,
 }
 
 type HasToEntity interface {
