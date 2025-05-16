@@ -14,6 +14,9 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
@@ -43,8 +46,7 @@ func TestConnection(cfg util.Config, backOff int) error {
 
 	//before each try wait 1 Second
 	time.Sleep(1 * time.Second)
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
-	db, err := sqlx.Connect("mysql", connectionString)
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		return TestConnection(cfg, backOff-1)
 	}
@@ -57,10 +59,17 @@ func TestConnection(cfg util.Config, backOff int) error {
 	return nil
 }
 
-func Connect(cfg util.Config) (*sqlx.DB, error) {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+func getSqlxConnection(cfg util.Config) (*sqlx.DB, error) {
+	connectionString := getConnectionString(cfg)
+	return sqlx.Connect("mysql", connectionString)
+}
 
-	db, err := sqlx.Connect("mysql", connectionString)
+func getConnectionString(cfg util.Config) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+}
+
+func Connect(cfg util.Config) (*sqlx.DB, error) {
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		logrus.WithError(err).Error(err)
 		return nil, err
@@ -140,6 +149,84 @@ func (s *SqlDatabase) GetDefaultIssuePriority() int64 {
 
 func (s *SqlDatabase) GetDefaultRepositoryName() string {
 	return s.defaultRepositoryName
+}
+
+func GetVersion(cfg util.Config) (string, error) {
+	db, err := getSqlxConnection(cfg)
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+
+	m, err := openMigration(db.DB)
+	if err != nil {
+		return "", err
+	}
+	defer m.Close()
+
+	v, d, err := getMigrationVersion(m)
+	if err != nil {
+		return "", err
+	}
+
+	return versionToString(v, d), nil
+}
+
+func RunMigrations(cfg util.Config) error {
+	db, err := getSqlxConnection(cfg)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	m, err := openMigration(db.DB)
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+
+	err = m.Up()
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	return nil
+}
+
+func versionToString(v uint, dirty bool) string {
+	var dirtyStr string
+	if dirty {
+		dirtyStr = " (DIRTY)"
+	}
+	return fmt.Sprintf("%d%s", v, dirtyStr)
+}
+
+func getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
+	version, dirty, err := m.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		return 0, false, err
+	}
+	return version, dirty, nil
+}
+
+func openMigration(db *sql.DB) (*migrate.Migrate, error) {
+	d, err := iofs.New(MigrationFiles, "migrations")
+	if err != nil {
+		return nil, err
+	}
+
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := migrate.NewWithInstance(
+		"iofs", d,
+		"mysql", driver)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func combineFilterQueries(filterQueries []string, op string) string {
