@@ -20,6 +20,7 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 	project := strings.ToLower(gofakeit.BeerName())
 	pod := strings.ToLower(gofakeit.UUID())
 	container := strings.ToLower(gofakeit.UUID())
+	t := gofakeit.RandomString(entity.AllComponentInstanceType)
 	return entity.ComponentInstance{
 		Id:                 int64(gofakeit.Number(1, 10000000)),
 		CCRN:               test.GenerateFakeCcrn(cluster, namespace),
@@ -30,6 +31,7 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 		Project:            project,
 		Pod:                pod,
 		Container:          container,
+		Type:               entity.NewComponentInstanceType(t),
 		Count:              int16(gofakeit.Number(1, 100)),
 		ComponentVersion:   nil,
 		ComponentVersionId: int64(gofakeit.Number(1, 10000000)),

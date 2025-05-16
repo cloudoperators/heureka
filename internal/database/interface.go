@@ -105,6 +105,7 @@ type Database interface {
 	GetProject(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetPod(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetType(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
 	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)

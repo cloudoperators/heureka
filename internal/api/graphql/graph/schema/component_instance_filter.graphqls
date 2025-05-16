@@ -12,4 +12,5 @@ type ComponentInstanceFilterValue {
     project(filter: ComponentInstanceFilter): FilterItem
     pod(filter: ComponentInstanceFilter): FilterItem
     container(filter: ComponentInstanceFilter): FilterItem
+    type(filter: ComponentInstanceFilter): FilterItem
 }

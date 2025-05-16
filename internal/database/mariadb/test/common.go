@@ -191,6 +191,7 @@ func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, er
 		Count              int16  `json:"count"`
 		ComponentVersionID int64  `json:"component_version_id"`
 		ServiceID          int64  `json:"service_id"`
+		Type               string `json:"type"`
 	}
 	var tempComponents []tempComponentInstance
 	if err := json.Unmarshal(data, &tempComponents); err != nil {
@@ -203,6 +204,7 @@ func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, er
 			Count:              sql.NullInt16{Int16: tc.Count, Valid: true},
 			ComponentVersionId: sql.NullInt64{Int64: tc.ComponentVersionID, Valid: true},
 			ServiceId:          sql.NullInt64{Int64: tc.ServiceID, Valid: true},
+			Type:               sql.NullString{String: tc.Type, Valid: true},
 		}
 	}
 	return components, nil
