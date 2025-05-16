@@ -240,7 +240,18 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 						return cifv.Container.Values
 					})
 			})
-
+			It("returns correct type", func() {
+				existingTypes := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
+					return cir.Type.String
+				})
+				queryComponentInstanceFilterAndExpectVal(
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentInstanceFilter/type.graphqls",
+					existingTypes,
+					func(cifv model.ComponentInstanceFilterValue) []*string {
+						return cifv.Type.Values
+					})
+			})
 		})
 	})
 })

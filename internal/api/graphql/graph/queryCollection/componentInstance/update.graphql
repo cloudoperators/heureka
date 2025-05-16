@@ -16,6 +16,7 @@ mutation ($id: ID!, $input: ComponentInstanceInput!) {
         project
         pod
         container
+        type
         count
         componentVersionId
         serviceId

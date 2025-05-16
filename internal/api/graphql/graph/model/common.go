@@ -82,3 +82,13 @@ func ComponentTypeValue(s string) (ComponentTypeValues, error) {
 	}
 	return "unknown", fmt.Errorf("Invalid ComponentTypeValues provided: %s", s)
 }
+
+func ComponentInstanceType(s string) (ComponentInstanceTypes, error) {
+	switch s {
+	case ComponentInstanceTypesServer.String():
+		return ComponentInstanceTypesServer, nil
+	case ComponentInstanceTypesSecurityGroup.String():
+		return ComponentInstanceTypesSecurityGroup, nil
+	}
+	return "unknown", fmt.Errorf("Invalid ComponentInstanceType provided: %s", s)
+}
