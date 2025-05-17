@@ -36,15 +36,13 @@ func (s *SqlDatabase) CloseConnection() error {
 	return s.db.Close()
 }
 func TestConnection(cfg util.Config, backOff int) error {
-
 	if backOff <= 0 {
 		return fmt.Errorf("Unable to connect to Database, exceeded backoffs...")
 	}
 
 	//before each try wait 1 Second
 	time.Sleep(1 * time.Second)
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
-	db, err := sqlx.Connect("mysql", connectionString)
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		return TestConnection(cfg, backOff-1)
 	}
@@ -57,10 +55,17 @@ func TestConnection(cfg util.Config, backOff int) error {
 	return nil
 }
 
-func Connect(cfg util.Config) (*sqlx.DB, error) {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+func getSqlxConnection(cfg util.Config) (*sqlx.DB, error) {
+	connectionString := getConnectionString(cfg)
+	return sqlx.Connect("mysql", connectionString)
+}
 
-	db, err := sqlx.Connect("mysql", connectionString)
+func getConnectionString(cfg util.Config) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+}
+
+func Connect(cfg util.Config) (*sqlx.DB, error) {
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		logrus.WithError(err).Error(err)
 		return nil, err
