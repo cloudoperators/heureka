@@ -1755,10 +1755,12 @@ func (s *DatabaseSeeder) SeedRealSupportGroupService(services map[string]mariadb
 }
 
 type ScannerRunDef struct {
-	Tag         string
-	IsCompleted bool
-	Timestamp   time.Time
-	Issues      []string
+	Tag                  string
+	IsCompleted          bool
+	Timestamp            time.Time
+	Issues               []string
+	Components           []string
+	IssueMatchComponents []string // WARNING: This needs pairs of Issue name and compoenent name
 }
 
 func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error {
@@ -1781,28 +1783,97 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 	`
 
 	insertIssue := `
-						INSERT INTO Issue (
-							issue_type,
-							issue_primary_name,
-							issue_description
-						) VALUES (
-							'Vulnerability',
-							?,
-							?
-						)
-					`
+		INSERT INTO Issue (
+			issue_type,
+			issue_primary_name,
+			issue_description
+		) VALUES (
+			'Vulnerability',
+			?,
+			?
+		)
+	`
 
 	insertScannerRunIssueTracker := `
-						INSERT INTO ScannerRunIssueTracker (
-							scannerrunissuetracker_scannerrun_run_id,
-							scannerrunissuetracker_issue_id
-						) VALUES (
-							?,
-							?
-						)
-					`
+		INSERT INTO ScannerRunIssueTracker (
+			scannerrunissuetracker_scannerrun_run_id,
+			scannerrunissuetracker_issue_id
+		) VALUES (
+			?,
+			?
+		)
+	`
+
+	insertIntoService := `
+	INSERT INTO Service (
+			service_ccrn
+		) VALUES (
+			?
+		)
+	`
+
+	insertIntoComponent := `
+	INSERT INTO Component (
+			component_ccrn,
+			component_type
+		) VALUES (
+			?,
+			'floopy disk'
+		)
+	`
+
+	insertIntoComponentVersion := `
+		INSERT INTO ComponentVersion (
+			componentversion_version,
+			componentversion_component_id,
+			componentversion_created_by
+		) VALUES (
+			?,
+			1,
+			1
+		)
+	`
+
+	insertIntoComponentInstance := `
+		INSERT INTO ComponentInstance (
+			componentinstance_ccrn,
+			componentinstance_count,
+			componentinstance_component_version_id,
+			componentinstance_service_id,
+			componentinstance_created_by
+		) VALUES (
+			?,
+			1,
+			1,
+			1,
+			1
+		)
+	`
+
+	insertIntoIssueMatchComponent := `
+		INSERT INTO IssueMatch (
+			issuematch_status,
+			issuematch_rating,
+			issuematch_target_remediation_date,
+			issuematch_user_id,
+			issuematch_issue_id,
+			issuematch_component_instance_id
+		) VALUES (
+			'new',
+			'CRITICAL',
+			current_timestamp(),
+			1,
+			?,
+			?
+		)
+	`
 
 	knownIssues := make(map[string]int)
+	knownComponentInstance := make(map[string]int)
+	serviceCounter := 0
+	componentCounter := 0
+	componentVersionCounter := 0
+
 	for _, srd := range scannerRunDefs {
 		res, err := s.db.Exec(insertScannerRun, gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
 
@@ -1840,6 +1911,53 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 			if err != nil {
 				return err
 
+			}
+		}
+
+		if len(srd.Components) > 0 {
+			_, err = s.db.Exec(insertIntoService, fmt.Sprintf("service-%d", serviceCounter))
+			if err != nil {
+				return fmt.Errorf("InsertIntoService failed: %v", err)
+			}
+			serviceCounter++
+			_, err = s.db.Exec(insertIntoComponent, fmt.Sprintf("component-%d", componentCounter))
+			if err != nil {
+				return fmt.Errorf("InsertIntoComponent failed: %v", err)
+			}
+			componentCounter++
+			_, err = s.db.Exec(insertIntoComponentVersion, fmt.Sprintf("version-%d", componentVersionCounter))
+			if err != nil {
+				return fmt.Errorf("InsertIntoComponentVersion failed: %v", err)
+			}
+			componentVersionCounter++
+			for _, component := range srd.Components {
+				if _, ok := knownComponentInstance[component]; ok {
+					continue
+				}
+				res, err = s.db.Exec(insertIntoComponentInstance, component)
+				if err != nil {
+					return fmt.Errorf("bad things insertintocomponentinstance: %v", err)
+				}
+				if resId, err := res.LastInsertId(); err != nil {
+					return fmt.Errorf("bad things insertintocomponentinstance get lastInsertId %v", err)
+				} else {
+					knownComponentInstance[component] = int(resId)
+				}
+			}
+		}
+
+		if len(srd.IssueMatchComponents) > 0 {
+			for i, _ := range srd.IssueMatchComponents {
+				if i%2 != 0 {
+					continue
+				}
+
+				issueName := srd.IssueMatchComponents[i]
+				componentName := srd.IssueMatchComponents[i+1]
+				_, err = s.db.Exec(insertIntoIssueMatchComponent, knownIssues[issueName], knownComponentInstance[componentName])
+				if err != nil {
+					return fmt.Errorf("InsertIntoIssueMatchComponent failed: %v", err)
+				}
 			}
 		}
 	}

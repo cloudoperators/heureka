@@ -510,8 +510,8 @@ func (s *SqlDatabase) GetContainer(filter *entity.ComponentInstanceFilter) ([]st
 
 func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {
 	query := `
-        INSERT INTO scanner_run_component_instance_tracker (
-			component_instance_id, 
+        INSERT INTO ScannerRunComponentInstanceTracker (
+			scannerruncomponentinstance_component_instance_id, 
 			scannerruncomponentinstance_scannerrun_run_id
 		)
         VALUES (?, ?)

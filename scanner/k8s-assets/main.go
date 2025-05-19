@@ -194,7 +194,8 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("Error while reading env config")
 	}
-	processor := processor.NewProcessor(cfg, "k8s-assets")
+	tag := fmt.Sprintf("k8s-assets-%s", cfg.ClusterName)
+	processor := processor.NewProcessor(cfg, tag)
 	processor.CreateScannerRun(context.Background())
 
 	// Create context with timeout (30min should be ok)
