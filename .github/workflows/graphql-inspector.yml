@@ -1,0 +1,25 @@
+name: CI
+ 
+on:
+  pull_request:
+    branches:
+    - main
+ 
+jobs:
+  test:
+    name: Check Schema
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+ 
+      - name: User Schema
+        uses: graphql-hive/graphql-inspector@master
+        with:
+          schema: 'master:internal/api/graphql/graph/schema/user.graphqls'
+  
+      - name: Issue Schema
+        uses: graphql-hive/graphql-inspector@master
+        with:
+          schema: 'master:internal/api/graphql/graph/schema/issue.graphqls'
