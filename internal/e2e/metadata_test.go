@@ -117,7 +117,6 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 
 			createdAt := parseTimeExpectNoError(*issue.Metadata.CreatedAt)
 			updatedAt := parseTimeExpectNoError(*issue.Metadata.UpdatedAt)
-			fmt.Println("Issue Meta", issue.Metadata.CreatedAt, issue.Metadata.UpdatedAt, createdAt, updatedAt, time.Now().UTC())
 
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
 			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))

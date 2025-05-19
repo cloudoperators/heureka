@@ -169,7 +169,7 @@ create table if not exists ComponentInstance
     componentinstance_project              varchar(1024)                         null,
     componentinstance_pod                  varchar(1024)                         null,
     componentinstance_container            varchar(1024)                         null,
-    componentinstance_type                 enum('Unknown', 'Project', 'Server', 'SecurityGroup', 'DnsZone', 'FloatingIp', 'RbacPolicy', 'User')       not null,
+    componentinstance_type                 enum('Unknown', 'Project', 'Server', 'SecurityGroup', 'DnsZone', 'FloatingIp', 'RbacPolicy', 'User', 'Container') default 'Unknown' null,
     componentinstance_count                int       default 0                   not null,
     componentinstance_component_version_id int unsigned                          not null,
     componentinstance_service_id           int unsigned                          not null,

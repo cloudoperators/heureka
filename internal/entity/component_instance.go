@@ -14,6 +14,7 @@ const (
 	ComponentInstanceTypeFloatingIp    ComponentInstanceType = "FloatingIp"
 	ComponentInstanceTypeRbacPolicy    ComponentInstanceType = "RbacPolicy"
 	ComponentInstanceTypeUser          ComponentInstanceType = "User"
+	ComponentInstanceTypeContainer     ComponentInstanceType = "Container"
 )
 
 func (e ComponentInstanceType) String() string {
@@ -38,6 +39,8 @@ func NewComponentInstanceType(s string) ComponentInstanceType {
 		return ComponentInstanceTypeRbacPolicy
 	case ComponentInstanceTypeUser.String():
 		return ComponentInstanceTypeUser
+	case ComponentInstanceTypeContainer.String():
+		return ComponentInstanceTypeContainer
 	}
 	return ComponentInstanceTypeUnknown
 }
@@ -51,6 +54,7 @@ var AllComponentInstanceType = []string{
 	ComponentInstanceTypeFloatingIp.String(),
 	ComponentInstanceTypeRbacPolicy.String(),
 	ComponentInstanceTypeUser.String(),
+	ComponentInstanceTypeContainer.String(),
 }
 
 type ComponentInstanceFilter struct {

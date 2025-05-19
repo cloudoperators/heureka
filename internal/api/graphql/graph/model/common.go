@@ -101,6 +101,8 @@ func ComponentInstanceType(s string) (ComponentInstanceTypes, error) {
 		return ComponentInstanceTypesRbacPolicy, nil
 	case ComponentInstanceTypesUser.String():
 		return ComponentInstanceTypesUser, nil
+	case ComponentInstanceTypesContainer.String():
+		return ComponentInstanceTypesContainer, nil
 	}
 	return "unknown", fmt.Errorf("Invalid ComponentInstanceType provided: %s", s)
 }

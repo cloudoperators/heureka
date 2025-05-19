@@ -59,6 +59,7 @@ var AllComponentInstanceTypesOrdered = []ComponentInstanceTypes{
 	ComponentInstanceTypesFloatingIP,
 	ComponentInstanceTypesRbacPolicy,
 	ComponentInstanceTypesUser,
+	ComponentInstanceTypesContainer,
 }
 
 type HasToEntity interface {

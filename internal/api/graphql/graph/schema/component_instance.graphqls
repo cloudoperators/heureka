@@ -78,7 +78,8 @@ enum ComponentInstanceTypes {
 	DnsZone,
 	FloatingIp,
 	RbacPolicy,
-	User
+	User,
+    Container
 }
 
 enum ComponentInstanceOrderByField {
