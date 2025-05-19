@@ -14,12 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
  
-      - name: User Schema
+      - name: Schema
         uses: graphql-hive/graphql-inspector@master
         with:
-          schema: 'master:internal/api/graphql/graph/schema/user.graphqls'
-  
-      - name: Issue Schema
-        uses: graphql-hive/graphql-inspector@master
-        with:
-          schema: 'master:internal/api/graphql/graph/schema/issue.graphqls'
+          schema: 'master:internal/api/graphql/graph/schema/*.graphqls'
