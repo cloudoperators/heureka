@@ -4,50 +4,19 @@
 package mariadb
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
-	appErrors "github.com/cloudoperators/heureka/internal/errors"
-	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
-// FromDatabaseError converts database errors to application errors
-func FromDatabaseError(op string, entity string, id string, err error) error {
-	if err == nil {
-		return nil
-	}
 
-	// Check for no rows error
-	if errors.Is(err, sql.ErrNoRows) {
-		return appErrors.NotFoundError(op, entity, id)
-	}
-
-	// Check for duplicate entry error
-	var dupErr *database.DuplicateEntryDatabaseError
-	if errors.As(err, &dupErr) {
-		return appErrors.AlreadyExistsError(op, entity, id)
-	}
-
-	// Check for specific MySQL/MariaDB errors
-	if strings.Contains(err.Error(), "Error 1062") || // Duplicate entry
-		strings.Contains(err.Error(), "Duplicate entry") {
-		return appErrors.AlreadyExistsError(op, entity, id)
-	}
-
-	// Default to internal error
-	return appErrors.InternalError(op, entity, id, err)
-}
 
 // Modified issue methods that use the new error system
 
 // GetIssue fetches a single issue by ID
 func (s *SqlDatabase) GetIssue(id int64) (*entity.Issue, error) {
-	const op = "mariadb.GetIssue"
-	
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.GetIssue",
@@ -60,11 +29,11 @@ func (s *SqlDatabase) GetIssue(id int64) (*entity.Issue, error) {
 	issues, err := s.GetIssues(&entity.IssueFilter{Id: []*int64{&id}}, []entity.Order{})
 
 	if err != nil {
-		return nil, appErrors.InternalError(op, "Issue", "", err)
+		return nil, err
 	}
 
 	if len(issues) == 0 {
-		return nil, appErrors.NotFoundError(op, "Issue", strconv.FormatInt(id, 10))
+		return nil, fmt.Errorf("record not found")
 	}
 
 	return issues[0].Issue, nil
@@ -72,8 +41,6 @@ func (s *SqlDatabase) GetIssue(id int64) (*entity.Issue, error) {
 
 // CreateIssue creates a new issue
 func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
-	const op = "mariadb.CreateIssue"
-	
 	l := logrus.WithFields(logrus.Fields{
 		"issue": issue,
 		"event": "database.CreateIssue",
@@ -101,7 +68,7 @@ func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
 	id, err := performInsert(s, query, issueRow, l)
 
 	if err != nil {
-		return nil, FromDatabaseError(op, "Issue", "", err)
+		return nil, err
 	}
 
 	issue.Id = id
@@ -111,8 +78,6 @@ func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
 
 // UpdateIssue updates an existing issue
 func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
-	const op = "mariadb.UpdateIssue"
-	
 	l := logrus.WithFields(logrus.Fields{
 		"issue": issue,
 		"event": "database.UpdateIssue",
@@ -121,7 +86,7 @@ func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
 	// First check if issue exists
 	_, err := s.GetIssue(issue.Id)
 	if err != nil {
-		return err // Already handled by GetIssue
+		return err // Pass through the raw error
 	}
 
 	baseQuery := `
@@ -139,17 +104,11 @@ func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
 
 	_, err = performExec(s, query, issueRow, l)
 
-	if err != nil {
-		return FromDatabaseError(op, "Issue", strconv.FormatInt(issue.Id, 10), err)
-	}
-
-	return nil
+	return err // Return raw error
 }
 
 // DeleteIssue soft-deletes an issue by ID
 func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {
-	const op = "mariadb.DeleteIssue"
-	
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": "database.DeleteIssue",
@@ -158,7 +117,7 @@ func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {
 	// First check if issue exists
 	_, err := s.GetIssue(id)
 	if err != nil {
-		return err // Already handled by GetIssue
+		return err // Pass through the raw error
 	}
 
 	query := `
@@ -175,17 +134,11 @@ func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {
 
 	_, err = performExec(s, query, args, l)
 
-	if err != nil {
-		return FromDatabaseError(op, "Issue", strconv.FormatInt(id, 10), err)
-	}
-
-	return nil
+	return err // Return raw error
 }
 
 // AddComponentVersionToIssue associates a component version with an issue
 func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersionId int64) error {
-	const op = "mariadb.AddComponentVersionToIssue"
-	
 	l := logrus.WithFields(logrus.Fields{
 		"issueId":            issueId,
 		"componentVersionId": componentVersionId,
@@ -195,7 +148,7 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 	// Check if issue exists
 	_, err := s.GetIssue(issueId)
 	if err != nil {
-		return err // Already handled by GetIssue
+		return err // Pass through the raw error
 	}
 
 	query := `
@@ -215,17 +168,11 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 
 	_, err = performExec(s, query, args, l)
 
-	if err != nil {
-		return FromDatabaseError(op, "Issue", strconv.FormatInt(issueId, 10), err)
-	}
-
-	return nil
+	return err // Return raw error
 }
 
 // RemoveComponentVersionFromIssue removes association between component version and issue
 func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVersionId int64) error {
-	const op = "mariadb.RemoveComponentVersionFromIssue"
-	
 	l := logrus.WithFields(logrus.Fields{
 		"issueId":            issueId,
 		"componentVersionId": componentVersionId,
@@ -235,7 +182,7 @@ func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVe
 	// Check if issue exists
 	_, err := s.GetIssue(issueId)
 	if err != nil {
-		return err // Already handled by GetIssue
+		return err // Pass through the raw error
 	}
 
 	query := `
@@ -252,9 +199,5 @@ func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVe
 
 	_, err = performExec(s, query, args, l)
 
-	if err != nil {
-		return FromDatabaseError(op, "Issue", strconv.FormatInt(issueId, 10), err)
-	}
-
-	return nil
+	return err // Return raw error
 }

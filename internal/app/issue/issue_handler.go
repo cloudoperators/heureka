@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -384,17 +385,8 @@ func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId i
 	err = is.database.AddComponentVersionToIssue(issueId, componentVersionId)
 
 	if err != nil {
-		// Check for specific known errors
-		var dupErr *database.DuplicateEntryDatabaseError
-		if errors.As(err, &dupErr) {
-			appErr := appErrors.AlreadyExistsError(op, "ComponentVersionIssue", 
-				fmt.Sprintf("issue %d, component version %d", issueId, componentVersionId))
-			is.logError(appErr, fields)
-			return nil, appErr
-		}
-		
-		// Handle other errors
-		appErr := appErrors.InternalError(op, "Issue", strconv.FormatInt(issueId, 10), err)
+		entityID := fmt.Sprintf("issue %d, component version %d", issueId, componentVersionId)
+		appErr := shared.FromDatabaseError(op, "ComponentVersionIssue", entityID, err)
 		is.logError(appErr, fields)
 		return nil, appErr
 	}
@@ -439,7 +431,8 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersio
 	err = is.database.RemoveComponentVersionFromIssue(issueId, componentVersionId)
 
 	if err != nil {
-		appErr := appErrors.InternalError(op, "Issue", strconv.FormatInt(issueId, 10), err)
+		entityID := fmt.Sprintf("issue %d, component version %d", issueId, componentVersionId)
+		appErr := shared.FromDatabaseError(op, "ComponentVersionIssue", entityID, err)
 		is.logError(appErr, fields)
 		return nil, appErr
 	}

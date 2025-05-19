@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package errors
@@ -12,12 +12,74 @@ import (
 // Op represents an operation in the call chain
 type Op string
 
-// NewError creates a new Error with the specified code
-func NewError(code Code) *Error {
-	return &Error{
-		Code:    code,
-		Fields:  make(map[string]interface{}),
+// E creates a new Error from the provided arguments.
+// Each argument can be an Op, a string, a Code, an error, or a map[string]interface{}.
+func E(args ...interface{}) *Error {
+	e := &Error{
+		Code:   Unknown,
+		Fields: make(map[string]interface{}),
 	}
+
+	for _, arg := range args {
+		switch a := arg.(type) {
+		case Op:
+			e.Op = string(a)
+		case string:
+			// If no entity is set, treat string as entity
+			if e.Entity == "" {
+				e.Entity = a
+			} else if e.ID == "" {
+				// If entity is set but ID is not, treat string as ID
+				e.ID = a
+			} else if e.Message == "" {
+				// If both entity and ID are set, treat as message
+				e.Message = a
+			}
+		case Code:
+			e.Code = a
+		case *Error:
+			// Copy the error, but only if not overriding existing values
+			copy := *a
+			if e.Code == Unknown {
+				e.Code = copy.Code
+			}
+			if e.Entity == "" {
+				e.Entity = copy.Entity
+			}
+			if e.ID == "" {
+				e.ID = copy.ID
+			}
+			if e.Op == "" {
+				e.Op = copy.Op
+			}
+			if e.Message == "" {
+				e.Message = copy.Message
+			}
+			if e.Err == nil {
+				e.Err = copy.Err
+			}
+			// Merge fields
+			for k, v := range copy.Fields {
+				if e.Fields == nil {
+					e.Fields = make(map[string]interface{})
+				}
+				if _, exists := e.Fields[k]; !exists {
+					e.Fields[k] = v
+				}
+			}
+		case error:
+			e.Err = a
+		case map[string]interface{}:
+			for k, v := range a {
+				if e.Fields == nil {
+					e.Fields = make(map[string]interface{})
+				}
+				e.Fields[k] = v
+			}
+		}
+	}
+
+	return e
 }
 
 // Errorf creates a new Error with a formatted message
@@ -43,51 +105,24 @@ func Wrap(err error, code Code, message string) *Error {
 	}
 }
 
-// NotFoundError creates a new NotFound error
-func NotFoundError(op, entity, id string) *Error {
-	return &Error{
-		Code:    NotFound,
-		Entity:  entity,
-		ID:      id,
-		Op:      op,
-		Message: "not found",
-		Fields:  make(map[string]interface{}),
-	}
+// NotFound creates a new NotFound error
+func NotFound(op, entity, id string) *Error {
+	return E(Op(op), entity, id, NotFound, "not found")
 }
 
-// AlreadyExistsError creates a new AlreadyExists error
-func AlreadyExistsError(op, entity, id string) *Error {
-	return &Error{
-		Code:    AlreadyExists,
-		Entity:  entity,
-		ID:      id,
-		Op:      op,
-		Message: "already exists",
-		Fields:  make(map[string]interface{}),
-	}
+// AlreadyExists creates a new AlreadyExists error
+func AlreadyExists(op, entity, id string) *Error {
+	return E(Op(op), entity, id, AlreadyExists, "already exists")
 }
 
-// InvalidArgumentError creates a new InvalidArgument error
-func InvalidArgumentError(op, entity, reason string) *Error {
-	return &Error{
-		Code:    InvalidArgument,
-		Entity:  entity,
-		Op:      op,
-		Message: reason,
-		Fields:  make(map[string]interface{}),
-	}
+// InvalidArgument creates a new InvalidArgument error
+func InvalidArgument(op, entity, reason string) *Error {
+	return E(Op(op), entity, InvalidArgument, reason)
 }
 
 // InternalError creates a new Internal error with an underlying cause
 func InternalError(op, entity, id string, err error) *Error {
-	return &Error{
-		Code:    Internal,
-		Entity:  entity,
-		ID:      id,
-		Op:      op,
-		Err:     err,
-		Fields:  make(map[string]interface{}),
-	}
+	return E(Op(op), entity, id, Internal, err)
 }
 
 // Is checks if an error has a specific code
