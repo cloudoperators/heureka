@@ -91,4 +91,5 @@ enum ComponentInstanceOrderByField {
     project
     pod
     container
+    type
 }

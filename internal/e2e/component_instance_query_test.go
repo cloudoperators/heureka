@@ -336,7 +336,22 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 					}
 				})
 			})
+			It("can order by type", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "type", "direction": "asc"},
+				})
 
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev int = -1
+					for _, ci := range componentInstances.Edges {
+						citEntity := entity.NewComponentInstanceType(ci.Node.Type.String())
+						Expect(citEntity.Index() >= prev).Should(BeTrue())
+						prev = citEntity.Index()
+					}
+				})
+			})
 		})
 	})
 })

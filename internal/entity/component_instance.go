@@ -21,6 +21,31 @@ func (e ComponentInstanceType) String() string {
 	return string(e)
 }
 
+func (e ComponentInstanceType) Index() int {
+	switch e {
+	case ComponentInstanceTypeUnknown:
+		return 0
+	case ComponentInstanceTypeProject:
+		return 1
+	case ComponentInstanceTypeServer:
+		return 2
+	case ComponentInstanceTypeSecurityGroup:
+		return 3
+	case ComponentInstanceTypeDnsZone:
+		return 4
+	case ComponentInstanceTypeFloatingIp:
+		return 5
+	case ComponentInstanceTypeRbacPolicy:
+		return 6
+	case ComponentInstanceTypeUser:
+		return 7
+	case ComponentInstanceTypeContainer:
+		return 8
+	default:
+		return -1
+	}
+}
+
 func NewComponentInstanceType(s string) ComponentInstanceType {
 	switch s {
 	case ComponentInstanceTypeUnknown.String():

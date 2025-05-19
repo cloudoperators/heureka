@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"math"
 	"math/rand"
 	"sort"
 
@@ -1045,6 +1046,19 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						}
 					})
 				})
+				It("can order by type", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceTypeOrder, Direction: entity.OrderDirectionAsc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev int = -1
+						for _, r := range res {
+							Expect(r.ComponentInstance.Type.Index() >= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Type.Index()
+						}
+					})
+				})
 			})
 			Context("and using desc order", func() {
 				It("can order by id", func() {
@@ -1163,6 +1177,19 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						for _, r := range res {
 							Expect(r.ComponentInstance.Container <= prev).Should(BeTrue())
 							prev = r.ComponentInstance.Container
+						}
+					})
+				})
+				It("can order by type", func() {
+					order := []entity.Order{
+						{By: entity.ComponentInstanceTypeOrder, Direction: entity.OrderDirectionDesc},
+					}
+
+					testOrder(order, func(res []entity.ComponentInstanceResult) {
+						var prev int = math.MaxInt
+						for _, r := range res {
+							Expect(r.ComponentInstance.Type.Index() <= prev).Should(BeTrue())
+							prev = r.ComponentInstance.Type.Index()
 						}
 					})
 				})

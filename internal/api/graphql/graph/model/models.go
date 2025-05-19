@@ -105,6 +105,8 @@ func (cio *ComponentInstanceOrderBy) ToOrderEntity() entity.Order {
 		order.By = entity.ComponentInstancePod
 	case ComponentInstanceOrderByFieldContainer:
 		order.By = entity.ComponentInstanceContainer
+	case ComponentInstanceOrderByFieldType:
+		order.By = entity.ComponentInstanceTypeOrder
 	}
 	order.Direction = cio.Direction.ToOrderDirectionEntity()
 	return order
