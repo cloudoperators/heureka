@@ -3,12 +3,12 @@
 
 LOCAL_TEST_DB=true
 
-DB_USER=mariadb
+DB_USER=vscode
 DB_PASSWORD=mariadb
 DB_ROOT_PASSWORD=mariadb
 DB_NAME=heureka
-DB_ADDRESS=mariadb
-DB_PORT=3306
+DB_ADDRESS=/var/run/mysqld/mysqld.sock
+DB_PORT=
 DB_SCHEMA=internal/database/mariadb/init/schema.sql
 
 LOG_PRETTY_PRINT=true
