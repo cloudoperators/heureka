@@ -4,17 +4,23 @@
 package scanner
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
+	"k8s.io/client-go/util/retry"
 )
 
 type ImageInfo struct {
@@ -34,6 +40,9 @@ type Scanner struct {
 	AuthToken        string
 	Domain           string
 	Project          string
+	HTTPClient       *http.Client
+	RateLimiter      *rate.Limiter
+	TrivyRateLimiter *rate.Limiter
 }
 
 func (i ImageInfo) FullRepository() string {
@@ -45,6 +54,13 @@ func (i ImageInfo) FullRepository() string {
 }
 
 func NewScanner(cfg Config) *Scanner {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	rl := rate.NewLimiter(rate.Every(time.Minute/60), 10)    // 60 requests per minute
+	trivyRl := rate.NewLimiter(rate.Every(time.Minute/5), 1) // 5 requests per minute
+
 	return &Scanner{
 		KeppelBaseUrl:    cfg.KeppelBaseUrl(),
 		Username:         cfg.KeppelUsername,
@@ -53,6 +69,9 @@ func NewScanner(cfg Config) *Scanner {
 		UserDomain:       cfg.KeppelUserDomain,
 		Project:          cfg.Project,
 		IdentityEndpoint: cfg.IdentityEndpoint,
+		HTTPClient:       &http.Client{Transport: tr},
+		RateLimiter:      rl,
+		TrivyRateLimiter: trivyRl,
 	}
 }
 
@@ -110,7 +129,7 @@ func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient,
 
 func (s *Scanner) ListAccounts() ([]models.Account, error) {
 	url := fmt.Sprintf("%s/keppel/v1/accounts", s.KeppelBaseUrl)
-	body, err := s.sendRequest(url, s.AuthToken)
+	body, _, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"url": url,
@@ -132,7 +151,7 @@ func (s *Scanner) ListAccounts() ([]models.Account, error) {
 
 func (s *Scanner) ListRepositories(account string) ([]models.Repository, error) {
 	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories", s.KeppelBaseUrl, account)
-	body, err := s.sendRequest(url, s.AuthToken)
+	body, _, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"url": url,
@@ -152,89 +171,44 @@ func (s *Scanner) ListRepositories(account string) ([]models.Repository, error) 
 	return repositoryResponse.Repositories, nil
 }
 
-func (s *Scanner) ListManifests(account string, repository string) ([]models.Manifest, error) {
-	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories/%s/_manifests", s.KeppelBaseUrl, account, repository)
-	body, err := s.sendRequest(url, s.AuthToken)
+// GetManifest returns a single manifest including child manifests from the image registry
+func (s *Scanner) GetManifest(account string, repository string, digest string) (models.Manifest, error) {
+	var manifest models.Manifest
+	url := fmt.Sprintf("%s/v2/%s/%s/manifests/%s", s.KeppelBaseUrl, account, repository, digest)
+	body, headers, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"url": url,
-		}).WithError(err).Error("Error during request in ListManifests")
-		return nil, err
+		return manifest, fmt.Errorf("couldn't get manifest for url: %s: %w", url, err)
 	}
 
 	var manifestResponse models.ManifestResponse
 	if err = json.Unmarshal(body, &manifestResponse); err != nil {
-		log.WithFields(log.Fields{
-			"url":  url,
-			"body": body,
-		}).WithError(err).Error("Error during unmarshal in ListManifests")
-		return nil, err
+		return manifest, fmt.Errorf("couldn't unmarshal body into a manifest response. url: %s, body: %s err: %w", url, body, err)
 	}
 
-	return manifestResponse.Manifests, nil
-}
-
-// GetManifest returns a single manifest from the image registry
-func (s *Scanner) GetManifest(account string, repository string, manifest string) ([]models.Manifest, error) {
-	url := fmt.Sprintf("%s/v2/%s/%s/manifests/%s", s.KeppelBaseUrl, account, repository, manifest)
-	body, err := s.sendRequest(url, s.AuthToken)
+	manifest.VulnerabilityStatus = headers.Get("X-Keppel-Vulnerability-Status")
+	minLayerCreatedAt, err := strconv.ParseInt(headers.Get("X-Keppel-Min-Layer-Created-At"), 10, 64)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"url": url,
-		}).WithError(err).Error("Error during request in GetManifest")
-		return nil, err
+		minLayerCreatedAt = 0
 	}
-
-	var manifestResponse models.ManifestResponse
-	if err = json.Unmarshal(body, &manifestResponse); err != nil {
-		log.WithFields(log.Fields{
-			"url":  url,
-			"body": body,
-		}).WithError(err).Error("Error during unmarshal in GetManifest")
-		return nil, err
-	}
-
-	return manifestResponse.Manifests, nil
-}
-
-// ListChildManifests is requred asa on Keppel not all Images are including vulnerability scan results directly on the
-// top layer of the image and rather have the scan results on the child manifests. An prime example of this are multi-arch
-// images where the scan results are  available on the child manifests with the respective concrete architecture.
-// This method is using the v2 API endpoint as on the v1 of the API the child manifests listing is not available.
-//
-// Note: The v2 API does return slightly different results and therefore some of the fileds of models.Manifest are unset.
-// This fact is accepted and no additional struct for parsing all information is implemented at this point in time
-// as the additional available information is currently not utilized.
-func (s *Scanner) ListChildManifests(account string, repository string, manifest string) ([]models.Manifest, error) {
-	url := fmt.Sprintf("%s/v2/%s/%s/manifests/%s", s.KeppelBaseUrl, account, repository, manifest)
-	body, err := s.sendRequest(url, s.AuthToken)
+	maxLayerCreatedAt, err := strconv.ParseInt(headers.Get("X-Keppel-Max-Layer-Created-At"), 10, 64)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"url": url,
-		}).WithError(err).Error("Error during request in ListManifests")
-		return nil, err
+		maxLayerCreatedAt = 0
 	}
+	manifest.MinLayerCreatedAt = minLayerCreatedAt
+	manifest.MaxLayerCreatedAt = maxLayerCreatedAt
+	manifest.Digest = headers.Get("Docker-Content-Digest")
 
-	var manifestResponse models.ManifestResponse
-	if err = json.Unmarshal(body, &manifestResponse); err != nil {
-		log.WithFields(log.Fields{
-			"url":  url,
-			"body": body,
-		}).WithError(err).Error("Error during unmarshal in ListManifests")
-		return nil, err
-	}
+	manifest.Children = manifestResponse.Manifests
 
-	return manifestResponse.Manifests, nil
+	return manifest, nil
 }
 
 func (s *Scanner) GetTrivyReport(account string, repository string, manifest string) (*models.TrivyReport, error) {
 	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories/%s/_manifests/%s/trivy_report", s.KeppelBaseUrl, account, repository, manifest)
-	body, err := s.sendRequest(url, s.AuthToken)
+
+	body, _, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"url": url}).
-			WithError(err).Error("Error during GetTrivyReport")
-		return nil, err
+		return nil, fmt.Errorf("couldn't get trivy report for url: %s: %w", url, err)
 	}
 
 	if strings.Contains(string(body), "no vulnerability report found") {
@@ -244,18 +218,10 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 	var trivyReport models.TrivyReport
 	if err = json.Unmarshal(body, &trivyReport); err != nil {
 		if strings.Contains(string(body), "not") {
-			log.WithFields(log.Fields{
-				"url":  url,
-				"body": body,
-			}).Info("Trivy report not found")
-			return nil, fmt.Errorf("Trivy report not found")
+			return nil, fmt.Errorf("trivy report not found for url: %s: %w", url, err)
 		}
 
-		log.WithFields(log.Fields{
-			"url":  url,
-			"body": body,
-		}).WithError(err).Error("Error during unmarshal in GetTrivyReport")
-		return nil, err
+		return nil, fmt.Errorf("couldn't unmarshal body into a trivy report response. url: %s, body: %s err: %w", url, body, err)
 	}
 
 	return &trivyReport, nil
@@ -291,33 +257,102 @@ func (s *Scanner) ExtractImageInfo(image string) (ImageInfo, error) {
 	return info, nil
 }
 
-func (s *Scanner) sendRequest(url string, token string) ([]byte, error) {
-	client := new(http.Client)
+func (s *Scanner) sendRequest(url string, token string) ([]byte, http.Header, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("couldn't create new request: %w", err)
 	}
 
 	req.Header = http.Header{
 		"X-Auth-Token": []string{token},
 	}
 
-	resp, err := client.Do(req)
+	backoff := retry.DefaultBackoff
+	backoff.Steps = 3                  // Maximum 3 retries
+	backoff.Duration = 6 * time.Second // Start with 6 second delay
+	backoff.Factor = 2.0               // Double the delay each retry
+	backoff.Cap = 120 * time.Second    // Maximum delay of 120 seconds
+
+	var responseBody []byte
+	var responseHeaders http.Header
+
+	// Use client-go's retry utility with custom backoff
+	err = retry.OnError(backoff,
+		// Retry on any error except for 401, 403, 404, 405 status codes
+		func(err error) bool {
+			if httpErr, ok := err.(*models.HTTPError); ok {
+				return httpErr.StatusCode != http.StatusNotFound && httpErr.StatusCode != http.StatusMethodNotAllowed &&
+					httpErr.StatusCode != http.StatusUnauthorized && httpErr.StatusCode != http.StatusForbidden
+			}
+			return true
+		},
+		// The operation to perform with retries
+		func() error {
+			resp, err := s.Do(req)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+					"url":   url,
+				}).Warn("HTTP request failed")
+				return err
+			}
+
+			// Ensure response body is closed after we're done with it
+			defer resp.Body.Close()
+
+			// Check if we got a successful response
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				// Read body before closing to get error details
+				body, _ := io.ReadAll(resp.Body)
+				errMsg := fmt.Sprintf("received HTTP %d: %s", resp.StatusCode, string(body))
+
+				log.WithFields(log.Fields{
+					"statusCode": resp.StatusCode,
+					"url":        url,
+					"response":   string(body),
+				}).Warn(errMsg)
+
+				return &models.HTTPError{
+					StatusCode: resp.StatusCode,
+					Body:       string(body),
+				}
+			}
+
+			// Successfully got a 2xx response, read the body
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read response body: %w", err)
+			}
+
+			// Store the response body and headers in our outer variables
+			responseBody = body
+			responseHeaders = resp.Header
+			return nil
+		})
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("request failed after retries: %w", err)
+	}
+
+	return responseBody, responseHeaders, nil
+}
+
+func (s *Scanner) Do(req *http.Request) (*http.Response, error) {
+	var err error
+	if strings.Contains(req.URL.String(), "trivy_report") {
+		// Use the Trivy-specific rate limiter
+		err = s.TrivyRateLimiter.Wait(context.Background())
+	} else {
+		// Use the general rate limiter
+		err = s.RateLimiter.Wait(context.Background())
+	}
 
 	if err != nil {
 		return nil, err
 	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
+	resp, err := s.HTTPClient.Do(req)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"url":  url,
-			"body": body,
-		}).WithError(err).Error("Error during reading response body")
 		return nil, err
 	}
-
-	return body, nil
+	return resp, nil
 }
