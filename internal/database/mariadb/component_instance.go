@@ -507,3 +507,24 @@ func (s *SqlDatabase) GetPod(filter *entity.ComponentInstanceFilter) ([]string, 
 func (s *SqlDatabase) GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error) {
 	return s.getComponentInstanceAttr("container", filter)
 }
+
+func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {
+	query := `
+        INSERT INTO ScannerRunComponentInstanceTracker (
+			scannerruncomponentinstance_component_instance_id, 
+			scannerruncomponentinstance_scannerrun_run_id
+		)
+        VALUES (?, ?)
+    `
+
+	sr, err := s.ScannerRunByUUID(scannerRunUUID)
+
+	if err != nil {
+		return fmt.Errorf("failed to create scanner run component instance tracker: %w", err)
+	}
+	_, err = s.db.Exec(query, componentInstanceId, sr.RunID)
+	if err != nil {
+		return fmt.Errorf("failed to create scanner run component instance tracker: %w", err)
+	}
+	return nil
+}

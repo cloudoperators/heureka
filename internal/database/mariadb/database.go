@@ -30,23 +30,35 @@ type SqlDatabase struct {
 	db                    *sqlx.DB
 	defaultIssuePriority  int64
 	defaultRepositoryName string
-	config                *util.Config
 }
 
 func (s *SqlDatabase) CloseConnection() error {
 	return s.db.Close()
 }
-func TestConnection(cfg util.Config, backOff int) error {
 
+
+func buildDSN(cfg util.Config) string {
+	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
+		return fmt.Sprintf("%s:%s@unix(%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName)
+	}
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+}
+
+func TestConnection(cfg util.Config, backOff int) error {
+	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {	
+		// No need to test local socket connection
+		return nil
+	}
 	if backOff <= 0 {
 		return fmt.Errorf("Unable to connect to Database, exceeded backoffs...")
 	}
 
 	//before each try wait 1 Second
 	time.Sleep(1 * time.Second)
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+	connectionString := buildDSN(cfg)
 	db, err := sqlx.Connect("mysql", connectionString)
 	if err != nil {
+		fmt.Printf("Error connecting to DB: %s\n", err)
 		return TestConnection(cfg, backOff-1)
 	}
 	defer db.Close()
@@ -59,7 +71,7 @@ func TestConnection(cfg util.Config, backOff int) error {
 }
 
 func Connect(cfg util.Config) (*sqlx.DB, error) {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+	connectionString := buildDSN(cfg)
 
 	db, err := sqlx.Connect("mysql", connectionString)
 	if err != nil {

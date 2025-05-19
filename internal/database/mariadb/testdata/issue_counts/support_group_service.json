@@ -1,0 +1,22 @@
+[
+    {
+        "service_id": 1,
+        "support_group_id": 1
+    },
+    {
+        "service_id": 2,
+        "support_group_id": 1
+    },
+    {
+        "service_id": 3,
+        "support_group_id": 1
+    },
+    {
+        "service_id": 4,
+        "support_group_id": 2
+    },
+    {
+        "service_id": 5,
+        "support_group_id": 2
+    }
+]

@@ -1,20 +1,13 @@
 {
 	"name": "heureka & MariaDB",
-	"dockerComposeFile": "docker-compose.yml",
-	"service": "app",
+        "build": {
+          "dockerfile": "Dockerfile",
+          "context": ".."
+        },
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"remoteUser": "vscode",
-	"postCreateCommand": "make",
+	"postStartCommand": "sudo service mariadb start && /workspaces/${localWorkspaceFolderBasename}/.devcontainer/mariadb_setup.bash && cp .testenv-devcontainer .test.env",
         "forwardPorts": [
-           80,
-           "mariadb:3306"
-		],
-		"customizations": {
-			"vscode": {
-				"extensions": [
-					"dlipovetsky.ginkgo-tools",
-					"golang.Go"
-				]
-			}
-		}
+           80
+	]
 }

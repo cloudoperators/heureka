@@ -21,6 +21,14 @@ func (v *AddServiceToSupportGroupResponse) GetAddServiceToSupportGroup() *Suppor
 	return v.AddServiceToSupportGroup
 }
 
+// CompleteScannerRunResponse is returned by CompleteScannerRun on success.
+type CompleteScannerRunResponse struct {
+	CompleteScannerRun bool `json:"completeScannerRun"`
+}
+
+// GetCompleteScannerRun returns CompleteScannerRunResponse.CompleteScannerRun, and is useful for accessing the field via an interface.
+func (v *CompleteScannerRunResponse) GetCompleteScannerRun() bool { return v.CompleteScannerRun }
+
 // Component includes the requested fields of the GraphQL type Component.
 type Component struct {
 	Id   string              `json:"id"`
@@ -192,6 +200,7 @@ type ComponentInstanceInput struct {
 	Project            string `json:"project"`
 	Pod                string `json:"pod"`
 	Container          string `json:"container"`
+	Uuid               string `json:"uuid"`
 }
 
 // GetCcrn returns ComponentInstanceInput.Ccrn, and is useful for accessing the field via an interface.
@@ -226,6 +235,9 @@ func (v *ComponentInstanceInput) GetPod() string { return v.Pod }
 
 // GetContainer returns ComponentInstanceInput.Container, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceInput) GetContainer() string { return v.Container }
+
+// GetUuid returns ComponentInstanceInput.Uuid, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetUuid() string { return v.Uuid }
 
 type ComponentTypeValues string
 
@@ -384,6 +396,14 @@ type CreateComponentVersionResponse struct {
 func (v *CreateComponentVersionResponse) GetCreateComponentVersion() *ComponentVersion {
 	return v.CreateComponentVersion
 }
+
+// CreateScannerRunResponse is returned by CreateScannerRun on success.
+type CreateScannerRunResponse struct {
+	CreateScannerRun bool `json:"createScannerRun"`
+}
+
+// GetCreateScannerRun returns CreateScannerRunResponse.CreateScannerRun, and is useful for accessing the field via an interface.
+func (v *CreateScannerRunResponse) GetCreateScannerRun() bool { return v.CreateScannerRun }
 
 // CreateServiceResponse is returned by CreateService on success.
 type CreateServiceResponse struct {
@@ -557,6 +577,17 @@ func (v *ListSupportGroupsSupportGroupsSupportGroupConnectionEdgesSupportGroupEd
 	return v.Id
 }
 
+type ScannerRunInput struct {
+	Uuid string `json:"uuid"`
+	Tag  string `json:"tag"`
+}
+
+// GetUuid returns ScannerRunInput.Uuid, and is useful for accessing the field via an interface.
+func (v *ScannerRunInput) GetUuid() string { return v.Uuid }
+
+// GetTag returns ScannerRunInput.Tag, and is useful for accessing the field via an interface.
+func (v *ScannerRunInput) GetTag() string { return v.Tag }
+
 // Service includes the requested fields of the GraphQL type Service.
 type Service struct {
 	Id   string `json:"id"`
@@ -670,6 +701,14 @@ func (v *__AddServiceToSupportGroupInput) GetSupportGroupId() string { return v.
 // GetServiceId returns __AddServiceToSupportGroupInput.ServiceId, and is useful for accessing the field via an interface.
 func (v *__AddServiceToSupportGroupInput) GetServiceId() string { return v.ServiceId }
 
+// __CompleteScannerRunInput is used internally by genqlient
+type __CompleteScannerRunInput struct {
+	Uuid string `json:"uuid"`
+}
+
+// GetUuid returns __CompleteScannerRunInput.Uuid, and is useful for accessing the field via an interface.
+func (v *__CompleteScannerRunInput) GetUuid() string { return v.Uuid }
+
 // __CreateComponentInput is used internally by genqlient
 type __CreateComponentInput struct {
 	Input *ComponentInput `json:"input,omitempty"`
@@ -693,6 +732,14 @@ type __CreateComponentVersionInput struct {
 
 // GetInput returns __CreateComponentVersionInput.Input, and is useful for accessing the field via an interface.
 func (v *__CreateComponentVersionInput) GetInput() *ComponentVersionInput { return v.Input }
+
+// __CreateScannerRunInput is used internally by genqlient
+type __CreateScannerRunInput struct {
+	Input *ScannerRunInput `json:"input,omitempty"`
+}
+
+// GetInput returns __CreateScannerRunInput.Input, and is useful for accessing the field via an interface.
+func (v *__CreateScannerRunInput) GetInput() *ScannerRunInput { return v.Input }
 
 // __CreateServiceInput is used internally by genqlient
 type __CreateServiceInput struct {
@@ -789,6 +836,39 @@ func AddServiceToSupportGroup(
 	var err_ error
 
 	var data_ AddServiceToSupportGroupResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by CompleteScannerRun.
+const CompleteScannerRun_Operation = `
+mutation CompleteScannerRun ($uuid: String!) {
+	completeScannerRun(uuid: $uuid)
+}
+`
+
+func CompleteScannerRun(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	uuid string,
+) (*CompleteScannerRunResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "CompleteScannerRun",
+		Query:  CompleteScannerRun_Operation,
+		Variables: &__CompleteScannerRunInput{
+			Uuid: uuid,
+		},
+	}
+	var err_ error
+
+	var data_ CompleteScannerRunResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(
@@ -910,6 +990,39 @@ func CreateComponentVersion(
 	var err_ error
 
 	var data_ CreateComponentVersionResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by CreateScannerRun.
+const CreateScannerRun_Operation = `
+mutation CreateScannerRun ($input: ScannerRunInput!) {
+	createScannerRun(input: $input)
+}
+`
+
+func CreateScannerRun(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	input *ScannerRunInput,
+) (*CreateScannerRunResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "CreateScannerRun",
+		Query:  CreateScannerRun_Operation,
+		Variables: &__CreateScannerRunInput{
+			Input: input,
+		},
+	}
+	var err_ error
+
+	var data_ CreateScannerRunResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(

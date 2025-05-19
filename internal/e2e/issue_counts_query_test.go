@@ -6,22 +6,18 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
 
-	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,62 +43,28 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 		s.BlockingStop()
 	})
 
-	When("the database has 100 entries", func() {
+	When("the database has entries", func() {
 
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
-			seedCollection = seeder.SeedDbWithNFakeData(100)
+			var err error
+			seedCollection, err = seeder.SeedForIssueCounts()
+			Expect(err).To(BeNil(), "Seeding should work")
 		})
 		Context("and a filter is used", func() {
 			It("correct filters by support group", func() {
-				sg := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
-				serviceIds := lo.FilterMap(seedCollection.SupportGroupServiceRows, func(sgs mariadb.SupportGroupServiceRow, _ int) (int64, bool) {
-					return sgs.ServiceId.Int64, sg.Id.Int64 == sgs.SupportGroupId.Int64
-				})
-
-				ciIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
-					return c.Id.Int64, lo.Contains(serviceIds, c.ServiceId.Int64)
-				})
-
-				issueIds := lo.FilterMap(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
-					return im.IssueId.Int64, lo.Contains(ciIds, im.ComponentInstanceId.Int64)
-				})
-
-				counts := model.SeverityCounts{}
-
-				// avoid counting duplicates
-				ratingIssueIds := map[string]bool{}
-				for _, iv := range seedCollection.IssueVariantRows {
-					key := fmt.Sprintf("%d-%s", iv.IssueId.Int64, iv.Rating.String)
-					if _, ok := ratingIssueIds[key]; ok || !iv.Id.Valid {
-						continue
-					}
-					if lo.Contains(issueIds, iv.IssueId.Int64) {
-						switch iv.Rating.String {
-						case entity.SeverityValuesCritical.String():
-							counts.Critical++
-						case entity.SeverityValuesHigh.String():
-							counts.High++
-						case entity.SeverityValuesMedium.String():
-							counts.Medium++
-						case entity.SeverityValuesLow.String():
-							counts.Low++
-						case entity.SeverityValuesNone.String():
-							counts.None++
-						}
-					}
-					ratingIssueIds[key] = true
-				}
-
+				severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../database/mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+				Expect(err).To(BeNil())
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
 				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withIssueCounts.graphql")
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueCounts/query.graphql")
 
 				Expect(err).To(BeNil())
 				str := string(b)
 				req := graphql.NewRequest(str)
+				sg := seedCollection.SupportGroupRows[0]
 				req.Var("filter", map[string]string{
 					"supportGroupCcrn": sg.CCRN.String,
 				})
@@ -117,12 +79,85 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(respData.IssueCounts.Critical).To(Equal(counts.Critical))
-				Expect(respData.IssueCounts.High).To(Equal(counts.High))
-				Expect(respData.IssueCounts.Medium).To(Equal(counts.Medium))
-				Expect(respData.IssueCounts.Low).To(Equal(counts.Low))
-				Expect(respData.IssueCounts.None).To(Equal(counts.None))
+				strId := fmt.Sprintf("%d", sg.Id.Int64)
+
+				Expect(int64(respData.IssueCounts.Critical)).To(Equal(severityCounts[strId].Critical))
+				Expect(int64(respData.IssueCounts.High)).To(Equal(severityCounts[strId].High))
+				Expect(int64(respData.IssueCounts.Medium)).To(Equal(severityCounts[strId].Medium))
+				Expect(int64(respData.IssueCounts.Low)).To(Equal(severityCounts[strId].Low))
+				Expect(int64(respData.IssueCounts.None)).To(Equal(severityCounts[strId].None))
+				Expect(int64(respData.IssueCounts.Total)).To(Equal(severityCounts[strId].Total))
 			})
+			It("it can filter by service in services query", func() {
+				severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../database/mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+
+				Expect(err).To(BeNil())
+
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withIssueCounts.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Header.Set("Cache-Control", "no-cache")
+				ctx := context.Background()
+
+				var respData struct {
+					Services model.ServiceConnection `json:"Services"`
+				}
+				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+				}
+
+				for _, sEdge := range respData.Services.Edges {
+					sc := severityCounts[sEdge.Node.ID]
+					Expect(int64(sEdge.Node.IssueCounts.Critical)).To(Equal(sc.Critical), "Critical count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.High)).To(Equal(sc.High), "High count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.Medium)).To(Equal(sc.Medium), "Medium count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.Low)).To(Equal(sc.Low), "Low count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.None)).To(Equal(sc.None), "None count is correct")
+					Expect(int64(sEdge.Node.IssueCounts.Total)).To(Equal(sc.Total), "Total count is correct")
+				}
+
+			})
+		})
+		It("correct filters by component version id", func() {
+			severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../database/mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
+			Expect(err).To(BeNil())
+			// create a queryCollection (safe to share across requests)
+			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueCounts/query.graphql")
+
+			Expect(err).To(BeNil())
+			str := string(b)
+			req := graphql.NewRequest(str)
+			cvId := fmt.Sprintf("%d", seedCollection.ComponentVersionIssueRows[0].ComponentVersionId.Int64)
+			req.Var("filter", map[string]string{
+				"componentVersionId": cvId,
+			})
+
+			req.Header.Set("Cache-Control", "no-cache")
+			ctx := context.Background()
+
+			var respData struct {
+				IssueCounts model.SeverityCounts `json:"IssueCounts"`
+			}
+			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
+				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
+			}
+
+			Expect(int64(respData.IssueCounts.Critical)).To(Equal(severityCounts[cvId].Critical))
+			Expect(int64(respData.IssueCounts.High)).To(Equal(severityCounts[cvId].High))
+			Expect(int64(respData.IssueCounts.Medium)).To(Equal(severityCounts[cvId].Medium))
+			Expect(int64(respData.IssueCounts.Low)).To(Equal(severityCounts[cvId].Low))
+			Expect(int64(respData.IssueCounts.None)).To(Equal(severityCounts[cvId].None))
+			Expect(int64(respData.IssueCounts.Total)).To(Equal(severityCounts[cvId].Total))
 		})
 	})
 })

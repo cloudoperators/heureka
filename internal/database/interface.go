@@ -148,4 +148,8 @@ type Database interface {
 	CountScannerRuns(*entity.ScannerRunFilter) (int, error)
 
 	CloseConnection() error
+
+	CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error
+
+	Autoclose() (bool, error)
 }

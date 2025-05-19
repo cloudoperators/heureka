@@ -253,6 +253,7 @@ func NewSeverityCounts(counts *entity.IssueSeverityCounts) SeverityCounts {
 		Medium:   int(counts.Medium),
 		Low:      int(counts.Low),
 		None:     int(counts.None),
+		Total:    int(counts.Total),
 	}
 }
 

@@ -98,7 +98,10 @@ func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Proc
 	return result
 }
 
-func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.Processor, namespaces []v1.Namespace) {
+func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.Processor, namespaces []v1.Namespace) (bool, error) {
+	var err error
+	success := true
+
 	maxConcurrency := runtime.GOMAXPROCS(0)
 
 	// sem is an unbuffered channel meaning that sending onto it will block
@@ -149,6 +152,8 @@ func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.P
 				"namespace": result.Namespace,
 				"error":     result.Error,
 			}).Error("Failed to process namespace")
+			err = result.Error
+			success = false
 		} else {
 			log.WithFields(log.Fields{
 				"namespace": result.Namespace,
@@ -156,6 +161,8 @@ func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.P
 			}).Info("Successfully processed namespace")
 		}
 	}
+	wg.Wait()
+	return success, err
 }
 
 func main() {
@@ -187,7 +194,9 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("Error while reading env config")
 	}
-	processor := processor.NewProcessor(cfg)
+	tag := fmt.Sprintf("k8s-assets-%s", cfg.ClusterName)
+	processor := processor.NewProcessor(cfg, tag)
+	processor.CreateScannerRun(context.Background())
 
 	// Create context with timeout (30min should be ok)
 	scanTimeout, err := time.ParseDuration(scannerCfg.ScannerTimeout)
@@ -205,7 +214,14 @@ func main() {
 	}
 
 	// Process namespaces concurrently
-	processConcurrently(ctx, &scanner, processor, namespaces)
+	ok, err := processConcurrently(ctx, &scanner, processor, namespaces)
+	if err != nil {
+		log.WithError(err).Fatal("ProcessConcurrently failed")
+	}
 
 	log.Info("Finished processing all namespaces")
+	if ok {
+		processor.CompleteScannerRun(context.Background())
+	}
+
 }
