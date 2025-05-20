@@ -53,8 +53,6 @@ func TestConnection(cfg util.Config, backOff int) error {
 		return fmt.Errorf("Unable to connect to Database, exceeded backoffs...")
 	}
 
-	//before each try wait 1 Second
-	time.Sleep(1 * time.Second)
 	connectionString := buildDSN(cfg)
 	db, err := sqlx.Connect("mysql", connectionString)
 	if err != nil {
@@ -62,9 +60,10 @@ func TestConnection(cfg util.Config, backOff int) error {
 		return TestConnection(cfg, backOff-1)
 	}
 	defer db.Close()
-	//do an actual ping to check if not only the handshake works but the db schema is as well ready to operate on
 	err = db.Ping()
 	if err != nil {
+		//before next try wait 100 milliseconds
+		time.Sleep(100 * time.Millisecond)
 		return TestConnection(cfg, backOff-1)
 	}
 	return nil

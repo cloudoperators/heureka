@@ -9,7 +9,9 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	"k8s.io/utils/pointer"
 )
 
 func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.ComponentInstance, error) {
@@ -94,6 +96,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		Project:                 filter.Project,
 		Pod:                     filter.Pod,
 		Container:               filter.Container,
+		Type:                    lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
 		IssueMatchId:            imId,
 		ServiceId:               serviceId,
 		ServiceCcrn:             filter.ServiceCcrn,
@@ -171,6 +174,10 @@ func ContainerBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	return ComponentInstanceFilterBaseResolver(app.ListContainers, ctx, filter, &FilterDisplayContainer)
 }
 
+func TypeBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListTypes, ctx, filter, &FilterDisplayComponentInstanceType)
+}
+
 func ComponentInstanceFilterBaseResolver(
 	appCall func(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error),
 	ctx context.Context,
@@ -195,6 +202,7 @@ func ComponentInstanceFilterBaseResolver(
 		Project:   filter.Project,
 		Pod:       filter.Pod,
 		Container: filter.Container,
+		Type:      lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
 		Search:    filter.Search,
 		State:     model.GetStateFilterType(filter.State),
 	}

@@ -11,6 +11,7 @@ type ComponentInstance implements Node {
     project: String
     pod: String
     container: String
+    type: ComponentInstanceTypes
     count: Int
     componentVersionId: String
     componentVersion: ComponentVersion
@@ -32,6 +33,7 @@ input ComponentInstanceInput {
     project: String
     pod: String
     container: String
+    type: ComponentInstanceTypes
     uuid: String
 }
 
@@ -57,6 +59,7 @@ input ComponentInstanceFilter {
     project: [String],
     pod: [String],
     container: [String],
+    type: [ComponentInstanceTypes],
     supportGroup: [String],
     search:[String],
     state: [StateFilter!],
@@ -65,6 +68,18 @@ input ComponentInstanceFilter {
 input ComponentInstanceOrderBy {
     by: ComponentInstanceOrderByField
     direction: OrderDirection
+}
+
+enum ComponentInstanceTypes {
+    Unknown,
+	Project,
+	Server,
+	SecurityGroup,
+	DnsZone,
+	FloatingIp,
+	RbacPolicy,
+	User,
+    Container
 }
 
 enum ComponentInstanceOrderByField {
@@ -76,4 +91,5 @@ enum ComponentInstanceOrderByField {
     project
     pod
     container
+    type
 }

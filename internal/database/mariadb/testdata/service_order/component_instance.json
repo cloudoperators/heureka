@@ -3,60 +3,70 @@
         "ccrn": "ccrn-1",
         "component_version_id": 1,
         "count": 0,
-        "service_id": 1
+        "service_id": 1,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-2",
         "component_version_id": 2,
         "count": 0,
-        "service_id": 1
+        "service_id": 1,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-3",
         "component_version_id": 3,
         "count": 0,
-        "service_id": 2
+        "service_id": 2,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-4",
         "component_version_id": 4,
         "count": 0,
-        "service_id": 2
+        "service_id": 2,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-5",
         "component_version_id": 5,
         "count": 0,
-        "service_id": 3
+        "service_id": 3,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-6",
         "component_version_id": 6,
         "count": 0,
-        "service_id": 3
+        "service_id": 3,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-7",
         "component_version_id": 7,
         "count": 0,
-        "service_id": 4
+        "service_id": 4,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-8",
         "component_version_id": 8,
         "count": 0,
-        "service_id": 4
+        "service_id": 4,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-9",
         "component_version_id": 9,
         "count": 0,
-        "service_id": 5
+        "service_id": 5,
+        "type": "Server"
     },
     {
         "ccrn": "ccrn-10",
         "component_version_id": 10,
         "count": 0,
-        "service_id": 5
+        "service_id": 5,
+        "type": "Server"
     }
 ]

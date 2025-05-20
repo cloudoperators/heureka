@@ -29,6 +29,8 @@ func ColumnName(f entity.OrderByField) string {
 		return "componentinstance_pod"
 	case entity.ComponentInstanceContainer:
 		return "componentinstance_container"
+	case entity.ComponentInstanceTypeOrder:
+		return "componentinstance_type"
 	case entity.ComponentVersionId:
 		return "componentversion_id"
 	case entity.IssueId:
