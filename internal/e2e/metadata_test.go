@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
-	"github.com/cloudoperators/heureka/internal/e2e/common"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"

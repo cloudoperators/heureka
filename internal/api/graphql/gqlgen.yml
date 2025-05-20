@@ -245,6 +245,8 @@ models:
         resolver: true
       container:
         resolver: true
+      type:
+        resolver: true
   ComponentFilterValue:
     fields:
       componentCcrn:
