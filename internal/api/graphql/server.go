@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package graphqlapi
@@ -22,8 +22,14 @@ type GraphQLAPI struct {
 }
 
 func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
+	server := handler.NewDefaultServer(graph.NewExecutableSchema(resolver.NewResolver(a)))
+
+	// Set our custom error presenter
+	// Check out https://gqlgen.com/reference/errors/
+	server.SetErrorpresenter(graph.ErrorPresenter)
+
 	graphQLAPI := GraphQLAPI{
-		Server: handler.NewDefaultServer(graph.NewExecutableSchema(resolver.NewResolver(a))),
+		Server: server,
 		App:    a,
 		auth:   middleware.NewAuth(&cfg, true),
 	}
