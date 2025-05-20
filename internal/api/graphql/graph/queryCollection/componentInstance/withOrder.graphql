@@ -17,6 +17,7 @@ query ($orderBy: [ComponentInstanceOrderBy]) {
                 project
                 pod
                 container
+                type
             }
         }
     }
