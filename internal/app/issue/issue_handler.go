@@ -90,7 +90,7 @@ func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 
 	if err != nil {
 		// Error already logged in ListIssues
-		return nil, appErrors.InternalError(op, "Issue", strconv.FormatInt(id, 10), err)
+		return nil, err
 	}
 
 	if len(issues.Elements) != 1 {
@@ -211,7 +211,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	var err error
 	issue.CreatedBy, err = common.GetCurrentUserId(is.database)
 	if err != nil {
-		appErr := appErrors.InternalError(op, "Issue", "", err)
+		appErr := shared.FromDatabaseError(op, "Issue", "", err)
 		is.logError(appErr, fields)
 		return nil, appErr
 	}
@@ -224,7 +224,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 
 	if err != nil {
 		// Error already logged in ListIssues
-		return nil, appErrors.InternalError(op, "Issue", "", err)
+		return nil, err
 	}
 
 	if len(issues.Elements) > 0 {
@@ -236,7 +236,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	newIssue, err := is.database.CreateIssue(issue)
 
 	if err != nil {
-		appErr := appErrors.InternalError(op, "Issue", "", err)
+		appErr := shared.FromDatabaseError(op, "Issue", issue.PrimaryName, err)
 		is.logError(appErr, fields)
 		return nil, appErr
 	}
