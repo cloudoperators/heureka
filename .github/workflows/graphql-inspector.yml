@@ -2,8 +2,8 @@ name: GraphQL-Inspector
 
 on:
   pull_request:
-    paths:
-      - 'internal/api/graphql/graph/schema/**'
+    branches:
+    - main
 
 jobs:
   schema-check:
