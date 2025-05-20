@@ -1,20 +1,22 @@
 name: GraphQL-Inspector
- 
+
 on:
   pull_request:
-    branches:
-    - main
- 
+    paths:
+      - 'internal/api/graphql/graph/schema/**'
+
 jobs:
-  test:
-    name: Check Schema
+  schema-check:
     runs-on: ubuntu-latest
- 
     steps:
-      - name: Checkout
-        uses: actions/checkout@master
- 
-      - name: Schema
-        uses: graphql-hive/graphql-inspector@master
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
-          schema: 'master:internal/api/graphql/graph/schema/*.graphqls'
+          node-version: '18'
+      
+      - name: Install Dependencies
+        run: npm ci
+        
+      - name: Extract Current Schema
+        run: npx graphql-inspector introspect internal/api/graphql/graph/schema/*.graphqls --write .github/schemas/new-schema.graphql
+     
