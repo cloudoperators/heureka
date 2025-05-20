@@ -13,9 +13,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
-      
-      - name: Install Dependencies
-        run: npm ci
         
       - name: Extract Current Schema
         run: npx graphql-inspector introspect internal/api/graphql/graph/schema/*.graphqls --write .github/schemas/new-schema.graphql
