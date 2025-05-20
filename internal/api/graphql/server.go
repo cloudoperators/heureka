@@ -29,7 +29,7 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 
 	// Set our custom error presenter
 	// Check out https://gqlgen.com/reference/errors/
-	server.SetErrorpresenter(graph.ErrorPresenter)
+	server.SetErrorPresenter(graph.ErrorPresenter)
 
 	graphQLAPI := GraphQLAPI{
 		Server: server,
