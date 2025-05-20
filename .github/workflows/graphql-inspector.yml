@@ -1,19 +1,39 @@
 name: GraphQL-Inspector
-
 on:
   pull_request:
     branches:
-    - main
-
+      - main
 jobs:
   schema-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Checkout base branch (main)
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.base_ref }}
+          path: base-branch
+      
+      - name: Create old schema file
+        run: |
+          mkdir -p .github/schemas
+          cat base-branch/internal/api/graphql/graph/schema/*.graphqls > .github/schemas/old-schema.graphql
+      
+      - name: Checkout PR branch
+        uses: actions/checkout@v3
+        with:
+          path: pr-branch
+      
+      - name: Create new schema file
+        run: |
+          cat pr-branch/internal/api/graphql/graph/schema/*.graphqls > .github/schemas/new-schema.graphql
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
-        
-      - name: Extract Current Schema
-        run: npx graphql-inspector introspect internal/api/graphql/graph/schema/*.graphqls --write .github/schemas/new-schema.graphql
-     
+      
+      - name: Install Dependencies
+        run: npm install @graphql-inspector/cli
+      
+      - name: Check Schema Changes
+        run: npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql
