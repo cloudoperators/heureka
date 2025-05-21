@@ -1,8 +1,10 @@
 name: GraphQL-Inspector
+
 on:
   pull_request:
     branches:
       - main
+
 jobs:
   schema-check:
     runs-on: ubuntu-latest
@@ -12,28 +14,151 @@ jobs:
         with:
           ref: ${{ github.base_ref }}
           path: base-branch
-      
+
       - name: Create old schema file
         run: |
           mkdir -p .github/schemas
           cat base-branch/internal/api/graphql/graph/schema/*.graphqls > .github/schemas/old-schema.graphql
-      
+
       - name: Checkout PR branch
         uses: actions/checkout@v3
         with:
           path: pr-branch
-      
+
       - name: Create new schema file
         run: |
           cat pr-branch/internal/api/graphql/graph/schema/*.graphqls > .github/schemas/new-schema.graphql
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      
+
       - name: Install Dependencies
         run: npm install @graphql-inspector/cli
-      
+
       - name: Check Schema Changes
-        run: npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql
+        id: schema-check
+        continue-on-error: true
+        run: |
+          CHANGES_OUTPUT=$(npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql --rule=suppressRemovalOfDeprecatedField --rule=suppressRemovalOfDeprecatedInputValue --json)
+          echo "CHANGES_OUTPUT<<EOF" >> $GITHUB_ENV
+          echo "$CHANGES_OUTPUT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Check for approval in PR description
+        if: steps.schema-check.outcome == 'failure'
+        id: check-approval
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            // Look for approval tag in PR description
+            const approvalPattern = /\[APPROVED BREAKING CHANGES\]:\s*([\s\S]*?)(?=\[|$)/;
+            const match = pullRequest.body.match(approvalPattern);
+            
+            if (match) {
+              const approvedChanges = match[1].trim().split('\n').filter(line => line.trim() !== '');
+              console.log('Approved breaking changes found:', approvedChanges);
+              
+              // Parse the schema changes
+              const changes = JSON.parse(process.env.CHANGES_OUTPUT);
+              
+              // Check if all breaking changes are approved
+              const breakingChanges = changes.filter(change => 
+                change.criticality === 'BREAKING' || 
+                change.criticality === 'DANGEROUS'
+              );
+              
+              let allApproved = true;
+              const unapprovedChanges = [];
+              
+              for (const change of breakingChanges) {
+                const changeDescription = `${change.type}: ${change.message} (${change.path})`;
+                const isApproved = approvedChanges.some(approvedChange => 
+                  changeDescription.includes(approvedChange.trim()) || 
+                  approvedChange.trim().includes(change.message)
+                );
+                
+                if (!isApproved) {
+                  allApproved = false;
+                  unapprovedChanges.push(changeDescription);
+                }
+              }
+              
+              if (allApproved) {
+                console.log('All breaking changes are approved!');
+                return true;
+              } else {
+                console.log('Some breaking changes are not approved:', unapprovedChanges);
+                return false;
+              }
+            } else {
+              console.log('No approved breaking changes found in PR description');
+              return false;
+            }
+
+      - name: Generate breaking changes report
+        if: steps.schema-check.outcome == 'failure' && steps.check-approval.outputs.result != 'true'
+        id: generate-report
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const changes = JSON.parse(process.env.CHANGES_OUTPUT);
+            
+            // Filter breaking and dangerous changes
+            const breakingChanges = changes.filter(change => 
+              change.criticality === 'BREAKING' || 
+              change.criticality === 'DANGEROUS'
+            );
+            
+            if (breakingChanges.length > 0) {
+              let comment = '## ⚠️ Breaking GraphQL Schema Changes Detected\n\n';
+              comment += 'This PR contains breaking changes to the GraphQL schema that need approval:\n\n';
+              
+              for (const change of breakingChanges) {
+                comment += `- **${change.type}**: ${change.message} (${change.path})\n`;
+              }
+              
+              comment += '\n### How to approve these changes\n\n';
+              comment += 'To approve these breaking changes, add the following section to your PR description:\n\n';
+              comment += '```\n[APPROVED BREAKING CHANGES]:\n';
+              
+              for (const change of breakingChanges) {
+                comment += `${change.message}\n`;
+              }
+              
+              comment += '```\n\n';
+              comment += 'Then update the PR to trigger this workflow again.';
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Fail if breaking changes are not approved
+        if: steps.schema-check.outcome == 'failure' && steps.check-approval.outputs.result != 'true'
+        run: |
+          echo "❌ Breaking schema changes detected and not approved in PR description."
+          echo "Please approve the breaking changes by adding the [APPROVED BREAKING CHANGES] section to your PR description."
+          exit 1
+
+      - name: Pass check if breaking changes are approved
+        if: steps.schema-check.outcome == 'failure' && steps.check-approval.outputs.result == 'true'
+        run: |
+          echo "✅ Breaking schema changes have been approved in the PR description."
+
+      - name: Pass check if no breaking changes
+        if: steps.schema-check.outcome == 'success'
+        run: |
+          echo "✅ No breaking schema changes detected."
