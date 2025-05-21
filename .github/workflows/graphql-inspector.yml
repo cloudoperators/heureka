@@ -66,9 +66,10 @@ jobs:
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
           script: |
             const fs = require('fs');
-            const core = require('@actions/core');
+            // Don't redeclare core, it's already available
       
             // Read breaking changes from file
             let breakingChanges = [];
@@ -83,7 +84,7 @@ jobs:
             } catch (error) {
               console.log('Error reading breaking changes file:', error);
               core.setOutput('approved', 'false');
-              return;
+              return 'false';
             }
       
             // Get all PR comments
@@ -123,7 +124,7 @@ jobs:
                   if (allApproved) {
                     console.log('All breaking changes are approved!');
                     core.setOutput('approved', 'true');
-                    return;
+                    return 'true';
                   } else {
                     console.log('Some breaking changes are not approved:', unapprovedChanges);
                   }
@@ -133,9 +134,7 @@ jobs:
       
             console.log('No valid approval comment found');
             core.setOutput('approved', 'false');
-            
-
-
+            return 'false';
 
       - name: Generate breaking changes report
         if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result != 'true'
