@@ -68,7 +68,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            
+            const core = require('@actions/core');
+      
             // Read breaking changes from file
             let breakingChanges = [];
             try {
@@ -81,55 +82,60 @@ jobs:
                 });
             } catch (error) {
               console.log('Error reading breaking changes file:', error);
-              return false;
+              core.setOutput('approved', 'false');
+              return;
             }
-            
+      
             // Get all PR comments
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number
             });
-            
+      
             // Look for approval comment
             let approvalFound = false;
             for (const comment of comments) {
               if (comment.body.includes('[APPROVED BREAKING CHANGES]:')) {
                 const approvalPattern = /\[APPROVED BREAKING CHANGES\]:\s*([\s\S]*?)(?=\[|$)/;
                 const match = comment.body.match(approvalPattern);
-                
+      
                 if (match) {
                   const approvedChanges = match[1].trim().split('\n').filter(line => line.trim() !== '');
                   console.log('Approved breaking changes found:', approvedChanges);
-                  
+      
                   // Check if all breaking changes are approved
                   let allApproved = true;
                   const unapprovedChanges = [];
-                  
+      
                   for (const change of breakingChanges) {
                     const isApproved = approvedChanges.some(approvedChange => 
                       change.includes(approvedChange.trim()) || 
                       approvedChange.trim().includes(change)
                     );
-                    
+      
                     if (!isApproved) {
                       allApproved = false;
                       unapprovedChanges.push(change);
                     }
                   }
-                  
+      
                   if (allApproved) {
                     console.log('All breaking changes are approved!');
-                    return true;
+                    core.setOutput('approved', 'true');
+                    return;
                   } else {
                     console.log('Some breaking changes are not approved:', unapprovedChanges);
                   }
                 }
               }
             }
-            
+      
             console.log('No valid approval comment found');
-            return false;
+            core.setOutput('approved', 'false');
+            
+
+
 
       - name: Generate breaking changes report
         if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result != 'true'
