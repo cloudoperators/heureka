@@ -86,22 +86,35 @@ jobs:
             }
 
             if (breakingChanges.length > 0) {
-              let comment = '## ⚠️ Breaking GraphQL Schema Changes Detected\n\n';
-              comment += 'This PR contains breaking changes to the GraphQL schema that need approval:\n\n';
-
-              for (const change of breakingChanges) {
-                comment += `- **BREAKING**: ${change}\n`;
-              }
-
-              comment += '\n### Approval Process\n\n';
-              comment += 'To approve these breaking changes, add the `approved-schema-change` label to this PR.';
-
-              await github.rest.issues.createComment({
+              const reportHeader = '## ⚠️ Breaking GraphQL Schema Changes Detected';
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: comment
+                issue_number: context.issue.number
               });
+
+              const existingComment = comments.find(comment => comment.body.includes(reportHeader));
+
+              if (!existingComment) {
+                let comment = `${reportHeader}\n\n`;
+                comment += 'This PR contains breaking changes to the GraphQL schema that need approval:\n\n';
+
+                for (const change of breakingChanges) {
+                  comment += `- **BREAKING**: ${change}\n`;
+                }
+
+                comment += '\n### Approval Process\n\n';
+                comment += 'To approve these breaking changes, add the `approved-schema-change` label to this PR.';
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+              } else {
+                console.log('A comment with the change report already exists.');
+              }
             }
 
       - name: Check for approval label
