@@ -67,7 +67,26 @@ jobs:
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
           script: |
+            const fs = require('fs');
+            // Don't redeclare core, it's already available
+      
+            // Read breaking changes from file
+            let breakingChanges = [];
+            try {
+              const breakingChangesText = fs.readFileSync('breaking_changes.txt', 'utf8');
+              breakingChanges = breakingChangesText.split('\n')
+                .filter(line => line.trim() !== '')
+                .map(line => {
+                  // Clean up the log format
+                  return line.replace(/\[log\] ✖ /, '').trim();
+                });
+            } catch (error) {
+              console.log('Error reading breaking changes file:', error);
+              core.setOutput('approved', 'false');
+              return 'false';
+            }
             const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
               repo: context.repo.repo,
