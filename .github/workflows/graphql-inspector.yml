@@ -42,8 +42,8 @@ jobs:
         continue-on-error: true
         run: |
           # Get available rules
-          echo "Available rules:"
-          npx graphql-inspector diff --help | grep -A 20 "Available rules:"
+          # echo "Available rules:"
+          # npx graphql-inspector diff --help | grep -A 20 "Available rules:"
           
           # Run inspector with valid rules and capture exit code
           npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql --json > schema_changes.json || echo "Breaking changes detected"
