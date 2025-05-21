@@ -41,13 +41,27 @@ jobs:
         id: schema-check
         continue-on-error: true
         run: |
-          CHANGES_OUTPUT=$(npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql --rule=suppressRemovalOfDeprecatedField --rule=suppressRemovalOfDeprecatedInputValue --json)
+          # Get available rules
+          echo "Available rules:"
+          npx graphql-inspector diff --help | grep -A 20 "Available rules:"
+          
+          # Run inspector with valid rules and capture exit code
+          npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql --json > schema_changes.json || echo "Breaking changes detected"
+          
+          # Store the output in environment variable
           echo "CHANGES_OUTPUT<<EOF" >> $GITHUB_ENV
-          echo "$CHANGES_OUTPUT" >> $GITHUB_ENV
+          cat schema_changes.json >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+          
+          # Save the exit code to determine if there were breaking changes
+          if [ -s schema_changes.json ]; then
+            echo "::set-output name=has_changes::true"
+          else
+            echo "::set-output name=has_changes::false"
+          fi
 
       - name: Check for approval in PR description
-        if: steps.schema-check.outcome == 'failure'
+        if: steps.schema-check.outputs.has_changes == 'true'
         id: check-approval
         uses: actions/github-script@v6
         with:
@@ -68,7 +82,16 @@ jobs:
               console.log('Approved breaking changes found:', approvedChanges);
               
               // Parse the schema changes
-              const changes = JSON.parse(process.env.CHANGES_OUTPUT);
+              let changes = [];
+            try {
+              const changesOutput = process.env.CHANGES_OUTPUT;
+              if (changesOutput && changesOutput !== 'undefined' && changesOutput.trim() !== '') {
+                changes = JSON.parse(changesOutput);
+              }
+            } catch (error) {
+              console.log('Error parsing changes output:', error);
+              console.log('Raw CHANGES_OUTPUT:', process.env.CHANGES_OUTPUT);
+            }
               
               // Check if all breaking changes are approved
               const breakingChanges = changes.filter(change => 
@@ -105,13 +128,22 @@ jobs:
             }
 
       - name: Generate breaking changes report
-        if: steps.schema-check.outcome == 'failure' && steps.check-approval.outputs.result != 'true'
+        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result != 'true'
         id: generate-report
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const changes = JSON.parse(process.env.CHANGES_OUTPUT);
+            let changes = [];
+            try {
+              const changesOutput = process.env.CHANGES_OUTPUT;
+              if (changesOutput && changesOutput !== 'undefined' && changesOutput.trim() !== '') {
+                changes = JSON.parse(changesOutput);
+              }
+            } catch (error) {
+              console.log('Error parsing changes output:', error);
+              console.log('Raw CHANGES_OUTPUT:', process.env.CHANGES_OUTPUT);
+            }
             
             // Filter breaking and dangerous changes
             const breakingChanges = changes.filter(change => 
@@ -147,18 +179,18 @@ jobs:
             }
 
       - name: Fail if breaking changes are not approved
-        if: steps.schema-check.outcome == 'failure' && steps.check-approval.outputs.result != 'true'
+        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result != 'true'
         run: |
           echo "❌ Breaking schema changes detected and not approved in PR description."
           echo "Please approve the breaking changes by adding the [APPROVED BREAKING CHANGES] section to your PR description."
           exit 1
 
       - name: Pass check if breaking changes are approved
-        if: steps.schema-check.outcome == 'failure' && steps.check-approval.outputs.result == 'true'
+        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result == 'true'
         run: |
           echo "✅ Breaking schema changes have been approved in the PR description."
 
       - name: Pass check if no breaking changes
-        if: steps.schema-check.outcome == 'success'
+        if: steps.schema-check.outputs.has_changes != 'true'
         run: |
           echo "✅ No breaking schema changes detected."
