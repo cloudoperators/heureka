@@ -61,17 +61,15 @@ jobs:
           echo "has_changes=$([[ $BREAKING_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "breaking_count=$BREAKING_COUNT" >> $GITHUB_OUTPUT
 
-      - name: Check for approval label
+      - name: Generate breaking changes report
         if: steps.schema-check.outputs.has_changes == 'true'
-        id: check-label
+        id: generate-report
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          result-encoding: string
           script: |
             const fs = require('fs');
-            // Don't redeclare core, it's already available
-      
+
             // Read breaking changes from file
             let breakingChanges = [];
             try {
@@ -84,9 +82,35 @@ jobs:
                 });
             } catch (error) {
               console.log('Error reading breaking changes file:', error);
-              core.setOutput('approved', 'false');
-              return 'false';
+              return;
             }
+
+            if (breakingChanges.length > 0) {
+              let comment = '## ⚠️ Breaking GraphQL Schema Changes Detected\n\n';
+              comment += 'This PR contains breaking changes to the GraphQL schema that need approval:\n\n';
+
+              for (const change of breakingChanges) {
+                comment += `- **BREAKING**: ${change}\n`;
+              }
+
+              comment += '\n### Approval Process\n\n';
+              comment += 'To approve these breaking changes, add the `approved-schema-change` label to this PR.';
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Check for approval label
+        if: steps.schema-check.outputs.has_changes == 'true'
+        id: check-label
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
             const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
               repo: context.repo.repo,
