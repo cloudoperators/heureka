@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+    types: [opened, synchronize, labeled, unlabeled]
 
 jobs:
   schema-check:
@@ -43,162 +44,57 @@ jobs:
         run: |
           # Run inspector and capture the output
           INSPECTOR_OUTPUT=$(npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql || true)
-          
+
           # Write output to a file for reference
           echo "$INSPECTOR_OUTPUT" > schema_changes.txt
-          
+
           # Extract breaking changes (lines with ✖)
           BREAKING_CHANGES=$(echo "$INSPECTOR_OUTPUT" | grep -E '✖' || echo "")
-          
+
           # Count breaking changes
           BREAKING_COUNT=$(echo "$BREAKING_CHANGES" | grep -c '✖' || echo "0")
-          
+
           # Write breaking changes to a separate file for easier processing
           echo "$BREAKING_CHANGES" > breaking_changes.txt
-          
+
           # Set output variables
           echo "has_changes=$([[ $BREAKING_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "breaking_count=$BREAKING_COUNT" >> $GITHUB_OUTPUT
 
-      - name: Check for approval comment
+      - name: Check for approval label
         if: steps.schema-check.outputs.has_changes == 'true'
-        id: check-approval
+        id: check-label
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          result-encoding: string
           script: |
-            const fs = require('fs');
-            // Don't redeclare core, it's already available
-      
-            // Read breaking changes from file
-            let breakingChanges = [];
-            try {
-              const breakingChangesText = fs.readFileSync('breaking_changes.txt', 'utf8');
-              breakingChanges = breakingChangesText.split('\n')
-                .filter(line => line.trim() !== '')
-                .map(line => {
-                  // Clean up the log format
-                  return line.replace(/\[log\] ✖ /, '').trim();
-                });
-            } catch (error) {
-              console.log('Error reading breaking changes file:', error);
-              core.setOutput('approved', 'false');
-              return 'false';
-            }
-      
-            // Get all PR comments
-            const { data: comments } = await github.rest.issues.listComments({
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number
             });
-      
-            // Look for approval comment
-            let approvalFound = false;
-            for (const comment of comments) {
-              if (comment.body.includes('[APPROVED BREAKING CHANGES]:')) {
-                const approvalPattern = /\[APPROVED BREAKING CHANGES\]:\s*([\s\S]*?)(?=\[|$)/;
-                const match = comment.body.match(approvalPattern);
-      
-                if (match) {
-                  const approvedChanges = match[1].trim().split('\n').filter(line => line.trim() !== '');
-                  console.log('Approved breaking changes found:', approvedChanges);
-      
-                  // Check if all breaking changes are approved
-                  let allApproved = true;
-                  const unapprovedChanges = [];
-      
-                  for (const change of breakingChanges) {
-                    const isApproved = approvedChanges.some(approvedChange => 
-                      change.includes(approvedChange.trim()) || 
-                      approvedChange.trim().includes(change)
-                    );
-      
-                    if (!isApproved) {
-                      allApproved = false;
-                      unapprovedChanges.push(change);
-                    }
-                  }
-      
-                  if (allApproved) {
-                    console.log('All breaking changes are approved!');
-                    core.setOutput('approved', 'true');
-                    return 'true';
-                  } else {
-                    console.log('Some breaking changes are not approved:', unapprovedChanges);
-                  }
-                }
-              }
-            }
-      
-            console.log('No valid approval comment found');
-            core.setOutput('approved', 'false');
-            return 'false';
 
-      - name: Generate breaking changes report
-        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result != 'true'
-        id: generate-report
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            
-            // Read breaking changes from file
-            let breakingChanges = [];
-            try {
-              const breakingChangesText = fs.readFileSync('breaking_changes.txt', 'utf8');
-              breakingChanges = breakingChangesText.split('\n')
-                .filter(line => line.trim() !== '')
-                .map(line => {
-                  // Clean up the log format
-                  return line.replace(/\[log\] ✖ /, '').trim();
-                });
-            } catch (error) {
-              console.log('Error reading breaking changes file:', error);
-              return;
-            }
-            
-            if (breakingChanges.length > 0) {
-              let comment = '## ⚠️ Breaking GraphQL Schema Changes Detected\n\n';
-              comment += 'This PR contains breaking changes to the GraphQL schema that need approval:\n\n';
-              
-              for (const change of breakingChanges) {
-                comment += `- **BREAKING**: ${change}\n`;
-              }
-              
-              comment += '\n### How to approve these changes\n\n';
-              comment += 'To approve these breaking changes, add a comment containing:\n\n';
-              comment += '```\n[APPROVED BREAKING CHANGES]:\n';
-              
-              for (const change of breakingChanges) {
-                comment += `${change}\n`;
-              }
-              
-              comment += '```\n\n';
-              comment += 'You can copy and paste this entire block into a comment to approve all changes.';
-              
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: comment
-              });
+            const approvedLabel = labels.find(label => label.name === 'approved-schema-change');
+            if (approvedLabel) {
+              console.log('Approved label found.');
+              core.setOutput('approved', 'true');
+            } else {
+              console.log('Approved label not found.');
+              core.setOutput('approved', 'false');
             }
 
       - name: Fail if breaking changes are not approved
-        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result != 'true'
+        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-label.outputs.approved != 'true'
         run: |
-          echo "❌ Breaking schema changes detected and not approved in PR comments."
-          echo "Please approve the breaking changes by adding the [APPROVED BREAKING CHANGES] section in a comment."
+          echo "❌ Breaking schema changes detected and not approved."
+          echo "Please approve the breaking changes by adding the 'approved-schema-change' label to the PR."
           echo "Breaking changes detected: $(cat breaking_changes.txt)"
           exit 1
 
       - name: Pass check if breaking changes are approved
-        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result == 'true'
+        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-label.outputs.approved == 'true'
         run: |
-          echo "✅ Breaking schema changes have been approved in the PR comments."
+          echo "✅ Breaking schema changes have been approved with the 'approved-schema-change' label."
           echo "Approved changes: $(cat breaking_changes.txt)"
 
       - name: Pass check if no breaking changes
