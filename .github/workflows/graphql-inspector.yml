@@ -41,24 +41,24 @@ jobs:
         id: schema-check
         continue-on-error: true
         run: |
-          # Get available rules
-          # echo "Available rules:"
-          # npx graphql-inspector diff --help | grep -A 20 "Available rules:"
+          # Run inspector and capture the output
+          INSPECTOR_OUTPUT=$(npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql || true)
           
-          # Run inspector with valid rules and capture exit code
-          npx graphql-inspector diff .github/schemas/old-schema.graphql .github/schemas/new-schema.graphql --json > schema_changes.json || echo "Breaking changes detected"
+          # Write output to a file for reference
+          echo "$INSPECTOR_OUTPUT" > schema_changes.txt
           
-          # Store the output in environment variable
-          echo "CHANGES_OUTPUT<<EOF" >> $GITHUB_ENV
-          cat schema_changes.json >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          # Extract breaking changes (lines with ✖)
+          BREAKING_CHANGES=$(echo "$INSPECTOR_OUTPUT" | grep -E '✖' || echo "")
           
-          # Save the exit code to determine if there were breaking changes
-          if [ -s schema_changes.json ]; then
-            echo "::set-output name=has_changes::true"
-          else
-            echo "::set-output name=has_changes::false"
-          fi
+          # Count breaking changes
+          BREAKING_COUNT=$(echo "$BREAKING_CHANGES" | grep -c '✖' || echo "0")
+          
+          # Write breaking changes to a separate file for easier processing
+          echo "$BREAKING_CHANGES" > breaking_changes.txt
+          
+          # Set output variables
+          echo "has_changes=$([[ $BREAKING_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "breaking_count=$BREAKING_COUNT" >> $GITHUB_OUTPUT
 
       - name: Check for approval in PR description
         if: steps.schema-check.outputs.has_changes == 'true'
@@ -67,6 +67,9 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const fs = require('fs');
+            
+            // Get the PR description
             const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -75,55 +78,54 @@ jobs:
             
             // Look for approval tag in PR description
             const approvalPattern = /\[APPROVED BREAKING CHANGES\]:\s*([\s\S]*?)(?=\[|$)/;
-            const match = pullRequest.body.match(approvalPattern);
+            const match = pullRequest.body ? pullRequest.body.match(approvalPattern) : null;
             
-            if (match) {
-              const approvedChanges = match[1].trim().split('\n').filter(line => line.trim() !== '');
-              console.log('Approved breaking changes found:', approvedChanges);
-              
-              // Parse the schema changes
-              let changes = [];
-            try {
-              const changesOutput = process.env.CHANGES_OUTPUT;
-              if (changesOutput && changesOutput !== 'undefined' && changesOutput.trim() !== '') {
-                changes = JSON.parse(changesOutput);
-              }
-            } catch (error) {
-              console.log('Error parsing changes output:', error);
-              console.log('Raw CHANGES_OUTPUT:', process.env.CHANGES_OUTPUT);
+            if (!match) {
+              console.log('No approved breaking changes found in PR description');
+              return false;
             }
-              
-              // Check if all breaking changes are approved
-              const breakingChanges = changes.filter(change => 
-                change.criticality === 'BREAKING' || 
-                change.criticality === 'DANGEROUS'
+            
+            const approvedChanges = match[1].trim().split('\n').filter(line => line.trim() !== '');
+            console.log('Approved breaking changes found:', approvedChanges);
+            
+            // Read breaking changes from file
+            let breakingChanges = [];
+            try {
+              const breakingChangesText = fs.readFileSync('breaking_changes.txt', 'utf8');
+              breakingChanges = breakingChangesText.split('\n')
+                .filter(line => line.trim() !== '')
+                .map(line => {
+                  // Clean up the log format
+                  return line.replace(/\[log\] ✖ /, '').trim();
+                });
+            } catch (error) {
+              console.log('Error reading breaking changes file:', error);
+              return false;
+            }
+            
+            console.log('Detected breaking changes:', breakingChanges);
+            
+            // Check if all breaking changes are approved
+            let allApproved = true;
+            const unapprovedChanges = [];
+            
+            for (const change of breakingChanges) {
+              const isApproved = approvedChanges.some(approvedChange => 
+                change.includes(approvedChange.trim()) || 
+                approvedChange.trim().includes(change)
               );
               
-              let allApproved = true;
-              const unapprovedChanges = [];
-              
-              for (const change of breakingChanges) {
-                const changeDescription = `${change.type}: ${change.message} (${change.path})`;
-                const isApproved = approvedChanges.some(approvedChange => 
-                  changeDescription.includes(approvedChange.trim()) || 
-                  approvedChange.trim().includes(change.message)
-                );
-                
-                if (!isApproved) {
-                  allApproved = false;
-                  unapprovedChanges.push(changeDescription);
-                }
+              if (!isApproved) {
+                allApproved = false;
+                unapprovedChanges.push(change);
               }
-              
-              if (allApproved) {
-                console.log('All breaking changes are approved!');
-                return true;
-              } else {
-                console.log('Some breaking changes are not approved:', unapprovedChanges);
-                return false;
-              }
+            }
+            
+            if (allApproved) {
+              console.log('All breaking changes are approved!');
+              return true;
             } else {
-              console.log('No approved breaking changes found in PR description');
+              console.log('Some breaking changes are not approved:', unapprovedChanges);
               return false;
             }
 
@@ -134,29 +136,29 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            let changes = [];
-            try {
-              const changesOutput = process.env.CHANGES_OUTPUT;
-              if (changesOutput && changesOutput !== 'undefined' && changesOutput.trim() !== '') {
-                changes = JSON.parse(changesOutput);
-              }
-            } catch (error) {
-              console.log('Error parsing changes output:', error);
-              console.log('Raw CHANGES_OUTPUT:', process.env.CHANGES_OUTPUT);
-            }
+            const fs = require('fs');
             
-            // Filter breaking and dangerous changes
-            const breakingChanges = changes.filter(change => 
-              change.criticality === 'BREAKING' || 
-              change.criticality === 'DANGEROUS'
-            );
+            // Read breaking changes from file
+            let breakingChanges = [];
+            try {
+              const breakingChangesText = fs.readFileSync('breaking_changes.txt', 'utf8');
+              breakingChanges = breakingChangesText.split('\n')
+                .filter(line => line.trim() !== '')
+                .map(line => {
+                  // Clean up the log format
+                  return line.replace(/\[log\] ✖ /, '').trim();
+                });
+            } catch (error) {
+              console.log('Error reading breaking changes file:', error);
+              return;
+            }
             
             if (breakingChanges.length > 0) {
               let comment = '## ⚠️ Breaking GraphQL Schema Changes Detected\n\n';
               comment += 'This PR contains breaking changes to the GraphQL schema that need approval:\n\n';
               
               for (const change of breakingChanges) {
-                comment += `- **${change.type}**: ${change.message} (${change.path})\n`;
+                comment += `- **BREAKING**: ${change}\n`;
               }
               
               comment += '\n### How to approve these changes\n\n';
@@ -164,7 +166,7 @@ jobs:
               comment += '```\n[APPROVED BREAKING CHANGES]:\n';
               
               for (const change of breakingChanges) {
-                comment += `${change.message}\n`;
+                comment += `${change}\n`;
               }
               
               comment += '```\n\n';
@@ -183,12 +185,14 @@ jobs:
         run: |
           echo "❌ Breaking schema changes detected and not approved in PR description."
           echo "Please approve the breaking changes by adding the [APPROVED BREAKING CHANGES] section to your PR description."
+          echo "Breaking changes detected: $(cat breaking_changes.txt)"
           exit 1
 
       - name: Pass check if breaking changes are approved
         if: steps.schema-check.outputs.has_changes == 'true' && steps.check-approval.outputs.result == 'true'
         run: |
           echo "✅ Breaking schema changes have been approved in the PR description."
+          echo "Approved changes: $(cat breaking_changes.txt)"
 
       - name: Pass check if no breaking changes
         if: steps.schema-check.outputs.has_changes != 'true'
