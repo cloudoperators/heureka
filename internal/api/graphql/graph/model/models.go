@@ -50,6 +50,18 @@ var AllIssueMatchStatusValuesOrdered = []IssueMatchStatusValues{
 	IssueMatchStatusValuesMitigated,
 }
 
+var AllComponentInstanceTypesOrdered = []ComponentInstanceTypes{
+	ComponentInstanceTypesUnknown,
+	ComponentInstanceTypesProject,
+	ComponentInstanceTypesServer,
+	ComponentInstanceTypesSecurityGroup,
+	ComponentInstanceTypesDNSZone,
+	ComponentInstanceTypesFloatingIP,
+	ComponentInstanceTypesRbacPolicy,
+	ComponentInstanceTypesUser,
+	ComponentInstanceTypesContainer,
+}
+
 type HasToEntity interface {
 	ToOrderEntity() entity.Order
 }
@@ -93,6 +105,8 @@ func (cio *ComponentInstanceOrderBy) ToOrderEntity() entity.Order {
 		order.By = entity.ComponentInstancePod
 	case ComponentInstanceOrderByFieldContainer:
 		order.By = entity.ComponentInstanceContainer
+	case ComponentInstanceOrderByFieldType:
+		order.By = entity.ComponentInstanceTypeOrder
 	}
 	order.Direction = cio.Direction.ToOrderDirectionEntity()
 	return order
@@ -633,6 +647,7 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 
 func NewComponentInstance(componentInstance *entity.ComponentInstance) ComponentInstance {
 	count := int(componentInstance.Count)
+	componentInstanceType := ComponentInstanceTypes(componentInstance.Type.String())
 	return ComponentInstance{
 		ID:                 fmt.Sprintf("%d", componentInstance.Id),
 		Ccrn:               &componentInstance.CCRN,
@@ -643,6 +658,7 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 		Project:            &componentInstance.Project,
 		Pod:                &componentInstance.Pod,
 		Container:          &componentInstance.Container,
+		Type:               &componentInstanceType,
 		Count:              &count,
 		ComponentVersionID: util.Ptr(fmt.Sprintf("%d", componentInstance.ComponentVersionId)),
 		ServiceID:          util.Ptr(fmt.Sprintf("%d", componentInstance.ServiceId)),
@@ -682,6 +698,10 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 	componentVersionId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ComponentVersionID), 10, 64)
 	serviceId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ServiceID), 10, 64)
 	rawCcrn := lo.FromPtr(componentInstance.Ccrn)
+	ciType := ""
+	if componentInstance.Type != nil && componentInstance.Type.IsValid() {
+		ciType = componentInstance.Type.String()
+	}
 	return entity.ComponentInstance{
 		CCRN:               rawCcrn,
 		Region:             lo.FromPtr(componentInstance.Region),
@@ -691,6 +711,7 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 		Project:            lo.FromPtr(componentInstance.Project),
 		Pod:                lo.FromPtr(componentInstance.Pod),
 		Container:          lo.FromPtr(componentInstance.Container),
+		Type:               entity.NewComponentInstanceType(ciType),
 		Count:              int16(lo.FromPtr(componentInstance.Count)),
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,

@@ -79,16 +79,17 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
          	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
-		`)
-	}
 	if filter.AllServices {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
+	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 {
+		joins = fmt.Sprintf("%s\n%s", joins, `
+			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
+		`)
+
 	}
+
 	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
 
 		joins = fmt.Sprintf("%s\n%s", joins, `
@@ -456,6 +457,8 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	} else if len(filter.SupportGroupCCRN) > 0 {
 		// Count issues that appear in multiple support groups
 		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))"
+	} else if len(filter.ComponentVersionId) > 0 {
+		countColumn = "COUNT(DISTINCT CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id)) "
 	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
 		// Count issues that appear in multiple component versions
 		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id))"

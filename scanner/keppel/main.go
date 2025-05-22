@@ -12,12 +12,18 @@ import (
 	"sync"
 
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
-	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/cloudoperators/heureka/scanners/keppel/processor"
 	"github.com/cloudoperators/heureka/scanners/keppel/scanner"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 )
+
+var invalidStatuses = map[string]struct{}{
+	"Unsupported": {},
+	"Pending":     {},
+	"Error":       {},
+	"Clean":       {},
+}
 
 type Config struct {
 	LogLevel string `envconfig:"LOG_LEVEL" default:"debug" required:"true" json:"-"`
@@ -29,15 +35,7 @@ type ManifestInfo struct {
 	ComponentVersion *client.ComponentVersion
 	Account          string
 	Repository       string
-}
-
-// ChildManifestInfo groups related child manifest information
-type ChildManifestInfo struct {
-	Account          string
-	Repository       string
-	Manifest         models.Manifest
-	ComponentID      string
-	ComponentVersion *client.ComponentVersion
+	Digest           string
 }
 
 func init() {
@@ -96,9 +94,7 @@ func main() {
 
 	keppelProcessor.CreateScannerRun(ctx)
 
-	if err := processConcurrently(ctx, components, keppelScanner, keppelProcessor); err != nil {
-		log.WithError(err).Error("Error during concurrent processing")
-	}
+	processConcurrently(ctx, components, keppelScanner, keppelProcessor)
 
 	keppelProcessor.CompleteScannerRun(ctx)
 }
@@ -108,10 +104,10 @@ func processConcurrently(
 	components []*client.ComponentAggregate,
 	keppelScanner *scanner.Scanner,
 	keppelProcessor *processor.Processor,
-) error {
+) {
 	maxWorkers := runtime.GOMAXPROCS(0)
 	componentCh := make(chan *client.ComponentAggregate, len(components))
-	errors := make(chan error, maxWorkers)
+	errorCh := make(chan error, len(components))
 	var wg sync.WaitGroup
 
 	// Start worker goroutines
@@ -129,7 +125,7 @@ func processConcurrently(
 					}
 				}
 			}
-		}(errors)
+		}(errorCh)
 	}
 
 	// Feed components to workers
@@ -140,16 +136,12 @@ func processConcurrently(
 
 	// Wait for all workers to finish
 	wg.Wait()
-	close(errors)
+	close(errorCh)
 
-	// Check for errors
-	for err := range errors {
-		if err != nil {
-			return err
-		}
+	// Log all errors
+	for err := range errorCh {
+		log.WithError(err).Error("Error occurred during processing")
 	}
-
-	return nil
 }
 
 func processComponent(
@@ -162,7 +154,7 @@ func processComponent(
 
 	imageInfo, err := keppelScanner.ExtractImageInfo(comp.Ccrn)
 	if err != nil {
-		return fmt.Errorf("Cannot extract image information from component ccrn: %w", err)
+		return fmt.Errorf("cannot extract image information from component ccrn: %w", err)
 	}
 
 	for _, cv := range comp.ComponentVersions.Edges {
@@ -171,6 +163,7 @@ func processComponent(
 			ComponentVersion: cv.Node,
 			Account:          imageInfo.Account,
 			Repository:       imageInfo.FullRepository(),
+			Digest:           cv.Node.Version,
 		}
 
 		if err := HandleImageManifests(ctx, manifestInfo, keppelScanner, keppelProcessor); err != nil {
@@ -186,76 +179,44 @@ func HandleImageManifests(
 	keppelScanner *scanner.Scanner,
 	keppelProcessor *processor.Processor,
 ) error {
-
-	log.Info("Handling manifest")
-	manifests, err := keppelScanner.GetManifest(info.Account, info.Repository, info.ComponentVersion.Version)
+	manifest, err := keppelScanner.GetManifest(info.Account, info.Repository, info.Digest)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"account:":   info.Account,
-			"repository": info.Repository,
-		}).WithError(err).Error("Error during GetManifest")
-		return fmt.Errorf("Couldn't get manifest: %w", err)
+		return fmt.Errorf("couldn't get manifest for account: %s, repository: %s: %w", info.Account, info.Repository, err)
 	}
 
-	for _, manifest := range manifests {
-		if manifest.VulnerabilityStatus == "Unsupported" {
-			log.WithFields(log.Fields{
-				"account:":   info.Account,
-				"repository": info.Repository,
-			}).Warn("Manifest has UNSUPPORTED type: " + manifest.MediaType)
-			continue
-		}
-		if manifest.VulnerabilityStatus == "Clean" {
-			log.WithFields(log.Fields{
-				"account:":   info.Account,
-				"repository": info.Repository,
-			}).Info("Manifest has no Vulnerabilities")
-			continue
-		}
-
-		childInfo := ChildManifestInfo{
-			Account:          info.Account,
-			Repository:       info.Repository,
-			Manifest:         manifest,
-			ComponentID:      info.ComponentID,
-			ComponentVersion: info.ComponentVersion,
-		}
-		HandleChildManifests(ctx, childInfo, keppelScanner, keppelProcessor)
-	}
-	return nil
-}
-
-func HandleChildManifests(
-	ctx context.Context,
-	info ChildManifestInfo,
-	keppelScanner *scanner.Scanner,
-	keppelProcessor *processor.Processor,
-) {
-	childManifests, err := keppelScanner.ListChildManifests(info.Account, info.Repository, info.Manifest.Digest)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"account:":   info.Account,
-			"repository": info.Repository,
-		}).WithError(err).Error("Error during ListChildManifests")
-	}
-
-	childManifests = append(childManifests, info.Manifest)
-	for _, m := range childManifests {
-
-		// Get Trivy report for a specific repository and image version (componentVersion)
-		trivyReport, err := keppelScanner.GetTrivyReport(info.Account, info.Repository, m.Digest)
+	// If manifest contains children, it's a multi-arch image
+	// in that case the parent manifest doesn't have a manifest
+	if len(manifest.Children) == 0 && isVulnerabilityStatusValid(manifest.VulnerabilityStatus) {
+		trivyReport, err := keppelScanner.GetTrivyReport(info.Account, info.Repository, info.Digest)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"account:":   info.Account,
-				"repository": info.Repository,
-			}).WithError(err).Error("Error during GetTrivyReport")
-			return
+			return fmt.Errorf("couldn't get trivy report for account: %s, repository: %s: %w", info.Account, info.Repository, err)
 		}
 
 		if trivyReport == nil {
-			return
+			return fmt.Errorf("trivy report is nil")
 		}
 
 		keppelProcessor.ProcessReport(*trivyReport, info.ComponentVersion.Id)
 	}
+
+	for _, childManifest := range manifest.Children {
+		// Skip non-amd64 architectures
+		if childManifest.Platform.Architecture != "amd64" {
+			continue
+		}
+		childInfo := ManifestInfo{
+			Account:          info.Account,
+			Repository:       info.Repository,
+			ComponentID:      info.ComponentID,
+			ComponentVersion: info.ComponentVersion,
+			Digest:           childManifest.Digest,
+		}
+		HandleImageManifests(ctx, childInfo, keppelScanner, keppelProcessor)
+	}
+	return nil
+}
+
+func isVulnerabilityStatusValid(status string) bool {
+	_, invalid := invalidStatuses[status]
+	return !invalid
 }
