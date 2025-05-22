@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/brianvoe/gofakeit/v7"
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -186,7 +187,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
-		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance)
+		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, gofakeit.UUID())
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))

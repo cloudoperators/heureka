@@ -242,7 +242,7 @@ func (r *mutationResolver) UpdateComponentInstance(ctx context.Context, id strin
 	}
 	componentInstance := model.NewComponentInstanceEntity(&input)
 	componentInstance.Id = *idInt
-	updatedComponentInstance, err := r.App.UpdateComponentInstance(&componentInstance)
+	updatedComponentInstance, err := r.App.UpdateComponentInstance(&componentInstance, *input.UUID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateComponentInstanceMutationResolver", "Internal Error - when updating componentInstance")
 	}
