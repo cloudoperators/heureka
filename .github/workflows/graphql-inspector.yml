@@ -157,3 +157,35 @@ jobs:
         if: steps.schema-check.outputs.has_changes != 'true'
         run: |
           echo "✅ No breaking schema changes detected."
+
+      - name: Send Slack Notification for Breaking Changes
+        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-label.outputs.approved != 'true'
+        run: |
+          BREAKING_CHANGES=$(cat breaking_changes.txt)
+          for WEBHOOK_URL in ${{ secrets.SLACK_WEBHOOK_HEUREKA_DEV }} ${{ secrets.SLACK_WEBHOOK_HEUREKA_UI_DEV }}
+          do
+            curl -X POST -H "Content-Type: application/json" -d '{
+              "text": "## ⚠️ Breaking GraphQL Schema Changes Detected\n\nThis PR contains breaking changes to the GraphQL schema that need approval:\n\n'"$BREAKING_CHANGES"'\n\n### How to approve these changes\n\nTo approve these breaking changes, add a comment containing:\n\n```\n[APPROVED BREAKING CHANGES]:\n'"$BREAKING_CHANGES"'\n```\n\nYou can copy and paste this entire block into a comment to approve all changes."
+            }' $WEBHOOK_URL
+          done
+
+      - name: Send Slack Notification for Approval
+        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-label.outputs.approved == 'true'
+        run: |
+          BREAKING_CHANGES=$(cat breaking_changes.txt)
+          for WEBHOOK_URL in ${{ secrets.SLACK_WEBHOOK_HEUREKA_DEV }} ${{ secrets.SLACK_WEBHOOK_HEUREKA_UI_DEV }}
+          do
+            curl -X POST -H "Content-Type: application/json" -d '{
+              "text": "✅ Breaking schema changes have been approved in the PR comments.\n\nApproved changes:\n\n'"$BREAKING_CHANGES"'"
+            }' $WEBHOOK_URL
+          done
+
+      - name: Send Slack Notification for No Breaking Changes
+        if: steps.schema-check.outputs.has_changes != 'true'
+        run: |
+          for WEBHOOK_URL in ${{ secrets.SLACK_WEBHOOK_HEUREKA_DEV }} ${{ secrets.SLACK_WEBHOOK_HEUREKA_UI_DEV }}
+          do
+            curl -X POST -H "Content-Type: application/json" -d '{
+              "text": "✅ No breaking schema changes detected."
+            }' $WEBHOOK_URL
+          done
