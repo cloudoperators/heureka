@@ -450,6 +450,7 @@ func (p *Processor) ProcessContainer(
 		Project:            ccrn.Project,
 		Pod:                ccrn.Pod,
 		Container:          ccrn.Container,
+		Uuid:               p.uuid,
 	}
 
 	if err == nil {
