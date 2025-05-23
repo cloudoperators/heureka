@@ -56,4 +56,5 @@ input ComponentVersionOrderBy {
 
 enum ComponentVersionOrderByField {
     severity
+    repository
 }

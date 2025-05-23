@@ -18,6 +18,7 @@ const (
 	ComponentInstanceTypeOrder
 
 	ComponentVersionId
+	ComponentVersionRepository
 
 	IssueId
 	IssuePrimaryName
