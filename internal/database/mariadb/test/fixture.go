@@ -1969,3 +1969,27 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 	}
 	return err
 }
+func (s *DatabaseSeeder) SeedScannerRunInstances(uuids ...string) error {
+	insertScannerRun := `
+		INSERT INTO ScannerRun (
+			scannerrun_uuid,
+			scannerrun_tag,
+			scannerrun_start_run,
+			scannerrun_end_run,
+			scannerrun_is_completed
+		) VALUES (
+			?,
+			?,
+			?,
+			?,
+			?
+		)
+	`
+	for _, uuid := range uuids {
+		_, err := s.db.Exec(insertScannerRun, uuid, "tag", time.Now(), time.Now(), false)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

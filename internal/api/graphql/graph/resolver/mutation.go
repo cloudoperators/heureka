@@ -226,7 +226,7 @@ func (r *mutationResolver) DeleteComponent(ctx context.Context, id string) (stri
 // CreateComponentInstance is the resolver for the createComponentInstance field.
 func (r *mutationResolver) CreateComponentInstance(ctx context.Context, input model.ComponentInstanceInput) (*model.ComponentInstance, error) {
 	componentInstance := model.NewComponentInstanceEntity(&input)
-	newComponentInstance, err := r.App.CreateComponentInstance(&componentInstance, *input.UUID)
+	newComponentInstance, err := r.App.CreateComponentInstance(&componentInstance, input.UUID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateComponentInstanceMutationResolver", "Internal Error - when creating componentInstance")
 	}
@@ -242,7 +242,7 @@ func (r *mutationResolver) UpdateComponentInstance(ctx context.Context, id strin
 	}
 	componentInstance := model.NewComponentInstanceEntity(&input)
 	componentInstance.Id = *idInt
-	updatedComponentInstance, err := r.App.UpdateComponentInstance(&componentInstance)
+	updatedComponentInstance, err := r.App.UpdateComponentInstance(&componentInstance, input.UUID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateComponentInstanceMutationResolver", "Internal Error - when updating componentInstance")
 	}

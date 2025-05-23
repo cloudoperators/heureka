@@ -128,9 +128,8 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 	It("creates componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
-		db.On("CreateScannerRunComponentInstanceTracker", componentInstance.Id, "").Return(nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
-		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, "")
+		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -188,7 +187,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
-		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance)
+		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, nil)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
