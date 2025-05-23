@@ -771,6 +771,22 @@ var _ = Describe("Ordering ComponentVersions", func() {
 				}
 			})
 		})
+
+		It("can order by repository", func() {
+			sort.Slice(seedCollection.ComponentVersionRows, func(i, j int) bool {
+				return seedCollection.ComponentVersionRows[i].Repository.String < seedCollection.ComponentVersionRows[j].Repository.String
+			})
+
+			order := []entity.Order{
+				{By: entity.ComponentVersionRepository, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.ComponentVersionResult) {
+				for i, r := range res {
+					Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
+				}
+			})
+		})
 	})
 
 	When("with DESC order", Label("ComponentVersionDESCOrder"), func() {
@@ -786,6 +802,22 @@ var _ = Describe("Ordering ComponentVersions", func() {
 
 			order := []entity.Order{
 				{By: entity.ComponentVersionId, Direction: entity.OrderDirectionDesc},
+			}
+
+			testOrder(order, func(res []entity.ComponentVersionResult) {
+				for i, r := range res {
+					Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
+				}
+			})
+		})
+
+		It("can order by repository", func() {
+			sort.Slice(seedCollection.ComponentVersionRows, func(i, j int) bool {
+				return seedCollection.ComponentVersionRows[i].Repository.String > seedCollection.ComponentVersionRows[j].Repository.String
+			})
+
+			order := []entity.Order{
+				{By: entity.ComponentVersionRepository, Direction: entity.OrderDirectionDesc},
 			}
 
 			testOrder(order, func(res []entity.ComponentVersionResult) {
