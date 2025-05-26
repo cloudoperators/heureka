@@ -1,7 +1,7 @@
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-github.com/99designs/gqlgen v0.17.72 h1:2JDAuutIYtAN26BAtigfLZFnTN53fpYbIENL8bVgAKY=
-github.com/99designs/gqlgen v0.17.72/go.mod h1:BoL4C3j9W2f95JeWMrSArdDNGWmZB9MOS2EMHJDZmUc=
+github.com/99designs/gqlgen v0.17.73 h1:A3Ki+rHWqKbAOlg5fxiZBnz6OjW3nwupDHEG15gEsrg=
+github.com/99designs/gqlgen v0.17.73/go.mod h1:2RyGWjy2k7W9jxrs8MOQthXGkD3L3oGr0jXW3Pu8lGg=
 github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c h1:udKWzYgxTojEKWjV8V+WSxDXJ4NFATAsZjh8iIbsQIg=
 github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/Microsoft/go-winio v0.4.14 h1:+hMXMk01us9KgxGb7ftKQt2Xpf5hH/yky+TDA+qxleU=
