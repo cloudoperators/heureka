@@ -11,6 +11,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	entityTest "github.com/cloudoperators/heureka/internal/entity/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -130,7 +131,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					By("returning expected number of results", func() {
 						Expect(entries).To(HaveLen(1))
 					})
-
 					By("returning expected ccrn", func() {
 						Expect(entries[0].CCRN).To(BeEquivalentTo(ciRow.CCRN.String))
 						Expect(entries[0].Region).To(BeEquivalentTo(ciRow.Region.String))
@@ -141,6 +141,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						Expect(entries[0].Pod).To(BeEquivalentTo(ciRow.Pod.String))
 						Expect(entries[0].Container).To(BeEquivalentTo(ciRow.Container.String))
 						Expect(entries[0].Type.String()).To(BeEquivalentTo(ciRow.Type.String))
+						Expect(entries[0].Context.String()).To(BeEquivalentTo(ciRow.Context.String))
 					})
 
 				})
@@ -261,6 +262,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 									Expect(r.Pod).Should(BeEquivalentTo(row.Pod.String), "Pod matches")
 									Expect(r.Container).Should(BeEquivalentTo(row.Container.String), "Container matches")
 									Expect(r.Type.String()).Should(BeEquivalentTo(row.Type.String), "Type matches")
+									Expect(r.Context.String()).To(BeEquivalentTo(row.Context.String), "Context matches")
 									Expect(r.Count).Should(BeEquivalentTo(row.Count.Int16), "Count matches")
 									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
@@ -566,6 +568,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Pod).To(BeEquivalentTo(componentInstance.Pod))
 					Expect(ci[0].Container).To(BeEquivalentTo(componentInstance.Container))
 					Expect(ci[0].Type.String()).To(BeEquivalentTo(componentInstance.Type.String()))
+					Expect(ci[0].Context).To(BeEquivalentTo(componentInstance.Context))
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
@@ -610,9 +613,50 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Pod).To(BeEquivalentTo(componentInstance.Pod))
 					Expect(ci[0].Container).To(BeEquivalentTo(componentInstance.Container))
 					Expect(ci[0].Type.String()).To(BeEquivalentTo(componentInstance.Type.String()))
+					Expect(ci[0].Context).To(BeEquivalentTo(componentInstance.Context))
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+				})
+			})
+			It("can update componentInstance fields correctly", func() {
+				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
+
+				newComponentInstanceValues := entityTest.NewFakeComponentInstanceEntity()
+				newComponentInstanceValues.Id = componentInstance.Id
+				newComponentInstanceValues.ComponentVersionId = componentInstance.ComponentVersionId
+				newComponentInstanceValues.ServiceId = componentInstance.ServiceId
+				err := db.UpdateComponentInstance(&newComponentInstanceValues)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				componentInstanceFilter := &entity.ComponentInstanceFilter{
+					Id: []*int64{&componentInstance.Id},
+				}
+
+				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning componentInstance", func() {
+					Expect(len(ci)).To(BeEquivalentTo(1))
+				})
+				By("setting fields", func() {
+					Expect(ci[0].CCRN).To(BeEquivalentTo(newComponentInstanceValues.CCRN))
+					Expect(ci[0].Region).To(BeEquivalentTo(newComponentInstanceValues.Region))
+					Expect(ci[0].Cluster).To(BeEquivalentTo(newComponentInstanceValues.Cluster))
+					Expect(ci[0].Namespace).To(BeEquivalentTo(newComponentInstanceValues.Namespace))
+					Expect(ci[0].Domain).To(BeEquivalentTo(newComponentInstanceValues.Domain))
+					Expect(ci[0].Project).To(BeEquivalentTo(newComponentInstanceValues.Project))
+					Expect(ci[0].Pod).To(BeEquivalentTo(newComponentInstanceValues.Pod))
+					Expect(ci[0].Container).To(BeEquivalentTo(newComponentInstanceValues.Container))
+					Expect(ci[0].Type.String()).To(BeEquivalentTo(newComponentInstanceValues.Type.String()))
+					Expect(ci[0].Context.String()).To(BeEquivalentTo(newComponentInstanceValues.Context.String()))
+					Expect(ci[0].Count).To(BeEquivalentTo(newComponentInstanceValues.Count))
+					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(newComponentInstanceValues.ComponentVersionId))
+					Expect(ci[0].ServiceId).To(BeEquivalentTo(newComponentInstanceValues.ServiceId))
 				})
 			})
 		})

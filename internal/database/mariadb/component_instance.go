@@ -107,6 +107,9 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	if componentInstance.Type != "" {
 		fl = append(fl, "componentinstance_type = :componentinstance_type")
 	}
+	if componentInstance.Context != nil {
+		fl = append(fl, "componentinstance_context = :componentinstance_context")
+	}
 	if componentInstance.Count != 0 {
 		fl = append(fl, "componentinstance_count = :componentinstance_count")
 	}
@@ -343,6 +346,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_pod,
 			componentinstance_container,
 			componentinstance_type,
+			componentinstance_context,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -358,6 +362,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			:componentinstance_pod,
 			:componentinstance_container,
 			:componentinstance_type,
+			:componentinstance_context,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,

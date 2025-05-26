@@ -21,6 +21,11 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 	pod := strings.ToLower(gofakeit.UUID())
 	container := strings.ToLower(gofakeit.UUID())
 	t := gofakeit.RandomString(entity.AllComponentInstanceType)
+	context := entity.Json{
+		"timeout_nbd":               gofakeit.Number(1, 60),
+		"remove_unused_base_images": gofakeit.Bool(),
+		"my_ip":                     gofakeit.IPv4Address(),
+	}
 	return entity.ComponentInstance{
 		Id:                 int64(gofakeit.Number(1, 10000000)),
 		CCRN:               test.GenerateFakeCcrn(cluster, namespace),
@@ -32,6 +37,7 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 		Pod:                pod,
 		Container:          container,
 		Type:               entity.NewComponentInstanceType(t),
+		Context:            context,
 		Count:              int16(gofakeit.Number(1, 100)),
 		ComponentVersion:   nil,
 		ComponentVersionId: int64(gofakeit.Number(1, 10000000)),
