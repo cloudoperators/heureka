@@ -83,6 +83,13 @@ func main() {
 		log.WithError(err).Fatal("Error during scanner setup")
 	}
 
+	err = keppelProcessor.Setup()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Couldn't setup new processor")
+	}
+
 	// Get components and correponding componentVersions
 	components, err := keppelProcessor.GetAllComponents(nil, 100)
 	if err != nil {
