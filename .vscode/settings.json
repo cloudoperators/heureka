@@ -1,4 +1,7 @@
 {
     "go.testEnvFile": "${workspaceFolder}/.testenv-devcontainer",
-    "ginkgotools.ginkgoPath": "go run github.com/onsi/ginkgo/v2/ginkgo"
+    "ginkgotools.ginkgoPath": "go run github.com/onsi/ginkgo/v2/ginkgo",
+    "go.gopath": "/Users/i570178/.gvm/pkgsets/go1.24.1/global",
+    "go.goroot": "/Users/i570178/.gvm/gos/go1.24.1",
+    "ginkgoExplorer.ginkgoPath": "/Users/i570178/.gvm/pkgsets/go1.24.1/global/bin/ginkgo"
 }

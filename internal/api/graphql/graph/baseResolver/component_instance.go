@@ -104,6 +104,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		ComponentVersionVersion: filter.ComponentVersionDigest,
 		Search:                  filter.Search,
 		State:                   model.GetStateFilterType(filter.State),
+		ParentId:                filter.ParentId,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -176,6 +177,10 @@ func ContainerBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 
 func TypeBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListTypes, ctx, filter, &FilterDisplayComponentInstanceType)
+}
+
+func ParentBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListParents, ctx, filter, &ComponentInstanceFilterParentId)
 }
 
 func ComponentInstanceFilterBaseResolver(

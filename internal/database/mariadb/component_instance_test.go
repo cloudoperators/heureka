@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -1546,6 +1547,104 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 				})
 			})
+		})
+	})
+	When("Creating a self-referencing ComponentInstance", Label("CreateSelfReferencingComponentInstance"), func() {
+		Context("and we have a parent ComponentInstance in the database", func() {
+			//var parent entity.ComponentInstance
+			//var childComponentInstance entity.ComponentInstance
+			var seedCollection *test.SeedCollection
+
+			BeforeEach(func() {
+				// Seed the database with initial data
+				seedCollection = seeder.SeedDbWithNFakeData(2)
+
+			})
+
+			It("can create a child ComponentInstance with a valid parent ID", func() {
+				componentInstance := test.NewFakeComponentInstance()
+				childComponentInstance := componentInstance.AsComponentInstance()
+				parent := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
+				childComponentInstance.ParentId = parent.Id
+				childComponentInstance.ComponentVersionId = parent.ComponentVersionId
+				childComponentInstance.ServiceId = parent.ServiceId
+				// db.updateComponentInstance(&childComponentInstance)
+				createdWithParent, err := db.CreateComponentInstance(&childComponentInstance)
+				fmt.Printf("Created Parent ComponentInstance: %+v\n", createdWithParent)
+				Expect(err).To(BeNil(), "Creating parent ComponentInstance should not throw an error")
+				Expect(createdWithParent.Id).To(Not(BeZero()), "Parent ComponentInstance should have a valid ID")
+				Expect(createdWithParent.ParentId).To(BeEquivalentTo(parent.Id), "Parent ComponentInstance should not have a parent ID")
+
+				// Retrieve the child ComponentInstance
+				filter := &entity.ComponentInstanceFilter{
+					Id: []*int64{&createdWithParent.Id},
+				}
+				results, err := db.GetComponentInstances(filter, nil)
+				fmt.Printf("Retrieved Child ComponentInstance: %+v\n", results)
+				Expect(err).To(BeNil(), "Retrieving child ComponentInstance should not throw an error")
+				Expect(results).To(HaveLen(1), "Should retrieve exactly one ComponentInstance")
+				Expect(results[0].ParentId).To(BeEquivalentTo(parent.Id), "Retrieved child should reference the correct parent ID")
+
+			})
+			It("can create and retrieve the child ComponentInstance with a valid parent ID", func() {
+				componentInstance := test.NewFakeComponentInstance()
+				childComponentInstance := componentInstance.AsComponentInstance()
+				parent := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
+				childComponentInstance.ParentId = parent.Id
+				childComponentInstance.ComponentVersionId = parent.ComponentVersionId
+				childComponentInstance.ServiceId = parent.ServiceId
+				createdWithParent, err := db.CreateComponentInstance(&childComponentInstance)
+				fmt.Printf("Created Parent ComponentInstance: %+v\n", createdWithParent)
+				Expect(err).To(BeNil(), "Creating parent ComponentInstance should not throw an error")
+				Expect(createdWithParent.Id).To(Not(BeZero()), "Parent ComponentInstance should have a valid ID")
+
+				// Retrieve the child ComponentInstance
+				filter := &entity.ComponentInstanceFilter{
+					Id: []*int64{&createdWithParent.Id},
+				}
+				results, err := db.GetComponentInstances(filter, nil)
+				fmt.Printf("Retrieved Child ComponentInstance: %+v\n", results)
+				Expect(err).To(BeNil(), "Retrieving child ComponentInstance should not throw an error")
+				Expect(results).To(HaveLen(1), "Should retrieve exactly one ComponentInstance")
+				Expect(results[0].ParentId).To(BeEquivalentTo(parent.Id), "Retrieved child should reference the correct parent ID")
+
+			})
+			// It("updates the parent_id of a child ComponentInstance when the parent's id is changed", func() {
+
+			// 	componentInstance := test.NewFakeComponentInstance()
+			// 	childComponentInstance := componentInstance.AsComponentInstance()
+			// 	parent := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
+			// 	childComponentInstance.ParentId = parent.Id
+			// 	childComponentInstance.ComponentVersionId = parent.ComponentVersionId
+			// 	childComponentInstance.ServiceId = parent.ServiceId
+			// 	createdWithParent, err := db.CreateComponentInstance(&childComponentInstance)
+			// 	//createdParent, err := db.CreateComponentInstance(&parent)
+			// 	fmt.Printf("Created Parent ComponentInstance: %+v\n", createdWithParent)
+			// 	Expect(err).To(BeNil(), "Creating parent ComponentInstance should not throw an error")
+			// 	Expect(createdWithParent.Id).To(Not(BeZero()), "Parent ComponentInstance should have a valid ID")
+			// 	// Update the parent's ID
+			// 	newParentId := parent.Id + 1
+			// 	parent.Id = newParentId
+			// 	err = db.UpdateComponentInstance(&parent)
+			// 	Expect(err).To(BeNil(), "Updating parent ComponentInstance should not throw an error")
+
+			// 	// Update the child to reflect the new parent ID
+			// 	childComponentInstance.ParentId = newParentId
+			// 	err = db.UpdateComponentInstance(&childComponentInstance)
+			// 	Expect(err).To(BeNil(), "Updating child ComponentInstance should not throw an error")
+
+			// 	// Retrieve the updated child ComponentInstance
+			// 	filter := &entity.ComponentInstanceFilter{
+			// 		Id: []*int64{&childComponentInstance.Id},
+			// 	}
+			// 	results, err := db.GetComponentInstances(filter, nil)
+			// 	fmt.Printf("Retrieved Updated Child ComponentInstance: %+v\n", results)
+			// 	Expect(err).To(BeNil(), "Retrieving updated child ComponentInstance should not throw an error")
+			// 	Expect(results).To(HaveLen(1), "Should retrieve exactly one ComponentInstance")
+			// 	Expect(results[0].ParentId).To(BeEquivalentTo(newParentId), "Child's parent ID should be updated to the new parent ID")
+
+			// })
+
 		})
 	})
 })

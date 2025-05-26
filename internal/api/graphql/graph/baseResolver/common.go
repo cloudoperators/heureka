@@ -59,6 +59,7 @@ var (
 	ComponentInstanceFilterPod           string = "pod"
 	ComponentInstanceFilterContainer     string = "container"
 	ComponentInstanceFilterType          string = "type"
+	ComponentInstanceFilterParentId      string = "parentId"
 )
 
 type ResolverError struct {
