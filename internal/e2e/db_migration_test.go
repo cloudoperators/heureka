@@ -27,16 +27,16 @@ var migrationBFiles embed.FS
 //go:embed migrations/*.sql
 var migrationABFiles embed.FS
 
-func setDbTestMigrationFiles(migrationFiles *embed.FS) {
-	mariadb.MigrationFiles = *migrationFiles
+func setDbTestMigration(migrationFiles *embed.FS) {
+	mariadb.Migration = migrationFiles
 }
 
-func setDbAMigrationFiles() {
-	setDbTestMigrationFiles(&migrationAFiles)
+func setDbAMigration() {
+	setDbTestMigration(&migrationAFiles)
 }
 
-func setDbABMigrationFiles() {
-	setDbTestMigrationFiles(&migrationABFiles)
+func setDbABMigration() {
+	setDbTestMigration(&migrationABFiles)
 }
 
 func extractVersion(filename string) string {
@@ -83,21 +83,21 @@ func dbVersionShouldBeB(cfg *util.Config) {
 
 func dbVersionIsZero(cfg *util.Config) {
 	dbVersionShouldBeZero(cfg)
-	setDbABMigrationFiles()
+	setDbABMigration()
 }
 
 func dbVersionIsA(cfg *util.Config) {
 	dbVersionShouldBeZero(cfg)
-	setDbAMigrationFiles()
+	setDbAMigration()
 	createHeurekaServer(cfg)
 	dbShouldContainAMigrationData(cfg)
 	dbVersionShouldBeA(cfg)
-	setDbABMigrationFiles()
+	setDbABMigration()
 }
 
 func dbVersionIsB(cfg *util.Config) {
 	dbVersionShouldBeZero(cfg)
-	setDbABMigrationFiles()
+	setDbABMigration()
 	createHeurekaServer(cfg)
 	dbShouldContainAMigrationData(cfg)
 	dbShouldContainBMigrationData(cfg)
@@ -117,6 +117,13 @@ func tableExists(db *sqlx.DB, tableName string) bool {
     `
 	err := db.Get(&exists, query, tableName)
 	Expect(err).To(BeNil())
+
+	rows, err := db.Queryx(`SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()`)
+	for rows.Next() {
+		var name string
+		_ = rows.Scan(&name)
+	}
+
 	return exists
 }
 
@@ -160,11 +167,18 @@ func dbShouldContainAllMigrations(cfg *util.Config) {
 
 var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrations"), func() {
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
+	var prodMigration *embed.FS
 
 	BeforeEach(func() {
-		_ = dbm.NewTestSchema()
+		prodMigration = mariadb.Migration
+		db = dbm.NewTestSchemaWithoutMigration()
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
+	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+		mariadb.Migration = prodMigration
 	})
 	When("creating app with zero version of db", func() {
 		It("executes all available migrations", func() {

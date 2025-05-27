@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
 
@@ -21,9 +22,10 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 	var s *server.Server
 	var cfg util.Config
 	var queryUrl string
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
 		cfg.AuthTokenSecret = "xxx"
@@ -36,6 +38,7 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("trying to access query resource with valid token", func() {

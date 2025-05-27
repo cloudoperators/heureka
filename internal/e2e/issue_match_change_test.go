@@ -13,6 +13,7 @@ import (
 	"os"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/machinebox/graphql"
@@ -26,10 +27,11 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	BeforeEach(func() {
+	var db *mariadb.SqlDatabase
 
+	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -41,6 +43,7 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
@@ -187,10 +190,11 @@ var _ = Describe("Creating IssueMatchChange via API", Label("e2e", "IssueMatchCh
 	var s *server.Server
 	var cfg util.Config
 	var issueMatchChange entity.IssueMatchChange
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -203,6 +207,7 @@ var _ = Describe("Creating IssueMatchChange via API", Label("e2e", "IssueMatchCh
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	// use only 1 entry to make sure that all relations are resolved correctly
@@ -256,10 +261,11 @@ var _ = Describe("Updating issueMatchChange via API", Label("e2e", "IssueMatchCh
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -272,6 +278,7 @@ var _ = Describe("Updating issueMatchChange via API", Label("e2e", "IssueMatchCh
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -328,10 +335,11 @@ var _ = Describe("Deleting IssueMatchChange via API", Label("e2e", "IssueMatchCh
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -344,6 +352,7 @@ var _ = Describe("Deleting IssueMatchChange via API", Label("e2e", "IssueMatchCh
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {

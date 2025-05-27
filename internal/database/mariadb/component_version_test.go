@@ -26,6 +26,9 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	When("Getting All ComponentVersion IDs", Label("GetAllComponentVersionIds"), func() {
 		Context("and the database is empty", func() {
@@ -655,6 +658,9 @@ var _ = Describe("Ordering ComponentVersions", func() {
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
 	})
 
 	var testOrder = func(

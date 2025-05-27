@@ -29,6 +29,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	When("Getting All Issue IDs", Label("GetAllIssueIds"), func() {
 		Context("and the database is empty", func() {
@@ -935,6 +938,9 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	var testOrder = func(
 		order []entity.Order,
@@ -1101,6 +1107,9 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 		seedCollection, err = seeder.SeedForIssueCounts()
 		Expect(err).To(BeNil())
+	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
 	})
 
 	It("returns the correct count for all issues", func() {

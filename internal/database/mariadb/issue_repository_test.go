@@ -24,6 +24,9 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	When("Getting All IssueRepository IDs", Label("GetAllIssueRepositoryIds"), func() {
 		Context("and the database is empty", func() {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/oidc"
@@ -25,9 +26,10 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 	var cfg util.Config
 	var queryUrl string
 	var oidcTokenStringHandler func(j *test.Jwt) string
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
 		cfg.AuthOidcClientId = "mock-client-id"
@@ -45,6 +47,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 	AfterEach(func() {
 		s.BlockingStop()
 		oidcProvider.Stop()
+		dbm.TestTearDown(db)
 	})
 
 	When("trying to access query resource with valid oidc token", func() {

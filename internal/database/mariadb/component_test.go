@@ -26,6 +26,9 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	When("Getting All Component IDs", Label("GetAllComponentIds"), func() {
 		Context("and the database is empty", func() {
