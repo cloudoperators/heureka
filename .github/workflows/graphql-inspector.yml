@@ -48,21 +48,32 @@ jobs:
           # Write output to a file for reference
           echo "$INSPECTOR_OUTPUT" > schema_changes.txt
 
-          # Extract breaking changes (lines with ✖)
+          # Extract different types of changes
           BREAKING_CHANGES=$(echo "$INSPECTOR_OUTPUT" | grep -E '✖' || echo "")
+          DANGEROUS_CHANGES=$(echo "$INSPECTOR_OUTPUT" | grep -E '⚠' || echo "")
+          SAFE_CHANGES=$(echo "$INSPECTOR_OUTPUT" | grep -E '✔' || echo "")
 
-          # Count breaking changes
+          # Count changes
           BREAKING_COUNT=$(echo "$BREAKING_CHANGES" | grep -c '✖' || echo "0")
+          DANGEROUS_COUNT=$(echo "$DANGEROUS_CHANGES" | grep -c '⚠' || echo "0")
+          SAFE_COUNT=$(echo "$SAFE_CHANGES" | grep -c '✔' || echo "0")
 
-          # Write breaking changes to a separate file for easier processing
+          # Write changes to separate files for easier processing
           echo "$BREAKING_CHANGES" > breaking_changes.txt
+          echo "$DANGEROUS_CHANGES" > dangerous_changes.txt
+          echo "$SAFE_CHANGES" > safe_changes.txt
 
           # Set output variables
-          echo "has_changes=$([[ $BREAKING_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "has_breaking_changes=$([[ $BREAKING_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "has_dangerous_changes=$([[ $DANGEROUS_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "has_safe_changes=$([[ $SAFE_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "breaking_count=$BREAKING_COUNT" >> $GITHUB_OUTPUT
+          echo "dangerous_count=$DANGEROUS_COUNT" >> $GITHUB_OUTPUT
+          echo "safe_count=$SAFE_COUNT" >> $GITHUB_OUTPUT
+          echo "has_any_changes=$([[ $BREAKING_COUNT -gt 0 || $DANGEROUS_COUNT -gt 0 || $SAFE_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
       - name: Generate breaking changes report
-        if: steps.schema-check.outputs.has_changes == 'true'
+        if: steps.schema-check.outputs.has_breaking_changes == 'true'
         id: generate-report
         uses: actions/github-script@v6
         with:
@@ -118,7 +129,7 @@ jobs:
             }
 
       - name: Check for approval label
-        if: steps.schema-check.outputs.has_changes == 'true'
+        if: steps.schema-check.outputs.has_breaking_changes == 'true'
         id: check-label
         uses: actions/github-script@v6
         with:
@@ -139,8 +150,155 @@ jobs:
               core.setOutput('approved', 'false');
             }
 
+      - name: Send Slack notification for schema changes
+        if: steps.schema-check.outputs.has_any_changes == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            
+            // Read change files
+            const readChanges = (filename) => {
+              try {
+                const content = fs.readFileSync(filename, 'utf8');
+                return content.split('\n')
+                  .filter(line => line.trim() !== '')
+                  .map(line => line.replace(/\[log\] [✖⚠✔] /, '').trim());
+              } catch (error) {
+                return [];
+              }
+            };
+
+            const breakingChanges = readChanges('breaking_changes.txt');
+            const dangerousChanges = readChanges('dangerous_changes.txt');
+            const safeChanges = readChanges('safe_changes.txt');
+
+            // Determine message color and priority
+            let color = '#36a64f'; // Green for safe changes
+            let priority = 'Safe';
+            
+            if (breakingChanges.length > 0) {
+              color = '#ff0000'; // Red for breaking changes
+              priority = 'Breaking';
+            } else if (dangerousChanges.length > 0) {
+              color = '#ffaa00'; // Orange for dangerous changes
+              priority = 'Dangerous';
+            }
+
+            // Build Slack message
+            const prUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${context.issue.number}`;
+            const prTitle = context.payload.pull_request.title;
+            const prAuthor = context.payload.pull_request.user.login;
+
+            let message = {
+              "attachments": [
+                {
+                  "color": color,
+                  "title": `🔄 GraphQL Schema Changes Detected - ${priority} Priority`,
+                  "title_link": prUrl,
+                  "fields": [
+                    {
+                      "title": "Pull Request",
+                      "value": `<${prUrl}|#${context.issue.number}: ${prTitle}>`,
+                      "short": false
+                    },
+                    {
+                      "title": "Author",
+                      "value": prAuthor,
+                      "short": true
+                    },
+                    {
+                      "title": "Repository",
+                      "value": `${context.repo.owner}/${context.repo.repo}`,
+                      "short": true
+                    }
+                  ]
+                }
+              ]
+            };
+
+            // Add change details
+            let changeText = "";
+            
+            if (breakingChanges.length > 0) {
+              changeText += `🚨 *Breaking Changes (${breakingChanges.length}):*\n`;
+              breakingChanges.forEach(change => {
+                changeText += `• ${change}\n`;
+              });
+              changeText += "\n";
+            }
+            
+            if (dangerousChanges.length > 0) {
+              changeText += `⚠️ *Dangerous Changes (${dangerousChanges.length}):*\n`;
+              dangerousChanges.forEach(change => {
+                changeText += `• ${change}\n`;
+              });
+              changeText += "\n";
+            }
+            
+            if (safeChanges.length > 0) {
+              changeText += `✅ *Safe Changes (${safeChanges.length}):*\n`;
+              safeChanges.forEach(change => {
+                changeText += `• ${change}\n`;
+              });
+            }
+
+            message.attachments[0].text = changeText;
+
+            // Add mentions for team members
+            const mentions = "<@hoda.noori@sap.com> <@a.reuschenbach.puncernau@sap.com> <@taimoor.aslam@sap.com>";
+            message.text = `${mentions} - GraphQL schema changes detected in PR`;
+
+            // Add approval status for breaking changes
+            if (breakingChanges.length > 0) {
+              const approvalStatus = '${{ steps.check-label.outputs.approved }}' === 'true' ? 
+                '✅ *Approved* - Breaking changes have been approved' : 
+                '❌ *Needs Approval* - Add `approved-schema-change` label to approve';
+              
+              message.attachments[0].fields.push({
+                "title": "Approval Status",
+                "value": approvalStatus,
+                "short": false
+              });
+            }
+
+            // Send to Slack
+            const slackPayload = JSON.stringify(message);
+            
+            const https = require('https');
+            const webhookUrl = process.env.SLACK_WEBHOOK_URL || '${{ secrets.SLACK_WEBHOOK_URL }}';
+            
+            if (!webhookUrl) {
+              console.log('SLACK_WEBHOOK_URL not configured, skipping Slack notification');
+              return;
+            }
+
+            const url = new URL(webhookUrl);
+            const options = {
+              hostname: url.hostname,
+              port: 443,
+              path: url.pathname,
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(slackPayload)
+              }
+            };
+
+            const req = https.request(options, (res) => {
+              console.log(`Slack notification sent. Status: ${res.statusCode}`);
+            });
+
+            req.on('error', (error) => {
+              console.error('Error sending Slack notification:', error);
+            });
+
+            req.write(slackPayload);
+            req.end();
+
       - name: Fail if breaking changes are not approved
-        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-label.outputs.approved != 'true'
+        if: steps.schema-check.outputs.has_breaking_changes == 'true' && steps.check-label.outputs.approved != 'true'
         run: |
           echo "❌ Breaking schema changes detected and not approved."
           echo "Please approve the breaking changes by adding the 'approved-schema-change' label to the PR."
@@ -148,19 +306,7 @@ jobs:
           exit 1
 
       - name: Pass check if breaking changes are approved
-        if: steps.schema-check.outputs.has_changes == 'true' && steps.check-label.outputs.approved == 'true'
+        if: steps.schema-check.outputs.has_breaking_changes == 'true' && steps.check-label.outputs.approved == 'true'
         run: |
           echo "✅ Breaking schema changes have been approved with the 'approved-schema-change' label."
           echo "Approved changes: $(cat breaking_changes.txt)"
-
-      - name: Pass check if no breaking changes
-        if: steps.schema-check.outputs.has_changes != 'true'
-        run: |
-          echo "✅ No breaking schema changes detected."
-
-      - name: Send notification to Slack
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_HEUREKA_DEV }}
-          SLACK_MESSAGE: "A pull request has been ${{ github.event.action }}: ${{ github.event.pull_request.html_url }}"
-     
