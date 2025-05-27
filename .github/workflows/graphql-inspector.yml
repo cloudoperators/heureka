@@ -165,9 +165,6 @@ jobs:
               slackMessage += '\n';
             }
 
-            // Add team mentions
-            slackMessage += `👥 *Team:* <@hoda.noori@sap.com> <@a.reuschenbach.puncernau@sap.com> <@taimoor.aslam@sap.com>`;
-
             // Add approval status for breaking changes
             if (breakingChanges.length > 0) {
               slackMessage += `\n\n⚠️ *Action Required:* Breaking changes need approval. Add \`approved-schema-change\` label to approve.`;
