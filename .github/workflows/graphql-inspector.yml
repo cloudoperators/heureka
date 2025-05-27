@@ -167,11 +167,50 @@ jobs:
 
             // Add approval status for breaking changes
             if (breakingChanges.length > 0) {
-              slackMessage += `\n\n⚠️ *Action Required:* Breaking changes need approval. Add \`approved-schema-change\` label to approve.`;
+              slackMessage += `\n\n⚠️ *Action Required:* Breaking changes need approval from UI team. Add \`approved-schema-change\` label to approve.`;
             }
 
-            // Set output for Slack notification
-            core.setOutput('slack_message', slackMessage);
+            // Create a unique hash of the changes to detect duplicates
+            const crypto = require('crypto');
+            const changesHash = crypto.createHash('md5')
+              .update(JSON.stringify({
+                breaking: breakingChanges.sort(),
+                dangerous: dangerousChanges.sort(),
+                safe: safeChanges.sort()
+              }))
+              .digest('hex');
+
+            // Check if we've already sent a Slack notification for these exact changes
+            const slackNotificationMarker = `<!-- SLACK_NOTIFICATION_SENT:${changesHash} -->`;
+            
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const existingSlackNotification = comments.find(comment => 
+              comment.body.includes(slackNotificationMarker)
+            );
+
+            if (existingSlackNotification) {
+              console.log('Slack notification already sent for these changes, skipping duplicate notification');
+              core.setOutput('skip_slack', 'true');
+              core.setOutput('slack_message', '');
+            } else {
+              console.log('New changes detected, will send Slack notification');
+              
+              // Add hidden marker comment to track that we've sent the notification
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `${slackNotificationMarker}\n<!-- This comment tracks Slack notifications to prevent duplicates -->`
+              });
+
+              core.setOutput('skip_slack', 'false');
+              core.setOutput('slack_message', slackMessage);
+            }
 
       - name: Check for approval label
         if: steps.schema-check.outputs.has_changes == 'true'
@@ -196,7 +235,7 @@ jobs:
             }
 
       - name: Send notification to Slack
-        if: steps.schema-check.outputs.has_any_changes == 'true'
+        if: steps.schema-check.outputs.has_any_changes == 'true' && steps.generate-report.outputs.skip_slack != 'true'
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_HEUREKA_DEV }}
