@@ -267,10 +267,10 @@ jobs:
             const slackPayload = JSON.stringify(message);
             
             const https = require('https');
-            const webhookUrl = process.env.SLACK_WEBHOOK_URL || '${{ secrets.SLACK_WEBHOOK_URL }}';
+            const webhookUrl = process.env.SLACK_WEBHOOK_HEUREKA_DEV|| '${{ secrets.SLACK_WEBHOOK_HEUREKA_DEV}}';
             
             if (!webhookUrl) {
-              console.log('SLACK_WEBHOOK_URL not configured, skipping Slack notification');
+              console.log('SLACK_WEBHOOK_HEUREKA_DEVnot configured, skipping Slack notification');
               return;
             }
 
