@@ -49,8 +49,10 @@ func NewDatabaseManager() (TestDatabaseManager, error) {
 
 type TestDatabaseManager interface {
 	NewTestSchema() *mariadb.SqlDatabase
+	NewTestSchemaWithoutMigration() *mariadb.SqlDatabase
 	Setup() error
 	TearDown() error
+	TestTearDown(*mariadb.SqlDatabase) error
 	DbConfig() util.Config
 }
 type LocalTestDatabaseConfig struct {
@@ -66,6 +68,7 @@ type LocalTestDataBaseManager struct {
 func NewLocalTestDatabaseManager() *LocalTestDataBaseManager {
 	tdbm := LocalTestDataBaseManager{}
 	loadConfig(&tdbm.Config)
+	tdbm.Config.DBName = ""
 	return &tdbm
 }
 
@@ -78,12 +81,16 @@ func (dbm *LocalTestDataBaseManager) rootUserConfig() util.Config {
 
 func (dbm *LocalTestDataBaseManager) loadDBClientIfNeeded() {
 	if dbm.dbClient == nil {
-		dbClient, err := mariadb.NewSqlDatabase(dbm.rootUserConfig())
-		if err != nil {
-			ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while DB Client init")
-		}
-		dbm.dbClient = dbClient
+		dbm.loadDBClient()
 	}
+}
+
+func (dbm *LocalTestDataBaseManager) loadDBClient() {
+	dbClient, err := mariadb.NewSqlDatabase(dbm.rootUserConfig())
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while DB Client init")
+	}
+	dbm.dbClient = dbClient
 }
 
 func loadConfig[T any](config **T) {
@@ -92,7 +99,6 @@ func loadConfig[T any](config **T) {
 	if err != nil {
 		panic(err)
 	}
-
 	*config = &cfg
 }
 
@@ -127,7 +133,7 @@ func (dbm *LocalTestDataBaseManager) ResetSchema() error {
 	dbm.loadDBClientIfNeeded()
 
 	// Drop main heureka schema
-	err = dbm.dbClient.DropSchema()
+	err = dbm.dbClient.DropSchema(dbm.Config.DBName)
 
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while dropping schema")
@@ -135,7 +141,6 @@ func (dbm *LocalTestDataBaseManager) ResetSchema() error {
 	}
 
 	err = dbm.dbClient.RunMigrations()
-
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while creating database")
 		return err
@@ -145,9 +150,33 @@ func (dbm *LocalTestDataBaseManager) ResetSchema() error {
 }
 
 func (dbm *LocalTestDataBaseManager) TearDown() error {
+	return dbm.cleanupSchemas()
+}
+
+func removeValue[T comparable](s []T, value T) []T {
+	for i, v := range s {
+		if v == value {
+			return append(s[:i], s[i+1:]...)
+		}
+	}
+	return s // value not found
+}
+
+func (dbm *LocalTestDataBaseManager) cleanupSchemas() error {
 	var err error
 	for _, schema := range dbm.Schemas {
-		err = dbm.dbClient.DropSchemaByName(schema)
+		err = dbm.dbClient.DropSchema(schema)
+	}
+	dbm.Schemas = []string{}
+	return err
+}
+
+func (dbm *LocalTestDataBaseManager) TestTearDown(dbClient *mariadb.SqlDatabase) error {
+	err := dbm.cleanupSchemas()
+	dbClient.CloseConnection()
+	if dbm.dbClient != nil {
+		dbm.dbClient.CloseConnection()
+		dbm.dbClient = nil
 	}
 	return err
 }
@@ -156,33 +185,71 @@ func (dbm *LocalTestDataBaseManager) DbConfig() util.Config {
 	return dbm.Config.Config
 }
 
-func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
+func (dbm *LocalTestDataBaseManager) prepareTestDb() error {
 	dbm.loadDBClientIfNeeded()
 
 	// using only lowercase characters as in local scenarios the schema name is case-insensitive but the db file names are not leading to errors
 	dbm.Config.DBName = fmt.Sprintf("heureka%s", util2.GenerateRandomString(15, util2.Ptr("abcdefghijklmnopqrstuvwxyz0123456789")))
 	dbm.Schemas = append(dbm.Schemas, dbm.Config.DBName)
 
-	err := dbm.dbClient.RunMigrations()
+	err := dbm.dbClient.ConnectDB(dbm.Config.DBName)
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting up new Migration Schema")
+		return fmt.Errorf("Failure while connecting to DB")
 	}
-
 	err = dbm.dbClient.GrantAccess(dbm.Config.DBUser, dbm.Config.DBName, "%")
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while granting privileges for new Schema ")
+		return fmt.Errorf("Failure while granting privileges for new Schema")
 	}
+	return nil
+}
 
+func (dbm *LocalTestDataBaseManager) createNewConnection() (*mariadb.SqlDatabase, error) {
 	dbClient, err := mariadb.NewSqlDatabase(dbm.Config.Config)
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while loading DB Client for new Schema")
+		return nil, fmt.Errorf("Failure while loading DB Client for new Schema")
 	}
 
 	err = mariadb.TestConnection(dbm.Config.Config, 10)
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while testing connection for new Schema")
+		return nil, fmt.Errorf("Failure while testing connection for new Schema")
 	}
 
+	return dbClient, nil
+}
+
+func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
+	err := dbm.prepareTestDb()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to prepare DB schema")
+	}
+
+	err = dbm.dbClient.RunMigrations()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure during DB migration")
+	}
+
+	dbClient, err := dbm.createNewConnection()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to create db connection")
+	}
+	return dbClient
+}
+
+func (dbm *LocalTestDataBaseManager) NewTestSchemaWithoutMigration() *mariadb.SqlDatabase {
+	err := dbm.prepareTestDb()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to prepare db schema")
+	}
+
+	err = dbm.dbClient.CloseConnection()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while closing DB connection")
+	}
+
+	dbClient, err := dbm.createNewConnection()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to create db connection")
+	}
 	return dbClient
 }
 
@@ -203,6 +270,7 @@ type ContainerizedTestDataBaseManager struct {
 func NewContainerizedTestDatabaseManager() *ContainerizedTestDataBaseManager {
 	tdbm := &ContainerizedTestDataBaseManager{}
 	loadConfig(&tdbm.Config)
+	tdbm.Config.DBName = ""
 	tdbm.LocalTestDataBaseManager = NewLocalTestDatabaseManager()
 	return tdbm
 }
@@ -271,7 +339,6 @@ func (dbm *ContainerizedTestDataBaseManager) Setup() error {
 		ExposedPorts: nat.PortSet{
 			MARIADB_DEFAULT_PORT: struct{}{},
 		},
-
 		Env: []string{
 			fmt.Sprintf("%s=%s", "MARIADB_USER", dbm.Config.DBUser),
 			fmt.Sprintf("%s=%s", "MARIADB_PASSWORD", dbm.Config.DBPassword),

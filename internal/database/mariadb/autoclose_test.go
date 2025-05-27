@@ -22,6 +22,9 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 		databaseSeeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	When("Running autoclose", Label("Autoclose"), func() {
 		Context("and the database is empty", func() {

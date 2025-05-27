@@ -27,10 +27,11 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -43,6 +44,7 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {

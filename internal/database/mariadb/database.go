@@ -7,8 +7,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"runtime/debug"
-	"strings"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -16,6 +14,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
@@ -32,6 +31,7 @@ type SqlDatabase struct {
 	db                    *sqlx.DB
 	defaultIssuePriority  int64
 	defaultRepositoryName string
+	dbName                string
 }
 
 func (s *SqlDatabase) CloseConnection() error {
@@ -96,16 +96,31 @@ func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
 		db:                    db,
 		defaultIssuePriority:  cfg.DefaultIssuePriority,
 		defaultRepositoryName: cfg.DefaultRepositoryName,
+		dbName:                cfg.DBName,
 	}, nil
 }
 
-func (s *SqlDatabase) DropSchemaByName(name string) error {
+func (s *SqlDatabase) DropSchema(name string) error {
 	_, err := s.db.Exec(fmt.Sprintf("DROP SCHEMA IF EXISTS %s", name))
 	return err
 }
 
-func (s *SqlDatabase) DropSchema() error {
-	return s.DropSchemaByName(s.config.DBName)
+func (s *SqlDatabase) ConnectDB(dbName string) error {
+	s.dbName = dbName
+	return s.connectDB()
+}
+
+func (s *SqlDatabase) connectDB() error {
+	_, err := s.db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", s.dbName))
+	if err != nil {
+		return fmt.Errorf("Could not create database '%s'. %w", s.dbName, err)
+	}
+
+	_, err = s.db.Exec(fmt.Sprintf("USE %s", s.dbName))
+	if err != nil {
+		return fmt.Errorf("Could not use database '%s'. %w", s.dbName, err)
+	}
+	return nil
 }
 
 func (s *SqlDatabase) GrantAccess(username string, database string, host string) error {
@@ -116,36 +131,6 @@ func (s *SqlDatabase) GrantAccess(username string, database string, host string)
 	_, err = s.db.Exec(fmt.Sprintf("GRANT ALL ON %s.* TO '%s'@'%s';", database, username, host))
 	return err
 }
-
-/*func (s *SqlDatabase) SetupSchema(cfg util.Config) error {
-	var sf string
-	if strings.HasPrefix(cfg.DBSchema, "/") { //TODO: remove
-		sf = cfg.DBSchema
-	} else {
-		pr, err := util2.GetProjectRoot()
-		if err != nil {
-			logrus.WithError(err).Fatalln(err)
-			return err
-		}
-		sf = fmt.Sprintf("%s/%s", pr, cfg.DBSchema)
-	}
-	file, err := os.ReadFile(sf)
-	if err != nil {
-		logrus.WithError(err).Fatalln(err)
-		return err
-	}
-
-	schema := string(file)
-
-	schema = strings.Replace(schema, "heureka", cfg.DBName, 2)
-	_, err = s.db.Exec(schema)
-
-	if err != nil {
-		logrus.WithError(err).Fatalln(err)
-		return err
-	}
-	return nil
-}*/
 
 // GetDefaultIssuePriority ...
 func (s *SqlDatabase) GetDefaultIssuePriority() int64 {
@@ -159,56 +144,37 @@ func (s *SqlDatabase) GetDefaultRepositoryName() string {
 func (s *SqlDatabase) GetVersion() (string, error) {
 	m, err := s.openMigration()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Could not open migration without source: %w", err)
 	}
+	defer m.Close()
 
 	v, d, err := getMigrationVersion(m)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Could not get migration version: %w", err)
 	}
 
 	return versionToString(v, d), nil
 }
 
 func GetVersion(cfg util.Config) (string, error) {
-    db, err := NewSqlDatabase(cfg)
-    if err != nil {
-        return "", fmt.Errorf("Error while Creating Db")
-    }
+	db, err := NewSqlDatabase(cfg)
+	if err != nil {
+		return "", fmt.Errorf("Error while Creating Db")
+	}
 
-    v, err := db.GetVersion()
-    if err != nil {
-        return "", fmt.Errorf("Error while Migrating Db")
-    }
+	v, err := db.GetVersion()
+	if err != nil {
+		return "", fmt.Errorf("Error while checking Db migration: %w", err)
+	}
 	return v, nil
 }
-
-/*func GetVersion(cfg util.Config) (string, error) { //TODO: move to SqlDatabase
-	db, err := getSqlxConnection(cfg)
-	if err != nil {
-		return "", err
-	}
-	defer db.Close()
-
-	m, err := openMigration(db.DB)
-	if err != nil {
-		return "", err
-	}
-	defer m.Close()
-
-	v, d, err := getMigrationVersion(m)
-	if err != nil {
-		return "", err
-	}
-
-	return versionToString(v, d), nil
-}*/
 
 func (s *SqlDatabase) RunMigrations() error {
 	m, err := s.openMigration()
 	if err != nil {
 		return err
 	}
+	defer m.Close()
 
 	err = m.Up()
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange && err != io.EOF {
@@ -217,27 +183,6 @@ func (s *SqlDatabase) RunMigrations() error {
 
 	return nil
 }
-
-/*func RunMigrations(cfg util.Config) error { //TODO: move to SqlDatabase
-	db, err := getSqlxConnection(cfg)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	m, err := openMigration(db.DB)
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	err = m.Up()
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-
-	return nil
-}*/
 
 func versionToString(v uint, dirty bool) string {
 	var dirtyStr string
@@ -255,30 +200,25 @@ func getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
 	return version, dirty, nil
 }
 
-func (s *SqlDatabase)openMigration() (*migrate.Migrate, error) {
-	memMigrations, err := loadMigrations()
+func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
+	err := s.connectDB()
+	if err != nil {
+		return nil, fmt.Errorf("Could not connect DB: %w", err)
+	}
+
+	d, err := iofs.New(Migration, "migrations")
 	if err != nil {
 		return nil, err
 	}
-	initVersion, ok := getLowestVersionOfMigration(memMigrations)
-	if !ok {
-		return nil, fmt.Errorf("No migration file available")
-	}
-	memMigrations[initVersion] = strings.Replace(memMigrations[initVersion], "heureka", s.config.DBName, 2)       //TODO: all s.config access has to be switched to string dbName passed by arg
-	fmt.Printf("Applying migrations for %s\n", s.config.DBName)
-	debug.PrintStack()
 
-	src := &stringMigrationSource{migrations: memMigrations}
-
-	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{DatabaseName: s.config.DBName})
+	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{DatabaseName: s.dbName})
 	if err != nil {
 		return nil, err
 	}
 
 	m, err := migrate.NewWithInstance(
-		"mem", src,
+		"iofs", d,
 		"mysql", driver)
-
 	if err != nil {
 		return nil, err
 	}

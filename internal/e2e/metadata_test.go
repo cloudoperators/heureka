@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/server"
@@ -101,7 +102,7 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 
 	AfterEach(func() {
 		s.BlockingStop()
-		db.CloseConnection()
+		dbm.TestTearDown(db)
 	})
 
 	When("New issue is created via API", func() {

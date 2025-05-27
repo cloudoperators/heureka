@@ -26,6 +26,9 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	When("Getting ServiceIssueVariants", Label("GetServiceIssueVariants"), func() {
 		Context("and the database is empty", func() {
