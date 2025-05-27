@@ -102,15 +102,30 @@ jobs:
             // Generate PR comment for breaking changes
             if (breakingChanges.length > 0) {
               const reportHeader = '## ⚠️ Breaking GraphQL Schema Changes Detected';
+              
+              // Create a hash of breaking changes to detect duplicates
+              const breakingChangesHash = crypto.createHash('md5')
+                .update(JSON.stringify(breakingChanges.sort()))
+                .digest('hex');
+              
+              const commentMarker = `<!-- BREAKING_CHANGES_HASH:${breakingChangesHash} -->`;
+              
               const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number
               });
 
-              const existingComment = comments.find(comment => comment.body.includes(reportHeader));
+              const existingComment = comments.find(comment => 
+                comment.body.includes(reportHeader) && comment.body.includes(commentMarker)
+              );
 
               if (!existingComment) {
+                // Check if there's an old comment with different changes that we should update
+                const oldComment = comments.find(comment => 
+                  comment.body.includes(reportHeader) && !comment.body.includes(commentMarker)
+                );
+
                 let comment = `${reportHeader}\n\n`;
                 comment += 'This PR contains breaking changes to the GraphQL schema that need approval:\n\n';
 
@@ -119,14 +134,50 @@ jobs:
                 }
 
                 comment += '\n### Approval Process\n\n';
-                comment += 'To approve these breaking changes, add the `approved-schema-change` label to this PR.';
+                comment += 'To approve these breaking changes, add the `approved-schema-change` label to this PR.\n\n';
+                comment += commentMarker;
 
-                await github.rest.issues.createComment({
+                if (oldComment) {
+                  // Update existing comment with new changes
+                  await github.rest.issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: oldComment.id,
+                    body: comment
+                  });
+                  console.log('Updated existing breaking changes comment with new changes');
+                } else {
+                  // Create new comment
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    body: comment
+                  });
+                  console.log('Created new breaking changes comment');
+                }
+              } else {
+                console.log('A comment with the same breaking changes already exists, skipping PR comment update');
+              }
+            } else {
+              // If no breaking changes, remove any existing breaking changes comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number
+              });
+
+              const existingComment = comments.find(comment => 
+                comment.body.includes('## ⚠️ Breaking GraphQL Schema Changes Detected')
+              );
+
+              if (existingComment) {
+                await github.rest.issues.deleteComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: comment
+                  comment_id: existingComment.id
                 });
+                console.log('Removed breaking changes comment as no breaking changes exist anymore');
               }
             }
 
@@ -165,9 +216,12 @@ jobs:
               slackMessage += '\n';
             }
 
+            // Add team mentions
+            slackMessage += `👥 *Team:* <@hoda.noori@sap.com> <@a.reuschenbach.puncernau@sap.com> <@taimoor.aslam@sap.com>`;
+
             // Add approval status for breaking changes
             if (breakingChanges.length > 0) {
-              slackMessage += `\n\n⚠️ *Action Required:* Breaking changes need approval from UI team. Add \`approved-schema-change\` label to approve.`;
+              slackMessage += `\n\n⚠️ *Action Required:* Breaking changes need approval. Add \`approved-schema-change\` label to approve.`;
             }
 
             // Create a unique hash of the changes to detect duplicates
