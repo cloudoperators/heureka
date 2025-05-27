@@ -18,7 +18,7 @@ input ComponentInput {
 enum ComponentTypeValues {
     containerImage,
     virtualMachineImage,
-    repository
+    repo
 }
 
 input ComponentFilter {
