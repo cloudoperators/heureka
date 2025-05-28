@@ -5,10 +5,12 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 	stypes "github.com/aquasecurity/trivy/pkg/module/serialize"
+	"github.com/cloudoperators/heureka/scanners/keppel/client"
 )
 
 // For more attributes check
@@ -91,4 +93,20 @@ type HTTPError struct {
 
 func (e *HTTPError) Error() string {
 	return fmt.Sprintf("HTTP error: status code %d, body: %s", e.StatusCode, e.Body)
+}
+
+func GetSeverityValue(severity string) client.SeverityValues {
+	s := strings.ToLower(severity)
+	switch s {
+	case "critical":
+		return client.SeverityValuesCritical
+	case "high":
+		return client.SeverityValuesHigh
+	case "medium":
+		return client.SeverityValuesMedium
+	case "low":
+		return client.SeverityValuesLow
+	default:
+		return client.SeverityValuesNone
+	}
 }

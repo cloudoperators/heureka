@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
@@ -16,19 +17,69 @@ import (
 )
 
 type Processor struct {
-	uuid   string
-	tag    string
-	Client *graphql.Client
+	uuid                string
+	tag                 string
+	Client              *graphql.Client
+	CveDetailsUrl       string
+	IssueRepositoryUrl  string
+	IssueRepositoryName string
+	IssueRepositoryId   string
 }
 
 func NewProcessor(cfg Config, tag string) *Processor {
 	httpClient := http.Client{}
 	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
 	return &Processor{
-		Client: &gClient,
-		uuid:   uuid.New().String(),
-		tag:    tag,
+		Client:              &gClient,
+		uuid:                uuid.New().String(),
+		tag:                 tag,
+		IssueRepositoryName: cfg.IssueRepositoryName,
+		IssueRepositoryUrl:  cfg.IssueRepositoryUrl,
+		CveDetailsUrl:       cfg.CveDetailsUrl,
 	}
+}
+
+func (p *Processor) Setup() error {
+	// Check if there is already an IssueRepository with the same name
+	queryFilter := client.IssueRepositoryFilter{
+		Name: []string{p.IssueRepositoryName},
+	}
+	listRepositoriesResp, err := client.GetIssueRepositories(context.TODO(), *p.Client, &queryFilter)
+
+	if err != nil {
+		return err
+	}
+
+	if listRepositoriesResp.IssueRepositories.TotalCount == 0 {
+		log.Warnf("There is no IssueRepository: %s", err)
+
+		// Create new IssueRepository
+		issueRepositoryInput := client.IssueRepositoryInput{
+			Name: p.IssueRepositoryName,
+			Url:  p.IssueRepositoryUrl,
+		}
+		issueMutationResp, err := client.CreateIssueRepository(context.TODO(), *p.Client, &issueRepositoryInput)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Couldn't create new IssueRepository")
+		}
+
+		// Save IssueRepositoryId
+		p.IssueRepositoryId = issueMutationResp.CreateIssueRepository.Id
+		log.WithFields(log.Fields{
+			"issueRepositoryId": p.IssueRepositoryId,
+		}).Info("Created new IssueRepository")
+	} else {
+		// Extract IssueRepositoryId
+		for _, ir := range listRepositoriesResp.IssueRepositories.Edges {
+			log.Debugf("nodeId: %s", ir.Node.Id)
+			p.IssueRepositoryId = ir.Node.Id
+			break
+		}
+		log.Debugf("IssueRepositoryId: %s", p.IssueRepositoryId)
+	}
+	return nil
 }
 
 func (p *Processor) CreateScannerRun(ctx context.Context) error {
@@ -100,17 +151,31 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 				continue
 			}
 			if issue == nil {
-				log.WithFields(log.Fields{
-					"vulnerabilityID": vulnerability.VulnerabilityID,
-				}).Warning("Issue not found")
-				continue
-				// use this for inserting issues, necessary to test without nvd scanner
-				// i, err := p.CreateIssue(vulnerability.VulnerabilityID, vulnerability.Description)
-				// if err != nil {
-				// 	fmt.Println(err)
-				// 	continue
-				// }
-				// issue = &i
+				// create only cve issues
+				if !strings.HasPrefix(strings.ToLower(vulnerability.VulnerabilityID), "cve") {
+					log.WithFields(log.Fields{
+						"vulnerabilityID": vulnerability.VulnerabilityID,
+					}).Warning("VulnerabilityID does not start with 'CVE'")
+					continue
+				}
+				i, err := p.CreateIssue(vulnerability.VulnerabilityID, vulnerability.Description)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				issue = i
+				cvssVector := ""
+				// check if nvd CVSS vector is available
+				if vulnerability.CVSS != nil {
+					if _, ok := vulnerability.CVSS["nvd"]; ok {
+						cvssVector = vulnerability.CVSS["nvd"].V3Vector
+					}
+				}
+				_, err = p.CreateIssueVariant(vulnerability.VulnerabilityID, vulnerability.Description, issue.Id, cvssVector, vulnerability.Severity)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
 			}
 			_, err = client.AddComponentVersionToIssue(context.Background(), *p.Client, issue.Id, componentVersionId)
 
@@ -218,4 +283,31 @@ func (p *Processor) CreateIssue(primaryName string, description string) (*client
 	}).Info("Issue created")
 
 	return issue, nil
+}
+
+func (p *Processor) CreateIssueVariant(secondaryName string, description string, issueId string, vector string, severity string) (*client.IssueVariant, error) {
+	severityValue := models.GetSeverityValue(severity)
+	r, err := client.CreateIssueVariant(context.Background(), *p.Client, &client.IssueVariantInput{
+		SecondaryName:     secondaryName,
+		Description:       description,
+		ExternalUrl:       p.CveDetailsUrl + secondaryName,
+		IssueId:           issueId,
+		IssueRepositoryId: p.IssueRepositoryId,
+		Severity: &client.SeverityInput{
+			Vector: vector,
+			Rating: severityValue,
+		},
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("secondaryName: %s, issueId: %s, severity: %s %w", secondaryName, issueId, severity, err)
+	}
+
+	issueVariant := r.GetCreateIssueVariant()
+
+	log.WithFields(log.Fields{
+		"issueVariantId": issueVariant.Id,
+	}).Info("IssueVariant created")
+
+	return issueVariant, nil
 }
