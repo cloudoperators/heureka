@@ -4,7 +4,6 @@
 type Component implements Node {
     id: ID!
     ccrn: String
-    name: String
     type: ComponentTypeValues
     componentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     metadata: Metadata
@@ -12,13 +11,13 @@ type Component implements Node {
 
 input ComponentInput {
     ccrn: String
-    type: String
+    type: ComponentTypeValues
 }
 
 enum ComponentTypeValues {
     containerImage,
     virtualMachineImage,
-    repo
+    repository
 }
 
 input ComponentFilter {
@@ -27,7 +26,7 @@ input ComponentFilter {
 }
 
 type ComponentConnection implements Connection {
-    total: Int!
+    totalCount: Int!
     edges: [ComponentEdge]
     pageInfo: PageInfo
 }
