@@ -87,7 +87,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 	}, nil
 }
 
-func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID string) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentInstanceEventName,
 		"object": componentInstance,
@@ -102,11 +102,17 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 	componentInstance.UpdatedBy = componentInstance.CreatedBy
 
 	newComponentInstance, err := ci.database.CreateComponentInstance(componentInstance)
-	ci.database.CreateScannerRunComponentInstanceTracker(newComponentInstance.Id, scannerRunUUID)
 
 	if err != nil {
-		l.Error(err)
 		return nil, NewComponentInstanceHandlerError("Internal error while creating componentInstance.")
+	}
+
+	if scannerRunUUID != nil {
+		err = ci.database.CreateScannerRunComponentInstanceTracker(newComponentInstance.Id, *scannerRunUUID)
+
+		if err != nil {
+			return nil, NewComponentInstanceHandlerError("Internal error while creating ScannerRunComponentInstanceTracker.")
+		}
 	}
 
 	ci.eventRegistry.PushEvent(&CreateComponentInstanceEvent{
@@ -116,7 +122,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 	return newComponentInstance, nil
 }
 
-func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentInstanceEventName,
 		"object": componentInstance,
@@ -134,6 +140,14 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentInstanceHandlerError("Internal error while updating componentInstance.")
+	}
+
+	if scannerRunUUID != nil {
+		err = ci.database.CreateScannerRunComponentInstanceTracker(componentInstance.Id, *scannerRunUUID)
+
+		if err != nil {
+			return nil, NewComponentInstanceHandlerError("Internal error while creating ScannerRunComponentInstanceTracker.")
+		}
 	}
 
 	lo := entity.NewListOptions()
@@ -317,4 +331,21 @@ func (s *componentInstanceHandler) ListContainers(filter *entity.ComponentInstan
 	s.eventRegistry.PushEvent(&ListContainersEvent{Filter: filter, Containers: containers})
 
 	return containers, nil
+}
+func (s *componentInstanceHandler) ListTypes(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListTypesEventName,
+		"filter": filter,
+	})
+
+	types, err := s.database.GetType(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Type.")
+	}
+
+	s.eventRegistry.PushEvent(&ListTypesEvent{Filter: filter, Types: types})
+
+	return types, nil
 }

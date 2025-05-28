@@ -94,7 +94,13 @@ func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.Issu
 }
 
 func (r *queryResolver) ComponentInstanceFilterValues(ctx context.Context) (*model.ComponentInstanceFilterValue, error) {
-	return &model.ComponentInstanceFilterValue{}, nil
+	return &model.ComponentInstanceFilterValue{
+		Type: &model.FilterItem{
+			DisplayName: &baseResolver.FilterDisplayComponentInstanceType,
+			FilterName:  &baseResolver.ComponentInstanceFilterType,
+			Values:      lo.Map(model.AllComponentInstanceTypesOrdered, func(s model.ComponentInstanceTypes, _ int) *string { return pointer.String(s.String()) }),
+		},
+	}, nil
 }
 
 func (r *queryResolver) ComponentFilterValues(ctx context.Context) (*model.ComponentFilterValue, error) {

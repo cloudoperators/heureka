@@ -186,7 +186,7 @@ func HandleImageManifests(
 
 	// If manifest contains children, it's a multi-arch image
 	// in that case the parent manifest doesn't have a manifest
-	if len(manifest.Children) == 0 && !isVulnerabilityStatusValid(manifest.VulnerabilityStatus) {
+	if len(manifest.Children) == 0 && isVulnerabilityStatusValid(manifest.VulnerabilityStatus) {
 		trivyReport, err := keppelScanner.GetTrivyReport(info.Account, info.Repository, info.Digest)
 		if err != nil {
 			return fmt.Errorf("couldn't get trivy report for account: %s, repository: %s: %w", info.Account, info.Repository, err)

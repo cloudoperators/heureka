@@ -158,6 +158,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 					Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
 					Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has a ccrn set")
 					Expect(ci.Node.Count).ToNot(BeNil(), "componentInstance has a count set")
+					Expect(ci.Node.Type).ToNot(BeNil(), "componentInstance has a type set")
 
 					cv := ci.Node.ComponentVersion
 					Expect(cv.ID).ToNot(BeNil(), "componentVersion has a ID set")
@@ -335,7 +336,22 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 					}
 				})
 			})
+			It("can order by type", Label("withOrder.graphql"), func() {
+				componentInstances, err := sendOrderRequest([]map[string]string{
+					{"by": "type", "direction": "asc"},
+				})
 
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the expected content in order", func() {
+					var prev int = -1
+					for _, ci := range componentInstances.Edges {
+						citEntity := entity.NewComponentInstanceType(ci.Node.Type.String())
+						Expect(citEntity.Index() >= prev).Should(BeTrue())
+						prev = citEntity.Index()
+					}
+				})
+			})
 		})
 	})
 })
@@ -372,6 +388,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 			componentInstance = testentity.NewFakeComponentInstanceEntity()
 			componentInstance.ComponentVersionId = seedCollection.ComponentVersionRows[0].Id.Int64
 			componentInstance.ServiceId = seedCollection.ServiceRows[0].Id.Int64
+			seeder.SeedScannerRunInstances("4b6d3167-473a-4150-87b3-01da70096727")
 		})
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
@@ -395,6 +412,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 					"project":            componentInstance.Project,
 					"pod":                componentInstance.Pod,
 					"container":          componentInstance.Container,
+					"type":               componentInstance.Type.String(),
 					"uuid":               "4b6d3167-473a-4150-87b3-01da70096727",
 					"count":              fmt.Sprintf("%d", componentInstance.Count),
 					"componentVersionId": fmt.Sprintf("%d", componentInstance.ComponentVersionId),

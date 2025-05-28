@@ -13,6 +13,7 @@ query ($filter: ComponentInstanceFilter, $first: Int, $after: String) {
             node { 
                 id
                 ccrn
+                type
                 count
                 componentVersionId
                 componentVersion { 

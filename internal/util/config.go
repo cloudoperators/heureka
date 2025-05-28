@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 type Config struct {
@@ -62,9 +63,11 @@ func (c *Config) ConfigToConsole() {
 		//{"Discovery Schedule", c.DiscoverySchedule},
 	}
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Variable", "Value"})
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.AppendBulk(data)
+	table.Header([]string{"Variable", "Value"})
+	table.Configure(func(config *tablewriter.Config) {
+		config.Row.Formatting.Alignment = tw.AlignLeft
+	})
+	table.Bulk(data)
 	table.Render()
 }
 

@@ -3,120 +3,140 @@
     "ccrn": "ccrn: spec=test, kind=pod, id=1",
     "count": 2,
     "component_version_id": 1,
-    "service_id": 1
+    "service_id": 1,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=2",
     "count": 1,
     "component_version_id": 1,
-    "service_id": 1
+    "service_id": 1,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=3",
     "count": 3,
     "component_version_id": 2,
-    "service_id": 2
+    "service_id": 2,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=4",
     "count": 1,
     "component_version_id": 2,
-    "service_id": 2
+    "service_id": 2,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=5",
     "count": 2,
     "component_version_id": 3,
-    "service_id": 3
+    "service_id": 3,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=6",
     "count": 1,
     "component_version_id": 3,
-    "service_id": 3
+    "service_id": 3,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=7",
     "count": 4,
     "component_version_id": 4,
-    "service_id": 4
+    "service_id": 4,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=8",
     "count": 2,
     "component_version_id": 4,
-    "service_id": 4
+    "service_id": 4,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=9",
     "count": 6,
     "component_version_id": 5,
-    "service_id": 5
+    "service_id": 5,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=10",
     "count": 2,
     "component_version_id": 5,
-    "service_id": 5
+    "service_id": 5,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=11",
     "count": 3,
     "component_version_id": 6,
-    "service_id": 6
+    "service_id": 6,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=12",
     "count": 1,
     "component_version_id": 6,
-    "service_id": 6
+    "service_id": 6,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=13",
     "count": 4,
     "component_version_id": 7,
-    "service_id": 7
+    "service_id": 7,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=14",
     "count": 2,
     "component_version_id": 7,
-    "service_id": 7
+    "service_id": 7,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=15",
     "count": 3,
     "component_version_id": 8,
-    "service_id": 8
+    "service_id": 8,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=16",
     "count": 1,
     "component_version_id": 8,
-    "service_id": 8
+    "service_id": 8,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=17",
     "count": 5,
     "component_version_id": 9,
-    "service_id": 9
+    "service_id": 9,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=18",
     "count": 2,
     "component_version_id": 9,
-    "service_id": 9
+    "service_id": 9,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=19",
     "count": 4,
     "component_version_id": 10,
-    "service_id": 10
+    "service_id": 10,
+    "type": "Server"
   },
   {
     "ccrn": "ccrn: spec=test, kind=pod, id=20",
     "count": 2,
     "component_version_id": 10,
-    "service_id": 10
+    "service_id": 10,
+    "type": "Server"
   }
 ]

@@ -1062,6 +1062,7 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			componentinstance_project,
 			componentinstance_pod,
 			componentinstance_container,
+			componentinstance_type,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -1076,6 +1077,7 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			:componentinstance_project,
 			:componentinstance_pod,
 			:componentinstance_container,
+			:componentinstance_type,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
@@ -1460,6 +1462,7 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	project := strings.ToLower(gofakeit.BeerName())
 	pod := strings.ToLower(gofakeit.UUID())
 	container := strings.ToLower(gofakeit.UUID())
+	t := gofakeit.RandomString(entity.AllComponentInstanceType)
 	return mariadb.ComponentInstanceRow{
 		CCRN:      sql.NullString{String: GenerateFakeCcrn(cluster, namespace), Valid: true},
 		Region:    sql.NullString{String: region, Valid: true},
@@ -1469,6 +1472,7 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 		Project:   sql.NullString{String: project, Valid: true},
 		Pod:       sql.NullString{String: pod, Valid: true},
 		Container: sql.NullString{String: container, Valid: true},
+		Type:      sql.NullString{String: t, Valid: true},
 		Count:     sql.NullInt16{Int16: n, Valid: true},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
@@ -1962,4 +1966,28 @@ func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error 
 		}
 	}
 	return err
+}
+func (s *DatabaseSeeder) SeedScannerRunInstances(uuids ...string) error {
+	insertScannerRun := `
+		INSERT INTO ScannerRun (
+			scannerrun_uuid,
+			scannerrun_tag,
+			scannerrun_start_run,
+			scannerrun_end_run,
+			scannerrun_is_completed
+		) VALUES (
+			?,
+			?,
+			?,
+			?,
+			?
+		)
+	`
+	for _, uuid := range uuids {
+		_, err := s.db.Exec(insertScannerRun, uuid, "tag", time.Now(), time.Now(), false)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

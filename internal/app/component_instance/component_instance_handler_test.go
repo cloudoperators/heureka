@@ -128,9 +128,8 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 	It("creates componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
-		db.On("CreateScannerRunComponentInstanceTracker", componentInstance.Id, "").Return(nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
-		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, "")
+		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -142,6 +141,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			Expect(newComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
 			Expect(newComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
 			Expect(newComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
+			Expect(newComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
 			Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
@@ -181,10 +181,11 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.Project = "NewProject"
 		componentInstance.Pod = "NewPod"
 		componentInstance.Container = "NewContainer"
+		componentInstance.Type = "Server"
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
-		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance)
+		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, nil)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
@@ -195,6 +196,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			Expect(updatedComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
 			Expect(updatedComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
 			Expect(updatedComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
+			Expect(updatedComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
 			Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
