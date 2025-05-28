@@ -200,6 +200,8 @@ func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc 
 			switch o.By {
 			case entity.ComponentVersionId:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionId, Value: cv.Id, Order: o.Direction})
+			case entity.ComponentVersionRepository:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionRepository, Value: cv.Repository, Order: o.Direction})
 			case entity.CriticalCount:
 				cursors.fields = append(cursors.fields, Field{Name: entity.CriticalCount, Value: isc.Critical, Order: o.Direction})
 			case entity.HighCount:

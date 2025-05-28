@@ -33,6 +33,8 @@ func ColumnName(f entity.OrderByField) string {
 		return "componentinstance_type"
 	case entity.ComponentVersionId:
 		return "componentversion_id"
+	case entity.ComponentVersionRepository:
+		return "componentversion_repository"
 	case entity.IssueId:
 		return "issue_id"
 	case entity.IssueVariantRating:
