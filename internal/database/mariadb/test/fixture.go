@@ -1466,7 +1466,7 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	container := strings.ToLower(gofakeit.UUID())
 	t := gofakeit.RandomString(entity.AllComponentInstanceType)
 	context := entity.Json{
-		"timeout_nbd":               gofakeit.Int(),
+		"timeout_nbd":               gofakeit.Float32(),
 		"remove_unused_base_images": gofakeit.Bool(),
 		"my_ip":                     gofakeit.IPv4Address(),
 	}

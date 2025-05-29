@@ -129,6 +129,12 @@ type FilterValueItem {
     values: [ValueItem]
 }
 
+type FilterMapItem {
+    displayName: String
+    filterName: String
+    values: [Map]
+}
+
 type Metadata {
     created_at: DateTime
     created_by: String

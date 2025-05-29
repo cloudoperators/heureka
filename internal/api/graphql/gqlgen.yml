@@ -87,7 +87,7 @@ models:
       - github.com/99designs/gqlgen/graphql.Int32
   Map:
     model:
-      - github.com/99designs/gqlgen/graphql.Map
+      - github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.Map
   Issue:
      fields:
        issueVariants:
@@ -249,6 +249,8 @@ models:
       container:
         resolver: true
       type:
+        resolver: true
+      context:
         resolver: true
   ComponentFilterValue:
     fields:

@@ -36,7 +36,6 @@ func (s *SqlDatabase) CloseConnection() error {
 	return s.db.Close()
 }
 
-
 func buildDSN(cfg util.Config) string {
 	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
 		return fmt.Sprintf("%s:%s@unix(%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName)
@@ -45,7 +44,7 @@ func buildDSN(cfg util.Config) string {
 }
 
 func TestConnection(cfg util.Config, backOff int) error {
-	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {	
+	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
 		// No need to test local socket connection
 		return nil
 	}
@@ -425,4 +424,28 @@ func buildStateFilterQuery(state []entity.StateFilterType, prefix string) string
 		}
 	}
 	return combineFilterQueries(stateQueries, OP_OR)
+}
+
+func buildJsonFilterQuery(filter []*entity.Json, column string, op string) string {
+	var conFilQueries []string
+	for _, conFil := range filter {
+		attrs := util.SeparateJsonAttributes(*conFil)
+		var queries []string
+		for _, conAttr := range attrs {
+			queries = append(queries, fmt.Sprintf("JSON_VALUE(%s, '$.%s') = ?", column, conAttr.Key))
+		}
+		conFilQueries = append(conFilQueries, combineFilterQueries(queries, OP_AND))
+	}
+	return combineFilterQueries(conFilQueries, op)
+}
+
+func buildJsonQueryParameters(params []interface{}, filter []*entity.Json) []interface{} {
+	var conQueryParams []interface{}
+	for _, conFil := range filter {
+		attrs := util.SeparateJsonAttributes(*conFil)
+		for _, conAttr := range attrs {
+			conQueryParams = append(conQueryParams, conAttr.Attr)
+		}
+	}
+	return buildQueryParameters(params, conQueryParams)
 }

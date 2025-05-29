@@ -335,3 +335,20 @@ func (s *componentInstanceHandler) ListTypes(filter *entity.ComponentInstanceFil
 
 	return types, nil
 }
+func (s *componentInstanceHandler) ListContexts(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListContextsEventName,
+		"filter": filter,
+	})
+
+	contexts, err := s.database.GetContext(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Type.")
+	}
+
+	s.eventRegistry.PushEvent(&ListContextsEvent{Filter: filter, Contexts: contexts})
+
+	return contexts, nil
+}

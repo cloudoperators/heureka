@@ -99,6 +99,7 @@ type ComponentInstanceFilter struct {
 	Pod                     []*string         `json:"pod"`
 	Container               []*string         `json:"container"`
 	Type                    []*string         `json:"type"`
+	Context                 []*Json           `json:"context"`
 	Search                  []*string         `json:"search"`
 	State                   []StateFilterType `json:"state"`
 }
@@ -124,7 +125,7 @@ type ComponentInstance struct {
 	Pod                string                `json:"pod"`
 	Container          string                `json:"container"`
 	Type               ComponentInstanceType `json:"type"`
-	Context            Json                  `json:"context"`
+	Context            *Json                 `json:"context"`
 	Count              int16                 `json:"count"`
 	ComponentVersion   *ComponentVersion     `json:"component_version,omitempty"`
 	ComponentVersionId int64                 `db:"componentinstance_component_version_id"`

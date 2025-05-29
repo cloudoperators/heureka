@@ -37,7 +37,7 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 		Pod:                pod,
 		Container:          container,
 		Type:               entity.NewComponentInstanceType(t),
-		Context:            context,
+		Context:            &context,
 		Count:              int16(gofakeit.Number(1, 100)),
 		ComponentVersion:   nil,
 		ComponentVersionId: int64(gofakeit.Number(1, 10000000)),

@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	entityTest "github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -141,7 +142,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						Expect(entries[0].Pod).To(BeEquivalentTo(ciRow.Pod.String))
 						Expect(entries[0].Container).To(BeEquivalentTo(ciRow.Container.String))
 						Expect(entries[0].Type.String()).To(BeEquivalentTo(ciRow.Type.String))
-						Expect(entries[0].Context.String()).To(BeEquivalentTo(ciRow.Context.String))
+						Expect((*map[string]interface{})(entries[0].Context)).To(BeEquivalentTo(util.ConvertStrToJsonNoError(&ciRow.Context.String)))
 					})
 
 				})
@@ -262,7 +263,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 									Expect(r.Pod).Should(BeEquivalentTo(row.Pod.String), "Pod matches")
 									Expect(r.Container).Should(BeEquivalentTo(row.Container.String), "Container matches")
 									Expect(r.Type.String()).Should(BeEquivalentTo(row.Type.String), "Type matches")
-									Expect(r.Context.String()).To(BeEquivalentTo(row.Context.String), "Context matches")
+									Expect((*map[string]interface{})(r.Context)).To(BeEquivalentTo(util.ConvertStrToJsonNoError(&row.Context.String)), "Context matches")
 									Expect(r.Count).Should(BeEquivalentTo(row.Count.Int16), "Count matches")
 									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
@@ -922,6 +923,50 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 				})
 			})
+			Context("and using a Context filter", func() {
+				It("using existing value can fetch the filterd items correctly", func() {
+					cir, expectedCcrns := seedCollection.GetComponentInstanceWithPredicateVal(
+						func(picked, iter mariadb.ComponentInstanceRow) (string, bool) {
+							return iter.CCRN.String, (*util.ConvertStrToJsonNoError(&iter.Context.String))["my_ip"] == (*util.ConvertStrToJsonNoError(&picked.Context.String))["my_ip"]
+						},
+					)
+					issueComponentInstanceAttrFilterWithExpect(
+						db.GetCcrn,
+						&entity.ComponentInstanceFilter{Context: []*entity.Json{{
+							"my_ip": (*util.ConvertStrToJsonNoError(&cir.Context.String))["my_ip"],
+						}}},
+						expectedCcrns,
+					)
+				})
+				It("using multiple existing values can fetch the filterd items correctly", func() {
+					cir, expectedCcrns := seedCollection.GetComponentInstanceWithPredicateVal(
+						func(picked, iter mariadb.ComponentInstanceRow) (string, bool) {
+							iterContext := *util.ConvertStrToJsonNoError(&iter.Context.String)
+							pickedContext := *util.ConvertStrToJsonNoError(&picked.Context.String)
+							return iter.CCRN.String, iterContext["my_ip"] == pickedContext["my_ip"] && iterContext["remove_unused_base_images"] == pickedContext["remove_unused_base_images"]
+						},
+					)
+					cirContext := *util.ConvertStrToJsonNoError(&cir.Context.String)
+					issueComponentInstanceAttrFilterWithExpect(
+						db.GetCcrn,
+						&entity.ComponentInstanceFilter{Context: []*entity.Json{{
+							"my_ip":                     cirContext["my_ip"],
+							"remove_unused_base_images": cirContext["remove_unused_base_images"],
+						}}},
+						expectedCcrns,
+					)
+				})
+				It("and using notexisting value returns an empty list when no Type match the filter", func() {
+					notexistentContextAttr := map[string]interface{}{
+						"not_real": "value",
+					}
+					issueComponentInstanceAttrFilterWithExpect(
+						db.GetCcrn,
+						&entity.ComponentInstanceFilter{Context: []*entity.Json{(*entity.Json)(&notexistentContextAttr)}},
+						[]string{},
+					)
+				})
+			})
 			Context("and using multiple filter attributes", func() {
 				It("using existing values of CCRN attributes can fetch the filtered items correctly", func() {
 					cir, expectedCcrns := seedCollection.GetComponentInstanceWithPredicateVal(
@@ -929,6 +974,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							return iter.CCRN.String, iter.Pod.String == picked.Pod.String &&
 								iter.Container.String == picked.Container.String &&
 								iter.Type.String == picked.Type.String &&
+								iter.Context.String == picked.Context.String &&
 								iter.Project.String == picked.Project.String &&
 								iter.Domain.String == picked.Domain.String &&
 								iter.Namespace.String == picked.Namespace.String &&
@@ -947,6 +993,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Pod:       []*string{&cir.Pod.String},
 							Container: []*string{&cir.Container.String},
 							Type:      []*string{&cir.Type.String},
+							Context:   []*entity.Json{(*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String))},
 						},
 						expectedCcrns,
 					)
@@ -965,6 +1012,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Pod:       []*string{&cir.Pod.String},
 							Container: []*string{&cir.Container.String},
 							Type:      []*string{&cir.Type.String},
+							Context:   []*entity.Json{(*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String))},
 						},
 						[]string{},
 					)
@@ -1568,16 +1616,16 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					canFetchComponentInstanceQueryItems(db.GetType, expectedTypes)
 				})
 			})
-			Context("and using a Region filter for Type", func() {
+			Context("and using a Context filter for Type", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
 					cir, expectedTypes := seedCollection.GetComponentInstanceWithPredicateVal(
 						func(picked, iter mariadb.ComponentInstanceRow) (string, bool) {
-							return iter.Type.String, iter.Region.String == picked.Region.String
+							return iter.Type.String, iter.Context.String == picked.Context.String
 						},
 					)
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetType,
-						&entity.ComponentInstanceFilter{Region: []*string{&cir.Region.String}},
+						&entity.ComponentInstanceFilter{Context: []*entity.Json{(*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String))}},
 						expectedTypes,
 					)
 				})
@@ -1586,6 +1634,50 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetType,
 						&entity.ComponentInstanceFilter{Type: []*string{&notexistentType}},
+						[]string{},
+					)
+				})
+			})
+		})
+	})
+	When("Getting Context", Label("GetContext"), func() {
+		Context("and the database is empty", func() {
+			It("can perform the list query", func() {
+				canPerformComponentInstanceQuery(db.GetContext)
+			})
+		})
+		Context("and we have 10 Component Instances in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+
+			Context("and using no filter", func() {
+				It("can fetch the items correctly", func() {
+					expectedContexts := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
+						return cir.Context.String
+					})
+					canFetchComponentInstanceQueryItems(db.GetContext, expectedContexts)
+				})
+			})
+			Context("and using a Region filter for Context", func() {
+				It("using existing value can fetch the filtered items correctly", func() {
+					cir, expectedContexts := seedCollection.GetComponentInstanceWithPredicateVal(
+						func(picked, iter mariadb.ComponentInstanceRow) (string, bool) {
+							return iter.Context.String, iter.Region.String == picked.Region.String
+						},
+					)
+					issueComponentInstanceAttrFilterWithExpect(
+						db.GetContext,
+						&entity.ComponentInstanceFilter{Region: []*string{&cir.Region.String}},
+						expectedContexts,
+					)
+				})
+				It("and using notexisting value filter returns an empty list when no Context match the filter", func() {
+					notexistentContext := entity.Json{"not_real": "value"}
+					issueComponentInstanceAttrFilterWithExpect(
+						db.GetContext,
+						&entity.ComponentInstanceFilter{Context: []*entity.Json{&notexistentContext}},
 						[]string{},
 					)
 				})

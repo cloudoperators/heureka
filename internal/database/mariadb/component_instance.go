@@ -52,6 +52,7 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.Pod, "CI.componentinstance_pod = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Container, "CI.componentinstance_container = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "CI.componentinstance_type = ?", OP_OR))
+	fl = append(fl, buildJsonFilterQuery(filter.Context, "CI.componentinstance_context", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
@@ -184,6 +185,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.Pod)
 	filterParameters = buildQueryParameters(filterParameters, filter.Container)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
+	filterParameters = buildJsonQueryParameters(filterParameters, filter.Context)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
@@ -522,6 +524,10 @@ func (s *SqlDatabase) GetContainer(filter *entity.ComponentInstanceFilter) ([]st
 
 func (s *SqlDatabase) GetType(filter *entity.ComponentInstanceFilter) ([]string, error) {
 	return s.getComponentInstanceAttr("type", filter)
+}
+
+func (s *SqlDatabase) GetContext(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("context", filter)
 }
 
 func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {

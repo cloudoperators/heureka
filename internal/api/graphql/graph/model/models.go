@@ -12,6 +12,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	interUtil "github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/util"
 )
 
@@ -659,7 +660,7 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 		Pod:                &componentInstance.Pod,
 		Container:          &componentInstance.Container,
 		Type:               &componentInstanceType,
-		Context:            componentInstance.Context,
+		Context:            interUtil.ConvertJsonPointerToValue((*map[string]interface{})(componentInstance.Context)),
 		Count:              &count,
 		ComponentVersionID: util.Ptr(fmt.Sprintf("%d", componentInstance.ComponentVersionId)),
 		ServiceID:          util.Ptr(fmt.Sprintf("%d", componentInstance.ServiceId)),
@@ -713,7 +714,7 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 		Pod:                lo.FromPtr(componentInstance.Pod),
 		Container:          lo.FromPtr(componentInstance.Container),
 		Type:               entity.NewComponentInstanceType(ciType),
-		Context:            componentInstance.Context,
+		Context:            (*entity.Json)(&componentInstance.Context),
 		Count:              int16(lo.FromPtr(componentInstance.Count)),
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,

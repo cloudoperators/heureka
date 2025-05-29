@@ -846,7 +846,7 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 		Pod:                GetStringValue(cir.Pod),
 		Container:          GetStringValue(cir.Container),
 		Type:               entity.NewComponentInstanceType(GetStringValue(cir.Type)),
-		Context:            *util.ConvertStrToJsonNoError(&cir.Context.String),
+		Context:            (*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String)),
 		Count:              GetInt16Value(cir.Count),
 		ComponentVersion:   nil,
 		ComponentVersionId: GetInt64Value(cir.ComponentVersionId),
