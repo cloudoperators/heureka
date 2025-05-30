@@ -30,7 +30,6 @@ func (m Map) MarshalGQL(w io.Writer) {
 }
 
 func (m *Map) UnmarshalGQL(v any) error {
-	fmt.Println(fmt.Sprintf("DEBUG: UnmarshalGQL received value: %+v, type: %T", v, v))
 	if v == nil {
 		*m = nil
 		return nil
@@ -69,7 +68,6 @@ func MarshalMap(val map[string]any) graphql.Marshaler {
 }
 
 func UnmarshalMap(v any) (map[string]any, error) {
-	fmt.Println(fmt.Sprintf("DEBUG2: UnmarshalGQL received value: %+v, type: %T", v, v))
 	if v == nil {
 		return nil, nil
 	}
