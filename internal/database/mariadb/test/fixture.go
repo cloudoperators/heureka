@@ -1063,6 +1063,7 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			componentinstance_pod,
 			componentinstance_container,
 			componentinstance_type,
+			componentinstance_context,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -1078,6 +1079,7 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			:componentinstance_pod,
 			:componentinstance_container,
 			:componentinstance_type,
+			:componentinstance_context,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
@@ -1463,6 +1465,11 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	pod := strings.ToLower(gofakeit.UUID())
 	container := strings.ToLower(gofakeit.UUID())
 	t := gofakeit.RandomString(entity.AllComponentInstanceType)
+	context := entity.Json{
+		"timeout_nbd":               gofakeit.Float32(),
+		"remove_unused_base_images": gofakeit.Bool(),
+		"my_ip":                     gofakeit.IPv4Address(),
+	}
 	return mariadb.ComponentInstanceRow{
 		CCRN:      sql.NullString{String: GenerateFakeCcrn(cluster, namespace), Valid: true},
 		Region:    sql.NullString{String: region, Valid: true},
@@ -1473,6 +1480,7 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 		Pod:       sql.NullString{String: pod, Valid: true},
 		Container: sql.NullString{String: container, Valid: true},
 		Type:      sql.NullString{String: t, Valid: true},
+		Context:   sql.NullString{String: context.String(), Valid: true},
 		Count:     sql.NullInt16{Int16: n, Valid: true},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},

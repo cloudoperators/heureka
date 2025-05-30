@@ -15,6 +15,7 @@ mutation ($input: ComponentInstanceInput!) {
         pod 
         container
         type
+        context
         count
         componentVersionId
         serviceId

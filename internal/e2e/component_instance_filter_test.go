@@ -252,6 +252,23 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 						return cifv.Type.Values
 					})
 			})
+			It("returns correct context", func() {
+				existingContexts := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
+					return cir.Context.String
+				})
+				queryComponentInstanceFilterAndExpectVal(
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentInstanceFilter/context.graphqls",
+					existingContexts,
+					func(cifv model.ComponentInstanceFilterValue) []*string {
+						var contextStrings []*string
+						for _, cont := range cifv.Context.Values {
+							contStr := util.ConvertJsonToStrNoError(&cont)
+							contextStrings = append(contextStrings, &contStr)
+						}
+						return contextStrings
+					})
+			})
 		})
 	})
 })

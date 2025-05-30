@@ -116,6 +116,15 @@ func (r *componentInstanceFilterValueResolver) Type(ctx context.Context, obj *mo
 	return item, err
 }
 
+func (r *componentInstanceFilterValueResolver) Context(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterMapItem, error) {
+	item, err := baseResolver.ContextBaseResolver(r.App, ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ComponentInstanceFilterType
+	return item, err
+}
+
 func (r *Resolver) ComponentInstanceFilterValue() graph.ComponentInstanceFilterValueResolver {
 	return &componentInstanceFilterValueResolver{r}
 }

@@ -142,6 +142,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			Expect(newComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
 			Expect(newComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
 			Expect(newComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
+			Expect(newComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
 			Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
@@ -182,6 +183,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.Pod = "NewPod"
 		componentInstance.Container = "NewContainer"
 		componentInstance.Type = "Server"
+		componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
@@ -197,6 +199,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			Expect(updatedComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
 			Expect(updatedComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
 			Expect(updatedComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
+			Expect(updatedComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
 			Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))

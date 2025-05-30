@@ -34,6 +34,7 @@ var (
 	FilterDisplayPod                   string = "Pod"
 	FilterDisplayContainer             string = "Container"
 	FilterDisplayComponentInstanceType string = "Component Instance Type"
+	FilterDisplayContext               string = "Context"
 
 	ServiceFilterServiceCcrn      string = "serviceCcrn"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"

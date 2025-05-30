@@ -9,3 +9,6 @@ operations:
 generated: generated.go
 package: client
 use_struct_references: true
+bindings:
+  Map:
+    type: "map[string]interface{}"
