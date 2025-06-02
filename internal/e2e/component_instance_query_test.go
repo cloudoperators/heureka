@@ -388,6 +388,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 			componentInstance = testentity.NewFakeComponentInstanceEntity()
 			componentInstance.ComponentVersionId = seedCollection.ComponentVersionRows[0].Id.Int64
 			componentInstance.ServiceId = seedCollection.ServiceRows[0].Id.Int64
+			seeder.SeedScannerRunInstances("4b6d3167-473a-4150-87b3-01da70096727")
 		})
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {

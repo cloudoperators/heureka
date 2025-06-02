@@ -206,22 +206,21 @@ func NewSeverity(url string) Severity {
 		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
 	}
 
-	var externalUrl string
-	switch ev.Ver {
-	case metric.V3_0:
-		externalUrl = fmt.Sprintf("https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.0", url)
-	case metric.V3_1:
-		externalUrl = fmt.Sprintf("https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.1", url)
-	case metric.VUnknown:
-		externalUrl = ""
-	}
-
 	severity := "unkown"
 	score := 0.0
 	cvss := Cvss{}
 	if ev != nil {
 		severity = ev.Severity().String()
 		score = ev.Score()
+		var externalUrl string
+		switch ev.Ver {
+		case metric.V3_0:
+			externalUrl = fmt.Sprintf("https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.0", url)
+		case metric.V3_1:
+			externalUrl = fmt.Sprintf("https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.1", url)
+		case metric.VUnknown:
+			externalUrl = ""
+		}
 		cvss = Cvss{
 			Vector:        url,
 			ExternalUrl:   externalUrl,

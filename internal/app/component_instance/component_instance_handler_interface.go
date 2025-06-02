@@ -7,8 +7,8 @@ import "github.com/cloudoperators/heureka/internal/entity"
 
 type ComponentInstanceHandler interface {
 	ListComponentInstances(*entity.ComponentInstanceFilter, *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error)
-	CreateComponentInstance(*entity.ComponentInstance, string) (*entity.ComponentInstance, error)
-	UpdateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
+	CreateComponentInstance(*entity.ComponentInstance, *string) (*entity.ComponentInstance, error)
+	UpdateComponentInstance(*entity.ComponentInstance, *string) (*entity.ComponentInstance, error)
 	DeleteComponentInstance(int64) error
 	ListCcrns(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListRegions(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
