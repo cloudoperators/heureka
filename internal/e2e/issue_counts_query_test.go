@@ -14,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
@@ -25,10 +26,11 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -41,6 +43,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database has entries", func() {

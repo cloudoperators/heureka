@@ -1,10 +1,6 @@
 --  SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 --  SPDX-License-Identifier: Apache-2.0
 
-create schema if not exists heureka;
-
-use heureka;
-
 create table if not exists User
 (
     user_id         int unsigned auto_increment

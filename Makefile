@@ -108,3 +108,9 @@ compose-restart: compose-down compose-up
 
 compose-build:
 	$(DOCKER_COMPOSE) build $(DOCKER_COMPOSE_SERVICES)
+
+install-migrate:
+	go install -tags 'heureka-migration' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+create-migration:
+	@(test -v MIGRATION_NAME && migrate create -ext sql -dir internal/database/mariadb/migrations ${MIGRATION_NAME}) || echo MIGRATION_NAME not specified >&2

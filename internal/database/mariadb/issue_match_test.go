@@ -26,6 +26,9 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 	When("Getting All IssueMatch IDs", Label("GetAllIssueMatchIds"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
@@ -749,6 +752,9 @@ var _ = Describe("Ordering IssueMatches", func() {
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	var testOrder = func(
 		order []entity.Order,
@@ -1083,6 +1089,9 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
 	})
 	var loadTestData = func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
 		matches, err := test.LoadIssueMatches(test.GetTestDataPath("testdata/issue_match_cursor/issue_match.json"))

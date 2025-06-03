@@ -29,10 +29,11 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -45,6 +46,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
@@ -201,10 +203,11 @@ var _ = Describe("Creating IssueRepository via API", Label("e2e", "IssueReposito
 	var s *server.Server
 	var cfg util.Config
 	var issueRepository entity.IssueRepository
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -217,6 +220,7 @@ var _ = Describe("Creating IssueRepository via API", Label("e2e", "IssueReposito
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -265,10 +269,11 @@ var _ = Describe("Updating issueRepository via API", Label("e2e", "IssueReposito
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -281,6 +286,7 @@ var _ = Describe("Updating issueRepository via API", Label("e2e", "IssueReposito
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -334,10 +340,11 @@ var _ = Describe("Deleting IssueRepository via API", Label("e2e", "IssueReposito
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
+	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		_ = dbm.NewTestSchema()
+		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -350,6 +357,7 @@ var _ = Describe("Deleting IssueRepository via API", Label("e2e", "IssueReposito
 
 	AfterEach(func() {
 		s.BlockingStop()
+		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
