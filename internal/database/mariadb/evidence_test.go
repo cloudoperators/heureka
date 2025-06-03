@@ -25,6 +25,9 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	When("Getting All Evidence IDs", Label("GetAllEvidenceIds"), func() {
 		Context("and the database is empty", func() {

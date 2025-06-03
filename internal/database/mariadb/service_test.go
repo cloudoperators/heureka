@@ -27,6 +27,9 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
+	})
 
 	When("Getting All Service IDs", Label("GetAllServiceIds"), func() {
 		Context("and the database is empty", func() {
@@ -955,6 +958,9 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+	})
+	AfterEach(func() {
+		dbm.TestTearDown(db)
 	})
 
 	var testOrder = func(

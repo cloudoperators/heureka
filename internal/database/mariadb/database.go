@@ -6,14 +6,15 @@ package mariadb
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"strings"
+	"io"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
@@ -30,20 +31,12 @@ type SqlDatabase struct {
 	db                    *sqlx.DB
 	defaultIssuePriority  int64
 	defaultRepositoryName string
+	dbName                string
 }
 
 func (s *SqlDatabase) CloseConnection() error {
 	return s.db.Close()
 }
-
-
-func buildDSN(cfg util.Config) string {
-	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
-		return fmt.Sprintf("%s:%s@unix(%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName)
-	}
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
-}
-
 func TestConnection(cfg util.Config, backOff int) error {
 	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {	
 		// No need to test local socket connection
@@ -53,8 +46,7 @@ func TestConnection(cfg util.Config, backOff int) error {
 		return fmt.Errorf("Unable to connect to Database, exceeded backoffs...")
 	}
 
-	connectionString := buildDSN(cfg)
-	db, err := sqlx.Connect("mysql", connectionString)
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		fmt.Printf("Error connecting to DB: %s\n", err)
 		return TestConnection(cfg, backOff-1)
@@ -69,10 +61,20 @@ func TestConnection(cfg util.Config, backOff int) error {
 	return nil
 }
 
-func Connect(cfg util.Config) (*sqlx.DB, error) {
+func getSqlxConnection(cfg util.Config) (*sqlx.DB, error) {
 	connectionString := buildDSN(cfg)
+	return sqlx.Connect("mysql", connectionString)
+}
 
-	db, err := sqlx.Connect("mysql", connectionString)
+func buildDSN(cfg util.Config) string {
+	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
+		return fmt.Sprintf("%s:%s@unix(%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName)
+	}
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+}
+
+func Connect(cfg util.Config) (*sqlx.DB, error) {
+	db, err := getSqlxConnection(cfg)
 	if err != nil {
 		logrus.WithError(err).Error(err)
 		return nil, err
@@ -94,16 +96,31 @@ func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
 		db:                    db,
 		defaultIssuePriority:  cfg.DefaultIssuePriority,
 		defaultRepositoryName: cfg.DefaultRepositoryName,
+		dbName:                cfg.DBName,
 	}, nil
 }
 
-func (s *SqlDatabase) DropSchemaByName(name string) error {
+func (s *SqlDatabase) DropSchema(name string) error {
 	_, err := s.db.Exec(fmt.Sprintf("DROP SCHEMA IF EXISTS %s", name))
 	return err
 }
 
-func (s *SqlDatabase) DropSchema() error {
-	return s.DropSchemaByName("heureka")
+func (s *SqlDatabase) ConnectDB(dbName string) error {
+	s.dbName = dbName
+	return s.connectDB()
+}
+
+func (s *SqlDatabase) connectDB() error {
+	_, err := s.db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", s.dbName))
+	if err != nil {
+		return fmt.Errorf("Could not create database '%s'. %w", s.dbName, err)
+	}
+
+	_, err = s.db.Exec(fmt.Sprintf("USE %s", s.dbName))
+	if err != nil {
+		return fmt.Errorf("Could not use database '%s'. %w", s.dbName, err)
+	}
+	return nil
 }
 
 func (s *SqlDatabase) GrantAccess(username string, database string, host string) error {
@@ -115,36 +132,6 @@ func (s *SqlDatabase) GrantAccess(username string, database string, host string)
 	return err
 }
 
-func (s *SqlDatabase) SetupSchema(cfg util.Config) error {
-	var sf string
-	if strings.HasPrefix(cfg.DBSchema, "/") {
-		sf = cfg.DBSchema
-	} else {
-		pr, err := util2.GetProjectRoot()
-		if err != nil {
-			logrus.WithError(err).Fatalln(err)
-			return err
-		}
-		sf = fmt.Sprintf("%s/%s", pr, cfg.DBSchema)
-	}
-	file, err := os.ReadFile(sf)
-	if err != nil {
-		logrus.WithError(err).Fatalln(err)
-		return err
-	}
-
-	schema := string(file)
-
-	schema = strings.Replace(schema, "heureka", cfg.DBName, 2)
-	_, err = s.db.Exec(schema)
-
-	if err != nil {
-		logrus.WithError(err).Fatalln(err)
-		return err
-	}
-	return nil
-}
-
 // GetDefaultIssuePriority ...
 func (s *SqlDatabase) GetDefaultIssuePriority() int64 {
 	return s.defaultIssuePriority
@@ -152,6 +139,90 @@ func (s *SqlDatabase) GetDefaultIssuePriority() int64 {
 
 func (s *SqlDatabase) GetDefaultRepositoryName() string {
 	return s.defaultRepositoryName
+}
+
+func (s *SqlDatabase) GetVersion() (string, error) {
+	m, err := s.openMigration()
+	if err != nil {
+		return "", fmt.Errorf("Could not open migration without source: %w", err)
+	}
+	defer m.Close()
+
+	v, d, err := getMigrationVersion(m)
+	if err != nil {
+		return "", fmt.Errorf("Could not get migration version: %w", err)
+	}
+
+	return versionToString(v, d), nil
+}
+
+func GetVersion(cfg util.Config) (string, error) {
+	db, err := NewSqlDatabase(cfg)
+	if err != nil {
+		return "", fmt.Errorf("Error while Creating Db")
+	}
+
+	v, err := db.GetVersion()
+	if err != nil {
+		return "", fmt.Errorf("Error while checking Db migration: %w", err)
+	}
+	return v, nil
+}
+
+func (s *SqlDatabase) RunMigrations() error {
+	m, err := s.openMigration()
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+
+	err = m.Up()
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+func versionToString(v uint, dirty bool) string {
+	var dirtyStr string
+	if dirty {
+		dirtyStr = " (DIRTY)"
+	}
+	return fmt.Sprintf("%d%s", v, dirtyStr)
+}
+
+func getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
+	version, dirty, err := m.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		return 0, false, err
+	}
+	return version, dirty, nil
+}
+
+func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
+	err := s.connectDB()
+	if err != nil {
+		return nil, fmt.Errorf("Could not connect DB: %w", err)
+	}
+
+	d, err := iofs.New(Migration, "migrations")
+	if err != nil {
+		return nil, err
+	}
+
+	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{DatabaseName: s.dbName})
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := migrate.NewWithInstance(
+		"iofs", d,
+		"mysql", driver)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func combineFilterQueries(filterQueries []string, op string) string {
