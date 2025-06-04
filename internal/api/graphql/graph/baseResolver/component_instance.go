@@ -185,6 +185,58 @@ func TypeBaseResolver(app app.Heureka, ctx context.Context, filter *model.Compon
 	return ComponentInstanceFilterBaseResolver(app.ListTypes, ctx, filter, &FilterDisplayComponentInstanceType)
 }
 
+func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterJSONItem, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called ComponentInstanceFilterBaseResolver (%s)", filter)
+
+	if filter == nil {
+		filter = &model.ComponentInstanceFilter{}
+	}
+
+	var contextFilters []*entity.Json
+	for _, cont := range filter.Context {
+		contextFilters = append(contextFilters, (*entity.Json)(&cont))
+	}
+
+	f := &entity.ComponentInstanceFilter{
+		CCRN:      filter.Ccrn,
+		Region:    filter.Region,
+		Cluster:   filter.Cluster,
+		Namespace: filter.Namespace,
+		Domain:    filter.Domain,
+		Project:   filter.Project,
+		Pod:       filter.Pod,
+		Container: filter.Container,
+		Type:      lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
+		Context:   contextFilters,
+		Search:    filter.Search,
+		State:     model.GetStateFilterType(filter.State),
+	}
+
+	opt := GetListOptions(requestedFields)
+
+	names, err := app.ListContexts(f, opt)
+
+	if err != nil {
+		return nil, NewResolverError("ComponentInstanceFilterBaseResolver", err.Error())
+	}
+
+	var pointerNames []map[string]any
+
+	for _, name := range names {
+		pointerNames = append(pointerNames, *util.ConvertStrToJsonNoError(&name))
+	}
+
+	filterItem := model.FilterJSONItem{
+		DisplayName: &FilterDisplayContext,
+		Values:      pointerNames,
+	}
+
+	return &filterItem, nil
+}
+
 func ParentBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListParents, ctx, filter, &ComponentInstanceFilterParentId)
 }

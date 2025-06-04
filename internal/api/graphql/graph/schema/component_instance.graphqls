@@ -12,6 +12,7 @@ type ComponentInstance implements Node {
     pod: String
     container: String
     type: ComponentInstanceTypes
+    context: Json
     count: Int
     componentVersionId: String
     componentVersion: ComponentVersion
@@ -35,6 +36,7 @@ input ComponentInstanceInput {
     pod: String
     container: String
     type: ComponentInstanceTypes
+    context: Json
     uuid: String
     parentId: String
 }
@@ -62,6 +64,7 @@ input ComponentInstanceFilter {
     pod: [String],
     container: [String],
     type: [ComponentInstanceTypes],
+    context: [Json],
     supportGroup: [String],
     search:[String],
     state: [StateFilter!],

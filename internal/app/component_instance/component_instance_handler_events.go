@@ -22,6 +22,7 @@ const (
 	ListPodsEventName                event.EventName = "ListPods"
 	ListContainersEventName          event.EventName = "ListContainers"
 	ListTypesEventName               event.EventName = "ListTypes"
+	ListContextsEventName            event.EventName = "ListContexts"
 	ListParentsEventName             event.EventName = "ListParents"
 )
 
@@ -138,6 +139,15 @@ type ListTypesEvent struct {
 
 func (e *ListTypesEvent) Name() event.EventName {
 	return ListTypesEventName
+}
+
+type ListContextsEvent struct {
+	Filter   *entity.ComponentInstanceFilter
+	Contexts []string
+}
+
+func (e *ListContextsEvent) Name() event.EventName {
+	return ListContextsEventName
 }
 
 type ListParentsEvent struct {

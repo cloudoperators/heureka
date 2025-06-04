@@ -53,6 +53,7 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.Container, "CI.componentinstance_container = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "CI.componentinstance_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ParentId, "CI.componentinstance_parent_id = ?", OP_OR))
+	fl = append(fl, buildJsonFilterQuery(filter.Context, "CI.componentinstance_context", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCcrn, "S.service_ccrn = ?", OP_OR))
@@ -110,6 +111,9 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	}
 	if componentInstance.ParentId != 0 {
 		fl = append(fl, "componentinstance_parent_id = :componentinstance_parent_id")
+	}
+	if componentInstance.Context != nil {
+		fl = append(fl, "componentinstance_context = :componentinstance_context")
 	}
 	if componentInstance.Count != 0 {
 		fl = append(fl, "componentinstance_count = :componentinstance_count")
@@ -186,6 +190,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.Container)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
 	filterParameters = buildQueryParameters(filterParameters, filter.ParentId)
+	filterParameters = buildJsonQueryParameters(filterParameters, filter.Context)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCcrn)
@@ -349,6 +354,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_container,
 			componentinstance_type,
 			componentinstance_parent_id,
+			componentinstance_context,
 			componentinstance_count,
 			componentinstance_component_version_id,
 			componentinstance_service_id,
@@ -365,6 +371,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			:componentinstance_container,
 			:componentinstance_type,
 			:componentinstance_parent_id,
+			:componentinstance_context,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
 			:componentinstance_service_id,
@@ -529,6 +536,10 @@ func (s *SqlDatabase) GetType(filter *entity.ComponentInstanceFilter) ([]string,
 
 func (s *SqlDatabase) GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error) {
 	return s.getComponentInstanceAttr("parent_id", filter)
+}
+
+func (s *SqlDatabase) GetContext(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("context", filter)
 }
 
 func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {

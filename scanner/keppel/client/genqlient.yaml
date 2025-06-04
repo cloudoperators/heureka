@@ -9,3 +9,8 @@ operations:
 generated: generated.go
 package: client
 use_struct_references: true
+bindings:
+  Json:
+    type: github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.Json
+    marshaler: github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.MarshalJson
+    unmarshaler: github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.UnmarshalJson

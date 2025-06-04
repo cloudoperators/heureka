@@ -166,6 +166,7 @@ create table if not exists ComponentInstance
     componentinstance_pod                  varchar(1024)                         null,
     componentinstance_container            varchar(1024)                         null,
     componentinstance_type                 enum('Unknown', 'Project', 'Server', 'SecurityGroup', 'DnsZone', 'FloatingIp', 'RbacPolicy', 'User', 'Container') default 'Unknown' null,
+    componentinstance_context              json      default "{}"                null                   check(json_type(componentinstance_context) != 'ARRAY'), 
     componentinstance_count                int       default 0                   not null,
     componentinstance_component_version_id int unsigned                          not null,
     componentinstance_parent_id            int unsigned                          null,
