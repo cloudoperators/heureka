@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 scalar DateTime @specifiedBy(url: "https://scalars.graphql.org/andimarek/date-time")
-scalar Map
+scalar Json
 
 interface Node {
     id: ID!
@@ -129,10 +129,10 @@ type FilterValueItem {
     values: [ValueItem]
 }
 
-type FilterMapItem {
+type FilterJsonItem {
     displayName: String
     filterName: String
-    values: [Map]
+    values: [Json]
 }
 
 type Metadata {

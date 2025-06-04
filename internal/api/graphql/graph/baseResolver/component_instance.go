@@ -179,7 +179,7 @@ func TypeBaseResolver(app app.Heureka, ctx context.Context, filter *model.Compon
 	return ComponentInstanceFilterBaseResolver(app.ListTypes, ctx, filter, &FilterDisplayComponentInstanceType)
 }
 
-func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterMapItem, error) {
+func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterJSONItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -223,7 +223,7 @@ func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.Com
 		pointerNames = append(pointerNames, *util.ConvertStrToJsonNoError(&name))
 	}
 
-	filterItem := model.FilterMapItem{
+	filterItem := model.FilterJSONItem{
 		DisplayName: &FilterDisplayContext,
 		Values:      pointerNames,
 	}

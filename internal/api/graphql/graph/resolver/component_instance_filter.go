@@ -116,7 +116,7 @@ func (r *componentInstanceFilterValueResolver) Type(ctx context.Context, obj *mo
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Context(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterMapItem, error) {
+func (r *componentInstanceFilterValueResolver) Context(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterJSONItem, error) {
 	item, err := baseResolver.ContextBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err

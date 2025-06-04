@@ -12,9 +12,9 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
-type Map map[string]any
+type Json map[string]any
 
-func (m Map) MarshalGQL(w io.Writer) {
+func (m Json) MarshalGQL(w io.Writer) {
 	if m == nil {
 		w.Write([]byte("null"))
 		return
@@ -29,7 +29,7 @@ func (m Map) MarshalGQL(w io.Writer) {
 	w.Write(data)
 }
 
-func (m *Map) UnmarshalGQL(v any) error {
+func (m *Json) UnmarshalGQL(v any) error {
 	if v == nil {
 		*m = nil
 		return nil
@@ -37,21 +37,21 @@ func (m *Map) UnmarshalGQL(v any) error {
 
 	switch val := v.(type) {
 	case map[string]any:
-		*m = Map(val)
+		*m = Json(val)
 		return nil
 	case string:
-		mapVal := util.ConvertStrToJsonNoError(&val)
-		*m = Map(*mapVal)
-		if mapVal == nil {
-			return fmt.Errorf("cannot unmarshal %T into Map", v)
+		jsonVal := util.ConvertStrToJsonNoError(&val)
+		*m = Json(*jsonVal)
+		if jsonVal == nil {
+			return fmt.Errorf("cannot unmarshal %T into Json", v)
 		}
 		return nil
 	default:
-		return fmt.Errorf("cannot unmarshal %T into Map", v)
+		return fmt.Errorf("cannot unmarshal %T into Json", v)
 	}
 }
 
-func MarshalMap(val map[string]any) graphql.Marshaler {
+func MarshalJson(val map[string]any) graphql.Marshaler {
 	return graphql.WriterFunc(func(w io.Writer) {
 		if val == nil {
 			w.Write([]byte("null"))
@@ -60,14 +60,14 @@ func MarshalMap(val map[string]any) graphql.Marshaler {
 
 		data, err := json.Marshal(val)
 		if err != nil {
-			panic(fmt.Errorf("failed to marshal map: %w", err))
+			panic(fmt.Errorf("failed to marshal json: %w", err))
 		}
 
 		w.Write(data)
 	})
 }
 
-func UnmarshalMap(v any) (map[string]any, error) {
+func UnmarshalJson(v any) (map[string]any, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -76,11 +76,11 @@ func UnmarshalMap(v any) (map[string]any, error) {
 	case map[string]any:
 		return val, nil
 	case string:
-		mapVal := util.ConvertStrToJsonNoError(&val)
-		if mapVal == nil {
+		jsonVal := util.ConvertStrToJsonNoError(&val)
+		if jsonVal == nil {
 			return nil, fmt.Errorf("cannot unmarshal %T into Map", v)
 		}
-		return *mapVal, nil
+		return *jsonVal, nil
 	default:
 		return nil, fmt.Errorf("cannot unmarshal %T into map[string]any", v)
 	}

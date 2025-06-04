@@ -85,9 +85,9 @@ models:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
-  Map:
+  Json:
     model:
-      - github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.Map
+      - github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.Json
   Issue:
      fields:
        issueVariants:
