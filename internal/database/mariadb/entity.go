@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 )
 
@@ -822,6 +823,7 @@ type ComponentInstanceRow struct {
 	Pod                sql.NullString `db:"componentinstance_pod" json:"pod"`
 	Container          sql.NullString `db:"componentinstance_container" json:"container"`
 	Type               sql.NullString `db:"componentinstance_type" json:"type"`
+	Context            sql.NullString `db:"componentinstance_context" json:"context"`
 	Count              sql.NullInt16  `db:"componentinstance_count" json:"count"`
 	ComponentVersionId sql.NullInt64  `db:"componentinstance_component_version_id"`
 	ServiceId          sql.NullInt64  `db:"componentinstance_service_id"`
@@ -844,6 +846,7 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 		Pod:                GetStringValue(cir.Pod),
 		Container:          GetStringValue(cir.Container),
 		Type:               entity.NewComponentInstanceType(GetStringValue(cir.Type)),
+		Context:            (*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String)),
 		Count:              GetInt16Value(cir.Count),
 		ComponentVersion:   nil,
 		ComponentVersionId: GetInt64Value(cir.ComponentVersionId),
@@ -870,6 +873,7 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 	cir.Pod = sql.NullString{String: ci.Pod, Valid: true}
 	cir.Container = sql.NullString{String: ci.Container, Valid: true}
 	cir.Type = sql.NullString{String: ci.Type.String(), Valid: true}
+	cir.Context = sql.NullString{String: ci.Context.String(), Valid: true}
 	cir.Count = sql.NullInt16{Int16: ci.Count, Valid: true}
 	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}

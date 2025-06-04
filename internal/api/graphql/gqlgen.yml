@@ -85,6 +85,9 @@ models:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
+  Json:
+    model:
+      - github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.Json
   Issue:
      fields:
        issueVariants:
@@ -246,6 +249,8 @@ models:
       container:
         resolver: true
       type:
+        resolver: true
+      context:
         resolver: true
   ComponentFilterValue:
     fields:
