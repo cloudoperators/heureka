@@ -187,6 +187,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.ParentId = 1234
 		componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
 		componentInstance.ParentId = 1234
+		componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
