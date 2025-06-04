@@ -5,25 +5,28 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
+	"github.com/cloudoperators/heureka/internal/cache"
 )
 
 type serviceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	cache         *cache.Cache
 }
 
 func NewServiceHandler(db database.Database, er event.EventRegistry) ServiceHandler {
 	return &serviceHandler{
 		database:      db,
 		eventRegistry: er,
+		cache:         cache.NewCache(cache.Config{Ttl: 1*time.Minute}),
 	}
 }
 
@@ -291,7 +294,7 @@ func (s *serviceHandler) ListServiceCcrns(filter *entity.ServiceFilter, options 
 		"filter": filter,
 	})
 
-	serviceCcrns, err := cache.CallCached[[]string](s.database.GetServiceCcrns, filter)
+	serviceCcrns, err := cache.CallCached[[]string](s.cache, s.database.GetServiceCcrns, filter)
 
 	if err != nil {
 		l.Error(err)

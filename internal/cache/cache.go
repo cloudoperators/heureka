@@ -7,9 +7,41 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"sort"
+	"time"
 )
 
-func CallCached[T any](fn interface{}, args ...interface{}) (T, error) {
+type Cache struct {
+	stat  Stat
+	store map[string]*CacheEntry
+	ttl   time.Duration
+}
+
+type Stat struct {
+	hit  int
+	miss int
+}
+
+type Config struct {
+	Ttl time.Duration
+}
+
+type CacheEntry struct {
+	t0 time.Time
+	val interface{}
+}
+
+func NewCache(config Config) *Cache {
+	c := &Cache{
+		store: make(map[string]*CacheEntry),
+		ttl:   config.Ttl,
+	}
+	return c
+}
+
+// TODO: idk why this is not working:
+//func (c *Cache)CallCached[T any](fn interface{}, args ...interface{}) (T, error) {
+func CallCached[T any](c *Cache, fn interface{}, args ...interface{}) (T, error) {
 	var zero T
 	v := reflect.ValueOf(fn)
 
@@ -35,14 +67,25 @@ func CallCached[T any](fn interface{}, args ...interface{}) (T, error) {
 
 	fName := getFunctionName(fn)
 	fmt.Println("A: ", fName)
-	key, err := makeCacheKey(fn, args...)
+	key, err := cacheKey(fn, args...)
 	if err != nil {
-		return zero, fmt.Errorf("Cache: could not create json cache key.")
+		return zero, fmt.Errorf("Cache: could not create cache key.")
 	}
 	fmt.Println("B: ", key)
-	fmt.Println("C: ", encodeBase64(key))
 
 	//TODO: IMPLEMENT CACHE MAGIC HERE
+	// if cacheHit && inTtl {
+	//   c.stat.hit = c.stat.hit + 1
+	//   async out := v.Call(in) + storeCache //goroutine
+	//   result = c.store[key].val
+	// } else {
+	//   c.stat.miss = c.stat.miss + 1
+	//   out := v.Call(in) + storeCache
+	//   ...
+	//   result = out[0]
+	// }
+	// storeCache() -> { cacheEntry.t0 = time.Now(), cacheEntryVal = result, c.store[key] = cacheEntry }
+	//TODO: add mutex
 
 	// Call fn function
 	out := v.Call(in)
@@ -80,7 +123,7 @@ func getFunctionName(fn interface{}) string {
 	return runtime.FuncForPC(v.Pointer()).Name()
 }
 
-func makeCacheKey(fn interface{}, args ...interface{}) (string, error) {
+func cacheKeyJson(fn interface{}, args ...interface{}) (string, error) {
 	keyParts := make([]interface{}, 0, len(args)+1)
 
 	fnName := getFunctionName(fn)
@@ -102,6 +145,14 @@ func makeCacheKey(fn interface{}, args ...interface{}) (string, error) {
 	return string(jsonKey), nil
 }
 
+func cacheKey(fn interface{}, args ...interface{}) (string, error) {
+	key, err := cacheKeyJson(fn, args...)
+	if err != nil {
+		return "", fmt.Errorf("Cache: could not create json cache key.")
+	}
+	return encodeBase64(key), nil
+}
+
 func isJSONSerializable(val interface{}) bool {
 	_, err := json.Marshal(val)
 	return err == nil
@@ -111,23 +162,61 @@ func encodeBase64(input string) string {
 	return base64.StdEncoding.EncodeToString([]byte(input))
 }
 
-//TODO:
-//struct Cache {
-// stat Stat
-// ttl time.Duration
-//}
-//struct Stat {
-// hit int
-// miss int
-//}
-//func NewCache(config Config) *Cache  { c.ClearStats() }
-//func CallCached -> func (c *Cache)CallCached(...)
-//func (c *Cache)ClearStats() { c.hit = 0, c.miss = 0 }
-//func (c Cache)StatsStr() string
-//func (c Cache)stats() Stat
-//func (c *Cache)SetTtl(t time.Duration)
-//func (c Cache)GetKeys() []string
-//func DecodeKey(k string) string
-//func (c *Cache)InvalidateCache()
+func decodeBase64(encoded string) (string, error) {
+	decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return "", err
+	}
+	return string(decodedBytes), nil
+}
 
+func (c *Cache) ClearStats() {
+	c.stat.hit = 0
+	c.stat.miss = 0
+}
+
+func (c *Cache) Stats() Stat {
+	return c.stat
+}
+
+func (c *Cache) StatsStr() string {
+	total := c.stat.hit + c.stat.miss
+	if total > 0 {
+		return fmt.Sprintf("hit: %d, miss: %d, h/(h+m): %f", c.stat.hit, c.stat.miss, float32(c.stat.hit)/float32(total))
+	}
+	return "hit: 0, miss: 0, h/(h+m): N/A"
+}
+
+func (c *Cache) Ttl(t time.Duration) {
+	c.ttl = t
+}
+
+func (c Cache) GetKeys() []string {
+	return getSortedMapKeys(c.store)
+}
+
+func getMapKeys(m map[string]*CacheEntry) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func getSortedMapKeys(m map[string]*CacheEntry) []string {
+	keys := getMapKeys(m)
+	sort.Strings(keys)
+	return keys
+}
+
+func DecodeKey(k string) (string, error) {
+	return decodeBase64(k)
+}
+
+func (c *Cache) InvalidateCache() {
+	c.store = make(map[string]*CacheEntry)
+}
+
+//TODO:
 //Consider Cache object per app object handler
+//Tests in internal/cache/cache_test.go
