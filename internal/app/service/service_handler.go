@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
@@ -290,7 +291,7 @@ func (s *serviceHandler) ListServiceCcrns(filter *entity.ServiceFilter, options 
 		"filter": filter,
 	})
 
-	serviceCcrns, err := s.database.GetServiceCcrns(filter)
+	serviceCcrns, err := cache.CallCached[[]string](s.database.GetServiceCcrns, filter)
 
 	if err != nil {
 		l.Error(err)
