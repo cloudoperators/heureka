@@ -38,7 +38,7 @@ func (s *SqlDatabase) CloseConnection() error {
 	return s.db.Close()
 }
 func TestConnection(cfg util.Config, backOff int) error {
-	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {	
+	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
 		// No need to test local socket connection
 		return nil
 	}
