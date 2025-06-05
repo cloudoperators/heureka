@@ -361,6 +361,14 @@ func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
 	}
 }
 
+func NewVulnerability(issue *entity.Issue) Vulnerability {
+	return Vulnerability{
+		ID:          fmt.Sprintf("%d", issue.Id),
+		Name:        &issue.PrimaryName,
+		Description: &issue.Description,
+	}
+}
+
 func NewIssueMatch(im *entity.IssueMatch) IssueMatch {
 	status := IssueMatchStatusValue(im.Status.String())
 	targetRemediationDate := im.TargetRemediationDate.Format(time.RFC3339)

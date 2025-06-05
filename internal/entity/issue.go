@@ -54,6 +54,7 @@ type IssueFilter struct {
 	PrimaryName                     []*string         `json:"primary_name"`
 	ServiceCCRN                     []*string         `json:"service_ccrn"`
 	AllServices                     bool              `json:"all_services"`
+	HasIssueMatches                 bool              `json:"has_issue_matches"`
 	SupportGroupCCRN                []*string         `json:"support_group_ccrn"`
 	Type                            []*string         `json:"type"`
 	Id                              []*int64          `json:"id"`

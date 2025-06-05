@@ -119,6 +119,20 @@ func (r *queryResolver) IssueCounts(ctx context.Context, filter *model.IssueFilt
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, nil)
 }
 
+func (r *queryResolver) Vulnerabilities(ctx context.Context, filter *model.VulnerabilityFilter, first *int, after *string) (*model.VulnerabilityConnection, error) {
+	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after)
+}
+
+func (r *queryResolver) VulnerabilityFilterValues(ctx context.Context) (*model.VulnerabilityFilterValue, error) {
+	return &model.VulnerabilityFilterValue{
+		Severity: &model.FilterItem{
+			DisplayName: &baseResolver.FilterDisplayIssueSeverity,
+			FilterName:  &baseResolver.IssueMatchFilterSeverity,
+			Values:      lo.Map(model.AllSeverityValuesOrdered, func(s model.SeverityValues, _ int) *string { return pointer.String(s.String()) }),
+		},
+	}, nil
+}
+
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }

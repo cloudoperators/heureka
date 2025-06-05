@@ -356,6 +356,41 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						}
 					})
 				})
+				It("can filter by a single issue id", func() {
+					imRow := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+
+					// 1. Collect all issue matches with the same IssueId as the picked one
+					matchingIssueMatches := lo.Filter(seedCollection.IssueMatchRows, func(row mariadb.IssueMatchRow, _ int) bool {
+						return row.IssueId.Int64 == imRow.IssueId.Int64
+					})
+
+					// 2. Collect all ComponentInstanceIds from the filtered issue matches
+					componentInstanceIds := lo.Map(matchingIssueMatches, func(row mariadb.IssueMatchRow, _ int) int64 {
+						return row.ComponentInstanceId.Int64
+					})
+
+					// 3. For each ComponentInstanceRow, check if its Id is in the set, and collect ServiceIds
+					serviceIds := []int64{}
+					for _, ciRow := range seedCollection.ComponentInstanceRows {
+						if lo.Contains(componentInstanceIds, ciRow.Id.Int64) {
+							serviceIds = append(serviceIds, ciRow.ServiceId.Int64)
+						}
+					}
+
+					filter := &entity.ServiceFilter{IssueId: []*int64{&imRow.IssueId.Int64}}
+
+					entries, err := db.GetServices(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning the correct entries", func() {
+						for _, entry := range entries {
+							Expect(serviceIds).To(ContainElement(entry.Id), "Returns correct entry")
+						}
+					})
+				})
 				It("can filter by a single support group id", func() {
 					// select a support group
 					sgRow := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]

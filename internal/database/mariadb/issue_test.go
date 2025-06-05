@@ -381,6 +381,20 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(entry.Type).To(BeEquivalentTo(issueType))
 					}
 				})
+				It("can filter by hasIssueMatches", func() {
+					filter := &entity.IssueFilter{HasIssueMatches: true}
+
+					entries, err := db.GetIssues(filter, nil)
+
+					Expect(err).To(BeNil())
+					for _, entry := range entries {
+						hasMatch := lo.ContainsBy(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow) bool {
+							return im.IssueId.Int64 == entry.Issue.Id
+						})
+						Expect(hasMatch).To(BeTrue(), "Entry should have at least one matching IssueMatchRow")
+					}
+
+				})
 				It("can filter issue PrimaryName using wild card search", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
 

@@ -77,7 +77,7 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		}
 
 		switch parent.ParentName {
-		case model.IssueNodeName:
+		case model.IssueNodeName, model.VulnerabilityNodeName:
 			issueId = []*int64{pid}
 		case model.IssueRepositoryNodeName:
 			irId = []*int64{pid}

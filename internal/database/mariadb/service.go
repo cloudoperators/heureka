@@ -23,6 +23,7 @@ func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter,
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
@@ -47,6 +48,7 @@ func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) strin
 	fl = append(fl, buildFilterQuery(filter.Id, "S.service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerName, "U.user_name = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IRS.issuerepositoryservice_issue_repository_id = ?", OP_OR))
@@ -89,10 +91,16 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []enti
          	LEFT JOIN Activity A on AHS.activityhasservice_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.ComponentInstanceId) > 0 || orderByCount {
+	if len(filter.ComponentInstanceId) > 0 || orderByCount || len(filter.IssueId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
 		`)
+
+		if len(filter.IssueId) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+				LEFT JOIN IssueMatch IM on IM.issuematch_component_instance_id = CI.componentinstance_id
+			`)
+		}
 	}
 	if len(filter.IssueRepositoryId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `

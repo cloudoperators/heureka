@@ -68,12 +68,6 @@ input IssueFilter {
 
     search: [String],
     allServices: Boolean,
-
-    # leave away for MVP
-    # cveDescription: [String]
-    # fromAdvisory: ID,
-    # vulnerabilityMatchDiscoveryDate: DateTimeFilter
-    # vulnerabilityMatchTargetRemediationDate: DateTimeFilter
 }
 
 enum IssueTypes {
