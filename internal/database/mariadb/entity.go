@@ -863,11 +863,8 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 
 func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInstance) {
 
-	var parentId sql.NullInt64
-	if ci.ParentId != 0 {
-		parentId = sql.NullInt64{Int64: ci.ParentId, Valid: true}
-	} else {
-		parentId = sql.NullInt64{Valid: false}
+	if ci.ParentId > 0 {
+		cir.ParentId = sql.NullInt64{Int64: ci.ParentId, Valid: true}
 	}
 	cir.Id = sql.NullInt64{Int64: ci.Id, Valid: true}
 	cir.CCRN = sql.NullString{String: ci.CCRN, Valid: true}
@@ -882,7 +879,6 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 	cir.Count = sql.NullInt16{Int16: ci.Count, Valid: true}
 	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}
-	cir.ParentId = parentId
 	cir.CreatedAt = sql.NullTime{Time: ci.CreatedAt, Valid: true}
 	cir.CreatedBy = sql.NullInt64{Int64: ci.CreatedBy, Valid: true}
 	cir.DeletedAt = sql.NullTime{Time: ci.DeletedAt, Valid: true}

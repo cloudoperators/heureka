@@ -355,7 +355,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_created_by,
 			componentinstance_updated_by
 		) VALUES (
-			:componentinstance_ccrn,s
+			:componentinstance_ccrn,
 			:componentinstance_region,
 			:componentinstance_cluster,
 			:componentinstance_namespace,
