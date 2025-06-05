@@ -535,9 +535,46 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				newComponentInstance = newComponentInstanceRow.AsComponentInstance()
 				newComponentInstance.ComponentVersionId = componentVersion.Id
 				newComponentInstance.ServiceId = service.Id
-				//newComponentInstance.ParentId =
 			})
-			It("can insert correctly", func() {
+			It("can insert correctly (with ParentID)", func() {
+				newComponentInstance.ParentId = 2
+				componentInstance, err := db.CreateComponentInstance(&newComponentInstance)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("sets componentInstance id", func() {
+					Expect(componentInstance).NotTo(BeEquivalentTo(0))
+				})
+
+				componentInstanceFilter := &entity.ComponentInstanceFilter{
+					Id: []*int64{&componentInstance.Id},
+				}
+
+				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning componentInstance", func() {
+					Expect(len(ci)).To(BeEquivalentTo(1))
+				})
+				By("setting fields", func() {
+					Expect(ci[0].CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+					Expect(ci[0].Region).To(BeEquivalentTo(componentInstance.Region))
+					Expect(ci[0].Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+					Expect(ci[0].Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+					Expect(ci[0].Domain).To(BeEquivalentTo(componentInstance.Domain))
+					Expect(ci[0].Project).To(BeEquivalentTo(componentInstance.Project))
+					Expect(ci[0].Pod).To(BeEquivalentTo(componentInstance.Pod))
+					Expect(ci[0].Container).To(BeEquivalentTo(componentInstance.Container))
+					Expect(ci[0].Type.String()).To(BeEquivalentTo(componentInstance.Type.String()))
+					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
+					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
+					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+					Expect(ci[0].ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+				})
+			})
+			It("can insert correctly (without ParentID)", func() {
 				componentInstance, err := db.CreateComponentInstance(&newComponentInstance)
 
 				By("throwing no error", func() {
