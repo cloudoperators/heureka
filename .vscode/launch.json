@@ -46,7 +46,7 @@
                 "seed"
             ],
             "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env-devcontainer",
+            "envFile": "${workspaceFolder}/.env",
             "showLog": true
         }
     ]
