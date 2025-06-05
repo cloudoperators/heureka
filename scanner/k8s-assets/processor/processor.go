@@ -451,6 +451,7 @@ func (p *Processor) ProcessContainer(
 		Pod:                ccrn.Pod,
 		Container:          ccrn.Container,
 		Uuid:               p.uuid,
+		Type:               client.ComponentInstanceTypesContainer,
 	}
 
 	if err == nil {

@@ -8,6 +8,7 @@ import (
 	"math"
 	"time"
 
+	interutil "github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/onsi/ginkgo/v2/dsl/core"
@@ -266,4 +267,10 @@ var StateFilterTypeMap = map[StateFilterType]string{
 
 func (sft StateFilterType) String() string {
 	return StateFilterTypeMap[sft]
+}
+
+type Json map[string]interface{}
+
+func (e Json) String() string {
+	return interutil.ConvertJsonToStrNoError((*map[string]interface{})(&e))
 }

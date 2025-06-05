@@ -132,19 +132,21 @@ func (v *ComponentInstance) GetDomain() string { return v.Domain }
 func (v *ComponentInstance) GetProject() string { return v.Project }
 
 type ComponentInstanceFilter struct {
-	ComponentVersionDigest []string      `json:"componentVersionDigest"`
-	ServiceCcrn            []string      `json:"serviceCcrn"`
-	Ccrn                   []string      `json:"ccrn"`
-	Region                 []string      `json:"region"`
-	Cluster                []string      `json:"cluster"`
-	Namespace              []string      `json:"namespace"`
-	Domain                 []string      `json:"domain"`
-	Project                []string      `json:"project"`
-	Pod                    []string      `json:"pod"`
-	Container              []string      `json:"container"`
-	SupportGroup           []string      `json:"supportGroup"`
-	Search                 []string      `json:"search"`
-	State                  []StateFilter `json:"state"`
+	ComponentVersionDigest []string                 `json:"componentVersionDigest"`
+	ServiceCcrn            []string                 `json:"serviceCcrn"`
+	Ccrn                   []string                 `json:"ccrn"`
+	Region                 []string                 `json:"region"`
+	Cluster                []string                 `json:"cluster"`
+	Namespace              []string                 `json:"namespace"`
+	Domain                 []string                 `json:"domain"`
+	Project                []string                 `json:"project"`
+	Pod                    []string                 `json:"pod"`
+	Container              []string                 `json:"container"`
+	Type                   []ComponentInstanceTypes `json:"type"`
+	Context                []map[string]interface{} `json:"context"`
+	SupportGroup           []string                 `json:"supportGroup"`
+	Search                 []string                 `json:"search"`
+	State                  []StateFilter            `json:"state"`
 }
 
 // GetComponentVersionDigest returns ComponentInstanceFilter.ComponentVersionDigest, and is useful for accessing the field via an interface.
@@ -179,6 +181,12 @@ func (v *ComponentInstanceFilter) GetPod() []string { return v.Pod }
 // GetContainer returns ComponentInstanceFilter.Container, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceFilter) GetContainer() []string { return v.Container }
 
+// GetType returns ComponentInstanceFilter.Type, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceFilter) GetType() []ComponentInstanceTypes { return v.Type }
+
+// GetContext returns ComponentInstanceFilter.Context, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceFilter) GetContext() []map[string]interface{} { return v.Context }
+
 // GetSupportGroup returns ComponentInstanceFilter.SupportGroup, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceFilter) GetSupportGroup() []string { return v.SupportGroup }
 
@@ -189,18 +197,20 @@ func (v *ComponentInstanceFilter) GetSearch() []string { return v.Search }
 func (v *ComponentInstanceFilter) GetState() []StateFilter { return v.State }
 
 type ComponentInstanceInput struct {
-	Ccrn               string `json:"ccrn"`
-	Count              int    `json:"count"`
-	ComponentVersionId string `json:"componentVersionId"`
-	ServiceId          string `json:"serviceId"`
-	Region             string `json:"region"`
-	Cluster            string `json:"cluster"`
-	Namespace          string `json:"namespace"`
-	Domain             string `json:"domain"`
-	Project            string `json:"project"`
-	Pod                string `json:"pod"`
-	Container          string `json:"container"`
-	Uuid               string `json:"uuid"`
+	Ccrn               string                 `json:"ccrn"`
+	Count              int                    `json:"count"`
+	ComponentVersionId string                 `json:"componentVersionId"`
+	ServiceId          string                 `json:"serviceId"`
+	Region             string                 `json:"region"`
+	Cluster            string                 `json:"cluster"`
+	Namespace          string                 `json:"namespace"`
+	Domain             string                 `json:"domain"`
+	Project            string                 `json:"project"`
+	Pod                string                 `json:"pod"`
+	Container          string                 `json:"container"`
+	Type               ComponentInstanceTypes `json:"type"`
+	Context            map[string]interface{} `json:"context"`
+	Uuid               string                 `json:"uuid"`
 }
 
 // GetCcrn returns ComponentInstanceInput.Ccrn, and is useful for accessing the field via an interface.
@@ -236,8 +246,28 @@ func (v *ComponentInstanceInput) GetPod() string { return v.Pod }
 // GetContainer returns ComponentInstanceInput.Container, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceInput) GetContainer() string { return v.Container }
 
+// GetType returns ComponentInstanceInput.Type, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetType() ComponentInstanceTypes { return v.Type }
+
+// GetContext returns ComponentInstanceInput.Context, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetContext() map[string]interface{} { return v.Context }
+
 // GetUuid returns ComponentInstanceInput.Uuid, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceInput) GetUuid() string { return v.Uuid }
+
+type ComponentInstanceTypes string
+
+const (
+	ComponentInstanceTypesUnknown       ComponentInstanceTypes = "Unknown"
+	ComponentInstanceTypesProject       ComponentInstanceTypes = "Project"
+	ComponentInstanceTypesServer        ComponentInstanceTypes = "Server"
+	ComponentInstanceTypesSecuritygroup ComponentInstanceTypes = "SecurityGroup"
+	ComponentInstanceTypesDnszone       ComponentInstanceTypes = "DnsZone"
+	ComponentInstanceTypesFloatingip    ComponentInstanceTypes = "FloatingIp"
+	ComponentInstanceTypesRbacpolicy    ComponentInstanceTypes = "RbacPolicy"
+	ComponentInstanceTypesUser          ComponentInstanceTypes = "User"
+	ComponentInstanceTypesContainer     ComponentInstanceTypes = "Container"
+)
 
 type ComponentTypeValues string
 
