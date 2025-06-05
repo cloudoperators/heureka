@@ -146,6 +146,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+			Expect(newComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
 		})
 	})
 })
@@ -183,6 +184,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.Pod = "NewPod"
 		componentInstance.Container = "NewContainer"
 		componentInstance.Type = "Server"
+		componentInstance.ParentId = 1234
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
@@ -201,6 +203,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+			Expect(updatedComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
 		})
 	})
 })

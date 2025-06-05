@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/pointer"
@@ -86,6 +87,11 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		filter = &model.ComponentInstanceFilter{}
 	}
 
+	parentIds, err := util.ConvertStrToIntSlice(filter.ParentID)
+	if err != nil {
+		return nil, NewResolverError("ComponentInstanceBaseResolver", "Invalid ParentID filter")
+	}
+
 	f := &entity.ComponentInstanceFilter{
 		PaginatedX:              entity.PaginatedX{First: first, After: after},
 		CCRN:                    filter.Ccrn,
@@ -104,7 +110,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		ComponentVersionVersion: filter.ComponentVersionDigest,
 		Search:                  filter.Search,
 		State:                   model.GetStateFilterType(filter.State),
-		ParentId:                filter.ParentId,
+		ParentId:                parentIds,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -190,9 +196,6 @@ func ComponentInstanceFilterBaseResolver(
 	filterDisplay *string) (*model.FilterItem, error) {
 
 	requestedFields := GetPreloads(ctx)
-	logrus.WithFields(logrus.Fields{
-		"requestedFields": requestedFields,
-	}).Debug("Called ComponentInstanceFilterBaseResolver (%s)", filterDisplay)
 
 	if filter == nil {
 		filter = &model.ComponentInstanceFilter{}

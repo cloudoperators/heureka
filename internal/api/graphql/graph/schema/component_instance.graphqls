@@ -19,6 +19,7 @@ type ComponentInstance implements Node {
     serviceId: String
     service: Service
     metadata: Metadata
+    parentId: String
 }
 
 input ComponentInstanceInput {
@@ -35,6 +36,7 @@ input ComponentInstanceInput {
     container: String
     type: ComponentInstanceTypes
     uuid: String
+    parentId: String
 }
 
 type ComponentInstanceConnection implements Connection {
@@ -63,12 +65,13 @@ input ComponentInstanceFilter {
     supportGroup: [String],
     search:[String],
     state: [StateFilter!],
+    parentId: [String],
 }
 
 input ComponentInstanceOrderBy {
     by: ComponentInstanceOrderByField
     direction: OrderDirection
-}
+} 
 
 enum ComponentInstanceTypes {
     Unknown,

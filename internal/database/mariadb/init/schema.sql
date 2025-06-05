@@ -193,7 +193,7 @@ create table if not exists ComponentInstance
         foreign key (componentinstance_created_by) references User (user_id),
     constraint fk_componentinstance_updated_by
         foreign key (componentinstance_updated_by) references User (user_id),
-    constraint fk_componentinstance_parent
+    constraint fk_componentinstance_parent_id
         foreign key (componentinstance_parent_id) references ComponentInstance (componentinstance_id)
             on update cascade
             on delete set null

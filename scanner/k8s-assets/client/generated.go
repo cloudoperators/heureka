@@ -143,6 +143,7 @@ type ComponentInstanceFilter struct {
 	SupportGroup           []string                 `json:"supportGroup"`
 	Search                 []string                 `json:"search"`
 	State                  []StateFilter            `json:"state"`
+	ParentId               []string                 `json:"parentId"`
 }
 
 // GetComponentVersionDigest returns ComponentInstanceFilter.ComponentVersionDigest, and is useful for accessing the field via an interface.
@@ -189,6 +190,9 @@ func (v *ComponentInstanceFilter) GetSearch() []string { return v.Search }
 // GetState returns ComponentInstanceFilter.State, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceFilter) GetState() []StateFilter { return v.State }
 
+// GetParentId returns ComponentInstanceFilter.ParentId, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceFilter) GetParentId() []string { return v.ParentId }
+
 type ComponentInstanceInput struct {
 	Ccrn               string                 `json:"ccrn"`
 	Count              int                    `json:"count"`
@@ -203,6 +207,7 @@ type ComponentInstanceInput struct {
 	Container          string                 `json:"container"`
 	Type               ComponentInstanceTypes `json:"type"`
 	Uuid               string                 `json:"uuid"`
+	ParentId           string                 `json:"parentId"`
 }
 
 // GetCcrn returns ComponentInstanceInput.Ccrn, and is useful for accessing the field via an interface.
@@ -243,6 +248,9 @@ func (v *ComponentInstanceInput) GetType() ComponentInstanceTypes { return v.Typ
 
 // GetUuid returns ComponentInstanceInput.Uuid, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceInput) GetUuid() string { return v.Uuid }
+
+// GetParentId returns ComponentInstanceInput.ParentId, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetParentId() string { return v.ParentId }
 
 type ComponentInstanceTypes string
 

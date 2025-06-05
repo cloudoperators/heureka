@@ -99,9 +99,9 @@ type ComponentInstanceFilter struct {
 	Pod                     []*string         `json:"pod"`
 	Container               []*string         `json:"container"`
 	Type                    []*string         `json:"type"`
+	ParentId                []*int64          `json:"parent_id"`
 	Search                  []*string         `json:"search"`
 	State                   []StateFilterType `json:"state"`
-	ParentId                []*int64          `json:"parent_id"`
 }
 
 type ComponentInstanceAggregations struct {
@@ -125,10 +125,10 @@ type ComponentInstance struct {
 	Pod                string                `json:"pod"`
 	Container          string                `json:"container"`
 	Type               ComponentInstanceType `json:"type"`
+	ParentId           int64                 `json:"parent_id,omitempty"`
 	Count              int16                 `json:"count"`
 	ComponentVersion   *ComponentVersion     `json:"component_version,omitempty"`
 	ComponentVersionId int64                 `db:"componentinstance_component_version_id"`
 	Service            *Service              `json:"service,omitempty"`
 	ServiceId          int64                 `db:"componentinstance_service_id"`
-	ParentId           int64                 `db:"componentinstance_parent_id"`
 }

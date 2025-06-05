@@ -535,6 +535,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				newComponentInstance = newComponentInstanceRow.AsComponentInstance()
 				newComponentInstance.ComponentVersionId = componentVersion.Id
 				newComponentInstance.ServiceId = service.Id
+				//newComponentInstance.ParentId =
 			})
 			It("can insert correctly", func() {
 				componentInstance, err := db.CreateComponentInstance(&newComponentInstance)
@@ -570,6 +571,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+					Expect(ci[0].ParentId).To(BeEquivalentTo(componentInstance.ParentId))
 				})
 			})
 		})
@@ -614,6 +616,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+					Expect(ci[0].ParentId).To(BeEquivalentTo(componentInstance.ParentId))
 				})
 			})
 		})
@@ -922,6 +925,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Pod:       []*string{&cir.Pod.String},
 							Container: []*string{&cir.Container.String},
 							Type:      []*string{&cir.Type.String},
+							ParentId:  []*int64{&cir.ParentId.Int64},
 						},
 						[]string{},
 					)
@@ -1609,42 +1613,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				Expect(results[0].ParentId).To(BeEquivalentTo(parent.Id), "Retrieved child should reference the correct parent ID")
 
 			})
-			// It("updates the parent_id of a child ComponentInstance when the parent's id is changed", func() {
-
-			// 	componentInstance := test.NewFakeComponentInstance()
-			// 	childComponentInstance := componentInstance.AsComponentInstance()
-			// 	parent := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
-			// 	childComponentInstance.ParentId = parent.Id
-			// 	childComponentInstance.ComponentVersionId = parent.ComponentVersionId
-			// 	childComponentInstance.ServiceId = parent.ServiceId
-			// 	createdWithParent, err := db.CreateComponentInstance(&childComponentInstance)
-			// 	//createdParent, err := db.CreateComponentInstance(&parent)
-			// 	fmt.Printf("Created Parent ComponentInstance: %+v\n", createdWithParent)
-			// 	Expect(err).To(BeNil(), "Creating parent ComponentInstance should not throw an error")
-			// 	Expect(createdWithParent.Id).To(Not(BeZero()), "Parent ComponentInstance should have a valid ID")
-			// 	// Update the parent's ID
-			// 	newParentId := parent.Id + 1
-			// 	parent.Id = newParentId
-			// 	err = db.UpdateComponentInstance(&parent)
-			// 	Expect(err).To(BeNil(), "Updating parent ComponentInstance should not throw an error")
-
-			// 	// Update the child to reflect the new parent ID
-			// 	childComponentInstance.ParentId = newParentId
-			// 	err = db.UpdateComponentInstance(&childComponentInstance)
-			// 	Expect(err).To(BeNil(), "Updating child ComponentInstance should not throw an error")
-
-			// 	// Retrieve the updated child ComponentInstance
-			// 	filter := &entity.ComponentInstanceFilter{
-			// 		Id: []*int64{&childComponentInstance.Id},
-			// 	}
-			// 	results, err := db.GetComponentInstances(filter, nil)
-			// 	fmt.Printf("Retrieved Updated Child ComponentInstance: %+v\n", results)
-			// 	Expect(err).To(BeNil(), "Retrieving updated child ComponentInstance should not throw an error")
-			// 	Expect(results).To(HaveLen(1), "Should retrieve exactly one ComponentInstance")
-			// 	Expect(results[0].ParentId).To(BeEquivalentTo(newParentId), "Child's parent ID should be updated to the new parent ID")
-
-			// })
-
 		})
 	})
 })
