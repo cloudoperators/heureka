@@ -541,6 +541,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				newComponentInstance = newComponentInstanceRow.AsComponentInstance()
 				newComponentInstance.ComponentVersionId = componentVersion.Id
 				newComponentInstance.ServiceId = service.Id
+				//newComponentInstance.ParentId =
 			})
 			It("can insert correctly (with ParentID)", func() {
 				newComponentInstance.ParentId = 2
@@ -662,6 +663,45 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
 					Expect(ci[0].ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+				})
+			})
+			It("can update componentInstance fields correctly", func() {
+				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
+				newComponentInstanceValues := entityTest.NewFakeComponentInstanceEntity()
+				newComponentInstanceValues.Id = componentInstance.Id
+				newComponentInstanceValues.ComponentVersionId = componentInstance.ComponentVersionId
+				newComponentInstanceValues.ServiceId = componentInstance.ServiceId
+				err := db.UpdateComponentInstance(&newComponentInstanceValues)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+
+				componentInstanceFilter := &entity.ComponentInstanceFilter{
+					Id: []*int64{&componentInstance.Id},
+				}
+
+				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning componentInstance", func() {
+					Expect(len(ci)).To(BeEquivalentTo(1))
+				})
+				By("setting fields", func() {
+					Expect(ci[0].CCRN).To(BeEquivalentTo(newComponentInstanceValues.CCRN))
+					Expect(ci[0].Region).To(BeEquivalentTo(newComponentInstanceValues.Region))
+					Expect(ci[0].Cluster).To(BeEquivalentTo(newComponentInstanceValues.Cluster))
+					Expect(ci[0].Namespace).To(BeEquivalentTo(newComponentInstanceValues.Namespace))
+					Expect(ci[0].Domain).To(BeEquivalentTo(newComponentInstanceValues.Domain))
+					Expect(ci[0].Project).To(BeEquivalentTo(newComponentInstanceValues.Project))
+					Expect(ci[0].Pod).To(BeEquivalentTo(newComponentInstanceValues.Pod))
+					Expect(ci[0].Container).To(BeEquivalentTo(newComponentInstanceValues.Container))
+					Expect(ci[0].Type.String()).To(BeEquivalentTo(newComponentInstanceValues.Type.String()))
+					Expect(ci[0].Context.String()).To(BeEquivalentTo(newComponentInstanceValues.Context.String()))
+					Expect(ci[0].Count).To(BeEquivalentTo(newComponentInstanceValues.Count))
+					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(newComponentInstanceValues.ComponentVersionId))
+					Expect(ci[0].ServiceId).To(BeEquivalentTo(newComponentInstanceValues.ServiceId))
 				})
 			})
 			It("can update componentInstance fields correctly", func() {
@@ -1142,6 +1182,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Type:      []*string{&cir.Type.String},
 							ParentId:  []*int64{&cir.ParentId.Int64},
 							Context:   []*entity.Json{(*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String))},
+							ParentId:  []*int64{&cir.ParentId.Int64},
 						},
 						[]string{},
 					)

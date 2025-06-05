@@ -144,9 +144,9 @@ type ComponentInstanceFilter struct {
 	Container              []string                            `json:"container"`
 	Type                   []ComponentInstanceTypes `json:"type"`
 	Context                []map[string]interface{} `json:"context"`
-	SupportGroup           []string                            `json:"supportGroup"`
-	Search                 []string                            `json:"search"`
-	State                  []StateFilter                       `json:"state"`
+	SupportGroup           []string                 `json:"supportGroup"`
+	Search                 []string                 `json:"search"`
+	State                  []StateFilter            `json:"state"`
 	ParentId               []string                 `json:"parentId"`
 }
 
