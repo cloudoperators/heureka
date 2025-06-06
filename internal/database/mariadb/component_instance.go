@@ -548,10 +548,6 @@ func (s *SqlDatabase) GetType(filter *entity.ComponentInstanceFilter) ([]string,
 	return s.getComponentInstanceAttr("type", filter)
 }
 
-func (s *SqlDatabase) GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("parent_id", filter)
-}
-
 func (s *SqlDatabase) GetContext(filter *entity.ComponentInstanceFilter) ([]string, error) {
 	return s.getComponentInstanceAttr("context", filter)
 }

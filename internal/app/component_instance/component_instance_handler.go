@@ -384,21 +384,3 @@ func (s *componentInstanceHandler) ListContexts(filter *entity.ComponentInstance
 
 	return contexts, nil
 }
-
-func (s *componentInstanceHandler) ListParents(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListParentsEventName,
-		"filter": filter,
-	})
-
-	parents, err := s.database.GetComponentInstanceParent(filter)
-
-	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Parent.")
-	}
-
-	s.eventRegistry.PushEvent(&ListParentsEvent{Filter: filter, Parents: parents})
-
-	return parents, nil
-}
