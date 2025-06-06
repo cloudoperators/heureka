@@ -64,6 +64,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	var irId []*int64
 	var sgId []*int64
 	var ownerId []*int64
+	var issueId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -81,6 +82,8 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 			sgId = []*int64{pid}
 		case model.UserNodeName:
 			ownerId = []*int64{pid}
+		case model.VulnerabilityNodeName:
+			issueId = []*int64{pid}
 		}
 	}
 
@@ -97,6 +100,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		ActivityId:        activityId,
 		IssueRepositoryId: irId,
 		SupportGroupId:    sgId,
+		IssueId:           issueId,
 		Search:            filter.Search,
 		State:             model.GetStateFilterType(filter.State),
 	}

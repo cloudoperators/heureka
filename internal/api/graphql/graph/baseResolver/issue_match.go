@@ -78,7 +78,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 			eId = []*int64{pid}
 		case model.ComponentInstanceNodeName:
 			ciId = []*int64{pid}
-		case model.IssueNodeName:
+		case model.IssueNodeName, model.VulnerabilityNodeName:
 			issueId = []*int64{pid}
 		case model.ServiceNodeName:
 			serviceId = []*int64{pid}

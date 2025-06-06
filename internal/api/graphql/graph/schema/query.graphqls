@@ -22,4 +22,6 @@ type Query {
     ScannerRunTagFilterValues: [String]
     ScannerRuns(filter: ScannerRunFilter, first: Int, after: String): ScannerRunConnection
     IssueCounts(filter: IssueFilter): SeverityCounts
+    Vulnerabilities(filter: VulnerabilityFilter, first: Int, after: String): VulnerabilityConnection
+    VulnerabilityFilterValues: VulnerabilityFilterValue
 }

@@ -31,6 +31,7 @@ type ServiceFilter struct {
 	CCRN                []*string         `json:"ccrn"`
 	OwnerName           []*string         `json:"owner_name"`
 	OwnerId             []*int64          `json:"owner_id"`
+	IssueId             []*int64          `json:"issue_id"`
 	ActivityId          []*int64          `json:"activity_id"`
 	ComponentInstanceId []*int64          `json:"component_instance_id"`
 	IssueRepositoryId   []*int64          `json:"issue_repository_id"`

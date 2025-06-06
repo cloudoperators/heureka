@@ -198,6 +198,22 @@ models:
         resolver: true
       services:
         resolver: true
+  Vulnerability:
+    fields:
+      services:
+        resolver: true
+      sourceUrl:
+        resolver: true
+      severity:
+        resolver: true
+      earliestTargetRemediationDate:
+        resolver: true
+  VulnerabilityFilterValue:
+    fields:
+      supportGroup:
+        resolver: true
+      severity:
+        resolver: false
   IssueMatchFilterValue:
     fields:
       status:

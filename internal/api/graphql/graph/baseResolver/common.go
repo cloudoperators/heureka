@@ -60,6 +60,9 @@ var (
 	ComponentInstanceFilterPod           string = "pod"
 	ComponentInstanceFilterContainer     string = "container"
 	ComponentInstanceFilterType          string = "type"
+
+	VulnerabilityFilterSupportGroup string = "supportGroup"
+	VulnerabilityFilterSeverity     string = "severity"
 )
 
 type ResolverError struct {
