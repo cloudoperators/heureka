@@ -33,13 +33,9 @@ func main() {
 	if cfg.SeedMode {
 		dbManager := test.NewLocalTestDatabaseManager()
 
-		err = dbManager.ResetSchema()
+		err = dbManager.ResetSchema(cfg.DBName)
 		if err != nil {
 			logrus.WithError(err).Fatalln("Error while resetting database schema.")
-		}
-		err = dbManager.Setup()
-		if err != nil {
-			logrus.WithError(err).Fatalln("Error while setting up database.")
 		}
 
 		seedDb, err := test.NewDatabaseSeeder(cfg)
