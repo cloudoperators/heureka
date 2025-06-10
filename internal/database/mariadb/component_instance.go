@@ -52,6 +52,7 @@ func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentI
 	fl = append(fl, buildFilterQuery(filter.Pod, "CI.componentinstance_pod = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Container, "CI.componentinstance_container = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "CI.componentinstance_type = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ParentId, "CI.componentinstance_parent_id = ?", OP_OR))
 	fl = append(fl, buildJsonFilterQuery(filter.Context, "CI.componentinstance_context", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
@@ -107,6 +108,9 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 	}
 	if componentInstance.Type != "" {
 		fl = append(fl, "componentinstance_type = :componentinstance_type")
+	}
+	if componentInstance.ParentId != 0 {
+		fl = append(fl, "componentinstance_parent_id = :componentinstance_parent_id")
 	}
 	if componentInstance.Context != nil {
 		fl = append(fl, "componentinstance_context = :componentinstance_context")
@@ -185,6 +189,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.Pod)
 	filterParameters = buildQueryParameters(filterParameters, filter.Container)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
+	filterParameters = buildQueryParameters(filterParameters, filter.ParentId)
 	filterParameters = buildJsonQueryParameters(filterParameters, filter.Context)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
@@ -348,6 +353,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			componentinstance_pod,
 			componentinstance_container,
 			componentinstance_type,
+			componentinstance_parent_id,
 			componentinstance_context,
 			componentinstance_count,
 			componentinstance_component_version_id,
@@ -364,6 +370,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 			:componentinstance_pod,
 			:componentinstance_container,
 			:componentinstance_type,
+			:componentinstance_parent_id,
 			:componentinstance_context,
 			:componentinstance_count,
 			:componentinstance_component_version_id,
@@ -524,6 +531,10 @@ func (s *SqlDatabase) GetContainer(filter *entity.ComponentInstanceFilter) ([]st
 
 func (s *SqlDatabase) GetType(filter *entity.ComponentInstanceFilter) ([]string, error) {
 	return s.getComponentInstanceAttr("type", filter)
+}
+
+func (s *SqlDatabase) GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error) {
+	return s.getComponentInstanceAttr("parent_id", filter)
 }
 
 func (s *SqlDatabase) GetContext(filter *entity.ComponentInstanceFilter) ([]string, error) {

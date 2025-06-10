@@ -667,6 +667,13 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 func NewComponentInstance(componentInstance *entity.ComponentInstance) ComponentInstance {
 	count := int(componentInstance.Count)
 	componentInstanceType := ComponentInstanceTypes(componentInstance.Type.String())
+
+	var parentID *string
+	if componentInstance.ParentId == -1 {
+		parentID = nil
+	} else {
+		parentID = util.Ptr(fmt.Sprintf("%d", componentInstance.ParentId))
+	}
 	return ComponentInstance{
 		ID:                 fmt.Sprintf("%d", componentInstance.Id),
 		Ccrn:               &componentInstance.CCRN,
@@ -678,6 +685,7 @@ func NewComponentInstance(componentInstance *entity.ComponentInstance) Component
 		Pod:                &componentInstance.Pod,
 		Container:          &componentInstance.Container,
 		Type:               &componentInstanceType,
+		ParentID:           parentID,
 		Context:            interUtil.ConvertJsonPointerToValue((*map[string]interface{})(componentInstance.Context)),
 		Count:              &count,
 		ComponentVersionID: util.Ptr(fmt.Sprintf("%d", componentInstance.ComponentVersionId)),
@@ -717,6 +725,15 @@ func ParseCcrn(rawCcrn string) Ccrn {
 func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entity.ComponentInstance {
 	componentVersionId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ComponentVersionID), 10, 64)
 	serviceId, _ := strconv.ParseInt(lo.FromPtr(componentInstance.ServiceID), 10, 64)
+
+	var parentId int64
+	if componentInstance.ParentID != nil && *componentInstance.ParentID != "" {
+		var err error
+		parentId, err = strconv.ParseInt(*componentInstance.ParentID, 10, 64)
+		if err != nil {
+			parentId = 0
+		}
+	}
 	rawCcrn := lo.FromPtr(componentInstance.Ccrn)
 	ciType := ""
 	if componentInstance.Type != nil && componentInstance.Type.IsValid() {
@@ -736,6 +753,7 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 		Count:              int16(lo.FromPtr(componentInstance.Count)),
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,
+		ParentId:           parentId,
 	}
 }
 
