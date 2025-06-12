@@ -88,6 +88,15 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 }
 
 func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+	// Validation: Only DnsZone or User can have a parent_id
+	if componentInstance.ParentId != 0 && componentInstance.ParentId != -1 {
+		typeStr := componentInstance.Type.String()
+		if typeStr != "DnsZone" && typeStr != "User" {
+			return nil, NewComponentInstanceHandlerError(
+				"ParentId can only be set for component instances of type 'DnsZone' or 'User', but got type '" + typeStr + "'")
+		}
+	}
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentInstanceEventName,
 		"object": componentInstance,
@@ -123,6 +132,15 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 }
 
 func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+	// Validation: Only DnsZone or User can have a parent_id
+	if componentInstance.ParentId != 0 && componentInstance.ParentId != -1 {
+		typeStr := componentInstance.Type.String()
+		if typeStr != "DnsZone" && typeStr != "User" {
+			return nil, NewComponentInstanceHandlerError(
+				"ParentId can only be set for component instances of type 'DnsZone' or 'User', but got type '" + typeStr + "'")
+		}
+	}
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentInstanceEventName,
 		"object": componentInstance,
