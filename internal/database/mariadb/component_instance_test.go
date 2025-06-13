@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -541,7 +542,8 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				newComponentInstance.ComponentVersionId = componentVersion.Id
 				newComponentInstance.ServiceId = service.Id
 			})
-			It("can insert correctly", func() {
+			It("can insert correctly (with ParentID)", func() {
+				newComponentInstance.ParentId = 2
 				componentInstance, err := db.CreateComponentInstance(&newComponentInstance)
 
 				By("throwing no error", func() {
@@ -576,6 +578,44 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+					Expect(ci[0].ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+				})
+			})
+			It("can insert correctly (without ParentID)", func() {
+				componentInstance, err := db.CreateComponentInstance(&newComponentInstance)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("sets componentInstance id", func() {
+					Expect(componentInstance).NotTo(BeEquivalentTo(0))
+				})
+
+				componentInstanceFilter := &entity.ComponentInstanceFilter{
+					Id: []*int64{&componentInstance.Id},
+				}
+
+				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning componentInstance", func() {
+					Expect(len(ci)).To(BeEquivalentTo(1))
+				})
+				By("setting fields", func() {
+					Expect(ci[0].CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+					Expect(ci[0].Region).To(BeEquivalentTo(componentInstance.Region))
+					Expect(ci[0].Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+					Expect(ci[0].Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+					Expect(ci[0].Domain).To(BeEquivalentTo(componentInstance.Domain))
+					Expect(ci[0].Project).To(BeEquivalentTo(componentInstance.Project))
+					Expect(ci[0].Pod).To(BeEquivalentTo(componentInstance.Pod))
+					Expect(ci[0].Container).To(BeEquivalentTo(componentInstance.Container))
+					Expect(ci[0].Type.String()).To(BeEquivalentTo(componentInstance.Type.String()))
+					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
+					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
+					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+					Expect(ci[0].ParentId).To(BeEquivalentTo(componentInstance.ParentId))
 				})
 			})
 		})
@@ -585,10 +625,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			var seedCollection *test.SeedCollection
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
+
 			})
 			It("can update componentInstance count correctly", func() {
 				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
-
+				componentInstance.ParentId = 1
 				componentInstance.Count = componentInstance.Count + 1
 				err := db.UpdateComponentInstance(&componentInstance)
 
@@ -621,6 +662,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+					Expect(ci[0].ParentId).To(BeEquivalentTo(componentInstance.ParentId))
 				})
 			})
 			It("can update componentInstance fields correctly", func() {
@@ -630,6 +672,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				newComponentInstanceValues.Id = componentInstance.Id
 				newComponentInstanceValues.ComponentVersionId = componentInstance.ComponentVersionId
 				newComponentInstanceValues.ServiceId = componentInstance.ServiceId
+				newComponentInstanceValues.ParentId = componentInstance.ParentId
 				err := db.UpdateComponentInstance(&newComponentInstanceValues)
 
 				By("throwing no error", func() {
@@ -661,6 +704,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Count).To(BeEquivalentTo(newComponentInstanceValues.Count))
 					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(newComponentInstanceValues.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(newComponentInstanceValues.ServiceId))
+					Expect(ci[0].ParentId).To(BeEquivalentTo(newComponentInstanceValues.ParentId))
 				})
 			})
 		})
@@ -1643,6 +1687,66 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 		})
 	})
+	When("Creating a self-referencing ComponentInstance", Label("CreateSelfReferencingComponentInstance"), func() {
+		Context("and we have a parent ComponentInstance in the database", func() {
+			//var parent entity.ComponentInstance
+			//var childComponentInstance entity.ComponentInstance
+			var seedCollection *test.SeedCollection
+
+			BeforeEach(func() {
+				// Seed the database with initial data
+				seedCollection = seeder.SeedDbWithNFakeData(2)
+
+			})
+
+			It("can create a child ComponentInstance with a valid parent ID", func() {
+				componentInstance := test.NewFakeComponentInstance()
+				childComponentInstance := componentInstance.AsComponentInstance()
+				parent := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
+				childComponentInstance.ParentId = parent.Id
+				childComponentInstance.ComponentVersionId = parent.ComponentVersionId
+				childComponentInstance.ServiceId = parent.ServiceId
+				createdWithParent, err := db.CreateComponentInstance(&childComponentInstance)
+				fmt.Printf("Created Parent ComponentInstance: %+v\n", createdWithParent)
+				Expect(err).To(BeNil(), "Creating parent ComponentInstance should not throw an error")
+				Expect(createdWithParent.Id).To(Not(BeZero()), "Parent ComponentInstance should have a valid ID")
+				Expect(createdWithParent.ParentId).To(BeEquivalentTo(parent.Id), "Parent ComponentInstance should not have a parent ID")
+
+				// Retrieve the child ComponentInstance
+				filter := &entity.ComponentInstanceFilter{
+					Id: []*int64{&createdWithParent.Id},
+				}
+				results, err := db.GetComponentInstances(filter, nil)
+				Expect(err).To(BeNil(), "Retrieving child ComponentInstance should not throw an error")
+				Expect(results).To(HaveLen(1), "Should retrieve exactly one ComponentInstance")
+				Expect(results[0].ParentId).To(BeEquivalentTo(parent.Id), "Retrieved child should reference the correct parent ID")
+
+			})
+			It("can create and retrieve the child ComponentInstance with a valid parent ID", func() {
+				componentInstance := test.NewFakeComponentInstance()
+				childComponentInstance := componentInstance.AsComponentInstance()
+				parent := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
+				childComponentInstance.ParentId = parent.Id
+				childComponentInstance.ComponentVersionId = parent.ComponentVersionId
+				childComponentInstance.ServiceId = parent.ServiceId
+				createdWithParent, err := db.CreateComponentInstance(&childComponentInstance)
+				fmt.Printf("Created Parent ComponentInstance: %+v\n", createdWithParent)
+				Expect(err).To(BeNil(), "Creating parent ComponentInstance should not throw an error")
+				Expect(createdWithParent.Id).To(Not(BeZero()), "Parent ComponentInstance should have a valid ID")
+
+				// Retrieve the child ComponentInstance
+				filter := &entity.ComponentInstanceFilter{
+					Id: []*int64{&createdWithParent.Id},
+				}
+				results, err := db.GetComponentInstances(filter, nil)
+				Expect(err).To(BeNil(), "Retrieving child ComponentInstance should not throw an error")
+				Expect(results).To(HaveLen(1), "Should retrieve exactly one ComponentInstance")
+				Expect(results[0].ParentId).To(BeEquivalentTo(parent.Id), "Retrieved child should reference the correct parent ID")
+
+			})
+		})
+	})
+
 	When("Getting Context", Label("GetContext"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {

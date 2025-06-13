@@ -107,6 +107,7 @@ type Database interface {
 	GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetType(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetContext(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
 	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)
