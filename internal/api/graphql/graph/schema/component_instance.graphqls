@@ -81,11 +81,13 @@ enum ComponentInstanceTypes {
 	Project,
 	Server,
 	SecurityGroup,
+    SecurityGroupRule
 	DnsZone,
 	FloatingIp,
 	RbacPolicy,
 	User,
-    Container
+    Container,
+    RecordSet
 }
 
 enum ComponentInstanceOrderByField {

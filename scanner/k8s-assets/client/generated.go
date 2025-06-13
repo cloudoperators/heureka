@@ -266,15 +266,17 @@ func (v *ComponentInstanceInput) GetParentId() string { return v.ParentId }
 type ComponentInstanceTypes string
 
 const (
-	ComponentInstanceTypesUnknown       ComponentInstanceTypes = "Unknown"
-	ComponentInstanceTypesProject       ComponentInstanceTypes = "Project"
-	ComponentInstanceTypesServer        ComponentInstanceTypes = "Server"
-	ComponentInstanceTypesSecuritygroup ComponentInstanceTypes = "SecurityGroup"
-	ComponentInstanceTypesDnszone       ComponentInstanceTypes = "DnsZone"
-	ComponentInstanceTypesFloatingip    ComponentInstanceTypes = "FloatingIp"
-	ComponentInstanceTypesRbacpolicy    ComponentInstanceTypes = "RbacPolicy"
-	ComponentInstanceTypesUser          ComponentInstanceTypes = "User"
-	ComponentInstanceTypesContainer     ComponentInstanceTypes = "Container"
+	ComponentInstanceTypesUnknown           ComponentInstanceTypes = "Unknown"
+	ComponentInstanceTypesProject           ComponentInstanceTypes = "Project"
+	ComponentInstanceTypesServer            ComponentInstanceTypes = "Server"
+	ComponentInstanceTypesSecuritygroup     ComponentInstanceTypes = "SecurityGroup"
+	ComponentInstanceTypesSecuritygrouprule ComponentInstanceTypes = "SecurityGroupRule"
+	ComponentInstanceTypesDnszone           ComponentInstanceTypes = "DnsZone"
+	ComponentInstanceTypesFloatingip        ComponentInstanceTypes = "FloatingIp"
+	ComponentInstanceTypesRbacpolicy        ComponentInstanceTypes = "RbacPolicy"
+	ComponentInstanceTypesUser              ComponentInstanceTypes = "User"
+	ComponentInstanceTypesContainer         ComponentInstanceTypes = "Container"
+	ComponentInstanceTypesRecordset         ComponentInstanceTypes = "RecordSet"
 )
 
 type ComponentTypeValues string

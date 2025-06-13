@@ -61,6 +61,8 @@ var AllComponentInstanceTypesOrdered = []ComponentInstanceTypes{
 	ComponentInstanceTypesRbacPolicy,
 	ComponentInstanceTypesUser,
 	ComponentInstanceTypesContainer,
+	ComponentInstanceTypesRecordSet,
+	ComponentInstanceTypesSecurityGroupRule,
 }
 
 type HasToEntity interface {
@@ -728,12 +730,9 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 
 	var parentId int64
 	if componentInstance.ParentID != nil && *componentInstance.ParentID != "" {
-		var err error
-		parentId, err = strconv.ParseInt(*componentInstance.ParentID, 10, 64)
-		if err != nil {
-			parentId = 0
-		}
+		parentId, _ = strconv.ParseInt(*componentInstance.ParentID, 10, 64)
 	}
+
 	rawCcrn := lo.FromPtr(componentInstance.Ccrn)
 	ciType := ""
 	if componentInstance.Type != nil && componentInstance.Type.IsValid() {

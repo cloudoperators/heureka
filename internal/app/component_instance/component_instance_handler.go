@@ -91,9 +91,9 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 	// Validation: Only DnsZone or User can have a parent_id
 	if componentInstance.ParentId != 0 && componentInstance.ParentId != -1 {
 		typeStr := componentInstance.Type.String()
-		if typeStr != "DnsZone" && typeStr != "User" {
+		if typeStr != "RecordSet" && typeStr != "User" && typeStr != "SecurityGroupRule" {
 			return nil, NewComponentInstanceHandlerError(
-				"ParentId can only be set for component instances of type 'DnsZone' or 'User', but got type '" + typeStr + "'")
+				"ParentId can only be set for component instances of type 'RecordSet', 'User' or 'SecurityGroupRule', but got type '" + typeStr + "'")
 		}
 	}
 
@@ -132,12 +132,12 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 }
 
 func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
-	// Validation: Only DnsZone or User can have a parent_id
+	// Validation: Only RecordSet, User or SecurityGroupRule can have a parent_id
 	if componentInstance.ParentId != 0 && componentInstance.ParentId != -1 {
 		typeStr := componentInstance.Type.String()
-		if typeStr != "DnsZone" && typeStr != "User" {
+		if typeStr != "RecordSet" && typeStr != "User" && typeStr != "SecurityGroupRule" {
 			return nil, NewComponentInstanceHandlerError(
-				"ParentId can only be set for component instances of type 'DnsZone' or 'User', but got type '" + typeStr + "'")
+				"ParentId can only be set for component instances of type 'RecordSet', 'User' or 'SecurityGroupRule', but got type '" + typeStr + "'")
 		}
 	}
 

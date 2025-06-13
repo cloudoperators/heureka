@@ -130,7 +130,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
 		// Ensure type is allowed if ParentId is set
-		componentInstance.Type = "DnsZone"
+		componentInstance.Type = "RecordSet"
 		componentInstance.ParentId = 1234
 		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -186,7 +186,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.Project = "NewProject"
 		componentInstance.Pod = "NewPod"
 		componentInstance.Container = "NewContainer"
-		componentInstance.Type = "DnsZone"
+		componentInstance.Type = "User"
 		componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
 		componentInstance.ParentId = 1234
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)

@@ -165,11 +165,11 @@ create table if not exists ComponentInstance
     componentinstance_project              varchar(1024)                         null,
     componentinstance_pod                  varchar(1024)                         null,
     componentinstance_container            varchar(1024)                         null,
-    componentinstance_type                 enum('Unknown', 'Project', 'Server', 'SecurityGroup', 'DnsZone', 'FloatingIp', 'RbacPolicy', 'User', 'Container') default 'Unknown' null,
+    componentinstance_type                 enum('Unknown', 'Project', 'Server', 'SecurityGroup','SecurityGroupRule', 'DnsZone', 'FloatingIp', 'RbacPolicy', 'User', 'Container', 'RecordSet') default 'Unknown' null,
     componentinstance_parent_id            int unsigned                          null,
     componentinstance_context              json      default "{}"                null                   check(json_type(componentinstance_context) != 'ARRAY'), 
     componentinstance_count                int       default 0                   not null,
-    componentinstance_component_version_id int unsigned                          not null,
+    componentinstance_component_version_id int unsigned                          null,
     componentinstance_service_id           int unsigned                          not null,
     componentinstance_created_at           timestamp default current_timestamp() not null,
     componentinstance_created_by           int unsigned                          null,
@@ -180,9 +180,6 @@ create table if not exists ComponentInstance
         unique (componentinstance_id),
     constraint componentinstance_ccrn_service_id_unique
         unique (componentinstance_ccrn, componentinstance_service_id) using hash,
-    constraint fk_component_instance_component_version
-        foreign key (componentinstance_component_version_id) references ComponentVersion (componentversion_id)
-            on update cascade,
     constraint fk_component_instance_service
         foreign key (componentinstance_service_id) references Service (service_id)
             on update cascade,
