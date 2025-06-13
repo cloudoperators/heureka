@@ -122,7 +122,7 @@ func (dbm *LocalTestDataBaseManager) Setup() error {
 	return nil
 }
 
-func (dbm *LocalTestDataBaseManager) ResetSchema() error {
+func (dbm *LocalTestDataBaseManager) ResetSchema(dbName string) error {
 	//first ensure that you can connect
 	err := mariadb.TestConnection(dbm.Config.Config, 20)
 	if err != nil {
@@ -133,10 +133,15 @@ func (dbm *LocalTestDataBaseManager) ResetSchema() error {
 	dbm.loadDBClientIfNeeded()
 
 	// Drop main heureka schema
-	err = dbm.dbClient.DropSchema(dbm.Config.DBName)
-
+	err = dbm.dbClient.DropSchema(dbName)
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while dropping schema")
+		return err
+	}
+
+	err = dbm.prepareDb(dbName)
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to prepare DB schema")
 		return err
 	}
 
@@ -146,6 +151,11 @@ func (dbm *LocalTestDataBaseManager) ResetSchema() error {
 		return err
 	}
 
+	dbm.dbClient, err = dbm.createNewConnection()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to create db connection")
+		return err
+	}
 	return nil
 }
 
@@ -186,10 +196,14 @@ func (dbm *LocalTestDataBaseManager) DbConfig() util.Config {
 }
 
 func (dbm *LocalTestDataBaseManager) prepareTestDb() error {
+	return dbm.prepareDb(fmt.Sprintf("heureka%s", util2.GenerateRandomString(15, util2.Ptr("abcdefghijklmnopqrstuvwxyz0123456789"))))
+}
+
+func (dbm *LocalTestDataBaseManager) prepareDb(dbName string) error {
 	dbm.loadDBClientIfNeeded()
 
 	// using only lowercase characters as in local scenarios the schema name is case-insensitive but the db file names are not leading to errors
-	dbm.Config.DBName = fmt.Sprintf("heureka%s", util2.GenerateRandomString(15, util2.Ptr("abcdefghijklmnopqrstuvwxyz0123456789")))
+	dbm.Config.DBName = dbName
 	dbm.Schemas = append(dbm.Schemas, dbm.Config.DBName)
 
 	err := dbm.dbClient.ConnectDB(dbm.Config.DBName)
