@@ -12,7 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 )
 
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 func (r *activityResolver) Services(ctx context.Context, obj *model.Activity, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {

@@ -6,9 +6,10 @@ package entity
 type UserType int
 
 const (
-	InvalidUserType   UserType = 0
-	HumanUserType     UserType = 1
-	TechnicalUserType UserType = 2
+	InvalidUserType     UserType = 0
+	HumanUserType       UserType = 1
+	TechnicalUserType   UserType = 2
+	MailingListUserType UserType = 3
 )
 
 type User struct {
@@ -17,6 +18,7 @@ type User struct {
 	Name         string   `json:"name"`
 	UniqueUserID string   `json:"uniqueUserId"`
 	Type         UserType `json:"type"`
+	Email        string   `json:"email"`
 }
 
 type UserFilter struct {
@@ -28,6 +30,7 @@ type UserFilter struct {
 	SupportGroupId []*int64          `json:"support_group_id"`
 	ServiceId      []*int64          `json:"service_id"`
 	State          []StateFilterType `json:"state"`
+	Email          []*string         `json:"email"`
 }
 
 type UserAggregations struct {
@@ -44,6 +47,8 @@ func GetUserTypeFromString(uts string) UserType {
 		return HumanUserType
 	} else if uts == "technical" {
 		return TechnicalUserType
+	} else if uts == "mail_list" {
+		return MailingListUserType
 	}
 	return InvalidUserType
 }
@@ -53,6 +58,8 @@ func GetUserTypeString(ut UserType) string {
 		return "user"
 	} else if ut == TechnicalUserType {
 		return "technical"
+	} else if ut == MailingListUserType { // Handle the new user type
+		return "mail_list"
 	}
 	return ""
 }

@@ -6,6 +6,7 @@ type User implements Node {
     uniqueUserId: String
     type: Int!
     name: String
+    email: String
     supportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
     services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     metadata: Metadata
@@ -15,6 +16,7 @@ input UserInput {
     uniqueUserId: String
     type: String
     name: String
+    email: String
 }
 
 type UserConnection implements Connection {
