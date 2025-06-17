@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+-- SPDX-License-Identifier: Apache-2.0
+
 ALTER TABLE ComponentInstance 
     DROP FOREIGN KEY fk_component_instance_component_version,
     MODIFY componentinstance_type enum('Unknown', 'Project', 'Server', 'SecurityGroup','SecurityGroupRule', 'DnsZone', 'FloatingIp', 'RbacPolicy', 'User', 'Container', 'RecordSet') default 'Unknown' null,

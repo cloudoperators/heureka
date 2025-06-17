@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+-- SPDX-License-Identifier: Apache-2.0
+
 ALTER TABLE ComponentInstance 
     DROP FOREIGN KEY fk_componentinstance_parent_id,
     DROP COLUMN componentinstance_parent_id,
