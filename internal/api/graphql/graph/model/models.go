@@ -63,6 +63,7 @@ var AllComponentInstanceTypesOrdered = []ComponentInstanceTypes{
 	ComponentInstanceTypesContainer,
 	ComponentInstanceTypesRecordSet,
 	ComponentInstanceTypesSecurityGroupRule,
+	ComponentInstanceTypesProjectConfiguration,
 }
 
 type HasToEntity interface {

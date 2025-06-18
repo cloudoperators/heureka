@@ -87,7 +87,8 @@ enum ComponentInstanceTypes {
 	RbacPolicy,
 	User,
     Container,
-    RecordSet
+    RecordSet,
+    ProjectConfiguration,
 }
 
 enum ComponentInstanceOrderByField {

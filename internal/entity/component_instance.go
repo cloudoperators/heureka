@@ -6,17 +6,18 @@ package entity
 type ComponentInstanceType string
 
 const (
-	ComponentInstanceTypeUnknown           ComponentInstanceType = "Unknown"
-	ComponentInstanceTypeProject           ComponentInstanceType = "Project"
-	ComponentInstanceTypeServer            ComponentInstanceType = "Server"
-	ComponentInstanceTypeSecurityGroup     ComponentInstanceType = "SecurityGroup"
-	ComponentInstanceTypeSecurityGroupRule ComponentInstanceType = "SecurityGroupRule"
-	ComponentInstanceTypeDnsZone           ComponentInstanceType = "DnsZone"
-	ComponentInstanceTypeFloatingIp        ComponentInstanceType = "FloatingIp"
-	ComponentInstanceTypeRbacPolicy        ComponentInstanceType = "RbacPolicy"
-	ComponentInstanceTypeUser              ComponentInstanceType = "User"
-	ComponentInstanceTypeContainer         ComponentInstanceType = "Container"
-	ComponentInstanceTypeRecordSet         ComponentInstanceType = "RecordSet"
+	ComponentInstanceTypeUnknown              ComponentInstanceType = "Unknown"
+	ComponentInstanceTypeProject              ComponentInstanceType = "Project"
+	ComponentInstanceTypeServer               ComponentInstanceType = "Server"
+	ComponentInstanceTypeSecurityGroup        ComponentInstanceType = "SecurityGroup"
+	ComponentInstanceTypeSecurityGroupRule    ComponentInstanceType = "SecurityGroupRule"
+	ComponentInstanceTypeDnsZone              ComponentInstanceType = "DnsZone"
+	ComponentInstanceTypeFloatingIp           ComponentInstanceType = "FloatingIp"
+	ComponentInstanceTypeRbacPolicy           ComponentInstanceType = "RbacPolicy"
+	ComponentInstanceTypeUser                 ComponentInstanceType = "User"
+	ComponentInstanceTypeContainer            ComponentInstanceType = "Container"
+	ComponentInstanceTypeRecordSet            ComponentInstanceType = "RecordSet"
+	ComponentInstanceTypeProjectConfiguration ComponentInstanceType = "ProjectConfiguration"
 )
 
 func (e ComponentInstanceType) String() string {
@@ -47,6 +48,8 @@ func (e ComponentInstanceType) Index() int {
 		return 9
 	case ComponentInstanceTypeRecordSet:
 		return 10
+	case ComponentInstanceTypeProjectConfiguration:
+		return 11
 	default:
 		return -1
 	}
@@ -76,6 +79,8 @@ func NewComponentInstanceType(s string) ComponentInstanceType {
 		return ComponentInstanceTypeContainer
 	case ComponentInstanceTypeRecordSet.String():
 		return ComponentInstanceTypeRecordSet
+	case ComponentInstanceTypeProjectConfiguration.String():
+		return ComponentInstanceTypeProjectConfiguration
 	}
 	return ComponentInstanceTypeUnknown
 }
@@ -92,6 +97,7 @@ var AllComponentInstanceType = []string{
 	ComponentInstanceTypeUser.String(),
 	ComponentInstanceTypeContainer.String(),
 	ComponentInstanceTypeRecordSet.String(),
+	ComponentInstanceTypeProjectConfiguration.String(),
 }
 
 type ComponentInstanceFilter struct {

@@ -108,6 +108,8 @@ func ComponentInstanceType(s string) (ComponentInstanceTypes, error) {
 		return ComponentInstanceTypesRecordSet, nil
 	case ComponentInstanceTypesSecurityGroupRule.String():
 		return ComponentInstanceTypesSecurityGroupRule, nil
+	case ComponentInstanceTypesProjectConfiguration.String():
+		return ComponentInstanceTypesProjectConfiguration, nil
 	}
 	return "unknown", fmt.Errorf("Invalid ComponentInstanceType provided: %s", s)
 }
