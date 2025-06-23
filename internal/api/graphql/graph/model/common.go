@@ -69,7 +69,7 @@ func SeverityValue(s string) (SeverityValues, error) {
 	case SeverityValuesCritical.String():
 		return SeverityValuesCritical, nil
 	}
-	return "unknown", fmt.Errorf("Invalid SeverityValues provided: %s", s)
+	return SeverityValuesNone, fmt.Errorf("Invalid SeverityValues provided: %s", s)
 }
 
 func ComponentTypeValue(s string) (ComponentTypeValues, error) {
