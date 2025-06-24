@@ -14,11 +14,11 @@ endif
 
 all: build-binary test-all
 
-build-binary: gqlgen mockery
+build-binary: mockery gqlgen
 	GO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o build/heureka cmd/heureka/main.go
 
 # Build the binary and execute it
-run-%: gqlgen mockery
+run-%: mockery gqlgen
 	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags="$(LDFLAGS)" -o build/$* cmd/$*/main.go
 	DB_SCHEMA=./internal/database/mariadb/init/schema.sql ./build/$*
 
