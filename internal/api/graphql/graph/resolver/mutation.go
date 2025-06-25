@@ -12,7 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 )
 
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 // CreateUser is the resolver for the createUser field.

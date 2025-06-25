@@ -91,6 +91,7 @@ type User struct {
 	UniqueUserID string
 	Type         entity.UserType
 	Name         string
+	Email        string
 }
 
 func QueryCreateUser(port string, user User) *model.User {
@@ -106,6 +107,7 @@ func QueryCreateUser(port string, user User) *model.User {
 		"uniqueUserId": user.UniqueUserID,
 		"type":         entity.GetUserTypeString(user.Type),
 		"name":         user.Name,
+		"email":        user.Email,
 	})
 
 	req.Header.Set("Cache-Control", "no-cache")

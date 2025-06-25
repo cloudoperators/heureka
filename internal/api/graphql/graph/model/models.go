@@ -504,6 +504,7 @@ func NewUser(user *entity.User) User {
 		UniqueUserID: &user.UniqueUserID,
 		Name:         &user.Name,
 		Type:         int(user.Type),
+		Email:        &user.Email,
 		Metadata:     getModelMetadata(user.Metadata),
 	}
 }
@@ -513,6 +514,7 @@ func NewUserEntity(user *UserInput) entity.User {
 		Name:         lo.FromPtr(user.Name),
 		UniqueUserID: lo.FromPtr(user.UniqueUserID),
 		Type:         entity.GetUserTypeFromString(lo.FromPtr(user.Type)),
+		Email:        lo.FromPtr(user.Email),
 	}
 }
 
