@@ -61,6 +61,10 @@ jobs:
           # Use the dry_run input if provided via manual trigger
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
         run: npx semantic-release $DRY_RUN
+      - name: Debug Semantic Release Output
+        run: |
+          echo "New release published: ${{ steps.semantic.outputs.new_release_published }}"
+          echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
 
   # Then build the Docker images with appropriate tags
   build:
@@ -133,6 +137,7 @@ jobs:
             type=raw,value=${{ github.sha }}
             type=sha,format=short,prefix=
             # If a new release was published, add semantic version tags
+            type=raw,value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
             type=semver,pattern={{version}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
             type=semver,pattern={{major}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' && !startsWith(needs.release.outputs.new_release_version, 'v0.') }}
