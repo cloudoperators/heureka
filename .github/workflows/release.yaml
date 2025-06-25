@@ -1,6 +1,15 @@
 name: Release
 
 on:
+  # Add workflow_dispatch to enable manual triggering
+  workflow_dispatch:
+    # Optional inputs that can be provided when manually triggering
+    inputs:
+      dry_run:
+        description: 'Dry run (no actual release)'
+        type: boolean
+        default: false
+        required: false
   push:
     branches:
       - main
@@ -46,4 +55,6 @@ jobs:
       - name: Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use the dry_run input if provided via manual trigger
+          DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
         run: npx semantic-release
