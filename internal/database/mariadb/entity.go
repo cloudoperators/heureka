@@ -894,6 +894,7 @@ type UserRow struct {
 	DeletedAt    sql.NullTime   `db:"user_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt    sql.NullTime   `db:"user_updated_at" json:"updated_at"`
 	UpdatedBy    sql.NullInt64  `db:"user_updated_by" json:"Updated_by"`
+	Email        sql.NullString `db:"user_email" json:"email"`
 }
 
 func (ur *UserRow) AsUser() entity.User {
@@ -902,6 +903,7 @@ func (ur *UserRow) AsUser() entity.User {
 		Name:         GetStringValue(ur.Name),
 		UniqueUserID: GetStringValue(ur.UniqueUserID),
 		Type:         GetUserTypeValue(ur.Type),
+		Email:        GetStringValue(ur.Email),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ur.CreatedAt),
 			CreatedBy: GetInt64Value(ur.CreatedBy),
@@ -922,6 +924,7 @@ func (ur *UserRow) FromUser(u *entity.User) {
 	ur.DeletedAt = sql.NullTime{Time: u.DeletedAt, Valid: true}
 	ur.UpdatedAt = sql.NullTime{Time: u.UpdatedAt, Valid: true}
 	ur.UpdatedBy = sql.NullInt64{Int64: u.UpdatedBy, Valid: true}
+	ur.Email = sql.NullString{String: u.Email, Valid: true}
 }
 
 type EvidenceRow struct {

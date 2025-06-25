@@ -21,7 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
-	"github.com/cloudoperators/heureka/internal/e2e/common"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/server"
 )
@@ -161,6 +161,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 						Expect(user.Node.Name).ToNot(BeNil(), "user has a name set")
 						Expect(user.Node.UniqueUserID).ToNot(BeNil(), "user has a uniqueUserId set")
 						Expect(user.Node.Type).ToNot(BeNil(), "user has a type set")
+						Expect(user.Node.Email).ToNot(BeNil(), "user has a email set")
 
 						for _, service := range user.Node.Services.Edges {
 							Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
@@ -233,10 +234,11 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new user", func() {
-				respUser := e2e_common.QueryCreateUser(cfg.Port, e2e_common.User{UniqueUserID: user.UniqueUserID, Type: user.Type, Name: user.Name})
+				respUser := e2e_common.QueryCreateUser(cfg.Port, e2e_common.User{UniqueUserID: user.UniqueUserID, Type: user.Type, Name: user.Name, Email: user.Email})
 				Expect(*respUser.Name).To(Equal(user.Name))
 				Expect(*respUser.UniqueUserID).To(Equal(user.UniqueUserID))
 				Expect(entity.UserType(respUser.Type)).To(Equal(user.Type))
+				Expect(*respUser.Email).To(Equal(user.Email))
 			})
 		})
 	})
@@ -278,10 +280,11 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 			It("updates user", func() {
 				user := seedCollection.UserRows[0].AsUser()
 				user.Name = "Sauron"
-				respUser := e2e_common.QueryUpdateUser(cfg.Port, e2e_common.User{UniqueUserID: user.UniqueUserID, Name: user.Name, Type: user.Type}, fmt.Sprintf("%d", user.Id))
+				respUser := e2e_common.QueryUpdateUser(cfg.Port, e2e_common.User{UniqueUserID: user.UniqueUserID, Name: user.Name, Type: user.Type, Email: user.Email}, fmt.Sprintf("%d", user.Id))
 				Expect(*respUser.Name).To(Equal(user.Name))
 				Expect(*respUser.UniqueUserID).To(Equal(user.UniqueUserID))
 				Expect(entity.UserType(respUser.Type)).To(Equal(user.Type))
+				Expect(*respUser.Email).To(Equal(user.Email))
 			})
 		})
 	})
