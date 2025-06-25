@@ -46,12 +46,6 @@ jobs:
       - name: Install dependencies
         run: npm install --save-dev semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
 
-      - name: Create VERSION file if it doesn't exist
-        run: |
-          if [ ! -f VERSION ]; then
-            echo "0.0.0" > VERSION
-          fi
-
       - name: Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
