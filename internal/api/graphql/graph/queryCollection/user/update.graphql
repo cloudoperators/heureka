@@ -11,5 +11,6 @@ mutation ($id: ID!, $input: UserInput!) {
         uniqueUserId
         type
         name
+        email
     }
 }

@@ -9,5 +9,6 @@ mutation ($input: UserInput!) {
         uniqueUserId
         type
         name
+        email
     }
 }

@@ -1163,12 +1163,14 @@ func (s *DatabaseSeeder) InsertFakeUser(user mariadb.UserRow) (int64, error) {
 			user_name,
 			user_unique_user_id,
 			user_type,
+			user_email,
 			user_created_by,
 			user_updated_by
 		) VALUES (
 			:user_name,
 			:user_unique_user_id,
 			:user_type,
+			:user_email,
 			:user_created_by,
 			:user_updated_by
 		)`
@@ -1507,6 +1509,7 @@ func NewFakeUser() mariadb.UserRow {
 		Name:         sql.NullString{String: gofakeit.Name(), Valid: true},
 		UniqueUserID: sql.NullString{String: uniqueUserId, Valid: true},
 		Type:         sql.NullInt64{Int64: getNextUserType(), Valid: true},
+		Email:        sql.NullString{String: gofakeit.Email(), Valid: true},
 		CreatedBy:    sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy:    sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}

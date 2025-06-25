@@ -13,6 +13,7 @@ query ($filter: UserFilter, $first: Int, $after: String) {
                 id
                 name
                 type
+                email
                 metadata {
                     created_at
                     created_by

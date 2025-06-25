@@ -18,6 +18,7 @@ func (s *SqlDatabase) getUserFilterString(filter *entity.UserFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Name, "U.user_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.UniqueUserID, "U.user_unique_user_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "U.user_type = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Email, "U.user_email = ?", OP_OR)) // Add this line
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGU.supportgroupuser_support_group_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "O.owner_service_id = ?", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "U.user"))
@@ -40,6 +41,7 @@ func (s *SqlDatabase) ensureUserFilter(f *entity.UserFilter) *entity.UserFilter 
 			Type:           nil,
 			SupportGroupId: nil,
 			ServiceId:      nil,
+			Email:          nil, // Initialize Email filter
 		}
 	}
 	if f.First == nil {
@@ -64,6 +66,9 @@ func (s *SqlDatabase) getUserUpdateFields(user *entity.User) string {
 	}
 	if user.UpdatedBy != 0 {
 		fl = append(fl, "user_updated_by = :user_updated_by")
+	}
+	if user.Email != "" { // Add this condition
+		fl = append(fl, "user_email = :user_email")
 	}
 
 	return strings.Join(fl, ", ")
@@ -128,6 +133,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 	filterParameters = buildQueryParameters(filterParameters, filter.UniqueUserID)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
+	filterParameters = buildQueryParameters(filterParameters, filter.Email) // Add this line
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
@@ -223,12 +229,14 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 			user_name,
 			user_unique_user_id,
 			user_type,
+			user_email,
 			user_created_by,
 			user_updated_by
 		) VALUES (
 			:user_name,
 			:user_unique_user_id,
 			:user_type,
+			:user_email,
 			:user_created_by,
 			:user_updated_by
 		)
