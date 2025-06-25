@@ -21,7 +21,11 @@ on:
       - go.mod
       - go.sum
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
+  # First, run the semantic release to determine if we have a new version
   release:
     name: Semantic Release
     runs-on: default
@@ -30,6 +34,10 @@ jobs:
       issues: write
       pull-requests: write
       id-token: write
+
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
 
     steps:
       - name: Checkout
@@ -47,8 +55,149 @@ jobs:
         run: npm install --save-dev semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
 
       - name: Semantic Release
+        id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Use the dry_run input if provided via manual trigger
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
-        run: npx semantic-release
+        run: npx semantic-release $DRY_RUN
+
+  # Then build the Docker images with appropriate tags
+  build:
+    name: Build Docker Images
+    needs: release
+    runs-on: [ default ]
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - Dockerfiles: Dockerfile
+            Imagename: heureka
+          - Dockerfiles: scanner/nvd/Dockerfile
+            Imagename: heureka-scanner-nvd
+          - Dockerfiles: scanner/k8s-assets/Dockerfile
+            Imagename: heureka-scanner-k8s-assets
+          - Dockerfiles: scanner/keppel/Dockerfile
+            Imagename: heureka-scanner-keppel
+          - Dockerfiles: Dockerfile.db
+            Imagename: heureka-db
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Ensure we get the tag if a release was created
+          fetch-depth: 0
+          ref: main
+
+      # Install the cosign tool
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.9.0
+        with:
+          cosign-release: 'v2.2.3'
+
+      # Set up QEMU for cross-platform builds
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Set up BuildKit Docker container builder
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+
+      # Login against Docker registry
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Extract metadata (tags, labels) for Docker
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}
+          tags: |
+            # Always tag with latest and commit SHA
+            type=raw,value=latest
+            type=raw,value=${{ github.sha }}
+            type=sha,format=short,prefix=
+            # If a new release was published, add semantic version tags
+            type=raw,value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
+            type=raw,value=stable,enable=${{ needs.release.outputs.new_release_published == 'true' }}
+            # Extract major.minor from version (v1.2.3 -> v1.2)
+            type=raw,value=${{ needs.release.outputs.new_release_published == 'true' && format('v{0}.{1}', split(needs.release.outputs.new_release_version, '.')[0], split(needs.release.outputs.new_release_version, '.')[1]) }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
+            # Extract major from version (v1.2.3 -> v1)
+            type=raw,value=${{ needs.release.outputs.new_release_published == 'true' && format('v{0}', split(needs.release.outputs.new_release_version, '.')[0]) }},enable=${{ needs.release.outputs.new_release_published == 'true' && !startsWith(needs.release.outputs.new_release_version, 'v0.') }}
+
+      # Build and push Docker image with Buildx
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.Dockerfiles }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          platforms: |
+            linux/amd64
+            linux/arm64
+
+      # Sign the resulting Docker image digest
+      - name: Sign the published Docker image
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+  vulnerability-scan:
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - Dockerfiles: Dockerfile
+            Imagename: heureka
+          - Dockerfiles: scanner/nvd/Dockerfile
+            Imagename: heureka-scanner-nvd
+          - Dockerfiles: scanner/k8s-assets/Dockerfile
+            Imagename: heureka-scanner-k8s-assets
+          - Dockerfiles: scanner/keppel/Dockerfile
+            Imagename: heureka-scanner-keppel
+
+    name: Vulnerability Scan
+    needs: build
+    runs-on: [ default ]
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        if: success()
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}:${{ github.sha }}
+          ignore-unfixed: true
+          # Remove exit-code: '1' to prevent failing on vulnerabilities
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
