@@ -870,6 +870,12 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 		cir.ParentId = sql.NullInt64{Int64: ci.ParentId, Valid: true}
 	}
 
+	if ci.ComponentVersionId > 0 {
+		cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
+	} else {
+		cir.ComponentVersionId = sql.NullInt64{Valid: false}
+	}
+
 	cir.Id = sql.NullInt64{Int64: ci.Id, Valid: true}
 	cir.CCRN = sql.NullString{String: ci.CCRN, Valid: true}
 	cir.Region = sql.NullString{String: ci.Region, Valid: true}
@@ -882,7 +888,6 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 	cir.Type = sql.NullString{String: ci.Type.String(), Valid: true}
 	cir.Context = sql.NullString{String: ci.Context.String(), Valid: true}
 	cir.Count = sql.NullInt16{Int16: ci.Count, Valid: true}
-	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}
 	cir.CreatedAt = sql.NullTime{Time: ci.CreatedAt, Valid: true}
 	cir.CreatedBy = sql.NullInt64{Int64: ci.CreatedBy, Valid: true}
