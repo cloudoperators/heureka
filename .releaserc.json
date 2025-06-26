@@ -1,5 +1,5 @@
 {
-  "branches": ["main", "semantic-release"],
+  "branches": ["main", "mr2011/semantic-release"],
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
