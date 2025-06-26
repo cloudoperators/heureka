@@ -52,18 +52,19 @@ jobs:
 
       - name: Install dependencies
         run: npm install --save-dev semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
-
-      - name: Semantic Release
+      - uses: codfish/semantic-release-action@v3
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Use the dry_run input if provided via manual trigger
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
-        run: npx semantic-release $DRY_RUN
-      - name: Debug Semantic Release Output
-        run: |
-          echo "New release version: ${{ steps.semantic.outputs.nextRelease.version }}"
-          echo "Outputs: ${{ steps.semantic.outputs }}"
+          
+    
+      - run: echo ${{ steps.semantic.outputs.release-version }}
+    
+      - run: echo "$OUTPUTS"
+        env:
+          OUTPUTS: ${{ toJson(steps.semantic.outputs) }}
 
   # Then build the Docker images with appropriate tags
   build:
