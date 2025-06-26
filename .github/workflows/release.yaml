@@ -62,7 +62,8 @@ jobs:
         run: npx semantic-release $DRY_RUN
       - name: Debug Semantic Release Output
         run: |
-          echo "New release version: ${{ steps.semantic.outputs.version }}"
+          echo "New release version: ${{ steps.semantic.outputs.nextRelease.version }}"
+          echo "Outputs: ${{ steps.semantic.outputs }}"
 
   # Then build the Docker images with appropriate tags
   build:
