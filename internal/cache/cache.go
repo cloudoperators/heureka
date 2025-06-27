@@ -1,76 +1,95 @@
 package cache
 
 import (
-	"encoding/base64"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
-	"runtime"
-	"sort"
 	"time"
 )
 
-type Cache struct {
-	stat  Stat
-	store map[string]*CacheEntry
-	ttl   time.Duration
+type Cache interface {
+	cacheKey(fnname string, fn interface{}, args ...interface{}) (string, error) //TODO: change interface to store/load albo set/get???
+	Get(ctx context.Context, key string) (string, bool, error)
+	Set(ctx context.Context, key string, value string) error
+	Invalidate(ctx context.Context, key string) error
 }
 
-type Stat struct {
-	hit  int
-	miss int
+type CacheConfig struct {
+	Ttl     time.Duration
+    KeyHash KeyHashType
 }
 
-type Config struct {
-	Ttl time.Duration
-}
-
-type CacheEntry struct {
-	t0 time.Time
-	val interface{}
-}
-
-func NewCache(config Config) *Cache {
-	c := &Cache{
-		store: make(map[string]*CacheEntry),
-		ttl:   config.Ttl,
+func NewCache(config interface{}) Cache {
+	switch c := config.(type) {
+	case InMemoryCacheConfig:
+		return NewInMemoryCache(c)
+	case RedisCacheConfig:
+		ctx := context.Background()
+		return NewRedisCache(ctx, c)
 	}
-	return c
+	return NewNoCache()
 }
 
-// TODO: idk why this is not working:
-//func (c *Cache)CallCached[T any](fn interface{}, args ...interface{}) (T, error) {
-func CallCached[T any](c *Cache, fn interface{}, args ...interface{}) (T, error) {
-	var zero T
+func getCallParameters(fn interface{}, args ...interface{}) (reflect.Value, []reflect.Value, error) {
 	v := reflect.ValueOf(fn)
-
-	// Check fn is a function
 	if v.Kind() != reflect.Func {
-		return zero, errors.New("Cache: first parameter is not a function")
+		return reflect.Value{}, []reflect.Value{}, errors.New("Expected function parameter is not a function")
 	}
 
-	// Check fn has expected number of parameters
 	if len(args) != v.Type().NumIn() {
-		return zero, errors.New("Cache: incorrect number of arguments")
+		return reflect.Value{}, []reflect.Value{}, errors.New("Incorrect number of arguments for the function")
 	}
 
-	// Check fn has expected types of parameters
 	in := make([]reflect.Value, len(args))
 	for i, arg := range args {
 		argVal := reflect.ValueOf(arg)
 		if !argVal.Type().AssignableTo(v.Type().In(i)) {
-			return zero, fmt.Errorf("Cache: argument %d has incorrect type", i)
+			return reflect.Value{}, []reflect.Value{}, fmt.Errorf("Argument %d has incorrect type", i)
 		}
 		in[i] = argVal
 	}
+	return v, in, nil
+}
 
-	fName := getFunctionName(fn)
-	fmt.Println("A: ", fName)
-	key, err := cacheKey(fn, args...)
-	if err != nil {
-		return zero, fmt.Errorf("Cache: could not create cache key.")
+func getReturnValues[T any](out []reflect.Value) (T, error) {
+	var zero T
+	if len(out) != 2 {
+		return zero, fmt.Errorf("Function call returned incorrect number of values")
 	}
+
+	// Assert first return to T
+	result, ok := out[0].Interface().(T)
+	if !ok {
+		return zero, fmt.Errorf("Type assertion to %T failed", zero)
+	}
+
+	// Assert second return to error
+	errInterface := out[1].Interface()
+	if errInterface != nil {
+		err, ok := errInterface.(error)
+		if !ok {
+			return zero, errors.New("Second return value is not an error")
+		}
+		return zero, fmt.Errorf("Execution failed: %w", err)
+	}
+	return result, nil
+}
+
+func CallCached[T any](c Cache, fnname string, fn interface{}, args ...interface{}) (T, error) {
+	ctx := context.Background()
+	var zero T
+	v, in, err := getCallParameters(fn, args...)
+	if err != nil {
+		return zero, fmt.Errorf("Cache: Get call parameters failed: %w", err)
+	}
+
+	key, err := c.cacheKey(fnname, fn, args...)
+	if err != nil {
+		return zero, fmt.Errorf("Cache: Could not create cache key.")
+	}
+	debug(c)
 	fmt.Println("B: ", key)
 
 	//TODO: IMPLEMENT CACHE MAGIC HERE
@@ -84,139 +103,158 @@ func CallCached[T any](c *Cache, fn interface{}, args ...interface{}) (T, error)
 	//   ...
 	//   result = out[0]
 	// }
-	// storeCache() -> { cacheEntry.t0 = time.Now(), cacheEntryVal = result, c.store[key] = cacheEntry }
+	// storeCache() -> { cacheEntry.ts = time.Now(), cacheEntryVal = result, c.store[key] = cacheEntry }
 	//TODO: add mutex
+
+
+
+	// try cache
+	if s, ok, err := c.Get(ctx, key); err == nil && ok {
+		// assume you marshal/unmarshal T ⇄ string elsewhere
+		val, err := decode[T](s)
+		if err == nil {
+			return val, nil
+		}
+		_ = c.Invalidate(ctx, key) // poison-pill protection
+	} else if err != nil {
+		// decide whether to ignore or propagate cache errors
+		return zero, err
+	}
+
+
+
 
 	// Call fn function
 	out := v.Call(in)
 
-	// Handle return values
-	if len(out) != 2 {
-		return zero, fmt.Errorf("Cache: Function call returned incorrect number of values")
+	result, err := getReturnValues[T](out)
+	if err != nil {
+		return zero, fmt.Errorf("Cache: Return value error: %w", err)
 	}
 
-	// Assert first return to T
-	result, ok := out[0].Interface().(T)
-	if !ok {
-		return zero, fmt.Errorf("Cache: type assertion to %T failed", zero)
-	}
 
-	// Assert second return to error
-	errInterface := out[1].Interface()
-	if errInterface != nil {
-		err, ok := errInterface.(error)
-		if !ok {
-			return zero, errors.New("Cache: second return value is not an error")
+
+
+
+	if err == nil {
+		if enc, encErr := encode(result); encErr == nil {
+			_ = c.Set(ctx, key, enc) // expiration as you like  //TODO: implement TTL
 		}
-		return zero, err
 	}
+
+
+
+	debug(c)
+
+
+
 
 	return result, nil
 }
 
-func getFunctionName(fn interface{}) string {
-	v := reflect.ValueOf(fn)
-	if v.Kind() != reflect.Func {
-		return "<not a function>"
+func debug(c Cache) {
+	if inMemCache, ok := c.(*InMemoryCache); ok { //TODO: implement and use stats
+		//inMemCache.DoSomething()
+		println(len(inMemCache.storage))
+	} else {
+		fmt.Println("Could not cast to ImplA")
 	}
-
-	return runtime.FuncForPC(v.Pointer()).Name()
 }
 
-func cacheKeyJson(fn interface{}, args ...interface{}) (string, error) {
-	keyParts := make([]interface{}, 0, len(args)+1)
+// encode marshals any value to a JSON string.
+func encode[T any](v T) (string, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", fmt.Errorf("encode: %w", err)
+	}
+	return string(b), nil
+}
 
-	fnName := getFunctionName(fn)
-	keyParts = append(keyParts, fnName)
+// decode unmarshals a JSON string back into a value of type T.
+func decode[T any](s string) (T, error) {
+	var v T
+	err := json.Unmarshal([]byte(s), &v)
+	if err != nil {
+		return v, fmt.Errorf("decode: %w", err)
+	}
+	return v, nil
+}
+/*
+	func (c *Cache) ClearStats() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
 
-	for i, arg := range args {
-		if !isJSONSerializable(arg) {
-			return "", fmt.Errorf("argument %d is not JSON serializable: %T", i, arg)
+		c.stat.Hit = 0
+		c.stat.Miss = 0
+		c.stat.Expired = 0
+	}
+
+	func (c *Cache) Stats() Stat {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+
+		return c.stat
+	}
+
+	func (c *Cache) StatsStr() string {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+
+		var hmr float32
+		total := c.stat.Hit + c.stat.Miss
+		if total > 0 {
+			hmr = float32(c.stat.Hit) / float32(total)
 		}
-		keyParts = append(keyParts, arg)
+		return fmt.Sprintf("hit: %d, miss: %d, h/(h+m): %f, expired: %d", c.stat.Hit, c.stat.Miss, hmr, c.stat.Expired)
 	}
+*/
 
-	// Encode the full key as JSON array
-	jsonKey, err := json.Marshal(keyParts)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal cache key: %w", err)
+func DecodeKey(key string, keyHash KeyHashType) (string, error) {
+	if keyHash == KEY_HASH_BASE64 {
+		return decodeBase64(key)
+	} else if keyHash == KEY_HASH_HEX {
+		return decodeHex(key)
 	}
-
-	return string(jsonKey), nil
-}
-
-func cacheKey(fn interface{}, args ...interface{}) (string, error) {
-	key, err := cacheKeyJson(fn, args...)
-	if err != nil {
-		return "", fmt.Errorf("Cache: could not create json cache key.")
-	}
-	return encodeBase64(key), nil
-}
-
-func isJSONSerializable(val interface{}) bool {
-	_, err := json.Marshal(val)
-	return err == nil
-}
-
-func encodeBase64(input string) string {
-	return base64.StdEncoding.EncodeToString([]byte(input))
-}
-
-func decodeBase64(encoded string) (string, error) {
-	decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return "", err
-	}
-	return string(decodedBytes), nil
-}
-
-func (c *Cache) ClearStats() {
-	c.stat.hit = 0
-	c.stat.miss = 0
-}
-
-func (c *Cache) Stats() Stat {
-	return c.stat
-}
-
-func (c *Cache) StatsStr() string {
-	total := c.stat.hit + c.stat.miss
-	if total > 0 {
-		return fmt.Sprintf("hit: %d, miss: %d, h/(h+m): %f", c.stat.hit, c.stat.miss, float32(c.stat.hit)/float32(total))
-	}
-	return "hit: 0, miss: 0, h/(h+m): N/A"
-}
-
-func (c *Cache) Ttl(t time.Duration) {
-	c.ttl = t
-}
-
-func (c Cache) GetKeys() []string {
-	return getSortedMapKeys(c.store)
-}
-
-func getMapKeys(m map[string]*CacheEntry) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
-func getSortedMapKeys(m map[string]*CacheEntry) []string {
-	keys := getMapKeys(m)
-	sort.Strings(keys)
-	return keys
-}
-
-func DecodeKey(k string) (string, error) {
-	return decodeBase64(k)
-}
-
-func (c *Cache) InvalidateCache() {
-	c.store = make(map[string]*CacheEntry)
+	return "", fmt.Errorf("Cache: Key hash '%s' could not be decoded", keyHash.String())
 }
 
 //TODO:
-//Consider Cache object per app object handler
-//Tests in internal/cache/cache_test.go
+//When ttl is set to 0 skip cache. Also clear cache when setting ttl to 0 using SetTtl(..).
+//    Consider remove of SetTtl(..), use config for ttl, when ttl is 0 in config return Cache -> NoCache
+//Tests in internal/cache/{cache,key}_test.go
+
+//- golang atomic for increments/set of stats
+//- RWmutex for store usage
+//- add expired in cache logic
+//- add limit len() < config.Limit
+//- solution for cleanup (interval?, alarm list?)
+
+//- consider using RWmutex instead of atomic for stats (maybe Wmutex is already there when needed to increment hit/miss
+//- consider key as type {val, keyHashType} with .String() and Parse(key string, keyHashType)  method
+//- Remove all reflection from production, use reflection/custom asserts only in testing
+//  Add string parameter to CacheCall ('calleeName') with the name of the function, check all calls in testing (do not include checks in production)
+//  Consider go:generate checker in cmd/call_cached_check (remove or add)
+
+// Add context to Get/Set in Cache interface and to CallCached
+
+
+
+//NEW TODO:
+// implement STATS and use for debug
+// implement clean of cache by ttl
+
+
+
+
+type Stat struct {
+    Hit     int64
+    Miss    int64
+    Expired int64
+}
+
+/*type CacheBase struct {
+	stat    Stat
+    keyHash KeyHashType
+	ttl     time.Duration
+}*/
+

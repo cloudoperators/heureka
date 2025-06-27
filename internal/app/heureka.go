@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/component"
@@ -22,7 +23,9 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/app/support_group"
 	"github.com/cloudoperators/heureka/internal/app/user"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/util"
 )
 
 type HeurekaApp struct {
@@ -46,12 +49,13 @@ type HeurekaApp struct {
 	database      database.Database
 }
 
-func NewHeurekaApp(db database.Database) *HeurekaApp {
+func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 	er := event.NewEventRegistry(db)
 	rh := issue_repository.NewIssueRepositoryHandler(db, er)
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
 	sh := severity.NewSeverityHandler(db, er, ivh)
 	er.Run(context.Background())
+	cache := NewAppCache(cfg)
 	heureka := &HeurekaApp{
 		ActivityHandler:          activity.NewActivityHandler(db, er),
 		ComponentHandler:         component.NewComponentHandler(db, er),
@@ -64,7 +68,7 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
 		ScannerRunHandler:        scanner_run.NewScannerRunHandler(db, er),
-		ServiceHandler:           service.NewServiceHandler(db, er),
+		ServiceHandler:           service.NewServiceHandler(db, er, cache),
 		SeverityHandler:          sh,
 		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er),
 		UserHandler:              user.NewUserHandler(db, er),
@@ -73,6 +77,25 @@ func NewHeurekaApp(db database.Database) *HeurekaApp {
 	}
 	heureka.SubscribeHandlers()
 	return heureka
+}
+
+func NewAppCache(cfg util.Config) cache.Cache {
+	if cfg.CacheTtlMSec != 0 {
+		if cfg.CacheRedisUrl != "" {
+			return cache.NewCache(cache.RedisCacheConfig{
+				Url: cfg.CacheRedisUrl,
+				CacheConfig: cache.CacheConfig {
+					Ttl: time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
+				},
+			})
+		}
+		return cache.NewCache(cache.InMemoryCacheConfig{
+			CacheConfig: cache.CacheConfig {
+				Ttl: time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
+			},
+		})
+	}
+	return cache.NewCache(nil)
 }
 
 func (h *HeurekaApp) SubscribeHandlers() {
