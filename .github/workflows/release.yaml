@@ -134,7 +134,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=${{ github.sha }}
-            type=semver,pattern={{version}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
+            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.NEW_RELEASE_PUBLISHED == 'true' }}
 
       # Build and push Docker image with Buildx
       - name: Build and push Docker image
