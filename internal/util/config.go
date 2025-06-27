@@ -38,6 +38,8 @@ type Config struct {
 	AuthOidcUrl           string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
 	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
 	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
+	CacheTtlMSec          int64  `envconfig:"CACHE_TTL_MSEC" default:0 json:"-"`
+	CacheRedisUrl         string `envconfig:"CACHE_REDIS_URL" default:"" json:""`
 }
 
 func (c *Config) ConfigToConsole() {

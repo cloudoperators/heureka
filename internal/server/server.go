@@ -52,7 +52,7 @@ func NewServer(cfg util.Config) *Server {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
 	}
 
-	application := app.NewHeurekaApp(db)
+	application := app.NewHeurekaApp(db, cfg)
 
 	s := Server{
 		router:     &gin.Engine{},
