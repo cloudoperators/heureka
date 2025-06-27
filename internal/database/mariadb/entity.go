@@ -823,6 +823,7 @@ type ComponentInstanceRow struct {
 	Pod                sql.NullString `db:"componentinstance_pod" json:"pod"`
 	Container          sql.NullString `db:"componentinstance_container" json:"container"`
 	Type               sql.NullString `db:"componentinstance_type" json:"type"`
+	ParentId           sql.NullInt64  `db:"componentinstance_parent_id"`
 	Context            sql.NullString `db:"componentinstance_context" json:"context"`
 	Count              sql.NullInt16  `db:"componentinstance_count" json:"count"`
 	ComponentVersionId sql.NullInt64  `db:"componentinstance_component_version_id"`
@@ -846,6 +847,7 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 		Pod:                GetStringValue(cir.Pod),
 		Container:          GetStringValue(cir.Container),
 		Type:               entity.NewComponentInstanceType(GetStringValue(cir.Type)),
+		ParentId:           GetInt64Value(cir.ParentId),
 		Context:            (*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String)),
 		Count:              GetInt16Value(cir.Count),
 		ComponentVersion:   nil,
@@ -863,6 +865,17 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 }
 
 func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInstance) {
+
+	if ci.ParentId > 0 {
+		cir.ParentId = sql.NullInt64{Int64: ci.ParentId, Valid: true}
+	}
+
+	if ci.ComponentVersionId > 0 {
+		cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
+	} else {
+		cir.ComponentVersionId = sql.NullInt64{Valid: false}
+	}
+
 	cir.Id = sql.NullInt64{Int64: ci.Id, Valid: true}
 	cir.CCRN = sql.NullString{String: ci.CCRN, Valid: true}
 	cir.Region = sql.NullString{String: ci.Region, Valid: true}
@@ -875,7 +888,6 @@ func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInsta
 	cir.Type = sql.NullString{String: ci.Type.String(), Valid: true}
 	cir.Context = sql.NullString{String: ci.Context.String(), Valid: true}
 	cir.Count = sql.NullInt16{Int16: ci.Count, Valid: true}
-	cir.ComponentVersionId = sql.NullInt64{Int64: ci.ComponentVersionId, Valid: true}
 	cir.ServiceId = sql.NullInt64{Int64: ci.ServiceId, Valid: true}
 	cir.CreatedAt = sql.NullTime{Time: ci.CreatedAt, Valid: true}
 	cir.CreatedBy = sql.NullInt64{Int64: ci.CreatedBy, Valid: true}

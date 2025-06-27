@@ -147,6 +147,7 @@ type ComponentInstanceFilter struct {
 	SupportGroup           []string                 `json:"supportGroup"`
 	Search                 []string                 `json:"search"`
 	State                  []StateFilter            `json:"state"`
+	ParentId               []string                 `json:"parentId"`
 }
 
 // GetComponentVersionDigest returns ComponentInstanceFilter.ComponentVersionDigest, and is useful for accessing the field via an interface.
@@ -196,6 +197,9 @@ func (v *ComponentInstanceFilter) GetSearch() []string { return v.Search }
 // GetState returns ComponentInstanceFilter.State, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceFilter) GetState() []StateFilter { return v.State }
 
+// GetParentId returns ComponentInstanceFilter.ParentId, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceFilter) GetParentId() []string { return v.ParentId }
+
 type ComponentInstanceInput struct {
 	Ccrn               string                 `json:"ccrn"`
 	Count              int                    `json:"count"`
@@ -211,6 +215,7 @@ type ComponentInstanceInput struct {
 	Type               ComponentInstanceTypes `json:"type"`
 	Context            map[string]interface{} `json:"context"`
 	Uuid               string                 `json:"uuid"`
+	ParentId           string                 `json:"parentId"`
 }
 
 // GetCcrn returns ComponentInstanceInput.Ccrn, and is useful for accessing the field via an interface.
@@ -255,18 +260,24 @@ func (v *ComponentInstanceInput) GetContext() map[string]interface{} { return v.
 // GetUuid returns ComponentInstanceInput.Uuid, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceInput) GetUuid() string { return v.Uuid }
 
+// GetParentId returns ComponentInstanceInput.ParentId, and is useful for accessing the field via an interface.
+func (v *ComponentInstanceInput) GetParentId() string { return v.ParentId }
+
 type ComponentInstanceTypes string
 
 const (
-	ComponentInstanceTypesUnknown       ComponentInstanceTypes = "Unknown"
-	ComponentInstanceTypesProject       ComponentInstanceTypes = "Project"
-	ComponentInstanceTypesServer        ComponentInstanceTypes = "Server"
-	ComponentInstanceTypesSecuritygroup ComponentInstanceTypes = "SecurityGroup"
-	ComponentInstanceTypesDnszone       ComponentInstanceTypes = "DnsZone"
-	ComponentInstanceTypesFloatingip    ComponentInstanceTypes = "FloatingIp"
-	ComponentInstanceTypesRbacpolicy    ComponentInstanceTypes = "RbacPolicy"
-	ComponentInstanceTypesUser          ComponentInstanceTypes = "User"
-	ComponentInstanceTypesContainer     ComponentInstanceTypes = "Container"
+	ComponentInstanceTypesUnknown              ComponentInstanceTypes = "Unknown"
+	ComponentInstanceTypesProject              ComponentInstanceTypes = "Project"
+	ComponentInstanceTypesServer               ComponentInstanceTypes = "Server"
+	ComponentInstanceTypesSecuritygroup        ComponentInstanceTypes = "SecurityGroup"
+	ComponentInstanceTypesSecuritygrouprule    ComponentInstanceTypes = "SecurityGroupRule"
+	ComponentInstanceTypesDnszone              ComponentInstanceTypes = "DnsZone"
+	ComponentInstanceTypesFloatingip           ComponentInstanceTypes = "FloatingIp"
+	ComponentInstanceTypesRbacpolicy           ComponentInstanceTypes = "RbacPolicy"
+	ComponentInstanceTypesUser                 ComponentInstanceTypes = "User"
+	ComponentInstanceTypesContainer            ComponentInstanceTypes = "Container"
+	ComponentInstanceTypesRecordset            ComponentInstanceTypes = "RecordSet"
+	ComponentInstanceTypesProjectconfiguration ComponentInstanceTypes = "ProjectConfiguration"
 )
 
 type ComponentTypeValues string

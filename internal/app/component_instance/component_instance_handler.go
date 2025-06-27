@@ -88,6 +88,11 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 }
 
 func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+	// Validation: Only RecordSet, User or SecurityGroupRule can have a parent_id
+	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
+		return nil, err
+	}
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentInstanceEventName,
 		"object": componentInstance,
@@ -123,6 +128,11 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 }
 
 func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+	// Validation: Only RecordSet, User or SecurityGroupRule can have a parent_id
+	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
+		return nil, err
+	}
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentInstanceEventName,
 		"object": componentInstance,
@@ -349,6 +359,25 @@ func (s *componentInstanceHandler) ListTypes(filter *entity.ComponentInstanceFil
 
 	return types, nil
 }
+
+func (s *componentInstanceHandler) ListParents(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListParentsEventName,
+		"filter": filter,
+	})
+
+	parents, err := s.database.GetComponentInstanceParent(filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Parent.")
+	}
+
+	s.eventRegistry.PushEvent(&ListParentsEvent{Filter: filter, Parents: parents})
+
+	return parents, nil
+}
+
 func (s *componentInstanceHandler) ListContexts(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListContextsEventName,
@@ -365,4 +394,15 @@ func (s *componentInstanceHandler) ListContexts(filter *entity.ComponentInstance
 	s.eventRegistry.PushEvent(&ListContextsEvent{Filter: filter, Contexts: contexts})
 
 	return contexts, nil
+}
+
+// validateParentIdForType checks if ParentId is only set for allowed types.
+func validateParentIdForType(parentId int64, typeStr string) error {
+	if parentId != 0 && parentId != -1 {
+		if typeStr != "RecordSet" && typeStr != "User" && typeStr != "SecurityGroupRule" {
+			return NewComponentInstanceHandlerError(
+				"ParentId can only be set for component instances of type 'RecordSet', 'User' or 'SecurityGroupRule', but got type '" + typeStr + "'")
+		}
+	}
+	return nil
 }

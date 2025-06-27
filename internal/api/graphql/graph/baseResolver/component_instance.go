@@ -87,6 +87,11 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		filter = &model.ComponentInstanceFilter{}
 	}
 
+	parentIds, err := util.ConvertStrToIntSlice(filter.ParentID)
+	if err != nil {
+		return nil, NewResolverError("ComponentInstanceBaseResolver", "Invalid ParentID filter")
+	}
+
 	f := &entity.ComponentInstanceFilter{
 		PaginatedX:              entity.PaginatedX{First: first, After: after},
 		CCRN:                    filter.Ccrn,
@@ -105,6 +110,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		ComponentVersionVersion: filter.ComponentVersionDigest,
 		Search:                  filter.Search,
 		State:                   model.GetStateFilterType(filter.State),
+		ParentId:                parentIds,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -177,6 +183,10 @@ func ContainerBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 
 func TypeBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListTypes, ctx, filter, &FilterDisplayComponentInstanceType)
+}
+
+func ParentBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(app.ListParents, ctx, filter, &ComponentInstanceFilterParentId)
 }
 
 func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterJSONItem, error) {

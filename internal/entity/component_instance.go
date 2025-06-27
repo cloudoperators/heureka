@@ -6,15 +6,18 @@ package entity
 type ComponentInstanceType string
 
 const (
-	ComponentInstanceTypeUnknown       ComponentInstanceType = "Unknown"
-	ComponentInstanceTypeProject       ComponentInstanceType = "Project"
-	ComponentInstanceTypeServer        ComponentInstanceType = "Server"
-	ComponentInstanceTypeSecurityGroup ComponentInstanceType = "SecurityGroup"
-	ComponentInstanceTypeDnsZone       ComponentInstanceType = "DnsZone"
-	ComponentInstanceTypeFloatingIp    ComponentInstanceType = "FloatingIp"
-	ComponentInstanceTypeRbacPolicy    ComponentInstanceType = "RbacPolicy"
-	ComponentInstanceTypeUser          ComponentInstanceType = "User"
-	ComponentInstanceTypeContainer     ComponentInstanceType = "Container"
+	ComponentInstanceTypeUnknown              ComponentInstanceType = "Unknown"
+	ComponentInstanceTypeProject              ComponentInstanceType = "Project"
+	ComponentInstanceTypeServer               ComponentInstanceType = "Server"
+	ComponentInstanceTypeSecurityGroup        ComponentInstanceType = "SecurityGroup"
+	ComponentInstanceTypeSecurityGroupRule    ComponentInstanceType = "SecurityGroupRule"
+	ComponentInstanceTypeDnsZone              ComponentInstanceType = "DnsZone"
+	ComponentInstanceTypeFloatingIp           ComponentInstanceType = "FloatingIp"
+	ComponentInstanceTypeRbacPolicy           ComponentInstanceType = "RbacPolicy"
+	ComponentInstanceTypeUser                 ComponentInstanceType = "User"
+	ComponentInstanceTypeContainer            ComponentInstanceType = "Container"
+	ComponentInstanceTypeRecordSet            ComponentInstanceType = "RecordSet"
+	ComponentInstanceTypeProjectConfiguration ComponentInstanceType = "ProjectConfiguration"
 )
 
 func (e ComponentInstanceType) String() string {
@@ -31,16 +34,22 @@ func (e ComponentInstanceType) Index() int {
 		return 2
 	case ComponentInstanceTypeSecurityGroup:
 		return 3
-	case ComponentInstanceTypeDnsZone:
+	case ComponentInstanceTypeSecurityGroupRule:
 		return 4
-	case ComponentInstanceTypeFloatingIp:
+	case ComponentInstanceTypeDnsZone:
 		return 5
-	case ComponentInstanceTypeRbacPolicy:
+	case ComponentInstanceTypeFloatingIp:
 		return 6
-	case ComponentInstanceTypeUser:
+	case ComponentInstanceTypeRbacPolicy:
 		return 7
-	case ComponentInstanceTypeContainer:
+	case ComponentInstanceTypeUser:
 		return 8
+	case ComponentInstanceTypeContainer:
+		return 9
+	case ComponentInstanceTypeRecordSet:
+		return 10
+	case ComponentInstanceTypeProjectConfiguration:
+		return 11
 	default:
 		return -1
 	}
@@ -56,6 +65,8 @@ func NewComponentInstanceType(s string) ComponentInstanceType {
 		return ComponentInstanceTypeServer
 	case ComponentInstanceTypeSecurityGroup.String():
 		return ComponentInstanceTypeSecurityGroup
+	case ComponentInstanceTypeSecurityGroupRule.String():
+		return ComponentInstanceTypeSecurityGroupRule
 	case ComponentInstanceTypeDnsZone.String():
 		return ComponentInstanceTypeDnsZone
 	case ComponentInstanceTypeFloatingIp.String():
@@ -66,6 +77,10 @@ func NewComponentInstanceType(s string) ComponentInstanceType {
 		return ComponentInstanceTypeUser
 	case ComponentInstanceTypeContainer.String():
 		return ComponentInstanceTypeContainer
+	case ComponentInstanceTypeRecordSet.String():
+		return ComponentInstanceTypeRecordSet
+	case ComponentInstanceTypeProjectConfiguration.String():
+		return ComponentInstanceTypeProjectConfiguration
 	}
 	return ComponentInstanceTypeUnknown
 }
@@ -75,11 +90,14 @@ var AllComponentInstanceType = []string{
 	ComponentInstanceTypeProject.String(),
 	ComponentInstanceTypeServer.String(),
 	ComponentInstanceTypeSecurityGroup.String(),
+	ComponentInstanceTypeSecurityGroupRule.String(),
 	ComponentInstanceTypeDnsZone.String(),
 	ComponentInstanceTypeFloatingIp.String(),
 	ComponentInstanceTypeRbacPolicy.String(),
 	ComponentInstanceTypeUser.String(),
 	ComponentInstanceTypeContainer.String(),
+	ComponentInstanceTypeRecordSet.String(),
+	ComponentInstanceTypeProjectConfiguration.String(),
 }
 
 type ComponentInstanceFilter struct {
@@ -99,6 +117,7 @@ type ComponentInstanceFilter struct {
 	Pod                     []*string         `json:"pod"`
 	Container               []*string         `json:"container"`
 	Type                    []*string         `json:"type"`
+	ParentId                []*int64          `json:"parent_id"`
 	Context                 []*Json           `json:"context"`
 	Search                  []*string         `json:"search"`
 	State                   []StateFilterType `json:"state"`
@@ -125,6 +144,7 @@ type ComponentInstance struct {
 	Pod                string                `json:"pod"`
 	Container          string                `json:"container"`
 	Type               ComponentInstanceType `json:"type"`
+	ParentId           int64                 `json:"parent_id,omitempty"`
 	Context            *Json                 `json:"context"`
 	Count              int16                 `json:"count"`
 	ComponentVersion   *ComponentVersion     `json:"component_version,omitempty"`
