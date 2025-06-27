@@ -132,16 +132,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}
           tags: |
-            # Always tag with latest and commit SHA
             type=raw,value=latest
             type=raw,value=${{ github.sha }}
-            type=sha,format=short,prefix=
-            # If a new release was published, add semantic version tags
-            type=raw,value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
             type=semver,pattern={{version}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
-            type=semver,pattern={{major}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' && !startsWith(needs.release.outputs.new_release_version, 'v0.') }}
-            type=raw,value=stable,enable=${{ needs.release.outputs.new_release_published == 'true' }}
 
       # Build and push Docker image with Buildx
       - name: Build and push Docker image
