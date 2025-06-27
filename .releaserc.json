@@ -11,7 +11,8 @@
             "path": "dist/*.tar.gz",
             "label": "Binary distribution"
           }
-        ]
+        ],
+        "successComment": false
       }
     ]
   ]
