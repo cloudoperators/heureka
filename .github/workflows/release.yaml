@@ -36,7 +36,8 @@ jobs:
       id-token: write
 
     outputs:
-      new_release_version: ${{ steps.semantic.outputs.version }}
+      release-version: ${{ steps.semantic.outputs.release-version }}
+      new-release-published: ${{ steps.semantic.outputs.new-release-published }}
 
     steps:
       - name: Checkout
@@ -134,7 +135,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=${{ github.sha }}
-            type=semver,pattern={{version}},value=${{ env.RELEASE_VERSION }},enable=${{ env.NEW_RELEASE_PUBLISHED == 'true' }}
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.release-version }},enable=${{ needs.release.new-release-published == 'true' }}
 
       # Build and push Docker image with Buildx
       - name: Build and push Docker image
