@@ -10,31 +10,35 @@ import (
 )
 
 type InMemoryCache struct {
-	stat      Stat
-	ttl       time.Duration
-	keyHash   KeyHashType
-	storage   map[string]*entry
-	sizeLimit int
-	mu        sync.RWMutex
+	CacheBase
+	storage         map[string]*entry
+	sizeLimit       int
+	mu              sync.RWMutex
+	cleanupStopChan <-chan struct{}
 }
 
 type InMemoryCacheConfig struct {
 	CacheConfig
-	SizeLimit int
+	SizeLimit       int
+	CleanupInterval time.Duration
 }
 
 func NewInMemoryCache(config InMemoryCacheConfig) *InMemoryCache {
 	inMemoryCache := &InMemoryCache{
-		ttl:       config.Ttl,
-		keyHash:   config.KeyHash,
+		CacheBase: CacheBase{
+			ttl:     config.Ttl,
+			keyHash: config.KeyHash,
+		},
 		storage:   make(map[string]*entry),
 		sizeLimit: config.SizeLimit,
 	}
+
+	inMemoryCache.startCleanupIfNeeded(config.CleanupInterval)
+
 	return inMemoryCache
 }
 
 type entry struct {
-	//ts  time.Time //TODO: consider
 	exp time.Time
 	val string
 }
@@ -51,7 +55,7 @@ func (imc InMemoryCache) GetKeys() []string {
 	return getSortedMapKeys(imc.storage)
 }
 
-func (imc InMemoryCache) Get(_ context.Context, key string) (string, bool, error) { //TODO: improve + add in background request
+func (imc InMemoryCache) Get(_ context.Context, key string) (string, bool, error) {
 	imc.mu.RLock()
 	e, ok := imc.storage[key]
 	imc.mu.RUnlock()
@@ -67,9 +71,31 @@ func (imc InMemoryCache) Get(_ context.Context, key string) (string, bool, error
 	return e.val, true, nil
 }
 
+func removeOldest(m map[string]*entry) {
+	var oldestKey string
+	var oldestTime time.Time
+	first := true
+
+	for key, e := range m {
+		if first || e.exp.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = e.exp
+			first = false
+		}
+	}
+
+	if !first {
+		delete(m, oldestKey)
+	}
+}
+
 func (imc InMemoryCache) Set(_ context.Context, key string, value string) error {
 	imc.mu.Lock()
 	defer imc.mu.Unlock()
+
+	if !imc.hasSpace() {
+		removeOldest(imc.storage)
+	}
 
 	e := entry{val: value}
 	if imc.ttl > 0 {
@@ -104,6 +130,8 @@ func (imc InMemoryCache) encodeKey(key string) string {
 		return encodeSHA512(key)
 	} else if imc.keyHash == KEY_HASH_HEX {
 		return encodeHex(key)
+	} else if imc.keyHash == KEY_HASH_NONE {
+		return key
 	}
 	return encodeBase64(key)
 }
@@ -145,4 +173,37 @@ func cacheKeyJson(fnname string, fn interface{}, args ...interface{}) (string, e
 func isJSONSerializable(val interface{}) bool {
 	_, err := json.Marshal(val)
 	return err == nil
+}
+
+func (imc *InMemoryCache) startCleanupIfNeeded(interval time.Duration) {
+	if interval != 0 {
+		imc.cleanupStopChan = make(chan struct{})
+		imc.startCleanup(interval)
+	}
+}
+
+func (imc *InMemoryCache) startCleanup(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				imc.removeExpired()
+			case <-imc.cleanupStopChan:
+				return // exit goroutine when stop signal is received
+			}
+		}
+	}()
+}
+
+func (imc *InMemoryCache) removeExpired() {
+	now := time.Now()
+	imc.mu.Lock()
+	defer imc.mu.Unlock()
+	for key, e := range imc.storage {
+		if e.exp.Before(now) {
+			delete(imc.storage, key)
+		}
+	}
 }

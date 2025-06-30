@@ -15,6 +15,7 @@ const (
 	KEY_HASH_SHA256
 	KEY_HASH_SHA512
 	KEY_HASH_HEX
+	KEY_HASH_NONE
 )
 
 const DefaultKeyHash = KEY_HASH_BASE64
@@ -29,6 +30,8 @@ func (k KeyHashType) String() string {
 		return "SHA512"
 	case KEY_HASH_HEX:
 		return "HEX"
+	case KEY_HASH_NONE:
+		return "None"
 	default:
 		return "Unknown"
 	}
@@ -44,6 +47,8 @@ func ParseKeyHashType(s string) KeyHashType {
 		return KEY_HASH_SHA512
 	case "hex":
 		return KEY_HASH_HEX
+	case "none":
+		return KEY_HASH_NONE
 	default:
 		return DefaultKeyHash
 	}

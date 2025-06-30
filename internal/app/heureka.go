@@ -47,6 +47,8 @@ type HeurekaApp struct {
 
 	eventRegistry event.EventRegistry
 	database      database.Database
+
+	cache cache.Cache
 }
 
 func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
@@ -56,6 +58,7 @@ func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 	sh := severity.NewSeverityHandler(db, er, ivh)
 	er.Run(context.Background())
 	cache := NewAppCache(cfg)
+
 	heureka := &HeurekaApp{
 		ActivityHandler:          activity.NewActivityHandler(db, er),
 		ComponentHandler:         component.NewComponentHandler(db, er),
@@ -74,6 +77,7 @@ func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 		UserHandler:              user.NewUserHandler(db, er),
 		eventRegistry:            er,
 		database:                 db,
+		cache:                    cache,
 	}
 	heureka.SubscribeHandlers()
 	return heureka
@@ -84,13 +88,13 @@ func NewAppCache(cfg util.Config) cache.Cache {
 		if cfg.CacheRedisUrl != "" {
 			return cache.NewCache(cache.RedisCacheConfig{
 				Url: cfg.CacheRedisUrl,
-				CacheConfig: cache.CacheConfig {
+				CacheConfig: cache.CacheConfig{
 					Ttl: time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
 				},
 			})
 		}
 		return cache.NewCache(cache.InMemoryCacheConfig{
-			CacheConfig: cache.CacheConfig {
+			CacheConfig: cache.CacheConfig{
 				Ttl: time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
 			},
 		})
@@ -126,4 +130,8 @@ func (h *HeurekaApp) SubscribeHandlers() {
 
 func (h *HeurekaApp) Shutdown() error {
 	return h.database.CloseConnection()
+}
+
+func (h HeurekaApp) GetCache() cache.Cache {
+	return h.cache
 }
