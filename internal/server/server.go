@@ -34,6 +34,8 @@ type Server struct {
 	nonBlockingCtx  *context.Context
 	nonBlockingStop *context.CancelFunc
 	nonBlockingSrv  *http.Server
+
+	app *app.HeurekaApp
 }
 
 func NewServer(cfg util.Config) *Server {
@@ -58,6 +60,7 @@ func NewServer(cfg util.Config) *Server {
 		router:     &gin.Engine{},
 		graphQLAPI: graphqlapi.NewGraphQLAPI(application, cfg),
 		config:     cfg,
+		app:        application,
 	}
 
 	if logrus.GetLevel() == logrus.DebugLevel {
@@ -195,4 +198,8 @@ func (s *Server) NonBlockingStop() {
 	}
 
 	log.Println("Server exiting")
+}
+
+func (s Server) App() *app.HeurekaApp {
+	return s.app
 }

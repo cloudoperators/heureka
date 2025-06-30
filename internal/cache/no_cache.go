@@ -26,3 +26,13 @@ func (nc NoCache) Set(ctx context.Context, key string, value string) error {
 func (nc NoCache) Invalidate(ctx context.Context, key string) error {
 	return nil
 }
+
+func (nc *NoCache) IncHit() {
+}
+
+func (nc *NoCache) IncMiss() {
+}
+
+func (nc NoCache) GetStat() Stat {
+	return Stat{}
+}
