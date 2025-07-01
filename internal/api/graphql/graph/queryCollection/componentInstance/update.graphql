@@ -21,5 +21,6 @@ mutation ($id: ID!, $input: ComponentInstanceInput!) {
         count
         componentVersionId
         serviceId
+        parentId
     }
 }

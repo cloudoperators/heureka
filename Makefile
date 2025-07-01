@@ -14,13 +14,12 @@ endif
 
 all: build-binary test-all
 
-build-binary: mockery gqlgen
+build-binary: gqlgen mockery
 	GO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o build/heureka cmd/heureka/main.go
 
 # Build the binary and execute it
-run-%: mockery gqlgen
+run-%: gqlgen mockery
 	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags="$(LDFLAGS)" -o build/$* cmd/$*/main.go
-	DB_SCHEMA=./internal/database/mariadb/init/schema.sql ./build/$*
 
 # Start ONLY the database container and replace the pg_hba_conf.sh created by `create-pg-hba-conf`
 start: stop
@@ -113,4 +112,8 @@ install-migrate:
 	go install -tags 'heureka-migration' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 create-migration:
-	@(test -v MIGRATION_NAME && migrate create -ext sql -dir internal/database/mariadb/migrations ${MIGRATION_NAME}) || echo MIGRATION_NAME not specified >&2
+	@if [ -n "$$MIGRATION_NAME" ]; then \
+    	migrate create -ext sql -dir internal/database/mariadb/migrations "$$MIGRATION_NAME"; \
+	else \
+    	echo MIGRATION_NAME not specified >&2; \
+	fi
