@@ -36,8 +36,8 @@ jobs:
       id-token: write
 
     outputs:
-      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
-      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+      release-version: ${{ steps.semantic.outputs.release-version }}
+      new-release-published: ${{ steps.semantic.outputs.new-release-published }}
 
     steps:
       - name: Checkout
@@ -53,18 +53,19 @@ jobs:
 
       - name: Install dependencies
         run: npm install --save-dev semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
-
-      - name: Semantic Release
+      - uses: codfish/semantic-release-action@v3
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Use the dry_run input if provided via manual trigger
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
-        run: npx semantic-release $DRY_RUN
-      - name: Debug Semantic Release Output
-        run: |
-          echo "New release published: ${{ steps.semantic.outputs.new_release_published }}"
-          echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
+          
+    
+      - run: echo ${{ steps.semantic.outputs.release-version }}
+    
+      - run: echo "$OUTPUTS"
+        env:
+          OUTPUTS: ${{ toJson(steps.semantic.outputs) }}
 
   # Then build the Docker images with appropriate tags
   build:
@@ -132,16 +133,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}
           tags: |
-            # Always tag with latest and commit SHA
             type=raw,value=latest
             type=raw,value=${{ github.sha }}
-            type=sha,format=short,prefix=
-            # If a new release was published, add semantic version tags
-            type=raw,value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
-            type=semver,pattern={{version}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' }}
-            type=semver,pattern={{major}},value=${{ needs.release.outputs.new_release_version }},enable=${{ needs.release.outputs.new_release_published == 'true' && !startsWith(needs.release.outputs.new_release_version, 'v0.') }}
-            type=raw,value=stable,enable=${{ needs.release.outputs.new_release_published == 'true' }}
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.release-version }},enable=${{ needs.release.outputs.new-release-published == 'true' }}
 
       # Build and push Docker image with Buildx
       - name: Build and push Docker image
