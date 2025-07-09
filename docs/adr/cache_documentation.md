@@ -95,3 +95,17 @@ Context support is **not implemented**, as the handlers using the cache currentl
 ## Example Use Case
 
 The `CallCached()` function is primarily used to wrap **MariaDB data access functions**, which are frequently queried with the same parameters. Caching shortens response times significantly.
+
+---
+
+## Cache Monitor
+
+A **cache monitor** is available to track and log cache statistics periodically. It is controlled via the environment variable `CACHE_MONITOR_MSEC`.
+
+### Configuration
+
+- If `CACHE_MONITOR_MSEC` is **not set** or set to a value **≤ 0**, the cache monitor is **disabled**.
+- If `CACHE_MONITOR_MSEC` is set to a **positive integer**, cache monitoring is **enabled**.
+- The value defines the **interval in milliseconds** at which the monitor logs current cache statistics (hits and misses).
+
+This feature is useful for tracking cache effectiveness over time in production environments.
