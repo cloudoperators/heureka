@@ -20,17 +20,18 @@ type RedisCacheConfig struct {
 }
 
 func NewRedisCache(ctx context.Context, config RedisCacheConfig) *RedisCache {
+	cacheBase := NewCacheBase(config.CacheConfig)
 	redisCache := &RedisCache{
-		CacheBase: CacheBase{
-			keyHash: config.KeyHash,
-			ttl:     config.Ttl,
-		},
+		CacheBase: *cacheBase,
 		rdb: redis.NewClient(&redis.Options{
 			Addr:     config.Url,
 			Password: config.Password,
 			DB:       config.Db,
 		}),
 	}
+
+	redisCache.startMonitorIfNeeded(config.MonitorInterval)
+
 	_ = redisCache.invalidateAll(ctx)
 	return redisCache
 }
