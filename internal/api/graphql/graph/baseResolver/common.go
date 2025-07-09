@@ -60,6 +60,7 @@ var (
 	ComponentInstanceFilterPod           string = "pod"
 	ComponentInstanceFilterContainer     string = "container"
 	ComponentInstanceFilterType          string = "type"
+	ComponentInstanceFilterParentId      string = "parentId"
 
 	VulnerabilityFilterSupportGroup string = "supportGroup"
 	VulnerabilityFilterSeverity     string = "severity"

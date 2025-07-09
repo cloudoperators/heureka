@@ -19,5 +19,6 @@ type ComponentInstanceHandler interface {
 	ListPods(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListContainers(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListTypes(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
+	ListParents(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 	ListContexts(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error)
 }

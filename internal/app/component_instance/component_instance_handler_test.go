@@ -129,6 +129,9 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
 		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er)
+		// Ensure type is allowed if ParentId is set
+		componentInstance.Type = "RecordSet"
+		componentInstance.ParentId = 1234
 		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
@@ -146,6 +149,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+			Expect(newComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
 		})
 	})
 })
@@ -182,8 +186,9 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstance.Project = "NewProject"
 		componentInstance.Pod = "NewPod"
 		componentInstance.Container = "NewContainer"
-		componentInstance.Type = "Server"
+		componentInstance.Type = "RecordSet"
 		componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
+		componentInstance.ParentId = 1234
 		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 		filter.Id = []*int64{&componentInstance.Id}
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
@@ -203,6 +208,8 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
 			Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 			Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+			Expect(updatedComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+
 		})
 	})
 })
