@@ -40,6 +40,7 @@ type Config struct {
 	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
 	CacheTtlMSec          int64  `envconfig:"CACHE_TTL_MSEC" default:0 json:"-"`
 	CacheRedisUrl         string `envconfig:"CACHE_REDIS_URL" default:"" json:"-"`
+	CacheMonitorMSec      int64  `envconfig:"CACHE_MONITOR_MSEC" default:"0" json:"-"`
 }
 
 func (c *Config) ConfigToConsole() {

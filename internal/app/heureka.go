@@ -89,13 +89,15 @@ func NewAppCache(cfg util.Config) cache.Cache {
 			return cache.NewCache(cache.RedisCacheConfig{
 				Url: cfg.CacheRedisUrl,
 				CacheConfig: cache.CacheConfig{
-					Ttl: time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
+					Ttl:             time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
+					MonitorInterval: time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
 				},
 			})
 		}
 		return cache.NewCache(cache.InMemoryCacheConfig{
 			CacheConfig: cache.CacheConfig{
-				Ttl: time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
+				Ttl:             time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
+				MonitorInterval: time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
 			},
 		})
 	}
@@ -129,6 +131,7 @@ func (h *HeurekaApp) SubscribeHandlers() {
 }
 
 func (h *HeurekaApp) Shutdown() error {
+	h.cache.Stop()
 	return h.database.CloseConnection()
 }
 

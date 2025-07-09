@@ -1,14 +1,18 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type CacheConfig struct {
-	Ttl     time.Duration
-	KeyHash KeyHashType
+	Ttl             time.Duration
+	KeyHash         KeyHashType
+	MonitorInterval time.Duration
 }
 
 type Stat struct {
@@ -17,14 +21,60 @@ type Stat struct {
 }
 
 type CacheBase struct {
-	stat    Stat
-	keyHash KeyHashType
-	ttl     time.Duration
-	statMu  sync.RWMutex
+	stat                  Stat
+	keyHash               KeyHashType
+	ttl                   time.Duration
+	statMu                sync.RWMutex
+	monitorMu             sync.Mutex
+	monitorCancelFunction context.CancelFunc
+	monitorCtx            context.Context
 }
 
 func NewCacheBase(config CacheConfig) *CacheBase {
 	return &CacheBase{ttl: config.Ttl, keyHash: config.KeyHash}
+}
+
+func (cb *CacheBase) startMonitorIfNeeded(interval time.Duration) {
+	if interval <= 0 {
+		return
+	}
+	l := logrus.New()
+	cb.monitorMu.Lock()
+	defer cb.monitorMu.Unlock()
+
+	if cb.monitorCancelFunction != nil {
+		l.Error("Monitoring already started.")
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cb.monitorCtx = ctx
+	cb.monitorCancelFunction = cancel
+
+	go func() {
+		l.Info("Monitoring started with interval: ", interval)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				l.Info("Monitoring stopped")
+				return
+			case <-ticker.C:
+				l.Info(StatStr(cb.GetStat()))
+			}
+		}
+	}()
+}
+
+func (cb *CacheBase) Stop() {
+	cb.monitorMu.Lock()
+	defer cb.monitorMu.Unlock()
+
+	if cb.monitorCancelFunction != nil {
+		cb.monitorCancelFunction()
+	}
 }
 
 func (cb *CacheBase) IncHit() {

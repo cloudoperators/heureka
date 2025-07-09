@@ -24,15 +24,14 @@ type InMemoryCacheConfig struct {
 }
 
 func NewInMemoryCache(config InMemoryCacheConfig) *InMemoryCache {
+	cacheBase := NewCacheBase(config.CacheConfig)
 	inMemoryCache := &InMemoryCache{
-		CacheBase: CacheBase{
-			ttl:     config.Ttl,
-			keyHash: config.KeyHash,
-		},
+		CacheBase: *cacheBase,
 		storage:   make(map[string]*entry),
 		sizeLimit: config.SizeLimit,
 	}
 
+	inMemoryCache.startMonitorIfNeeded(config.MonitorInterval)
 	inMemoryCache.startCleanupIfNeeded(config.CleanupInterval)
 
 	return inMemoryCache

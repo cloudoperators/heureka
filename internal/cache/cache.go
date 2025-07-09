@@ -16,6 +16,7 @@ type Cache interface {
 	IncHit()
 	IncMiss()
 	GetStat() Stat
+	Stop()
 }
 
 func NewCache(config interface{}) Cache {
