@@ -229,7 +229,7 @@ func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCurs
 			case entity.IssueId:
 				cursors.fields = append(cursors.fields, Field{Name: entity.IssueId, Value: issue.Id, Order: o.Direction})
 			case entity.IssuePrimaryName:
-				cursors.fields = append(cursors.fields, Field{Name: entity.IssuePrimaryName, Value: issue.Id, Order: o.Direction})
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssuePrimaryName, Value: issue.PrimaryName, Order: o.Direction})
 			case entity.IssueVariantRating:
 				cursors.fields = append(cursors.fields, Field{Name: entity.IssueVariantRating, Value: ivRating, Order: o.Direction})
 			default:
