@@ -8,22 +8,22 @@ There are **three types of cache** supported:
 
 1. **NoCache**
 2. **InMemoryCache**
-3. **RedisCache**
+3. **ValkeyCache**
 
 ### Cache Selection Logic
 
 The type of cache used is determined by the following environment variables:
 
 - `CACHE_TTL_MSEC`: TTL (time to live) for a cache entry, in milliseconds.
-- `CACHE_REDIS_URL`: Redis host in the form `domain:port`.
+- `CACHE_VALKEY_URL`: Valkey host in the form `domain:port`.
 
 #### Selection Rules:
 
 | Condition | Cache Type |
 |----------|------------|
 | `CACHE_TTL_MSEC=0` | NoCache |
-| `CACHE_TTL_MSEC > 0` AND `CACHE_REDIS_URL` is set | RedisCache |
-| `CACHE_TTL_MSEC > 0` AND `CACHE_REDIS_URL` is **not** set | InMemoryCache |
+| `CACHE_TTL_MSEC > 0` AND `CACHE_VALKEY_URL` is set | ValkeyCache |
+| `CACHE_TTL_MSEC > 0` AND `CACHE_VALKEY_URL` is **not** set | InMemoryCache |
 
 ---
 
@@ -39,7 +39,7 @@ CallCached(cache Cache, name string, fn interface{}, args ...interface{}) (inter
 
 ### Parameters
 
-1. `cache`: A cache implementation (e.g., Redis, in-memory, or no-op).
+1. `cache`: A cache implementation (e.g., Valkey, in-memory, or no-op).
 2. `name`: A string identifier for the wrapped function (not inferred at runtime).
 3. `fn`: The actual function to be wrapped.
 4. `args...`: Arguments to pass to the wrapped function.

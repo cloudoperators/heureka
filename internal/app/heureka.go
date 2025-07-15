@@ -85,9 +85,9 @@ func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 
 func NewAppCache(cfg util.Config) cache.Cache {
 	if cfg.CacheTtlMSec != 0 {
-		if cfg.CacheRedisUrl != "" {
-			return cache.NewCache(cache.RedisCacheConfig{
-				Url: cfg.CacheRedisUrl,
+		if cfg.CacheValkeyUrl != "" {
+			return cache.NewCache(cache.ValkeyCacheConfig{
+				Url: cfg.CacheValkeyUrl,
 				CacheConfig: cache.CacheConfig{
 					Ttl:             time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
 					MonitorInterval: time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
