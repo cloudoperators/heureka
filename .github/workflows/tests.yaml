@@ -39,4 +39,12 @@ jobs:
           DB_PORT: 3306
           DB_SCHEMA: internal/database/mariadb/init/schema.sql
           LOCAL_TEST_DB: true
-        run: ginkgo -r -randomize-all -randomize-suites
+        run: ginkgo -r -randomize-all -randomize-suites --label-filter=Vulnerabilities --repeat=100 
+      - name: Dump docker info on test failure
+        if: failure()
+        run: |
+          echo "== Containers =="
+          docker ps -a
+
+          echo "== Individual container logs =="
+          docker ps -a | tail -n 1 | xargs -Iaaa -n1 docker logs aaa || true
