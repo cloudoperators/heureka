@@ -50,10 +50,11 @@ services:
       - "80:80"
 
   redis:
-    image: redis:7
+    image: valkey/valkey:7.2
     container_name: heureka-redis
     ports:
       - "6379:6379"
+    command: ["valkey-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
     restart: always
