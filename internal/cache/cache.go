@@ -23,9 +23,9 @@ func NewCache(config interface{}) Cache {
 	switch c := config.(type) {
 	case InMemoryCacheConfig:
 		return NewInMemoryCache(c)
-	case RedisCacheConfig:
+	case ValkeyCacheConfig:
 		ctx := context.Background()
-		return NewRedisCache(ctx, c)
+		return NewValkeyCache(ctx, c)
 	}
 	return NewNoCache()
 }

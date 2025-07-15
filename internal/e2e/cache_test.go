@@ -37,7 +37,7 @@ type cacheTest struct {
 	addedSeedCollection *test.SeedCollection
 }
 
-func newCacheTest(redisUrl string, ttlMSec int64) *cacheTest {
+func newCacheTest(valkeyUrl string, ttlMSec int64) *cacheTest {
 	var ct cacheTest
 	ct.db = dbm.NewTestSchema()
 
@@ -49,7 +49,7 @@ func newCacheTest(redisUrl string, ttlMSec int64) *cacheTest {
 	ct.cfg.Port = util2.GetRandomFreePort()
 
 	ct.cfg.CacheTtlMSec = ttlMSec
-	ct.cfg.CacheRedisUrl = redisUrl
+	ct.cfg.CacheValkeyUrl = valkeyUrl
 
 	ct.server = server.NewServer(ct.cfg)
 	ct.server.NonBlockingStart()
@@ -58,7 +58,7 @@ func newCacheTest(redisUrl string, ttlMSec int64) *cacheTest {
 	return &ct
 }
 
-func newRedisCacheTest(ttlMSec int64) *cacheTest {
+func newValkeyCacheTest(ttlMSec int64) *cacheTest {
 	return newCacheTest("localhost:6379", ttlMSec)
 }
 
@@ -117,12 +117,12 @@ func (ct *cacheTest) expectMissHitCounter(expectedMiss, expectedHit int64) {
 	Expect(stat.Hit).To(Equal(expectedHit))
 }
 
-var _ = Describe("Using Redis cache", Label("e2e", "RedisCache"), Label("e2e", "Cache"), func() {
+var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e", "Cache"), func() {
 	Describe("Check miss", func() {
-		Context("Redis cache is configured", func() {
+		Context("Valkey cache is configured", func() {
 			var ct *cacheTest
 			BeforeEach(func() {
-				ct = newRedisCacheTest(ttl24HoursInMSec)
+				ct = newValkeyCacheTest(ttl24HoursInMSec)
 			})
 			AfterEach(func() {
 				ct.teardown()
@@ -139,10 +139,10 @@ var _ = Describe("Using Redis cache", Label("e2e", "RedisCache"), Label("e2e", "
 		})
 	})
 	Describe("Check hit", func() {
-		Context("Redis cache is configured and cache contains test resource", func() {
+		Context("Valkey cache is configured and cache contains test resource", func() {
 			var ct *cacheTest
 			BeforeEach(func() {
-				ct = newRedisCacheTest(ttl24HoursInMSec)
+				ct = newValkeyCacheTest(ttl24HoursInMSec)
 				ct.queryResource()
 				ct.expectTestResource()
 			})
@@ -161,10 +161,10 @@ var _ = Describe("Using Redis cache", Label("e2e", "RedisCache"), Label("e2e", "
 		})
 	})
 	Describe("Check expired", func() {
-		Context("Redis cache is configured with short TTL duration and test resource is queried for the first time", func() {
+		Context("Valkey cache is configured with short TTL duration and test resource is queried for the first time", func() {
 			var ct *cacheTest
 			BeforeEach(func() {
-				ct = newRedisCacheTest(1)
+				ct = newValkeyCacheTest(1)
 				ct.queryResource()
 				ct.expectTestResource()
 			})
@@ -184,10 +184,10 @@ var _ = Describe("Using Redis cache", Label("e2e", "RedisCache"), Label("e2e", "
 		})
 	})
 	Describe("Check background update", func() {
-		Context("Redis cache is configured and test resource is queried for the first time and added extra DB resource", func() {
+		Context("Valkey cache is configured and test resource is queried for the first time and added extra DB resource", func() {
 			var ct *cacheTest
 			BeforeEach(func() {
-				ct = newRedisCacheTest(ttl24HoursInMSec)
+				ct = newValkeyCacheTest(ttl24HoursInMSec)
 				ct.queryResource()
 				ct.expectTestResource()
 				ct.addDbResource()

@@ -39,7 +39,7 @@ type Config struct {
 	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
 	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
 	CacheTtlMSec          int64  `envconfig:"CACHE_TTL_MSEC" default:0 json:"-"`
-	CacheRedisUrl         string `envconfig:"CACHE_REDIS_URL" default:"" json:"-"`
+	CacheValkeyUrl        string `envconfig:"CACHE_VALKEY_URL" default:"" json:"-"`
 	CacheMonitorMSec      int64  `envconfig:"CACHE_MONITOR_MSEC" default:"0" json:"-"`
 }
 
