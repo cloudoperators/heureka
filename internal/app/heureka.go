@@ -84,20 +84,24 @@ func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 }
 
 func NewAppCache(cfg util.Config) cache.Cache {
-	if cfg.CacheTtlMSec != 0 {
+	if cfg.CacheEnable == true {
 		if cfg.CacheValkeyUrl != "" {
 			return cache.NewCache(cache.ValkeyCacheConfig{
 				Url: cfg.CacheValkeyUrl,
 				CacheConfig: cache.CacheConfig{
-					Ttl:             time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
-					MonitorInterval: time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
+					MonitorInterval:          time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
+					MaxDbConcurrentRefreshes: cfg.CacheMaxDbConcurrentRefreshes,
+					ThrottleInterval:         time.Duration(cfg.CacheThrottleIntervalMSec) * time.Millisecond,
+					ThrottlePerInterval:      cfg.CacheThrottlePerInterval,
 				},
 			})
 		}
 		return cache.NewCache(cache.InMemoryCacheConfig{
 			CacheConfig: cache.CacheConfig{
-				Ttl:             time.Duration(cfg.CacheTtlMSec) * time.Millisecond,
-				MonitorInterval: time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
+				MonitorInterval:          time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
+				MaxDbConcurrentRefreshes: cfg.CacheMaxDbConcurrentRefreshes,
+				ThrottleInterval:         time.Duration(cfg.CacheThrottleIntervalMSec) * time.Millisecond,
+				ThrottlePerInterval:      cfg.CacheThrottlePerInterval,
 			},
 		})
 	}

@@ -94,7 +94,7 @@ fmt:
 	go fmt ./...
 
 DOCKER_COMPOSE := docker-compose -f docker-compose.yaml
-DOCKER_COMPOSE_SERVICES := heureka-app heureka-db
+DOCKER_COMPOSE_SERVICES := heureka-app heureka-db valkey
 compose-prepare:
 	sed 's/^SEED_MODE=false/SEED_MODE=true/g' .test.env > .env
 

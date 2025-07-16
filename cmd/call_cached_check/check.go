@@ -1,3 +1,13 @@
+// This is a helper command intended for use within Heureka.
+// It verifies that all calls to the cache.CallCached function are made correctly.
+// Specifically, it ensures that the function name string passed to CallCached
+// matches the actual function being cached and that the arguments are appropriate.
+//
+// This helps prevent rare, hard-to-detect bugs where an incorrect function name
+// could lead to cache collisions or data leakage, posing a potential security risk.
+//
+// This tool is designed to be invoked via the `go generate` command.
+
 package main
 
 import (
@@ -59,17 +69,16 @@ func main() {
 				return true
 			}
 
-			if len(call.Args) < 2 {
+			if len(call.Args) < 4 {
 				mismatches = append(mismatches, result{
 					pos:  fset.Position(call.Lparen), // position of '(' for the call
-					want: "at least 2 arguments",
+					want: "at least 4 arguments",
 					got:  fmt.Sprintf("%d arguments", len(call.Args)),
 				})
-				fmt.Println("A2")
 				return true
 			}
 
-			cacheFuncNameArg := call.Args[1]
+			cacheFuncNameArg := call.Args[2]
 			strLit, ok := cacheFuncNameArg.(*ast.BasicLit)
 			if !ok || strLit.Kind != token.STRING {
 				mismatches = append(mismatches, result{
@@ -81,7 +90,7 @@ func main() {
 			}
 			funcNameStr := strings.Trim(strLit.Value, `"`)
 
-			cacheFunc := call.Args[2]
+			cacheFunc := call.Args[3]
 			var funcName string
 			switch fn := cacheFunc.(type) {
 			case *ast.Ident:
