@@ -24,23 +24,26 @@ type Config struct {
 	DBName               string `envconfig:"DB_NAME" required:"true" json:"dbDbName"`
 	DBMaxIdleConnections int    `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"10" json:"dBMaxIdleConnections"`
 	DBMaxOpenConnections int    `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"100" json:"dbMaxOpenConnections"`
-	//VasApiAddress      string   `envconfig:"VAS_API_ADDRESS" required:"true" json:"vasApiAddress"`
-	//VasApiToken        string   `envconfig:"VAS_API_TOKEN" required:"true" json:"-"`
-	//NvdApiToken        string   `envconfig:"NVD_API_TOKEN" required:"true" json:"-"`
-	//OidcClientId       string   `envconfig:"OIDC_CLIENT_ID" required:"true" json:"-"`
-	//OidcUrl            string   `envconfig:"OIDC_URL" required:"true" json:"-"`
-	//Environment        string   `envconfig:"ENVIRONMENT" required:"true" json:"environment"`
+	//VasApiAddress              string   `envconfig:"VAS_API_ADDRESS" required:"true" json:"vasApiAddress"`
+	//VasApiToken                string   `envconfig:"VAS_API_TOKEN" required:"true" json:"-"`
+	//NvdApiToken                string   `envconfig:"NVD_API_TOKEN" required:"true" json:"-"`
+	//OidcClientId               string   `envconfig:"OIDC_CLIENT_ID" required:"true" json:"-"`
+	//OidcUrl                    string   `envconfig:"OIDC_URL" required:"true" json:"-"`
+	//Environment                string   `envconfig:"ENVIRONMENT" required:"true" json:"environment"`
 	//// https://pkg.go.dev/github.com/robfig/cron#hdr-Predefined_schedules
 	//DiscoverySchedule string `envconfig:"DISOVERY_SCHEDULE" default:"0 0 0 * * *" json:"discoverySchedule"`
-	SeedMode              bool   `envconfig:"SEED_MODE" required:"false" default:"false" json:"seedMode"`
-	AuthTokenSecret       string `envconfig:"AUTH_TOKEN_SECRET" required:"false" json:"-"`
-	AuthOidcClientId      string `envconfig:"AUTH_OIDC_CLIENT_ID" required:"false" json:"-"`
-	AuthOidcUrl           string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
-	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
-	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
-	CacheTtlMSec          int64  `envconfig:"CACHE_TTL_MSEC" default:0 json:"-"`
-	CacheValkeyUrl        string `envconfig:"CACHE_VALKEY_URL" default:"" json:"-"`
-	CacheMonitorMSec      int64  `envconfig:"CACHE_MONITOR_MSEC" default:"0" json:"-"`
+	SeedMode                      bool   `envconfig:"SEED_MODE" required:"false" default:"false" json:"seedMode"`
+	AuthTokenSecret               string `envconfig:"AUTH_TOKEN_SECRET" required:"false" json:"-"`
+	AuthOidcClientId              string `envconfig:"AUTH_OIDC_CLIENT_ID" required:"false" json:"-"`
+	AuthOidcUrl                   string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
+	DefaultIssuePriority          int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
+	DefaultRepositoryName         string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
+	CacheEnable                   bool   `envconfig:"CACHE_ENABLE" default:"false" json:"-"`
+	CacheValkeyUrl                string `envconfig:"CACHE_VALKEY_URL" default:"" json:"-"`
+	CacheMonitorMSec              int64  `envconfig:"CACHE_MONITOR_MSEC" default:"0" json:"-"`
+	CacheMaxDbConcurrentRefreshes int    `envconfig:"CACHE_MAX_DB_CONCURRENT_REFRESHES" default:"-1" json:"-"`
+	CacheThrottleIntervalMSec     int64  `envconfig:"CACHE_THROTTLE_INTERVAL_MSEC" default:"0" json:"-"`
+	CacheThrottlePerInterval      int    `envconfig:"CACHE_THROTTLE_PER_INTERVAL" default:"1" json:"-"`
 }
 
 func (c *Config) ConfigToConsole() {

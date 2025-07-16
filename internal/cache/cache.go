@@ -6,17 +6,19 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 )
 
 type Cache interface {
-	cacheKey(fnname string, fn interface{}, args ...interface{}) (string, error)
+	CacheKey(fnname string, fn interface{}, args ...interface{}) (string, error)
 	Get(ctx context.Context, key string) (string, bool, error)
-	Set(ctx context.Context, key string, value string) error
+	Set(ctx context.Context, key string, value string, ttl time.Duration) error
 	Invalidate(ctx context.Context, key string) error
 	IncHit()
 	IncMiss()
 	GetStat() Stat
 	Stop()
+	LaunchRefresh(fn func())
 }
 
 func NewCache(config interface{}) Cache {
@@ -75,7 +77,7 @@ func getReturnValues[T any](out []reflect.Value) (T, error) {
 	return result, nil
 }
 
-func CallCached[T any](c Cache, fnname string, fn interface{}, args ...interface{}) (T, error) {
+func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn interface{}, args ...interface{}) (T, error) {
 	ctx := context.Background()
 	var zero T
 	v, in, err := getCallParameters(fn, args...)
@@ -83,7 +85,7 @@ func CallCached[T any](c Cache, fnname string, fn interface{}, args ...interface
 		return zero, fmt.Errorf("Cache (param): Get call parameters failed: %w", err)
 	}
 
-	key, err := c.cacheKey(fnname, fn, args...)
+	key, err := c.CacheKey(fnname, fn, args...)
 	if err != nil {
 		return zero, fmt.Errorf("Cache (key): Could not create cache key.")
 	}
@@ -92,15 +94,15 @@ func CallCached[T any](c Cache, fnname string, fn interface{}, args ...interface
 		val, err := decode[T](s)
 		if err == nil {
 			c.IncHit()
-			go func() {
+			c.LaunchRefresh(func() {
 				out := v.Call(in)
 				result, err := getReturnValues[T](out)
 				if err == nil {
 					if enc, encErr := encode(result); encErr == nil {
-						_ = c.Set(ctx, key, enc)
+						_ = c.Set(ctx, key, enc, ttl)
 					}
 				}
-			}()
+			})
 			return val, nil
 		}
 		_ = c.Invalidate(ctx, key) // poison-pill protection
@@ -115,7 +117,7 @@ func CallCached[T any](c Cache, fnname string, fn interface{}, args ...interface
 	if err != nil {
 		return zero, fmt.Errorf("Cache (fcall): Return value error: %w", err)
 	} else if enc, encErr := encode(result); encErr == nil {
-		err = c.Set(ctx, key, enc)
+		err = c.Set(ctx, key, enc, ttl)
 		if err != nil {
 			return zero, fmt.Errorf("Cache (set): %w", err)
 		}
