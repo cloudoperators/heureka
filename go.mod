@@ -20,7 +20,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/machinebox/graphql v0.2.2
-	github.com/olekukonko/tablewriter v1.0.7
+	github.com/olekukonko/tablewriter v1.0.8
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/onuryilmaz/ginprom v0.0.2
