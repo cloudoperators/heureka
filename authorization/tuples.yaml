@@ -1,0 +1,84 @@
+# User Assignments
+- user: user:k8s_scanner
+  relation: is_technical
+  object: user:k8s_scanner
+- user: user:keppel_scanner
+  relation: is_technical
+  object: user:keppel_scanner
+- user: user:alice
+  relation: is_human
+  object: user:alice
+- user: user:bob
+  relation: is_human
+  object: user:bob
+- user: user:charlie
+  relation: is_human
+  object: user:charlie
+
+# Support Group Structure
+- user: user:alice
+  relation: member
+  object: support_group:team_alpha
+- user: user:bob
+  relation: owner
+  object: support_group:team_alpha
+- user: user:charlie
+  relation: member
+  object: support_group:team_beta
+- user: user:bob
+  relation: owner
+  object: support_group:team_beta
+
+# Services and their Support Groups
+- user: support_group:team_alpha#owner
+  relation: owner_of_service_support_group
+  object: service:service_1
+- user: support_group:team_alpha#member
+  relation: member_of_service_support_group
+  object: service:service_1
+- user: support_group:team_beta#owner
+  relation: owner_of_service_support_group
+  object: service:service_2
+- user: support_group:team_beta#member
+  relation: member_of_service_support_group
+  object: service:service_2
+
+# Component Instances
+- user: service:service_1
+  relation: related_service
+  object: component_instance:comp_1
+- user: service:service_2
+  relation: related_service
+  object: component_instance:comp_2
+
+# Issue Repositories
+- user: service:service_1
+  relation: related_service
+  object: issue_repository:repo_1
+- user: service:service_2
+  relation: related_service
+  object: issue_repository:repo_2
+
+# Issue Variants
+- user: issue_repository:repo_1
+  relation: related_repository
+  object: issue_variant:variant_1
+- user: issue_repository:repo_2
+  relation: related_repository
+  object: issue_variant:variant_2
+
+# Activities
+- user: service:service_1
+  relation: related_service
+  object: activity:activity_1
+- user: service:service_2
+  relation: related_service
+  object: activity:activity_2
+
+# Activity Evidence
+- user: activity:activity_1
+  relation: related_activity
+  object: activity_evidence:evidence_1
+- user: activity:activity_2
+  relation: related_activity
+  object: activity_evidence:evidence_2
