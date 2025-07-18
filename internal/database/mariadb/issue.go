@@ -451,7 +451,10 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	`
 
 	var countColumn string
-	if filter.AllServices {
+	if filter.AllServices && filter.Unique {
+		// Conunt unique issues. AllServices filter is set, so we count issues that are matched to a service
+		countColumn = "COUNT(distinct IV.issuevariant_issue_id)"
+	} else if filter.AllServices {
 		// Count issues that appear in multiple services and in multiple component versions per service
 		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id))"
 	} else if len(filter.SupportGroupCCRN) > 0 {
