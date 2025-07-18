@@ -11,14 +11,14 @@ Q2
 #### Key Drivers of this quarter
 > _highlights of the quarter. Think of this as the TL;DR of your report, summarizing the most important achievements and contributions. Maybe you want to had a special focus this quarter, or you made significant progress on a feature. This is the place to highlight those key points!_
 
-- Heureka GoLive release
+- Heureka PoC - Kubernetes Asset vulnerability and asset discovery
 - Heureka Performance Improvement
 
 
 #### Notable Events
 > _talk about the notable events that occurred during this quarter. 🎉 This section is important to highlight any significant milestones, achievements, or challenges faced during the quarter. Please provide a brief description of any notable events that took place, such as major releases, community engagement, or other significant happenings._
 
-- Heureka went live
+- Enabled the Heureka PoC plugin in the Greenhouse
 - Received first set of real user feedback 
 
 ---
@@ -38,15 +38,17 @@ _> This section is all about the specific contributions made this quarter. Pleas
 ...
 - epic(heureka): Optimize Heureka by identifying and addressing performance bottlenecks in the database and API.
 
-- epic(heureka): API Query Design Analysis for the vulnerability list view align frontend and backend requirements.
+- epic(heureka): API Query Design Analysis for the vulnerability list view + align frontend and backend requirements.
   
 - epic (heureka): Implement monitoring to ensure scanners operate correctly.
 
-- epic(heureka): Complete necessary implementations for the GoLive release.	
+- epic(heureka): Complete necessary implementations for the PoC release.	
 
 - epic(heureka): Add database query caching to reduce computational load and improve performance.
 
 - epic(heureka): Establish a consistent and efficient error handling strategy across all components
+
+- epic(heureka): Requirements definition for rememdiation management
 
 - epic(heureka): Enable authentication
 
@@ -71,7 +73,7 @@ _> This section is all about the specific contributions made this quarter. Pleas
 
 
 #### Achieved progress in percent
-90 
+87.5 
 
 
 ---
@@ -96,7 +98,7 @@ n/a
 #### Specific contributions to Security
 > _Describe the contributions to security this quarter, e.g. new security features, improved security practices, etc._
 
-Heureka (Automated Security Posture Management) - Cloud vulnerability and asset discovery
+Heureka (Automated Security Posture Management) - Kubernetes vulnerability and Asset Discovery
 
 #### Specific contributions to AI / ML
 > _Describe the contributions to AI / ML this quarter, e.g. new models, improved AI practices, etc._
@@ -111,7 +113,7 @@ n/a
 #### CVEs against your project
 > _Describe the CVEs addressed this quarter, e.g. CVE-2024-12345, CVE-2024-67890, etc._
 
-## n/a ???????
+## n/a 
 
 
 ---
@@ -126,7 +128,7 @@ n/a
 #### Specific contributions to Open Source
 > _Describe the contributions to any Open Source this quarter, e.g. notable community work, new features etc._
 
-Heureka (Automated Security Posture Management) - Cloud vulnerability and asset discovery
+Cloud Operators - Heureka Source code: https://github.com/cloudoperators/heureka
 
 
 #### Specific contributions to ApeiroRA
@@ -138,7 +140,7 @@ Heureka (Automated Security Posture Management) - Cloud vulnerability and asset 
 #### Specific contributions to SAP (Strictly Confidential)
 > _Describe the contributions to SAP this quarter (e.g. SAP BTP, SAP AI Core, etc.), this section is important to highlight the work contributing to SAP. This section maybe used in other reports to highlight the projects specific contributions to SAPs success._
 
-Heureka (Automated Security Posture Management) - Cloud vulnerability and asset discovery
+Heureka PoC is running on SAP Cloud Infracture in Greenhouse
 
 
 ---
@@ -192,3 +194,4 @@ n/a
 > _This is an optional section to provide specific information about the workpackage this report is related to. This may be filled out by someone else after you submit the report, but it is important to provide this information to ensure the report is properly categorized and report the workpackage progress._
 
 #### Workpackage Relation
+OWS 2.4
