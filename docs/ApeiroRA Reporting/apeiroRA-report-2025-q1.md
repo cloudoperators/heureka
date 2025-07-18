@@ -11,14 +11,16 @@ Q1
 #### Key Drivers of this quarter
 > _highlights of the quarter. Think of this as the TL;DR of your report, summarizing the most important achievements and contributions. Maybe you want to had a special focus this quarter, or you made significant progress on a feature. This is the place to highlight those key points!_
 
-- Heureka MVP
-- 
+- Working towards the PoC release in Q2
 
 
 #### Notable Events
 > _talk about the notable events that occurred during this quarter. 🎉 This section is important to highlight any significant milestones, achievements, or challenges faced during the quarter. Please provide a brief description of any notable events that took place, such as major releases, community engagement, or other significant happenings._
 
-- 
+- UI/UX design workshop
+- Switching from javascript to typescript in the frontend
+- Roll out the scanners in multiple kubernetes cluster for staging and production environment
+- Enabling continuous scanning of vulnerabilities
 
 ---
 
