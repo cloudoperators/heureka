@@ -232,11 +232,15 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	var serviceId []*int64
+	var unique = false
 	if parent != nil {
-		parentId := parent.Parent.GetID()
-		pid, err := ParseCursor(&parentId)
-		if err != nil {
-			return nil, NewResolverError("IssueCountsBaseResolver", "Bad Request - Error while parsing propagated ID")
+		var pid *int64
+		if parent.Parent != nil {
+			parentId := parent.Parent.GetID()
+			pid, err = ParseCursor(&parentId)
+			if err != nil {
+				return nil, NewResolverError("IssueCountsBaseResolver", "Bad Request - Error while parsing propagated ID")
+			}
 		}
 
 		switch parent.ParentName {
@@ -244,6 +248,8 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 			cvIds = []*int64{pid}
 		case model.ServiceNodeName:
 			serviceId = []*int64{pid}
+		case model.VulnerabilityNodeName:
+			unique = true
 		}
 	}
 
@@ -259,6 +265,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		ServiceId:          serviceId,
 		State:              model.GetStateFilterType(filter.State),
 		AllServices:        lo.FromPtr(filter.AllServices),
+		Unique:             unique,
 	}
 
 	counts, err := app.GetIssueSeverityCounts(f)
