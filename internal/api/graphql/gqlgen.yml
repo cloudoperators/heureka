@@ -214,6 +214,8 @@ models:
         resolver: true
       severity:
         resolver: false
+      service:
+        resolver: true
   IssueMatchFilterValue:
     fields:
       status:
