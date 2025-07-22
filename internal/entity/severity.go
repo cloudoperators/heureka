@@ -21,3 +21,11 @@ type SeverityFilter struct {
 	IssueMatchId []*int64 `json:"issue_match_id"`
 	IssueId      []*int64 `json:"issue_id"`
 }
+
+var AllSeverityValues = []SeverityValues{
+	SeverityValuesNone,
+	SeverityValuesLow,
+	SeverityValuesMedium,
+	SeverityValuesHigh,
+	SeverityValuesCritical,
+}
