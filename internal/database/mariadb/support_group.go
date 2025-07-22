@@ -18,6 +18,7 @@ func (s *SqlDatabase) getSupportGroupFilterString(filter *entity.SupportGroupFil
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "SGS.supportgroupservice_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.CCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.UserId, "SGU.supportgroupuser_user_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "SG.supportgroup"))
 
 	return combineFilterQueries(fl, OP_AND)
@@ -37,10 +38,16 @@ func (s *SqlDatabase) getSupportGroupUpdateFields(supportGroup *entity.SupportGr
 
 func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) string {
 	joins := ""
-	if len(filter.ServiceId) > 0 {
+	if len(filter.ServiceId) > 0 || len(filter.IssueId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, ` 
 				INNER JOIN SupportGroupService SGS on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
 		`)
+		if len(filter.IssueId) > 0 {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+				INNER JOIN ComponentInstance CI on SGS.supportgroupservice_service_id = CI.componentinstance_service_id
+				INNER JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id
+			`)
+		}
 	}
 	if len(filter.UserId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, ` 
@@ -62,6 +69,7 @@ func (s *SqlDatabase) ensureSupportGroupFilter(f *entity.SupportGroupFilter) *en
 			Id:        nil,
 			ServiceId: nil,
 			UserId:    nil,
+			IssueId:   nil,
 			CCRN:      nil,
 		}
 	}
@@ -117,6 +125,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.UserId)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	if withCursor {
 		filterParameters = append(filterParameters, cursor.Value)
 		filterParameters = append(filterParameters, cursor.Limit)
