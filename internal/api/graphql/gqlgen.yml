@@ -208,6 +208,8 @@ models:
         resolver: true
       earliestTargetRemediationDate:
         resolver: true
+      supportGroups:
+        resolver: true
   VulnerabilityFilterValue:
     fields:
       supportGroup:
