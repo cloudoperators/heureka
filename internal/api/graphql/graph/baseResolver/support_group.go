@@ -28,6 +28,7 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 
 	var serviceId []*int64
 	var userId []*int64
+	var issueId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -41,6 +42,8 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 			serviceId = []*int64{pid}
 		case model.UserNodeName:
 			userId = []*int64{pid}
+		case model.VulnerabilityNodeName:
+			issueId = []*int64{pid}
 		}
 	}
 
@@ -54,6 +57,7 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		UserId:    userId,
 		CCRN:      filter.SupportGroupCcrn,
 		State:     model.GetStateFilterType(filter.State),
+		IssueId:   issueId,
 	}
 
 	opt := GetListOptions(requestedFields)
