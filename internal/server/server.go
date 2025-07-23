@@ -164,7 +164,6 @@ func (s *Server) NonBlockingStart() {
 
 func (s *Server) BlockingStop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	s.nonBlockingSrv.Shutdown(ctx)
 	if err := s.nonBlockingSrv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
 	}

@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"context"
 	"time"
 )
 
@@ -16,15 +15,15 @@ func (nc NoCache) CacheKey(fnname string, fn interface{}, args ...interface{}) (
 	return "", nil
 }
 
-func (nc NoCache) Get(ctx context.Context, key string) (string, bool, error) {
+func (nc NoCache) Get(key string) (string, bool, error) {
 	return "", false, nil
 }
 
-func (nc NoCache) Set(ctx context.Context, key string, value string, ttl time.Duration) error {
+func (nc NoCache) Set(key string, value string, ttl time.Duration) error {
 	return nil
 }
 
-func (nc NoCache) Invalidate(ctx context.Context, key string) error {
+func (nc NoCache) Invalidate(key string) error {
 	return nil
 }
 

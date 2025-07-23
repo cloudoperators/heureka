@@ -6,14 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 )
 
 type Cache interface {
 	CacheKey(fnname string, fn interface{}, args ...interface{}) (string, error)
-	Get(ctx context.Context, key string) (string, bool, error)
-	Set(ctx context.Context, key string, value string, ttl time.Duration) error
-	Invalidate(ctx context.Context, key string) error
+	Get(key string) (string, bool, error)
+	Set(key string, value string, ttl time.Duration) error
+	Invalidate(key string) error
 	IncHit()
 	IncMiss()
 	GetStat() Stat
@@ -21,13 +22,12 @@ type Cache interface {
 	LaunchRefresh(fn func())
 }
 
-func NewCache(config interface{}) Cache {
+func NewCache(ctx context.Context, wg *sync.WaitGroup, config interface{}) Cache {
 	switch c := config.(type) {
 	case InMemoryCacheConfig:
-		return NewInMemoryCache(c)
+		return NewInMemoryCache(ctx, wg, c)
 	case ValkeyCacheConfig:
-		ctx := context.Background()
-		return NewValkeyCache(ctx, c)
+		return NewValkeyCache(ctx, wg, c)
 	}
 	return NewNoCache()
 }
@@ -78,7 +78,6 @@ func getReturnValues[T any](out []reflect.Value) (T, error) {
 }
 
 func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn interface{}, args ...interface{}) (T, error) {
-	ctx := context.Background()
 	var zero T
 	v, in, err := getCallParameters(fn, args...)
 	if err != nil {
@@ -90,7 +89,7 @@ func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn interface{}
 		return zero, fmt.Errorf("Cache (key): Could not create cache key.")
 	}
 
-	if s, ok, err := c.Get(ctx, key); err == nil && ok {
+	if s, ok, err := c.Get(key); err == nil && ok {
 		val, err := decode[T](s)
 		if err == nil {
 			c.IncHit()
@@ -99,13 +98,13 @@ func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn interface{}
 				result, err := getReturnValues[T](out)
 				if err == nil {
 					if enc, encErr := encode(result); encErr == nil {
-						_ = c.Set(ctx, key, enc, ttl)
+						_ = c.Set(key, enc, ttl)
 					}
 				}
 			})
 			return val, nil
 		}
-		_ = c.Invalidate(ctx, key) // poison-pill protection
+		_ = c.Invalidate(key) // poison-pill protection
 	} else if err != nil {
 		return zero, fmt.Errorf("Cache (get): %w", err)
 	}
@@ -117,7 +116,7 @@ func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn interface{}
 	if err != nil {
 		return zero, fmt.Errorf("Cache (fcall): Return value error: %w", err)
 	} else if enc, encErr := encode(result); encErr == nil {
-		err = c.Set(ctx, key, enc, ttl)
+		err = c.Set(key, enc, ttl)
 		if err != nil {
 			return zero, fmt.Errorf("Cache (set): %w", err)
 		}

@@ -3,9 +3,14 @@ package cache
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	gocache "github.com/patrickmn/go-cache"
+)
+
+const (
+	defaultTtl = 1 * time.Hour
 )
 
 type InMemoryCache struct {
@@ -18,16 +23,16 @@ type InMemoryCacheConfig struct {
 	CleanupInterval time.Duration
 }
 
-func NewInMemoryCache(config InMemoryCacheConfig) *InMemoryCache {
+func NewInMemoryCache(ctx context.Context, wg *sync.WaitGroup, config InMemoryCacheConfig) *InMemoryCache {
 	cleanupInterval := config.CleanupInterval
 	if cleanupInterval == 0 {
 		cleanupInterval = gocache.NoExpiration
 	}
 
-	cacheBase := NewCacheBase(config.CacheConfig)
+	cacheBase := NewCacheBase(ctx, wg, config.CacheConfig)
 	inMemoryCache := &InMemoryCache{
 		CacheBase: *cacheBase,
-		gc:        gocache.New(1*time.Hour, cleanupInterval),
+		gc:        gocache.New(defaultTtl, cleanupInterval),
 	}
 
 	inMemoryCache.startMonitorIfNeeded(config.MonitorInterval)
@@ -35,7 +40,7 @@ func NewInMemoryCache(config InMemoryCacheConfig) *InMemoryCache {
 	return inMemoryCache
 }
 
-func (imc InMemoryCache) Get(_ context.Context, key string) (string, bool, error) {
+func (imc InMemoryCache) Get(key string) (string, bool, error) {
 	val, found := imc.gc.Get(key)
 	if !found {
 		return "", false, nil
@@ -47,7 +52,7 @@ func (imc InMemoryCache) Get(_ context.Context, key string) (string, bool, error
 	return valStr, true, nil
 }
 
-func (imc InMemoryCache) Set(_ context.Context, key string, value string, ttl time.Duration) error {
+func (imc InMemoryCache) Set(key string, value string, ttl time.Duration) error {
 	if ttl <= 0 {
 		ttl = gocache.NoExpiration
 	}
@@ -55,7 +60,7 @@ func (imc InMemoryCache) Set(_ context.Context, key string, value string, ttl ti
 	return nil
 }
 
-func (imc InMemoryCache) Invalidate(_ context.Context, key string) error {
+func (imc InMemoryCache) Invalidate(key string) error {
 	imc.gc.Delete(key)
 	return nil
 }

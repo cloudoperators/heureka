@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/activity"
@@ -49,6 +50,17 @@ type HeurekaApp struct {
 	database      database.Database
 
 	cache cache.Cache
+
+	// Use this context if you want your software
+	// unit to be notified about heureka shutdown
+	shutdownCtx context.Context
+
+	// Heureka cancel function used by Heureka shutdown
+	shutdownFunc context.CancelFunc
+
+	// Use this workgroup if you want Heureka to
+	// block shutdown until important job is done
+	wg *sync.WaitGroup
 }
 
 func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
@@ -57,7 +69,10 @@ func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
 	sh := severity.NewSeverityHandler(db, er, ivh)
 	er.Run(context.Background())
-	cache := NewAppCache(cfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	wg := sync.WaitGroup{}
+	cache := NewAppCache(ctx, &wg, cfg)
 
 	heureka := &HeurekaApp{
 		ActivityHandler:          activity.NewActivityHandler(db, er),
@@ -78,34 +93,33 @@ func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 		eventRegistry:            er,
 		database:                 db,
 		cache:                    cache,
+		shutdownCtx:              ctx,
+		shutdownFunc:             cancel,
+		wg:                       &wg,
 	}
 	heureka.SubscribeHandlers()
 	return heureka
 }
 
-func NewAppCache(cfg util.Config) cache.Cache {
+func NewAppCache(ctx context.Context, wg *sync.WaitGroup, cfg util.Config) cache.Cache {
+	var cacheConfig interface{}
 	if cfg.CacheEnable == true {
-		if cfg.CacheValkeyUrl != "" {
-			return cache.NewCache(cache.ValkeyCacheConfig{
-				Url: cfg.CacheValkeyUrl,
-				CacheConfig: cache.CacheConfig{
-					MonitorInterval:          time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
-					MaxDbConcurrentRefreshes: cfg.CacheMaxDbConcurrentRefreshes,
-					ThrottleInterval:         time.Duration(cfg.CacheThrottleIntervalMSec) * time.Millisecond,
-					ThrottlePerInterval:      cfg.CacheThrottlePerInterval,
-				},
-			})
+		cacheBaseConfig := cache.CacheConfig{
+			MonitorInterval:          time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
+			MaxDbConcurrentRefreshes: cfg.CacheMaxDbConcurrentRefreshes,
+			ThrottleInterval:         time.Duration(cfg.CacheThrottleIntervalMSec) * time.Millisecond,
+			ThrottlePerInterval:      cfg.CacheThrottlePerInterval,
 		}
-		return cache.NewCache(cache.InMemoryCacheConfig{
-			CacheConfig: cache.CacheConfig{
-				MonitorInterval:          time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
-				MaxDbConcurrentRefreshes: cfg.CacheMaxDbConcurrentRefreshes,
-				ThrottleInterval:         time.Duration(cfg.CacheThrottleIntervalMSec) * time.Millisecond,
-				ThrottlePerInterval:      cfg.CacheThrottlePerInterval,
-			},
-		})
+		if cfg.CacheValkeyUrl != "" {
+			cacheConfig = cache.ValkeyCacheConfig{
+				Url:         cfg.CacheValkeyUrl,
+				CacheConfig: cacheBaseConfig,
+			}
+		} else {
+			cacheConfig = cache.InMemoryCacheConfig{CacheConfig: cacheBaseConfig}
+		}
 	}
-	return cache.NewCache(nil)
+	return cache.NewCache(ctx, wg, cacheConfig)
 }
 
 func (h *HeurekaApp) SubscribeHandlers() {
@@ -136,6 +150,10 @@ func (h *HeurekaApp) SubscribeHandlers() {
 
 func (h *HeurekaApp) Shutdown() error {
 	h.cache.Stop()
+
+	h.shutdownFunc()
+	h.wg.Wait()
+
 	return h.database.CloseConnection()
 }
 

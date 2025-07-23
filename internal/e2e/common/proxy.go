@@ -5,129 +5,118 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 )
 
 type PausableProxy struct {
-	listenAddr string
-	targetAddr string
-
-	mu          sync.RWMutex
-	paused      bool
-	connections map[net.Conn]struct{}
-
-	listener net.Listener
-	done     chan struct{}
-	once     sync.Once
+	listenAddr         string
+	targetAddr         string
+	listener           net.Listener
+	holdingConnections bool
+	heldConns          []net.Conn
+	heldLock           sync.Mutex
+	stopChan           chan struct{}
+	wg                 sync.WaitGroup
 }
 
 func NewPausableProxy(listenAddr, targetAddr string) *PausableProxy {
 	return &PausableProxy{
-		listenAddr:  listenAddr,
-		targetAddr:  targetAddr,
-		connections: make(map[net.Conn]struct{}),
+		listenAddr: listenAddr,
+		targetAddr: targetAddr,
+		stopChan:   make(chan struct{}),
 	}
 }
 
 func (p *PausableProxy) Start() error {
-	ln, err := net.Listen("tcp", p.listenAddr)
+	var err error
+	p.listener, err = net.Listen("tcp", p.listenAddr)
 	if err != nil {
 		return err
 	}
 
-	p.listener = ln
-	p.done = make(chan struct{})
-
-	go func() {
-		for {
-			clientConn, err := ln.Accept()
-			if err != nil {
-				select {
-				case <-p.done:
-					return
-				default:
-					log.Printf("Accept error: %v", err)
-					continue
-				}
-			}
-
-			p.mu.RLock()
-			isPaused := p.paused
-			p.mu.RUnlock()
-
-			if isPaused {
-				p.registerConn(clientConn)
-				go p.holdConnection(clientConn)
-			} else {
-				go p.handleConnection(clientConn)
-			}
-		}
-	}()
-
+	p.wg.Add(1)
+	go p.acceptLoop()
 	return nil
 }
 
 func (p *PausableProxy) Stop() {
-	p.once.Do(func() {
-		if p.listener != nil {
-			_ = p.listener.Close()
+	close(p.stopChan)
+	p.listener.Close()
+	p.wg.Wait()
+}
+
+func (p *PausableProxy) HoldNewIncomingConnections() {
+	p.heldLock.Lock()
+	p.holdingConnections = true
+	p.heldLock.Unlock()
+}
+
+func (p *PausableProxy) DoNotHoldNewIncomingConnections() {
+	p.heldLock.Lock()
+	p.holdingConnections = false
+	p.heldLock.Unlock()
+}
+
+func (p *PausableProxy) ResumeHeldConnections() {
+	p.heldLock.Lock()
+	held := p.heldConns
+	p.heldConns = nil
+	p.holdingConnections = false
+	p.heldLock.Unlock()
+
+	for _, conn := range held {
+		p.wg.Add(1)
+		go p.handleConnection(conn)
+	}
+}
+
+func (p *PausableProxy) acceptLoop() {
+	defer p.wg.Done()
+	for {
+		conn, err := p.listener.Accept()
+		if err != nil {
+			select {
+			case <-p.stopChan:
+				return
+			default:
+				log.Println("Accept error:", err)
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
 		}
 
-		close(p.done)
-		p.CloseHeldConnections()
-	})
-}
+		p.heldLock.Lock()
+		if p.holdingConnections {
+			p.heldConns = append(p.heldConns, conn)
+			p.heldLock.Unlock()
+			continue
+		}
+		p.heldLock.Unlock()
 
-func (p *PausableProxy) PauseConnections() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.paused = true
-}
-
-func (p *PausableProxy) ResumeConnections() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.paused = false
-}
-
-func (p *PausableProxy) CloseHeldConnections() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	for conn := range p.connections {
-		conn.Close()
-		delete(p.connections, conn)
+		p.wg.Add(1)
+		go p.handleConnection(conn)
 	}
 }
 
-func (p *PausableProxy) registerConn(conn net.Conn) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.connections[conn] = struct{}{}
-}
+func (p *PausableProxy) handleConnection(src net.Conn) {
+	defer p.wg.Done()
 
-func (p *PausableProxy) unregisterConn(conn net.Conn) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	delete(p.connections, conn)
-}
-
-func (p *PausableProxy) holdConnection(conn net.Conn) {
-	// Block until the connection is closed externally
-	buf := make([]byte, 1)
-	_, _ = conn.Read(buf) // Do nothing; just hold
-	p.unregisterConn(conn)
-}
-
-func (p *PausableProxy) handleConnection(clientConn net.Conn) {
-	defer clientConn.Close()
-
-	serverConn, err := net.Dial("tcp", p.targetAddr)
+	dst, err := net.Dial("tcp", p.targetAddr)
 	if err != nil {
-		log.Printf("Error dialing target: %v", err)
+		log.Println("Failed to connect to target:", err)
+		src.Close()
 		return
 	}
-	defer serverConn.Close()
 
-	go io.Copy(serverConn, clientConn)
-	io.Copy(clientConn, serverConn)
+	go func() {
+		defer src.Close()
+		defer dst.Close()
+		io.Copy(dst, src)
+	}()
+
+	go func() {
+		defer src.Close()
+		defer dst.Close()
+		io.Copy(src, dst)
+	}()
 }

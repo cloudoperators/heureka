@@ -29,15 +29,16 @@ type CacheBase struct {
 	keyHash                    KeyHashType
 	statMu                     sync.RWMutex
 	monitorMu                  sync.Mutex
-	monitorCancelFunction      context.CancelFunc
-	monitorCtx                 context.Context
+	monitorOnce                sync.Once
 	concurrentRefreshSemaphore chan struct{}
 	concurrentRefreshUnlimited bool
 	refreshLimiter             *rate.Limiter
+	ctx                        context.Context
+	wg                         *sync.WaitGroup
 }
 
-func NewCacheBase(config CacheConfig) *CacheBase {
-	cb := CacheBase{keyHash: config.KeyHash}
+func NewCacheBase(ctx context.Context, wg *sync.WaitGroup, config CacheConfig) *CacheBase {
+	cb := CacheBase{keyHash: config.KeyHash, ctx: ctx, wg: wg}
 	cb.initConcurrentRefreshLimit(config)
 	cb.initRateRefreshLimit(config)
 	return &cb
@@ -61,43 +62,34 @@ func (cb *CacheBase) startMonitorIfNeeded(interval time.Duration) {
 	if interval <= 0 {
 		return
 	}
-	l := logrus.New()
-	cb.monitorMu.Lock()
-	defer cb.monitorMu.Unlock()
+	cb.monitorOnce.Do(func() {
+		l := logrus.New()
+		cb.monitorMu.Lock()
+		defer cb.monitorMu.Unlock()
 
-	if cb.monitorCancelFunction != nil {
-		l.Error("Monitoring already started.")
-		return
-	}
+		cb.wg.Add(1)
+		go func() {
+			defer cb.wg.Done()
+			l.Info("Monitoring started with interval: ", interval)
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cb.monitorCtx = ctx
-	cb.monitorCancelFunction = cancel
-
-	go func() {
-		l.Info("Monitoring started with interval: ", interval)
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				l.Info("Monitoring stopped")
-				return
-			case <-ticker.C:
-				l.Info(StatStr(cb.GetStat()))
+			for {
+				select {
+				case <-cb.ctx.Done():
+					l.Info("Monitoring stopped")
+					return
+				case <-ticker.C:
+					l.Info(StatStr(cb.GetStat()))
+				}
 			}
-		}
-	}()
+		}()
+	})
 }
 
 func (cb *CacheBase) Stop() {
-	cb.monitorMu.Lock()
-	defer cb.monitorMu.Unlock()
-
-	if cb.monitorCancelFunction != nil {
-		cb.monitorCancelFunction()
-	}
+	// cb.monitorMu.Lock()
+	// defer cb.monitorMu.Unlock()
 }
 
 func (cb *CacheBase) IncHit() {
@@ -139,13 +131,17 @@ func (cb CacheBase) CacheKey(fnname string, fn interface{}, args ...interface{})
 	return cb.EncodeKey(key), nil
 }
 
-func (cb CacheBase) launchRefreshWithThrottling(fn func()) {
+func (cb *CacheBase) launchRefreshWithThrottling(fn func()) {
 	if cb.refreshLimiter == nil || cb.refreshLimiter.Allow() {
-		go fn()
+		cb.wg.Add(1)
+		go func() {
+			defer cb.wg.Done()
+			fn()
+		}()
 	}
 }
 
-func (cb CacheBase) LaunchRefresh(fn func()) {
+func (cb *CacheBase) LaunchRefresh(fn func()) {
 	if cb.concurrentRefreshUnlimited {
 		cb.launchRefreshWithThrottling(fn)
 	} else if cb.concurrentRefreshSemaphore != nil {

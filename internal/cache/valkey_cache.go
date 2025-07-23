@@ -2,9 +2,10 @@ package cache
 
 import (
 	"context"
+	"sync"
 	"time"
 
-    "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/valkey-io/valkey-go"
 )
 
@@ -20,17 +21,17 @@ type ValkeyCacheConfig struct {
 	Db       int
 }
 
-func NewValkeyCache(ctx context.Context, config ValkeyCacheConfig) *ValkeyCache {
-	cacheBase := NewCacheBase(config.CacheConfig)
+func NewValkeyCache(ctx context.Context, wg *sync.WaitGroup, config ValkeyCacheConfig) *ValkeyCache {
+	cacheBase := NewCacheBase(ctx, wg, config.CacheConfig)
 	valkeyClient, err := valkey.NewClient(valkey.ClientOption{
 		InitAddress: []string{config.Url},
 		Password:    config.Password})
 	if err != nil {
 		log := logrus.New()
-        log.WithFields(logrus.Fields{
-            "component": "cache",
-            "error":     err,
-        }).Fatal("Failed to initialize Valkey cache")
+		log.WithFields(logrus.Fields{
+			"component": "cache",
+			"error":     err,
+		}).Fatal("Failed to initialize Valkey cache")
 		return nil
 	}
 	valkeyCache := &ValkeyCache{
@@ -40,13 +41,13 @@ func NewValkeyCache(ctx context.Context, config ValkeyCacheConfig) *ValkeyCache 
 
 	valkeyCache.startMonitorIfNeeded(config.MonitorInterval)
 
-	_ = valkeyCache.invalidateAll(ctx)
+	_ = valkeyCache.invalidateAll()
 
 	return valkeyCache
 }
 
-func (vc *ValkeyCache) Get(ctx context.Context, key string) (string, bool, error) {
-	val, err := vc.client.Do(ctx, vc.client.B().Get().Key(key).Build()).ToString()
+func (vc *ValkeyCache) Get(key string) (string, bool, error) {
+	val, err := vc.client.Do(vc.ctx, vc.client.B().Get().Key(key).Build()).ToString()
 	if err == valkey.Nil {
 		return "", false, nil // miss
 	}
@@ -57,14 +58,14 @@ func (vc *ValkeyCache) Get(ctx context.Context, key string) (string, bool, error
 }
 
 // ttl = 0 <- infinite
-func (vc *ValkeyCache) Set(ctx context.Context, key string, value string, ttl time.Duration) error {
-	return vc.client.Do(ctx, vc.client.B().Set().Key(key).Value(value).Px(ttl).Build()).Error()
+func (vc *ValkeyCache) Set(key string, value string, ttl time.Duration) error {
+	return vc.client.Do(vc.ctx, vc.client.B().Set().Key(key).Value(value).Px(ttl).Build()).Error()
 }
 
-func (vc *ValkeyCache) Invalidate(ctx context.Context, key string) error {
-	return vc.client.Do(ctx, vc.client.B().Del().Key(key).Build()).Error()
+func (vc *ValkeyCache) Invalidate(key string) error {
+	return vc.client.Do(vc.ctx, vc.client.B().Del().Key(key).Build()).Error()
 }
 
-func (vc *ValkeyCache) invalidateAll(ctx context.Context) error {
-	return vc.client.Do(ctx, vc.client.B().Flushall().Build()).Error()
+func (vc *ValkeyCache) invalidateAll() error {
+	return vc.client.Do(vc.ctx, vc.client.B().Flushall().Build()).Error()
 }
