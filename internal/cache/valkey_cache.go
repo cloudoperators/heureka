@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+    "github.com/sirupsen/logrus"
 	"github.com/valkey-io/valkey-go"
 )
 
@@ -25,7 +26,12 @@ func NewValkeyCache(ctx context.Context, config ValkeyCacheConfig) *ValkeyCache 
 		InitAddress: []string{config.Url},
 		Password:    config.Password})
 	if err != nil {
-		return &ValkeyCache{}
+		log := logrus.New()
+        log.WithFields(logrus.Fields{
+            "component": "cache",
+            "error":     err,
+        }).Fatal("Failed to initialize Valkey cache")
+		return nil
 	}
 	valkeyCache := &ValkeyCache{
 		CacheBase: *cacheBase,
@@ -35,6 +41,7 @@ func NewValkeyCache(ctx context.Context, config ValkeyCacheConfig) *ValkeyCache 
 	valkeyCache.startMonitorIfNeeded(config.MonitorInterval)
 
 	_ = valkeyCache.invalidateAll(ctx)
+
 	return valkeyCache
 }
 
