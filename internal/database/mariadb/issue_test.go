@@ -396,6 +396,23 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 
 				})
+				It("can filter by issueMatch severity", func() {
+					for _, severity := range entity.AllSeverityValues {
+						issueIds := lo.FilterMap(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
+							return im.IssueId.Int64, im.Rating.String == severity.String()
+						})
+
+						filter := &entity.IssueFilter{IssueMatchSeverity: []*string{lo.ToPtr(severity.String())}}
+
+						entries, err := db.GetIssues(filter, nil)
+
+						Expect(err).To(BeNil())
+						for _, entry := range entries {
+							Expect(lo.Contains(issueIds, entry.Issue.Id)).To(BeTrue(), "Entry should have severity %s", severity.String())
+						}
+					}
+
+				})
 				It("can filter issue PrimaryName using wild card search", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
 
