@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 // This is a helper command intended for use within Heureka.
 // It verifies that all calls to the cache.CallCached function are made correctly.
 // Specifically, it ensures that the function name string passed to CallCached
