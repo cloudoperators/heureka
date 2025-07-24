@@ -275,7 +275,7 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 	})
 })
 
-func queryComponentInstanceFilterAndExpectVal(port string, gqlQueryFilePath string, expectedVal []string, getRespVal func(cifv model.ComponentInstanceFilterValue) []*string) {
+func queryComponentInstanceFilter(port string, gqlQueryFilePath string) model.ComponentInstanceFilterValue {
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
 	b, err := os.ReadFile(gqlQueryFilePath)
@@ -294,7 +294,15 @@ func queryComponentInstanceFilterAndExpectVal(port string, gqlQueryFilePath stri
 		logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 	}
 
-	respVal := getRespVal(respData.ComponentInstanceFilterValues)
+	return respData.ComponentInstanceFilterValues
+}
+
+func queryComponentInstanceFilterAndExpectVal(port string, gqlQueryFilePath string, expectedVal []string, getRespVal func(cifv model.ComponentInstanceFilterValue) []*string) {
+	expectResponseVal(queryComponentInstanceFilter(port, gqlQueryFilePath), expectedVal, getRespVal)
+}
+
+func expectResponseVal[T any](resp T, expectedVal []string, getRespVal func(v T) []*string) {
+	respVal := getRespVal(resp)
 	Expect(len(respVal)).To(Equal(len(expectedVal)))
 
 	for _, name := range respVal {

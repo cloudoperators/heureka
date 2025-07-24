@@ -34,6 +34,8 @@ type Server struct {
 	nonBlockingCtx  *context.Context
 	nonBlockingStop *context.CancelFunc
 	nonBlockingSrv  *http.Server
+
+	app *app.HeurekaApp
 }
 
 func NewServer(cfg util.Config) *Server {
@@ -52,12 +54,13 @@ func NewServer(cfg util.Config) *Server {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
 	}
 
-	application := app.NewHeurekaApp(db)
+	application := app.NewHeurekaApp(db, cfg)
 
 	s := Server{
 		router:     &gin.Engine{},
 		graphQLAPI: graphqlapi.NewGraphQLAPI(application, cfg),
 		config:     cfg,
+		app:        application,
 	}
 
 	if logrus.GetLevel() == logrus.DebugLevel {
@@ -161,7 +164,6 @@ func (s *Server) NonBlockingStart() {
 
 func (s *Server) BlockingStop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	s.nonBlockingSrv.Shutdown(ctx)
 	if err := s.nonBlockingSrv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
 	}
@@ -195,4 +197,8 @@ func (s *Server) NonBlockingStop() {
 	}
 
 	log.Println("Server exiting")
+}
+
+func (s Server) App() *app.HeurekaApp {
+	return s.app
 }

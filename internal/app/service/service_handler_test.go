@@ -13,6 +13,7 @@ import (
 	s "github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -70,7 +71,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 
 		It("shows the total count in the results", func() {
-			serviceHandler = s.NewServiceHandler(db, er)
+			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 			res, err := serviceHandler.ListServices(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -103,7 +104,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			}
 			db.On("GetServices", filter, []entity.Order{}).Return(services, nil)
 			db.On("GetAllServiceCursors", filter, []entity.Order{}).Return(cursors, nil)
-			serviceHandler = s.NewServiceHandler(db, er)
+			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 			res, err := serviceHandler.ListServices(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -126,7 +127,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			})
 
 			It("should return an empty result", func() {
-				serviceHandler = service.NewServiceHandler(db, er)
+				serviceHandler = service.NewServiceHandler(db, er, cache.NewNoCache())
 				res, err := serviceHandler.ListServices(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
@@ -142,7 +143,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				db.On("GetServicesWithAggregations", filter, []entity.Order{}).Return(services, nil)
 			})
 			It("should return the expected services in the result", func() {
-				serviceHandler = service.NewServiceHandler(db, er)
+				serviceHandler = service.NewServiceHandler(db, er, cache.NewNoCache())
 				res, err := serviceHandler.ListServices(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(10), "return 10 results")
@@ -154,7 +155,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			})
 
 			It("should return the expected services in the result", func() {
-				serviceHandler = service.NewServiceHandler(db, er)
+				serviceHandler = service.NewServiceHandler(db, er, cache.NewNoCache())
 				_, err := serviceHandler.ListServices(filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
@@ -174,7 +175,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			})
 			It("should return an empty result", func() {
 
-				serviceHandler = service.NewServiceHandler(db, er)
+				serviceHandler = service.NewServiceHandler(db, er, cache.NewNoCache())
 				res, err := serviceHandler.ListServices(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
@@ -190,7 +191,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				db.On("GetServices", filter, []entity.Order{}).Return(services, nil)
 			})
 			It("should return the expected services in the result", func() {
-				serviceHandler = service.NewServiceHandler(db, er)
+				serviceHandler = service.NewServiceHandler(db, er, cache.NewNoCache())
 				res, err := serviceHandler.ListServices(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(15), "return 15 results")
@@ -203,7 +204,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			})
 
 			It("should return the expected services in the result", func() {
-				serviceHandler = service.NewServiceHandler(db, er)
+				serviceHandler = service.NewServiceHandler(db, er, cache.NewNoCache())
 				_, err := serviceHandler.ListServices(filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
@@ -239,7 +240,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		db.On("CreateService", &service).Return(&service, nil)
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 
-		serviceHandler = s.NewServiceHandler(db, er)
+		serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 		newService, err := serviceHandler.CreateService(&service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newService.Id).NotTo(BeEquivalentTo(0))
@@ -347,7 +348,7 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 	It("updates service", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateService", service.Service).Return(nil)
-		serviceHandler = s.NewServiceHandler(db, er)
+		serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 		service.CCRN = "SecretService"
 		filter.Id = []*int64{&service.Id}
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
@@ -383,7 +384,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 	It("deletes service", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteService", id, mock.Anything).Return(nil)
-		serviceHandler = s.NewServiceHandler(db, er)
+		serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 		err := serviceHandler.DeleteService(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -423,7 +424,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 	It("adds owner to service", func() {
 		db.On("AddOwnerToService", service.Id, owner.Id).Return(nil)
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
-		serviceHandler = s.NewServiceHandler(db, er)
+		serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 		service, err := serviceHandler.AddOwnerToService(service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
@@ -432,7 +433,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 	It("removes owner from service", func() {
 		db.On("RemoveOwnerFromService", service.Id, owner.Id).Return(nil)
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
-		serviceHandler = s.NewServiceHandler(db, er)
+		serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 		service, err := serviceHandler.RemoveOwnerFromService(service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
@@ -468,7 +469,7 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 	It("adds issueRepository to service", func() {
 		db.On("AddIssueRepositoryToService", service.Id, issueRepository.Id, priority).Return(nil)
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
-		serviceHandler = s.NewServiceHandler(db, er)
+		serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 		service, err := serviceHandler.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
@@ -477,7 +478,7 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 	It("removes issueRepository from service", func() {
 		db.On("RemoveIssueRepositoryFromService", service.Id, issueRepository.Id).Return(nil)
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
-		serviceHandler = s.NewServiceHandler(db, er)
+		serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 		service, err := serviceHandler.RemoveIssueRepositoryFromService(service.Id, issueRepository.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
@@ -507,7 +508,7 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 		})
 
 		It("it return the results", func() {
-			serviceHandler = s.NewServiceHandler(db, er)
+			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 			res, err := serviceHandler.ListServiceCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
@@ -522,7 +523,7 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 			db.On("GetServiceCcrns", filter).Return([]string{name}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
-			serviceHandler = s.NewServiceHandler(db, er)
+			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
 			res, err := serviceHandler.ListServiceCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(name), "should only consist of serviceCcrn")

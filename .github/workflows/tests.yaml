@@ -15,6 +15,10 @@ jobs:
           MARIADB_DATABASE: heureka
           MARIADB_ROOT_PASSWORD: my_password
         options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=3
+      valkey:
+        image: valkey/valkey:7.2
+        ports:
+          - "6379:6379"
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
