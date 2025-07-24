@@ -37,8 +37,5 @@ func (nc NoCache) GetStat() Stat {
 	return Stat{}
 }
 
-func (nc NoCache) Stop() {
-}
-
 func (nc NoCache) LaunchRefresh(func()) {
 }

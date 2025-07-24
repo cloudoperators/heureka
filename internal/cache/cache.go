@@ -18,7 +18,6 @@ type Cache interface {
 	IncHit()
 	IncMiss()
 	GetStat() Stat
-	Stop()
 	LaunchRefresh(fn func())
 }
 

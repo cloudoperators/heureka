@@ -149,8 +149,6 @@ func (h *HeurekaApp) SubscribeHandlers() {
 }
 
 func (h *HeurekaApp) Shutdown() error {
-	h.cache.Stop()
-
 	h.shutdownFunc()
 	h.wg.Wait()
 

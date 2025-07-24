@@ -72,8 +72,6 @@ func (cb *CacheBase) startMonitorIfNeeded(interval time.Duration) {
 			defer cb.wg.Done()
 			l.Info("Monitoring started with interval: ", interval)
 			ticker := time.NewTicker(interval)
-			defer ticker.Stop()
-
 			for {
 				select {
 				case <-cb.ctx.Done():
@@ -85,11 +83,6 @@ func (cb *CacheBase) startMonitorIfNeeded(interval time.Duration) {
 			}
 		}()
 	})
-}
-
-func (cb *CacheBase) Stop() {
-	// cb.monitorMu.Lock()
-	// defer cb.monitorMu.Unlock()
 }
 
 func (cb *CacheBase) IncHit() {
