@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -31,14 +32,29 @@ type Server struct {
 	graphQLAPI *graphqlapi.GraphQLAPI
 	config     util.Config
 
-	nonBlockingCtx  *context.Context
-	nonBlockingStop *context.CancelFunc
-	nonBlockingSrv  *http.Server
+	// Use this context if you want your software
+	// unit to be notified about heureka shutdown
+	shutdownCtx context.Context
+
+	// Heureka cancel function used by Heureka shutdown
+	shutdownFunc context.CancelFunc
+
+	// Use this workgroup if you want Heureka to
+	// block shutdown until important job is done
+	wg *sync.WaitGroup
+
+	nonBlockingSrv *http.Server
 
 	app *app.HeurekaApp
 }
 
 func NewServer(cfg util.Config) *Server {
+	// kill (no param) default send syscanll.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	wg := sync.WaitGroup{}
+
 	db, err := mariadb.NewSqlDatabase(cfg)
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
@@ -54,13 +70,16 @@ func NewServer(cfg util.Config) *Server {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
 	}
 
-	application := app.NewHeurekaApp(db, cfg)
+	application := app.NewHeurekaApp(ctx, &wg, db, cfg)
 
 	s := Server{
-		router:     &gin.Engine{},
-		graphQLAPI: graphqlapi.NewGraphQLAPI(application, cfg),
-		config:     cfg,
-		app:        application,
+		router:       &gin.Engine{},
+		graphQLAPI:   graphqlapi.NewGraphQLAPI(application, cfg),
+		config:       cfg,
+		app:          application,
+		shutdownCtx:  ctx,
+		shutdownFunc: cancel,
+		wg:           &wg,
 	}
 
 	if logrus.GetLevel() == logrus.DebugLevel {
@@ -146,14 +165,6 @@ func (s *Server) Start() {
 }
 
 func (s *Server) NonBlockingStart() {
-
-	// kill (no param) default send syscanll.SIGTERM
-	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-
-	s.nonBlockingCtx = &ctx
-	s.nonBlockingStop = &stop
 	s.nonBlockingSrv = &http.Server{
 		Addr:    fmt.Sprintf(":%s", s.config.Port),
 		Handler: s.router.Handler(),
@@ -163,40 +174,28 @@ func (s *Server) NonBlockingStart() {
 }
 
 func (s *Server) BlockingStop() {
+	s.shutdownFunc()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
 	if err := s.nonBlockingSrv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
 	}
-	defer cancel()
 	if err := s.graphQLAPI.App.Shutdown(); err != nil {
 		log.Fatalf("Error while shuting down Heureka App: %s", err)
 	}
-}
-
-func (s *Server) NonBlockingStop() {
-	ctx := *s.nonBlockingCtx
-	stop := *s.nonBlockingStop
-	stop()
-	log.Println("shutting down gracefully, press Ctrl+C again to force")
-
-	// The context is used to inform the server it has 5 seconds to finish
-	// the request it is currently handling
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	if err := s.nonBlockingSrv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown: ", err)
-	}
+	done := make(chan struct{})
+	go func() {
+		s.wg.Wait()
+		close(done)
+	}()
 
 	select {
+	case <-done:
+		//log.Println("All goroutines exited cleanly.")
 	case <-ctx.Done():
-		log.Println("timeout of 2 seconds.")
+		log.Fatalf("Timeout: some goroutines did not exit in time.")
 	}
-
-	if err := s.graphQLAPI.App.Shutdown(); err != nil {
-		log.Fatalf("Error while shuting down Heureka App: %s", err)
-	}
-
-	log.Println("Server exiting")
 }
 
 func (s Server) App() *app.HeurekaApp {
