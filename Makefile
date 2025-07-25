@@ -94,7 +94,7 @@ fmt:
 	go fmt ./...
 
 DOCKER_COMPOSE := docker-compose -f docker-compose.yaml
-DOCKER_COMPOSE_SERVICES := heureka-app heureka-db
+DOCKER_COMPOSE_SERVICES := heureka-app heureka-db valkey
 compose-prepare:
 	sed 's/^SEED_MODE=false/SEED_MODE=true/g' .test.env > .env
 
@@ -114,3 +114,6 @@ install-migrate:
 
 create-migration:
 	@(test -v MIGRATION_NAME && migrate create -ext sql -dir internal/database/mariadb/migrations ${MIGRATION_NAME}) || echo MIGRATION_NAME not specified >&2
+
+check:
+	go generate ./internal/cache

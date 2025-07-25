@@ -28,4 +28,5 @@ input SupportGroupFilter {
     supportGroupCcrn: [String],
     userIds: [String],
     state: [StateFilter!],
+    issueIds: [String],
 }

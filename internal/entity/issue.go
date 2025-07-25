@@ -66,8 +66,10 @@ type IssueFilter struct {
 	ServiceId                       []*int64          `json:"service_id"`
 	Search                          []*string         `json:"search"`
 	IssueMatchStatus                []*string         `json:"issue_match_status"`
+	IssueMatchSeverity              []*string         `json:"issue_match_severity"`
 	IssueMatchDiscoveryDate         *TimeFilter       `json:"issue_match_discovery_date"`
 	IssueMatchTargetRemediationDate *TimeFilter       `json:"issue_match_target_remediation_date"`
+	Unique                          bool              `json:"unique"`
 	State                           []StateFilterType `json:"state"`
 }
 

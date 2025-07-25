@@ -64,6 +64,7 @@ var (
 
 	VulnerabilityFilterSupportGroup string = "supportGroup"
 	VulnerabilityFilterSeverity     string = "severity"
+	VulnerabilityFilterService      string = "service"
 )
 
 type ResolverError struct {

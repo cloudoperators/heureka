@@ -2004,3 +2004,27 @@ func (s *DatabaseSeeder) SeedScannerRunInstances(uuids ...string) error {
 	}
 	return nil
 }
+
+func (s *DatabaseSeeder) Clear() error {
+	rows, err := s.db.Query(`
+		SELECT table_name
+		FROM information_schema.tables
+		WHERE table_schema = DATABASE()
+	`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var table string
+	for rows.Next() {
+		if err := rows.Scan(&table); err != nil {
+			return err
+		}
+		_, err := s.db.Exec(fmt.Sprintf("SET FOREIGN_KEY_CHECKS = 0;TRUNCATE TABLE `%s`; SET FOREIGN_KEY_CHECKS = 1", table))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

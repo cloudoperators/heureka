@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"database/sql"
 	"fmt"
 	"sort"
 
@@ -395,6 +396,23 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 
 				})
+				It("can filter by issueMatch severity", func() {
+					for _, severity := range entity.AllSeverityValues {
+						issueIds := lo.FilterMap(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
+							return im.IssueId.Int64, im.Rating.String == severity.String()
+						})
+
+						filter := &entity.IssueFilter{IssueMatchSeverity: []*string{lo.ToPtr(severity.String())}}
+
+						entries, err := db.GetIssues(filter, nil)
+
+						Expect(err).To(BeNil())
+						for _, entry := range entries {
+							Expect(lo.Contains(issueIds, entry.Issue.Id)).To(BeTrue(), "Entry should have severity %s", severity.String())
+						}
+					}
+
+				})
 				It("can filter issue PrimaryName using wild card search", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
 
@@ -757,6 +775,24 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					testIssueSeverityCount(filter, severityCounts[strId])
 				}
+			})
+			It("returns the correct count for unique filter", Label("ABCDEF"), func() {
+				severityCounts, err := test.LoadIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_severity.json"))
+				Expect(err).To(BeNil())
+				// Create a new IM that attaches an existing issue to a different component instance
+				im := test.NewFakeIssueMatch()
+				im.ComponentInstanceId = sql.NullInt64{Int64: 1, Valid: true}
+				im.IssueId = sql.NullInt64{Int64: 3, Valid: true}
+				im.UserId = sql.NullInt64{Int64: systemUserId, Valid: true}
+				_, err = seeder.InsertFakeIssueMatch(im)
+				Expect(err).To(BeNil())
+
+				filter := &entity.IssueFilter{
+					AllServices: true,
+					Unique:      true,
+				}
+
+				testIssueSeverityCount(filter, severityCounts)
 			})
 		})
 	})

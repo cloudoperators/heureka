@@ -26,6 +26,7 @@ func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, wit
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
+	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchSeverity)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
@@ -54,6 +55,7 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id= ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "I.issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchStatus, "IM.issuematch_status = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueMatchSeverity, "IM.issuematch_rating = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CVI.componentversionissue_component_version_id = ?", OP_OR))
@@ -83,7 +85,8 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
-	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 {
+	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
+		len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
@@ -451,7 +454,10 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	`
 
 	var countColumn string
-	if filter.AllServices {
+	if filter.AllServices && filter.Unique {
+		// Conunt unique issues. AllServices filter is set, so we count issues that are matched to a service
+		countColumn = "COUNT(distinct IV.issuevariant_issue_id)"
+	} else if filter.AllServices {
 		// Count issues that appear in multiple services and in multiple component versions per service
 		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id))"
 	} else if len(filter.SupportGroupCCRN) > 0 {

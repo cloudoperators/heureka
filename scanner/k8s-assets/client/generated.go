@@ -702,6 +702,7 @@ type SupportGroupFilter struct {
 	SupportGroupCcrn []string      `json:"supportGroupCcrn"`
 	UserIds          []string      `json:"userIds"`
 	State            []StateFilter `json:"state"`
+	IssueIds         []string      `json:"issueIds"`
 }
 
 // GetSupportGroupCcrn returns SupportGroupFilter.SupportGroupCcrn, and is useful for accessing the field via an interface.
@@ -712,6 +713,9 @@ func (v *SupportGroupFilter) GetUserIds() []string { return v.UserIds }
 
 // GetState returns SupportGroupFilter.State, and is useful for accessing the field via an interface.
 func (v *SupportGroupFilter) GetState() []StateFilter { return v.State }
+
+// GetIssueIds returns SupportGroupFilter.IssueIds, and is useful for accessing the field via an interface.
+func (v *SupportGroupFilter) GetIssueIds() []string { return v.IssueIds }
 
 type SupportGroupInput struct {
 	Ccrn string `json:"ccrn"`

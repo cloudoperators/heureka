@@ -49,3 +49,15 @@ services:
     ports:
       - "80:80"
 
+  valkey:
+    image: valkey/valkey:7.2
+    container_name: heureka-valkey
+    ports:
+      - "${VALKEY_PORT:-6379}:6379"
+    command: ["valkey-server", "--appendonly", "yes"]
+    volumes:
+      - valkey-data:/data
+    restart: always
+
+volumes:
+  valkey-data:
