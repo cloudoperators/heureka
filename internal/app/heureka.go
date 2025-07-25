@@ -68,11 +68,11 @@ func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 	rh := issue_repository.NewIssueRepositoryHandler(db, er)
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
 	sh := severity.NewSeverityHandler(db, er, ivh)
-	er.Run(context.Background())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	wg := sync.WaitGroup{}
 	cache := NewAppCache(ctx, &wg, cfg)
+	er.Run(ctx)
 
 	heureka := &HeurekaApp{
 		ActivityHandler:          activity.NewActivityHandler(db, er),
