@@ -51,27 +51,17 @@ type HeurekaApp struct {
 
 	cache cache.Cache
 
-	// Use this context if you want your software
-	// unit to be notified about heureka shutdown
-	shutdownCtx context.Context
-
-	// Heureka cancel function used by Heureka shutdown
-	shutdownFunc context.CancelFunc
-
-	// Use this workgroup if you want Heureka to
-	// block shutdown until important job is done
-	wg *sync.WaitGroup
+	ctx context.Context
+	wg  *sync.WaitGroup
 }
 
-func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
+func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database, cfg util.Config) *HeurekaApp {
 	er := event.NewEventRegistry(db)
 	rh := issue_repository.NewIssueRepositoryHandler(db, er)
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
 	sh := severity.NewSeverityHandler(db, er, ivh)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	wg := sync.WaitGroup{}
-	cache := NewAppCache(ctx, &wg, cfg)
+	cache := NewAppCache(ctx, wg, cfg)
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
@@ -93,9 +83,8 @@ func NewHeurekaApp(db database.Database, cfg util.Config) *HeurekaApp {
 		eventRegistry:            er,
 		database:                 db,
 		cache:                    cache,
-		shutdownCtx:              ctx,
-		shutdownFunc:             cancel,
-		wg:                       &wg,
+		ctx:                      ctx,
+		wg:                       wg,
 	}
 	heureka.SubscribeHandlers()
 	return heureka
@@ -149,9 +138,6 @@ func (h *HeurekaApp) SubscribeHandlers() {
 }
 
 func (h *HeurekaApp) Shutdown() error {
-	h.shutdownFunc()
-	h.wg.Wait()
-
 	return h.database.CloseConnection()
 }
 
