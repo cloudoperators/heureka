@@ -22,7 +22,7 @@ require (
 	github.com/machinebox/graphql v0.2.2
 	github.com/olekukonko/tablewriter v1.0.8
 	github.com/onsi/ginkgo/v2 v2.23.4
-	github.com/onsi/gomega v1.37.0
+	github.com/onsi/gomega v1.38.0
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.22.0
@@ -31,7 +31,6 @@ require (
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.10.0
 	github.com/valkey-io/valkey-go v1.0.62
-	github.com/vektah/gqlparser/v2 v2.5.30
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/time v0.11.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
@@ -107,6 +106,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/urfave/cli/v2 v2.27.7 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.30 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0 // indirect
