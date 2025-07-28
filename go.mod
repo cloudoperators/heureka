@@ -32,7 +32,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/valkey-io/valkey-go v1.0.62
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	golang.org/x/time v0.11.0
+	golang.org/x/time v0.12.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 )
 
