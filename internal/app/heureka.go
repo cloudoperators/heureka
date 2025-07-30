@@ -102,6 +102,9 @@ func NewAppCache(ctx context.Context, wg *sync.WaitGroup, cfg util.Config) cache
 		if cfg.CacheValkeyUrl != "" {
 			cacheConfig = cache.ValkeyCacheConfig{
 				Url:         cfg.CacheValkeyUrl,
+				Username:    cfg.CacheValkeyUsername,
+				Password:    cfg.CacheValkeyPassword,
+				ClientName:  cfg.CacheValkeyClientName,
 				CacheConfig: cacheBaseConfig,
 			}
 		} else {
