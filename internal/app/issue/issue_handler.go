@@ -1,27 +1,31 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 package issue
 
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/sirupsen/logrus"
 )
 
 type issueHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	logger        *logrus.Logger
 }
 
 func NewIssueHandler(db database.Database, er event.EventRegistry) IssueHandler {
 	return &issueHandler{
 		database:      db,
 		eventRegistry: er,
+		logger:        logrus.New(),
 	}
 }
 
@@ -37,26 +41,79 @@ func NewIssueHandlerError(msg string) *IssueHandlerError {
 	return &IssueHandlerError{msg: msg}
 }
 
-func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": GetIssueEventName,
-		"id":    id,
-	})
+// logError logs errors using our internal error package
+func (is *issueHandler) logError(err error, fields logrus.Fields) {
+	var appErr *appErrors.Error
+	if !errors.As(err, &appErr) {
+		is.logger.WithError(err).WithFields(fields).Error("Unknown error")
+		return
+	}
 
+	errorFields := logrus.Fields{
+		"error_code": string(appErr.Code),
+	}
+
+	if appErr.Entity != "" {
+		errorFields["entity"] = appErr.Entity
+	}
+	if appErr.ID != "" {
+		errorFields["entity_id"] = appErr.ID
+	}
+	if appErr.Op != "" {
+		errorFields["operation"] = appErr.Op
+	}
+
+	// Add any additional fields from the error
+	for k, v := range appErr.Fields {
+		errorFields[k] = v
+	}
+
+	// Add any passed-in fields
+	for k, v := range fields {
+		errorFields[k] = v
+	}
+
+	is.logger.WithFields(errorFields).WithError(appErr.Err).Error(appErr.Error())
+}
+
+func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
+	op := appErrors.Op("issueHandler.GetIssue")
+
+	// Input validation
+	if id <= 0 {
+		err := appErrors.E(op, "Issue", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
+		is.logError(err, logrus.Fields{"id": id})
+		return nil, err
+	}
+
+	// Use ListIssues to retrieve the issue
 	lo := entity.IssueListOptions{
 		ListOptions: *entity.NewListOptions(),
 	}
 	issues, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&id}}, &lo)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while retrieving issue.")
+		// Wrap the error from ListIssues with operation context
+		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.Internal, err)
+		is.logError(wrappedErr, logrus.Fields{"id": id})
+		return nil, wrappedErr
 	}
 
-	if len(issues.Elements) != 1 {
-		return nil, NewIssueHandlerError(fmt.Sprintf("Issue %d not found.", id))
+	// Check if exactly one issue was found
+	if len(issues.Elements) == 0 {
+		err := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.NotFound)
+		is.logError(err, logrus.Fields{"id": id})
+		return nil, err
 	}
 
+	if len(issues.Elements) > 1 {
+		// This shouldn't happen with a unique ID, indicates data integrity issue
+		err := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.Internal,
+			fmt.Sprintf("found %d issues with ID %d, expected 1", len(issues.Elements), id))
+		is.logError(err, logrus.Fields{"id": id, "found_count": len(issues.Elements)})
+		return nil, err
+	}
+
+	// Success - publish event and return result
 	issue := issues.Elements[0].Issue
 	is.eventRegistry.PushEvent(&GetIssueEvent{IssueID: id, Issue: issue})
 	return issue, nil

@@ -11,6 +11,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -31,6 +32,103 @@ var er event.EventRegistry
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
 	er = event.NewEventRegistry(db)
+})
+
+var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors"), func() {
+	var (
+		db           *mocks.MockDatabase
+		issueHandler issue.IssueHandler
+		issueEntity  entity.Issue
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		issueHandler = issue.NewIssueHandler(db, er)
+		issueEntity = test.NewFakeIssueEntity()
+	})
+
+	Context("with valid input", func() {
+		It("should return the issue when it exists", func() {
+			// Setup mock to return one issue
+			expectedResult := []entity.IssueResult{{
+				Issue: &issueEntity,
+			}}
+			db.On("GetIssues", mock.MatchedBy(func(filter *entity.IssueFilter) bool {
+				return len(filter.Id) == 1 && *filter.Id[0] == issueEntity.Id
+			}), []entity.Order{}).Return(expectedResult, nil)
+
+			result, err := issueHandler.GetIssue(issueEntity.Id)
+
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(result).ToNot(BeNil(), "issue should be returned")
+			Expect(result.Id).To(Equal(issueEntity.Id), "correct issue ID")
+			Expect(result.PrimaryName).To(Equal(issueEntity.PrimaryName), "correct primary name")
+		})
+	})
+
+	Context("with invalid input", func() {
+		It("should return InvalidArgument error for negative ID", func() {
+			result, err := issueHandler.GetIssue(-1)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			// Verify it's our structured error with correct code
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument), "should be InvalidArgument error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(appErr.Op).To(Equal("issueHandler.GetIssue"), "should include operation")
+		})
+
+		It("should return InvalidArgument error for zero ID", func() {
+			result, err := issueHandler.GetIssue(0)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument), "should be InvalidArgument error")
+		})
+	})
+
+	Context("when issue does not exist", func() {
+		It("should return NotFound error", func() {
+			// Setup mock to return empty result (no issues found)
+			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+
+			result, err := issueHandler.GetIssue(999)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.NotFound), "should be NotFound error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(appErr.ID).To(Equal("999"), "should include issue ID")
+		})
+	})
+
+	Context("when database error occurs", func() {
+		It("should return Internal error wrapping the database error", func() {
+			// Setup mock to return database error
+			dbError := errors.New("database connection failed")
+			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, dbError)
+
+			result, err := issueHandler.GetIssue(123)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(appErr.ID).To(Equal("123"), "should include issue ID")
+		})
+	})
 })
 
 func getIssueFilter() *entity.IssueFilter {
