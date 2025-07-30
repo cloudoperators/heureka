@@ -3,7 +3,10 @@ VERSION  ?= $(shell git log -1 --pretty=format:"%H")
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
-.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db fmt compose-prepare compose-up compose-down compose-restart compose-build
+SHELL=/bin/bash
+MIGRATIONS_DIR=internal/database/mariadb/migrations/
+
+.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db fmt compose-prepare compose-up compose-down compose-restart compose-build check-call-cached check-migration-files
 
 # Source the .env file to use the env vars with make
 -include .env
@@ -115,5 +118,8 @@ install-migrate:
 create-migration:
 	@(test -v MIGRATION_NAME && migrate create -ext sql -dir internal/database/mariadb/migrations ${MIGRATION_NAME}) || echo MIGRATION_NAME not specified >&2
 
-check:
+check-call-cached:
 	go generate ./internal/cache
+
+check-migration-files:
+	@comm -12 <(git diff --name-only origin/main...HEAD | grep '^$(MIGRATIONS_DIR)' | sort) <(git ls-tree -r --name-only origin/main | grep '^$(MIGRATIONS_DIR)' | sort) | grep -q . && { echo "Forbidden change detected!"; exit 1; } || echo "No forbidden changes."

@@ -1,0 +1,13 @@
+name: "Check migration files not modified"
+on: [pull_request]
+
+jobs:
+  check-migration-files:
+    runs-on: [ default ]
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Check migration files not modified
+        run: make check-migration-files
