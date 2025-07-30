@@ -19,16 +19,20 @@ type ValkeyCache struct {
 
 type ValkeyCacheConfig struct {
 	CacheConfig
-	Url      string
-	Password string
-	Db       int
+	Url        string
+	Username   string
+	Password   string
+	ClientName string
+	Db         int
 }
 
 func NewValkeyCache(ctx context.Context, wg *sync.WaitGroup, config ValkeyCacheConfig) *ValkeyCache {
 	cacheBase := NewCacheBase(ctx, wg, config.CacheConfig)
 	valkeyClient, err := valkey.NewClient(valkey.ClientOption{
 		InitAddress: []string{config.Url},
-		Password:    config.Password})
+		Username:    config.Username,
+		Password:    config.Password,
+		ClientName:  config.ClientName})
 	if err != nil {
 		log := logrus.New()
 		log.WithFields(logrus.Fields{
