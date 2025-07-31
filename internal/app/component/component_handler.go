@@ -5,25 +5,32 @@ package component
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/entity"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/cloudoperators/heureka/internal/entity"
 )
+
+var CacheTtlGetComponentCcrns = 12 * time.Hour
+var CacheTtlGetAllComponentIds = 12 * time.Hour
+var CacheTtlCountComponents = 12 * time.Hour
 
 type componentHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	cache         cache.Cache
 }
 
-func NewComponentHandler(db database.Database, er event.EventRegistry) ComponentHandler {
+func NewComponentHandler(db database.Database, er event.EventRegistry, cache cache.Cache) ComponentHandler {
 	return &componentHandler{
 		database:      db,
 		eventRegistry: er,
+		cache:         cache,
 	}
 }
 
@@ -77,7 +84,13 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := cs.database.GetAllComponentIds(filter)
+			ids, err := cache.CallCached[[]int64](
+				cs.cache,
+				CacheTtlGetAllComponentIds,
+				"GetAllComponentIds",
+				cs.database.GetAllComponentIds,
+				filter,
+			)
 			if err != nil {
 				l.Error(err)
 				return nil, NewUserHandlerError("Error while getting all Ids")
@@ -86,7 +99,13 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 			count = int64(len(ids))
 		}
 	} else if options.ShowTotalCount {
-		count, err = cs.database.CountComponents(filter)
+		count, err = cache.CallCached[int64](
+			cs.cache,
+			CacheTtlCountComponents,
+			"CountComponents",
+			cs.database.CountComponents,
+			filter,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewUserHandlerError("Error while total count of Components")
@@ -213,7 +232,13 @@ func (cs *componentHandler) ListComponentCcrns(filter *entity.ComponentFilter, o
 		"filter": filter,
 	})
 
-	componentCcrns, err := cs.database.GetComponentCcrns(filter)
+	componentCcrns, err := cache.CallCached[[]string](
+		cs.cache,
+		CacheTtlGetComponentCcrns,
+		"GetComponentCcrns",
+		cs.database.GetComponentCcrns,
+		filter,
+	)
 
 	if err != nil {
 		l.Error(err)

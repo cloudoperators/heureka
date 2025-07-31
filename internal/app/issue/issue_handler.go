@@ -1,27 +1,38 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
+
 package issue
 
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
+var CacheTtlGetIssuesWithAggregations = 12 * time.Hour
+var CacheTtlGetIssues = 12 * time.Hour
+var CacheTtlGetAllIssueCursors = 12 * time.Hour
+var CacheTtlCountIssueTypes = 12 * time.Hour
+var CacheTtlGetIssueNames = 12 * time.Hour
+
 type issueHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	cache         cache.Cache
 }
 
-func NewIssueHandler(db database.Database, er event.EventRegistry) IssueHandler {
+func NewIssueHandler(db database.Database, er event.EventRegistry, cache cache.Cache) IssueHandler {
 	return &issueHandler{
 		database:      db,
 		eventRegistry: er,
+		cache:         cache,
 	}
 }
 
@@ -78,13 +89,27 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	if options.IncludeAggregations {
-		res, err = is.database.GetIssuesWithAggregations(filter, options.Order)
+		res, err = cache.CallCached[[]entity.IssueResult](
+			is.cache,
+			CacheTtlGetIssuesWithAggregations,
+			"GetIssuesWithAggregations",
+			is.database.GetIssuesWithAggregations,
+			filter,
+			options.Order,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewIssueHandlerError("Internal error while retrieving list results witis aggregations")
 		}
 	} else {
-		res, err = is.database.GetIssues(filter, options.Order)
+		res, err = cache.CallCached[[]entity.IssueResult](
+			is.cache,
+			CacheTtlGetIssues,
+			"GetIssues",
+			is.database.GetIssues,
+			filter,
+			options.Order,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewIssueHandlerError("Internal error while retrieving list results.")
@@ -95,7 +120,14 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			cursors, err := is.database.GetAllIssueCursors(filter, options.Order)
+			cursors, err := cache.CallCached[[]string](
+				is.cache,
+				CacheTtlGetAllIssueCursors,
+				"GetAllIssueCursors",
+				is.database.GetAllIssueCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
 				l.Error(err)
 				return nil, NewIssueHandlerError("Error while getting all cursors")
@@ -105,7 +137,13 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 		}
 	}
 	if options.ShowPageInfo || options.ShowTotalCount || options.ShowIssueTypeCounts {
-		counts, err := is.database.CountIssueTypes(filter)
+		counts, err := cache.CallCached[*entity.IssueTypeCounts](
+			is.cache,
+			CacheTtlCountIssueTypes,
+			"CountIssueTypes",
+			is.database.CountIssueTypes,
+			filter,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewIssueHandlerError("Error while count of issues")
@@ -284,7 +322,13 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 		"filter": filter,
 	})
 
-	issueNames, err := is.database.GetIssueNames(filter)
+	issueNames, err := cache.CallCached[[]string](
+		is.cache,
+		CacheTtlGetIssueNames,
+		"GetIssueNames",
+		is.database.GetIssueNames,
+		filter,
+	)
 
 	if err != nil {
 		l.Error(err)
