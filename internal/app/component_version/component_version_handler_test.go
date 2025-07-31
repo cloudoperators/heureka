@@ -9,6 +9,7 @@ import (
 
 	cv "github.com/cloudoperators/heureka/internal/app/component_version"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -63,7 +64,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		})
 
 		It("shows the total count in the results", func() {
-			cvHandler = cv.NewComponentVersionHandler(db, er)
+			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
 			res, err := cvHandler.ListComponentVersions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -96,7 +97,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 			db.On("GetComponentVersions", filter, []entity.Order{}).Return(componentVersions, nil)
 			db.On("GetAllComponentVersionCursors", filter, []entity.Order{}).Return(cursors, nil)
-			cvHandler = cv.NewComponentVersionHandler(db, er)
+			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
 			res, err := cvHandler.ListComponentVersions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -128,7 +129,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 
 			// Execute the handler
-			cvHandler = cv.NewComponentVersionHandler(db, er)
+			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
 			result, err := cvHandler.ListComponentVersions(tagFilter, options)
 
 			// Verify results
@@ -161,7 +162,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 
 			// Execute the handler
-			cvHandler = cv.NewComponentVersionHandler(db, er)
+			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
 			result, err := cvHandler.ListComponentVersions(repoFilter, options)
 
 			// Verify results
@@ -194,7 +195,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 
 			// Execute the handler
-			cvHandler = cv.NewComponentVersionHandler(db, er)
+			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
 			result, err := cvHandler.ListComponentVersions(orgFilter, options)
 
 			// Verify results
@@ -224,7 +225,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 	It("creates componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
-		componenVersionService = cv.NewComponentVersionHandler(db, er)
+		componenVersionService = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
 		newComponentVersion, err := componenVersionService.CreateComponentVersion(&componentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentVersion.Id).NotTo(BeEquivalentTo(0))
@@ -260,7 +261,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 	It("updates componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentVersion", componentVersion.ComponentVersion).Return(nil)
-		componenVersionService = cv.NewComponentVersionHandler(db, er)
+		componenVersionService = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
 		componentVersion.Version = "7.3.3.1"
 		componentVersion.Tag = "updated-tag"
 		filter.Id = []*int64{&componentVersion.Id}
@@ -299,7 +300,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 	It("deletes componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
-		componenVersionService = cv.NewComponentVersionHandler(db, er)
+		componenVersionService = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
 		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
 		err := componenVersionService.DeleteComponentVersion(id)
 		Expect(err).To(BeNil(), "no error should be thrown")

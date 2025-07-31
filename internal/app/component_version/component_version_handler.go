@@ -5,23 +5,31 @@ package component_version
 
 import (
 	"errors"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
+var CacheTtlGetComponentVersions = 12 * time.Hour
+var CacheTtlGetAllComponentVersionCursors = 12 * time.Hour
+var CacheTtlCountComponentVersions = 12 * time.Hour
+
 type componentVersionHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	cache         cache.Cache
 }
 
-func NewComponentVersionHandler(database database.Database, eventRegistry event.EventRegistry) ComponentVersionHandler {
+func NewComponentVersionHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache) ComponentVersionHandler {
 	return &componentVersionHandler{
 		database:      database,
 		eventRegistry: eventRegistry,
+		cache:         cache,
 	}
 }
 
@@ -48,7 +56,14 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 		"filter": filter,
 	})
 
-	res, err := cv.database.GetComponentVersions(filter, options.Order)
+	res, err := cache.CallCached[[]entity.ComponentVersionResult](
+		cv.cache,
+		CacheTtlGetComponentVersions,
+		"GetComponentVersions",
+		cv.database.GetComponentVersions,
+		filter,
+		options.Order,
+	)
 
 	if err != nil {
 		l.Error(err)
@@ -57,7 +72,14 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			cursors, err := cv.database.GetAllComponentVersionCursors(filter, options.Order)
+			cursors, err := cache.CallCached[[]string](
+				cv.cache,
+				CacheTtlGetAllComponentVersionCursors,
+				"GetAllComponentVersionCursors",
+				cv.database.GetAllComponentVersionCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
 				l.Error(err)
 				return nil, NewComponentVersionHandlerError("Error while getting all cursors")
@@ -66,7 +88,13 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
-		count, err = cv.database.CountComponentVersions(filter)
+		count, err = cache.CallCached[int64](
+			cv.cache,
+			CacheTtlCountComponentVersions,
+			"CountComponentVersions",
+			cv.database.CountComponentVersions,
+			filter,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewComponentVersionHandlerError("Error while total count of ComponentVersions")

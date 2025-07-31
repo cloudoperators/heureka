@@ -9,14 +9,13 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/database"
-
 	"github.com/cloudoperators/heureka/internal/cache"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetServiceCcrns = 24 * time.Hour
+var CacheTtlGetServiceCcrns = 12 * time.Hour
 
 type serviceHandler struct {
 	database      database.Database

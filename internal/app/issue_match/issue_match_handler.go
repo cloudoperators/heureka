@@ -5,27 +5,34 @@ package issue_match
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/severity"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
+
+var CacheTtlGetIssueMatches = 12 * time.Hour
+var CacheTtlGetAllIssueMatchCursors = 12 * time.Hour
+var CacheTtlCountIssueMatches = 12 * time.Hour
 
 type issueMatchHandler struct {
 	database        database.Database
 	eventRegistry   event.EventRegistry
 	severityHandler severity.SeverityHandler
+	cache           cache.Cache
 }
 
-func NewIssueMatchHandler(database database.Database, eventRegistry event.EventRegistry, ss severity.SeverityHandler) IssueMatchHandler {
+func NewIssueMatchHandler(database database.Database, eventRegistry event.EventRegistry, ss severity.SeverityHandler, cache cache.Cache) IssueMatchHandler {
 	return &issueMatchHandler{
 		database:        database,
 		eventRegistry:   eventRegistry,
 		severityHandler: ss,
+		cache:           cache,
 	}
 }
 
@@ -87,7 +94,14 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 		"filter": filter,
 	})
 
-	res, err := im.database.GetIssueMatches(filter, options.Order)
+	res, err := cache.CallCached[[]entity.IssueMatchResult](
+		im.cache,
+		CacheTtlGetIssueMatches,
+		"GetIssueMatches",
+		im.database.GetIssueMatches,
+		filter,
+		options.Order,
+	)
 
 	if err != nil {
 		l.Error(err)
@@ -96,7 +110,14 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			cursors, err := im.database.GetAllIssueMatchCursors(filter, options.Order)
+			cursors, err := cache.CallCached[[]string](
+				im.cache,
+				CacheTtlGetAllIssueMatchCursors,
+				"GetAllIssueMatchCursors",
+				im.database.GetAllIssueMatchCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
 				l.Error(err)
 				return nil, NewIssueMatchHandlerError("Error while getting all Ids")
@@ -105,7 +126,13 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
-		count, err = im.database.CountIssueMatches(filter)
+		count, err = cache.CallCached[int64](
+			im.cache,
+			CacheTtlCountIssueMatches,
+			"CountIssueMatches",
+			im.database.CountIssueMatches,
+			filter,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewIssueMatchHandlerError("Error while total count of Issue Matches")

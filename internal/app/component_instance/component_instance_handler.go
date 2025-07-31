@@ -4,22 +4,31 @@
 package component_instance
 
 import (
+	"time"
+
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
+var CacheTtlGetComponentInstances = 12 * time.Hour
+var CacheTtlGetAllComponentInstanceCursors = 12 * time.Hour
+var CacheTtlCountComponentInstances = 12 * time.Hour
+
 type componentInstanceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	cache         cache.Cache
 }
 
-func NewComponentInstanceHandler(database database.Database, eventRegistry event.EventRegistry) ComponentInstanceHandler {
+func NewComponentInstanceHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache) ComponentInstanceHandler {
 	return &componentInstanceHandler{
 		database:      database,
 		eventRegistry: eventRegistry,
+		cache:         cache,
 	}
 }
 
@@ -46,7 +55,14 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 		"filter": filter,
 	})
 
-	res, err := ci.database.GetComponentInstances(filter, options.Order)
+	res, err := cache.CallCached[[]entity.ComponentInstanceResult](
+		ci.cache,
+		CacheTtlGetComponentInstances,
+		"GetComponentInstances",
+		ci.database.GetComponentInstances,
+		filter,
+		options.Order,
+	)
 
 	if err != nil {
 		l.Error(err)
@@ -55,7 +71,14 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			cursors, err := ci.database.GetAllComponentInstanceCursors(filter, options.Order)
+			cursors, err := cache.CallCached[[]string](
+				ci.cache,
+				CacheTtlGetAllComponentInstanceCursors,
+				"GetAllComponentInstanceCursors",
+				ci.database.GetAllComponentInstanceCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
 				return nil, NewComponentInstanceHandlerError("Error while getting all cursors")
 			}
@@ -63,7 +86,13 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
-		count, err = ci.database.CountComponentInstances(filter)
+		count, err = cache.CallCached[int64](
+			ci.cache,
+			CacheTtlCountComponentInstances,
+			"CountComponentInstances",
+			ci.database.CountComponentInstances,
+			filter,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewComponentInstanceHandlerError("Error while total count of ComponentInstances")
