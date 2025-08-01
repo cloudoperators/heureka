@@ -1,0 +1,83 @@
+model
+  schema 1.1
+
+type user
+  relations
+    define is_technical: [user]
+    define is_human: [user]
+
+type support_group
+  relations
+    define member: [user]
+    define owner: [user]
+    define can_view: [user#is_technical] or owner or member
+    define can_write: [user#is_technical] or owner
+    define can_manage_members: [user#is_technical] or owner
+
+type service
+  relations
+    define member_of_service_support_group: [support_group#member]
+    define owner_of_service_support_group: [support_group#owner]
+    define can_view: [user#is_technical] or member_of_service_support_group or owner_of_service_support_group
+    define can_write: [user#is_technical] or owner_of_service_support_group
+
+type component_instance
+  relations
+    define related_service: [service]
+    define can_view: [user#is_technical] or owner_from_related_service or member_from_related_service
+    define can_write: [user#is_technical]
+    define owner_from_related_service: owner_of_service_support_group from related_service
+    define member_from_related_service: member_of_service_support_group from related_service
+
+type component_version
+  relations
+    define related_service: [service]
+    define can_view: [user#is_technical] or owner_from_related_service or member_from_related_service
+    define can_write: [user#is_technical]
+    define owner_from_related_service: owner_of_service_support_group from related_service
+    define member_from_related_service: member_of_service_support_group from related_service
+
+type component_repository
+  relations
+    define can_view: [user]
+    define can_write: [user#is_technical]
+
+type issue_match
+  relations
+    define related_service: [service]
+    define can_view: [user#is_technical] or owner_from_related_service or member_from_related_service
+    define can_write: [user#is_technical]
+    define owner_from_related_service: owner_of_service_support_group from related_service
+    define member_from_related_service: member_of_service_support_group from related_service
+
+type issue_repository
+  relations
+    define related_service: [service]
+    define can_view: [user]
+    define can_write: [user#is_technical] or owner_from_related_service
+    define can_create: [user#is_technical] or owner_from_related_service
+    define owner_from_related_service: owner_of_service_support_group from related_service
+
+type issue_variant
+  relations
+    define related_repository: [issue_repository]
+    define can_view: [user]
+    define can_write: [user#is_technical] or owner_from_related_repository
+    define owner_from_related_repository: owner_from_related_service from related_repository
+
+type activity
+  relations
+    define related_service: [service]
+    define can_view: [user#is_technical] or owner_from_related_service or member_from_related_service
+    define owner_from_related_service: owner_of_service_support_group from related_service
+    define member_from_related_service: member_of_service_support_group from related_service
+
+type activity_evidence
+  relations
+    define related_activity: [activity]
+    define can_view: [user#is_technical] or viewer_from_related_activity
+    define can_create: [user#is_technical] or member_from_related_activity or owner_from_related_activity
+    define can_update: [user#is_technical] or member_from_related_activity or owner_from_related_activity
+    define viewer_from_related_activity: can_view from related_activity
+    define member_from_related_activity: member_from_related_service from related_activity
+    define owner_from_related_activity: owner_from_related_service from related_activity

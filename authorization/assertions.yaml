@@ -1,0 +1,166 @@
+
+- name: "Bob can manage team alpha"
+  user: "user:bob"
+  relation: "can_manage_members"
+  object: "support_group:team_alpha"
+  expected: true
+- name: "Alice cannot manage team alpha"
+  user: "user:alice"
+  relation: "can_manage_members"
+  object: "support_group:team_alpha"
+  expected: false
+- name: "Charlie cannot manage team alpha"
+  user: "user:charlie"
+  relation: "can_manage_members"
+  object: "support_group:team_alpha"
+  expected: false
+- name: "K8s scanner can manage team alpha"
+  user: "user:k8s_scanner"
+  relation: "can_manage_members"
+  object: "support_group:team_alpha"
+  expected: true
+- name: "Keppel scanner can manage team beta"
+  user: "user:keppel_scanner"
+  relation: "can_manage_members"
+  object: "support_group:team_beta"
+  expected: true
+
+# Service Access
+- name: "Bob can view service 1"
+  user: "user:bob"
+  relation: "can_view"
+  object: "service:service_1"
+  expected: true
+- name: "Alice can view service 1"
+  user: "user:alice"
+  relation: "can_view"
+  object: "service:service_1"
+  expected: true
+- name: "Bob can write service 1"
+  user: "user:bob"
+  relation: "can_write"
+  object: "service:service_1"
+  expected: true
+- name: "Alice cannot write service 1"
+  user: "user:alice"
+  relation: "can_write"
+  object: "service:service_1"
+  expected: false
+- name: "Charlie cannot view service 1"
+  user: "user:charlie"
+  relation: "can_view"
+  object: "service:service_1"
+  expected: false
+
+# Component Instance Access
+- name: "Bob can view component 1"
+  user: "user:bob"
+  relation: "can_view"
+  object: "component_instance:comp_1"
+  expected: true
+- name: "Alice can view component 1"
+  user: "user:alice"
+  relation: "can_view"
+  object: "component_instance:comp_1"
+  expected: true
+- name: "Charlie cannot view component 1"
+  user: "user:charlie"
+  relation: "can_view"
+  object: "component_instance:comp_1"
+  expected: false
+- name: "Bob cannot write component 1"
+  user: "user:bob"
+  relation: "can_write"
+  object: "component_instance:comp_1"
+  expected: false
+- name: "K8s scanner can write component 1"
+  user: "user:k8s_scanner"
+  relation: "can_write"
+  object: "component_instance:comp_1"
+  expected: true
+
+# Issue Repository and Variant Access
+- name: "Alice can view repository 1"
+  user: "user:alice"
+  relation: "can_view"
+  object: "issue_repository:repo_1"
+  expected: true
+- name: "Charlie can view repository 1"
+  user: "user:charlie"
+  relation: "can_view"
+  object: "issue_repository:repo_1"
+  expected: true
+- name: "Bob can write repository 1"
+  user: "user:bob"
+  relation: "can_write"
+  object: "issue_repository:repo_1"
+  expected: true
+- name: "Alice cannot write repository 1"
+  user: "user:alice"
+  relation: "can_write"
+  object: "issue_repository:repo_1"
+  expected: false
+- name: "Bob can write issue variant 1"
+  user: "user:bob"
+  relation: "can_write"
+  object: "issue_variant:variant_1"
+  expected: true
+- name: "Alice cannot write issue variant 1"
+  user: "user:alice"
+  relation: "can_write"
+  object: "issue_variant:variant_1"
+  expected: false
+- name: "Charlie cannot write issue variant 1"
+  user: "user:charlie"
+  relation: "can_write"
+  object: "issue_variant:variant_1"
+  expected: false
+
+# Activity Evidence
+- name: "Alice can create evidence 1"
+  user: "user:alice"
+  relation: "can_create"
+  object: "activity_evidence:evidence_1"
+  expected: true
+- name: "Alice can update evidence 1"
+  user: "user:alice"
+  relation: "can_update"
+  object: "activity_evidence:evidence_1"
+  expected: true
+- name: "Charlie cannot create evidence 1"
+  user: "user:charlie"
+  relation: "can_create"
+  object: "activity_evidence:evidence_1"
+  expected: false
+- name: "Charlie cannot view evidence 1"
+  user: "user:charlie"
+  relation: "can_view"
+  object: "activity_evidence:evidence_1"
+  expected: false
+- name: "Keppel scanner can view evidence 1"
+  user: "user:keppel_scanner"
+  relation: "can_view"
+  object: "activity_evidence:evidence_1"
+  expected: true
+- name: "Keppel scanner can create evidence 1"
+  user: "user:keppel_scanner"
+  relation: "can_create"
+  object: "activity_evidence:evidence_1"
+  expected: true
+- name: "Keppel scanner can update evidence 1"
+  user: "user:keppel_scanner"
+  relation: "can_update"
+  object: "activity_evidence:evidence_1"
+  expected: true
+
+# Cross-service Access Restrictions
+- name: "Alice cannot view component 2"
+  user: "user:alice"
+  relation: "can_view"
+  object: "component_instance:comp_2"
+  expected: false
+- name: "Charlie cannot view component 1"
+  user: "user:charlie"
+  relation: "can_view"
+  object: "component_instance:comp_1"
+  expected: false

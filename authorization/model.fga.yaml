@@ -1,0 +1,486 @@
+name: Heureka
+model: |+
+  model
+    schema 1.1
+  
+  type user
+  
+  # New role type for grouping users
+  type role
+    relations
+      define admin: [user]
+      define component_scanner: [user]
+      define issue_scanner: [user]
+  
+  type support_group
+    relations
+      define can_manage_members: [user] or owner or admin from role
+      define can_view: [user] or owner or member or admin from role or component_scanner from role or issue_scanner from role
+      define can_write: [user] or owner or admin from role 
+      define member: [user, support_group#member]
+      define owner: [user, support_group#member] or owner from support_group
+      define support_group: [support_group]
+      define role: [role]
+  
+  type service
+    relations
+      define can_view: [user] or member or owner or admin from role or component_scanner from role or issue_scanner from role
+      define can_write: [user] or owner or admin from role
+      define member: [user] or member from support_group
+      define owner: [user] or owner from support_group
+      define role: [role]
+      define support_group: [support_group]
+  
+  type component_instance
+    relations
+      define can_view: [user] or owner_from_related_service or member_from_related_service or admin from role or component_scanner from role or issue_scanner from role
+      define can_write: [user] or admin from role or component_scanner from role
+      define member_from_related_service: member from related_service
+      define owner_from_related_service: owner from related_service
+      define related_service: [service]
+      define role: [role]
+  
+  type component_version
+    relations
+      define can_view: [user] or owner_from_related_service or member_from_related_service or admin from role or component_scanner from role or issue_scanner from role
+      define can_write: [user] or admin from role or component_scanner from role or issue_scanner from role
+      define member_from_related_service: member from related_service
+      define owner_from_related_service: owner from related_service
+      define related_service: [service]
+      define role: [role]
+  
+  type component_repository
+    relations
+      define can_view: [user] or admin from role or component_scanner from role or issue_scanner from role or owner from related_service or member from related_service
+      define can_write: [user] or admin from role or owner from related_service
+      define related_service: [service]
+      define role: [role]
+  
+  type issue_match
+    relations
+      define can_view: [user] or owner_from_related_service or member_from_related_service or admin from role or component_scanner from role or issue_scanner from role
+      define can_write: [user] or admin from role
+      define member_from_related_service: member from related_service
+      define owner_from_related_service: owner from related_service
+      define related_service: [service]
+      define role: [role]
+  
+  type issue_repository
+    relations
+      define can_create: [user] or owner_from_related_service or admin from role
+      define can_view: [user] or admin from role or component_scanner from role or issue_scanner from role or owner_from_related_service or member from related_service
+      define can_write: [user] or owner_from_related_service or admin from role
+      define owner_from_related_service: owner from related_service
+      define member_from_related_service: member from related_service
+      define related_service: [service]
+      define role: [role]
+  
+  type issue_variant
+    relations
+      define can_view: [user] or admin from role or component_scanner from role or issue_scanner from role or owner_from_related_service from related_repository or member_from_related_service from related_repository
+      define can_write: [user] or owner_from_related_service from related_repository or admin from role
+      define related_repository: [issue_repository]
+      define role: [role]
+  
+  type activity
+    relations
+      define can_view: [user] or owner_from_related_service or member_from_related_service or admin from role or component_scanner from role or issue_scanner from role
+      define member_from_related_service: member from related_service
+      define owner_from_related_service: owner from related_service
+      define related_service: [service]
+      define role: [role]
+  
+  type activity_evidence
+    relations
+      define can_create: [user] or member_from_related_activity or owner_from_related_activity or admin from role
+      define can_update: [user] or member_from_related_activity or owner_from_related_activity or admin from role
+      define can_view: [user] or viewer_from_related_activity or admin from role or component_scanner from role or issue_scanner from role
+      define member_from_related_activity: member_from_related_service from related_activity
+      define owner_from_related_activity: owner_from_related_service from related_activity
+      define related_activity: [activity]
+      define viewer_from_related_activity: can_view from related_activity
+      define role: [role]
+  
+  type component_version_issues
+    relations
+      define can_view: [user] or owner_from_related_version or member_from_related_version or admin from role or component_scanner from role or issue_scanner from role
+      define can_write: [user] or admin from role or issue_scanner from role
+      define member_from_related_version: member_from_related_service from related_version
+      define owner_from_related_version: owner_from_related_service from related_version
+      define related_version: [component_version]
+      define role: [role]
+
+tuples:
+  # Define the roles
+  - user: user:system
+    relation: admin
+    object: role:system_role
+
+  - user: user:k8s_asset_scanner
+    relation: component_scanner
+    object: role:system_role
+
+  - user: user:keppel_scanner
+    relation: issue_scanner
+    object: role:system_role
+
+  # Assign system role to each entity
+  # Support Groups
+  - user: role:system_role
+    relation: role
+    object: support_group:team_alpha
+
+  - user: role:system_role
+    relation: role
+    object: support_group:team_beta
+
+  # Services
+  - user: role:system_role
+    relation: role
+    object: service:service_1
+
+  - user: role:system_role
+    relation: role
+    object: service:service_2
+
+  # Component Instances
+  - user: role:system_role
+    relation: role
+    object: component_instance:comp_1
+
+  - user: role:system_role
+    relation: role
+    object: component_instance:comp_2
+
+  # Component Versions
+  - user: role:system_role
+    relation: role
+    object: component_version:version_1
+
+  - user: role:system_role
+    relation: role
+    object: component_version:version_2
+
+  # Component Repositories (assuming you have instances)
+  - user: role:system_role
+    relation: role
+    object: component_repository:repo_1
+
+  # Issue Matches (assuming you have instances)
+  - user: role:system_role
+    relation: role
+    object: issue_match:match_1
+
+  # Issue Repositories
+  - user: role:system_role
+    relation: role
+    object: issue_repository:repo_1
+
+  - user: role:system_role
+    relation: role
+    object: issue_repository:repo_2
+
+  # Issue Variants
+  - user: role:system_role
+    relation: role
+    object: issue_variant:variant_1
+
+  - user: role:system_role
+    relation: role
+    object: issue_variant:variant_2
+
+  # Activities
+  - user: role:system_role
+    relation: role
+    object: activity:activity_1
+
+  - user: role:system_role
+    relation: role
+    object: activity:activity_2
+
+  # Activity Evidence
+  - user: role:system_role
+    relation: role
+    object: activity_evidence:evidence_1
+
+  - user: role:system_role
+    relation: role
+    object: activity_evidence:evidence_2
+
+  # Component Version Issues
+  - user: role:system_role
+    relation: role
+    object: component_version_issues:issue_v1
+
+  - user: role:system_role
+    relation: role
+    object: component_version_issues:issue_v2
+
+  # Service relations
+  - user: service:service_1
+    relation: related_service
+    object: component_instance:comp_1
+
+  - user: service:service_1
+    relation: related_service
+    object: component_version:version_1
+
+  - user: service:service_2
+    relation: related_service
+    object: component_instance:comp_2
+
+  - user: service:service_2
+    relation: related_service
+    object: component_version:version_2
+
+  - user: service:service_2
+    relation: related_service
+    object: activity:activity_2
+
+  - user: service:service_1
+    relation: related_service
+    object: issue_repository:repo_1
+
+  - user: service:service_1
+    relation: related_service
+    object: activity:activity_1
+
+  - user: service:service_2
+    relation: related_service
+    object: issue_repository:repo_2
+
+  # Component version to issues relations
+  - user: component_version:version_1
+    relation: related_version
+    object: component_version_issues:issue_v1
+
+  - user: component_version:version_2
+    relation: related_version
+    object: component_version_issues:issue_v2
+
+  # Issue repository to variant relations
+  - user: issue_repository:repo_1
+    relation: related_repository
+    object: issue_variant:variant_1
+
+  - user: issue_repository:repo_2
+    relation: related_repository
+    object: issue_variant:variant_2
+
+  # Activity to evidence relations
+  - user: activity:activity_1
+    relation: related_activity
+    object: activity_evidence:evidence_1
+
+  - user: activity:activity_2
+    relation: related_activity
+    object: activity_evidence:evidence_2
+
+  # Regular user permissions - copied from original
+  # Associate support groups with services
+  - user: support_group:team_alpha
+    relation: support_group
+    object: service:service_1
+
+  - user: support_group:team_beta
+    relation: support_group
+    object: service:service_2
+
+  # Assign members to support groups
+  - user: user:bob
+    relation: owner
+    object: support_group:team_alpha
+
+  - user: user:alice
+    relation: member
+    object: support_group:team_alpha
+
+  - user: user:charlie
+    relation: member
+    object: support_group:team_beta
+
+  - user: user:bob
+    relation: owner
+    object: support_group:team_beta
+
+
+tests:
+  - name: "Team Access Tests"
+    check:
+      - user: "user:bob"
+        object: "support_group:team_alpha"
+        assertions:
+          can_manage_members: true
+      - user: "user:alice"
+        object: "support_group:team_alpha"
+        assertions:
+          can_manage_members: false
+      - user: "user:charlie"
+        object: "support_group:team_alpha"
+        assertions:
+          can_manage_members: false
+      - user: "user:system"
+        object: "support_group:team_alpha"
+        assertions:
+          can_manage_members: true
+      - user: "user:k8s_asset_scanner"
+        object: "support_group:team_alpha"
+        assertions:
+          can_view: true
+          can_manage_members: false
+      - user: "user:keppel_scanner"
+        object: "support_group:team_beta"
+        assertions:
+          can_view: true
+          can_manage_members: false
+
+  - name: "Service Access Tests"
+    check:
+      - user: "user:bob"
+        object: "service:service_1"
+        assertions:
+          can_view: true
+          can_write: true
+      - user: "user:alice"
+        object: "service:service_1"
+        assertions:
+          can_view: true
+          can_write: false
+      - user: "user:charlie"
+        object: "service:service_1"
+        assertions:
+          can_view: false
+      - user: "user:system"
+        object: "service:service_1"
+        assertions:
+          can_view: true
+          can_write: true
+      - user: "user:k8s_asset_scanner"
+        object: "service:service_1"
+        assertions:
+          can_view: true
+          can_write: false
+
+  - name: "Component Instance Access Tests"
+    check:
+      - user: "user:bob"
+        object: "component_instance:comp_1"
+        assertions:
+          can_view: true
+          can_write: false
+      - user: "user:alice"
+        object: "component_instance:comp_1"
+        assertions:
+          can_view: true
+      - user: "user:charlie"
+        object: "component_instance:comp_1"
+        assertions:
+          can_view: false
+      - user: "user:k8s_asset_scanner"
+        object: "component_instance:comp_1"
+        assertions:
+          can_view: true
+          can_write: true
+      - user: "user:keppel_scanner"
+        object: "component_instance:comp_1"
+        assertions:
+          can_view: true
+          can_write: false
+      - user: "user:alice"
+        object: "component_instance:comp_2"
+        assertions:
+          can_view: false
+
+  - name: "Component Version Issues Access Tests"
+    check:
+      - user: "user:bob"
+        object: "component_version_issues:issue_v1"
+        assertions:
+          can_view: true
+          can_write: false
+      - user: "user:keppel_scanner"
+        object: "component_version_issues:issue_v1"
+        assertions:
+          can_view: true
+          can_write: true
+      - user: "user:k8s_asset_scanner"
+        object: "component_version_issues:issue_v1"
+        assertions:
+          can_view: true
+          can_write: false
+
+  - name: "Issue Repository and Variant Access Tests"
+    check:
+      - user: "user:alice"
+        object: "issue_repository:repo_1"
+        assertions:
+          can_view: true
+          can_write: false
+      - user: "user:charlie"
+        object: "issue_repository:repo_1"
+        assertions:
+          can_view: false
+          can_write: false
+      - user: "user:charlie"
+        object: "issue_repository:repo_2"
+        assertions:
+          can_view: true
+          can_write: false
+      - user: "user:bob"
+        object: "issue_repository:repo_1"
+        assertions:
+          can_write: true
+      - user: "user:bob"
+        object: "issue_variant:variant_1"
+        assertions:
+          can_view: true
+          can_write: true
+      - user: "user:alice"
+        object: "issue_variant:variant_1"
+        assertions:
+          can_write: false
+      - user: "user:charlie"
+        object: "issue_variant:variant_1"
+        assertions:
+          can_write: false
+      - user: "user:system"
+        object: "issue_variant:variant_1"
+        assertions:
+          can_write: true
+      - user: "user:keppel_scanner"
+        object: "issue_variant:variant_1"
+        assertions:
+          can_view: true
+          can_write: false
+
+  - name: "Activity Evidence Tests"
+    check:
+      - user: "user:alice"
+        object: "activity_evidence:evidence_1"
+        assertions:
+          can_create: true
+          can_update: true
+      - user: "user:charlie"
+        object: "activity_evidence:evidence_1"
+        assertions:
+          can_create: false
+          can_view: false
+      - user: "user:system"
+        object: "activity_evidence:evidence_1"
+        assertions:
+          can_view: true
+          can_create: true
+          can_update: true
+      - user: "user:keppel_scanner"
+        object: "activity_evidence:evidence_1"
+        assertions:
+          can_view: true
+          can_create: false
+          can_update: false
+
+  - name: "Cross-service Access Restriction Tests"
+    check:
+      - user: "user:charlie"
+        object: "component_instance:comp_1"
+        assertions:
+          can_view: false
