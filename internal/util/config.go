@@ -12,7 +12,7 @@ import (
 )
 
 type Config struct {
-	Port string `envconfig:"SERVER_PORT" default:":80" json:"-"`
+	Port string `envconfig:"SERVER_PORT" default:"80" json:"-"`
 	//Regions            []string `envconfig:"REGIONS" required:"true" json:"regions"`
 	//CloudAdminUsername string   `envconfig:"OS_USERNAME" required:"true" json:"cloudAdminUser"`
 	//CloudAdminPassword string   `envconfig:"OS_PASSWORD" required:"true" json:"-"`
@@ -47,6 +47,7 @@ type Config struct {
 	CacheMaxDbConcurrentRefreshes int    `envconfig:"CACHE_MAX_DB_CONCURRENT_REFRESHES" default:"-1" json:"-"`
 	CacheThrottleIntervalMSec     int64  `envconfig:"CACHE_THROTTLE_INTERVAL_MSEC" default:"0" json:"-"`
 	CacheThrottlePerInterval      int    `envconfig:"CACHE_THROTTLE_PER_INTERVAL" default:"1" json:"-"`
+	CpuProfilerFilePath           string `envconfig:"CPU_PROFILER_FILE_PATH" default:"" json:"-"`
 }
 
 func (c *Config) ConfigToConsole() {
