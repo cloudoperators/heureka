@@ -48,15 +48,6 @@ func (e *IssueMatchHandlerError) Error() string {
 	return e.message
 }
 
-func (h *issueMatchHandler) getIssueMatchResults(filter *entity.IssueMatchFilter, order []entity.Order) ([]entity.IssueMatchResult, error) {
-	ims, err := h.database.GetIssueMatches(filter, order)
-	if err != nil {
-		return nil, err
-	}
-
-	return ims, nil
-}
-
 func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetIssueMatchEventName,
