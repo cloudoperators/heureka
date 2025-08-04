@@ -240,7 +240,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetIssueMatches",
+		"event":  "database.GetAllIssueMatchIds",
 	})
 
 	baseQuery := `

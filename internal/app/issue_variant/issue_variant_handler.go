@@ -17,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var CacheTtlGetIssueVariants = 12 * time.Hour
 var CacheTtlGetAllIssueVariantIds = 12 * time.Hour
 var CacheTtlCountIssueVariants = 12 * time.Hour
 
@@ -50,7 +51,13 @@ func (e *IssueVariantHandlerError) Error() string {
 
 func (iv *issueVariantHandler) getIssueVariantResults(filter *entity.IssueVariantFilter) ([]entity.IssueVariantResult, error) {
 	var ivResults []entity.IssueVariantResult
-	issueVariants, err := iv.database.GetIssueVariants(filter)
+	issueVariants, err := cache.CallCached[[]entity.IssueVariant](
+		iv.cache,
+		CacheTtlGetIssueVariants,
+		"GetIssueVariants",
+		iv.database.GetIssueVariants,
+		filter)
+
 	if err != nil {
 		return nil, err
 	}

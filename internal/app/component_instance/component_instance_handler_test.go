@@ -9,9 +9,9 @@ import (
 
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	dbtest "github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	dbtest "github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
