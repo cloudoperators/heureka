@@ -25,7 +25,7 @@ func (p *Profiler) Start() {
 		return
 	}
 
-	log.Print("[Profiler]: Starting profiler. Results will be collected in '%s'. Stop app/container and copy results to browse perf data.", p.filepath)
+	log.Printf("[Profiler]: Starting profiler. Results will be collected in '%s'. Stop app/container and copy results to browse perf data.", p.filepath)
 	var err error
 	p.file, err = os.Create(p.filepath)
 	if err != nil {
