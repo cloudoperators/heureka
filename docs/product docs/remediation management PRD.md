@@ -121,6 +121,11 @@ As an operator, I want to be able to change the severity of a vulnerability whic
 ### U.S. 6 - View Automatic Mitigation Progress
 As an operator, i want to be able to see the mitigation progress while rolling out the patch in multiple steps
 
+**Additional Information:**
+>For scenarios where a rolled-out patch takes a while to be deployed in all the regions (bronze, silver, and gold regions), there is a need to display the status of the vulnerability it fixes accordingly and automatically in Heureka. Therefore, we need to show its mitigation status as "in progress" until the patch is deployed in all regions.
+
+> User Stories 6 and 7 cover this edge case.
+
 ### U.S. 7 - View Patched and Un-patched Containers
 As an operator, i want to be able to see the patched and un-patched containers for a specific vulnerability. 
 
