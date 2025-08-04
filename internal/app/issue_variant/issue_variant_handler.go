@@ -56,7 +56,8 @@ func (iv *issueVariantHandler) getIssueVariantResults(filter *entity.IssueVarian
 		CacheTtlGetIssueVariants,
 		"GetIssueVariants",
 		iv.database.GetIssueVariants,
-		filter)
+		filter,
+	)
 
 	if err != nil {
 		return nil, err

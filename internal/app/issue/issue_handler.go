@@ -21,6 +21,7 @@ var CacheTtlGetIssues = 12 * time.Hour
 var CacheTtlGetAllIssueCursors = 12 * time.Hour
 var CacheTtlCountIssueTypes = 12 * time.Hour
 var CacheTtlGetIssueNames = 12 * time.Hour
+var CacheTtlCountIssueRatings = 12 * time.Hour
 
 type issueHandler struct {
 	database      database.Database
@@ -345,7 +346,13 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 }
 
 func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
-	counts, err := is.database.CountIssueRatings(filter)
+	counts, err := cache.CallCached[*entity.IssueSeverityCounts](
+		is.cache,
+		CacheTtlCountIssueRatings,
+		"CountIssueRatings",
+		is.database.CountIssueRatings,
+		filter,
+	)
 
 	if err != nil {
 		return nil, err
