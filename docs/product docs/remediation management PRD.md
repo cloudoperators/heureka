@@ -102,9 +102,8 @@ As an operator, Process Owner, or Manager, I want to see the following remediati
 
 
 > Relevant views include: 
-> - Service detail view (for each image) 
-> - Image detail view (for each vulnerability)
-> - Image version detail
+> - Service detail view (see remediation attributes for each image) 
+> - Image detail view (see remediation attributes for each vulnerability)
 > - Vulnerability List View
 
 ### U.S. 2 - Mark as False Positive 
