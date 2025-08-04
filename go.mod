@@ -7,7 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/99designs/gqlgen v0.17.78
 	github.com/brianvoe/gofakeit/v7 v7.3.0
-	github.com/coreos/go-oidc v2.3.0+incompatible
+	github.com/coreos/go-oidc v2.4.0+incompatible
 	github.com/docker/docker v28.3.3+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/docker/go-connections v0.5.0
