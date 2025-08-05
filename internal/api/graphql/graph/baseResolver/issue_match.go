@@ -99,6 +99,18 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		issue_match_ids = append(issue_match_ids, filterById)
 	}
 
+	if filter.ComponentInstanceID != nil {
+		ciId = []*int64{}
+		for _, componentInstanceId := range filter.ComponentInstanceID {
+			filterById, err := ParseCursor(componentInstanceId)
+			if err != nil {
+				logrus.WithField("filter", filter).Error("IssueMatchBaseResolver: Error while parsing filter value 'componentInstanceId'")
+				return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - unable to parse filter, the value of the filter ComponentInstanceId is invalid")
+			}
+			ciId = append(ciId, filterById)
+		}
+	}
+
 	f := &entity.IssueMatchFilter{
 		Id:                       issue_match_ids,
 		PaginatedX:               entity.PaginatedX{First: first, After: after},
