@@ -16,6 +16,10 @@ import (
 )
 
 var CacheTtlGetServiceCcrns = 12 * time.Hour
+var CacheTtlGetServicesWithAggregations = 12 * time.Hour
+var CacheTtlGetServices = 12 * time.Hour
+var CacheTtlGetAllSericeCursors = 12 * time.Hour
+var CacheTtlCountServices = 12 * time.Hour
 
 type serviceHandler struct {
 	database      database.Database
@@ -81,13 +85,27 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 	})
 
 	if options.IncludeAggregations {
-		res, err = s.database.GetServicesWithAggregations(filter, options.Order)
+		res, err = cache.CallCached[[]entity.ServiceResult](
+			s.cache,
+			CacheTtlGetServicesWithAggregations,
+			"GetServicesWithAggregations",
+			s.database.GetServicesWithAggregations,
+			filter,
+			options.Order,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewServiceHandlerError("Internal error while retrieving list results with aggregations")
 		}
 	} else {
-		res, err = s.database.GetServices(filter, options.Order)
+		res, err = cache.CallCached[[]entity.ServiceResult](
+			s.cache,
+			CacheTtlGetServices,
+			"GetServices",
+			s.database.GetServices,
+			filter,
+			options.Order,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewServiceHandlerError("Internal error while retrieving list results.")
@@ -96,7 +114,14 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			cursors, err := s.database.GetAllServiceCursors(filter, options.Order)
+			cursors, err := cache.CallCached[[]string](
+				s.cache,
+				CacheTtlGetAllSericeCursors,
+				"GetAllServiceCursors",
+				s.database.GetAllServiceCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
 				return nil, NewServiceHandlerError("Error while getting all cursors")
 			}
@@ -104,7 +129,13 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
-		count, err = s.database.CountServices(filter)
+		count, err = cache.CallCached[int64](
+			s.cache,
+			CacheTtlCountServices,
+			"CountServices",
+			s.database.CountServices,
+			filter,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewServiceHandlerError("Error while total count of Services")
