@@ -19,6 +19,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/profiler"
 	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/app/severity"
@@ -53,10 +54,14 @@ type HeurekaApp struct {
 
 	ctx context.Context
 	wg  *sync.WaitGroup
+
+	profiler *profiler.Profiler
 }
 
 func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database, cfg util.Config) *HeurekaApp {
 	cache := NewAppCache(ctx, wg, cfg)
+	profiler := profiler.NewProfiler(cfg.CpuProfilerFilePath)
+	profiler.Start()
 
 	er := event.NewEventRegistry(db)
 	rh := issue_repository.NewIssueRepositoryHandler(db, er)
@@ -86,6 +91,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		cache:                    cache,
 		ctx:                      ctx,
 		wg:                       wg,
+		profiler:                 profiler,
 	}
 	heureka.SubscribeHandlers()
 	return heureka
@@ -142,6 +148,7 @@ func (h *HeurekaApp) SubscribeHandlers() {
 }
 
 func (h *HeurekaApp) Shutdown() error {
+	h.profiler.Stop()
 	return h.database.CloseConnection()
 }
 
