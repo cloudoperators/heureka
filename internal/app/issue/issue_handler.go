@@ -184,21 +184,21 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 }
 
 func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
+	op := appErrors.Op("issueHandler.CreateIssue")
+
 	f := &entity.IssueFilter{
 		PrimaryName: []*string{&issue.PrimaryName},
 	}
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  CreateIssueEventName,
-		"object": issue,
-		"filter": f,
-	})
-
 	var err error
 	issue.CreatedBy, err = common.GetCurrentUserId(is.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while creating issue (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		is.logError(wrappedErr, logrus.Fields{
+			"primary_name": issue.PrimaryName,
+			"issue_type": string(issue.Type),
+		})
+		return nil, wrappedErr
 	}
 	issue.UpdatedBy = issue.CreatedBy
 
@@ -208,19 +208,32 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	issues, err := is.ListIssues(f, &lo)
 
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while creating issue.")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		is.logError(wrappedErr, logrus.Fields{
+			"primary_name": issue.PrimaryName,
+			"issue_type": string(issue.Type),
+		})
+		return nil, wrappedErr
 	}
 
 	if len(issues.Elements) > 0 {
-		return nil, NewIssueHandlerError(fmt.Sprintf("Duplicated entry %s for primaryName.", issue.PrimaryName))
+		err := appErrors.AlreadyExistsError(string(op), "Issue", issue.PrimaryName)
+		is.logError(err, logrus.Fields{
+			"primary_name": issue.PrimaryName,
+			"existing_issue_id": issues.Elements[0].Issue.Id,
+		})
+		return nil, err
 	}
 
 	newIssue, err := is.database.CreateIssue(issue)
 
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while creating issue.")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		is.logError(wrappedErr, logrus.Fields{
+			"primary_name": issue.PrimaryName,
+			"issue_type": string(issue.Type),
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&CreateIssueEvent{Issue: newIssue})
