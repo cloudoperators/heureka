@@ -196,7 +196,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		is.logError(wrappedErr, logrus.Fields{
 			"primary_name": issue.PrimaryName,
-			"issue_type": string(issue.Type),
+			"issue_type":   string(issue.Type),
 		})
 		return nil, wrappedErr
 	}
@@ -211,7 +211,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		is.logError(wrappedErr, logrus.Fields{
 			"primary_name": issue.PrimaryName,
-			"issue_type": string(issue.Type),
+			"issue_type":   string(issue.Type),
 		})
 		return nil, wrappedErr
 	}
@@ -219,7 +219,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	if len(issues.Elements) > 0 {
 		err := appErrors.AlreadyExistsError(string(op), "Issue", issue.PrimaryName)
 		is.logError(err, logrus.Fields{
-			"primary_name": issue.PrimaryName,
+			"primary_name":      issue.PrimaryName,
 			"existing_issue_id": issues.Elements[0].Issue.Id,
 		})
 		return nil, err
@@ -231,7 +231,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		is.logError(wrappedErr, logrus.Fields{
 			"primary_name": issue.PrimaryName,
-			"issue_type": string(issue.Type),
+			"issue_type":   string(issue.Type),
 		})
 		return nil, wrappedErr
 	}
@@ -241,42 +241,55 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 }
 
 func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  UpdateIssueEventName,
-		"object": issue,
-	})
+	op := appErrors.Op("issueHandler.UpdateIssue")
 
 	var err error
 	issue.UpdatedBy, err = common.GetCurrentUserId(is.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while updating issue (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(issue.Id, 10), err)
+		is.logError(wrappedErr, logrus.Fields{
+			"id":           issue.Id,
+			"primary_name": issue.PrimaryName,
+		})
+		return nil, wrappedErr
 	}
 
 	err = is.database.UpdateIssue(issue)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while updating issue.")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(issue.Id, 10), err)
+		is.logError(wrappedErr, logrus.Fields{
+			"id":           issue.Id,
+			"primary_name": issue.PrimaryName,
+		})
+		return nil, wrappedErr
 	}
 
 	lo := entity.IssueListOptions{
 		ListOptions: *entity.NewListOptions(),
 	}
 	issueResult, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &lo)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while retrieving updated issue.")
+		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issue.Id, 10), appErrors.Internal, err)
+		is.logError(wrappedErr, logrus.Fields{
+			"id":           issue.Id,
+			"primary_name": issue.PrimaryName,
+		})
+		return nil, wrappedErr
 	}
 
 	if len(issueResult.Elements) != 1 {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Multiple issues found.")
+		err := appErrors.E(op, "Issue", strconv.FormatInt(issue.Id, 10), appErrors.Internal, "unexpected number of issues found after update")
+		is.logError(err, logrus.Fields{
+			"id":           issue.Id,
+			"found_count":  len(issueResult.Elements),
+			"primary_name": issue.PrimaryName,
+		})
+		return nil, err
 	}
 
-	is.eventRegistry.PushEvent(&UpdateIssueEvent{Issue: issue})
-	return issueResult.Elements[0].Issue, nil
+	updatedIssue := issueResult.Elements[0].Issue
+	is.eventRegistry.PushEvent(&UpdateIssueEvent{Issue: updatedIssue})
+	return updatedIssue, nil
 }
 
 func (is *issueHandler) DeleteIssue(id int64) error {

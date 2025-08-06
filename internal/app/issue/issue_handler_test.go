@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	mock "github.com/stretchr/testify/mock"
+	"strconv"
 )
 
 func TestIssueHandler(t *testing.T) {
@@ -348,10 +349,10 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			// Mock successful database creation
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).Return(&issueEntity, nil)
-			
+
 			issueHandler = issue.NewIssueHandler(db, er)
 			newIssue, err := issueHandler.CreateIssue(&issueEntity)
-			
+
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(newIssue).ToNot(BeNil(), "issue should be returned")
 			Expect(newIssue.Id).NotTo(BeEquivalentTo(0))
@@ -489,6 +490,94 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 				After: &after,
 			},
 		}
+	})
+	Context("with valid input", func() {
+		It("updates issueEntity successfully", func() {
+			// Setup mocks for successful path
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("UpdateIssue", issueResult.Issue).Return(nil)
+			filter.Id = []*int64{&issueResult.Issue.Id}
+			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{issueResult}, nil)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			issueResult.Issue.Description = "New Description"
+
+			updatedIssue, err := issueHandler.UpdateIssue(issueResult.Issue)
+
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(updatedIssue).ToNot(BeNil(), "updated issue should be returned")
+			Expect(updatedIssue.Description).To(Equal("New Description"))
+		})
+	})
+
+	Context("when GetCurrentUserId fails", func() {
+		It("should return Internal error", func() {
+			// Mock GetCurrentUserId failure
+			dbError := errors.New("user database connection failed")
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.UpdateIssue(issueResult.Issue)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			// Verify structured error
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
+			Expect(appErr.Op).To(Equal("issueHandler.UpdateIssue"), "should include operation")
+		})
+	})
+
+	Context("when database update fails", func() {
+		It("should return Internal error", func() {
+			// Mock successful user ID retrieval
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			// Mock database update failure
+			dbError := errors.New("constraint violation")
+			db.On("UpdateIssue", issueResult.Issue).Return(dbError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.UpdateIssue(issueResult.Issue)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
+			Expect(appErr.Op).To(Equal("issueHandler.UpdateIssue"), "should include operation")
+			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+		})
+	})
+
+	Context("when retrieving updated issue fails", func() {
+		It("should return Internal error", func() {
+			// Mock successful user ID and update
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("UpdateIssue", issueResult.Issue).Return(nil)
+			// Mock ListIssues failure
+			listError := errors.New("database query failed")
+			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, listError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.UpdateIssue(issueResult.Issue)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
+			Expect(appErr.Op).To(Equal("issueHandler.UpdateIssue"), "should include operation")
+		})
 	})
 
 	It("updates issueEntity", func() {
