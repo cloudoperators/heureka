@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/pointer"
@@ -65,12 +66,13 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	var ciId []*int64
 	var issueId []*int64
 	var serviceId []*int64
+	var imIds []*int64
+	var err error
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("IssueMatchBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - Error while parsing propagated ID")
+			return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - Error while parsing parent ID")
 		}
 
 		switch parent.ParentName {
@@ -89,30 +91,22 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		filter = &model.IssueMatchFilter{}
 	}
 
-	issue_match_ids := []*int64{}
-	for _, issue_match_id := range filter.ID {
-		filterById, err := ParseCursor(issue_match_id)
+	if filter.ID != nil {
+		imIds, err = util.ConvertStrToIntSlice(filter.ID)
 		if err != nil {
-			logrus.WithField("filter", filter).Error("IssueMatchBaseResolver: Error while parsing filter value 'id'")
 			return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - unable to parse filter, the value of the filter ID is invalid")
 		}
-		issue_match_ids = append(issue_match_ids, filterById)
 	}
 
 	if filter.ComponentInstanceID != nil {
-		ciId = []*int64{}
-		for _, componentInstanceId := range filter.ComponentInstanceID {
-			filterById, err := ParseCursor(componentInstanceId)
-			if err != nil {
-				logrus.WithField("filter", filter).Error("IssueMatchBaseResolver: Error while parsing filter value 'componentInstanceId'")
-				return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - unable to parse filter, the value of the filter ComponentInstanceId is invalid")
-			}
-			ciId = append(ciId, filterById)
+		ciId, err = util.ConvertStrToIntSlice(filter.ComponentInstanceID)
+		if err != nil {
+			return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - unable to parse filter, the value of the filter ComponentInstanceId is invalid")
 		}
 	}
 
 	f := &entity.IssueMatchFilter{
-		Id:                       issue_match_ids,
+		Id:                       imIds,
 		PaginatedX:               entity.PaginatedX{First: first, After: after},
 		ServiceCCRN:              filter.ServiceCcrn,
 		Status:                   lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
