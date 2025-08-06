@@ -293,22 +293,25 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 }
 
 func (is *issueHandler) DeleteIssue(id int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"event": DeleteIssueEventName,
-		"id":    id,
-	})
+	op := appErrors.Op("issueHandler.DeleteIssue")
 
 	userId, err := common.GetCurrentUserId(is.database)
 	if err != nil {
-		l.Error(err)
-		return NewIssueHandlerError("Internal error while deleting issue (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(id, 10), err)
+		is.logError(wrappedErr, logrus.Fields{
+			"id": id,
+		})
+		return wrappedErr
 	}
 
 	err = is.database.DeleteIssue(id, userId)
-
 	if err != nil {
-		l.Error(err)
-		return NewIssueHandlerError("Internal error while deleting issue.")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(id, 10), err)
+		is.logError(wrappedErr, logrus.Fields{
+			"id":      id,
+			"user_id": userId,
+		})
+		return wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&DeleteIssueEvent{IssueID: id})

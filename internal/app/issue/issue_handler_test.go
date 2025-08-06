@@ -617,22 +617,69 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 			},
 		}
 	})
+	Context("with valid input", func() {
+		It("deletes issue successfully", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("DeleteIssue", id, int64(123)).Return(nil)
+			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 
-	It("deletes issue", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("DeleteIssue", id, mock.Anything).Return(nil)
-		issueHandler = issue.NewIssueHandler(db, er)
-		db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
-		err := issueHandler.DeleteIssue(id)
-		Expect(err).To(BeNil(), "no error should be thrown")
+			issueHandler = issue.NewIssueHandler(db, er)
+			err := issueHandler.DeleteIssue(id)
 
-		filter.Id = []*int64{&id}
-		lo := entity.IssueListOptions{
-			ListOptions: *entity.NewListOptions(),
-		}
-		issues, err := issueHandler.ListIssues(filter, &lo)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issues.Elements).To(BeEmpty(), "no error should be thrown")
+			Expect(err).To(BeNil(), "no error should be thrown")
+
+			filter.Id = []*int64{&id}
+			lo := entity.IssueListOptions{
+				ListOptions: *entity.NewListOptions(),
+			}
+			issues, err := issueHandler.ListIssues(filter, &lo)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(issues.Elements).To(BeEmpty(), "issue should be deleted")
+		})
+	})
+
+	Context("when GetCurrentUserId fails", func() {
+		It("should return Internal error", func() {
+			// Mock GetCurrentUserId failure
+			dbError := errors.New("user database connection failed")
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			err := issueHandler.DeleteIssue(id)
+
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			// Verify structured error
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(appErr.ID).To(Equal(strconv.FormatInt(id, 10)), "should include issue ID")
+			Expect(appErr.Op).To(Equal("issueHandler.DeleteIssue"), "should include operation")
+		})
+	})
+
+	Context("when database delete fails", func() {
+		It("should return Internal error", func() {
+			// Mock successful user ID retrieval
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			// Mock database delete failure
+			dbError := errors.New("foreign key constraint violation")
+			db.On("DeleteIssue", id, int64(123)).Return(dbError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			err := issueHandler.DeleteIssue(id)
+
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+			Expect(appErr.ID).To(Equal(strconv.FormatInt(id, 10)), "should include issue ID")
+			Expect(appErr.Op).To(Equal("issueHandler.DeleteIssue"), "should include operation")
+			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+		})
 	})
 })
 
