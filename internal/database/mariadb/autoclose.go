@@ -11,7 +11,17 @@ var autoCloseComponents = `
 	SET
 		issuematch_status = 'mitigated'
 	WHERE 
-		issuematch_id IN (
+
+	    -- Only proceed if there are at least 2 completed scans
+		(SELECT COUNT(DISTINCT scannerrun_tag) FROM 
+			(SELECT scannerrun_tag, COUNT(*) 
+			FROM ScannerRun 
+			WHERE scannerrun_is_completed = TRUE 
+			GROUP BY scannerrun_tag 
+			HAVING COUNT(*) >= 2) AS tags_with_multiple_scans
+		) > 0 
+
+		AND issuematch_id IN (
 			SELECT DISTINCT issuematch_id FROM IssueMatch WHERE issuematch_component_instance_id NOT IN (
 				SELECT DISTINCT scannerruncomponentinstance_component_instance_id 
 				FROM  
