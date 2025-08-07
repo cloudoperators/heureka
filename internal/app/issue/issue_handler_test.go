@@ -10,10 +10,12 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/samber/lo"
 
+	"fmt"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -697,13 +699,85 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 		componentVersion = test.NewFakeComponentVersionEntity()
 	})
 
-	It("adds componentVersion to issueEntity", func() {
-		db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
-		db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
-		issueHandler = issue.NewIssueHandler(db, er)
-		issue, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
+	Context("when adding componentVersion to issue", func() {
+		Context("with valid input", func() {
+			It("adds componentVersion to issueEntity successfully", func() {
+				db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
+				db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
+
+				issueHandler = issue.NewIssueHandler(db, er)
+				result, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
+
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "issueEntity should be returned")
+			})
+		})
+
+		Context("when relationship already exists", func() {
+			It("should return AlreadyExists error", func() {
+				// Mock duplicate entry error from database
+				duplicateErr := &database.DuplicateEntryDatabaseError{}
+				db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(duplicateErr)
+
+				issueHandler = issue.NewIssueHandler(db, er)
+				result, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
+
+				Expect(result).To(BeNil(), "no result should be returned")
+				Expect(err).ToNot(BeNil(), "error should be returned")
+
+				var appErr *appErrors.Error
+				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+				Expect(appErr.Code).To(Equal(appErrors.AlreadyExists), "should be AlreadyExists error")
+				Expect(appErr.Entity).To(Equal("ComponentVersionIssue"), "should reference ComponentVersionIssue entity")
+				Expect(appErr.ID).To(Equal(fmt.Sprintf("issue:%d-componentVersion:%d", issueResult.Issue.Id, componentVersion.Id)), "should include composite ID")
+				Expect(appErr.Op).To(Equal("issueHandler.AddComponentVersionToIssue"), "should include operation")
+				Expect(appErr.Message).To(Equal("already exists"), "should have standard AlreadyExists message")
+			})
+		})
+
+		Context("when database operation fails", func() {
+			It("should return Internal error", func() {
+				// Mock database error
+				dbError := errors.New("constraint violation")
+				db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(dbError)
+
+				issueHandler = issue.NewIssueHandler(db, er)
+				result, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
+
+				Expect(result).To(BeNil(), "no result should be returned")
+				Expect(err).ToNot(BeNil(), "error should be returned")
+
+				var appErr *appErrors.Error
+				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+				Expect(appErr.Entity).To(Equal("ComponentVersionIssue"), "should reference ComponentVersionIssue entity")
+				Expect(appErr.ID).To(Equal(fmt.Sprintf("issue:%d-componentVersion:%d", issueResult.Issue.Id, componentVersion.Id)), "should include composite ID")
+				Expect(appErr.Op).To(Equal("issueHandler.AddComponentVersionToIssue"), "should include operation")
+				Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+			})
+		})
+
+		Context("when GetIssue fails after successful addition", func() {
+			It("should return Internal error", func() {
+				// Mock successful addition but GetIssue failure
+				db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
+				getIssueError := errors.New("database query failed")
+				db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{}, getIssueError)
+
+				issueHandler = issue.NewIssueHandler(db, er)
+				result, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
+
+				Expect(result).To(BeNil(), "no result should be returned")
+				Expect(err).ToNot(BeNil(), "error should be returned")
+
+				var appErr *appErrors.Error
+				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+				Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+				Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
+				Expect(appErr.Op).To(Equal("issueHandler.AddComponentVersionToIssue"), "should include operation")
+			})
+		})
 	})
 
 	It("removes componentVersion from issueEntity", func() {

@@ -319,20 +319,28 @@ func (is *issueHandler) DeleteIssue(id int64) error {
 }
 
 func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId int64) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": AddComponentVersionToIssueEventName,
-		"id":    issueId,
-	})
+	op := appErrors.Op("issueHandler.AddComponentVersionToIssue")
 
 	err := is.database.AddComponentVersionToIssue(issueId, componentVersionId)
-
 	if err != nil {
-		l.Error(err)
 		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
 		if errors.As(err, &duplicateEntryError) {
-			return nil, NewIssueHandlerError("Entry already Exists")
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "ComponentVersionIssue",
+				fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId))
+			is.logError(wrappedErr, logrus.Fields{
+				"issue_id":             issueId,
+				"component_version_id": componentVersionId,
+			})
+			return nil, wrappedErr
 		}
-		return nil, NewIssueHandlerError("Internal error while adding component version to issue.")
+
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersionIssue",
+			fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId), err)
+		is.logError(wrappedErr, logrus.Fields{
+			"issue_id":             issueId,
+			"component_version_id": componentVersionId,
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&AddComponentVersionToIssueEvent{
@@ -340,7 +348,17 @@ func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId i
 		ComponentVersionID: componentVersionId,
 	})
 
-	return is.GetIssue(issueId)
+	issue, err := is.GetIssue(issueId)
+	if err != nil {
+		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issueId, 10), appErrors.Internal, err)
+		is.logError(wrappedErr, logrus.Fields{
+			"issue_id":             issueId,
+			"component_version_id": componentVersionId,
+		})
+		return nil, wrappedErr
+	}
+
+	return issue, nil
 }
 
 func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersionId int64) (*entity.Issue, error) {
