@@ -61,8 +61,8 @@ func (r *queryResolver) Evidences(ctx context.Context, filter *model.EvidenceFil
 	return baseResolver.EvidenceBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) SupportGroups(ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string) (*model.SupportGroupConnection, error) {
-	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, nil)
+func (r *queryResolver) SupportGroups(ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy) (*model.SupportGroupConnection, error) {
+	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
 func (r *queryResolver) Users(ctx context.Context, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error) {

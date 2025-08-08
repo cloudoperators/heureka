@@ -5,7 +5,7 @@ type Service implements Node {
     id: ID!
     ccrn: String
     owners(filter: UserFilter, first: Int, after: String): UserConnection
-    supportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
+    supportGroups(filter: SupportGroupFilter, first: Int, after: String, orderBy: [SupportGroupOrderBy]): SupportGroupConnection
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     issueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
     componentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection

@@ -27,3 +27,10 @@ func NNewFakeSupportGroupEntities(n int) []entity.SupportGroup {
 	}
 	return r
 }
+
+func NewFakeSupportGroupResult() entity.SupportGroupResult {
+	supportGroup := NewFakeSupportGroupEntity()
+	return entity.SupportGroupResult{
+		SupportGroup: &supportGroup,
+	}
+}
