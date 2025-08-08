@@ -78,6 +78,16 @@ func (od *OrderDirection) ToOrderDirectionEntity() entity.OrderDirection {
 	return direction
 }
 
+func (sg *SupportGroupOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *sg.By {
+	case SupportGroupOrderByFieldCcrn:
+		order.By = entity.SupportGroupCcrn
+	}
+	order.Direction = sg.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func (cv *ComponentVersionOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
 	switch *cv.By {

@@ -13,18 +13,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string, parent *model.NodeParent) (*model.SupportGroupConnection, error) {
+func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy, parent *model.NodeParent) (*model.SupportGroupConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called SupportGroupBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("SupportGroupBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("SupportGroupBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var serviceId []*int64
 	var userId []*int64
@@ -52,15 +46,18 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	f := &entity.SupportGroupFilter{
-		Paginated: entity.Paginated{First: first, After: afterId},
-		ServiceId: serviceId,
-		UserId:    userId,
-		CCRN:      filter.SupportGroupCcrn,
-		State:     model.GetStateFilterType(filter.State),
-		IssueId:   issueId,
+		PaginatedX: entity.PaginatedX{First: first, After: after},
+		ServiceId:  serviceId,
+		UserId:     userId,
+		CCRN:       filter.SupportGroupCcrn,
+		State:      model.GetStateFilterType(filter.State),
+		IssueId:    issueId,
 	}
 
 	opt := GetListOptions(requestedFields)
+	for _, o := range orderBy {
+		opt.Order = append(opt.Order, o.ToOrderEntity())
+	}
 
 	supportGroups, err := app.ListSupportGroups(f, opt)
 
@@ -114,10 +111,10 @@ func SupportGroupCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	f := &entity.SupportGroupFilter{
-		Paginated: entity.Paginated{},
-		UserId:    userIds,
-		CCRN:      filter.SupportGroupCcrn,
-		State:     model.GetStateFilterType(filter.State),
+		PaginatedX: entity.PaginatedX{},
+		UserId:     userIds,
+		CCRN:       filter.SupportGroupCcrn,
+		State:      model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

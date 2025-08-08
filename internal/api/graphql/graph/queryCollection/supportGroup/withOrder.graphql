@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+query ($filter: SupportGroupFilter, $first: Int, $after: String, $orderBy: [SupportGroupOrderBy]) {
+    SupportGroups (
+        filter: $filter,
+        first: $first,
+        after: $after
+        orderBy: $orderBy
+    ) {
+        totalCount
+        edges {
+            node {
+                id
+                ccrn
+            }
+            cursor
+        }
+    }
+}

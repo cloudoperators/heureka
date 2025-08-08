@@ -35,7 +35,8 @@ const (
 	LowCount
 	NoneCount
 
-	SupportGroupName
+	SupportGroupId
+	SupportGroupCcrn
 
 	ServiceId
 	ServiceCcrn

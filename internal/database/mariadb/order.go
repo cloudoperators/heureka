@@ -47,8 +47,10 @@ func ColumnName(f entity.OrderByField) string {
 		return "issuematch_rating"
 	case entity.IssueMatchTargetRemediationDate:
 		return "issuematch_target_remediation_date"
-	case entity.SupportGroupName:
-		return "supportgroup_name"
+	case entity.SupportGroupId:
+		return "supportgroup_id"
+	case entity.SupportGroupCcrn:
+		return "supportgroup_ccrn"
 	case entity.ServiceId:
 		return "service_id"
 	case entity.ServiceCcrn:
