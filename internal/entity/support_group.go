@@ -9,6 +9,7 @@ type SupportGroup struct {
 	CCRN string `json:"ccrn"`
 }
 
+// @todo think about parent for nesting support groups
 type SupportGroupFilter struct {
 	Paginated
 	Id        []*int64          `json:"id"`
