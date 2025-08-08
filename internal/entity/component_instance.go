@@ -100,6 +100,7 @@ var AllComponentInstanceType = []string{
 	ComponentInstanceTypeProjectConfiguration.String(),
 }
 
+// @todo missing filter for serviceId/supportGroupId
 type ComponentInstanceFilter struct {
 	PaginatedX
 	IssueMatchId            []*int64          `json:"issue_match_id"`
@@ -121,6 +122,7 @@ type ComponentInstanceFilter struct {
 	Context                 []*Json           `json:"context"`
 	Search                  []*string         `json:"search"`
 	State                   []StateFilterType `json:"state"`
+	SupportGroup            []*string         `json:"support_group"`
 }
 
 type ComponentInstanceAggregations struct {
