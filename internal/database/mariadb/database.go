@@ -63,15 +63,26 @@ func TestConnection(cfg util.Config, backOff int) error {
 }
 
 func getSqlxConnection(cfg util.Config) (*sqlx.DB, error) {
-	connectionString := buildDSN(cfg)
-	return sqlx.Connect("mysql", connectionString)
+	return sqlx.Connect("mysql", buildUserDSN(cfg))
 }
 
-func buildDSN(cfg util.Config) string {
+func getSqlxRootConnection(cfg util.Config) (*sqlx.DB, error) {
+	return sqlx.Connect("mysql", buildRootDSN(cfg))
+}
+
+func buildUserDSN(cfg util.Config) string {
+	return buildDSN(cfg.DBUser, cfg.DBPassword, cfg)
+}
+
+func buildRootDSN(cfg util.Config) string {
+	return buildDSN("root", cfg.DBRootPassword, cfg)
+}
+
+func buildDSN(user string, pass string, cfg util.Config) string {
 	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
-		return fmt.Sprintf("%s:%s@unix(%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBName)
+		return fmt.Sprintf("%s:%s@unix(%s)/%s?multiStatements=true&parseTime=true", user, pass, cfg.DBAddress, cfg.DBName)
 	}
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", cfg.DBUser, cfg.DBPassword, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", user, pass, cfg.DBAddress, cfg.DBPort, cfg.DBName)
 }
 
 func Connect(cfg util.Config) (*sqlx.DB, error) {
@@ -521,4 +532,20 @@ func buildJsonQueryParameters(params []interface{}, filter []*entity.Json) []int
 		}
 	}
 	return buildQueryParameters(params, conQueryParams)
+}
+
+func EnableScheduler(cfg util.Config) error {
+	db, err := getSqlxRootConnection(cfg)
+	if err != nil {
+		logrus.WithError(err).Error(err)
+		return err
+	}
+    defer db.Close()
+
+	_, err = db.Exec("SET GLOBAL event_scheduler = ON;")
+	if err != nil {
+		logrus.WithError(err).Error(err)
+		return err
+	}
+	return nil
 }

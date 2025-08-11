@@ -2028,3 +2028,14 @@ func (s *DatabaseSeeder) Clear() error {
 	}
 	return nil
 }
+
+func (s *DatabaseSeeder) RefreshServiceIssueCounters() error {
+	rows, err := s.db.Query(`
+		CALL refresh_mvServiceIssueCounts_proc();
+	`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	return nil
+}

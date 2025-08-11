@@ -367,6 +367,8 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		})
 
 		var runOrderTest = func(orderDirection string, expectedOrder []string) {
+			err := seeder.RefreshServiceIssueCounters()
+			Expect(err).To(BeNil())
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withOrder.graphql")
 			Expect(err).To(BeNil())

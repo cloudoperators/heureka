@@ -91,7 +91,7 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []enti
          	LEFT JOIN Activity A on AHS.activityhasservice_activity_id = A.activity_id
 		`)
 	}
-	if len(filter.ComponentInstanceId) > 0 || orderByCount || len(filter.IssueId) > 0 {
+	if len(filter.ComponentInstanceId) > 0 || len(filter.IssueId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
 		`)
@@ -109,9 +109,7 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []enti
 	}
 	if orderByCount {
 		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ComponentVersion CV ON CV.componentversion_id = CI.componentinstance_component_version_id
-			LEFT JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id
-			LEFT JOIN IssueVariant IV on IV.issuevariant_issue_id = CVI.componentversionissue_issue_id
+			LEFT JOIN mvServiceIssueCounts SIC ON S.service_id = SIC.service_id
 		`)
 	}
 	return joins
@@ -125,15 +123,15 @@ func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []en
 	for _, o := range order {
 		switch o.By {
 		case entity.CriticalCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as critical_count", columns)
+			columns = fmt.Sprintf("%s, SIC.critical_count", columns) //TODO: refactor ???SIC.*???
 		case entity.HighCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'High' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as high_count", columns)
+			columns = fmt.Sprintf("%s, SIC.high_count", columns)
 		case entity.MediumCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Medium' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as medium_count", columns)
+			columns = fmt.Sprintf("%s, SIC.medium_count", columns)
 		case entity.LowCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'Low' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as low_count", columns)
+			columns = fmt.Sprintf("%s, SIC.low_count", columns)
 		case entity.NoneCount:
-			columns = fmt.Sprintf("%s, COUNT(distinct CASE WHEN IV.issuevariant_rating = 'None' THEN CONCAT(CV.componentversion_id, ',', IV.issuevariant_issue_id) END) as none_count", columns)
+			columns = fmt.Sprintf("%s, SIC.none_count", columns)
 		}
 	}
 	return columns
