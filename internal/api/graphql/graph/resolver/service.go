@@ -23,8 +23,8 @@ func (r *serviceResolver) Owners(ctx context.Context, obj *model.Service, filter
 		})
 }
 
-func (r *serviceResolver) SupportGroups(ctx context.Context, obj *model.Service, filter *model.SupportGroupFilter, first *int, after *string) (*model.SupportGroupConnection, error) {
-	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after,
+func (r *serviceResolver) SupportGroups(ctx context.Context, obj *model.Service, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy) (*model.SupportGroupConnection, error) {
+	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, orderBy,
 		&model.NodeParent{
 			Parent:     obj,
 			ParentName: model.ServiceNodeName,
