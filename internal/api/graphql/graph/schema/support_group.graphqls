@@ -30,3 +30,12 @@ input SupportGroupFilter {
     state: [StateFilter!],
     issueIds: [String],
 }
+
+input SupportGroupOrderBy {
+    by: SupportGroupOrderByField
+    direction: OrderDirection
+}   
+
+enum SupportGroupOrderByField {
+    ccrn
+}

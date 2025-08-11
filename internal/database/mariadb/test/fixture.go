@@ -1375,7 +1375,7 @@ func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.
 	}
 	externalUrl := gofakeit.URL()
 	return mariadb.IssueVariantRow{
-		SecondaryName: sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 9999)), Valid: true},
+		SecondaryName: sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 9999999)), Valid: true},
 		Description:   sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
 		Vector:        sql.NullString{String: v, Valid: true},
 		Rating:        sql.NullString{String: rating, Valid: true},
