@@ -123,7 +123,7 @@ func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []en
 	for _, o := range order {
 		switch o.By {
 		case entity.CriticalCount:
-			columns = fmt.Sprintf("%s, SIC.critical_count", columns) //TODO: refactor ???SIC.*???
+			columns = fmt.Sprintf("%s, SIC.critical_count", columns)
 		case entity.HighCount:
 			columns = fmt.Sprintf("%s, SIC.high_count", columns)
 		case entity.MediumCount:

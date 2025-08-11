@@ -41,11 +41,13 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
 		s = server.NewServer(cfg)
+
 		s.NonBlockingStart()
 	})
 
 	AfterEach(func() {
 		s.BlockingStop()
+		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
 
@@ -364,11 +366,11 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				_, err := seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 			}
+			err = seeder.RefreshServiceIssueCounters()
+			Expect(err).To(BeNil())
 		})
 
 		var runOrderTest = func(orderDirection string, expectedOrder []string) {
-			err := seeder.RefreshServiceIssueCounters()
-			Expect(err).To(BeNil())
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withOrder.graphql")
 			Expect(err).To(BeNil())
@@ -431,6 +433,7 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
 
@@ -495,6 +498,7 @@ var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
 
@@ -563,6 +567,7 @@ var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
 
 	AfterEach(func() {
 		s.BlockingStop()
+		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
 
@@ -627,6 +632,7 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 
 	AfterEach(func() {
 		s.BlockingStop()
+		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
 
@@ -745,6 +751,7 @@ var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "S
 
 	AfterEach(func() {
 		s.BlockingStop()
+		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
 

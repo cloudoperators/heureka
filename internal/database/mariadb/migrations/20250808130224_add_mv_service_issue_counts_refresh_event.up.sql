@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS mvServiceIssueCounts (
 
 -- 2. Create or replace the procedure that refreshes the table
 CREATE PROCEDURE refresh_mvServiceIssueCounts_proc()
+BEGIN
     TRUNCATE TABLE mvServiceIssueCounts;
 
     INSERT INTO mvServiceIssueCounts
@@ -36,6 +37,7 @@ CREATE PROCEDURE refresh_mvServiceIssueCounts_proc()
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = CVI.componentversionissue_issue_id
     WHERE S.service_deleted_at IS NULL
     GROUP BY S.service_id;
+END;
 
 -- 3. Run the procedure once to populate the table initially
 CALL refresh_mvServiceIssueCounts_proc();

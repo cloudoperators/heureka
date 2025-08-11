@@ -232,6 +232,10 @@ func NewDatabaseSeeder(cfg util.Config) (*DatabaseSeeder, error) {
 
 }
 
+func (s *DatabaseSeeder) CloseDbConnection() {
+	s.db.Close()
+}
+
 // Generate a random CVSS 3.1 vector
 func GenerateRandomCVSS31Vector() string {
 	avValues := []string{"N", "A", "L", "P"}
@@ -2030,12 +2034,8 @@ func (s *DatabaseSeeder) Clear() error {
 }
 
 func (s *DatabaseSeeder) RefreshServiceIssueCounters() error {
-	rows, err := s.db.Query(`
+	_, err := s.db.Exec(`
 		CALL refresh_mvServiceIssueCounts_proc();
 	`)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	return nil
+	return err
 }
