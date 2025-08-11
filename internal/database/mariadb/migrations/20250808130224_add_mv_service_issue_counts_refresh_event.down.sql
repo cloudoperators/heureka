@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+-- SPDX-License-Identifier: Apache-2.0
+
 -- 1. Drop the event if exists
 DROP EVENT IF EXISTS refresh_mvServiceIssueCounts;
 

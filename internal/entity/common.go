@@ -207,7 +207,7 @@ func NewSeverity(url string) Severity {
 		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
 	}
 
-	severity := "unknown"
+	severity := "unkown"
 	score := 0.0
 	cvss := Cvss{}
 	if ev != nil {
