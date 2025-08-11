@@ -540,7 +540,7 @@ func EnableScheduler(cfg util.Config) error {
 		logrus.WithError(err).Error(err)
 		return err
 	}
-    defer db.Close()
+	defer db.Close()
 
 	_, err = db.Exec("SET GLOBAL event_scheduler = ON;")
 	if err != nil {
