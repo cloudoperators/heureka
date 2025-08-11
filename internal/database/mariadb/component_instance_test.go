@@ -16,6 +16,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"), func() {
@@ -1043,6 +1045,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 			})
 			Context("and using asc order", func() {
+				c := collate.New(language.English)
 				It("can order by id", func() {
 					sort.Slice(seedCollection.ComponentInstanceRows, func(i, j int) bool {
 						return seedCollection.ComponentInstanceRows[i].Id.Int64 < seedCollection.ComponentInstanceRows[j].Id.Int64
@@ -1066,7 +1069,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = ""
 						for _, r := range res {
-							Expect(r.ComponentInstance.CCRN >= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.CCRN, prev)).Should(BeNumerically(">=", 0))
 							prev = r.ComponentInstance.CCRN
 						}
 					})
@@ -1079,7 +1082,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = ""
 						for _, r := range res {
-							Expect(r.ComponentInstance.Region >= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Region, prev)).Should(BeNumerically(">=", 0))
 							prev = r.ComponentInstance.Region
 						}
 					})
@@ -1092,7 +1095,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = ""
 						for _, r := range res {
-							Expect(r.ComponentInstance.Namespace >= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Namespace, prev)).Should(BeNumerically(">=", 0))
 							prev = r.ComponentInstance.Namespace
 						}
 					})
@@ -1105,7 +1108,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = ""
 						for _, r := range res {
-							Expect(r.ComponentInstance.Cluster >= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Cluster, prev)).Should(BeNumerically(">=", 0))
 							prev = r.ComponentInstance.Cluster
 						}
 					})
@@ -1118,7 +1121,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = ""
 						for _, r := range res {
-							Expect(r.ComponentInstance.Domain >= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Domain, prev)).Should(BeNumerically(">=", 0))
 							prev = r.ComponentInstance.Domain
 						}
 					})
@@ -1131,7 +1134,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = ""
 						for _, r := range res {
-							Expect(r.ComponentInstance.Project >= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Project, prev)).Should(BeNumerically(">=", 0))
 							prev = r.ComponentInstance.Project
 						}
 					})
@@ -1144,7 +1147,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = ""
 						for _, r := range res {
-							Expect(r.ComponentInstance.Pod >= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Pod, prev)).Should(BeNumerically(">=", 0))
 							prev = r.ComponentInstance.Pod
 						}
 					})
@@ -1157,7 +1160,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = ""
 						for _, r := range res {
-							Expect(r.ComponentInstance.Container >= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Container, prev)).Should(BeNumerically(">=", 0))
 							prev = r.ComponentInstance.Container
 						}
 					})
@@ -1177,6 +1180,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 			})
 			Context("and using desc order", func() {
+				c := collate.New(language.English)
 				It("can order by id", func() {
 					sort.Slice(seedCollection.ComponentInstanceRows, func(i, j int) bool {
 						return seedCollection.ComponentInstanceRows[i].Id.Int64 > seedCollection.ComponentInstanceRows[j].Id.Int64
@@ -1200,7 +1204,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = "\U0010FFFF"
 						for _, r := range res {
-							Expect(r.ComponentInstance.CCRN <= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.CCRN, prev)).Should(BeNumerically("<=", 0))
 							prev = r.ComponentInstance.CCRN
 						}
 					})
@@ -1213,7 +1217,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = "\U0010FFFF"
 						for _, r := range res {
-							Expect(r.ComponentInstance.Region <= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Region, prev)).Should(BeNumerically("<=", 0))
 							prev = r.ComponentInstance.Region
 						}
 					})
@@ -1226,7 +1230,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = "\U0010FFFF"
 						for _, r := range res {
-							Expect(r.ComponentInstance.Namespace <= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Namespace, prev)).Should(BeNumerically("<=", 0))
 							prev = r.ComponentInstance.Namespace
 						}
 					})
@@ -1239,7 +1243,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = "\U0010FFFF"
 						for _, r := range res {
-							Expect(r.ComponentInstance.Cluster <= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Cluster, prev)).Should(BeNumerically("<=", 0))
 							prev = r.ComponentInstance.Cluster
 						}
 					})
@@ -1252,7 +1256,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = "\U0010FFFF"
 						for _, r := range res {
-							Expect(r.ComponentInstance.Domain <= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Domain, prev)).Should(BeNumerically("<=", 0))
 							prev = r.ComponentInstance.Domain
 						}
 					})
@@ -1265,7 +1269,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = "\U0010FFFF"
 						for _, r := range res {
-							Expect(r.ComponentInstance.Project <= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Project, prev)).Should(BeNumerically("<=", 0))
 							prev = r.ComponentInstance.Project
 						}
 					})
@@ -1278,7 +1282,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = "\U0010FFFF"
 						for _, r := range res {
-							Expect(r.ComponentInstance.Pod <= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Pod, prev)).Should(BeNumerically("<=", 0))
 							prev = r.ComponentInstance.Pod
 						}
 					})
@@ -1291,7 +1295,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						var prev string = "\U0010FFFF"
 						for _, r := range res {
-							Expect(r.ComponentInstance.Container <= prev).Should(BeTrue())
+							Expect(c.CompareString(r.ComponentInstance.Container, prev)).Should(BeNumerically("<=", 0))
 							prev = r.ComponentInstance.Container
 						}
 					})
