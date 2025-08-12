@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 FROM node:20-bullseye AS builder
 
 # Install jq and pnpm
