@@ -61,5 +61,19 @@ services:
       - valkey-data:/data
     restart: always
 
+  ui:
+    build:
+      context: ./ui/
+      dockerfile: Dockerfile
+      args:
+        UI_GIT_REPO: https://github.com/cloudoperators/juno/
+        UI_GIT_DIR: ./ui/juno/
+    container_name: juno-ui
+    profiles:
+      - ui
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
 volumes:
   valkey-data:
