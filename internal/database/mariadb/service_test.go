@@ -995,6 +995,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
+		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
 
@@ -1056,6 +1057,8 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 				_, err := seeder.InsertFakeComponentInstance(ci)
 				Expect(err).To(BeNil())
 			}
+			err = seeder.RefreshServiceIssueCounters()
+			Expect(err).To(BeNil())
 		})
 		It("can order desc by critical, high, medium, low and none", func() {
 			order := []entity.Order{
