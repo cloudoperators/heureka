@@ -38,31 +38,14 @@ func (e *SupportGroupHandlerError) Error() string {
 	return e.message
 }
 
-func (sg *supportGroupHandler) getSupportGroupResults(filter *entity.SupportGroupFilter) ([]entity.SupportGroupResult, error) {
-	var supportGroupResults []entity.SupportGroupResult
-	supportGroups, err := sg.database.GetSupportGroups(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, sg := range supportGroups {
-		supportGroup := sg
-		cursor := fmt.Sprintf("%d", supportGroup.Id)
-		supportGroupResults = append(supportGroupResults, entity.SupportGroupResult{
-			WithCursor:               entity.WithCursor{Value: cursor},
-			SupportGroupAggregations: nil,
-			SupportGroup:             &supportGroup,
-		})
-	}
-	return supportGroupResults, nil
-}
-
 func (sg *supportGroupHandler) GetSupportGroup(supportGroupId int64) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetSupportGroupEventName,
 		"id":    supportGroupId,
 	})
+	lo := entity.NewListOptions()
 	supportGroupFilter := entity.SupportGroupFilter{Id: []*int64{&supportGroupId}}
-	supportGroups, err := sg.ListSupportGroups(&supportGroupFilter, &entity.ListOptions{})
+	supportGroups, err := sg.ListSupportGroups(&supportGroupFilter, lo)
 
 	if err != nil {
 		l.Error(err)
@@ -85,14 +68,14 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginated(&filter.Paginated)
+	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListSupportGroupsEventName,
 		"filter": filter,
 	})
 
-	res, err := sg.getSupportGroupResults(filter)
+	res, err := sg.database.GetSupportGroups(filter, options.Order)
 
 	if err != nil {
 		l.Error(err)
@@ -101,13 +84,13 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := sg.database.GetAllSupportGroupIds(filter)
+			cursors, err := sg.database.GetAllSupportGroupCursors(filter, options.Order)
 			if err != nil {
 				l.Error(err)
-				return nil, NewSupportGroupHandlerError("Error while getting all Ids")
+				return nil, NewSupportGroupHandlerError("Error while getting all cursors")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = sg.database.CountSupportGroups(filter)
@@ -150,7 +133,8 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	}
 	supportGroup.UpdatedBy = supportGroup.CreatedBy
 
-	supportGroups, err := sg.ListSupportGroups(f, &entity.ListOptions{})
+	lo := entity.NewListOptions()
+	supportGroups, err := sg.ListSupportGroups(f, lo)
 
 	if err != nil {
 		l.Error(err)

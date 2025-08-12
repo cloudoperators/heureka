@@ -13,7 +13,7 @@ type Query {
     IssueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     IssueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
     Evidences(filter: EvidenceFilter, first: Int, after: String): EvidenceConnection
-    SupportGroups(filter: SupportGroupFilter, first: Int, after: String): SupportGroupConnection
+    SupportGroups(filter: SupportGroupFilter, first: Int, after: String, orderBy: [SupportGroupOrderBy]): SupportGroupConnection
     Users(filter: UserFilter, first: Int, after: String): UserConnection
     ServiceFilterValues: ServiceFilterValue
     IssueMatchFilterValues: IssueMatchFilterValue

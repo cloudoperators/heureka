@@ -14,6 +14,8 @@ import (
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -65,7 +67,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -104,7 +106,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()
@@ -145,7 +147,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()
@@ -212,6 +214,53 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 					Expect(*respData.SupportGroups.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 				})
 			})
+		})
+		Context("and we use order", Label("withOrder.graphql"), func() {
+			var respData struct {
+				SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
+			}
+			c := collate.New(language.English)
+
+			It("can order by ccrn", Label("withOrder.graphql"), func() {
+				// create a queryCollection (safe to share across requests)
+				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+
+				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/withOrder.graphql")
+
+				Expect(err).To(BeNil())
+				str := string(b)
+				req := graphql.NewRequest(str)
+
+				req.Var("filter", map[string]string{})
+				req.Var("first", 10)
+				req.Var("after", "")
+				req.Var("orderBy", []map[string]string{
+					{"by": "ccrn", "direction": "asc"},
+				})
+
+				req.Header.Set("Cache-Control", "no-cache")
+
+				ctx := context.Background()
+
+				err = client.Run(ctx, req, &respData)
+
+				Expect(err).To(BeNil(), "Error while unmarshaling")
+
+				By("- returns the correct result count", func() {
+					Expect(respData.SupportGroups.TotalCount).To(Equal(len(seedCollection.SupportGroupRows)))
+					Expect(len(respData.SupportGroups.Edges)).To(Equal(10))
+				})
+
+				By("- returns the expected content in order", func() {
+					var prev string = ""
+					for _, im := range respData.SupportGroups.Edges {
+						Expect(c.CompareString(*im.Node.Ccrn, prev)).Should(BeNumerically(">=", 0))
+						prev = *im.Node.Ccrn
+					}
+				})
+			})
+
 		})
 	})
 })
