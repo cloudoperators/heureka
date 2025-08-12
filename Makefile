@@ -123,3 +123,9 @@ check-call-cached:
 
 check-migration-files:
 	@comm -12 <(git diff --name-only origin/main...HEAD | grep '^$(MIGRATIONS_DIR)' | sort) <(git ls-tree -r --name-only origin/main | grep '^$(MIGRATIONS_DIR)' | sort) | grep -q . && { echo "Forbidden change detected!"; exit 1; } || echo "No forbidden changes."
+
+ui-up:
+	$(DOCKER_COMPOSE) --profile ui up -d
+
+ui-down:
+	$(DOCKER_COMPOSE) --profile ui up -d
