@@ -12,6 +12,8 @@ import (
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -205,6 +207,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 			var respData struct {
 				ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
 			}
+			c := collate.New(language.English)
 
 			var sendOrderRequest = func(orderBy []map[string]string) (*model.ComponentInstanceConnection, error) {
 				// create a queryCollection (safe to share across requests)
@@ -242,7 +245,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, ci := range componentInstances.Edges {
-						Expect(*ci.Node.Region >= prev).Should(BeTrue())
+						Expect(c.CompareString(*ci.Node.Region, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Region
 					}
 				})
@@ -257,7 +260,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, ci := range componentInstances.Edges {
-						Expect(*ci.Node.Namespace >= prev).Should(BeTrue())
+						Expect(c.CompareString(*ci.Node.Namespace, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Namespace
 					}
 				})
@@ -272,7 +275,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, ci := range componentInstances.Edges {
-						Expect(*ci.Node.Cluster >= prev).Should(BeTrue())
+						Expect(c.CompareString(*ci.Node.Cluster, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Cluster
 					}
 				})
@@ -287,7 +290,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, ci := range componentInstances.Edges {
-						Expect(*ci.Node.Domain >= prev).Should(BeTrue())
+						Expect(c.CompareString(*ci.Node.Domain, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Domain
 					}
 				})
@@ -302,7 +305,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, ci := range componentInstances.Edges {
-						Expect(*ci.Node.Project >= prev).Should(BeTrue())
+						Expect(c.CompareString(*ci.Node.Project, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Project
 					}
 				})
@@ -317,7 +320,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, ci := range componentInstances.Edges {
-						Expect(*ci.Node.Pod >= prev).Should(BeTrue())
+						Expect(c.CompareString(*ci.Node.Pod, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Pod
 					}
 				})
@@ -332,7 +335,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, ci := range componentInstances.Edges {
-						Expect(*ci.Node.Container >= prev).Should(BeTrue())
+						Expect(c.CompareString(*ci.Node.Container, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Container
 					}
 				})

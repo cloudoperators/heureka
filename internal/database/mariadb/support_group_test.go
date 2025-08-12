@@ -7,6 +7,8 @@ import (
 	"math/rand"
 
 	"github.com/samber/lo"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
@@ -253,6 +255,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				})
 			})
 			Context("and using ordering", func() {
+				c := collate.New(language.English)
 				var testOrder = func(
 					order []entity.Order,
 					verifyFunc func(res []entity.SupportGroupResult),
@@ -283,7 +286,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						testOrder(order, func(res []entity.SupportGroupResult) {
 							var prev string = ""
 							for _, r := range res {
-								Expect(r.SupportGroup.CCRN >= prev).Should(BeTrue())
+								Expect(c.CompareString(r.SupportGroup.CCRN, prev)).Should(BeNumerically(">=", 0))
 								prev = r.SupportGroup.CCRN
 							}
 						})
@@ -302,7 +305,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						testOrder(order, func(res []entity.SupportGroupResult) {
 							var prev string = "\U0010FFFF"
 							for _, r := range res {
-								Expect(r.SupportGroup.CCRN <= prev).Should(BeTrue())
+								Expect(c.CompareString(r.SupportGroup.CCRN, prev)).Should(BeNumerically("<=", 0))
 								prev = r.SupportGroup.CCRN
 							}
 						})
