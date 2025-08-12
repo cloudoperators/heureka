@@ -128,4 +128,4 @@ ui-up:
 	$(DOCKER_COMPOSE) --profile ui up -d
 
 ui-down:
-	$(DOCKER_COMPOSE) --profile ui up -d
+	$(DOCKER_COMPOSE) --profile ui down
