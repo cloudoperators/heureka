@@ -173,11 +173,9 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		options = getIssueListOptions()
 		filter = getIssueFilter()
 		issueTypeCounts = getIssueTypeCounts()
-
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
@@ -191,6 +189,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
 	})
+
 	When("the list option does include the PageInfo", func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
@@ -229,7 +228,6 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			Entry("When pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
 			Entry("When pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
-
 	})
 
 	When("the list options does include aggregations", func() {
@@ -237,7 +235,6 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			options.IncludeAggregations = true
 		})
 		Context("and the given filter does not have any matches in the database", func() {
-
 			BeforeEach(func() {
 				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			})
@@ -247,7 +244,6 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
-
 			})
 		})
 		Context("and the filter does have results in the database", func() {
@@ -263,35 +259,39 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return([]entity.IssueResult{}, errors.New("some error"))
+				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return([]entity.IssueResult{}, errors.New("database error"))
 			})
 
-			It("should return the expected issues in the result", func() {
+			It("should return Internal error with proper structure", func() {
 				issueHandler = issue.NewIssueHandler(db, er)
 				_, err := issueHandler.ListIssues(filter, options)
-				Expect(err).Error()
-				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
+
+				Expect(err).ToNot(BeNil(), "error should be returned")
+
+				var appErr *appErrors.Error
+				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+				Expect(appErr.Entity).To(Equal("Issues"), "should reference Issues entity")
+				Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+				Expect(appErr.Op).To(Equal("issueHandler.ListIssues"), "should include operation")
 			})
 		})
 	})
-	When("the list options does NOT include aggregations", func() {
 
+	When("the list options does NOT include aggregations", func() {
 		BeforeEach(func() {
 			options.IncludeAggregations = false
 		})
 
 		Context("and the given filter does not have any matches in the database", func() {
-
 			BeforeEach(func() {
 				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			})
 			It("should return an empty result", func() {
-
 				issueHandler = issue.NewIssueHandler(db, er)
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
-
 			})
 		})
 		Context("and the filter does have results in the database", func() {
@@ -306,17 +306,75 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			})
 		})
 
-		Context("and  the database operations throw an error", func() {
+		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, errors.New("some error"))
+				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, errors.New("database error"))
 			})
 
-			It("should return the expected issues in the result", func() {
+			It("should return Internal error with proper structure", func() {
 				issueHandler = issue.NewIssueHandler(db, er)
 				_, err := issueHandler.ListIssues(filter, options)
-				Expect(err).Error()
-				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
+
+				Expect(err).ToNot(BeNil(), "error should be returned")
+
+				var appErr *appErrors.Error
+				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+				Expect(appErr.Entity).To(Equal("Issues"), "should reference Issues entity")
+				Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+				Expect(appErr.Op).To(Equal("issueHandler.ListIssues"), "should include operation")
 			})
+		})
+	})
+
+	Context("when GetAllIssueCursors fails", func() {
+		BeforeEach(func() {
+			options.ShowPageInfo = true
+			filter.First = lo.ToPtr(10)
+		})
+
+		It("should return Internal error", func() {
+			// Mock successful GetIssues but failing GetAllIssueCursors
+			db.On("GetIssues", filter, []entity.Order{}).Return(test.NNewFakeIssueResults(5), nil)
+			cursorsError := errors.New("cursor database error")
+			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return([]string{}, cursorsError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			_, err := issueHandler.ListIssues(filter, options)
+
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("IssueCursors"), "should reference IssueCursors entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("issueHandler.ListIssues"), "should include operation")
+		})
+	})
+
+	Context("when CountIssueTypes fails", func() {
+		BeforeEach(func() {
+			options.ShowTotalCount = true
+		})
+
+		It("should return Internal error", func() {
+			// Mock successful GetIssues but failing CountIssueTypes
+			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+			countError := errors.New("count database error")
+			db.On("CountIssueTypes", filter).Return((*entity.IssueTypeCounts)(nil), countError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			_, err := issueHandler.ListIssues(filter, options)
+
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("IssueTypeCounts"), "should reference IssueTypeCounts entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("issueHandler.ListIssues"), "should include operation")
 		})
 	})
 })
@@ -476,9 +534,6 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
 			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
 			Expect(appErr.Message).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
-			// The ListIssues method still uses old IssueHandlerError, so the wrapped error will be that type
-			// This test verifies that CreateIssue properly wraps the ListIssues error
-			Expect(appErr.Err.Error()).To(ContainSubstring("Internal error while retrieving list results"), "should wrap ListIssues error")
 		})
 	})
 

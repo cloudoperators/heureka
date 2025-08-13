@@ -120,6 +120,8 @@ func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 }
 
 func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.IssueListOptions) (*entity.IssueList, error) {
+	op := appErrors.Op("issueHandler.ListIssues")
+
 	var pageInfo *entity.PageInfo
 	var res []entity.IssueResult
 	var err error
@@ -127,24 +129,27 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 		List: &entity.List[entity.IssueResult]{},
 	}
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListIssuesEventName,
-		"filter": filter,
-	})
-
 	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	if options.IncludeAggregations {
 		res, err = is.database.GetIssuesWithAggregations(filter, options.Order)
 		if err != nil {
-			l.Error(err)
-			return nil, NewIssueHandlerError("Internal error while retrieving list results witis aggregations")
+			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
+			is.logError(wrappedErr, logrus.Fields{
+				"filter":               filter,
+				"include_aggregations": true,
+			})
+			return nil, wrappedErr
 		}
 	} else {
 		res, err = is.database.GetIssues(filter, options.Order)
 		if err != nil {
-			l.Error(err)
-			return nil, NewIssueHandlerError("Internal error while retrieving list results.")
+			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
+			is.logError(wrappedErr, logrus.Fields{
+				"filter":               filter,
+				"include_aggregations": false,
+			})
+			return nil, wrappedErr
 		}
 	}
 
@@ -154,18 +159,25 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 		if len(res) > 0 {
 			cursors, err := is.database.GetAllIssueCursors(filter, options.Order)
 			if err != nil {
-				l.Error(err)
-				return nil, NewIssueHandlerError("Error while getting all cursors")
+				wrappedErr := appErrors.InternalError(string(op), "IssueCursors", "", err)
+				is.logError(wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
 			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
 			issueList.PageInfo = pageInfo
 		}
 	}
+
 	if options.ShowPageInfo || options.ShowTotalCount || options.ShowIssueTypeCounts {
 		counts, err := is.database.CountIssueTypes(filter)
 		if err != nil {
-			l.Error(err)
-			return nil, NewIssueHandlerError("Error while count of issues")
+			wrappedErr := appErrors.InternalError(string(op), "IssueTypeCounts", "", err)
+			is.logError(wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 		tc := counts.TotalIssueCount()
 		issueList.PolicyViolationCount = &counts.PolicyViolationCount
