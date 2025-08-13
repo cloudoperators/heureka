@@ -41,10 +41,8 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 	opt := &entity.IssueListOptions{}
 
 	issues, err := app.ListIssues(f, opt)
-
-	// error while fetching
 	if err != nil {
-		return nil, NewResolverError("SingleIssueBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	// unexpected number of results (should at most be 1)
@@ -120,10 +118,8 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	issues, err := app.ListIssues(f, opt)
-
-	//@todo propper error handling
 	if err != nil {
-		return nil, NewResolverError("IssueBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	edges := []*model.IssueEdge{}
@@ -189,9 +185,8 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	opt := GetListOptions(requestedFields)
 
 	names, err := app.ListIssueNames(f, opt)
-
 	if err != nil {
-		return nil, NewResolverError("IssueNamesBaseReolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	var pointerNames []*string
@@ -219,14 +214,12 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	irIds, err := util.ConvertStrToIntSlice(filter.IssueRepositoryID)
-
 	if err != nil {
 		return nil, NewResolverError("IssueCountsBaseResolver", err.Error())
 	}
 
 	var cvIds []*int64
 	cvIds, err = util.ConvertStrToIntSlice(filter.ComponentVersionID)
-
 	if err != nil {
 		return nil, NewResolverError("IssueCountsBaseResolver", err.Error())
 	}
@@ -269,9 +262,8 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	counts, err := app.GetIssueSeverityCounts(f)
-
 	if err != nil {
-		return nil, NewResolverError("IssueCountsBaseReolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	severityCounts := model.NewSeverityCounts(counts)
