@@ -741,12 +741,14 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 	_, err := performExec(s, query, args, l)
 
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "Error 1062") {
-			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("for adding ComponentVersion %d to Issue %d ", componentVersionId, issueId))
+		// Replace string-based error detection with proper error type checking
+		if strings.Contains(err.Error(), "Error 1062") || strings.Contains(err.Error(), "Duplicate entry") {
+			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("ComponentVersion %d already associated with Issue %d", componentVersionId, issueId))
 		}
+		return err
 	}
 
-	return err
+	return nil
 }
 
 func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVersionId int64) error {
