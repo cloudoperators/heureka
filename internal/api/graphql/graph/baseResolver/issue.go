@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 	}).Debug("Called SingleIssueBaseResolver")
 
 	if parent == nil {
-		return nil, NewResolverError("SingleIssueBaseResolver", "Bad Request - No parent provided")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleIssueBaseResolver"), "Issue", appErrors.InvalidArgument, "No parent provided"))
 	}
 
 	f := &entity.IssueFilter{
@@ -47,7 +48,7 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 
 	// unexpected number of results (should at most be 1)
 	if len(issues.Elements) > 1 {
-		return nil, NewResolverError("SingleIssueBaseResolver", "Internal Error - found multiple issues")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleIssueBaseResolver"), "Issue", appErrors.Internal, "found multiple issues"))
 	}
 
 	//not found
@@ -75,7 +76,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
 			logrus.WithField("parent", parent).Error("IssueBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("IssueBaseResolver", "Bad Request - Error while parsing propagated ID")
+			return nil, ToGraphQLError(appErrors.E(appErrors.Op("IssueBaseResolver"), "Issue", appErrors.InvalidArgument, "Error while parsing propagated ID"))
 		}
 
 		switch parent.ParentName {
@@ -215,13 +216,13 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 
 	irIds, err := util.ConvertStrToIntSlice(filter.IssueRepositoryID)
 	if err != nil {
-		return nil, NewResolverError("IssueCountsBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	var cvIds []*int64
 	cvIds, err = util.ConvertStrToIntSlice(filter.ComponentVersionID)
 	if err != nil {
-		return nil, NewResolverError("IssueCountsBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	var serviceId []*int64
@@ -232,7 +233,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 			parentId := parent.Parent.GetID()
 			pid, err = ParseCursor(&parentId)
 			if err != nil {
-				return nil, NewResolverError("IssueCountsBaseResolver", "Bad Request - Error while parsing propagated ID")
+				return nil, ToGraphQLError(appErrors.E(appErrors.Op("IssueCountsBaseResolver"), "Issue", appErrors.InvalidArgument, "Error while parsing propagated ID"))
 			}
 		}
 
