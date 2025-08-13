@@ -779,6 +779,65 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 			})
 		})
 	})
+	Context("when removing componentVersion from issue", func() {
+		Context("with valid input", func() {
+			It("removes componentVersion from issueEntity successfully", func() {
+				db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
+				db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
+
+				issueHandler = issue.NewIssueHandler(db, er)
+				result, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
+
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).NotTo(BeNil(), "issueEntity should be returned")
+			})
+		})
+
+		Context("when database operation fails", func() {
+			It("should return Internal error", func() {
+				// Mock database error
+				dbError := errors.New("foreign key constraint violation")
+				db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(dbError)
+
+				issueHandler = issue.NewIssueHandler(db, er)
+				result, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
+
+				Expect(result).To(BeNil(), "no result should be returned")
+				Expect(err).ToNot(BeNil(), "error should be returned")
+
+				var appErr *appErrors.Error
+				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+				Expect(appErr.Entity).To(Equal("ComponentVersionIssue"), "should reference ComponentVersionIssue entity")
+				Expect(appErr.ID).To(Equal(fmt.Sprintf("issue:%d-componentVersion:%d", issueResult.Issue.Id, componentVersion.Id)), "should include composite ID")
+				Expect(appErr.Op).To(Equal("issueHandler.RemoveComponentVersionFromIssue"), "should include operation")
+				Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+			})
+		})
+
+		Context("when GetIssue fails after successful removal", func() {
+			It("should return Internal error", func() {
+				// Mock successful removal but GetIssue failure
+				db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
+				getIssueError := errors.New("database query failed")
+				db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{}, getIssueError)
+
+				issueHandler = issue.NewIssueHandler(db, er)
+				result, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
+
+				Expect(result).To(BeNil(), "no result should be returned")
+				Expect(err).ToNot(BeNil(), "error should be returned")
+
+				var appErr *appErrors.Error
+				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+				Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
+				Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
+				Expect(appErr.Op).To(Equal("issueHandler.RemoveComponentVersionFromIssue"), "should include operation")
+			})
+		})
+
+	})
 
 	It("removes componentVersion from issueEntity", func() {
 		db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)

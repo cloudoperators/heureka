@@ -362,16 +362,17 @@ func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId i
 }
 
 func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersionId int64) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": RemoveComponentVersionFromIssueEventName,
-		"id":    issueId,
-	})
+	op := appErrors.Op("issueHandler.RemoveComponentVersionFromIssue")
 
 	err := is.database.RemoveComponentVersionFromIssue(issueId, componentVersionId)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while removing component version from issue.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersionIssue",
+			fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId), err)
+		is.logError(wrappedErr, logrus.Fields{
+			"issue_id":             issueId,
+			"component_version_id": componentVersionId,
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&RemoveComponentVersionFromIssueEvent{
@@ -379,7 +380,17 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersio
 		ComponentVersionID: componentVersionId,
 	})
 
-	return is.GetIssue(issueId)
+	issue, err := is.GetIssue(issueId)
+	if err != nil {
+		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issueId, 10), appErrors.Internal, err)
+		is.logError(wrappedErr, logrus.Fields{
+			"issue_id":             issueId,
+			"component_version_id": componentVersionId,
+		})
+		return nil, wrappedErr
+	}
+
+	return issue, nil
 }
 
 func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *entity.ListOptions) ([]string, error) {
