@@ -14,6 +14,8 @@ import (
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -217,6 +219,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 			var respData struct {
 				SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
 			}
+			c := collate.New(language.English)
 
 			It("can order by ccrn", Label("withOrder.graphql"), func() {
 				// create a queryCollection (safe to share across requests)
@@ -252,7 +255,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, im := range respData.SupportGroups.Edges {
-						Expect(*im.Node.Ccrn >= prev).Should(BeTrue())
+						Expect(c.CompareString(*im.Node.Ccrn, prev)).Should(BeNumerically(">=", 0))
 						prev = *im.Node.Ccrn
 					}
 				})
