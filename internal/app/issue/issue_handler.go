@@ -394,16 +394,15 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersio
 }
 
 func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListIssueNamesEventName,
-		"filter": filter,
-	})
+	op := appErrors.Op("issueHandler.ListIssueNames")
 
 	issueNames, err := is.database.GetIssueNames(filter)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while retrieving issueNames.")
+		wrappedErr := appErrors.InternalError(string(op), "IssueNames", "", err)
+		is.logError(wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&ListIssueNamesEvent{

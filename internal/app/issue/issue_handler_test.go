@@ -321,6 +321,70 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 	})
 })
 
+var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), func() {
+	var (
+		db           *mocks.MockDatabase
+		issueHandler issue.IssueHandler
+		filter       *entity.IssueFilter
+		options      *entity.ListOptions
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		filter = getIssueFilter()
+		options = entity.NewListOptions()
+	})
+
+	Context("with valid input", func() {
+		It("returns issue names successfully", func() {
+			expectedNames := []string{"CVE-2023-1234", "CVE-2023-5678", "POLICY-001"}
+			db.On("GetIssueNames", filter).Return(expectedNames, nil)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.ListIssueNames(filter, options)
+
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(result).ToNot(BeNil(), "result should be returned")
+			Expect(result).To(Equal(expectedNames), "should return expected issue names")
+			Expect(len(result)).To(Equal(3), "should return correct number of names")
+		})
+
+		It("returns empty list when no issues found", func() {
+			expectedNames := []string{}
+			db.On("GetIssueNames", filter).Return(expectedNames, nil)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.ListIssueNames(filter, options)
+
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(result).ToNot(BeNil(), "result should be returned")
+			Expect(result).To(BeEmpty(), "should return empty list")
+		})
+	})
+
+	Context("when database operation fails", func() {
+		It("should return Internal error", func() {
+			// Mock database error
+			dbError := errors.New("database connection failed")
+			db.On("GetIssueNames", filter).Return([]string{}, dbError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.ListIssueNames(filter, options)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("IssueNames"), "should reference IssueNames entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("issueHandler.ListIssueNames"), "should include operation")
+			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+		})
+	})
+})
+
 var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 	var (
 		db           *mocks.MockDatabase
