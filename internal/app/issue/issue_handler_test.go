@@ -912,3 +912,81 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
 	})
 })
+
+var _ = Describe("When getting Issue Severity Counts", Label("app", "GetIssueSeverityCounts"), func() {
+	var (
+		db           *mocks.MockDatabase
+		issueHandler issue.IssueHandler
+		filter       *entity.IssueFilter
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		filter = getIssueFilter()
+	})
+
+	Context("with valid input", func() {
+		It("returns issue severity counts successfully", func() {
+			expectedCounts := &entity.IssueSeverityCounts{
+				Critical: 10,
+				High:     25,
+				Medium:   50,
+				Low:      15,
+			}
+			db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.GetIssueSeverityCounts(filter)
+
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(result).ToNot(BeNil(), "result should be returned")
+			Expect(result).To(Equal(expectedCounts), "should return expected severity counts")
+			Expect(result.Critical).To(Equal(int64(10)), "should return correct critical count")
+			Expect(result.High).To(Equal(int64(25)), "should return correct high count")
+			Expect(result.Medium).To(Equal(int64(50)), "should return correct medium count")
+			Expect(result.Low).To(Equal(int64(15)), "should return correct low count")
+		})
+
+		It("returns zero counts when no issues found", func() {
+			expectedCounts := &entity.IssueSeverityCounts{
+				Critical: 0,
+				High:     0,
+				Medium:   0,
+				Low:      0,
+			}
+			db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.GetIssueSeverityCounts(filter)
+
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(result).ToNot(BeNil(), "result should be returned")
+			Expect(result.Critical).To(Equal(int64(0)), "should return zero critical count")
+			Expect(result.High).To(Equal(int64(0)), "should return zero high count")
+			Expect(result.Medium).To(Equal(int64(0)), "should return zero medium count")
+			Expect(result.Low).To(Equal(int64(0)), "should return zero low count")
+		})
+	})
+
+	Context("when database operation fails", func() {
+		It("should return Internal error", func() {
+			// Mock database error
+			dbError := errors.New("database aggregation failed")
+			db.On("CountIssueRatings", filter).Return((*entity.IssueSeverityCounts)(nil), dbError)
+
+			issueHandler = issue.NewIssueHandler(db, er)
+			result, err := issueHandler.GetIssueSeverityCounts(filter)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("IssueSeverityCounts"), "should reference IssueSeverityCounts entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for aggregation operation")
+			Expect(appErr.Op).To(Equal("issueHandler.GetIssueSeverityCounts"), "should include operation")
+			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+		})
+	})
+})

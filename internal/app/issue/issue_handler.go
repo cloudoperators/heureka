@@ -415,10 +415,15 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 }
 
 func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
-	counts, err := is.database.CountIssueRatings(filter)
+	op := appErrors.Op("issueHandler.GetIssueSeverityCounts")
 
+	counts, err := is.database.CountIssueRatings(filter)
 	if err != nil {
-		return nil, err
+		wrappedErr := appErrors.InternalError(string(op), "IssueSeverityCounts", "", err)
+		is.logError(wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&GetIssueSeverityCountsEvent{
