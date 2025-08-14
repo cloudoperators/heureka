@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
@@ -29,60 +30,13 @@ func NewIssueHandler(db database.Database, er event.EventRegistry) IssueHandler 
 	}
 }
 
-type IssueHandlerError struct {
-	msg string
-}
-
-func (e *IssueHandlerError) Error() string {
-	return fmt.Sprintf("IssueHandlerError: %s", e.msg)
-}
-
-func NewIssueHandlerError(msg string) *IssueHandlerError {
-	return &IssueHandlerError{msg: msg}
-}
-
-// logError logs errors using our internal error package
-func (is *issueHandler) logError(err error, fields logrus.Fields) {
-	var appErr *appErrors.Error
-	if !errors.As(err, &appErr) {
-		is.logger.WithError(err).WithFields(fields).Error("Unknown error")
-		return
-	}
-
-	errorFields := logrus.Fields{
-		"error_code": string(appErr.Code),
-	}
-
-	if appErr.Entity != "" {
-		errorFields["entity"] = appErr.Entity
-	}
-	if appErr.ID != "" {
-		errorFields["entity_id"] = appErr.ID
-	}
-	if appErr.Op != "" {
-		errorFields["operation"] = appErr.Op
-	}
-
-	// Add any additional fields from the error
-	for k, v := range appErr.Fields {
-		errorFields[k] = v
-	}
-
-	// Add any passed-in fields
-	for k, v := range fields {
-		errorFields[k] = v
-	}
-
-	is.logger.WithFields(errorFields).WithError(appErr.Err).Error(appErr.Error())
-}
-
 func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.GetIssue")
 
 	// Input validation
 	if id <= 0 {
 		err := appErrors.E(op, "Issue", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
-		is.logError(err, logrus.Fields{"id": id})
+		applog.LogError(is.logger, err, logrus.Fields{"id": id})
 		return nil, err
 	}
 
@@ -94,14 +48,14 @@ func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 	if err != nil {
 		// Wrap the error from ListIssues with operation context
 		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.Internal, err)
-		is.logError(wrappedErr, logrus.Fields{"id": id})
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{"id": id})
 		return nil, wrappedErr
 	}
 
 	// Check if exactly one issue was found
 	if len(issues.Elements) == 0 {
 		err := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.NotFound)
-		is.logError(err, logrus.Fields{"id": id})
+		applog.LogError(is.logger, err, logrus.Fields{"id": id})
 		return nil, err
 	}
 
@@ -109,7 +63,7 @@ func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 		// This shouldn't happen with a unique ID, indicates data integrity issue
 		err := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.Internal,
 			fmt.Sprintf("found %d issues with ID %d, expected 1", len(issues.Elements), id))
-		is.logError(err, logrus.Fields{"id": id, "found_count": len(issues.Elements)})
+		applog.LogError(is.logger, err, logrus.Fields{"id": id, "found_count": len(issues.Elements)})
 		return nil, err
 	}
 
@@ -135,7 +89,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 		res, err = is.database.GetIssuesWithAggregations(filter, options.Order)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
-			is.logError(wrappedErr, logrus.Fields{
+			applog.LogError(is.logger, wrappedErr, logrus.Fields{
 				"filter":               filter,
 				"include_aggregations": true,
 			})
@@ -145,7 +99,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 		res, err = is.database.GetIssues(filter, options.Order)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
-			is.logError(wrappedErr, logrus.Fields{
+			applog.LogError(is.logger, wrappedErr, logrus.Fields{
 				"filter":               filter,
 				"include_aggregations": false,
 			})
@@ -160,7 +114,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 			cursors, err := is.database.GetAllIssueCursors(filter, options.Order)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "IssueCursors", "", err)
-				is.logError(wrappedErr, logrus.Fields{
+				applog.LogError(is.logger, wrappedErr, logrus.Fields{
 					"filter": filter,
 				})
 				return nil, wrappedErr
@@ -174,7 +128,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 		counts, err := is.database.CountIssueTypes(filter)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "IssueTypeCounts", "", err)
-			is.logError(wrappedErr, logrus.Fields{
+			applog.LogError(is.logger, wrappedErr, logrus.Fields{
 				"filter": filter,
 			})
 			return nil, wrappedErr
@@ -206,7 +160,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	issue.CreatedBy, err = common.GetCurrentUserId(is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"primary_name": issue.PrimaryName,
 			"issue_type":   string(issue.Type),
 		})
@@ -221,7 +175,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"primary_name": issue.PrimaryName,
 			"issue_type":   string(issue.Type),
 		})
@@ -230,7 +184,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 
 	if len(issues.Elements) > 0 {
 		err := appErrors.AlreadyExistsError(string(op), "Issue", issue.PrimaryName)
-		is.logError(err, logrus.Fields{
+		applog.LogError(is.logger, err, logrus.Fields{
 			"primary_name":      issue.PrimaryName,
 			"existing_issue_id": issues.Elements[0].Issue.Id,
 		})
@@ -241,7 +195,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"primary_name": issue.PrimaryName,
 			"issue_type":   string(issue.Type),
 		})
@@ -259,7 +213,7 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	issue.UpdatedBy, err = common.GetCurrentUserId(is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(issue.Id, 10), err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"id":           issue.Id,
 			"primary_name": issue.PrimaryName,
 		})
@@ -269,7 +223,7 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	err = is.database.UpdateIssue(issue)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(issue.Id, 10), err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"id":           issue.Id,
 			"primary_name": issue.PrimaryName,
 		})
@@ -282,7 +236,7 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	issueResult, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &lo)
 	if err != nil {
 		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issue.Id, 10), appErrors.Internal, err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"id":           issue.Id,
 			"primary_name": issue.PrimaryName,
 		})
@@ -291,7 +245,7 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 
 	if len(issueResult.Elements) != 1 {
 		err := appErrors.E(op, "Issue", strconv.FormatInt(issue.Id, 10), appErrors.Internal, "unexpected number of issues found after update")
-		is.logError(err, logrus.Fields{
+		applog.LogError(is.logger, err, logrus.Fields{
 			"id":           issue.Id,
 			"found_count":  len(issueResult.Elements),
 			"primary_name": issue.PrimaryName,
@@ -310,7 +264,7 @@ func (is *issueHandler) DeleteIssue(id int64) error {
 	userId, err := common.GetCurrentUserId(is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(id, 10), err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"id": id,
 		})
 		return wrappedErr
@@ -319,7 +273,7 @@ func (is *issueHandler) DeleteIssue(id int64) error {
 	err = is.database.DeleteIssue(id, userId)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(id, 10), err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"id":      id,
 			"user_id": userId,
 		})
@@ -339,7 +293,7 @@ func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId i
 		if errors.As(err, &duplicateEntryError) {
 			wrappedErr := appErrors.AlreadyExistsError(string(op), "ComponentVersionIssue",
 				fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId))
-			is.logError(wrappedErr, logrus.Fields{
+			applog.LogError(is.logger, wrappedErr, logrus.Fields{
 				"issue_id":             issueId,
 				"component_version_id": componentVersionId,
 			})
@@ -348,7 +302,7 @@ func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId i
 
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersionIssue",
 			fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId), err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"issue_id":             issueId,
 			"component_version_id": componentVersionId,
 		})
@@ -363,7 +317,7 @@ func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId i
 	issue, err := is.GetIssue(issueId)
 	if err != nil {
 		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issueId, 10), appErrors.Internal, err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"issue_id":             issueId,
 			"component_version_id": componentVersionId,
 		})
@@ -380,7 +334,7 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersio
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersionIssue",
 			fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId), err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"issue_id":             issueId,
 			"component_version_id": componentVersionId,
 		})
@@ -395,7 +349,7 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersio
 	issue, err := is.GetIssue(issueId)
 	if err != nil {
 		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issueId, 10), appErrors.Internal, err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"issue_id":             issueId,
 			"component_version_id": componentVersionId,
 		})
@@ -411,7 +365,7 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 	issueNames, err := is.database.GetIssueNames(filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueNames", "", err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
 		return nil, wrappedErr
@@ -432,7 +386,7 @@ func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*ent
 	counts, err := is.database.CountIssueRatings(filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueSeverityCounts", "", err)
-		is.logError(wrappedErr, logrus.Fields{
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
 		return nil, wrappedErr
