@@ -178,8 +178,12 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 		`)
 	}
 
-	joins = fmt.Sprintf("%s\n%s", joins, getMvCountIssueRatingsJoin(filter))
+	return joins
+}
 
+func getIssueJoinsWithMvCountIssueRatingsJoin(filter *entity.IssueFilter, order []entity.Order) string {
+	joins := getIssueJoins(filter, order)
+	joins = fmt.Sprintf("%s\n%s", joins, getMvCountIssueRatingsJoin(filter))
 	return joins
 }
 
@@ -279,6 +283,15 @@ func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueF
 	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, orderStr)
 }
 
+func getIssueQueryWithMvCountIssueRatingsJoin(baseQuery string, order []entity.Order, filter *entity.IssueFilter) string {
+	issueColumns := getIssueColumns(order)
+	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
+	joins := getIssueJoinsWithMvCountIssueRatingsJoin(filter, order)
+	whereClause := getIssueFilterWhereClause(filter)
+	orderStr := CreateOrderString(defaultOrder)
+	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, orderStr)
+}
+
 func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
 	ifilter := s.ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
@@ -320,6 +333,37 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	}
 
 	query := getIssueQuery(baseQuery, order, ifilter)
+
+	//construct prepared statement and if where clause does exist add parameters
+	var stmt *sqlx.Stmt
+	stmt, err = s.db.Preparex(query)
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+				"stmt":  stmt,
+			}).Error(msg)
+		return nil, nil, fmt.Errorf("%s", msg)
+	}
+
+	//adding parameters
+	filterParameters := s.buildIssueFilterParameters(ifilter, cursorFields)
+
+	return stmt, filterParameters, nil
+}
+
+func (s *SqlDatabase) buildIssueStatementWithMvCountIssueRatingsJoin(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+	ifilter := s.ensureIssueFilter(filter)
+	l.WithFields(logrus.Fields{"filter": ifilter})
+
+	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	query := getIssueQueryWithMvCountIssueRatingsJoin(baseQuery, order, ifilter)
 
 	//construct prepared statement and if where clause does exist add parameters
 	var stmt *sqlx.Stmt
@@ -472,7 +516,7 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 	})
 
 	baseQuery := `
-		SELECT count(distinct I.issue_id) %s FROM Issue I
+		SELECT COUNT(distinct I.issue_id) %s FROM Issue I
 		%s
 		%s
 		ORDER BY %s
@@ -555,7 +599,7 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 		baseQuery = fmt.Sprintf(baseQuery, "%s", "LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id", "%s", "%s", "%s")
 	}
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildIssueStatementWithMvCountIssueRatingsJoin(baseQuery, filter, []entity.Order{}, l)
 
 	if err != nil {
 		return nil, err
