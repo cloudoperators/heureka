@@ -53,6 +53,8 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 			var err error
 			seedCollection, err = seeder.SeedForIssueCounts()
 			Expect(err).To(BeNil(), "Seeding should work")
+			err = seeder.RefreshCountIssueRatings()
+			Expect(err).To(BeNil(), "Refresh should work")
 		})
 		Context("and a filter is used", func() {
 			It("correct filters by support group", func() {

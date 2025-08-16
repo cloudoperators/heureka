@@ -68,7 +68,7 @@ BEGIN
     TRUNCATE TABLE mvCountIssueRatings2;
     INSERT INTO mvCountIssueRatings2 (supportgroup_ccrn, issue_value, issue_count)
     SELECT
-        SG.supportgroup_ccrn as supportgroup_ccrn,
+        COALESCE(SG.supportgroup_ccrn, 'UNKNOWN') AS supportgroup_ccrn,
         IV.issuevariant_rating AS issue_value,
         COUNT(DISTINCT CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)) AS issue_count
     FROM Issue I
@@ -99,7 +99,7 @@ BEGIN
     TRUNCATE TABLE mvCountIssueRatings3;
     INSERT INTO mvCountIssueRatings3 (supportgroup_ccrn, issue_value, issue_count)
     SELECT
-        SG.supportgroup_ccrn as supportgroup_ccrn,
+        COALESCE(SG.supportgroup_ccrn, 'UNKNOWN') AS supportgroup_ccrn,
         IV.issuevariant_rating AS issue_value,
         COUNT(DISTINCT CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id)) AS issue_count
     FROM Issue I
