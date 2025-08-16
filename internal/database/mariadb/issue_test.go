@@ -721,6 +721,8 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			BeforeEach(func() {
 				seedCollection, err = seeder.SeedForIssueCounts()
 				Expect(err).To(BeNil())
+				err = seeder.RefreshCountIssueRatings()
+				Expect(err).To(BeNil())
 			})
 
 			It("returns the correct count for all services", func() {
@@ -1156,6 +1158,8 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 		seedCollection, err = seeder.SeedForIssueCounts()
+		Expect(err).To(BeNil())
+		err = seeder.RefreshCountIssueRatings()
 		Expect(err).To(BeNil())
 	})
 	AfterEach(func() {
