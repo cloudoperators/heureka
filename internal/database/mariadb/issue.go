@@ -20,7 +20,19 @@ const (
 	wildCardFilterParamCount = 2
 )
 
-func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, withCursor bool, cursorFields []Field) []interface{} {
+func (s *SqlDatabase) buildIssueFilterParametersWithCursor(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
+	filterParameters := s.buildIssueFilterParameters(filter, cursorFields)
+	p := CreateCursorParameters([]any{}, cursorFields)
+	filterParameters = append(filterParameters, p...)
+	if filter.PaginatedX.First == nil {
+		filterParameters = append(filterParameters, 1000)
+	} else {
+		filterParameters = append(filterParameters, filter.PaginatedX.First)
+	}
+	return filterParameters
+}
+
+func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
@@ -36,20 +48,10 @@ func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, wit
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
-	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
-	}
-
 	return filterParameters
 }
 
-func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
+func getIssueFilterString(filter *entity.IssueFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id= ?", OP_OR))
@@ -70,7 +72,59 @@ func (s *SqlDatabase) getIssueFilterString(filter *entity.IssueFilter) string {
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
+func getMvCountIssueRatingsJoin(filter *entity.IssueFilter) string {
+	if filter.AllServices && filter.Unique {
+		// Conunt unique issues. AllServices filter is set, so we count issues that are matched to a service
+		// COUNT(distinct IV.issuevariant_issue_id)
+		return `
+			LEFT JOIN mvCountIssueRatings1 CIR ON IV.issuevariant_rating = CIR.issue_value
+		`
+	} else if filter.AllServices {
+		// Count issues that appear in multiple services and in multiple component versions per service
+		//COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id))
+		if len(filter.SupportGroupCCRN) > 0 {
+			return `
+				LEFT JOIN mvCountIssueRatings2 CIR ON SG.supportgroup_ccrn = CIR.supportgroup_ccrn
+                                                  AND IV.issuevariant_rating = CIR.issue_value
+			`
+		} else {
+			// call/branch can be replaced with (something to consider):
+			// SELECT issue_value, issue_count
+			// FROM mvCountIssueRatings2a
+			// ORDER BY issue_value ASC;
+			return `
+				LEFT JOIN mvCountIssueRatings2a CIR ON IV.issuevariant_rating = CIR.issue_value
+			`
+		}
+	} else if len(filter.SupportGroupCCRN) > 0 {
+		// Count issues that appear in multiple support groups
+		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))
+		return `
+			LEFT JOIN mvCountIssueRatings3 CIR ON SG.supportgroup_ccrn = CIR.supportgroup_ccrn
+                                              AND IV.issuevariant_rating = CIR.issue_value
+		`
+	} else if len(filter.ComponentVersionId) > 0 {
+		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))
+		return `
+			LEFT JOIN mvCountIssueRatings4 CIR ON CVI.componentversionissue_component_version_id = CIR.component_version_id
+                                              AND IV.issuevariant_rating = CIR.issue_value
+		`
+	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
+		// Count issues that appear in multiple component versions
+		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id))
+		return `
+			LEFT JOIN mvCountIssueRatings5 CIR ON CI.componentinstance_service_id = CIR.service_id
+                                              AND IV.issuevariant_rating = CIR.issue_value
+		`
+	} else {
+		// COUNT(distinct IV.issuevariant_issue_id)
+		return `
+			LEFT JOIN mvCountIssueRatings6 CIR ON IV.issuevariant_rating = CIR.issue_value
+		`
+	}
+}
+
+func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 	joins := ""
 	orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
 		return o.By == entity.IssueVariantRating
@@ -124,6 +178,8 @@ func (s *SqlDatabase) getIssueJoins(filter *entity.IssueFilter, order []entity.O
 		`)
 	}
 
+	joins = fmt.Sprintf("%s\n%s", joins, getMvCountIssueRatingsJoin(filter))
+
 	return joins
 }
 
@@ -159,7 +215,7 @@ func (s *SqlDatabase) ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilt
 	return f
 }
 
-func (s *SqlDatabase) getIssueUpdateFields(issue *entity.Issue) string {
+func getIssueUpdateFields(issue *entity.Issue) string {
 	fl := []string{}
 	if issue.PrimaryName != "" {
 		fl = append(fl, "issue_primary_name = :issue_primary_name")
@@ -176,7 +232,7 @@ func (s *SqlDatabase) getIssueUpdateFields(issue *entity.Issue) string {
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) getIssueColumns(order []entity.Order) string {
+func getIssueColumns(order []entity.Order) string {
 	columns := ""
 	for _, o := range order {
 		switch o.By {
@@ -187,38 +243,52 @@ func (s *SqlDatabase) getIssueColumns(order []entity.Order) string {
 	return columns
 }
 
-func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
-	var query string
-	filter = s.ensureIssueFilter(filter)
-	l.WithFields(logrus.Fields{"filter": filter})
+func getIssueFilterWhereClause(filter *entity.IssueFilter) string {
+	filterStr := getIssueFilterString(filter)
+	if filterStr != "" {
+		return fmt.Sprintf("WHERE %s", filterStr)
+	}
+	return ""
+}
 
-	filterStr := s.getIssueFilterString(filter)
-	joins := s.getIssueJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+func getIssueCursorQuery(filter *entity.IssueFilter, cursorFields []Field) string {
+	filterStr := getIssueFilterString(filter)
+	cursorQuery := CreateCursorQuery("", cursorFields)
+	if filterStr != "" && cursorQuery != "" {
+		cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
+	}
+	return cursorQuery
+}
+
+func getIssueQueryWithCursor(baseQuery string, order []entity.Order, filter *entity.IssueFilter, cursorFields []Field) string {
+	issueColumns := getIssueColumns(order)
+	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
+	joins := getIssueJoins(filter, order)
+	whereClause := getIssueFilterWhereClause(filter)
+	issueCursor := getIssueCursorQuery(filter, cursorFields)
+	orderStr := CreateOrderString(defaultOrder)
+	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, issueCursor, orderStr)
+}
+
+func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueFilter) string {
+	issueColumns := getIssueColumns(order)
+	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
+	joins := getIssueJoins(filter, order)
+	whereClause := getIssueFilterWhereClause(filter)
+	orderStr := CreateOrderString(defaultOrder)
+	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, orderStr)
+}
+
+func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+	ifilter := s.ensureIssueFilter(filter)
+	l.WithFields(logrus.Fields{"filter": ifilter})
+
+	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-	columns := s.getIssueColumns(order)
-	order = GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-
-	whereClause := ""
-	if filterStr != "" {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
-	}
-
-	// construct final query
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, orderStr)
-	} else {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, orderStr)
-	}
+	query := getIssueQueryWithCursor(baseQuery, order, ifilter, cursorFields)
 
 	//construct prepared statement and if where clause does exist add parameters
 	var stmt *sqlx.Stmt
@@ -235,7 +305,38 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	}
 
 	//adding parameters
-	filterParameters := s.buildIssueFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := s.buildIssueFilterParametersWithCursor(ifilter, cursorFields)
+
+	return stmt, filterParameters, nil
+}
+
+func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+	ifilter := s.ensureIssueFilter(filter)
+	l.WithFields(logrus.Fields{"filter": ifilter})
+
+	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	query := getIssueQuery(baseQuery, order, ifilter)
+
+	//construct prepared statement and if where clause does exist add parameters
+	var stmt *sqlx.Stmt
+	stmt, err = s.db.Preparex(query)
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+				"stmt":  stmt,
+			}).Error(msg)
+		return nil, nil, fmt.Errorf("%s", msg)
+	}
+
+	//adding parameters
+	filterParameters := s.buildIssueFilterParameters(ifilter, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -291,23 +392,20 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
     `
 
 	filter = s.ensureIssueFilter(filter)
-	filterStr := s.getIssueFilterString(filter)
-	joins := s.getIssueJoins(filter, order)
+	filterStr := getIssueFilterString(filter)
+	joins := getIssueJoins(filter, order)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, err
 	}
 
+	columns := getIssueColumns(order)
+	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
+	orderStr := CreateOrderString(defaultOrder)
+
+	whereClause := getIssueFilterWhereClause(filter)
+
 	cursorQuery := CreateCursorQuery("", cursorFields)
-	columns := s.getIssueColumns(order)
-	order = GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-
-	whereClause := ""
-	if filterStr != "" {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
 	if filterStr != "" && cursorQuery != "" {
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
@@ -331,9 +429,9 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	}
 
 	// parameters for component instance query
-	filterParameters := s.buildIssueFilterParameters(filter, true, cursorFields)
+	filterParameters := s.buildIssueFilterParametersWithCursor(filter, cursorFields)
 	// parameters for agg query
-	filterParameters = append(filterParameters, s.buildIssueFilterParameters(filter, true, cursorFields)...)
+	filterParameters = append(filterParameters, s.buildIssueFilterParametersWithCursor(filter, cursorFields)...)
 
 	defer stmt.Close()
 
@@ -354,7 +452,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 
 			}
 
-			cursor, _ := EncodeCursor(WithIssue(order, issue.Issue, ivRating))
+			cursor, _ := EncodeCursor(WithIssue(defaultOrder, issue.Issue, ivRating))
 
 			sr := entity.IssueResult{
 				WithCursor: entity.WithCursor{
@@ -379,7 +477,7 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 		%s
 		ORDER BY %s
 	`
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
 
 	if err != nil {
 		return -1, err
@@ -402,7 +500,7 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 		GROUP BY I.issue_type ORDER BY %s
 	`
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
 
 	if err != nil {
 		return nil, err
@@ -446,39 +544,18 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	filter = s.ensureIssueFilter(filter)
 
 	baseQuery := `
-		SELECT IV.issuevariant_rating AS issue_value, %s AS issue_count FROM %s Issue I
+		SELECT IV.issuevariant_rating AS issue_value, CIR.issue_count AS issue_count FROM %s Issue I
 		%s
 		%s
 		%s
 		GROUP BY IV.issuevariant_rating ORDER BY %s
 	`
 
-	var countColumn string
-	if filter.AllServices && filter.Unique {
-		// Conunt unique issues. AllServices filter is set, so we count issues that are matched to a service
-		countColumn = "COUNT(distinct IV.issuevariant_issue_id)"
-	} else if filter.AllServices {
-		// Count issues that appear in multiple services and in multiple component versions per service
-		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id))"
-	} else if len(filter.SupportGroupCCRN) > 0 {
-		// Count issues that appear in multiple support groups
-		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))"
-	} else if len(filter.ComponentVersionId) > 0 {
-		countColumn = "COUNT(DISTINCT CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id)) "
-	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
-		// Count issues that appear in multiple component versions
-		countColumn = "COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id))"
-	} else {
-		countColumn = "COUNT(distinct IV.issuevariant_issue_id)"
-	}
-
-	baseQuery = fmt.Sprintf(baseQuery, countColumn, "%s", "%s", "%s", "%s", "%s")
-
 	if len(filter.IssueRepositoryId) == 0 {
 		baseQuery = fmt.Sprintf(baseQuery, "%s", "LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id", "%s", "%s", "%s")
 	}
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
 
 	if err != nil {
 		return nil, err
@@ -515,7 +592,6 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 		}
 		issueSeverityCounts.Total += count.Count
 	}
-
 	return &issueSeverityCounts, nil
 }
 
@@ -530,7 +606,7 @@ func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error
 	 	%s GROUP BY I.issue_id ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
 
 	if err != nil {
 		return nil, err
@@ -553,7 +629,7 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 	    %s GROUP BY I.issue_id ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, order, l)
 
 	if err != nil {
 		return nil, err
@@ -600,7 +676,7 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 
 	filter = s.ensureIssueFilter(filter)
 
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildIssueStatementWithCursor(baseQuery, filter, order, l)
 
 	if err != nil {
 		return nil, err
@@ -681,7 +757,7 @@ func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
 		WHERE issue_id = :issue_id
 	`
 
-	updateFields := s.getIssueUpdateFields(issue)
+	updateFields := getIssueUpdateFields(issue)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
@@ -794,7 +870,7 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
 	filter = s.ensureIssueFilter(filter)
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, order, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err
