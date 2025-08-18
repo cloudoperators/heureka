@@ -31,7 +31,9 @@ require (
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.10.0
 	github.com/valkey-io/valkey-go v1.0.64
+	github.com/vektah/gqlparser/v2 v2.5.30
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
+	golang.org/x/text v0.27.0
 	golang.org/x/time v0.12.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 )
@@ -106,7 +108,6 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/urfave/cli/v2 v2.27.7 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.30 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0 // indirect
@@ -123,7 +124,6 @@ require (
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
 	golang.org/x/tools v0.35.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect

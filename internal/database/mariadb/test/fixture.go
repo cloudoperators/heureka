@@ -2039,3 +2039,10 @@ func (s *DatabaseSeeder) RefreshServiceIssueCounters() error {
 	`)
 	return err
 }
+
+func (s *DatabaseSeeder) RefreshCountIssueRatings() error {
+	_, err := s.db.Exec(`
+		CALL refresh_mvCountIssueRatings_proc();
+	`)
+	return err
+}
