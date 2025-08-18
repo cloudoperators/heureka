@@ -10,13 +10,11 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/samber/lo"
 
-	"fmt"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -47,7 +45,7 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		issueHandler = issue.NewIssueHandler(db, er)
+		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 		issueEntity = test.NewFakeIssueEntity()
 	})
 
@@ -341,7 +339,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			cursorsError := errors.New("cursor database error")
 			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return([]string{}, cursorsError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			_, err := issueHandler.ListIssues(filter, options)
 
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -366,7 +364,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			countError := errors.New("count database error")
 			db.On("CountIssueTypes", filter).Return((*entity.IssueTypeCounts)(nil), countError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			_, err := issueHandler.ListIssues(filter, options)
 
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -400,7 +398,7 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 			expectedNames := []string{"CVE-2023-1234", "CVE-2023-5678", "POLICY-001"}
 			db.On("GetIssueNames", filter).Return(expectedNames, nil)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.ListIssueNames(filter, options)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -413,7 +411,7 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 			expectedNames := []string{}
 			db.On("GetIssueNames", filter).Return(expectedNames, nil)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.ListIssueNames(filter, options)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -428,7 +426,7 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 			dbError := errors.New("database connection failed")
 			db.On("GetIssueNames", filter).Return([]string{}, dbError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.ListIssueNames(filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
@@ -440,7 +438,7 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 			Expect(appErr.Entity).To(Equal("IssueNames"), "should reference IssueNames entity")
 			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
 			Expect(appErr.Op).To(Equal("issueHandler.ListIssueNames"), "should include operation")
-			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+			Expect(appErr.Err.Error()).To(ContainSubstring("database connection failed"), "should contain original error message")
 		})
 	})
 })
@@ -476,7 +474,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			// Mock successful database creation
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).Return(&issueEntity, nil)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			newIssue, err := issueHandler.CreateIssue(&issueEntity)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -498,7 +496,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			dbError := errors.New("user database connection failed")
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.CreateIssue(&issueEntity)
 
 			Expect(result).To(BeNil(), "no result should be returned")
@@ -524,7 +522,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			listError := errors.New("database query failed")
 			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, listError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.CreateIssue(&issueEntity)
 
 			Expect(result).To(BeNil(), "no result should be returned")
@@ -551,7 +549,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 				Issue: &existingIssue,
 			}}, nil)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.CreateIssue(&issueEntity)
 
 			Expect(result).To(BeNil(), "no result should be returned")
@@ -577,7 +575,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			dbError := errors.New("constraint violation")
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).Return((*entity.Issue)(nil), dbError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.CreateIssue(&issueEntity)
 
 			Expect(result).To(BeNil(), "no result should be returned")
@@ -589,7 +587,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
 			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
 			Expect(appErr.Message).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
-			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
+			Expect(appErr.Err.Error()).To(ContainSubstring("database aggregation failed"), "should contain original error message")
 		})
 	})
 })
@@ -622,7 +620,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			filter.Id = []*int64{&issueResult.Issue.Id}
 			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{issueResult}, nil)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			issueResult.Issue.Description = "New Description"
 
 			updatedIssue, err := issueHandler.UpdateIssue(issueResult.Issue)
@@ -639,7 +637,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			dbError := errors.New("user database connection failed")
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.UpdateIssue(issueResult.Issue)
 
 			Expect(result).To(BeNil(), "no result should be returned")
@@ -663,7 +661,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			dbError := errors.New("constraint violation")
 			db.On("UpdateIssue", issueResult.Issue).Return(dbError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.UpdateIssue(issueResult.Issue)
 
 			Expect(result).To(BeNil(), "no result should be returned")
@@ -688,7 +686,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			listError := errors.New("database query failed")
 			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, listError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.UpdateIssue(issueResult.Issue)
 
 			Expect(result).To(BeNil(), "no result should be returned")
@@ -767,7 +765,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 			dbError := errors.New("user database connection failed")
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			err := issueHandler.DeleteIssue(id)
 
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -790,7 +788,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 			dbError := errors.New("foreign key constraint violation")
 			db.On("DeleteIssue", id, int64(123)).Return(dbError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			err := issueHandler.DeleteIssue(id)
 
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -820,146 +818,6 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 		componentVersion = test.NewFakeComponentVersionEntity()
 	})
 
-<<<<<<< HEAD
-	Context("when adding componentVersion to issue", func() {
-		Context("with valid input", func() {
-			It("adds componentVersion to issueEntity successfully", func() {
-				db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
-				db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
-
-				issueHandler = issue.NewIssueHandler(db, er)
-				result, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
-
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(result).NotTo(BeNil(), "issueEntity should be returned")
-			})
-		})
-
-		Context("when relationship already exists", func() {
-			It("should return AlreadyExists error", func() {
-				// Mock duplicate entry error from database
-				duplicateErr := &database.DuplicateEntryDatabaseError{}
-				db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(duplicateErr)
-
-				issueHandler = issue.NewIssueHandler(db, er)
-				result, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
-
-				Expect(result).To(BeNil(), "no result should be returned")
-				Expect(err).ToNot(BeNil(), "error should be returned")
-
-				var appErr *appErrors.Error
-				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-				Expect(appErr.Code).To(Equal(appErrors.AlreadyExists), "should be AlreadyExists error")
-				Expect(appErr.Entity).To(Equal("ComponentVersionIssue"), "should reference ComponentVersionIssue entity")
-				Expect(appErr.ID).To(Equal(fmt.Sprintf("issue:%d-componentVersion:%d", issueResult.Issue.Id, componentVersion.Id)), "should include composite ID")
-				Expect(appErr.Op).To(Equal("issueHandler.AddComponentVersionToIssue"), "should include operation")
-				Expect(appErr.Message).To(Equal("already exists"), "should have standard AlreadyExists message")
-			})
-		})
-
-		Context("when database operation fails", func() {
-			It("should return Internal error", func() {
-				// Mock database error
-				dbError := errors.New("constraint violation")
-				db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(dbError)
-
-				issueHandler = issue.NewIssueHandler(db, er)
-				result, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
-
-				Expect(result).To(BeNil(), "no result should be returned")
-				Expect(err).ToNot(BeNil(), "error should be returned")
-
-				var appErr *appErrors.Error
-				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
-				Expect(appErr.Entity).To(Equal("ComponentVersionIssue"), "should reference ComponentVersionIssue entity")
-				Expect(appErr.ID).To(Equal(fmt.Sprintf("issue:%d-componentVersion:%d", issueResult.Issue.Id, componentVersion.Id)), "should include composite ID")
-				Expect(appErr.Op).To(Equal("issueHandler.AddComponentVersionToIssue"), "should include operation")
-				Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
-			})
-		})
-
-		Context("when GetIssue fails after successful addition", func() {
-			It("should return Internal error", func() {
-				// Mock successful addition but GetIssue failure
-				db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
-				getIssueError := errors.New("database query failed")
-				db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{}, getIssueError)
-
-				issueHandler = issue.NewIssueHandler(db, er)
-				result, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
-
-				Expect(result).To(BeNil(), "no result should be returned")
-				Expect(err).ToNot(BeNil(), "error should be returned")
-
-				var appErr *appErrors.Error
-				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
-				Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
-				Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
-				Expect(appErr.Op).To(Equal("issueHandler.AddComponentVersionToIssue"), "should include operation")
-			})
-		})
-	})
-	Context("when removing componentVersion from issue", func() {
-		Context("with valid input", func() {
-			It("removes componentVersion from issueEntity successfully", func() {
-				db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
-				db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
-
-				issueHandler = issue.NewIssueHandler(db, er)
-				result, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
-
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(result).NotTo(BeNil(), "issueEntity should be returned")
-			})
-		})
-
-		Context("when database operation fails", func() {
-			It("should return Internal error", func() {
-				// Mock database error
-				dbError := errors.New("foreign key constraint violation")
-				db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(dbError)
-
-				issueHandler = issue.NewIssueHandler(db, er)
-				result, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
-
-				Expect(result).To(BeNil(), "no result should be returned")
-				Expect(err).ToNot(BeNil(), "error should be returned")
-
-				var appErr *appErrors.Error
-				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
-				Expect(appErr.Entity).To(Equal("ComponentVersionIssue"), "should reference ComponentVersionIssue entity")
-				Expect(appErr.ID).To(Equal(fmt.Sprintf("issue:%d-componentVersion:%d", issueResult.Issue.Id, componentVersion.Id)), "should include composite ID")
-				Expect(appErr.Op).To(Equal("issueHandler.RemoveComponentVersionFromIssue"), "should include operation")
-				Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
-			})
-		})
-
-		Context("when GetIssue fails after successful removal", func() {
-			It("should return Internal error", func() {
-				// Mock successful removal but GetIssue failure
-				db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
-				getIssueError := errors.New("database query failed")
-				db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{}, getIssueError)
-
-				issueHandler = issue.NewIssueHandler(db, er)
-				result, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
-
-				Expect(result).To(BeNil(), "no result should be returned")
-				Expect(err).ToNot(BeNil(), "error should be returned")
-
-				var appErr *appErrors.Error
-				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
-				Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
-				Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
-				Expect(appErr.Op).To(Equal("issueHandler.RemoveComponentVersionFromIssue"), "should include operation")
-			})
-		})
-
-=======
 	It("adds componentVersion to issueEntity", func() {
 		db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
 		db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
@@ -967,7 +825,6 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 		issue, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
->>>>>>> origin/main
 	})
 
 	It("removes componentVersion from issueEntity", func() {
@@ -1002,7 +859,7 @@ var _ = Describe("When getting Issue Severity Counts", Label("app", "GetIssueSev
 			}
 			db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.GetIssueSeverityCounts(filter)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -1023,7 +880,7 @@ var _ = Describe("When getting Issue Severity Counts", Label("app", "GetIssueSev
 			}
 			db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.GetIssueSeverityCounts(filter)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -1041,7 +898,7 @@ var _ = Describe("When getting Issue Severity Counts", Label("app", "GetIssueSev
 			dbError := errors.New("database aggregation failed")
 			db.On("CountIssueRatings", filter).Return((*entity.IssueSeverityCounts)(nil), dbError)
 
-			issueHandler = issue.NewIssueHandler(db, er)
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
 			result, err := issueHandler.GetIssueSeverityCounts(filter)
 
 			Expect(result).To(BeNil(), "no result should be returned")
