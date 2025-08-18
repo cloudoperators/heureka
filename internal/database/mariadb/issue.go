@@ -104,13 +104,13 @@ func getMvCountIssueRatingsJoin(filter *entity.IssueFilter) string {
                                               AND IV.issuevariant_rating = CIR.issue_value
 		`
 	} else if len(filter.ComponentVersionId) > 0 {
+		// Count issues that appear in multiple component versions
 		// COUNT(DISTINCT CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id)) "
 		return `
 			LEFT JOIN mvCountIssueRatingsComponentVersion CIR ON CVI.componentversionissue_component_version_id = CIR.component_version_id
                                               AND IV.issuevariant_rating = CIR.issue_value
 		`
 	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
-		// Count issues that appear in multiple component versions
 		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id))
 		return `
 			LEFT JOIN mvCountIssueRatingsServiceId CIR ON CI.componentinstance_service_id = CIR.service_id
