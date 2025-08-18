@@ -77,49 +77,49 @@ func getMvCountIssueRatingsJoin(filter *entity.IssueFilter) string {
 		// Conunt unique issues. AllServices filter is set, so we count issues that are matched to a service
 		// COUNT(distinct IV.issuevariant_issue_id)
 		return `
-			LEFT JOIN mvCountIssueRatings1 CIR ON IV.issuevariant_rating = CIR.issue_value
+			LEFT JOIN mvCountIssueRatingsUniqueService CIR ON IV.issuevariant_rating = CIR.issue_value
 		`
 	} else if filter.AllServices {
 		// Count issues that appear in multiple services and in multiple component versions per service
 		//COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id))
 		if len(filter.SupportGroupCCRN) > 0 {
 			return `
-				LEFT JOIN mvCountIssueRatings2 CIR ON SG.supportgroup_ccrn = CIR.supportgroup_ccrn
-                                                  AND IV.issuevariant_rating = CIR.issue_value
+				LEFT JOIN mvCountIssueRatingsService CIR ON SG.supportgroup_ccrn = CIR.supportgroup_ccrn
+                                                        AND IV.issuevariant_rating = CIR.issue_value
 			`
 		} else {
 			// call/branch can be replaced with (something to consider):
 			// SELECT issue_value, issue_count
-			// FROM mvCountIssueRatings2a
+			// FROM mvCountIssueRatingsServiceWithoutSupportGroup
 			// ORDER BY issue_value ASC;
 			return `
-				LEFT JOIN mvCountIssueRatings2a CIR ON IV.issuevariant_rating = CIR.issue_value
+				LEFT JOIN mvCountIssueRatingsServiceWithoutSupportGroup CIR ON IV.issuevariant_rating = CIR.issue_value
 			`
 		}
 	} else if len(filter.SupportGroupCCRN) > 0 {
 		// Count issues that appear in multiple support groups
 		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))
 		return `
-			LEFT JOIN mvCountIssueRatings3 CIR ON SG.supportgroup_ccrn = CIR.supportgroup_ccrn
+			LEFT JOIN mvCountIssueRatingsSupportGroup CIR ON SG.supportgroup_ccrn = CIR.supportgroup_ccrn
                                               AND IV.issuevariant_rating = CIR.issue_value
 		`
 	} else if len(filter.ComponentVersionId) > 0 {
-		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))
+		// COUNT(DISTINCT CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id)) "
 		return `
-			LEFT JOIN mvCountIssueRatings4 CIR ON CVI.componentversionissue_component_version_id = CIR.component_version_id
+			LEFT JOIN mvCountIssueRatingsComponentVersion CIR ON CVI.componentversionissue_component_version_id = CIR.component_version_id
                                               AND IV.issuevariant_rating = CIR.issue_value
 		`
 	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
 		// Count issues that appear in multiple component versions
 		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id))
 		return `
-			LEFT JOIN mvCountIssueRatings5 CIR ON CI.componentinstance_service_id = CIR.service_id
+			LEFT JOIN mvCountIssueRatingsServiceId CIR ON CI.componentinstance_service_id = CIR.service_id
                                               AND IV.issuevariant_rating = CIR.issue_value
 		`
 	} else {
 		// COUNT(distinct IV.issuevariant_issue_id)
 		return `
-			LEFT JOIN mvCountIssueRatings6 CIR ON IV.issuevariant_rating = CIR.issue_value
+			LEFT JOIN mvCountIssueRatingsOther CIR ON IV.issuevariant_rating = CIR.issue_value
 		`
 	}
 }

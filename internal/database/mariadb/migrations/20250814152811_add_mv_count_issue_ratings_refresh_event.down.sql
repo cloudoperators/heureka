@@ -8,10 +8,10 @@ DROP EVENT IF EXISTS refresh_mvCountIssueRatings;
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatings_proc;
 
 -- 3. Drop the table if exists
-DROP TABLE IF EXISTS mvCountIssueRatings1;
-DROP TABLE IF EXISTS mvCountIssueRatings2;
-DROP TABLE IF EXISTS mvCountIssueRatings2a;
-DROP TABLE IF EXISTS mvCountIssueRatings3;
-DROP TABLE IF EXISTS mvCountIssueRatings4;
-DROP TABLE IF EXISTS mvCountIssueRatings5;
-DROP TABLE IF EXISTS mvCountIssueRatings6;
+DROP TABLE IF EXISTS mvCountIssueRatingsUniqueService;
+DROP TABLE IF EXISTS mvCountIssueRatingsService;
+DROP TABLE IF EXISTS mvCountIssueRatingsServiceWithoutSupportGroup;
+DROP TABLE IF EXISTS mvCountIssueRatingsSupportGroup;
+DROP TABLE IF EXISTS mvCountIssueRatingsComponentVersion;
+DROP TABLE IF EXISTS mvCountIssueRatingsServiceId;
+DROP TABLE IF EXISTS mvCountIssueRatingsOther;

@@ -6,47 +6,47 @@
 --
 
 -- 1. Create the table (only if not exists to avoid errors if re-run)
-CREATE TABLE IF NOT EXISTS mvCountIssueRatings1 (
+CREATE TABLE IF NOT EXISTS mvCountIssueRatingsUniqueService (
     issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
     issue_count INT DEFAULT 0,
     PRIMARY KEY (issue_value)
 );
 
-CREATE TABLE IF NOT EXISTS mvCountIssueRatings2 (
+CREATE TABLE IF NOT EXISTS mvCountIssueRatingsService (
     supportgroup_ccrn varchar(255) NOT NULL,
     issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
     issue_count INT DEFAULT 0,
     PRIMARY KEY (supportgroup_ccrn, issue_value)
 );
 
-CREATE TABLE IF NOT EXISTS mvCountIssueRatings2a (
+CREATE TABLE IF NOT EXISTS mvCountIssueRatingsServiceWithoutSupportGroup (
     issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
     issue_count INT DEFAULT 0,
     PRIMARY KEY (issue_value)
 );
 
-CREATE TABLE IF NOT EXISTS mvCountIssueRatings3 (
+CREATE TABLE IF NOT EXISTS mvCountIssueRatingsSupportGroup (
     supportgroup_ccrn varchar(255) NOT NULL,
     issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
     issue_count INT DEFAULT 0,
     PRIMARY KEY (supportgroup_ccrn, issue_value)
 );
 
-CREATE TABLE IF NOT EXISTS mvCountIssueRatings4 (
+CREATE TABLE IF NOT EXISTS mvCountIssueRatingsComponentVersion (
     component_version_id INT UNSIGNED NOT NULL,
     issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
     issue_count INT DEFAULT 0,
     PRIMARY KEY (component_version_id, issue_value)
 );
 
-CREATE TABLE IF NOT EXISTS mvCountIssueRatings5 (
+CREATE TABLE IF NOT EXISTS mvCountIssueRatingsServiceId (
     service_id INT NOT NULL,
     issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
     issue_count INT DEFAULT 0,
     PRIMARY KEY (service_id, issue_value)
 );
 
-CREATE TABLE IF NOT EXISTS mvCountIssueRatings6 (
+CREATE TABLE IF NOT EXISTS mvCountIssueRatingsOther (
     issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
     issue_count INT DEFAULT 0,
     PRIMARY KEY (issue_value)
@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS mvCountIssueRatings6 (
 -- 2. Create or replace the procedure that refreshes the table
 CREATE PROCEDURE refresh_mvCountIssueRatings_proc()
 BEGIN
-    TRUNCATE TABLE mvCountIssueRatings1;
-    INSERT INTO mvCountIssueRatings1 (issue_value, issue_count)
+    TRUNCATE TABLE mvCountIssueRatingsUniqueService;
+    INSERT INTO mvCountIssueRatingsUniqueService (issue_value, issue_count)
     SELECT
         IV.issuevariant_rating AS issue_value,
         COUNT(DISTINCT IV.issuevariant_issue_id) AS issue_count
@@ -65,8 +65,8 @@ BEGIN
     WHERE I.issue_deleted_at IS NULL
     GROUP BY IV.issuevariant_rating ORDER BY issue_id ASC;
 
-    TRUNCATE TABLE mvCountIssueRatings2;
-    INSERT INTO mvCountIssueRatings2 (supportgroup_ccrn, issue_value, issue_count)
+    TRUNCATE TABLE mvCountIssueRatingsService;
+    INSERT INTO mvCountIssueRatingsService (supportgroup_ccrn, issue_value, issue_count)
     SELECT
         COALESCE(SG.supportgroup_ccrn, 'UNKNOWN') AS supportgroup_ccrn,
         IV.issuevariant_rating AS issue_value,
@@ -82,8 +82,8 @@ BEGIN
     WHERE I.issue_deleted_at IS NULL
     GROUP BY SG.supportgroup_ccrn, IV.issuevariant_rating ORDER BY issue_id ASC;
 
-    TRUNCATE TABLE mvCountIssueRatings2a;
-    INSERT INTO mvCountIssueRatings2a (issue_value, issue_count)
+    TRUNCATE TABLE mvCountIssueRatingsServiceWithoutSupportGroup;
+    INSERT INTO mvCountIssueRatingsServiceWithoutSupportGroup (issue_value, issue_count)
     SELECT
         IV.issuevariant_rating AS issue_value,
         COUNT(DISTINCT CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id)) AS issue_count
@@ -96,8 +96,8 @@ BEGIN
     WHERE I.issue_deleted_at IS NULL
     GROUP BY IV.issuevariant_rating ORDER BY issue_id ASC;
 
-    TRUNCATE TABLE mvCountIssueRatings3;
-    INSERT INTO mvCountIssueRatings3 (supportgroup_ccrn, issue_value, issue_count)
+    TRUNCATE TABLE mvCountIssueRatingsSupportGroup;
+    INSERT INTO mvCountIssueRatingsSupportGroup (supportgroup_ccrn, issue_value, issue_count)
     SELECT
         COALESCE(SG.supportgroup_ccrn, 'UNKNOWN') AS supportgroup_ccrn,
         IV.issuevariant_rating AS issue_value,
@@ -111,8 +111,8 @@ BEGIN
     WHERE I.issue_deleted_at IS NULL
     GROUP BY SG.supportgroup_ccrn, IV.issuevariant_rating ORDER BY issue_id ASC;
 
-    TRUNCATE TABLE mvCountIssueRatings4;
-    INSERT INTO mvCountIssueRatings4 (component_version_id, issue_value, issue_count)
+    TRUNCATE TABLE mvCountIssueRatingsComponentVersion;
+    INSERT INTO mvCountIssueRatingsComponentVersion (component_version_id, issue_value, issue_count)
     SELECT
         CVI.componentversionissue_component_version_id as supportgroup_ccrn,
         IV.issuevariant_rating AS issue_value,
@@ -123,8 +123,8 @@ BEGIN
     WHERE I.issue_deleted_at IS NULL
     GROUP BY CVI.componentversionissue_component_version_id, IV.issuevariant_rating ORDER BY issue_id ASC;
 
-    TRUNCATE TABLE mvCountIssueRatings5;
-    INSERT INTO mvCountIssueRatings5 (service_id, issue_value, issue_count)
+    TRUNCATE TABLE mvCountIssueRatingsServiceId;
+    INSERT INTO mvCountIssueRatingsServiceId (service_id, issue_value, issue_count)
     SELECT
         CI.componentinstance_service_id AS service_id,
         IV.issuevariant_rating AS issue_value,
@@ -136,8 +136,8 @@ BEGIN
     WHERE I.issue_deleted_at IS NULL
     GROUP BY CI.componentinstance_service_id, IV.issuevariant_rating ORDER BY issue_id ASC;
 
-    TRUNCATE TABLE mvCountIssueRatings6;
-    INSERT INTO mvCountIssueRatings6 (issue_value, issue_count)
+    TRUNCATE TABLE mvCountIssueRatingsOther;
+    INSERT INTO mvCountIssueRatingsOther (issue_value, issue_count)
     SELECT
         IV.issuevariant_rating AS issue_value,
         COUNT(DISTINCT IV.issuevariant_issue_id) AS issue_count
