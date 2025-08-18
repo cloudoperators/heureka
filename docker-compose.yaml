@@ -52,12 +52,28 @@ services:
   valkey:
     image: valkey/valkey:7.2
     container_name: heureka-valkey
+    profiles:
+      - heureka
     ports:
       - "${VALKEY_PORT:-6379}:6379"
     command: ["valkey-server", "--appendonly", "yes"]
     volumes:
       - valkey-data:/data
     restart: always
+
+  ui:
+    build:
+      context: ./ui/
+      dockerfile: Dockerfile
+      args:
+        UI_GIT_REPO: https://github.com/cloudoperators/juno/
+        UI_GIT_DIR: ./ui/juno/
+    container_name: juno-ui
+    profiles:
+      - ui
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
 
 volumes:
   valkey-data:

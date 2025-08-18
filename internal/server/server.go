@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -45,24 +46,27 @@ type Server struct {
 
 	nonBlockingSrv *http.Server
 
-	app *app.HeurekaApp
+	app  *app.HeurekaApp
+	sigs chan os.Signal
 }
 
 func NewServer(cfg util.Config) *Server {
-	// kill (no param) default send syscanll.SIGTERM
-	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+
 	wg := sync.WaitGroup{}
 
 	db, err := mariadb.NewSqlDatabase(cfg)
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
 	}
-
 	err = db.RunMigrations()
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Migrating Db")
+	}
+
+	err = mariadb.EnableScheduler(cfg)
+	if err != nil {
+		logrus.WithError(err).Fatalln("Error while Enabling Scheduler Db")
 	}
 
 	db, err = mariadb.NewSqlDatabase(cfg)
@@ -80,7 +84,18 @@ func NewServer(cfg util.Config) *Server {
 		shutdownCtx:  ctx,
 		shutdownFunc: cancel,
 		wg:           &wg,
+		sigs:         make(chan os.Signal, 1),
 	}
+
+	// kill (no param) default send syscanll.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
+	signal.Notify(s.sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-s.sigs
+		logrus.Warn("Received signal: '%s'. Starting server shutdown.", sig)
+		cancel()
+	}()
 
 	if logrus.GetLevel() == logrus.DebugLevel {
 		gin.SetMode(gin.DebugMode)
@@ -161,7 +176,12 @@ func (s *Server) readyHandler(c *gin.Context) {
 }
 
 func (s *Server) Start() {
-	s.router.Run(s.config.Port)
+	s.NonBlockingStart()
+
+	<-s.shutdownCtx.Done()
+	logrus.Info("[INFO] Shutting down server...")
+
+	s.BlockingStop()
 }
 
 func (s *Server) NonBlockingStart() {
@@ -192,7 +212,7 @@ func (s *Server) BlockingStop() {
 
 	select {
 	case <-done:
-		//log.Println("All goroutines exited cleanly.")
+		logrus.Info("All goroutines exited cleanly.")
 	case <-ctx.Done():
 		log.Fatalf("Timeout: some goroutines did not exit in time.")
 	}

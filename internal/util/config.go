@@ -12,7 +12,7 @@ import (
 )
 
 type Config struct {
-	Port string `envconfig:"SERVER_PORT" default:":80" json:"-"`
+	Port string `envconfig:"SERVER_PORT" default:"80" json:"-"`
 	//Regions            []string `envconfig:"REGIONS" required:"true" json:"regions"`
 	//CloudAdminUsername string   `envconfig:"OS_USERNAME" required:"true" json:"cloudAdminUser"`
 	//CloudAdminPassword string   `envconfig:"OS_PASSWORD" required:"true" json:"-"`
@@ -40,10 +40,14 @@ type Config struct {
 	DefaultRepositoryName         string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
 	CacheEnable                   bool   `envconfig:"CACHE_ENABLE" default:"false" json:"-"`
 	CacheValkeyUrl                string `envconfig:"CACHE_VALKEY_URL" default:"" json:"-"`
+	CacheValkeyPassword           string `envconfig:"CACHE_VALKEY_PASSWORD" default:"" json:"-"`
+	CacheValkeyUsername           string `envconfig:"CACHE_VALKEY_USERNAME" default:"" json:"-"`
+	CacheValkeyClientName         string `envconfig:"CACHE_VALKEY_CLIENT_NAME" default:"" json:"-"`
 	CacheMonitorMSec              int64  `envconfig:"CACHE_MONITOR_MSEC" default:"0" json:"-"`
 	CacheMaxDbConcurrentRefreshes int    `envconfig:"CACHE_MAX_DB_CONCURRENT_REFRESHES" default:"-1" json:"-"`
 	CacheThrottleIntervalMSec     int64  `envconfig:"CACHE_THROTTLE_INTERVAL_MSEC" default:"0" json:"-"`
 	CacheThrottlePerInterval      int    `envconfig:"CACHE_THROTTLE_PER_INTERVAL" default:"1" json:"-"`
+	CpuProfilerFilePath           string `envconfig:"CPU_PROFILER_FILE_PATH" default:"" json:"-"`
 }
 
 func (c *Config) ConfigToConsole() {

@@ -9,7 +9,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/sirupsen/logrus"

@@ -7,6 +7,8 @@ import (
 	"math/rand"
 
 	"github.com/samber/lo"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
@@ -108,7 +110,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	When("Getting SupportGroups", Label("GetSupportGroups"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
-				res, err := db.GetSupportGroups(nil)
+				res, err := db.GetSupportGroups(nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -126,7 +128,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			Context("and using no filter", func() {
 
 				It("can fetch the items correctly", func() {
-					res, err := db.GetSupportGroups(nil)
+					res, err := db.GetSupportGroups(nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -173,7 +175,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						}
 					}
 
-					entries, err := db.GetSupportGroups(filter)
+					entries, err := db.GetSupportGroups(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -193,7 +195,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					row := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
 					filter := &entity.SupportGroupFilter{Id: []*int64{&row.Id.Int64}}
 
-					entries, err := db.GetSupportGroups(filter)
+					entries, err := db.GetSupportGroups(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -216,7 +218,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						}
 					}
 
-					entries, err := db.GetSupportGroups(filter)
+					entries, err := db.GetSupportGroups(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -237,7 +239,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 
 					filter := &entity.SupportGroupFilter{CCRN: []*string{&row.CCRN.String}}
 
-					entries, err := db.GetSupportGroups(filter)
+					entries, err := db.GetSupportGroups(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -249,6 +251,64 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						for _, entry := range entries {
 							Expect(entry.CCRN).To(BeEquivalentTo(row.CCRN.String))
 						}
+					})
+				})
+			})
+			Context("and using ordering", func() {
+				c := collate.New(language.English)
+				var testOrder = func(
+					order []entity.Order,
+					verifyFunc func(res []entity.SupportGroupResult),
+				) {
+					res, err := db.GetSupportGroups(nil, order)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.SupportGroupRows)))
+					})
+
+					By("returning the correct order", func() {
+						verifyFunc(res)
+					})
+				}
+
+				Context("and using asc order", func() {
+					It("can order by ccrn", func() {
+						order := []entity.Order{
+							{
+								By:        entity.SupportGroupCcrn,
+								Direction: entity.OrderDirectionAsc,
+							},
+						}
+						testOrder(order, func(res []entity.SupportGroupResult) {
+							var prev string = ""
+							for _, r := range res {
+								Expect(c.CompareString(r.SupportGroup.CCRN, prev)).Should(BeNumerically(">=", 0))
+								prev = r.SupportGroup.CCRN
+							}
+						})
+
+					})
+
+				})
+				Context("and using desc order", func() {
+					It("can order by ccrn", func() {
+						order := []entity.Order{
+							{
+								By:        entity.SupportGroupCcrn,
+								Direction: entity.OrderDirectionDesc,
+							},
+						}
+						testOrder(order, func(res []entity.SupportGroupResult) {
+							var prev string = "\U0010FFFF"
+							for _, r := range res {
+								Expect(c.CompareString(r.SupportGroup.CCRN, prev)).Should(BeNumerically("<=", 0))
+								prev = r.SupportGroup.CCRN
+							}
+						})
 					})
 				})
 			})
@@ -292,10 +352,11 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			Context("and using pagination", func() {
 				It("can count", func() {
 					f := 10
+					after := ""
 					filter := &entity.SupportGroupFilter{
-						Paginated: entity.Paginated{
+						PaginatedX: entity.PaginatedX{
 							First: &f,
-							After: nil,
+							After: &after,
 						},
 					}
 					c, err := db.CountSupportGroups(filter)
@@ -334,7 +395,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					Id: []*int64{&supportGroup.Id},
 				}
 
-				sg, err := db.GetSupportGroups(sgFilter)
+				sg, err := db.GetSupportGroups(sgFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -368,7 +429,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					Id: []*int64{&supportGroup.Id},
 				}
 
-				sg, err := db.GetSupportGroups(supportGroupFilter)
+				sg, err := db.GetSupportGroups(supportGroupFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -401,7 +462,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					Id: []*int64{&supportGroup.Id},
 				}
 
-				sg, err := db.GetSupportGroups(sgFilter)
+				sg, err := db.GetSupportGroups(sgFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -436,7 +497,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					ServiceId: []*int64{&service.Id},
 				}
 
-				sg, err := db.GetSupportGroups(supportGroupFilter)
+				sg, err := db.GetSupportGroups(supportGroupFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -465,7 +526,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					ServiceId: []*int64{&supportGroupServiceRow.ServiceId.Int64},
 				}
 
-				supportGroups, err := db.GetSupportGroups(supportGroupFilter)
+				supportGroups, err := db.GetSupportGroups(supportGroupFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -501,7 +562,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					UserId: []*int64{&user.Id},
 				}
 
-				sg, err := db.GetSupportGroups(supportGroupFilter)
+				sg, err := db.GetSupportGroups(supportGroupFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -530,7 +591,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					UserId: []*int64{&supportGroupUserRow.UserId.Int64},
 				}
 
-				supportGroups, err := db.GetSupportGroups(supportGroupFilter)
+				supportGroups, err := db.GetSupportGroups(supportGroupFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})

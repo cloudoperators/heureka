@@ -35,6 +35,7 @@ input IssueMatchFilter {
     search: [String]
     primaryName: [String]
     componentCcrn: [String]
+    componentInstanceId: [String]
     issueType: [IssueTypes]
     status: [IssueMatchStatusValues]
     severity: [SeverityValues]

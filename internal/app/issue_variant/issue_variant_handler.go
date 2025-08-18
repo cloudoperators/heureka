@@ -5,28 +5,35 @@ package issue_variant
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
+var CacheTtlGetIssueVariants = 12 * time.Hour
+var CacheTtlGetAllIssueVariantIds = 12 * time.Hour
+var CacheTtlCountIssueVariants = 12 * time.Hour
+
 type issueVariantHandler struct {
 	database          database.Database
 	eventRegistry     event.EventRegistry
 	repositoryService issue_repository.IssueRepositoryHandler
+	cache             cache.Cache
 }
 
-func NewIssueVariantHandler(database database.Database, eventRegistry event.EventRegistry, rs issue_repository.IssueRepositoryHandler) IssueVariantHandler {
+func NewIssueVariantHandler(database database.Database, eventRegistry event.EventRegistry, rs issue_repository.IssueRepositoryHandler, cache cache.Cache) IssueVariantHandler {
 	return &issueVariantHandler{
 		database:          database,
 		eventRegistry:     eventRegistry,
 		repositoryService: rs,
+		cache:             cache,
 	}
 }
 
@@ -44,7 +51,14 @@ func (e *IssueVariantHandlerError) Error() string {
 
 func (iv *issueVariantHandler) getIssueVariantResults(filter *entity.IssueVariantFilter) ([]entity.IssueVariantResult, error) {
 	var ivResults []entity.IssueVariantResult
-	issueVariants, err := iv.database.GetIssueVariants(filter)
+	issueVariants, err := cache.CallCached[[]entity.IssueVariant](
+		iv.cache,
+		CacheTtlGetIssueVariants,
+		"GetIssueVariants",
+		iv.database.GetIssueVariants,
+		filter,
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +93,13 @@ func (iv *issueVariantHandler) ListIssueVariants(filter *entity.IssueVariantFilt
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := iv.database.GetAllIssueVariantIds(filter)
+			ids, err := cache.CallCached[[]int64](
+				iv.cache,
+				CacheTtlGetAllIssueVariantIds,
+				"GetAllIssueVariantIds",
+				iv.database.GetAllIssueVariantIds,
+				filter,
+			)
 			if err != nil {
 				l.Error(err)
 				return nil, NewIssueVariantHandlerError("Error while getting all Ids")
@@ -88,7 +108,13 @@ func (iv *issueVariantHandler) ListIssueVariants(filter *entity.IssueVariantFilt
 			count = int64(len(ids))
 		}
 	} else if options.ShowTotalCount {
-		count, err = iv.database.CountIssueVariants(filter)
+		count, err = cache.CallCached[int64](
+			iv.cache,
+			CacheTtlCountIssueVariants,
+			"CountIssueVariants",
+			iv.database.CountIssueVariants,
+			filter,
+		)
 		if err != nil {
 			l.Error(err)
 			return nil, NewIssueVariantHandlerError("Error while total count of IssueVariants")

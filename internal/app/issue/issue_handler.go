@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
+
 package issue
 
 import (
@@ -10,23 +11,35 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	applog "github.com/cloudoperators/heureka/internal/app/logging"
+	"time"
+
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/sirupsen/logrus"
 )
 
+var CacheTtlGetIssuesWithAggregations = 12 * time.Hour
+var CacheTtlGetIssues = 12 * time.Hour
+var CacheTtlGetAllIssueCursors = 12 * time.Hour
+var CacheTtlCountIssueTypes = 12 * time.Hour
+var CacheTtlGetIssueNames = 12 * time.Hour
+var CacheTtlCountIssueRatings = 12 * time.Hour
+
 type issueHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	logger        *logrus.Logger
+	cache         cache.Cache
 }
 
-func NewIssueHandler(db database.Database, er event.EventRegistry) IssueHandler {
+func NewIssueHandler(db database.Database, er event.EventRegistry, cache cache.Cache) IssueHandler {
 	return &issueHandler{
 		database:      db,
 		eventRegistry: er,
 		logger:        logrus.New(),
+		cache:         cache,
 	}
 }
 
@@ -86,7 +99,14 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	if options.IncludeAggregations {
-		res, err = is.database.GetIssuesWithAggregations(filter, options.Order)
+		res, err = cache.CallCached[[]entity.IssueResult](
+			is.cache,
+			CacheTtlGetIssuesWithAggregations,
+			"GetIssuesWithAggregations",
+			is.database.GetIssuesWithAggregations,
+			filter,
+			options.Order,
+		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
 			applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -96,7 +116,14 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 			return nil, wrappedErr
 		}
 	} else {
-		res, err = is.database.GetIssues(filter, options.Order)
+		res, err = cache.CallCached[[]entity.IssueResult](
+			is.cache,
+			CacheTtlGetIssues,
+			"GetIssues",
+			is.database.GetIssues,
+			filter,
+			options.Order,
+		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
 			applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -111,7 +138,14 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			cursors, err := is.database.GetAllIssueCursors(filter, options.Order)
+			cursors, err := cache.CallCached[[]string](
+				is.cache,
+				CacheTtlGetAllIssueCursors,
+				"GetAllIssueCursors",
+				is.database.GetAllIssueCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "IssueCursors", "", err)
 				applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -125,7 +159,13 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 	}
 
 	if options.ShowPageInfo || options.ShowTotalCount || options.ShowIssueTypeCounts {
-		counts, err := is.database.CountIssueTypes(filter)
+		counts, err := cache.CallCached[*entity.IssueTypeCounts](
+			is.cache,
+			CacheTtlCountIssueTypes,
+			"CountIssueTypes",
+			is.database.CountIssueTypes,
+			filter,
+		)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "IssueTypeCounts", "", err)
 			applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -362,7 +402,14 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersio
 func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *entity.ListOptions) ([]string, error) {
 	op := appErrors.Op("issueHandler.ListIssueNames")
 
-	issueNames, err := is.database.GetIssueNames(filter)
+	issueNames, err := cache.CallCached[[]string](
+		is.cache,
+		CacheTtlGetIssueNames,
+		"GetIssueNames",
+		is.database.GetIssueNames,
+		filter,
+	)
+
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueNames", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -382,8 +429,14 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 
 func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
 	op := appErrors.Op("issueHandler.GetIssueSeverityCounts")
+	counts, err := cache.CallCached[*entity.IssueSeverityCounts](
+		is.cache,
+		CacheTtlCountIssueRatings,
+		"CountIssueRatings",
+		is.database.CountIssueRatings,
+		filter,
+	)
 
-	counts, err := is.database.CountIssueRatings(filter)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueSeverityCounts", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{

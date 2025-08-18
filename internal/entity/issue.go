@@ -44,9 +44,9 @@ var AllIssueTypes = []string{
 
 type IssueResult struct {
 	WithCursor
-	*IssueAggregations
-	*Issue
-	*IssueVariant
+	*IssueAggregations `json:"issue_aggregations"`
+	*Issue             `json:"issue"`
+	*IssueVariant      `json:"issue_variant"`
 }
 
 type IssueFilter struct {

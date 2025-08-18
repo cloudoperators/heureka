@@ -239,3 +239,20 @@ func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCurs
 		return nil
 	}
 }
+
+func WithSupportGroup(order []entity.Order, sg entity.SupportGroup) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.SupportGroupId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.SupportGroupId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.SupportGroupId, Value: sg.Id, Order: o.Direction})
+			case entity.SupportGroupCcrn:
+				cursors.fields = append(cursors.fields, Field{Name: entity.SupportGroupCcrn, Value: sg.CCRN, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}

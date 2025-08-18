@@ -19,6 +19,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/profiler"
 	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/app/severity"
@@ -53,26 +54,31 @@ type HeurekaApp struct {
 
 	ctx context.Context
 	wg  *sync.WaitGroup
+
+	profiler *profiler.Profiler
 }
 
 func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database, cfg util.Config) *HeurekaApp {
+	cache := NewAppCache(ctx, wg, cfg)
+	profiler := profiler.NewProfiler(cfg.CpuProfilerFilePath)
+	profiler.Start()
+
 	er := event.NewEventRegistry(db)
 	rh := issue_repository.NewIssueRepositoryHandler(db, er)
-	ivh := issue_variant.NewIssueVariantHandler(db, er, rh)
+	ivh := issue_variant.NewIssueVariantHandler(db, er, rh, cache)
 	sh := severity.NewSeverityHandler(db, er, ivh)
 
-	cache := NewAppCache(ctx, wg, cfg)
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
 		ActivityHandler:          activity.NewActivityHandler(db, er),
-		ComponentHandler:         component.NewComponentHandler(db, er),
-		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er),
-		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er),
+		ComponentHandler:         component.NewComponentHandler(db, er, cache),
+		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er, cache),
+		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er, cache),
 		EvidenceHandler:          evidence.NewEvidenceHandler(db, er),
-		IssueHandler:             issue.NewIssueHandler(db, er),
+		IssueHandler:             issue.NewIssueHandler(db, er, cache),
 		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er),
-		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh),
+		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh, cache),
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
 		ScannerRunHandler:        scanner_run.NewScannerRunHandler(db, er),
@@ -85,6 +91,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		cache:                    cache,
 		ctx:                      ctx,
 		wg:                       wg,
+		profiler:                 profiler,
 	}
 	heureka.SubscribeHandlers()
 	return heureka
@@ -102,6 +109,9 @@ func NewAppCache(ctx context.Context, wg *sync.WaitGroup, cfg util.Config) cache
 		if cfg.CacheValkeyUrl != "" {
 			cacheConfig = cache.ValkeyCacheConfig{
 				Url:         cfg.CacheValkeyUrl,
+				Username:    cfg.CacheValkeyUsername,
+				Password:    cfg.CacheValkeyPassword,
+				ClientName:  cfg.CacheValkeyClientName,
 				CacheConfig: cacheBaseConfig,
 			}
 		} else {
@@ -138,6 +148,7 @@ func (h *HeurekaApp) SubscribeHandlers() {
 }
 
 func (h *HeurekaApp) Shutdown() error {
+	h.profiler.Stop()
 	return h.database.CloseConnection()
 }
 
