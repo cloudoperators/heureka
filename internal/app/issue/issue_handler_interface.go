@@ -7,6 +7,7 @@ import "github.com/cloudoperators/heureka/internal/entity"
 
 type IssueHandler interface {
 	ListIssues(*entity.IssueFilter, *entity.IssueListOptions) (*entity.IssueList, error)
+	GetIssue(int64) (*entity.Issue, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) (*entity.Issue, error)
 	DeleteIssue(int64) error
