@@ -542,7 +542,10 @@ func EnableScheduler(cfg util.Config) error {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("SET GLOBAL event_scheduler = ON;")
+	_, err = db.Exec(`
+SET GLOBAL event_scheduler = ON;
+SET GLOBAL tmp_table_size = 512*1024*1024;
+SET GLOBAL max_heap_table_size = 512*1024*1024;`)
 	if err != nil {
 		logrus.WithError(err).Error(err)
 		return err
