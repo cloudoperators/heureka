@@ -7,49 +7,42 @@
 
 -- 1. Create the table (only if not exists to avoid errors if re-run)
 CREATE TABLE IF NOT EXISTS mvCountIssueRatingsUniqueService (
-    issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
-    issue_count INT DEFAULT 0,
-    PRIMARY KEY (issue_value)
+    issue_value enum ('None','Low','Medium', 'High', 'Critical') NULL,
+    issue_count INT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS mvCountIssueRatingsService (
-    supportgroup_ccrn varchar(255) NOT NULL,
-    issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
-    issue_count INT DEFAULT 0,
-    PRIMARY KEY (supportgroup_ccrn, issue_value)
+    supportgroup_ccrn varchar(255) NULL,
+    issue_value enum ('None','Low','Medium', 'High', 'Critical') NULL,
+    issue_count INT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS mvCountIssueRatingsServiceWithoutSupportGroup (
-    issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
-    issue_count INT DEFAULT 0,
-    PRIMARY KEY (issue_value)
+    issue_value enum ('None','Low','Medium', 'High', 'Critical') NULL,
+    issue_count INT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS mvCountIssueRatingsSupportGroup (
-    supportgroup_ccrn varchar(255) NOT NULL,
-    issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
-    issue_count INT DEFAULT 0,
-    PRIMARY KEY (supportgroup_ccrn, issue_value)
+    supportgroup_ccrn varchar(255) NULL,
+    issue_value enum ('None','Low','Medium', 'High', 'Critical') NULL,
+    issue_count INT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS mvCountIssueRatingsComponentVersion (
-    component_version_id INT UNSIGNED NOT NULL,
-    issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
-    issue_count INT DEFAULT 0,
-    PRIMARY KEY (component_version_id, issue_value)
+    component_version_id INT UNSIGNED NULL,
+    issue_value enum ('None','Low','Medium', 'High', 'Critical') NULL,
+    issue_count INT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS mvCountIssueRatingsServiceId (
-    service_id INT NOT NULL,
-    issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
-    issue_count INT DEFAULT 0,
-    PRIMARY KEY (service_id, issue_value)
+    service_id INT NULL,
+    issue_value enum ('None','Low','Medium', 'High', 'Critical') NULL,
+    issue_count INT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS mvCountIssueRatingsOther (
-    issue_value enum ('None','Low','Medium', 'High', 'Critical') NOT NULL,
-    issue_count INT DEFAULT 0,
-    PRIMARY KEY (issue_value)
+    issue_value enum ('None','Low','Medium', 'High', 'Critical') NULL,
+    issue_count INT DEFAULT 0
 );
 
 -- 2. Create or replace the procedure that refreshes the table
@@ -114,7 +107,7 @@ BEGIN
     TRUNCATE TABLE mvCountIssueRatingsComponentVersion;
     INSERT INTO mvCountIssueRatingsComponentVersion (component_version_id, issue_value, issue_count)
     SELECT
-        CVI.componentversionissue_component_version_id as supportgroup_ccrn,
+        CVI.componentversionissue_component_version_id as component_version_id,
         IV.issuevariant_rating AS issue_value,
         COUNT(DISTINCT CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id)) AS issue_count
     FROM Issue I
