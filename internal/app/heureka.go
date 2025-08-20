@@ -27,6 +27,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/user"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
@@ -47,6 +48,8 @@ type HeurekaApp struct {
 	support_group.SupportGroupHandler
 	user.UserHandler
 
+	authz openfga.Authorization
+
 	eventRegistry event.EventRegistry
 	database      database.Database
 
@@ -58,8 +61,20 @@ type HeurekaApp struct {
 	profiler *profiler.Profiler
 }
 
+func (h *HeurekaApp) SubscribeAuthzEventHandlers(registry event.EventRegistry, cfg util.Config, authz openfga.Authorization) {
+	// Register authorization event handlers for events
+	h.eventRegistry.RegisterEventHandler(
+		service.CreateServiceEventName,
+		event.EventHandlerFunc(authz.EventInjection),
+	)
+}
+
 func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database, cfg util.Config) *HeurekaApp {
 	cache := NewAppCache(ctx, wg, cfg)
+	enableLogs := true
+
+	authz := openfga.NewAuthorizationHandler(&cfg, enableLogs)
+
 	profiler := profiler.NewProfiler(cfg.CpuProfilerFilePath)
 	profiler.Start()
 
@@ -90,9 +105,12 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		database:                 db,
 		cache:                    cache,
 		ctx:                      ctx,
+		authz:                    authz,
 		wg:                       wg,
 		profiler:                 profiler,
 	}
+
+	heureka.SubscribeAuthzEventHandlers(er, cfg, authz)
 	heureka.SubscribeHandlers()
 	return heureka
 }

@@ -36,6 +36,7 @@ type Config struct {
 	AuthTokenSecret               string `envconfig:"AUTH_TOKEN_SECRET" required:"false" json:"-"`
 	AuthOidcClientId              string `envconfig:"AUTH_OIDC_CLIENT_ID" required:"false" json:"-"`
 	AuthOidcUrl                   string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
+	AuthzEnabled                  bool   `envconfig:"AUTHZ_ENABLED" required:"false" default:"false" json:"authzEnabled"`
 	DefaultIssuePriority          int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
 	DefaultRepositoryName         string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
 	CacheEnable                   bool   `envconfig:"CACHE_ENABLE" default:"false" json:"-"`
