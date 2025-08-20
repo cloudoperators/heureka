@@ -1,4 +1,4 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.24.6 AS builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.25.0 AS builder
 
 WORKDIR /go/src/github.com/cloudoperators/heureka
 ADD . .
