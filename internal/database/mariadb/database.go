@@ -28,7 +28,7 @@ const (
 )
 
 type SqlDatabase struct {
-	db                    *sqlx.DB
+	db                    Db
 	defaultIssuePriority  int64
 	defaultRepositoryName string
 	dbName                string
@@ -98,8 +98,30 @@ func Connect(cfg util.Config) (*sqlx.DB, error) {
 	return db, nil
 }
 
-func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
+type Db interface {
+	Close() error
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Get(dest interface{}, query string, args ...interface{}) error
+	GetDbInstance() *sql.DB
+	Preparex(query string) (*sqlx.Stmt, error)
+	PrepareNamed(query string) (*sqlx.NamedStmt, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
+func NewDb(cfg util.Config) (Db, error) {
 	db, err := Connect(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.DBTrace == true {
+		return &TraceDb{db: db}, nil
+	}
+	return &QuietDb{db: db}, nil
+}
+
+func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
+	db, err := NewDb(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +245,7 @@ func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
 		return nil, err
 	}
 
-	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{DatabaseName: s.dbName})
+	driver, err := mysql.WithInstance(s.db.GetDbInstance(), &mysql.Config{DatabaseName: s.dbName})
 	if err != nil {
 		return nil, err
 	}

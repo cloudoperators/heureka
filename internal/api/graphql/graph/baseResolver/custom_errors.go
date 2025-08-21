@@ -164,7 +164,7 @@ func sanitizeErrorMessage(appErr *appErrors.Error) string {
 
 	case appErrors.PermissionDenied:
 		message = "Permission denied"
-	
+
 	case appErrors.Unauthenticated:
 		message = "Authentication required"
 

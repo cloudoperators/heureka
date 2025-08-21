@@ -112,7 +112,7 @@ func TestErrorWith(t *testing.T) {
 	}
 
 	fields := map[string]interface{}{
-		"issue_id":    123,
+		"issue_id":     123,
 		"service_ccrn": "ccrn:test:service:123",
 	}
 
