@@ -5,10 +5,8 @@ package mariadb
 
 import (
 	"database/sql"
-	"fmt"
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"log"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -16,21 +14,15 @@ type TraceDb struct {
 	db *sqlx.DB
 }
 
-type TraceObj struct {
-	t0  time.Time
-	uid uuid.UUID
+func enterTrace() time.Time {
+	return time.Now()
 }
 
-func enterTrace(fnName string, query string) TraceObj {
-	uid := uuid.New()
-	msg := fmt.Sprintf("[%s] Starting %s with query: \n--- QUERY: ---\n%s\n--------------\n", uid, fnName, query)
-	log.Print(msg)
-	return TraceObj{t0: time.Now(), uid: uid}
-}
-
-func exitTrace(fnName string, to TraceObj) {
-	msg := fmt.Sprintf("[%s] %s finished, Execution time: %s", to.uid, fnName, time.Since(to.t0))
-	log.Print(msg)
+func exitTrace(fnName string, query string, t0 time.Time) {
+	logrus.WithFields(logrus.Fields{
+		"executionTime": time.Since(t0).String(),
+		"query": query,
+	}).Printf("%s finished", fnName)
 }
 
 func (tdb *TraceDb) Close() error {
@@ -38,14 +30,14 @@ func (tdb *TraceDb) Close() error {
 }
 
 func (tdb *TraceDb) Exec(query string, args ...interface{}) (sql.Result, error) {
-	t0 := enterTrace("Exec", query)
-	defer exitTrace("Exec", t0)
+	t0 := enterTrace()
+	defer exitTrace("Exec", query, t0)
 	return tdb.db.Exec(query, args...)
 }
 
 func (tdb *TraceDb) Get(dest interface{}, query string, args ...interface{}) error {
-	t0 := enterTrace("Get", query)
-	defer exitTrace("Get", t0)
+	t0 := enterTrace()
+	defer exitTrace("Get", query, t0)
 	return tdb.db.Get(dest, query, args...)
 }
 
@@ -54,25 +46,25 @@ func (tdb *TraceDb) GetDbInstance() *sql.DB {
 }
 
 func (tdb *TraceDb) PrepareNamed(query string) (*sqlx.NamedStmt, error) {
-	t0 := enterTrace("PrepareNamed", query)
-	defer exitTrace("PrepareNamed", t0)
+	t0 := enterTrace()
+	defer exitTrace("PrepareNamed", query, t0)
 	return tdb.db.PrepareNamed(query)
 }
 
 func (tdb *TraceDb) Preparex(query string) (*sqlx.Stmt, error) {
-	t0 := enterTrace("Preparex", query)
-	defer exitTrace("Preparex", t0)
+	t0 := enterTrace()
+	defer exitTrace("Preparex", query, t0)
 	return tdb.db.Preparex(query)
 }
 
 func (tdb *TraceDb) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	t0 := enterTrace("Query", query)
-	defer exitTrace("Query", t0)
+	t0 := enterTrace()
+	defer exitTrace("Query", query, t0)
 	return tdb.db.Query(query, args...)
 }
 
 func (tdb *TraceDb) QueryRow(query string, args ...interface{}) *sql.Row {
-	t0 := enterTrace("QueryRow", query)
-	defer exitTrace("QueryRow", t0)
+	t0 := enterTrace()
+	defer exitTrace("QueryRow", query, t0)
 	return tdb.db.QueryRow(query, args...)
 }
