@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -19,7 +20,7 @@ type userHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewUserHandler(db database.Database, er event.EventRegistry) UserHandler {
+func NewUserHandler(db database.Database, er event.EventRegistry, authz openfga.Authorization) UserHandler {
 	return &userHandler{
 		database:      db,
 		eventRegistry: er,

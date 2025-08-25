@@ -13,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +30,7 @@ type issueHandler struct {
 	cache         cache.Cache
 }
 
-func NewIssueHandler(db database.Database, er event.EventRegistry, cache cache.Cache) IssueHandler {
+func NewIssueHandler(db database.Database, er event.EventRegistry, cache cache.Cache, authz openfga.Authorization) IssueHandler {
 	return &issueHandler{
 		database:      db,
 		eventRegistry: er,

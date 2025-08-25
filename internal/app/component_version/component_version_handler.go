@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +26,7 @@ type componentVersionHandler struct {
 	cache         cache.Cache
 }
 
-func NewComponentVersionHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache) ComponentVersionHandler {
+func NewComponentVersionHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache, authz openfga.Authorization) ComponentVersionHandler {
 	return &componentVersionHandler{
 		database:      database,
 		eventRegistry: eventRegistry,

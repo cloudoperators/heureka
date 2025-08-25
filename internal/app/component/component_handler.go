@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/sirupsen/logrus"
 )
@@ -24,9 +25,10 @@ type componentHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
+	openfga       openfga.Authorization
 }
 
-func NewComponentHandler(db database.Database, er event.EventRegistry, cache cache.Cache) ComponentHandler {
+func NewComponentHandler(db database.Database, er event.EventRegistry, cache cache.Cache, authz openfga.Authorization) ComponentHandler {
 	return &componentHandler{
 		database:      db,
 		eventRegistry: er,
@@ -67,6 +69,12 @@ func (cs *componentHandler) getComponentResults(filter *entity.ComponentFilter) 
 func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, options *entity.ListOptions) (*entity.List[entity.ComponentResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
+
+	// Check permissions if OpenFGA is enabled
+	//if cfg.EnableOpenFGA {
+	//err := openfga.CheckPermissions(...)
+	//if err != nil { ... }
+	//}
 
 	common.EnsurePaginated(&filter.Paginated)
 

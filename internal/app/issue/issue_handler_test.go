@@ -12,6 +12,7 @@ import (
 	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -28,6 +29,7 @@ func TestIssueHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -85,7 +87,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 
 		It("shows the total count in the results", func() {
-			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+			issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 			res, err := issueHandler.ListIssues(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -118,7 +120,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
 			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
 			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
-			issueHandler = appIssue.NewIssueHandler(db, er, cache.NewNoCache())
+			issueHandler = appIssue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 			res, err := issueHandler.ListIssues(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -143,7 +145,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			})
 
 			It("should return an empty result", func() {
-				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
@@ -155,7 +157,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return(test.NNewFakeIssueResultsWithAggregations(10), nil)
 			})
 			It("should return the expected issues in the result", func() {
-				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(10), "return 10 results")
@@ -167,7 +169,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			})
 
 			It("should return the expected issues in the result", func() {
-				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 				_, err := issueHandler.ListIssues(filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
@@ -187,7 +189,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			})
 			It("should return an empty result", func() {
 
-				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
@@ -199,7 +201,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				db.On("GetIssues", filter, []entity.Order{}).Return(test.NNewFakeIssueResults(15), nil)
 			})
 			It("should return the expected issues in the result", func() {
-				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(15), "return 15 results")
@@ -212,7 +214,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			})
 
 			It("should return the expected issues in the result", func() {
-				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+				issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 				_, err := issueHandler.ListIssues(filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
@@ -247,7 +249,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssue", &issueEntity).Return(&issueEntity, nil)
 		db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
-		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 		newIssue, err := issueHandler.CreateIssue(&issueEntity)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssue.Id).NotTo(BeEquivalentTo(0))
@@ -283,7 +285,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	It("updates issueEntity", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssue", issueResult.Issue).Return(nil)
-		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 		issueResult.Issue.Description = "New Description"
 		filter.Id = []*int64{&issueResult.Issue.Id}
 		db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{issueResult}, nil)
@@ -321,7 +323,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 	It("deletes issue", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssue", id, mock.Anything).Return(nil)
-		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 		db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 		err := issueHandler.DeleteIssue(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -353,7 +355,7 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 	It("adds componentVersion to issueEntity", func() {
 		db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
 		db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
-		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 		issue, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
@@ -362,7 +364,7 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 	It("removes componentVersion from issueEntity", func() {
 		db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
 		db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
-		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache())
+		issueHandler = issue.NewIssueHandler(db, er, cache.NewNoCache(), authz)
 		issue, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")

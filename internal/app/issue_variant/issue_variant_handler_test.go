@@ -14,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -74,13 +75,14 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		rs                  issue_repository.IssueRepositoryHandler
 		filter              *entity.IssueVariantFilter
 		options             *entity.ListOptions
+		authz               openfga.Authorization
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = issueVariantListOptions()
 		filter = issueVariantFilter()
-		rs = issue_repository.NewIssueRepositoryHandler(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er, authz)
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -92,7 +94,7 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		})
 
 		It("shows the total count in the results", func() {
-			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
+			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache(), authz)
 			res, err := issueVariantHandler.ListIssueVariants(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -115,7 +117,7 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 			}
 			db.On("GetIssueVariants", filter).Return(advisories, nil)
 			db.On("GetAllIssueVariantIds", filter).Return(ids, nil)
-			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
+			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache(), authz)
 			res, err := issueVariantHandler.ListIssueVariants(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -139,6 +141,7 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 		issueVariants       []entity.IssueVariant
 		repositories        []entity.IssueRepository
 		rs                  issue_repository.IssueRepositoryHandler
+		authz               openfga.Authorization
 	)
 
 	BeforeEach(func() {
@@ -151,7 +154,7 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 		var after int64 = 0
 		irFilter.First = &first
 		irFilter.After = &after
-		rs = issue_repository.NewIssueRepositoryHandler(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er, authz)
 	})
 
 	When("having different priority", func() {
@@ -170,7 +173,7 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 			db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
 		})
 		It("can list advisories", func() {
-			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
+			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache(), authz)
 			res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			for _, item := range res.Elements {
@@ -194,7 +197,7 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 			db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
 		})
 		It("can list issueVariants", func() {
-			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
+			issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache(), authz)
 			res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			ir_ids := lo.Map(res.Elements, func(item entity.IssueVariantResult, _ int) int64 {
@@ -213,6 +216,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		issueVariant        entity.IssueVariant
 		filter              *entity.IssueVariantFilter
 		rs                  issue_repository.IssueRepositoryHandler
+		authz               openfga.Authorization
 	)
 
 	BeforeEach(func() {
@@ -227,7 +231,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 				After: &after,
 			},
 		}
-		rs = issue_repository.NewIssueRepositoryHandler(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er, authz)
 	})
 
 	It("creates issueVariant", func() {
@@ -235,7 +239,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
-		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
+		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache(), authz)
 		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(&issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueVariant.Id).NotTo(BeEquivalentTo(0))
@@ -258,6 +262,7 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		issueVariant        entity.IssueVariant
 		filter              *entity.IssueVariantFilter
 		rs                  issue_repository.IssueRepositoryHandler
+		authz               openfga.Authorization
 	)
 
 	BeforeEach(func() {
@@ -272,13 +277,13 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 				After: &after,
 			},
 		}
-		rs = issue_repository.NewIssueRepositoryHandler(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er, authz)
 	})
 
 	It("updates issueVariant", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueVariant", &issueVariant).Return(nil)
-		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
+		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache(), authz)
 		issueVariant.SecondaryName = "SecretAdvisory"
 		filter.Id = []*int64{&issueVariant.Id}
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{issueVariant}, nil)
@@ -303,6 +308,7 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		id                  int64
 		filter              *entity.IssueVariantFilter
 		rs                  issue_repository.IssueRepositoryHandler
+		authz               openfga.Authorization
 	)
 
 	BeforeEach(func() {
@@ -317,13 +323,13 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 				After: &after,
 			},
 		}
-		rs = issue_repository.NewIssueRepositoryHandler(db, er)
+		rs = issue_repository.NewIssueRepositoryHandler(db, er, authz)
 	})
 
 	It("deletes issueVariant", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueVariant", id, mock.Anything).Return(nil)
-		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
+		issueVariantHandler = iv.NewIssueVariantHandler(db, er, rs, cache.NewNoCache(), authz)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
 		err := issueVariantHandler.DeleteIssueVariant(id)
 		Expect(err).To(BeNil(), "no error should be thrown")

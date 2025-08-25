@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/activity"
 	a "github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -26,6 +27,7 @@ func TestActivityHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -65,7 +67,7 @@ var _ = Describe("When listing Activities", Label("app", "ListActivities"), func
 		})
 
 		It("shows the total count in the results", func() {
-			activityHandler = a.NewActivityHandler(db, er)
+			activityHandler = a.NewActivityHandler(db, er, authz)
 			res, err := activityHandler.ListActivities(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -88,7 +90,7 @@ var _ = Describe("When listing Activities", Label("app", "ListActivities"), func
 			}
 			db.On("GetActivities", filter).Return(activities, nil)
 			db.On("GetAllActivityIds", filter).Return(ids, nil)
-			activityHandler = a.NewActivityHandler(db, er)
+			activityHandler = a.NewActivityHandler(db, er, authz)
 			res, err := activityHandler.ListActivities(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -117,7 +119,7 @@ var _ = Describe("When creating Activity", Label("app", "CreateActivity"), func(
 	It("creates activity", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateActivity", &activity).Return(&activity, nil)
-		activityHandler = a.NewActivityHandler(db, er)
+		activityHandler = a.NewActivityHandler(db, er, authz)
 		newActivity, err := activityHandler.CreateActivity(&activity)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newActivity.Id).NotTo(BeEquivalentTo(0))
@@ -151,7 +153,7 @@ var _ = Describe("When updating Activity", Label("app", "UpdateService"), func()
 	It("updates activity", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateActivity", &activity).Return(nil)
-		activityHandler = a.NewActivityHandler(db, er)
+		activityHandler = a.NewActivityHandler(db, er, authz)
 		if activity.Status.String() == entity.ActivityStatusValuesOpen.String() {
 			activity.Status = entity.ActivityStatusValuesInProgress
 		} else {
@@ -192,7 +194,7 @@ var _ = Describe("When deleting Activity", Label("app", "DeleteActivity"), func(
 	It("deletes activity", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteActivity", id, mock.Anything).Return(nil)
-		activityHandler = a.NewActivityHandler(db, er)
+		activityHandler = a.NewActivityHandler(db, er, authz)
 		db.On("GetActivities", filter).Return([]entity.Activity{}, nil)
 		err := activityHandler.DeleteActivity(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -232,7 +234,7 @@ var _ = Describe("When modifying relationship of Service and Activity", Label("a
 	It("adds service to activity", func() {
 		db.On("AddServiceToActivity", activity.Id, service.Id).Return(nil)
 		db.On("GetActivities", filter).Return([]entity.Activity{activity}, nil)
-		activityHandler = a.NewActivityHandler(db, er)
+		activityHandler = a.NewActivityHandler(db, er, authz)
 		activity, err := activityHandler.AddServiceToActivity(activity.Id, service.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(activity).NotTo(BeNil(), "activity should be returned")
@@ -241,7 +243,7 @@ var _ = Describe("When modifying relationship of Service and Activity", Label("a
 	It("removes service from activity", func() {
 		db.On("RemoveServiceFromActivity", activity.Id, service.Id).Return(nil)
 		db.On("GetActivities", filter).Return([]entity.Activity{activity}, nil)
-		activityHandler = a.NewActivityHandler(db, er)
+		activityHandler = a.NewActivityHandler(db, er, authz)
 		activity, err := activityHandler.RemoveServiceFromActivity(activity.Id, service.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(activity).NotTo(BeNil(), "activity should be returned")
@@ -276,7 +278,7 @@ var _ = Describe("When modifying relationship of Issue and Activity", Label("app
 	It("adds issue to activity", func() {
 		db.On("AddIssueToActivity", activity.Id, issue.Id).Return(nil)
 		db.On("GetActivities", filter).Return([]entity.Activity{activity}, nil)
-		activityHandler = a.NewActivityHandler(db, er)
+		activityHandler = a.NewActivityHandler(db, er, authz)
 		activity, err := activityHandler.AddIssueToActivity(activity.Id, issue.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(activity).NotTo(BeNil(), "activity should be returned")
@@ -285,7 +287,7 @@ var _ = Describe("When modifying relationship of Issue and Activity", Label("app
 	It("removes issue from activity", func() {
 		db.On("RemoveIssueFromActivity", activity.Id, issue.Id).Return(nil)
 		db.On("GetActivities", filter).Return([]entity.Activity{activity}, nil)
-		activityHandler = a.NewActivityHandler(db, er)
+		activityHandler = a.NewActivityHandler(db, er, authz)
 		activity, err := activityHandler.RemoveIssueFromActivity(activity.Id, issue.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(activity).NotTo(BeNil(), "activity should be returned")

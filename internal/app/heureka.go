@@ -61,14 +61,6 @@ type HeurekaApp struct {
 	profiler *profiler.Profiler
 }
 
-func (h *HeurekaApp) SubscribeAuthzEventHandlers(registry event.EventRegistry, cfg util.Config, authz openfga.Authorization) {
-	// Register authorization event handlers for events
-	h.eventRegistry.RegisterEventHandler(
-		service.CreateServiceEventName,
-		event.EventHandlerFunc(authz.EventInjection),
-	)
-}
-
 func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database, cfg util.Config) *HeurekaApp {
 	cache := NewAppCache(ctx, wg, cfg)
 	enableLogs := true
@@ -79,28 +71,28 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	profiler.Start()
 
 	er := event.NewEventRegistry(db)
-	rh := issue_repository.NewIssueRepositoryHandler(db, er)
-	ivh := issue_variant.NewIssueVariantHandler(db, er, rh, cache)
-	sh := severity.NewSeverityHandler(db, er, ivh)
+	rh := issue_repository.NewIssueRepositoryHandler(db, er, authz)
+	ivh := issue_variant.NewIssueVariantHandler(db, er, rh, cache, authz)
+	sh := severity.NewSeverityHandler(db, er, ivh, authz)
 
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
-		ActivityHandler:          activity.NewActivityHandler(db, er),
-		ComponentHandler:         component.NewComponentHandler(db, er, cache),
-		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er, cache),
-		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er, cache),
-		EvidenceHandler:          evidence.NewEvidenceHandler(db, er),
-		IssueHandler:             issue.NewIssueHandler(db, er, cache),
-		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er),
-		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh, cache),
+		ActivityHandler:          activity.NewActivityHandler(db, er, authz),
+		ComponentHandler:         component.NewComponentHandler(db, er, cache, authz),
+		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er, cache, authz),
+		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er, cache, authz),
+		EvidenceHandler:          evidence.NewEvidenceHandler(db, er, authz),
+		IssueHandler:             issue.NewIssueHandler(db, er, cache, authz),
+		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er, authz),
+		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh, cache, authz),
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
 		ScannerRunHandler:        scanner_run.NewScannerRunHandler(db, er),
-		ServiceHandler:           service.NewServiceHandler(db, er, cache),
+		ServiceHandler:           service.NewServiceHandler(db, er, cache, authz),
 		SeverityHandler:          sh,
-		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er),
-		UserHandler:              user.NewUserHandler(db, er),
+		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er, authz),
+		UserHandler:              user.NewUserHandler(db, er, authz),
 		eventRegistry:            er,
 		database:                 db,
 		cache:                    cache,
@@ -110,7 +102,6 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		profiler:                 profiler,
 	}
 
-	heureka.SubscribeAuthzEventHandlers(er, cfg, authz)
 	heureka.SubscribeHandlers()
 	return heureka
 }

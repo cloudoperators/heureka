@@ -15,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -27,6 +28,7 @@ func TestComponentInstanceHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -67,7 +69,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		})
 
 		It("shows the total count in the results", func() {
-			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
 			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -100,7 +102,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 			}
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return(componentInstances, nil)
 			db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).Return(cursors, nil)
-			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
 			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -129,7 +131,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 	It("creates componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
 		// Ensure type is allowed if ParentId is set
 		componentInstance.Type = "RecordSet"
 		componentInstance.ParentId = 1234
@@ -179,7 +181,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 	It("updates componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
 		componentInstance.Region = "NewRegion"
 		componentInstance.Cluster = "NewCluster"
 		componentInstance.Namespace = "NewNamespace"
@@ -239,7 +241,7 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 	It("deletes componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentInstance", id, mock.Anything).Return(nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
 		err := componentInstanceHandler.DeleteComponentInstance(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -275,7 +277,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 		})
 
 		It("it return the results", func() {
-			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
 			res, err := componentInstanceHandler.ListCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
@@ -290,7 +292,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 			db.On("GetCcrn", filter).Return([]string{CCRN}, nil)
 		})
 		It("returns filtered CCRN according to the CCRN type", func() {
-			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
 			res, err := componentInstanceHandler.ListCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(CCRN), "should only consist of CCRN")

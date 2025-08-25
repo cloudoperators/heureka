@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,13 +26,15 @@ type serviceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
+	authz         openfga.Authorization
 }
 
-func NewServiceHandler(db database.Database, er event.EventRegistry, cache cache.Cache) ServiceHandler {
+func NewServiceHandler(db database.Database, er event.EventRegistry, cache cache.Cache, authz openfga.Authorization) ServiceHandler {
 	return &serviceHandler{
 		database:      db,
 		eventRegistry: er,
 		cache:         cache,
+		authz:         authz,
 	}
 }
 

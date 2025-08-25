@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -19,7 +20,7 @@ type supportGroupHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewSupportGroupHandler(database database.Database, eventRegistry event.EventRegistry) SupportGroupHandler {
+func NewSupportGroupHandler(database database.Database, eventRegistry event.EventRegistry, authz openfga.Authorization) SupportGroupHandler {
 	return &supportGroupHandler{
 		database:      database,
 		eventRegistry: eventRegistry,

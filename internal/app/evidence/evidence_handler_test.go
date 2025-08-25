@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -24,6 +25,7 @@ func TestEvidenceHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -70,7 +72,7 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 		})
 
 		It("shows the total count in the results", func() {
-			evidenceHandler = es.NewEvidenceHandler(db, er)
+			evidenceHandler = es.NewEvidenceHandler(db, er, authz)
 			res, err := evidenceHandler.ListEvidences(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -93,7 +95,7 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 			}
 			db.On("GetEvidences", filter).Return(evidences, nil)
 			db.On("GetAllEvidenceIds", filter).Return(ids, nil)
-			evidenceHandler = es.NewEvidenceHandler(db, er)
+			evidenceHandler = es.NewEvidenceHandler(db, er, authz)
 			res, err := evidenceHandler.ListEvidences(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -122,7 +124,7 @@ var _ = Describe("When creating Evidence", Label("app", "CreateEvidence"), func(
 	It("creates evidence", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateEvidence", &evidence).Return(&evidence, nil)
-		evidenceHandler = es.NewEvidenceHandler(db, er)
+		evidenceHandler = es.NewEvidenceHandler(db, er, authz)
 		newEvidence, err := evidenceHandler.CreateEvidence(&evidence)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newEvidence.Id).NotTo(BeEquivalentTo(0))
@@ -162,7 +164,7 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 	It("updates evidence", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateEvidence", &evidence).Return(nil)
-		evidenceHandler = es.NewEvidenceHandler(db, er)
+		evidenceHandler = es.NewEvidenceHandler(db, er, authz)
 		evidence.Description = "New Description"
 		filter.Id = []*int64{&evidence.Id}
 		db.On("GetEvidences", filter).Return([]entity.Evidence{evidence}, nil)
@@ -204,7 +206,7 @@ var _ = Describe("When deleting Evidence", Label("app", "DeleteEvidence"), func(
 	It("deletes evidence", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteEvidence", id, mock.Anything).Return(nil)
-		evidenceHandler = es.NewEvidenceHandler(db, er)
+		evidenceHandler = es.NewEvidenceHandler(db, er, authz)
 		db.On("GetEvidences", filter).Return([]entity.Evidence{}, nil)
 		err := evidenceHandler.DeleteEvidence(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
