@@ -90,6 +90,9 @@ test-app: gqlgen install-build-dependencies
 test-access: gqlgen install-build-dependencies
 	ginkgo -r internal/api/graphql/access
 
+test-authorization: gqlgen install-build-dependencies
+	ginkgo -r internal/openfga
+
 test-db: gqlgen install-build-dependencies
 	ginkgo -r internal/database/mariadb
 
