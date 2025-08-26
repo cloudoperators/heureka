@@ -322,6 +322,8 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
 		return nil, err
 	}
 
+	defer stmt.Close()
+
 	return performListScan(
 		stmt,
 		filterParameters,
