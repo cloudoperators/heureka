@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -158,7 +157,7 @@ func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
 	return columns
 }
 
-func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
 	filter = s.ensureIssueMatchFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
@@ -192,9 +191,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
-	var stmt *sqlx.Stmt
-
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(

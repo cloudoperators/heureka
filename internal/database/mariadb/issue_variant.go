@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -106,7 +105,7 @@ func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVari
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entity.IssueVariantFilter, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entity.IssueVariantFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
 	filter = s.ensureIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
@@ -128,10 +127,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entit
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
-	var stmt *sqlx.Stmt
-	var err error
-
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(

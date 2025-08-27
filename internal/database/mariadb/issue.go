@@ -11,7 +11,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -292,7 +291,7 @@ func getIssueQueryWithMvCountIssueRatingsJoin(baseQuery string, order []entity.O
 	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, orderStr)
 }
 
-func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	ifilter := s.ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
@@ -304,8 +303,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 	query := getIssueQueryWithCursor(baseQuery, order, ifilter, cursorFields)
 
 	//construct prepared statement and if where clause does exist add parameters
-	var stmt *sqlx.Stmt
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -323,7 +321,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	ifilter := s.ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
@@ -335,8 +333,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	query := getIssueQuery(baseQuery, order, ifilter)
 
 	//construct prepared statement and if where clause does exist add parameters
-	var stmt *sqlx.Stmt
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -354,7 +351,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) buildIssueStatementWithMvCountIssueRatingsJoin(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueStatementWithMvCountIssueRatingsJoin(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	ifilter := s.ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
@@ -366,8 +363,7 @@ func (s *SqlDatabase) buildIssueStatementWithMvCountIssueRatingsJoin(baseQuery s
 	query := getIssueQueryWithMvCountIssueRatingsJoin(baseQuery, order, ifilter)
 
 	//construct prepared statement and if where clause does exist add parameters
-	var stmt *sqlx.Stmt
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -458,9 +454,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	aggQuery := fmt.Sprintf(baseAggQuery, columns, joins, whereClause, cursorQuery, orderStr)
 	query := fmt.Sprintf(baseQuery, ciQuery, aggQuery)
 
-	var stmt *sqlx.Stmt
-
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(

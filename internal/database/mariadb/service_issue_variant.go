@@ -6,7 +6,6 @@ package mariadb
 import (
 	"fmt"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,7 +40,7 @@ func (s *SqlDatabase) getServiceIssueVariantFilterString(filter *entity.ServiceI
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter *entity.ServiceIssueVariantFilter, withCursor bool, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter *entity.ServiceIssueVariantFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
 	filter = s.ensureServiceIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
@@ -62,10 +61,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
-	var stmt *sqlx.Stmt
-	var err error
-
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(

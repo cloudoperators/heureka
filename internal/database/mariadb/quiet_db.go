@@ -28,15 +28,15 @@ func (qdb *QuietDb) GetDbInstance() *sql.DB {
 	return qdb.db.DB
 }
 
-func (qdb *QuietDb) PrepareNamed(query string) (*sqlx.NamedStmt, error) {
+func (qdb *QuietDb) PrepareNamed(query string) (NamedStmt, error) {
 	return qdb.db.PrepareNamed(query)
 }
 
-func (qdb *QuietDb) Preparex(query string) (*sqlx.Stmt, error) {
+func (qdb *QuietDb) Preparex(query string) (Stmt, error) {
 	return qdb.db.Preparex(query)
 }
 
-func (qdb *QuietDb) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (qdb *QuietDb) Query(query string, args ...interface{}) (SqlRows, error) {
 	return qdb.db.Query(query, args...)
 }
 
