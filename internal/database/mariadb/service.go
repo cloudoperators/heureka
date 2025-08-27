@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -176,7 +175,7 @@ func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.ServiceFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (*sqlx.Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.ServiceFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
 	filter = s.ensureServiceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
@@ -209,9 +208,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	}
 
 	//construct prepared statement and if where clause does exist add parameters
-	var stmt *sqlx.Stmt
-
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -389,9 +386,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, orderStr)
 	query := fmt.Sprintf(baseQuery, imQuery, ciQuery)
 
-	var stmt *sqlx.Stmt
-
-	stmt, err = s.db.Preparex(query)
+	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -458,6 +453,8 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 	if err != nil {
 		return nil, err
 	}
+
+	defer stmt.Close()
 
 	rows, err := performListScan(
 		stmt,
