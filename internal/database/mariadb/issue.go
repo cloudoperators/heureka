@@ -679,6 +679,8 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 		return nil, err
 	}
 
+	defer stmt.Close()
+
 	rows, err := performListScan(
 		stmt,
 		filterParameters,

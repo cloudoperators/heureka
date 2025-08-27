@@ -459,6 +459,8 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 		return nil, err
 	}
 
+	defer stmt.Close()
+
 	rows, err := performListScan(
 		stmt,
 		filterParameters,
