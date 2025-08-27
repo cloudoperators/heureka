@@ -132,3 +132,9 @@ ui-up:
 
 ui-down:
 	$(DOCKER_COMPOSE) --profile ui down
+
+openfga-up:
+	$(DOCKER_COMPOSE) --profile postgres --profile migrate --profile openfga up
+
+openfga-down:
+	$(DOCKER_COMPOSE) --profile postgres --profile migrate --profile openfga down
