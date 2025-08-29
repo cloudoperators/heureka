@@ -9,13 +9,13 @@ import (
 
 type Authorization interface {
 	// check if userId has permission on resourceId
-	CheckPermission(userId, resourceId, permission string) (bool, error)
+	CheckPermission(userId string, resourceId string, resourceType string, permission string) (bool, error)
 	// add relationship between userId and resourceId
-	AddRelation(userId, resourceId string, relation string) error
+	AddRelation(userId string, resourceId string, resourceType string, relation string) error
 	// remove relationship between userId and resourceId
-	RemoveRelation(userId, resourceId string, relation string) error
+	RemoveRelation(userId string, resourceId string, resourceType string, relation string) error
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
-	ListAccessibleResources(userID string, resourceType string, permission string, relation string) ([]string, error)
+	ListAccessibleResources(userId string, resourceType string, permission string, relation string) ([]string, error)
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {

@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	fgaStoreName  = "heureka-store"
-	modelFilePath = "internal/openfga/model/model.fga"
+	fgaStoreName = "heureka-store"
+
+	userFieldName = "user"
 )
 
 type Authz struct {
@@ -46,7 +47,7 @@ func getAuthModelRequestFromFile(filePath string) (*client.ClientWriteAuthorizat
 
 func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	fgaClient, err := client.NewSdkClient(&client.ClientConfiguration{
-		ApiUrl: os.Getenv("FGA_API_URL"),
+		ApiUrl: cfg.OpenFGApiUrl,
 	})
 	if err != nil {
 		l.Error("Could not initialize OpenFGA client: ", err)
@@ -64,7 +65,7 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	fgaClient.SetStoreId(store.Id)
 
 	// Create the authorization model request from the model file
-	modelRequest, err := getAuthModelRequestFromFile(modelFilePath)
+	modelRequest, err := getAuthModelRequestFromFile(cfg.AuthModelFilePath)
 	if err != nil {
 		l.Error("Could not parse OpenFGA model file: ", err)
 		return nil
@@ -85,11 +86,11 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 }
 
 // CheckPermission checks if userId has permission on resourceId.
-func (a *Authz) CheckPermission(userId, resourceId, permission string) (bool, error) {
+func (a *Authz) CheckPermission(userId string, resourceId string, resourceType string, permission string) (bool, error) {
 	req := client.ClientCheckRequest{
-		User:     userId,
-		Object:   resourceId,
+		User:     userFieldName + ":" + userId,
 		Relation: permission,
+		Object:   resourceType + ":" + resourceId,
 	}
 	resp, err := a.client.Check(context.Background()).Body(req).Execute()
 	if err != nil {
@@ -100,13 +101,13 @@ func (a *Authz) CheckPermission(userId, resourceId, permission string) (bool, er
 }
 
 // AddRelation adds a relationship between userId and resourceId.
-func (a *Authz) AddRelation(userId, resourceId, relation string) error {
+func (a *Authz) AddRelation(userId string, resourceId string, resourceType string, relation string) error {
 	tuple := client.ClientWriteRequest{
 		Writes: []client.ClientTupleKey{
 			{
-				User:     userId,
+				User:     userFieldName + ":" + userId,
 				Relation: relation,
-				Object:   resourceId,
+				Object:   resourceType + ":" + resourceId,
 			},
 		},
 	}
@@ -121,13 +122,13 @@ func (a *Authz) AddRelation(userId, resourceId, relation string) error {
 }
 
 // RemoveRelation removes a relationship between userId and resourceId.
-func (a *Authz) RemoveRelation(userId, resourceId, relation string) error {
+func (a *Authz) RemoveRelation(userId string, resourceId string, resourceType string, relation string) error {
 	tuple := client.ClientWriteRequest{
 		Deletes: []client.ClientTupleKeyWithoutCondition{
 			{
-				User:     userId,
+				User:     userFieldName + ":" + userId,
 				Relation: relation,
-				Object:   resourceId,
+				Object:   resourceType + ":" + resourceId,
 			},
 		},
 	}
@@ -139,9 +140,9 @@ func (a *Authz) RemoveRelation(userId, resourceId, relation string) error {
 }
 
 // ListAccessibleResources returns a list of resource Ids that the user can access.
-func (a *Authz) ListAccessibleResources(userID string, resourceType string, permission string, relation string) ([]string, error) {
+func (a *Authz) ListAccessibleResources(userId string, resourceType string, permission string, relation string) ([]string, error) {
 	body := client.ClientListObjectsRequest{
-		User:     userID,
+		User:     userFieldName + ":" + userId,
 		Relation: relation,
 		Type:     resourceType,
 	}
