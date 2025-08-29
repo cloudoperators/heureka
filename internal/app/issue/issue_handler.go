@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package issue
@@ -6,13 +6,18 @@ package issue
 import (
 	"errors"
 	"fmt"
+	"strconv"
+
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
+
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
@@ -27,6 +32,7 @@ var CacheTtlCountIssueRatings = 12 * time.Hour
 type issueHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	logger        *logrus.Logger
 	cache         cache.Cache
 }
 
@@ -34,59 +40,63 @@ func NewIssueHandler(db database.Database, er event.EventRegistry, cache cache.C
 	return &issueHandler{
 		database:      db,
 		eventRegistry: er,
+		logger:        logrus.New(),
 		cache:         cache,
 	}
 }
 
-type IssueHandlerError struct {
-	msg string
-}
-
-func (e *IssueHandlerError) Error() string {
-	return fmt.Sprintf("IssueHandlerError: %s", e.msg)
-}
-
-func NewIssueHandlerError(msg string) *IssueHandlerError {
-	return &IssueHandlerError{msg: msg}
-}
-
 func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": GetIssueEventName,
-		"id":    id,
-	})
+	op := appErrors.Op("issueHandler.GetIssue")
 
+	// Input validation
+	if id <= 0 {
+		err := appErrors.E(op, "Issue", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
+		applog.LogError(is.logger, err, logrus.Fields{"id": id})
+		return nil, err
+	}
+
+	// Use ListIssues to retrieve the issue
 	lo := entity.IssueListOptions{
 		ListOptions: *entity.NewListOptions(),
 	}
 	issues, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&id}}, &lo)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while retrieving issue.")
+		// Wrap the error from ListIssues with operation context
+		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.Internal, err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{"id": id})
+		return nil, wrappedErr
 	}
 
-	if len(issues.Elements) != 1 {
-		return nil, NewIssueHandlerError(fmt.Sprintf("Issue %d not found.", id))
+	// Check if exactly one issue was found
+	if len(issues.Elements) == 0 {
+		err := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.NotFound)
+		applog.LogError(is.logger, err, logrus.Fields{"id": id})
+		return nil, err
 	}
 
+	if len(issues.Elements) > 1 {
+		// This shouldn't happen with a unique ID, indicates data integrity issue
+		err := appErrors.E(op, "Issue", strconv.FormatInt(id, 10), appErrors.Internal,
+			fmt.Sprintf("found %d issues with ID %d, expected 1", len(issues.Elements), id))
+		applog.LogError(is.logger, err, logrus.Fields{"id": id, "found_count": len(issues.Elements)})
+		return nil, err
+	}
+
+	// Success - publish event and return result
 	issue := issues.Elements[0].Issue
 	is.eventRegistry.PushEvent(&GetIssueEvent{IssueID: id, Issue: issue})
 	return issue, nil
 }
 
 func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.IssueListOptions) (*entity.IssueList, error) {
+	op := appErrors.Op("issueHandler.ListIssues")
+
 	var pageInfo *entity.PageInfo
 	var res []entity.IssueResult
 	var err error
 	issueList := entity.IssueList{
 		List: &entity.List[entity.IssueResult]{},
 	}
-
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListIssuesEventName,
-		"filter": filter,
-	})
 
 	common.EnsurePaginatedX(&filter.PaginatedX)
 
@@ -100,8 +110,12 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 			options.Order,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewIssueHandlerError("Internal error while retrieving list results witis aggregations")
+			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
+			applog.LogError(is.logger, wrappedErr, logrus.Fields{
+				"filter":               filter,
+				"include_aggregations": true,
+			})
+			return nil, wrappedErr
 		}
 	} else {
 		res, err = cache.CallCached[[]entity.IssueResult](
@@ -113,8 +127,12 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 			options.Order,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewIssueHandlerError("Internal error while retrieving list results.")
+			wrappedErr := appErrors.InternalError(string(op), "Issues", "", err)
+			applog.LogError(is.logger, wrappedErr, logrus.Fields{
+				"filter":               filter,
+				"include_aggregations": false,
+			})
+			return nil, wrappedErr
 		}
 	}
 
@@ -131,13 +149,17 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 				options.Order,
 			)
 			if err != nil {
-				l.Error(err)
-				return nil, NewIssueHandlerError("Error while getting all cursors")
+				wrappedErr := appErrors.InternalError(string(op), "IssueCursors", "", err)
+				applog.LogError(is.logger, wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
 			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
 			issueList.PageInfo = pageInfo
 		}
 	}
+
 	if options.ShowPageInfo || options.ShowTotalCount || options.ShowIssueTypeCounts {
 		counts, err := cache.CallCached[*entity.IssueTypeCounts](
 			is.cache,
@@ -147,8 +169,11 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 			filter,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewIssueHandlerError("Error while count of issues")
+			wrappedErr := appErrors.InternalError(string(op), "IssueTypeCounts", "", err)
+			applog.LogError(is.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 		tc := counts.TotalIssueCount()
 		issueList.PolicyViolationCount = &counts.PolicyViolationCount
@@ -167,21 +192,21 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 }
 
 func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
+	op := appErrors.Op("issueHandler.CreateIssue")
+
 	f := &entity.IssueFilter{
 		PrimaryName: []*string{&issue.PrimaryName},
 	}
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  CreateIssueEventName,
-		"object": issue,
-		"filter": f,
-	})
-
 	var err error
 	issue.CreatedBy, err = common.GetCurrentUserId(is.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while creating issue (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"primary_name": issue.PrimaryName,
+			"issue_type":   string(issue.Type),
+		})
+		return nil, wrappedErr
 	}
 	issue.UpdatedBy = issue.CreatedBy
 
@@ -191,19 +216,32 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	issues, err := is.ListIssues(f, &lo)
 
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while creating issue.")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"primary_name": issue.PrimaryName,
+			"issue_type":   string(issue.Type),
+		})
+		return nil, wrappedErr
 	}
 
 	if len(issues.Elements) > 0 {
-		return nil, NewIssueHandlerError(fmt.Sprintf("Duplicated entry %s for primaryName.", issue.PrimaryName))
+		err := appErrors.AlreadyExistsError(string(op), "Issue", issue.PrimaryName)
+		applog.LogError(is.logger, err, logrus.Fields{
+			"primary_name":      issue.PrimaryName,
+			"existing_issue_id": issues.Elements[0].Issue.Id,
+		})
+		return nil, err
 	}
 
 	newIssue, err := is.database.CreateIssue(issue)
 
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while creating issue.")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"primary_name": issue.PrimaryName,
+			"issue_type":   string(issue.Type),
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&CreateIssueEvent{Issue: newIssue})
@@ -211,61 +249,77 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 }
 
 func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  UpdateIssueEventName,
-		"object": issue,
-	})
+	op := appErrors.Op("issueHandler.UpdateIssue")
 
 	var err error
 	issue.UpdatedBy, err = common.GetCurrentUserId(is.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while updating issue (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(issue.Id, 10), err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"id":           issue.Id,
+			"primary_name": issue.PrimaryName,
+		})
+		return nil, wrappedErr
 	}
 
 	err = is.database.UpdateIssue(issue)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while updating issue.")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(issue.Id, 10), err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"id":           issue.Id,
+			"primary_name": issue.PrimaryName,
+		})
+		return nil, wrappedErr
 	}
 
 	lo := entity.IssueListOptions{
 		ListOptions: *entity.NewListOptions(),
 	}
 	issueResult, err := is.ListIssues(&entity.IssueFilter{Id: []*int64{&issue.Id}}, &lo)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while retrieving updated issue.")
+		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issue.Id, 10), appErrors.Internal, err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"id":           issue.Id,
+			"primary_name": issue.PrimaryName,
+		})
+		return nil, wrappedErr
 	}
 
 	if len(issueResult.Elements) != 1 {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Multiple issues found.")
+		err := appErrors.E(op, "Issue", strconv.FormatInt(issue.Id, 10), appErrors.Internal, "unexpected number of issues found after update")
+		applog.LogError(is.logger, err, logrus.Fields{
+			"id":           issue.Id,
+			"found_count":  len(issueResult.Elements),
+			"primary_name": issue.PrimaryName,
+		})
+		return nil, err
 	}
 
-	is.eventRegistry.PushEvent(&UpdateIssueEvent{Issue: issue})
-	return issueResult.Elements[0].Issue, nil
+	updatedIssue := issueResult.Elements[0].Issue
+	is.eventRegistry.PushEvent(&UpdateIssueEvent{Issue: updatedIssue})
+	return updatedIssue, nil
 }
 
 func (is *issueHandler) DeleteIssue(id int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"event": DeleteIssueEventName,
-		"id":    id,
-	})
+	op := appErrors.Op("issueHandler.DeleteIssue")
 
 	userId, err := common.GetCurrentUserId(is.database)
 	if err != nil {
-		l.Error(err)
-		return NewIssueHandlerError("Internal error while deleting issue (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(id, 10), err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"id": id,
+		})
+		return wrappedErr
 	}
 
 	err = is.database.DeleteIssue(id, userId)
-
 	if err != nil {
-		l.Error(err)
-		return NewIssueHandlerError("Internal error while deleting issue.")
+		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(id, 10), err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"id":      id,
+			"user_id": userId,
+		})
+		return wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&DeleteIssueEvent{IssueID: id})
@@ -273,20 +327,28 @@ func (is *issueHandler) DeleteIssue(id int64) error {
 }
 
 func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId int64) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": AddComponentVersionToIssueEventName,
-		"id":    issueId,
-	})
+	op := appErrors.Op("issueHandler.AddComponentVersionToIssue")
 
 	err := is.database.AddComponentVersionToIssue(issueId, componentVersionId)
-
 	if err != nil {
-		l.Error(err)
 		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
 		if errors.As(err, &duplicateEntryError) {
-			return nil, NewIssueHandlerError("Entry already Exists")
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "ComponentVersionIssue",
+				fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId))
+			applog.LogError(is.logger, wrappedErr, logrus.Fields{
+				"issue_id":             issueId,
+				"component_version_id": componentVersionId,
+			})
+			return nil, wrappedErr
 		}
-		return nil, NewIssueHandlerError("Internal error while adding component version to issue.")
+
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersionIssue",
+			fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId), err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"issue_id":             issueId,
+			"component_version_id": componentVersionId,
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&AddComponentVersionToIssueEvent{
@@ -294,20 +356,31 @@ func (is *issueHandler) AddComponentVersionToIssue(issueId, componentVersionId i
 		ComponentVersionID: componentVersionId,
 	})
 
-	return is.GetIssue(issueId)
+	issue, err := is.GetIssue(issueId)
+	if err != nil {
+		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issueId, 10), appErrors.Internal, err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"issue_id":             issueId,
+			"component_version_id": componentVersionId,
+		})
+		return nil, wrappedErr
+	}
+
+	return issue, nil
 }
 
 func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersionId int64) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": RemoveComponentVersionFromIssueEventName,
-		"id":    issueId,
-	})
+	op := appErrors.Op("issueHandler.RemoveComponentVersionFromIssue")
 
 	err := is.database.RemoveComponentVersionFromIssue(issueId, componentVersionId)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while removing component version from issue.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersionIssue",
+			fmt.Sprintf("issue:%d-componentVersion:%d", issueId, componentVersionId), err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"issue_id":             issueId,
+			"component_version_id": componentVersionId,
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&RemoveComponentVersionFromIssueEvent{
@@ -315,14 +388,21 @@ func (is *issueHandler) RemoveComponentVersionFromIssue(issueId, componentVersio
 		ComponentVersionID: componentVersionId,
 	})
 
-	return is.GetIssue(issueId)
+	issue, err := is.GetIssue(issueId)
+	if err != nil {
+		wrappedErr := appErrors.E(op, "Issue", strconv.FormatInt(issueId, 10), appErrors.Internal, err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"issue_id":             issueId,
+			"component_version_id": componentVersionId,
+		})
+		return nil, wrappedErr
+	}
+
+	return issue, nil
 }
 
 func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListIssueNamesEventName,
-		"filter": filter,
-	})
+	op := appErrors.Op("issueHandler.ListIssueNames")
 
 	issueNames, err := cache.CallCached[[]string](
 		is.cache,
@@ -333,8 +413,11 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 	)
 
 	if err != nil {
-		l.Error(err)
-		return nil, NewIssueHandlerError("Internal error while retrieving issueNames.")
+		wrappedErr := appErrors.InternalError(string(op), "IssueNames", "", err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&ListIssueNamesEvent{
@@ -347,6 +430,7 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 }
 
 func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
+	op := appErrors.Op("issueHandler.GetIssueSeverityCounts")
 	counts, err := cache.CallCached[*entity.IssueSeverityCounts](
 		is.cache,
 		CacheTtlCountIssueRatings,
@@ -356,7 +440,11 @@ func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*ent
 	)
 
 	if err != nil {
-		return nil, err
+		wrappedErr := appErrors.InternalError(string(op), "IssueSeverityCounts", "", err)
+		applog.LogError(is.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	is.eventRegistry.PushEvent(&GetIssueSeverityCountsEvent{

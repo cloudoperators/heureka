@@ -9,6 +9,18 @@
   },
   "packageRules": [
     {
+      "matchDatasources": ["helm"],
+      "groupName": "helm dependencies"
+    },
+    {
+      "matchDatasources": ["docker"],
+      "groupName": "docker images"
+    },
+    {
+      "matchDatasources": ["go"],
+      "groupName": "golang dependencies"
+    },
+    {
       "groupName": "github actions",
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["major", "minor"],
@@ -22,12 +34,6 @@
       "matchDatasources": [
         "npm"
       ],
-      "minimumReleaseAge": "14 days"
-    },
-    {
-      "groupName": "golang",
-      "matchDatasources": ["docker", "go-version"],
-      "matchPackagePatterns": ["golang"],
       "minimumReleaseAge": "14 days"
     },
     {

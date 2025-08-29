@@ -28,7 +28,7 @@ const (
 )
 
 type SqlDatabase struct {
-	db                    *sqlx.DB
+	db                    Db
 	defaultIssuePriority  int64
 	defaultRepositoryName string
 	dbName                string
@@ -98,8 +98,47 @@ func Connect(cfg util.Config) (*sqlx.DB, error) {
 	return db, nil
 }
 
-func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
+type Stmt interface {
+	Close() error
+	Queryx(args ...interface{}) (*sqlx.Rows, error)
+}
+
+type NamedStmt interface {
+	Close() error
+	Exec(arg interface{}) (sql.Result, error)
+}
+
+type SqlRows interface {
+	Close() error
+	Err() error
+	Next() bool
+	Scan(dest ...any) error
+}
+
+type Db interface {
+	Close() error
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Get(dest interface{}, query string, args ...interface{}) error
+	GetDbInstance() *sql.DB
+	Preparex(query string) (Stmt, error)
+	PrepareNamed(query string) (NamedStmt, error)
+	Query(query string, args ...interface{}) (SqlRows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
+func NewDb(cfg util.Config) (Db, error) {
 	db, err := Connect(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.DBTrace == true {
+		return &TraceDb{db: db}, nil
+	}
+	return &QuietDb{db: db}, nil
+}
+
+func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
+	db, err := NewDb(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +262,7 @@ func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
 		return nil, err
 	}
 
-	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{DatabaseName: s.dbName})
+	driver, err := mysql.WithInstance(s.db.GetDbInstance(), &mysql.Config{DatabaseName: s.dbName})
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +379,7 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 	return res, nil
 }
 
-func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt *sqlx.Stmt, filterParameters []interface{}, l *logrus.Entry, listBuilder func([]E, T) []E) ([]E, error) {
+func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt Stmt, filterParameters []interface{}, l *logrus.Entry, listBuilder func([]E, T) []E) ([]E, error) {
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		msg := "Error while performing Query from prepared Statement"
@@ -380,9 +419,7 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt *
 	return listEntries, nil
 }
 
-func performIdScan(stmt *sqlx.Stmt, filterParameters []interface{}, l *logrus.Entry) ([]int64, error) {
-	var rows *sqlx.Rows
-
+func performIdScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry) ([]int64, error) {
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		msg := "Error while performing query with prepared Statement"
@@ -422,9 +459,7 @@ func performIdScan(stmt *sqlx.Stmt, filterParameters []interface{}, l *logrus.En
 	return listEntries, nil
 }
 
-func performCountScan(stmt *sqlx.Stmt, filterParameters []interface{}, l *logrus.Entry) (int64, error) {
-	var rows *sqlx.Rows
-
+func performCountScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry) (int64, error) {
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		msg := "Error while performing query with prepared Statement"
