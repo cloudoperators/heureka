@@ -3,6 +3,9 @@
 
 # This docker-compose file is used to run the application localy in containarized environment.
 # ensure to set .env file accordingly
+networks:
+  openfga:
+
 services:
   heureka-db:
     image: mariadb:latest
@@ -74,6 +77,56 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    networks:
+      - openfga
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    image: openfga/openfga:latest
+    container_name: migrate
+    command: migrate
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=postgres
+      - OPENFGA_DATASTORE_URI=postgres://postgres:password@postgres:5432/postgres?sslmode=disable
+    networks:
+      - openfga
+
+  openfga:
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    image: openfga/openfga:latest
+    container_name: openfga
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=postgres
+      - OPENFGA_DATASTORE_URI=postgres://postgres:password@postgres:5432/postgres?sslmode=disable
+      - OPENFGA_LOG_FORMAT=json
+    command: run
+    networks:
+      - openfga
+    ports:
+      # HTTP server
+      - "8080:8080"
+      # GRPC server
+      - "8081:8081"
+      # Playground
+      - "3000:3000"
 
 volumes:
   valkey-data:

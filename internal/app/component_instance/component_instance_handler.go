@@ -11,6 +11,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,7 +25,7 @@ type componentInstanceHandler struct {
 	cache         cache.Cache
 }
 
-func NewComponentInstanceHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache) ComponentInstanceHandler {
+func NewComponentInstanceHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache, authz openfga.Authorization) ComponentInstanceHandler {
 	return &componentInstanceHandler{
 		database:      database,
 		eventRegistry: eventRegistry,

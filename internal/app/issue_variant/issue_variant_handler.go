@@ -13,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +29,7 @@ type issueVariantHandler struct {
 	cache             cache.Cache
 }
 
-func NewIssueVariantHandler(database database.Database, eventRegistry event.EventRegistry, rs issue_repository.IssueRepositoryHandler, cache cache.Cache) IssueVariantHandler {
+func NewIssueVariantHandler(database database.Database, eventRegistry event.EventRegistry, rs issue_repository.IssueRepositoryHandler, cache cache.Cache, authz openfga.Authorization) IssueVariantHandler {
 	return &issueVariantHandler{
 		database:          database,
 		eventRegistry:     eventRegistry,

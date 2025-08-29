@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,7 +19,7 @@ type issueRepositoryHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewIssueRepositoryHandler(database database.Database, eventRegistry event.EventRegistry) IssueRepositoryHandler {
+func NewIssueRepositoryHandler(database database.Database, eventRegistry event.EventRegistry, authz openfga.Authorization) IssueRepositoryHandler {
 	return &issueRepositoryHandler{
 		database:      database,
 		eventRegistry: eventRegistry,

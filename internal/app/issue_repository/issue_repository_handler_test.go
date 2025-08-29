@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -24,6 +25,7 @@ func TestIssueRepositoryHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -67,7 +69,7 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 		})
 
 		It("shows the total count in the results", func() {
-			issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er, authz)
 			res, err := issueRepositoryHandler.ListIssueRepositories(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -90,7 +92,7 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 			}
 			db.On("GetIssueRepositories", filter).Return(repositories, nil)
 			db.On("GetAllIssueRepositoryIds", filter).Return(ids, nil)
-			issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
+			issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er, authz)
 			res, err := issueRepositoryHandler.ListIssueRepositories(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -136,7 +138,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
-		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
+		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er, authz)
 		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(&issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueRepository.Id).NotTo(BeEquivalentTo(0))
@@ -196,7 +198,7 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 	It("updates issueRepository", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueRepository", &issueRepository).Return(nil)
-		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
+		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er, authz)
 		issueRepository.Name = "SecretRepository"
 		filter.Id = []*int64{&issueRepository.Id}
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{issueRepository}, nil)
@@ -233,7 +235,7 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 	It("deletes issueRepository", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueRepository", id, mock.Anything).Return(nil)
-		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er)
+		issueRepositoryHandler = ir.NewIssueRepositoryHandler(db, er, authz)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
 		err := issueRepositoryHandler.DeleteIssueRepository(id)
 		Expect(err).To(BeNil(), "no error should be thrown")

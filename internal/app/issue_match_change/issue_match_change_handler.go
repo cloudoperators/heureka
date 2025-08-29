@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -19,7 +20,7 @@ type issueMatchChangeHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewIssueMatchChangeHandler(db database.Database, er event.EventRegistry) IssueMatchChangeHandler {
+func NewIssueMatchChangeHandler(db database.Database, er event.EventRegistry, authz openfga.Authorization) IssueMatchChangeHandler {
 	return &issueMatchChangeHandler{
 		database:      db,
 		eventRegistry: er,

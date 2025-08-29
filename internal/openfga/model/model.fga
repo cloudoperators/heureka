@@ -1,0 +1,92 @@
+model
+schema 1.1
+
+type user
+
+# New role type for grouping users
+type role
+relations
+    define admin: [user]
+    define component_scanner: [user]
+    define issue_scanner: [user]
+
+type support_group
+relations
+    # Operations 
+    define can_write: admin from role
+    define can_view: member or admin from role or component_scanner from role or issue_scanner from role
+
+    # Roles
+    define member: [user, support_group#member] or member from support_group
+
+    # Relations
+    define role: [role]
+    define support_group: [support_group]
+
+type service
+relations
+    # Operations
+    define can_view: [user] or member or owner or admin from role or component_scanner from role or issue_scanner from role
+    define can_write: [user] or owner or admin from role
+
+    # Roles
+    define member: [user] or member from support_group
+    define owner: [user]
+
+    # Relations
+    define role: [role]
+    define support_group: [support_group]
+
+type component_instance
+relations
+    #Operations
+    define can_view: [user] or owner_from_related_service or member_from_related_service or admin from role or component_scanner from role or issue_scanner from role
+    define can_write: [user] or admin from role or component_scanner from role
+
+    #Roles 
+    define member_from_related_service: member from related_service
+    define owner_from_related_service: owner from related_service
+
+    # Relations
+    define related_service: [service]
+    define role: [role]
+
+type component_version
+relations
+    # Operations
+    define can_view: [user] or owner_from_related_service or member_from_related_service or admin from role or component_scanner from role or issue_scanner from role
+    define can_write: [user] or admin from role or component_scanner from role or issue_scanner from role
+
+    # Roles
+    define member_from_related_service: member_from_related_service from component_instance
+    define owner_from_related_service: owner_from_related_service from component_instance
+
+    # Relations
+    define component_instance: [component_instance]
+    define role: [role]
+
+type issue_match
+relations
+    define can_view: [user] or owner_from_related_service or member_from_related_service or admin from role or component_scanner from role or issue_scanner from role
+    define can_write: [user] or admin from role
+
+    define member_from_related_service: member_from_related_service from component_instance
+    define owner_from_related_service: owner_from_related_service from component_instance
+
+    # Relations
+    define component_instance: [component_instance]
+    define role: [role]
+
+type component
+relations
+    # Operations
+    define can_view: [user] or admin from role or component_scanner from role or issue_scanner from role or owner_from_related_service or member_from_related_service
+    define can_write: [user] or admin from role or owner_from_related_service
+
+    # Relations
+    define member_from_related_service: member_from_related_service from component_version
+    define owner_from_related_service: owner_from_related_service from component_version
+
+    # Relations
+    define component_version: [component_version]
+    define role: [role]

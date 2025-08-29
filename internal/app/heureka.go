@@ -27,6 +27,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/user"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
@@ -47,6 +48,8 @@ type HeurekaApp struct {
 	support_group.SupportGroupHandler
 	user.UserHandler
 
+	authz openfga.Authorization
+
 	eventRegistry event.EventRegistry
 	database      database.Database
 
@@ -60,39 +63,45 @@ type HeurekaApp struct {
 
 func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database, cfg util.Config) *HeurekaApp {
 	cache := NewAppCache(ctx, wg, cfg)
+	enableLogs := true
+
+	authz := openfga.NewAuthorizationHandler(&cfg, enableLogs)
+
 	profiler := profiler.NewProfiler(cfg.CpuProfilerFilePath)
 	profiler.Start()
 
 	er := event.NewEventRegistry(db)
-	rh := issue_repository.NewIssueRepositoryHandler(db, er)
-	ivh := issue_variant.NewIssueVariantHandler(db, er, rh, cache)
-	sh := severity.NewSeverityHandler(db, er, ivh)
+	rh := issue_repository.NewIssueRepositoryHandler(db, er, authz)
+	ivh := issue_variant.NewIssueVariantHandler(db, er, rh, cache, authz)
+	sh := severity.NewSeverityHandler(db, er, ivh, authz)
 
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
-		ActivityHandler:          activity.NewActivityHandler(db, er),
-		ComponentHandler:         component.NewComponentHandler(db, er, cache),
-		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er, cache),
-		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er, cache),
-		EvidenceHandler:          evidence.NewEvidenceHandler(db, er),
-		IssueHandler:             issue.NewIssueHandler(db, er, cache),
-		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er),
-		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh, cache),
+		ActivityHandler:          activity.NewActivityHandler(db, er, authz),
+		ComponentHandler:         component.NewComponentHandler(db, er, cache, authz),
+		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er, cache, authz),
+		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er, cache, authz),
+		EvidenceHandler:          evidence.NewEvidenceHandler(db, er, authz),
+		IssueHandler:             issue.NewIssueHandler(db, er, cache, authz),
+		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er, authz),
+		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh, cache, authz),
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
 		ScannerRunHandler:        scanner_run.NewScannerRunHandler(db, er),
-		ServiceHandler:           service.NewServiceHandler(db, er, cache),
+		ServiceHandler:           service.NewServiceHandler(db, er, cache, authz),
 		SeverityHandler:          sh,
-		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er),
-		UserHandler:              user.NewUserHandler(db, er),
+		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er, authz),
+		UserHandler:              user.NewUserHandler(db, er, authz),
 		eventRegistry:            er,
 		database:                 db,
 		cache:                    cache,
 		ctx:                      ctx,
+		authz:                    authz,
 		wg:                       wg,
 		profiler:                 profiler,
 	}
+
 	heureka.SubscribeHandlers()
 	return heureka
 }
