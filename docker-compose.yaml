@@ -43,6 +43,7 @@ services:
       DB_ROOT_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       SEED_MODE: ${SEED_MODE}
+      DB_TRACE: true
     depends_on:
       heureka-db:
         condition: service_healthy

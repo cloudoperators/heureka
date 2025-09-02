@@ -84,6 +84,7 @@ type RowComposite struct {
 	*EvidenceRow
 	*OwnerRow
 	*SupportGroupRow
+	*SupportGroupBatchRow
 	*SupportGroupServiceRow
 	*ActivityHasIssueRow
 	*ActivityHasServiceRow
@@ -115,6 +116,7 @@ type DatabaseRow interface {
 		EvidenceRow |
 		OwnerRow |
 		SupportGroupRow |
+		SupportGroupBatchRow |
 		SupportGroupServiceRow |
 		ActivityHasIssueRow |
 		ActivityHasServiceRow |
@@ -658,6 +660,31 @@ func (sgr *SupportGroupRow) FromSupportGroup(sg *entity.SupportGroup) {
 	sgr.DeletedAt = sql.NullTime{Time: sg.DeletedAt, Valid: true}
 	sgr.UpdatedAt = sql.NullTime{Time: sg.UpdatedAt, Valid: true}
 	sgr.UpdatedBy = sql.NullInt64{Int64: sg.UpdatedBy, Valid: true}
+}
+
+type SupportGroupBatchRow struct {
+	Id        sql.NullInt64  `db:"supportgroup_id" json:"id"`
+	CCRN      sql.NullString `db:"supportgroup_ccrn" json:"ccrn"`
+	CreatedAt sql.NullTime   `db:"supportgroup_created_at" json:"created_at"`
+	CreatedBy sql.NullInt64  `db:"supportgroup_created_by" json:"created_by"`
+	DeletedAt sql.NullTime   `db:"supportgroup_deleted_at" json:"deleted_at,omitempty"`
+	UpdatedAt sql.NullTime   `db:"supportgroup_updated_at" json:"updated_at"`
+	UpdatedBy sql.NullInt64  `db:"supportgroup_updated_by" json:"updated_by"`
+	IssueId   sql.NullInt64  `db:"issuematch_issue_id" json:"issue_id"`
+}
+
+func (sgbr *SupportGroupBatchRow) AsSupportGroupAndIssueId() (entity.SupportGroup, int64) {
+	return entity.SupportGroup{
+		Id:   GetInt64Value(sgbr.Id),
+		CCRN: GetStringValue(sgbr.CCRN),
+		Metadata: entity.Metadata{
+			CreatedAt: GetTimeValue(sgbr.CreatedAt),
+			CreatedBy: GetInt64Value(sgbr.CreatedBy),
+			DeletedAt: GetTimeValue(sgbr.DeletedAt),
+			UpdatedAt: GetTimeValue(sgbr.UpdatedAt),
+			UpdatedBy: GetInt64Value(sgbr.UpdatedBy),
+		},
+	}, GetInt64Value(sgbr.IssueId)
 }
 
 type ServiceRow struct {

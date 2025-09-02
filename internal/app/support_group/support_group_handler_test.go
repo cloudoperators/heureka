@@ -4,6 +4,7 @@
 package support_group_test
 
 import (
+	"context"
 	"math"
 	"testing"
 
@@ -66,7 +67,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 
 		It("shows the total count in the results", func() {
 			supportGroupHandler = sg.NewSupportGroupHandler(db, er)
-			res, err := supportGroupHandler.ListSupportGroups(filter, options)
+			res, err := supportGroupHandler.ListSupportGroups(context.TODO(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -101,7 +102,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 			db.On("GetSupportGroups", filter, order).Return(supportGroups, nil)
 			db.On("GetAllSupportGroupCursors", filter, order).Return(cursors, nil)
 			supportGroupHandler = sg.NewSupportGroupHandler(db, er)
-			res, err := supportGroupHandler.ListSupportGroups(filter, options)
+			res, err := supportGroupHandler.ListSupportGroups(context.TODO(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -224,7 +225,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		supportGroups, err := supportGroupHandler.ListSupportGroups(filter, listOptions)
+		supportGroups, err := supportGroupHandler.ListSupportGroups(context.TODO(), filter, listOptions)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroups.Elements).To(BeEmpty(), "no error should be thrown")
 	})

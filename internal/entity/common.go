@@ -49,6 +49,7 @@ type HeurekaEntity interface {
 		ServiceResult |
 		SupportGroup |
 		SupportGroupResult |
+		SupportGroupBatchResult |
 		SupportGroupAggregations |
 		SupportGroupService |
 		SupportGroupUser |

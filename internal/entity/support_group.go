@@ -9,6 +9,10 @@ type SupportGroup struct {
 	CCRN string `json:"ccrn"`
 }
 
+type WithIssueId struct {
+	Value int64
+}
+
 type SupportGroupFilter struct {
 	PaginatedX
 	Id        []*int64          `json:"id"`
@@ -23,6 +27,13 @@ type SupportGroupAggregations struct {
 }
 
 type SupportGroupResult struct {
+	WithCursor
+	*SupportGroupAggregations
+	*SupportGroup
+}
+
+type SupportGroupBatchResult struct {
+	WithIssueId
 	WithCursor
 	*SupportGroupAggregations
 	*SupportGroup

@@ -3,10 +3,13 @@
 
 package support_group
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type SupportGroupHandler interface {
-	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
+	ListSupportGroups(context.Context, *entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
 	GetSupportGroup(int64) (*entity.SupportGroup, error)
 	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
 	UpdateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)

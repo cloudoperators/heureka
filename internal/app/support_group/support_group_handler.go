@@ -4,10 +4,13 @@
 package support_group
 
 import (
+	"context"
 	"fmt"
+	"log"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/app/loaders"
 	"github.com/cloudoperators/heureka/internal/database"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -20,10 +23,12 @@ type supportGroupHandler struct {
 }
 
 func NewSupportGroupHandler(database database.Database, eventRegistry event.EventRegistry) SupportGroupHandler {
-	return &supportGroupHandler{
+	sgh := supportGroupHandler{
 		database:      database,
 		eventRegistry: eventRegistry,
 	}
+	sgh.registerLoaders()
+	return &sgh
 }
 
 type SupportGroupHandlerError struct {
@@ -45,7 +50,8 @@ func (sg *supportGroupHandler) GetSupportGroup(supportGroupId int64) (*entity.Su
 	})
 	lo := entity.NewListOptions()
 	supportGroupFilter := entity.SupportGroupFilter{Id: []*int64{&supportGroupId}}
-	supportGroups, err := sg.ListSupportGroups(&supportGroupFilter, lo)
+	log.Println("CONSIDER OPTIMIZATION GetSupportGroup")
+	supportGroups, err := sg.ListSupportGroups(context.TODO(), &supportGroupFilter, lo) //TODO: add context from resolver
 
 	if err != nil {
 		l.Error(err)
@@ -64,7 +70,21 @@ func (sg *supportGroupHandler) GetSupportGroup(supportGroupId int64) (*entity.Su
 	return supportGroups.Elements[0].SupportGroup, nil
 }
 
-func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilter, options *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error) {
+func (sg *supportGroupHandler) ListSupportGroups(ctx context.Context, filter *entity.SupportGroupFilter, options *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error) {
+	return loaders.ListSupportGroups(
+		ctx,
+		func(f *entity.SupportGroupFilter, o *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error) { return sg.rawListSupportGroups(f, o) },
+		filter,
+		options,
+	)
+}
+
+func (sg *supportGroupHandler) registerLoaders() {
+	loaders.RegisterListSupportGroupsBatchCallback(func(f *entity.SupportGroupFilter, o *entity.ListOptions) (*entity.List[entity.SupportGroupBatchResult], error) { return sg.batchedListSupportGroups(f, o) })
+}
+
+func (sg *supportGroupHandler) batchedListSupportGroups(filter *entity.SupportGroupFilter, options *entity.ListOptions) (*entity.List[entity.SupportGroupBatchResult], error) {
+	log.Println("BBBBBBBBBBBBBBBBBBBB")
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -75,7 +95,60 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 		"filter": filter,
 	})
 
-	res, err := sg.database.GetSupportGroups(filter, options.Order)
+	res, err := sg.database.GetSupportGroupsBatch(filter, options.Order) //TODO: CallCached?
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while filtering for SupportGroups")
+	}
+
+	if options.ShowPageInfo {
+		if len(res) > 0 {
+			log.Println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1")
+			cursors, err := sg.database.GetAllSupportGroupCursors(filter, options.Order)
+			if err != nil {
+				l.Error(err)
+				return nil, NewSupportGroupHandlerError("Error while getting all cursors")
+			}
+			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
+		}
+	} else if options.ShowTotalCount {
+		log.Println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX2")
+		count, err = sg.database.CountSupportGroups(filter)
+		if err != nil {
+			l.Error(err)
+			return nil, NewSupportGroupHandlerError("Error while total count of SupportGroups")
+		}
+	}
+
+	ret := &entity.List[entity.SupportGroupBatchResult]{
+		TotalCount: &count,
+		PageInfo:   pageInfo,
+		Elements:   res,
+	}
+
+	sg.eventRegistry.PushEvent(&ListSupportGroupsBatchEvent{
+		Filter:        filter,
+		Options:       options,
+		SupportGroups: ret,
+	})
+
+	return ret, nil
+}
+
+func (sg *supportGroupHandler) rawListSupportGroups(filter *entity.SupportGroupFilter, options *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error) {
+	var count int64
+	var pageInfo *entity.PageInfo
+
+	common.EnsurePaginatedX(&filter.PaginatedX)
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListSupportGroupsEventName,
+		"filter": filter,
+	})
+
+	res, err := sg.database.GetSupportGroups(filter, options.Order) //TODO: CallCached?
 
 	if err != nil {
 		l.Error(err)
@@ -134,7 +207,7 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	supportGroup.UpdatedBy = supportGroup.CreatedBy
 
 	lo := entity.NewListOptions()
-	supportGroups, err := sg.ListSupportGroups(f, lo)
+	supportGroups, err := sg.rawListSupportGroups(f, lo)
 
 	if err != nil {
 		l.Error(err)

@@ -142,7 +142,6 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 			filterParameters = append(filterParameters, filter.PaginatedX.First)
 		}
 	}
-
 	return stmt, filterParameters, nil
 }
 
@@ -245,6 +244,49 @@ func (s *SqlDatabase) GetSupportGroups(filter *entity.SupportGroupFilter, order 
 				SupportGroup: &sg,
 			}
 			return append(l, sgr)
+		},
+	)
+}
+
+func (s *SqlDatabase) GetSupportGroupsBatch(filter *entity.SupportGroupFilter, order []entity.Order) ([]entity.SupportGroupBatchResult, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.GetSupportGroupsBatch",
+	})
+
+	baseQuery := `
+		SELECT SG.*, IM.issuematch_issue_id FROM SupportGroup SG
+		%s
+		%s
+		%s
+		GROUP BY SG.supportgroup_id ORDER BY %s LIMIT ?
+    `
+
+	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, true, order, l)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	return performListScan[SupportGroupBatchRow, entity.SupportGroupBatchResult](
+		stmt,
+		filterParameters,
+		l,
+		func(l []entity.SupportGroupBatchResult, e SupportGroupBatchRow) []entity.SupportGroupBatchResult {
+			sg, iid := e.AsSupportGroupAndIssueId()
+			cursor, _ := EncodeCursor(WithSupportGroup(order, sg))
+
+			sgbr := entity.SupportGroupBatchResult{
+				WithCursor: entity.WithCursor{
+					Value: cursor,
+				},
+				SupportGroup: &sg,
+				WithIssueId: entity.WithIssueId{
+					Value: iid,
+				},
+			}
+			return append(l, sgbr)
 		},
 	)
 }

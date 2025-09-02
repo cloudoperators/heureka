@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	ListSupportGroupsBatchEventName        event.EventName = "ListSupportGroupsBatch"
 	ListSupportGroupsEventName             event.EventName = "ListSupportGroups"
 	GetSupportGroupEventName               event.EventName = "GetSupportGroup"
 	CreateSupportGroupEventName            event.EventName = "CreateSupportGroup"
@@ -20,6 +21,16 @@ const (
 	RemoveUserFromSupportGroupEventName    event.EventName = "RemoveUserFromSupportGroup"
 	ListSupportGroupCcrnsEventName         event.EventName = "ListSupportGroupCcrns"
 )
+
+type ListSupportGroupsBatchEvent struct {
+	Filter        *entity.SupportGroupFilter
+	Options       *entity.ListOptions
+	SupportGroups *entity.List[entity.SupportGroupBatchResult]
+}
+
+func (e *ListSupportGroupsBatchEvent) Name() event.EventName {
+	return ListSupportGroupsBatchEventName
+}
 
 type ListSupportGroupsEvent struct {
 	Filter        *entity.SupportGroupFilter

@@ -78,6 +78,7 @@ type Database interface {
 	GetUniqueUserIDs(*entity.UserFilter) ([]string, error)
 
 	GetSupportGroups(*entity.SupportGroupFilter, []entity.Order) ([]entity.SupportGroupResult, error)
+	GetSupportGroupsBatch(*entity.SupportGroupFilter, []entity.Order) ([]entity.SupportGroupBatchResult, error)
 	GetAllSupportGroupIds(*entity.SupportGroupFilter) ([]int64, error)
 	GetAllSupportGroupCursors(*entity.SupportGroupFilter, []entity.Order) ([]string, error)
 	CountSupportGroups(*entity.SupportGroupFilter) (int64, error)

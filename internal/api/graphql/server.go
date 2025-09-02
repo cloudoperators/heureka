@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
 	"github.com/cloudoperators/heureka/internal/app"
+	"github.com/cloudoperators/heureka/internal/app/loaders"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/gin-gonic/gin"
 )
@@ -32,6 +33,7 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 
 func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
 	router.Use(g.auth.Middleware())
+	router.Use(loaders.Middleware())
 	router.GET("/playground", g.playgroundHandler())
 	router.POST("/query", g.graphqlHandler())
 }
@@ -44,7 +46,6 @@ func (g *GraphQLAPI) graphqlHandler() gin.HandlerFunc {
 
 func (g *GraphQLAPI) playgroundHandler() gin.HandlerFunc {
 	h := playground.Handler("GraphQL", "/query")
-
 	return func(c *gin.Context) {
 		h.ServeHTTP(c.Writer, c.Request)
 	}
