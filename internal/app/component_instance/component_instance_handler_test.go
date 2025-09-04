@@ -4,9 +4,7 @@
 package component_instance_test
 
 import (
-	"math"
-	"testing"
-
+	"errors"
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/cache"
@@ -14,11 +12,14 @@ import (
 	dbtest "github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	mock "github.com/stretchr/testify/mock"
+	"math"
+	"testing"
 )
 
 func TestComponentInstanceHandler(t *testing.T) {
@@ -112,6 +113,65 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
 	})
+
+	Context("when GetComponentInstances fails", func() {
+		It("should return Internal error", func() {
+			// Mock database error
+			dbError := errors.New("database connection failed")
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, dbError)
+
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			result, err := componentInstanceHandler.ListComponentInstances(filter, options)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			// Verify it's our structured error with correct code
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("ComponentInstances"), "should reference ComponentInstances entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("componentInstanceHandler.ListComponentInstances"), "should include operation")
+			Expect(appErr.Err.Error()).To(ContainSubstring("database connection failed"), "should contain original error message")
+		})
+	})
+
+	Context("when GetAllComponentInstanceCursors fails", func() {
+		BeforeEach(func() {
+			options.ShowPageInfo = true
+			filter.First = lo.ToPtr(10)
+		})
+
+		It("should return Internal error", func() {
+			componentInstances := []entity.ComponentInstanceResult{}
+			for _, ci := range test.NNewFakeComponentInstances(5) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, ci))
+				componentInstances = append(componentInstances, entity.ComponentInstanceResult{
+					WithCursor:        entity.WithCursor{Value: cursor},
+					ComponentInstance: lo.ToPtr(ci),
+				})
+			}
+
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return(componentInstances, nil)
+			cursorsError := errors.New("cursor database error")
+			db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).Return([]string{}, cursorsError)
+
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			result, err := componentInstanceHandler.ListComponentInstances(filter, options)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("ComponentInstanceCursors"), "should reference ComponentInstanceCursors entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("componentInstanceHandler.ListComponentInstances"), "should include operation")
+		})
+	})
+
 })
 
 var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponentInstance"), func() {

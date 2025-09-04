@@ -32,6 +32,7 @@ func NewComponentInstanceHandler(database database.Database, eventRegistry event
 		database:      database,
 		eventRegistry: eventRegistry,
 		cache:         cache,
+		logger:        logrus.New(),
 	}
 }
 
