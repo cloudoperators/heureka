@@ -8,9 +8,11 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,6 +24,7 @@ type componentInstanceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
+	logger        *logrus.Logger
 }
 
 func NewComponentInstanceHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache) ComponentInstanceHandler {
@@ -45,15 +48,11 @@ func (e *ComponentInstanceHandlerError) Error() string {
 }
 
 func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
+	op := appErrors.Op("componentInstanceHandler.ListComponentInstances")
 	var count int64
 	var pageInfo *entity.PageInfo
 
 	common.EnsurePaginatedX(&filter.PaginatedX)
-
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListComponentInstancesEventName,
-		"filter": filter,
-	})
 
 	res, err := cache.CallCached[[]entity.ComponentInstanceResult](
 		ci.cache,
@@ -65,8 +64,11 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 	)
 
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Error while filtering for ComponentInstances")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	if options.ShowPageInfo {
@@ -80,7 +82,11 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 				options.Order,
 			)
 			if err != nil {
-				return nil, NewComponentInstanceHandlerError("Error while getting all cursors")
+				wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceCursors", "", err)
+				applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
 			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
@@ -94,26 +100,27 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 			filter,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewComponentInstanceHandlerError("Error while total count of ComponentInstances")
+			wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceCount", "", err)
+			applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	}
 
-	ci.eventRegistry.PushEvent(&ListComponentInstancesEvent{
-		Filter:  filter,
-		Options: options,
-		ComponentInstances: &entity.List[entity.ComponentInstanceResult]{
-			TotalCount: &count,
-			PageInfo:   pageInfo,
-			Elements:   res,
-		},
-	})
-
-	return &entity.List[entity.ComponentInstanceResult]{
+	result := &entity.List[entity.ComponentInstanceResult]{
 		TotalCount: &count,
 		PageInfo:   pageInfo,
 		Elements:   res,
-	}, nil
+	}
+
+	ci.eventRegistry.PushEvent(&ListComponentInstancesEvent{
+		Filter:             filter,
+		Options:            options,
+		ComponentInstances: result,
+	})
+
+	return result, nil
 }
 
 func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
