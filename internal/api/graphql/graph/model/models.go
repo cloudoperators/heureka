@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -372,6 +373,21 @@ func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
 		Completed: sr.Completed,
 		StartRun:  startRun,
 		EndRun:    endRun,
+	}
+}
+
+func NewImage(component *entity.Component) Image {
+	repository := ""
+	tokens := strings.Split(component.CCRN, "/")
+	if len(tokens) == 4 {
+		repository = fmt.Sprintf("%s/%s", tokens[2], tokens[3])
+	} else {
+		repository = tokens[len(tokens)-1]
+	}
+	return Image{
+		ID:               fmt.Sprintf("%d", component.Id),
+		ImageRegistryURL: &component.CCRN,
+		Repository:       &repository,
 	}
 }
 

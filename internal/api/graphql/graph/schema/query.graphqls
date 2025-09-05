@@ -24,4 +24,5 @@ type Query {
     IssueCounts(filter: IssueFilter): SeverityCounts
     Vulnerabilities(filter: VulnerabilityFilter, first: Int, after: String): VulnerabilityConnection
     VulnerabilityFilterValues: VulnerabilityFilterValue
+    Images(filter: ImageFilter, first: Int, after: String): ImageConnection
 }

@@ -130,3 +130,10 @@ func GetListOptions(requestedFields []string) *entity.ListOptions {
 		Order:               []entity.Order{},
 	}
 }
+
+func GetRoot(fctx *graphql.FieldContext) *graphql.FieldContext {
+	if fctx.Object == "Query" {
+		return fctx
+	}
+	return GetRoot(fctx.Parent)
+}

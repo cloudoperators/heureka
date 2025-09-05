@@ -11,8 +11,6 @@ import (
 	interutil "github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/util"
 
-	"github.com/onsi/ginkgo/v2/dsl/core"
-
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/sirupsen/logrus"
 )
@@ -33,6 +31,7 @@ type HeurekaEntity interface {
 		Severity |
 		Cvss |
 		Component |
+		ComponentResult |
 		ComponentAggregations |
 		ComponentInstance |
 		ComponentInstanceResult |
@@ -64,6 +63,7 @@ type HeurekaEntity interface {
 		HeurekaFilter |
 		IssueCount |
 		IssueTypeCounts |
+		IssueSeverityCounts |
 		ServiceIssueVariant
 }
 
@@ -203,7 +203,6 @@ func NewSeverity(url string) Severity {
 	ev, err := metric.NewEnvironmental().Decode(url)
 
 	if err != nil {
-		core.GinkgoLogr.WithValues("cvssUrl", url, "error", err).Info("Error while parsing CVSS")
 		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
 	}
 

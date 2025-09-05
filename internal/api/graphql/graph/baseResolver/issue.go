@@ -226,6 +226,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	var serviceId []*int64
+	var componentId []*int64
 	var unique = false
 	if parent != nil {
 		var pid *int64
@@ -257,6 +258,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		IssueRepositoryId:  irIds,
 		ComponentVersionId: cvIds,
 		ServiceId:          serviceId,
+		ComponentId:        componentId,
 		State:              model.GetStateFilterType(filter.State),
 		AllServices:        lo.FromPtr(filter.AllServices),
 		Unique:             unique,

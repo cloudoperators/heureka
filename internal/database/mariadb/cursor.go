@@ -256,3 +256,32 @@ func WithSupportGroup(order []entity.Order, sg entity.SupportGroup) NewCursor {
 		return nil
 	}
 }
+
+func WithComponent(order []entity.Order, c entity.Component, cv entity.ComponentVersion, isc entity.IssueSeverityCounts) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.ComponentId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.ComponentId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentId, Value: c.Id, Order: o.Direction})
+			case entity.ComponentCcrn:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentCcrn, Value: c.CCRN, Order: o.Direction})
+			case entity.ComponentVersionRepository:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionRepository, Value: cv.Repository, Order: o.Direction})
+			case entity.CriticalCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.CriticalCount, Value: isc.Critical, Order: o.Direction})
+			case entity.HighCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.HighCount, Value: isc.High, Order: o.Direction})
+			case entity.MediumCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.MediumCount, Value: isc.Medium, Order: o.Direction})
+			case entity.LowCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.LowCount, Value: isc.Low, Order: o.Direction})
+			case entity.NoneCount:
+				cursors.fields = append(cursors.fields, Field{Name: entity.NoneCount, Value: isc.None, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}

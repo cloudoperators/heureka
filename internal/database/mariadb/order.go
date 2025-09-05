@@ -11,6 +11,10 @@ import (
 
 func ColumnName(f entity.OrderByField) string {
 	switch f {
+	case entity.ComponentId:
+		return "component_id"
+	case entity.ComponentCcrn:
+		return "component_ccrn"
 	case entity.ComponentInstanceCcrn:
 		return "componentinstance_ccrn"
 	case entity.ComponentInstanceId:

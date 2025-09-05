@@ -128,9 +128,11 @@ type Database interface {
 	UpdateEvidence(*entity.Evidence) error
 	DeleteEvidence(int64, int64) error
 
-	GetComponents(*entity.ComponentFilter) ([]entity.Component, error)
+	GetComponents(*entity.ComponentFilter, []entity.Order) ([]entity.ComponentResult, error)
 	GetAllComponentIds(*entity.ComponentFilter) ([]int64, error)
+	GetAllComponentCursors(*entity.ComponentFilter, []entity.Order) ([]string, error)
 	CountComponents(*entity.ComponentFilter) (int64, error)
+	CountComponentVulnerabilities(*entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
 	CreateComponent(*entity.Component) (*entity.Component, error)
 	UpdateComponent(*entity.Component) error
 	DeleteComponent(int64, int64) error

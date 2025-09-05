@@ -80,6 +80,8 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 			issueId = []*int64{pid}
 		case model.ComponentNodeName:
 			componentId = []*int64{pid}
+		case model.ImageNodeName:
+			componentId = []*int64{pid}
 		}
 	} else {
 		componentId, err = util.ConvertStrToIntSlice(filter.ComponentID)

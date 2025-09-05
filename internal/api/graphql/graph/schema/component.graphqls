@@ -23,6 +23,7 @@ enum ComponentTypeValues {
 input ComponentFilter {
     componentCcrn: [String]
     state: [StateFilter!]
+    serviceCcrn: [String]
 }
 
 type ComponentConnection implements Connection {

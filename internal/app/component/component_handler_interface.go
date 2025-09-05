@@ -11,4 +11,5 @@ type ComponentHandler interface {
 	UpdateComponent(*entity.Component) (*entity.Component, error)
 	DeleteComponent(int64) error
 	ListComponentCcrns(*entity.ComponentFilter, *entity.ListOptions) ([]string, error)
+	GetComponentVulnerabilityCounts(*entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
 }
