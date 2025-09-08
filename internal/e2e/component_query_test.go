@@ -6,9 +6,10 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
-	"os"
 
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
@@ -63,7 +64,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -99,7 +100,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 				ctx := context.Background()
@@ -134,7 +135,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 
 				req.Var("filter", map[string]string{})
 				req.Var("first", 5)
-				req.Var("after", "0")
+				req.Var("after", "")
 
 				req.Header.Set("Cache-Control", "no-cache")
 

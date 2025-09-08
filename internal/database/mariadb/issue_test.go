@@ -346,6 +346,40 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					})
 				})
+				It("can filter by a single component id", func() {
+					// select a component
+					cRow := seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
+
+					// collect all componentVersion ids that belong to the component
+					cvIds := []int64{}
+					for _, cvRow := range seedCollection.ComponentVersionRows {
+						if cvRow.ComponentId.Int64 == cRow.Id.Int64 {
+							cvIds = append(cvIds, cvRow.Id.Int64)
+						}
+					}
+
+					// collect all issue ids that belong to the component version ids
+					issueIds := []int64{}
+					for _, cviRow := range seedCollection.ComponentVersionIssueRows {
+						if lo.Contains(cvIds, cviRow.ComponentVersionId.Int64) {
+							issueIds = append(issueIds, cviRow.IssueId.Int64)
+						}
+					}
+
+					filter := &entity.IssueFilter{ComponentId: []*int64{&cRow.Id.Int64}}
+
+					entries, err := db.GetIssues(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning the expected elements", func() {
+						for _, entry := range entries {
+							Expect(issueIds).To(ContainElement(entry.Issue.Id))
+						}
+					})
+				})
 				It("can filter by a single issueVariant id", func() {
 					// select an issueVariant
 					issueVariantRow := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]

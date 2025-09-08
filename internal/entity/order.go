@@ -20,6 +20,9 @@ const (
 	ComponentVersionId
 	ComponentVersionRepository
 
+	ComponentId
+	ComponentCcrn
+
 	IssueId
 	IssuePrimaryName
 
