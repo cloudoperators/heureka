@@ -17,6 +17,15 @@ import (
 	"github.com/cloudoperators/heureka/pkg/util"
 )
 
+// Example CCRN: ccrn://docker.io/library/nginx
+const (
+	ccrnSchemeIndex    = 0
+	ccrnRegistryIndex  = 1
+	ccrnNamespaceIndex = 2
+	ccrnRepoIndex      = 3
+	expectedTokenCount = 4
+)
+
 // add custom models here
 func getModelMetadata(em entity.Metadata) *Metadata {
 	createdAt := em.CreatedAt.String()
@@ -377,13 +386,17 @@ func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
 }
 
 func NewImage(component *entity.Component) Image {
-	repository := ""
 	tokens := strings.Split(component.CCRN, "/")
-	if len(tokens) == 4 {
-		repository = fmt.Sprintf("%s/%s", tokens[2], tokens[3])
+
+	var repository string
+	if len(tokens) == expectedTokenCount {
+		// Full CCRN: namespace + repository
+		repository = fmt.Sprintf("%s/%s", tokens[ccrnNamespaceIndex], tokens[ccrnRepoIndex])
 	} else {
+		// Fallback: last token is assumed to be the repository name
 		repository = tokens[len(tokens)-1]
 	}
+
 	return Image{
 		ID:               fmt.Sprintf("%d", component.Id),
 		ImageRegistryURL: &component.CCRN,
