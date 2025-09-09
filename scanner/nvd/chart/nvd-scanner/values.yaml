@@ -7,7 +7,7 @@
 
 scanner:
   api_token: "my_token"
-  heureka_url: "api.heureka.greenhouse-qa.eu-nl-1.cloud.sap"
+  heureka_url: "heureka.com"
   schedule: "0 * * * *"
   nvd:
     api_url: ""
