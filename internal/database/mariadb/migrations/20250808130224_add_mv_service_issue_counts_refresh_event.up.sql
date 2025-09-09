@@ -43,7 +43,7 @@ BEGIN
 END;
 
 -- 3. Run the procedure once to populate the table initially
-CALL refresh_mvServiceIssueCounts_proc();
+-- CALL refresh_mvServiceIssueCounts_proc();
 
 -- 4. Create the event to run the procedure every hour
 CREATE EVENT IF NOT EXISTS refresh_mvServiceIssueCounts

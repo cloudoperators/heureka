@@ -220,7 +220,7 @@ func GetVersion(cfg util.Config) (string, error) {
 	return v, nil
 }
 
-func (s *SqlDatabase) RunMigrations() error {
+func (s *SqlDatabase) RunUpMigrations() error {
 	m, err := s.openMigration()
 	if err != nil {
 		return err
@@ -567,6 +567,72 @@ func buildJsonQueryParameters(params []interface{}, filter []*entity.Json) []int
 		}
 	}
 	return buildQueryParameters(params, conQueryParams)
+}
+
+func RunMigrations(cfg util.Config) error {
+	db, err := NewSqlDatabase(cfg)
+	if err != nil {
+		return fmt.Errorf("Error while Creating Db: %w", err)
+	}
+	err = db.RunUpMigrations()
+	if err != nil {
+		return fmt.Errorf("Error while Migrating Db: %w", err)
+	}
+
+	db, err = NewSqlDatabase(cfg)
+	if err != nil {
+		return fmt.Errorf("Error while Creating Db: %w", err)
+	}
+	err = db.RunPostMigrations()
+	if err != nil {
+		return fmt.Errorf("Error while Running Db Post Migration Procedures: %w", err)
+	}
+
+	err = EnableScheduler(cfg)
+	if err != nil {
+		return fmt.Errorf("Error while Enabling Scheduler Db: %w", err)
+	}
+	return nil
+}
+
+func (s *SqlDatabase) procedureExists(procedure string) (bool, error) {
+	var count int
+	err := s.db.QueryRow(fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM information_schema.routines
+		WHERE routine_schema = DATABASE()
+		  AND routine_type = 'PROCEDURE'
+		  AND routine_name = '%s';
+	`, procedure)).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("Could not check if procedure exists '%s', %w", procedure, err)
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (s *SqlDatabase) RunPostMigrationsNoClose() error {
+	exists, err := s.procedureExists("call_registered_post_migration_procedures")
+	if err != nil {
+		logrus.WithError(err).Error(err)
+		return err
+	}
+	if exists {
+		_, err := s.db.Exec("CALL call_registered_post_migration_procedures();")
+		if err != nil {
+			logrus.WithError(err).Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SqlDatabase) RunPostMigrations() error {
+	defer s.CloseConnection()
+	return s.RunPostMigrationsNoClose()
 }
 
 func EnableScheduler(cfg util.Config) error {
