@@ -387,7 +387,7 @@ func (p *Processor) ProcessContainer(
 
 	// we only consider main registry for now
 	if strings.HasPrefix(containerInfo.ImageRegistry, "keppel") {
-		containerInfo.ImageRegistry = "keppel.eu-de-1.cloud.sap"
+		containerInfo.ImageRegistry = p.config.DefaultKeppelRegistry
 	}
 
 	componentCcrn := fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository)
