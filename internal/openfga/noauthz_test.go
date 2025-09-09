@@ -32,7 +32,7 @@ var _ = Describe("NoAuthz", func() {
 
 	Describe("CheckPermission", func() {
 		It("should always return true and no error", func() {
-			ok, err := authz.CheckPermission("user1", "resource1", "document", "read")
+			ok, err := authz.CheckPermission("user", "user1", "resource1", "document", "read")
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
@@ -40,21 +40,21 @@ var _ = Describe("NoAuthz", func() {
 
 	Describe("AddRelation", func() {
 		It("should always return no error", func() {
-			err := authz.AddRelation("user1", "resource1", "document", "member")
+			err := authz.AddRelation("user", "user1", "resource1", "document", "member")
 			Expect(err).To(BeNil())
 		})
 	})
 
 	Describe("RemoveRelation", func() {
 		It("should always return no error", func() {
-			err := authz.RemoveRelation("user1", "resource1", "document", "member")
+			err := authz.RemoveRelation("user", "user1", "resource1", "document", "member")
 			Expect(err).To(BeNil())
 		})
 	})
 
 	Describe("ListAccessibleResources", func() {
 		It("should always return an empty slice and no error", func() {
-			resources, err := authz.ListAccessibleResources("user1", "resourceType", "read", "member")
+			resources, err := authz.ListAccessibleResources("user", "user1", "resourceType", "read", "member")
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
 		})

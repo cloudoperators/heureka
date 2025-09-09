@@ -8,16 +8,18 @@ import (
 	"sync"
 
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 )
 
 type EventHandler interface {
-	HandleEvent(database.Database, Event)
+	HandleEvent(database.Database, Event, openfga.Authorization)
 }
 
-type EventHandlerFunc func(database.Database, Event)
+type EventHandlerFunc func(database.Database, Event, openfga.Authorization)
 
-func (f EventHandlerFunc) HandleEvent(db database.Database, e Event) {
-	f(db, e)
+func (f EventHandlerFunc) HandleEvent(db database.Database, e Event, authz openfga.Authorization) {
+	f(db, e, authz)
 }
 
 type EventRegistry interface {
@@ -33,6 +35,8 @@ type eventRegistry struct {
 	wg          sync.WaitGroup
 	mu          sync.Mutex
 	workerCount int
+	authz       openfga.Authorization
+	cfg         *util.Config
 }
 
 func (er *eventRegistry) RegisterEventHandler(event EventName, handler EventHandler) {
@@ -86,7 +90,7 @@ func (er *eventRegistry) PushEvent(event Event) {
 	}
 }
 
-func NewEventRegistry(db database.Database) EventRegistry {
+func NewEventRegistry(db database.Database, authz openfga.Authorization) EventRegistry {
 	initialBufferSize := 1024 // Start with a larger buffer
 	workerCount := 4
 	er := &eventRegistry{
@@ -94,6 +98,7 @@ func NewEventRegistry(db database.Database) EventRegistry {
 		ch:          make(chan Event, initialBufferSize),
 		db:          db,
 		workerCount: workerCount,
+		authz:       authz,
 	}
 
 	return er
@@ -138,6 +143,6 @@ func (er *eventRegistry) processEvent(event Event) {
 	er.mu.Unlock()
 
 	for _, handler := range handlers {
-		handler.HandleEvent(er.db, event)
+		handler.HandleEvent(er.db, event, er.authz)
 	}
 }

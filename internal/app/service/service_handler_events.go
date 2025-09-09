@@ -4,9 +4,12 @@
 package service
 
 import (
+	"strconv"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -114,7 +117,7 @@ func (e *RemoveIssueRepositoryFromServiceEvent) Name() event.EventName {
 
 // OnServiceCreate is a handler for the CreateServiceEvent
 // Is creating a single default priority for the default issue repository
-func OnServiceCreate(db database.Database, e event.Event) {
+func OnServiceCreate(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
 
@@ -150,6 +153,38 @@ func OnServiceCreate(db database.Database, e event.Event) {
 		if err != nil {
 			l.WithField("event-step", "AddIssueRepositoryToService").WithError(err).Error("Error while adding issue repository to service")
 		}
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnServiceCreateAuthz is a handler for the CreateServiceEvent
+// Is creating a openfga relation tuple for the service and the current user
+func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	ResourceType := "service"
+	ResourceRelation := "role"
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnServiceCreateAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if createEvent, ok := e.(*CreateServiceEvent); ok {
+		resourceId := strconv.FormatInt(createEvent.Service.Id, 10)
+		user := authz.GetCurrentUser()
+		userFieldName := "role"
+
+		authz.HandleCreateAuthzRelation(
+			userFieldName,
+			user,
+			resourceId,
+			ResourceType,
+			ResourceRelation,
+		)
 	} else {
 		l.Error("Wrong event")
 	}

@@ -4,6 +4,7 @@
 package issue_match
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -11,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -86,7 +88,7 @@ func (e *RemoveEvidenceFromIssueMatchEvent) Name() event.EventName {
 	return RemoveEvidenceFromIssueMatchEventName
 }
 
-func OnComponentInstanceCreate(db database.Database, event event.Event) {
+func OnComponentInstanceCreate(db database.Database, event event.Event, authz openfga.Authorization) {
 	if createEvent, ok := event.(*component_instance.CreateComponentInstanceEvent); ok {
 		OnComponentVersionAssignmentToComponentInstance(db, createEvent.ComponentInstance.Id, createEvent.ComponentInstance.ComponentVersionId)
 	}
@@ -207,5 +209,37 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
 			return
 		}
+	}
+}
+
+// OnIssueMatchCreateAuthz is a handler for the CreateIssueMatchEvent
+// It creates an OpenFGA relation tuple for the issue match and the current user
+func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	ResourceType := "issue_match"
+	ResourceRelation := "role"
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnIssueMatchCreateAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if createEvent, ok := e.(*CreateIssueMatchEvent); ok {
+		resourceId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
+		user := authz.GetCurrentUser()
+		userFieldName := "role"
+
+		authz.HandleCreateAuthzRelation(
+			userFieldName,
+			user,
+			resourceId,
+			ResourceType,
+			ResourceRelation,
+		)
+	} else {
+		l.Error("Wrong event")
 	}
 }

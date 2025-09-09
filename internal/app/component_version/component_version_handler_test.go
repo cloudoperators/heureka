@@ -5,6 +5,7 @@ package component_version_test
 
 import (
 	"math"
+	"strconv"
 	"testing"
 
 	cv "github.com/cloudoperators/heureka/internal/app/component_version"
@@ -15,6 +16,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -31,7 +33,7 @@ var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 func getComponentVersionFilter() *entity.ComponentVersionFilter {
@@ -217,11 +219,33 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		db                     *mocks.MockDatabase
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersion
+		authz                  openfga.Authorization
+		cfg                    *util.Config
+		enableLogs             bool
+		userFieldName          string
+		userId                 string
+		resourceId             string
+		resourceType           string
+		permission             string
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		componentVersion = test.NewFakeComponentVersionEntity()
+
+		// setup authz testing
+		userFieldName = "role"
+		userId = "testuser"
+		resourceId = ""
+		resourceType = "component_version"
+		permission = "role"
+
+		cfg = &util.Config{
+			AuthzEnabled:      true,
+			CurrentUser:       userId,
+			AuthModelFilePath: "../../../internal/openfga/model/model.fga",
+			OpenFGApiUrl:      "http://localhost:8080",
+		}
 	})
 
 	It("creates componentVersion", func() {
@@ -235,6 +259,35 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 			Expect(newComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
 			Expect(newComponentVersion.ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
 			Expect(newComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
+		})
+	})
+
+	Context("when handling a CreateComponentInstanceEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new component instance is created", func() {
+			It("should add user resource relationship tuple in openfga", func() {
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+				cvFake := test.NewFakeComponentVersionEntity()
+				createEvent := &cv.CreateComponentVersionEvent{
+					ComponentVersion: &cvFake,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+				resourceId = strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
+
+				// Simulate event
+				cv.OnComponentVersionCreateAuthz(db, event, authz)
+
+				ok, err := authz.CheckPermission(userFieldName, userId, resourceId, resourceType, permission)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(ok).To(BeTrue(), "permission should be granted")
+			})
 		})
 	})
 })

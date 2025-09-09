@@ -6,12 +6,14 @@ package service_test
 import (
 	"errors"
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/event"
 	s "github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -33,7 +35,7 @@ var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 func getServiceFilter() *entity.ServiceFilter {
@@ -220,9 +222,18 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		serviceHandler s.ServiceHandler
 		service        entity.Service
 		filter         *entity.ServiceFilter
+		authz          openfga.Authorization
+		cfg            *util.Config
+		enableLogs     bool
+		userFieldName  string
+		userId         string
+		resourceId     string
+		resourceType   string
+		permission     string
 	)
 
 	BeforeEach(func() {
+		enableLogs = true
 		db = mocks.NewMockDatabase(GinkgoT())
 		service = test.NewFakeServiceEntity()
 		first := 10
@@ -232,6 +243,20 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				First: &first,
 				After: &after,
 			},
+		}
+
+		// setup authz testing
+		userFieldName = "role"
+		userId = "testuser"
+		resourceId = "2198681"
+		resourceType = "service"
+		permission = "role"
+
+		cfg = &util.Config{
+			AuthzEnabled:      true,
+			CurrentUser:       userId,
+			AuthModelFilePath: "../../../internal/openfga/model/model.fga",
+			OpenFGApiUrl:      "http://localhost:8080",
 		}
 	})
 
@@ -278,7 +303,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				db.On("AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio)).Return(nil)
 
 				// Simulate event
-				s.OnServiceCreate(db, event)
+				s.OnServiceCreate(db, event, authz)
 
 				// Check AddIssueRepositoryToService was called
 				db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio))
@@ -292,7 +317,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				// Use type assertion to convert
 				var event event.Event = invalidEvent
 
-				s.OnServiceCreate(db, event)
+				s.OnServiceCreate(db, event, authz)
 
 				// These functions should not be called in case of a different event
 				db.AssertNotCalled(GinkgoT(), "GetIssueRepositories")
@@ -316,10 +341,32 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 					Name: []*string{&defaultRepoName},
 				}).Return([]entity.IssueRepository{}, nil)
 
-				s.OnServiceCreate(db, event)
+				s.OnServiceCreate(db, event, authz)
 
 				db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
 				// TODO: we could also check for the error message here
+			})
+		})
+
+		Context("when new service is created", func() {
+			It("should add user resource relationship tuple in openfga", func() {
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+				srv := test.NewFakeServiceEntity()
+				createEvent := &s.CreateServiceEvent{
+					Service: &srv,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+				resourceId = strconv.FormatInt(createEvent.Service.Id, 10)
+
+				// Simulate event
+				s.OnServiceCreateAuthz(db, event, authz)
+
+				ok, err := authz.CheckPermission(userFieldName, userId, resourceId, resourceType, permission)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
 		})
 	})

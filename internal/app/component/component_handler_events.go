@@ -4,8 +4,13 @@
 package component
 
 import (
+	"strconv"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -58,4 +63,36 @@ type ListComponentCcrnsEvent struct {
 
 func (e *ListComponentCcrnsEvent) Name() event.EventName {
 	return ListComponentCcrnsEventName
+}
+
+// OnComponentCreateAuthz is a handler for the CreateComponentEvent
+// It creates an OpenFGA relation tuple for the component and the current user
+func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	ResourceType := "component"
+	ResourceRelation := "role"
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnComponentCreateAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if createEvent, ok := e.(*CreateComponentEvent); ok {
+		resourceId := strconv.FormatInt(createEvent.Component.Id, 10)
+		user := authz.GetCurrentUser()
+		userFieldName := "role"
+
+		authz.HandleCreateAuthzRelation(
+			userFieldName,
+			user,
+			resourceId,
+			ResourceType,
+			ResourceRelation,
+		)
+	} else {
+		l.Error("Wrong event")
+	}
 }

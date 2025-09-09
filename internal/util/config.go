@@ -40,6 +40,7 @@ type Config struct {
 	AuthzEnabled                  bool   `envconfig:"AUTHZ_ENABLED" required:"false" default:"false" json:"authzEnabled"`
 	OpenFGApiUrl                  string `envconfig:"FGA_API_URL" required:"false" json:"-"`
 	AuthModelFilePath             string `envconfig:"AUTH_MODEL_FILE_PATH" required:"false" json:"-"`
+	CurrentUser                   string `envconfig:"CURRENT_USER" required:"false" default:"heureka-admin" json:"currentUser"`
 	DefaultIssuePriority          int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
 	DefaultRepositoryName         string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
 	CacheEnable                   bool   `envconfig:"CACHE_ENABLE" default:"false" json:"-"`

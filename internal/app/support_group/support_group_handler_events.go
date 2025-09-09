@@ -4,8 +4,13 @@
 package support_group
 
 import (
+	"strconv"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -108,4 +113,36 @@ type ListSupportGroupCcrnsEvent struct {
 
 func (e *ListSupportGroupCcrnsEvent) Name() event.EventName {
 	return ListSupportGroupCcrnsEventName
+}
+
+// OnSupportGroupCreateAuthz is a handler for the CreateSupportGroupEvent
+// It creates an OpenFGA relation tuple for the support group and the current user
+func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	ResourceType := "support_group"
+	ResourceRelation := "role"
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnSupportGroupCreateAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if createEvent, ok := e.(*CreateSupportGroupEvent); ok {
+		resourceId := strconv.FormatInt(createEvent.SupportGroup.Id, 10)
+		user := authz.GetCurrentUser()
+		userFieldName := "role"
+
+		authz.HandleCreateAuthzRelation(
+			userFieldName,
+			user,
+			resourceId,
+			ResourceType,
+			ResourceRelation,
+		)
+	} else {
+		l.Error("Wrong event")
+	}
 }

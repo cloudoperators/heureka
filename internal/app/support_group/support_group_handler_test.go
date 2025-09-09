@@ -5,6 +5,7 @@ package support_group_test
 
 import (
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -30,7 +32,7 @@ var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 func getSupportGroupFilter() *entity.SupportGroupFilter {
@@ -123,6 +125,14 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
+		authz               openfga.Authorization
+		cfg                 *util.Config
+		enableLogs          bool
+		userFieldName       string
+		userId              string
+		resourceId          string
+		resourceType        string
+		permission          string
 	)
 
 	BeforeEach(func() {
@@ -137,6 +147,20 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 				After: &after,
 			},
 		}
+
+		// setup authz testing
+		userFieldName = "role"
+		userId = "testuser"
+		resourceId = ""
+		resourceType = "support_group"
+		permission = "role"
+
+		cfg = &util.Config{
+			AuthzEnabled:      true,
+			CurrentUser:       userId,
+			AuthModelFilePath: "../../../internal/openfga/model/model.fga",
+			OpenFGApiUrl:      "http://localhost:8080",
+		}
 	})
 
 	It("creates supportGroup", func() {
@@ -150,6 +174,35 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		Expect(newSupportGroup.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
 			Expect(newSupportGroup.CCRN).To(BeEquivalentTo(supportGroup.CCRN))
+		})
+	})
+
+	Context("when handling a CreateComponentInstanceEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new component instance is created", func() {
+			It("should add user resource relationship tuple in openfga", func() {
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+				sgFake := test.NewFakeSupportGroupEntity()
+				createEvent := &sg.CreateSupportGroupEvent{
+					SupportGroup: &sgFake,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+				resourceId = strconv.FormatInt(createEvent.SupportGroup.Id, 10)
+
+				// Simulate event
+				sg.OnSupportGroupCreateAuthz(db, event, authz)
+
+				ok, err := authz.CheckPermission(userFieldName, userId, resourceId, resourceType, permission)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(ok).To(BeTrue(), "permission should be granted")
+			})
 		})
 	})
 })

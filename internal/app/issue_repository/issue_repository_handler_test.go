@@ -29,7 +29,7 @@ var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 func getIssueRepositoryFilter() *entity.IssueRepositoryFilter {
@@ -113,6 +113,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		issueRepository        entity.IssueRepository
 		filter                 *entity.IssueRepositoryFilter
 		event                  *ir.CreateIssueRepositoryEvent
+		authz                  openfga.Authorization
 	)
 
 	BeforeEach(func() {
@@ -165,7 +166,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		})
 
 		It("adds the issue repository to all services", func() {
-			ir.OnIssueRepositoryCreate(db, event)
+			ir.OnIssueRepositoryCreate(db, event, authz)
 
 			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", int64(1), int64(1), int64(100))
 			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", int64(2), int64(1), int64(100))

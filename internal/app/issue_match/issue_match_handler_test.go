@@ -6,6 +6,7 @@ package issue_match_test
 import (
 	"errors"
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/samber/lo"
 
@@ -38,7 +40,7 @@ var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 func getIssueMatchFilter() *entity.IssueMatchFilter {
@@ -189,6 +191,14 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ss                severity.SeverityHandler
 		ivs               issue_variant.IssueVariantHandler
 		rs                issue_repository.IssueRepositoryHandler
+		authz             openfga.Authorization
+		cfg               *util.Config
+		enableLogs        bool
+		userFieldName     string
+		userId            string
+		resourceId        string
+		resourceType      string
+		permission        string
 	)
 
 	BeforeEach(func() {
@@ -205,6 +215,19 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		rs = issue_repository.NewIssueRepositoryHandler(db, er, authz)
 		ivs = issue_variant.NewIssueVariantHandler(db, er, rs, cache.NewNoCache(), authz)
 		ss = severity.NewSeverityHandler(db, er, ivs, authz)
+		// setup authz testing
+		userFieldName = "role"
+		userId = "testuser"
+		resourceId = ""
+		resourceType = "issue_match"
+		permission = "role"
+
+		cfg = &util.Config{
+			AuthzEnabled:      true,
+			CurrentUser:       userId,
+			AuthModelFilePath: "../../../internal/openfga/model/model.fga",
+			OpenFGApiUrl:      "http://localhost:8080",
+		}
 	})
 
 	It("creates issueMatch", func() {
@@ -232,6 +255,35 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 			Expect(newIssueMatch.Severity.Cvss.Vector).To(BeEquivalentTo(issueMatch.Severity.Cvss.Vector))
 			Expect(newIssueMatch.Severity.Score).To(BeEquivalentTo(issueMatch.Severity.Score))
 			Expect(newIssueMatch.Severity.Value).To(BeEquivalentTo(issueMatch.Severity.Value))
+		})
+	})
+
+	Context("when handling a CreateIssueMatchEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new issue match is created", func() {
+			It("should add user resource relationship tuple in openfga", func() {
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+				imFake := test.NewFakeIssueMatch()
+				createEvent := &im.CreateIssueMatchEvent{
+					IssueMatch: &imFake,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+				resourceId = strconv.FormatInt(createEvent.IssueMatch.Id, 10)
+
+				// Simulate event
+				im.OnIssueMatchCreateAuthz(db, event, authz)
+
+				ok, err := authz.CheckPermission(userFieldName, userId, resourceId, resourceType, permission)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(ok).To(BeTrue(), "permission should be granted")
+			})
 		})
 	})
 })

@@ -45,31 +45,31 @@ var _ = Describe("Authz", func() {
 
 	Describe("CheckPermission", func() {
 		It("should return false with no relations added", func() {
-			ok, err := authz.CheckPermission("user1", "document1", documentType, readerRel)
+			ok, err := authz.CheckPermission("user", "user1", "document1", documentType, readerRel)
 			Expect(ok).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
 
 		It("should return an error for invalid resource type", func() {
-			ok, err := authz.CheckPermission("user1", "document1", "invalid_type", readerRel)
+			ok, err := authz.CheckPermission("user", "user1", "document1", "invalid_type", readerRel)
 			Expect(ok).To(BeFalse())
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("should return true after adding relation", func() {
-			err := authz.AddRelation("user1", "document1", documentType, readerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, readerRel)
 			Expect(err).To(BeNil())
 
-			ok, err := authz.CheckPermission("user1", "document1", documentType, readerRel)
+			ok, err := authz.CheckPermission("user", "user1", "document1", documentType, readerRel)
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
 
 		It("should return false after adding wrong relation", func() {
-			err := authz.AddRelation("user1", "document1", documentType, readerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, readerRel)
 			Expect(err).To(BeNil())
 
-			ok, err := authz.CheckPermission("user1", "document1", documentType, ownerRel)
+			ok, err := authz.CheckPermission("user", "user1", "document1", documentType, ownerRel)
 			Expect(ok).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
@@ -77,30 +77,30 @@ var _ = Describe("Authz", func() {
 
 	Describe("AddRelation", func() {
 		It("should return no error", func() {
-			err := authz.AddRelation("user1", "document1", documentType, writerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, writerRel)
 			Expect(err).To(BeNil())
 		})
 
 		It("should return error when adding invalid relation", func() {
-			err := authz.AddRelation("user1", "document1", documentType, "invalid_relation")
+			err := authz.AddRelation("user", "user1", "document1", documentType, "invalid_relation")
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("should return error when adding relation to invalid resource type", func() {
-			err := authz.AddRelation("user1", "document1", "invalid_type", writerRel)
+			err := authz.AddRelation("user", "user1", "document1", "invalid_type", writerRel)
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("should return error when adding relation with empty userId", func() {
-			err := authz.AddRelation("", "document1", documentType, writerRel)
+			err := authz.AddRelation("user", "", "document1", documentType, writerRel)
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("should be able to access resource after adding relation", func() {
-			err := authz.AddRelation("user1", "document1", documentType, ownerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
 
-			ok, err := authz.CheckPermission("user1", "document1", documentType, ownerRel)
+			ok, err := authz.CheckPermission("user", "user1", "document1", documentType, ownerRel)
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
@@ -108,30 +108,30 @@ var _ = Describe("Authz", func() {
 
 	Describe("RemoveRelation", func() {
 		It("should return error when removing non-existing relation", func() {
-			err := authz.RemoveRelation("user1", "document1", documentType, readerRel)
+			err := authz.RemoveRelation("user", "user1", "document1", documentType, readerRel)
 			Expect(err).NotTo(BeNil())
 		})
 
 		It("should return no error when removing existing relation", func() {
-			err := authz.AddRelation("user1", "document1", documentType, ownerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
 
-			err = authz.RemoveRelation("user1", "document1", documentType, ownerRel)
+			err = authz.RemoveRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
 		})
 
 		It("should not be able to access resource after removing relation", func() {
-			err := authz.AddRelation("user1", "document1", documentType, ownerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
 
-			ok, err := authz.CheckPermission("user1", "document1", documentType, ownerRel)
+			ok, err := authz.CheckPermission("user", "user1", "document1", documentType, ownerRel)
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 
-			err = authz.RemoveRelation("user1", "document1", documentType, ownerRel)
+			err = authz.RemoveRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
 
-			ok, err = authz.CheckPermission("user1", "document1", documentType, ownerRel)
+			ok, err = authz.CheckPermission("user", "user1", "document1", documentType, ownerRel)
 			Expect(ok).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
@@ -139,37 +139,37 @@ var _ = Describe("Authz", func() {
 
 	Describe("ListAccessibleResources", func() {
 		It("should return an empty slice and no error", func() {
-			resources, err := authz.ListAccessibleResources("user1", documentType, "read", ownerRel)
+			resources, err := authz.ListAccessibleResources("user", "user1", documentType, "read", ownerRel)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
 		})
 
 		It("should return an empty slice for invalid resource type", func() {
-			err := authz.AddRelation("user1", "document1", documentType, ownerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
 
-			resources, err := authz.ListAccessibleResources("user1", "invalid_type", "read", ownerRel)
+			resources, err := authz.ListAccessibleResources("user", "user1", "invalid_type", "read", ownerRel)
 			Expect(err).NotTo(BeNil())
 			Expect(resources).To(BeEmpty())
 		})
 
 		It("should return a list with one resource after adding relation", func() {
-			err := authz.AddRelation("user1", "document1", documentType, ownerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
 
 			expectedResult := []string{documentType + ":document1"}
 
-			resources, err := authz.ListAccessibleResources("user1", documentType, "read", ownerRel)
+			resources, err := authz.ListAccessibleResources("user", "user1", documentType, "read", ownerRel)
 			Expect(err).To(BeNil())
 			Expect(resources).To(Equal(expectedResult))
 		})
 
 		It("should return a list with multiple resources after adding relations", func() {
-			err := authz.AddRelation("user1", "document1", documentType, ownerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
-			err = authz.AddRelation("user1", "document2", documentType, ownerRel)
+			err = authz.AddRelation("user", "user1", "document2", documentType, ownerRel)
 			Expect(err).To(BeNil())
-			err = authz.AddRelation("user1", "document3", documentType, ownerRel)
+			err = authz.AddRelation("user", "user1", "document3", documentType, ownerRel)
 			Expect(err).To(BeNil())
 
 			expectedResult := []string{
@@ -178,23 +178,23 @@ var _ = Describe("Authz", func() {
 				documentType + ":document3",
 			}
 
-			resources, err := authz.ListAccessibleResources("user1", documentType, "read", ownerRel)
+			resources, err := authz.ListAccessibleResources("user", "user1", documentType, "read", ownerRel)
 			Expect(err).To(BeNil())
 			Expect(resources).To(ConsistOf(expectedResult))
 		})
 
 		It("should return an empty slice after removing all relations", func() {
-			err := authz.AddRelation("user1", "document1", documentType, ownerRel)
+			err := authz.AddRelation("user", "user1", "document1", documentType, ownerRel)
 			Expect(err).To(BeNil())
-			err = authz.AddRelation("user1", "document2", documentType, ownerRel)
-			Expect(err).To(BeNil())
-
-			err = authz.RemoveRelation("user1", "document1", documentType, ownerRel)
-			Expect(err).To(BeNil())
-			err = authz.RemoveRelation("user1", "document2", documentType, ownerRel)
+			err = authz.AddRelation("user", "user1", "document2", documentType, ownerRel)
 			Expect(err).To(BeNil())
 
-			resources, err := authz.ListAccessibleResources("user1", documentType, "read", ownerRel)
+			err = authz.RemoveRelation("user", "user1", "document1", documentType, ownerRel)
+			Expect(err).To(BeNil())
+			err = authz.RemoveRelation("user", "user1", "document2", documentType, ownerRel)
+			Expect(err).To(BeNil())
+
+			resources, err := authz.ListAccessibleResources("user", "user1", documentType, "read", ownerRel)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
 		})

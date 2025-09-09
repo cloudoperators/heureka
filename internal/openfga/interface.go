@@ -9,13 +9,23 @@ import (
 
 type Authorization interface {
 	// check if userId has permission on resourceId
-	CheckPermission(userId string, resourceId string, resourceType string, permission string) (bool, error)
+	CheckPermission(userFieldName string, userId string, resourceId string, resourceType string, permission string) (bool, error)
 	// add relationship between userId and resourceId
-	AddRelation(userId string, resourceId string, resourceType string, relation string) error
+	AddRelation(userFieldName string, userId string, resourceId string, resourceType string, relation string) error
 	// remove relationship between userId and resourceId
-	RemoveRelation(userId string, resourceId string, resourceType string, relation string) error
+	RemoveRelation(userFieldName string, userId string, resourceId string, resourceType string, relation string) error
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
-	ListAccessibleResources(userId string, resourceType string, permission string, relation string) ([]string, error)
+	ListAccessibleResources(userFieldName string, userId string, resourceType string, permission string, relation string) ([]string, error)
+	// Handler for generic event to create authz relation
+	HandleCreateAuthzRelation(
+		userFieldName string,
+		user string,
+		resourceId string,
+		resourceType string,
+		resourceRelation string,
+	)
+	// Placeholder function that mimics getting user from User Context
+	GetCurrentUser() string
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {

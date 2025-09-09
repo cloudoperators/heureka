@@ -70,7 +70,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	profiler := profiler.NewProfiler(cfg.CpuProfilerFilePath)
 	profiler.Start()
 
-	er := event.NewEventRegistry(db)
+	er := event.NewEventRegistry(db, authz)
 	rh := issue_repository.NewIssueRepositoryHandler(db, er, authz)
 	ivh := issue_variant.NewIssueVariantHandler(db, er, rh, cache, authz)
 	sh := severity.NewSeverityHandler(db, er, ivh, authz)
@@ -103,6 +103,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	}
 
 	heureka.SubscribeHandlers()
+	heureka.SubscribeAuthzHandlers()
 	return heureka
 }
 
@@ -153,6 +154,39 @@ func (h *HeurekaApp) SubscribeHandlers() {
 	h.eventRegistry.RegisterEventHandler(
 		issue.AddComponentVersionToIssueEventName,
 		event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue),
+	)
+}
+
+func (h *HeurekaApp) SubscribeAuthzHandlers() {
+	// Authz event handlers for Services
+	h.eventRegistry.RegisterEventHandler(
+		service.CreateServiceEventName,
+		event.EventHandlerFunc(service.OnServiceCreateAuthz),
+	)
+	// Authz event handlers for ComponentInstances
+	h.eventRegistry.RegisterEventHandler(
+		component_instance.CreateComponentInstanceEventName,
+		event.EventHandlerFunc(component_instance.OnComponentInstanceCreateAuthz),
+	)
+	// Authz event handlers for ComponentVersions
+	h.eventRegistry.RegisterEventHandler(
+		component_version.CreateComponentVersionEventName,
+		event.EventHandlerFunc(component_version.OnComponentVersionCreateAuthz),
+	)
+	// Authz event handlers for SupporGroups
+	h.eventRegistry.RegisterEventHandler(
+		support_group.CreateSupportGroupEventName,
+		event.EventHandlerFunc(support_group.OnSupportGroupCreateAuthz),
+	)
+	// Authz event handlers for Components
+	h.eventRegistry.RegisterEventHandler(
+		component.CreateComponentEventName,
+		event.EventHandlerFunc(component.OnComponentCreateAuthz),
+	)
+	// Authz event handlers for IssueMatches
+	h.eventRegistry.RegisterEventHandler(
+		issue_match.CreateIssueMatchEventName,
+		event.EventHandlerFunc(issue_match.OnIssueMatchCreateAuthz),
 	)
 }
 

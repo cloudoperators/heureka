@@ -13,15 +13,41 @@ import (
 )
 
 const (
-	fgaStoreName = "heureka-store"
-
-	userFieldName = "user"
+	fgaStoreName = "heureka-store-Final"
 )
 
 type Authz struct {
-	config *util.Config
-	logger *logrus.Logger
-	client *client.OpenFgaClient
+	config      *util.Config
+	logger      *logrus.Logger
+	client      *client.OpenFgaClient
+	currentUser string
+}
+
+func (a *Authz) GetCurrentUser() string {
+	return a.config.CurrentUser
+}
+
+func (a *Authz) HandleCreateAuthzRelation(
+	userFieldName string,
+	user string,
+	resourceId string,
+	resourceType string,
+	resourceRelation string,
+) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":            "HandleCreateAuthzRelation",
+		"user":             user,
+		"resourceId":       resourceId,
+		"resourceType":     resourceType,
+		"resourceRelation": resourceRelation,
+	})
+
+	err := a.AddRelation(userFieldName, user, resourceId, resourceType, resourceRelation)
+	if err != nil {
+		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", user, resourceId, resourceType, resourceRelation)
+	} else {
+		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", user, resourceId, resourceType, resourceRelation)
+	}
 }
 
 func getAuthModelRequestFromFile(filePath string) (*client.ClientWriteAuthorizationModelRequest, error) {
@@ -54,7 +80,6 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 		return nil
 	}
 
-	// Create the store
 	store, err := fgaClient.CreateStore(context.Background()).Body(client.ClientCreateStoreRequest{Name: fgaStoreName}).Execute()
 	if err != nil {
 		l.Error("Could not create OpenFGA store: ", err)
@@ -82,11 +107,11 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	fgaClient.SetAuthorizationModelId(modelResponse.AuthorizationModelId)
 
 	l.Info("Initializing authorization with OpenFGA")
-	return &Authz{config: cfg, logger: l, client: fgaClient}
+	return &Authz{config: cfg, logger: l, client: fgaClient, currentUser: cfg.CurrentUser}
 }
 
 // CheckPermission checks if userId has permission on resourceId.
-func (a *Authz) CheckPermission(userId string, resourceId string, resourceType string, permission string) (bool, error) {
+func (a *Authz) CheckPermission(userFieldName string, userId string, resourceId string, resourceType string, permission string) (bool, error) {
 	req := client.ClientCheckRequest{
 		User:     userFieldName + ":" + userId,
 		Relation: permission,
@@ -101,7 +126,7 @@ func (a *Authz) CheckPermission(userId string, resourceId string, resourceType s
 }
 
 // AddRelation adds a relationship between userId and resourceId.
-func (a *Authz) AddRelation(userId string, resourceId string, resourceType string, relation string) error {
+func (a *Authz) AddRelation(userFieldName string, userId string, resourceId string, resourceType string, relation string) error {
 	tuple := client.ClientWriteRequest{
 		Writes: []client.ClientTupleKey{
 			{
@@ -122,7 +147,7 @@ func (a *Authz) AddRelation(userId string, resourceId string, resourceType strin
 }
 
 // RemoveRelation removes a relationship between userId and resourceId.
-func (a *Authz) RemoveRelation(userId string, resourceId string, resourceType string, relation string) error {
+func (a *Authz) RemoveRelation(userFieldName string, userId string, resourceId string, resourceType string, relation string) error {
 	tuple := client.ClientWriteRequest{
 		Deletes: []client.ClientTupleKeyWithoutCondition{
 			{
@@ -140,7 +165,7 @@ func (a *Authz) RemoveRelation(userId string, resourceId string, resourceType st
 }
 
 // ListAccessibleResources returns a list of resource Ids that the user can access.
-func (a *Authz) ListAccessibleResources(userId string, resourceType string, permission string, relation string) ([]string, error) {
+func (a *Authz) ListAccessibleResources(userFieldName string, userId string, resourceType string, permission string, relation string) ([]string, error) {
 	body := client.ClientListObjectsRequest{
 		User:     userFieldName + ":" + userId,
 		Relation: relation,

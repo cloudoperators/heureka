@@ -5,11 +5,13 @@ package component_test
 
 import (
 	"math"
+	"strconv"
 	"testing"
 
 	c "github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -31,7 +33,7 @@ var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 func getComponentFilter() *entity.ComponentFilter {
@@ -111,6 +113,14 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
+		authz            openfga.Authorization
+		cfg              *util.Config
+		enableLogs       bool
+		userFieldName    string
+		userId           string
+		resourceId       string
+		resourceType     string
+		permission       string
 	)
 
 	BeforeEach(func() {
@@ -124,6 +134,20 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 				First: &first,
 				After: &after,
 			},
+		}
+
+		// setup authz testing
+		userFieldName = "role"
+		userId = "testuser"
+		resourceId = ""
+		resourceType = "component"
+		permission = "role"
+
+		cfg = &util.Config{
+			AuthzEnabled:      true,
+			CurrentUser:       userId,
+			AuthModelFilePath: "../../../internal/openfga/model/model.fga",
+			OpenFGApiUrl:      "http://localhost:8080",
 		}
 	})
 
@@ -139,6 +163,35 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		By("setting fields", func() {
 			Expect(newComponent.CCRN).To(BeEquivalentTo(component.CCRN))
 			Expect(newComponent.Type).To(BeEquivalentTo(component.Type))
+		})
+	})
+
+	Context("when handling a CreateComponentEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new component is created", func() {
+			It("should add user resource relationship tuple in openfga", func() {
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+				compFake := test.NewFakeComponentEntity()
+				createEvent := &c.CreateComponentEvent{
+					Component: &compFake,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+				resourceId = strconv.FormatInt(createEvent.Component.Id, 10)
+
+				// Simulate event
+				c.OnComponentCreateAuthz(db, event, authz)
+
+				ok, err := authz.CheckPermission(userFieldName, userId, resourceId, resourceType, permission)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(ok).To(BeTrue(), "permission should be granted")
+			})
 		})
 	})
 })
