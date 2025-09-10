@@ -583,10 +583,8 @@ func RunMigrations(cfg util.Config) error {
 	if err != nil {
 		return fmt.Errorf("Error while Creating Db: %w", err)
 	}
-	err = db.RunPostMigrations()
-	if err != nil {
-		return fmt.Errorf("Error while Running Db Post Migration Procedures: %w", err)
-	}
+	// Run post migrations in a separate goroutine to avoid blocking on startup
+	go db.RunPostMigrations()
 
 	err = EnableScheduler(cfg)
 	if err != nil {
