@@ -39,6 +39,7 @@ type Config struct {
 	AuthOidcUrl                   string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
 	AuthzEnabled                  bool   `envconfig:"AUTHZ_ENABLED" required:"false" default:"false" json:"authzEnabled"`
 	OpenFGApiUrl                  string `envconfig:"FGA_API_URL" required:"false" json:"-"`
+	OpenFGAStoreName              string `envconfig:"FGA_STORE_NAME" required:"false" json:"-"`
 	AuthModelFilePath             string `envconfig:"AUTH_MODEL_FILE_PATH" required:"false" json:"-"`
 	DefaultIssuePriority          int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
 	DefaultRepositoryName         string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`

@@ -7,15 +7,42 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type UserType string
+type UserId string
+type ObjectType string
+type RelationType string
+type ObjectId string
+
+type PermissionInput struct {
+	UserType   UserType
+	UserId     UserId
+	Relation   RelationType
+	ObjectType ObjectType
+	ObjectId   string
+}
+
+type RelationInput struct {
+	UserType   UserType
+	UserId     UserId
+	Relation   RelationType
+	ObjectType ObjectType
+	ObjectId   string
+}
+
+type AccessibleResource struct {
+	ObjectType ObjectType
+	ObjectId   ObjectId
+}
+
 type Authorization interface {
 	// check if userId has permission on resourceId
-	CheckPermission(userId string, resourceId string, resourceType string, permission string) (bool, error)
+	CheckPermission(p PermissionInput) (bool, error)
 	// add relationship between userId and resourceId
-	AddRelation(userId string, resourceId string, resourceType string, relation string) error
+	AddRelation(r RelationInput) error
 	// remove relationship between userId and resourceId
-	RemoveRelation(userId string, resourceId string, resourceType string, relation string) error
+	RemoveRelation(r RelationInput) error
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
-	ListAccessibleResources(userId string, resourceType string, permission string, relation string) ([]string, error)
+	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {
