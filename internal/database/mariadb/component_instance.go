@@ -5,11 +5,10 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
@@ -138,7 +137,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterStr := s.getComponentInstanceFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
 	}
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
@@ -172,7 +171,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
-		return nil, nil, fmt.Errorf("%s", msg)
+		return nil, nil, fmt.Errorf("failed to prepare ComponentInstance statement: %w", err)
 	}
 
 	//adding parameters
@@ -220,14 +219,17 @@ func (s *SqlDatabase) GetAllComponentInstanceIds(filter *entity.ComponentInstanc
     `
 
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build ComponentInstance IDs query: %w", err)
 	}
-
 	defer stmt.Close()
 
-	return performIdScan(stmt, filterParameters, l)
+	ids, err := performIdScan(stmt, filterParameters, l)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance IDs: %w", err)
+	}
+
+	return ids, nil
 }
 
 func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilter, order []entity.Order) ([]entity.ComponentInstanceResult, error) {
@@ -242,14 +244,12 @@ func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilt
 		`
 
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build ComponentInstances query: %w", err)
 	}
-
 	defer stmt.Close()
 
-	return performListScan(
+	results, err := performListScan(
 		stmt,
 		filterParameters,
 		l,
@@ -268,6 +268,11 @@ func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilt
 			return append(l, cir)
 		},
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstances: %w", err)
+	}
+
+	return results, nil
 }
 
 func (s *SqlDatabase) GetAllComponentInstanceCursors(filter *entity.ComponentInstanceFilter, order []entity.Order) ([]string, error) {
@@ -283,9 +288,8 @@ func (s *SqlDatabase) GetAllComponentInstanceCursors(filter *entity.ComponentIns
     `
 
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build ComponentInstance cursors query: %w", err)
 	}
 
 	rows, err := performListScan(
@@ -296,18 +300,17 @@ func (s *SqlDatabase) GetAllComponentInstanceCursors(filter *entity.ComponentIns
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get ComponentInstance cursors: %w", err)
 	}
 
-	return lo.Map(rows, func(row RowComposite, _ int) string {
+	cursors := lo.Map(rows, func(row RowComposite, _ int) string {
 		ci := row.AsComponentInstance()
-
 		cursor, _ := EncodeCursor(WithComponentInstance(order, ci))
-
 		return cursor
-	}), nil
+	})
+
+	return cursors, nil
 }
 
 func (s *SqlDatabase) CountComponentInstances(filter *entity.ComponentInstanceFilter) (int64, error) {
@@ -324,14 +327,17 @@ func (s *SqlDatabase) CountComponentInstances(filter *entity.ComponentInstanceFi
 	`
 
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("failed to build ComponentInstance count query: %w", err)
 	}
-
 	defer stmt.Close()
 
-	return performCountScan(stmt, filterParameters, l)
+	count, err := performCountScan(stmt, filterParameters, l)
+	if err != nil {
+		return -1, fmt.Errorf("failed to count ComponentInstances: %w", err)
+	}
+
+	return count, nil
 }
 
 func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
@@ -382,13 +388,12 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 	componentInstanceRow.FromComponentInstance(componentInstance)
 
 	id, err := performInsert(s, query, componentInstanceRow, l)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create ComponentInstance with CCRN '%s': %w",
+			componentInstance.CCRN, err)
 	}
 
 	componentInstance.Id = id
-
 	return componentInstance, nil
 }
 
@@ -412,8 +417,12 @@ func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.Componen
 	componentInstanceRow.FromComponentInstance(componentInstance)
 
 	_, err := performExec(s, query, componentInstanceRow, l)
+	if err != nil {
+		return fmt.Errorf("failed to update ComponentInstance with ID %d (CCRN: '%s'): %w",
+			componentInstance.Id, componentInstance.CCRN, err)
+	}
 
-	return err
+	return nil
 }
 
 func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
@@ -435,8 +444,11 @@ func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
 	}
 
 	_, err := performExec(s, query, args, l)
+	if err != nil {
+		return fmt.Errorf("failed to delete ComponentInstance with ID %d: %w", id, err)
+	}
 
-	return err
+	return nil
 }
 
 func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.ComponentInstanceFilter) ([]string, error) {
@@ -464,16 +476,14 @@ func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.C
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, order, l)
 	if err != nil {
-		l.Error("Error preparing statement: ", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to build ComponentInstance attribute query for %s: %w", attrName, err)
 	}
 	defer stmt.Close()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
-		l.Error("Error executing query: ", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to execute ComponentInstance attribute query for %s: %w", attrName, err)
 	}
 	defer rows.Close()
 
@@ -488,55 +498,98 @@ func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.C
 		attrVal = append(attrVal, name)
 	}
 	if err = rows.Err(); err != nil {
-		l.Error("Row iteration error: ", err)
-		return nil, err
+		return nil, fmt.Errorf("error iterating ComponentInstance attribute rows for %s: %w", attrName, err)
 	}
 
 	return attrVal, nil
 }
 
 func (s *SqlDatabase) GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("ccrn", filter)
+	ccrns, err := s.getComponentInstanceAttr("ccrn", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance CCRNs: %w", err)
+	}
+	return ccrns, nil
 }
 
 func (s *SqlDatabase) GetRegion(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("region", filter)
+	regions, err := s.getComponentInstanceAttr("region", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance regions: %w", err)
+	}
+	return regions, nil
 }
 
 func (s *SqlDatabase) GetCluster(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("cluster", filter)
+	clusters, err := s.getComponentInstanceAttr("cluster", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance clusters: %w", err)
+	}
+	return clusters, nil
 }
 
 func (s *SqlDatabase) GetNamespace(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("namespace", filter)
+	namespaces, err := s.getComponentInstanceAttr("namespace", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance namespaces: %w", err)
+	}
+	return namespaces, nil
 }
 
 func (s *SqlDatabase) GetDomain(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("domain", filter)
+	domains, err := s.getComponentInstanceAttr("domain", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance domains: %w", err)
+	}
+	return domains, nil
 }
 
 func (s *SqlDatabase) GetProject(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("project", filter)
+	projects, err := s.getComponentInstanceAttr("project", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance projects: %w", err)
+	}
+	return projects, nil
 }
 
 func (s *SqlDatabase) GetPod(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("pod", filter)
+	pods, err := s.getComponentInstanceAttr("pod", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance pods: %w", err)
+	}
+	return pods, nil
 }
 
 func (s *SqlDatabase) GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("container", filter)
+	containers, err := s.getComponentInstanceAttr("container", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance containers: %w", err)
+	}
+	return containers, nil
 }
 
 func (s *SqlDatabase) GetType(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("type", filter)
+	types, err := s.getComponentInstanceAttr("type", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance types: %w", err)
+	}
+	return types, nil
 }
 
 func (s *SqlDatabase) GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("parent_id", filter)
+	parents, err := s.getComponentInstanceAttr("parent_id", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance parents: %w", err)
+	}
+	return parents, nil
 }
 
 func (s *SqlDatabase) GetContext(filter *entity.ComponentInstanceFilter) ([]string, error) {
-	return s.getComponentInstanceAttr("context", filter)
+	contexts, err := s.getComponentInstanceAttr("context", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentInstance contexts: %w", err)
+	}
+	return contexts, nil
 }
 
 func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {
@@ -549,13 +602,15 @@ func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstance
     `
 
 	sr, err := s.ScannerRunByUUID(scannerRunUUID)
-
 	if err != nil {
-		return fmt.Errorf("failed to create scanner run component instance tracker: %w", err)
+		return fmt.Errorf("failed to get scanner run by UUID '%s': %w", scannerRunUUID, err)
 	}
+
 	_, err = s.db.Exec(query, componentInstanceId, sr.RunID)
 	if err != nil {
-		return fmt.Errorf("failed to create scanner run component instance tracker: %w", err)
+		return fmt.Errorf("failed to create scanner run component instance tracker for ComponentInstance %d and ScannerRun '%s': %w",
+			componentInstanceId, scannerRunUUID, err)
 	}
+
 	return nil
 }

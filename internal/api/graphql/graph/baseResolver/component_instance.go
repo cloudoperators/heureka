@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -23,7 +24,7 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 	}).Debug("Called SingleComponentInstanceBaseResolver")
 
 	if parent == nil {
-		return nil, NewResolverError("SingleComponentInstanceBaseResolver", "Bad Request - No parent provided")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleComponentInstanceBaseResolver"), "ComponentInstance", appErrors.InvalidArgument, "No parent provided"))
 	}
 
 	f := &entity.ComponentInstanceFilter{
@@ -33,15 +34,13 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 	opt := &entity.ListOptions{}
 
 	componentInstances, err := app.ListComponentInstances(f, opt)
-
-	// error while fetching
 	if err != nil {
-		return nil, NewResolverError("SingleComponentInstanceBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	// unexpected number of results (should at most be 1)
 	if len(componentInstances.Elements) > 1 {
-		return nil, NewResolverError("SingleComponentInstanceBaseResolver", "Internal Error - found multiple component instances")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleComponentInstanceBaseResolver"), "ComponentInstance", appErrors.Internal, "found multiple component instances"))
 	}
 
 	//not found
@@ -64,13 +63,13 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 
 	var imId []*int64
 	var serviceId []*int64
-	var copmonentVersionId []*int64
+	var componentVersionId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
 			logrus.WithField("parent", parent).Error("ComponentInstanceBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("ComponentInstanceBaseResolver", "Bad Request - Error while parsing propagated ID")
+			return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentInstanceBaseResolver"), "ComponentInstance", appErrors.InvalidArgument, "Error while parsing propagated ID"))
 		}
 
 		switch parent.ParentName {
@@ -79,7 +78,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		case model.ServiceNodeName:
 			serviceId = []*int64{pid}
 		case model.ComponentVersionNodeName:
-			copmonentVersionId = []*int64{pid}
+			componentVersionId = []*int64{pid}
 		}
 	}
 
@@ -89,7 +88,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 
 	parentIds, err := util.ConvertStrToIntSlice(filter.ParentID)
 	if err != nil {
-		return nil, NewResolverError("ComponentInstanceBaseResolver", "Invalid ParentID filter")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentInstanceBaseResolver"), "ComponentInstance", appErrors.InvalidArgument, "Invalid ParentID filter"))
 	}
 
 	f := &entity.ComponentInstanceFilter{
@@ -106,7 +105,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		IssueMatchId:            imId,
 		ServiceId:               serviceId,
 		ServiceCcrn:             filter.ServiceCcrn,
-		ComponentVersionId:      copmonentVersionId,
+		ComponentVersionId:      componentVersionId,
 		ComponentVersionVersion: filter.ComponentVersionDigest,
 		Search:                  filter.Search,
 		State:                   model.GetStateFilterType(filter.State),
@@ -119,10 +118,8 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	}
 
 	componentInstances, err := app.ListComponentInstances(f, opt)
-
-	//@todo propper error handling
 	if err != nil {
-		return nil, NewResolverError("ComponentInstanceBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	edges := []*model.ComponentInstanceEdge{}
@@ -222,9 +219,8 @@ func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.Com
 	opt := GetListOptions(requestedFields)
 
 	names, err := app.ListContexts(f, opt)
-
 	if err != nil {
-		return nil, NewResolverError("ComponentInstanceFilterBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	var pointerNames []map[string]any
@@ -273,9 +269,8 @@ func ComponentInstanceFilterBaseResolver(
 	opt := GetListOptions(requestedFields)
 
 	names, err := appCall(f, opt)
-
 	if err != nil {
-		return nil, NewResolverError("ComponentInstanceFilterBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	var pointerNames []*string
