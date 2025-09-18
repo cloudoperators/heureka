@@ -378,192 +378,222 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
 	return nil
 }
 
-func (s *componentInstanceHandler) ListCcrns(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListCcrnEventName,
-		"filter": filter,
-	})
+func (ci *componentInstanceHandler) ListRegions(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListRegions")
 
-	ccrn, err := s.database.GetCcrn(filter)
-
+	regions, err := ci.database.GetRegion(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Ccrn.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceRegions", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListCcrnEvent{Filter: filter, Ccrn: ccrn})
-
-	return ccrn, nil
-}
-func (s *componentInstanceHandler) ListRegions(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListRegionsEventName,
-		"filter": filter,
+	ci.eventRegistry.PushEvent(&ListRegionsEvent{
+		Filter:  filter,
+		Regions: regions,
 	})
-
-	regions, err := s.database.GetRegion(filter)
-
-	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Region.")
-	}
-
-	s.eventRegistry.PushEvent(&ListRegionsEvent{Filter: filter, Regions: regions})
 
 	return regions, nil
 }
-func (s *componentInstanceHandler) ListClusters(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListClustersEventName,
-		"filter": filter,
-	})
 
-	clusters, err := s.database.GetCluster(filter)
+func (ci *componentInstanceHandler) ListCcrns(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListCcrns")
 
+	ccrns, err := ci.database.GetCcrn(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Cluster.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceCcrns", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListClustersEvent{Filter: filter, Clusters: clusters})
+	ci.eventRegistry.PushEvent(&ListCcrnEvent{
+		Filter: filter,
+		Ccrn:   ccrns,
+	})
+
+	return ccrns, nil
+}
+
+func (ci *componentInstanceHandler) ListClusters(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListClusters")
+
+	clusters, err := ci.database.GetCluster(filter)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceClusters", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
+	}
+
+	ci.eventRegistry.PushEvent(&ListClustersEvent{
+		Filter:   filter,
+		Clusters: clusters,
+	})
 
 	return clusters, nil
 }
-func (s *componentInstanceHandler) ListNamespaces(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListNamespacesEventName,
-		"filter": filter,
-	})
 
-	namespaces, err := s.database.GetNamespace(filter)
+func (ci *componentInstanceHandler) ListNamespaces(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListNamespaces")
 
+	namespaces, err := ci.database.GetNamespace(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Namespace.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceNamespaces", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListNamespacesEvent{Filter: filter, Namespaces: namespaces})
+	ci.eventRegistry.PushEvent(&ListNamespacesEvent{
+		Filter:     filter,
+		Namespaces: namespaces,
+	})
 
 	return namespaces, nil
 }
-func (s *componentInstanceHandler) ListDomains(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListDomainsEventName,
-		"filter": filter,
-	})
 
-	domains, err := s.database.GetDomain(filter)
+func (ci *componentInstanceHandler) ListDomains(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListDomains")
 
+	domains, err := ci.database.GetDomain(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Domain.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceDomains", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListDomainsEvent{Filter: filter, Domains: domains})
+	ci.eventRegistry.PushEvent(&ListDomainsEvent{
+		Filter:  filter,
+		Domains: domains,
+	})
 
 	return domains, nil
 }
-func (s *componentInstanceHandler) ListProjects(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListProjectsEventName,
-		"filter": filter,
-	})
 
-	projects, err := s.database.GetProject(filter)
+func (ci *componentInstanceHandler) ListProjects(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListProjects")
 
+	projects, err := ci.database.GetProject(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Project.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceProjects", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListProjectsEvent{Filter: filter, Projects: projects})
+	ci.eventRegistry.PushEvent(&ListProjectsEvent{
+		Filter:   filter,
+		Projects: projects,
+	})
 
 	return projects, nil
 }
-func (s *componentInstanceHandler) ListPods(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListPodsEventName,
-		"filter": filter,
-	})
 
-	pods, err := s.database.GetPod(filter)
+func (ci *componentInstanceHandler) ListPods(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListPods")
 
+	pods, err := ci.database.GetPod(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Pod.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstancePods", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListPodsEvent{Filter: filter, Pods: pods})
+	ci.eventRegistry.PushEvent(&ListPodsEvent{
+		Filter: filter,
+		Pods:   pods,
+	})
 
 	return pods, nil
 }
-func (s *componentInstanceHandler) ListContainers(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListContainersEventName,
-		"filter": filter,
-	})
 
-	containers, err := s.database.GetContainer(filter)
+func (ci *componentInstanceHandler) ListContainers(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListContainers")
 
+	containers, err := ci.database.GetContainer(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Container.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceContainers", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListContainersEvent{Filter: filter, Containers: containers})
+	ci.eventRegistry.PushEvent(&ListContainersEvent{
+		Filter:     filter,
+		Containers: containers,
+	})
 
 	return containers, nil
 }
-func (s *componentInstanceHandler) ListTypes(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListTypesEventName,
-		"filter": filter,
-	})
 
-	types, err := s.database.GetType(filter)
+func (ci *componentInstanceHandler) ListTypes(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListTypes")
 
+	types, err := ci.database.GetType(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Type.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceTypes", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListTypesEvent{Filter: filter, Types: types})
+	ci.eventRegistry.PushEvent(&ListTypesEvent{
+		Filter: filter,
+		Types:  types,
+	})
 
 	return types, nil
 }
 
-func (s *componentInstanceHandler) ListParents(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListParentsEventName,
-		"filter": filter,
-	})
+func (ci *componentInstanceHandler) ListParents(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListParents")
 
-	parents, err := s.database.GetComponentInstanceParent(filter)
-
+	parents, err := ci.database.GetComponentInstanceParent(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Parent.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceParents", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListParentsEvent{Filter: filter, Parents: parents})
+	ci.eventRegistry.PushEvent(&ListParentsEvent{
+		Filter:  filter,
+		Parents: parents,
+	})
 
 	return parents, nil
 }
 
-func (s *componentInstanceHandler) ListContexts(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListContextsEventName,
-		"filter": filter,
-	})
+func (ci *componentInstanceHandler) ListContexts(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+	op := appErrors.Op("componentInstanceHandler.ListContexts")
 
-	contexts, err := s.database.GetContext(filter)
-
+	contexts, err := ci.database.GetContext(filter)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving Type.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceContexts", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
-	s.eventRegistry.PushEvent(&ListContextsEvent{Filter: filter, Contexts: contexts})
+	ci.eventRegistry.PushEvent(&ListContextsEvent{
+		Filter:   filter,
+		Contexts: contexts,
+	})
 
 	return contexts, nil
 }

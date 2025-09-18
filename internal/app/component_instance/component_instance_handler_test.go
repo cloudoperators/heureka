@@ -334,7 +334,6 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetCcrn", filter).Return([]string{}, nil)
 		})
@@ -346,6 +345,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
 	})
+
 	When("specific CCRN filter is applied", func() {
 		BeforeEach(func() {
 			filter = &entity.ComponentInstanceFilter{
@@ -359,6 +359,30 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 			res, err := componentInstanceHandler.ListCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(CCRN), "should only consist of CCRN")
+		})
+	})
+
+	// NEW: Add error handling test case
+	Context("when database operation fails", func() {
+		It("should return Internal error", func() {
+			// Mock database error
+			dbError := errors.New("database connection failed")
+			db.On("GetCcrn", filter).Return([]string{}, dbError)
+
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			result, err := componentInstanceHandler.ListCcrns(filter, options)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			// Verify it's our structured error with correct code
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("ComponentInstanceCcrns"), "should reference ComponentInstanceCcrns entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("componentInstanceHandler.ListCcrns"), "should include operation")
+			Expect(appErr.Err.Error()).To(ContainSubstring("database connection failed"), "should contain original error message")
 		})
 	})
 })
