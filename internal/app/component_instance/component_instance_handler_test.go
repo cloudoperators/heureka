@@ -238,42 +238,42 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			},
 		}
 	})
-
-	It("updates componentInstance", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
-		componentInstance.Region = "NewRegion"
-		componentInstance.Cluster = "NewCluster"
-		componentInstance.Namespace = "NewNamespace"
-		componentInstance.Domain = "NewDomain"
-		componentInstance.Project = "NewProject"
-		componentInstance.Pod = "NewPod"
-		componentInstance.Container = "NewContainer"
-		componentInstance.Type = "RecordSet"
-		componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
-		componentInstance.ParentId = 1234
-		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
-		filter.Id = []*int64{&componentInstance.Id}
-		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
-		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, nil)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		By("setting fields", func() {
-			Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
-			Expect(updatedComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
-			Expect(updatedComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
-			Expect(updatedComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
-			Expect(updatedComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
-			Expect(updatedComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
-			Expect(updatedComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
-			Expect(updatedComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
-			Expect(updatedComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
-			Expect(updatedComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
-			Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
-			Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
-			Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
-			Expect(updatedComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
-
+	Context("with valid input", func() {
+		It("updates componentInstance", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil) // Changed: return actual user ID
+			db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			componentInstance.Region = "NewRegion"
+			componentInstance.Cluster = "NewCluster"
+			componentInstance.Namespace = "NewNamespace"
+			componentInstance.Domain = "NewDomain"
+			componentInstance.Project = "NewProject"
+			componentInstance.Pod = "NewPod"
+			componentInstance.Container = "NewContainer"
+			componentInstance.Type = "RecordSet"
+			componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
+			componentInstance.ParentId = 1234
+			componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
+			filter.Id = []*int64{&componentInstance.Id}
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
+			updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, nil)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			By("setting fields", func() {
+				Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+				Expect(updatedComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
+				Expect(updatedComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+				Expect(updatedComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+				Expect(updatedComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
+				Expect(updatedComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
+				Expect(updatedComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
+				Expect(updatedComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
+				Expect(updatedComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
+				Expect(updatedComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
+				Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
+				Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
+				Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+				Expect(updatedComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+			})
 		})
 	})
 })

@@ -16,6 +16,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/sirupsen/logrus"
+	"strconv"
 )
 
 var CacheTtlGetComponentInstances = 12 * time.Hour
@@ -239,57 +240,103 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 }
 
 func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
-	// Validation: Only RecordSet, User or SecurityGroupRule can have a parent_id
-	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
+	op := appErrors.Op("componentInstanceHandler.UpdateComponentInstance")
+
+	// Input validation
+	if componentInstance == nil {
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "component instance cannot be nil")
+		applog.LogError(ci.logger, err, logrus.Fields{})
 		return nil, err
 	}
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  UpdateComponentInstanceEventName,
-		"object": componentInstance,
-	})
+	if componentInstance.Id <= 0 {
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", componentInstance.Id))
+		applog.LogError(ci.logger, err, logrus.Fields{"id": componentInstance.Id})
+		return nil, err
+	}
 
+	// Business rule validation - ParentId validation for specific types
+	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
+		wrappedErr := appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.InvalidArgument, err.Error())
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"id":               componentInstance.Id,
+			"parent_id":        componentInstance.ParentId,
+			"type":             componentInstance.Type.String(),
+			"validation_error": err.Error(),
+		})
+		return nil, wrappedErr
+	}
+
+	// Get current user for audit fields
 	var err error
 	componentInstance.UpdatedBy, err = common.GetCurrentUserId(ci.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while updating componentInstance (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"id":   componentInstance.Id,
+			"ccrn": componentInstance.CCRN,
+		})
+		return nil, wrappedErr
 	}
 
+	// Update the component instance in database
 	err = ci.database.UpdateComponentInstance(componentInstance)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while updating componentInstance.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"id":   componentInstance.Id,
+			"ccrn": componentInstance.CCRN,
+		})
+		return nil, wrappedErr
 	}
 
+	// Handle scanner run tracking if UUID provided
 	if scannerRunUUID != nil {
 		err = ci.database.CreateScannerRunComponentInstanceTracker(componentInstance.Id, *scannerRunUUID)
-
 		if err != nil {
-			return nil, NewComponentInstanceHandlerError("Internal error while creating ScannerRunComponentInstanceTracker.")
+			// Log the error but don't fail the update since the component instance was updated successfully
+			logErr := appErrors.InternalError(string(op), "ScannerRunComponentInstanceTracker",
+				fmt.Sprintf("component_instance:%d-scanner_run:%s", componentInstance.Id, *scannerRunUUID), err)
+			applog.LogError(ci.logger, logErr, logrus.Fields{
+				"component_instance_id": componentInstance.Id,
+				"scanner_run_uuid":      *scannerRunUUID,
+				"ccrn":                  componentInstance.CCRN,
+			})
+			// Note: We don't return this error since the main operation succeeded
 		}
 	}
 
+	// Retrieve updated component instance to return fresh data
 	lo := entity.NewListOptions()
-
 	componentInstanceResult, err := ci.ListComponentInstances(&entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, lo)
-
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while retrieving updated componentInstance.")
+		wrappedErr := appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.Internal, err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"id":   componentInstance.Id,
+			"ccrn": componentInstance.CCRN,
+		})
+		return nil, wrappedErr
 	}
 
 	if len(componentInstanceResult.Elements) != 1 {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Multiple componentInstances found.")
+		err := appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.Internal,
+			fmt.Sprintf("unexpected number of component instances found after update: expected 1, got %d", len(componentInstanceResult.Elements)))
+		applog.LogError(ci.logger, err, logrus.Fields{
+			"id":          componentInstance.Id,
+			"found_count": len(componentInstanceResult.Elements),
+			"ccrn":        componentInstance.CCRN,
+		})
+		return nil, err
 	}
 
+	updatedComponentInstance := componentInstanceResult.Elements[0].ComponentInstance
+
+	// Emit success event
 	ci.eventRegistry.PushEvent(&UpdateComponentInstanceEvent{
-		ComponentInstance: componentInstance,
+		ComponentInstance: updatedComponentInstance,
 	})
 
-	return componentInstanceResult.Elements[0].ComponentInstance, nil
+	return updatedComponentInstance, nil
 }
 
 func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
