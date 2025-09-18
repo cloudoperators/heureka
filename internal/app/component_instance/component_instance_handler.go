@@ -30,6 +30,15 @@ type componentInstanceHandler struct {
 	logger        *logrus.Logger
 }
 
+func NewComponentInstanceHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache) ComponentInstanceHandler {
+	return &componentInstanceHandler{
+		database:      database,
+		eventRegistry: eventRegistry,
+		cache:         cache,
+		logger:        logrus.New(),
+	}
+}
+
 func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
 	op := appErrors.Op("componentInstanceHandler.ListComponentInstances")
 	var count int64
