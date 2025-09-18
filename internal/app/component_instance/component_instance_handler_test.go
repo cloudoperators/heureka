@@ -299,19 +299,21 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		}
 	})
 
-	It("deletes componentInstance", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("DeleteComponentInstance", id, mock.Anything).Return(nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
-		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
-		err := componentInstanceHandler.DeleteComponentInstance(id)
-		Expect(err).To(BeNil(), "no error should be thrown")
+	Context("with valid input", func() {
+		It("deletes componentInstance", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil) // Changed: return actual user ID
+			db.On("DeleteComponentInstance", id, int64(123)).Return(nil)    // Changed: specify exact user ID
+			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache())
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
+			err := componentInstanceHandler.DeleteComponentInstance(id)
+			Expect(err).To(BeNil(), "no error should be thrown")
 
-		filter.Id = []*int64{&id}
-		lo := entity.NewListOptions()
-		componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, lo)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(componentInstances.Elements).To(BeEmpty(), "no error should be thrown")
+			filter.Id = []*int64{&id}
+			lo := entity.NewListOptions()
+			componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, lo)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(componentInstances.Elements).To(BeEmpty(), "component instance should be deleted")
+		})
 	})
 })
 

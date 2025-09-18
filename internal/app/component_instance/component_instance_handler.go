@@ -340,30 +340,44 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 }
 
 func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"event": DeleteComponentInstanceEventName,
-		"id":    id,
-	})
+	op := appErrors.Op("componentInstanceHandler.DeleteComponentInstance")
 
+	// Input validation
+	if id <= 0 {
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
+		applog.LogError(ci.logger, err, logrus.Fields{"id": id})
+		return err
+	}
+
+	// Get current user for audit fields
 	userId, err := common.GetCurrentUserId(ci.database)
 	if err != nil {
-		l.Error(err)
-		return NewComponentInstanceHandlerError("Internal error while deleting componentInstance (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(id, 10), err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"id": id,
+		})
+		return wrappedErr
 	}
 
+	// Delete the component instance from database
 	err = ci.database.DeleteComponentInstance(id, userId)
-
 	if err != nil {
-		l.Error(err)
-		return NewComponentInstanceHandlerError("Internal error while deleting componentInstance.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(id, 10), err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"id":      id,
+			"user_id": userId,
+		})
+		return wrappedErr
 	}
 
+	// Emit success event
 	ci.eventRegistry.PushEvent(&DeleteComponentInstanceEvent{
 		ComponentInstanceID: id,
 	})
 
 	return nil
 }
+
 func (s *componentInstanceHandler) ListCcrns(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListCcrnEventName,
