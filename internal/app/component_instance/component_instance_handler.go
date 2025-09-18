@@ -590,8 +590,7 @@ func (ci *componentInstanceHandler) ListContexts(filter *entity.ComponentInstanc
 func validateParentIdForType(parentId int64, typeStr string) error {
 	if parentId != 0 && parentId != -1 {
 		if typeStr != "RecordSet" && typeStr != "User" && typeStr != "SecurityGroupRule" {
-			return NewComponentInstanceHandlerError(
-				"ParentId can only be set for component instances of type 'RecordSet', 'User' or 'SecurityGroupRule', but got type '" + typeStr + "'")
+			return fmt.Errorf("ParentId can only be set for component instances of type 'RecordSet', 'User' or 'SecurityGroupRule', but got type '%s'", typeStr)
 		}
 	}
 	return nil
