@@ -6,6 +6,8 @@ package component_instance
 import (
 	"time"
 
+	"errors"
+	"fmt"
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	applog "github.com/cloudoperators/heureka/internal/app/logging"
@@ -125,38 +127,110 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 }
 
 func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
-	// Validation: Only RecordSet, User or SecurityGroupRule can have a parent_id
-	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
+	op := appErrors.Op("componentInstanceHandler.CreateComponentInstance")
+
+	// Input validation - check for required fields
+	if componentInstance == nil {
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "component instance cannot be nil")
+		applog.LogError(ci.logger, err, logrus.Fields{})
 		return nil, err
 	}
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  CreateComponentInstanceEventName,
-		"object": componentInstance,
-	})
+	if componentInstance.CCRN == "" {
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "CCRN is required")
+		applog.LogError(ci.logger, err, logrus.Fields{
+			"component_instance": componentInstance,
+		})
+		return nil, err
+	}
 
+	if componentInstance.ComponentVersionId <= 0 {
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "valid component version ID is required")
+		applog.LogError(ci.logger, err, logrus.Fields{
+			"component_version_id": componentInstance.ComponentVersionId,
+			"ccrn":                 componentInstance.CCRN,
+		})
+		return nil, err
+	}
+
+	if componentInstance.ServiceId <= 0 {
+		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "valid service ID is required")
+		applog.LogError(ci.logger, err, logrus.Fields{
+			"service_id": componentInstance.ServiceId,
+			"ccrn":       componentInstance.CCRN,
+		})
+		return nil, err
+	}
+
+	// Business rule validation - ParentId validation for specific types
+	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
+		wrappedErr := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, err.Error())
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"parent_id":        componentInstance.ParentId,
+			"type":             componentInstance.Type.String(),
+			"ccrn":             componentInstance.CCRN,
+			"validation_error": err.Error(),
+		})
+		return nil, wrappedErr
+	}
+
+	// Get current user for audit fields
 	var err error
 	componentInstance.CreatedBy, err = common.GetCurrentUserId(ci.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentInstanceHandlerError("Internal error while creating componentInstance (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"ccrn": componentInstance.CCRN,
+			"type": componentInstance.Type.String(),
+		})
+		return nil, wrappedErr
 	}
 	componentInstance.UpdatedBy = componentInstance.CreatedBy
 
+	// Create the component instance in database
 	newComponentInstance, err := ci.database.CreateComponentInstance(componentInstance)
-
 	if err != nil {
-		return nil, NewComponentInstanceHandlerError("Internal error while creating componentInstance.")
+		// Check for specific database errors
+		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
+		if errors.As(err, &duplicateEntryError) {
+			wrappedErr := appErrors.AlreadyExistsError(string(op), "ComponentInstance", componentInstance.CCRN)
+			applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+				"ccrn":                    componentInstance.CCRN,
+				"component_version_id":    componentInstance.ComponentVersionId,
+				"service_id":              componentInstance.ServiceId,
+				"duplicate_entry_details": duplicateEntryError.Error(),
+			})
+			return nil, wrappedErr
+		}
+
+		// Generic database error
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"ccrn":                 componentInstance.CCRN,
+			"component_version_id": componentInstance.ComponentVersionId,
+			"service_id":           componentInstance.ServiceId,
+			"type":                 componentInstance.Type.String(),
+		})
+		return nil, wrappedErr
 	}
 
+	// Handle scanner run tracking if UUID provided
 	if scannerRunUUID != nil {
 		err = ci.database.CreateScannerRunComponentInstanceTracker(newComponentInstance.Id, *scannerRunUUID)
-
 		if err != nil {
-			return nil, NewComponentInstanceHandlerError("Internal error while creating ScannerRunComponentInstanceTracker.")
+			// Log the error but don't fail the creation since the component instance was created successfully
+			logErr := appErrors.InternalError(string(op), "ScannerRunComponentInstanceTracker",
+				fmt.Sprintf("component_instance:%d-scanner_run:%s", newComponentInstance.Id, *scannerRunUUID), err)
+			applog.LogError(ci.logger, logErr, logrus.Fields{
+				"component_instance_id": newComponentInstance.Id,
+				"scanner_run_uuid":      *scannerRunUUID,
+				"ccrn":                  newComponentInstance.CCRN,
+			})
+			// Note: We don't return this error since the main operation succeeded
 		}
 	}
 
+	// Emit success event
 	ci.eventRegistry.PushEvent(&CreateComponentInstanceEvent{
 		ComponentInstance: newComponentInstance,
 	})
