@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -122,6 +124,7 @@ type Db interface {
 	GetDbInstance() *sql.DB
 	Preparex(query string) (Stmt, error)
 	PrepareNamed(query string) (NamedStmt, error)
+	Select(dest interface{}, query string, args ...interface{}) error
 	Query(query string, args ...interface{}) (SqlRows, error)
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
@@ -583,8 +586,7 @@ func RunMigrations(cfg util.Config) error {
 	if err != nil {
 		return fmt.Errorf("Error while Creating Db: %w", err)
 	}
-	// Run post migrations in a separate goroutine to avoid blocking on startup
-	go db.RunPostMigrations()
+	db.RunPostMigrations()
 
 	err = EnableScheduler(cfg)
 	if err != nil {
@@ -612,18 +614,69 @@ func (s *SqlDatabase) procedureExists(procedure string) (bool, error) {
 	return false, nil
 }
 
-func (s *SqlDatabase) RunPostMigrationsNoClose() error {
-	exists, err := s.procedureExists("call_registered_post_migration_procedures")
+func (s *SqlDatabase) tableExists(table string) (bool, error) {
+	var count int
+	err := s.db.Get(&count, `
+		SELECT COUNT(*)
+		FROM information_schema.tables
+		WHERE table_schema = DATABASE()
+		  AND table_name = ?
+	`, table)
 	if err != nil {
-		logrus.WithError(err).Error(err)
-		return err
+		return false, err
 	}
-	if exists {
-		_, err := s.db.Exec("CALL call_registered_post_migration_procedures();")
+	return count > 0, nil
+}
+
+const PostMigrationProcedureRegistryTable = "post_migration_procedure_registry"
+
+func (s *SqlDatabase) getPostMigrationProcedures() ([]string, error) {
+	var procs []string
+
+	exists, err := s.tableExists(PostMigrationProcedureRegistryTable)
+	if err != nil {
+		return procs, fmt.Errorf("Could not check if table exists: %w", err)
+	} else if !exists {
+		return procs, nil
+	}
+
+	err = s.db.Select(&procs, fmt.Sprintf("SELECT name FROM %s", PostMigrationProcedureRegistryTable))
+	if err != nil {
+		return nil, err
+	}
+	return procs, nil
+}
+
+func (s *SqlDatabase) RunPostMigrationsNoClose() error {
+	procs, err := s.getPostMigrationProcedures()
+	if err != nil {
+		return fmt.Errorf("Failed to get post migration procedures: %w", err)
+	}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var errs []string
+	for _, p := range procs {
+		exists, err := s.procedureExists(p)
 		if err != nil {
-			logrus.WithError(err).Error(err)
-			return err
+			return fmt.Errorf("Could not check call procedure exists: %w", err)
+		} else if !exists {
+			return fmt.Errorf("Call procedure '%s' does not exist", p)
 		}
+		query := fmt.Sprintf("CALL %s();", p)
+		wg.Add(1)
+		go func(query string) {
+			defer wg.Done()
+			if _, err := s.db.Exec(query); err != nil {
+				mu.Lock()
+				errs = append(errs, fmt.Sprintf("%s: %v", p, err))
+				mu.Unlock()
+
+			}
+		}(query)
+	}
+	wg.Wait()
+	if len(errs) > 0 {
+		return fmt.Errorf("Error when exeute callers: [%s]", strings.Join(errs, "; "))
 	}
 	return nil
 }

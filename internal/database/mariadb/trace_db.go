@@ -5,9 +5,10 @@ package mariadb
 
 import (
 	"database/sql"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 // Trace
@@ -127,6 +128,11 @@ func (tdb *TraceDb) Preparex(query string) (Stmt, error) {
 		return stmt, err
 	}
 	return &TraceStmt{stmt: stmt, trace: trace}, nil
+}
+
+func (tdb *TraceDb) Select(dest interface{}, query string, args ...interface{}) error {
+	defer NewTrace("Select", query).exitTrace()
+	return tdb.db.Select(dest, query, args...)
 }
 
 func (tdb *TraceDb) Query(query string, args ...interface{}) (SqlRows, error) {
