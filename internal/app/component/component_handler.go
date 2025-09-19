@@ -28,11 +28,11 @@ type componentHandler struct {
 	openfga       openfga.Authorization
 }
 
-func NewComponentHandler(db database.Database, er event.EventRegistry, cache cache.Cache, authz openfga.Authorization) ComponentHandler {
+func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler {
 	return &componentHandler{
-		database:      db,
-		eventRegistry: er,
-		cache:         cache,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
+		cache:         handlerContext.Cache,
 	}
 }
 

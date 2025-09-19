@@ -4,6 +4,8 @@
 package openfga_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -13,7 +15,6 @@ import (
 
 const (
 	testModelFilePath = "./testdata/testModel.fga"
-	openfgaApiUrl     = "http://localhost:8080"
 	testStoreName     = "heureka_test_store1"
 
 	documentType = "document"
@@ -31,14 +32,16 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	enableLogs := true
-	cfg = &util.Config{
-		AuthzEnabled:      true,
-		AuthModelFilePath: testModelFilePath,
-		OpenFGApiUrl:      openfgaApiUrl,
-		OpenFGAStoreName:  testStoreName,
+	if os.Getenv("AUTHZ_FGA_API_URL") == "" {
+		Skip("Skipping OpenFGA authz tests because AUTHZ_FGA_API_URL is not set")
 	}
-	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+	cfg = &util.Config{
+		AuthTokenSecret:       os.Getenv("AUTH_TOKEN_SECRET"),
+		AuthzOpenFGApiUrl:     os.Getenv("AUTHZ_FGA_API_URL"),
+		AuthzModelFilePath:    testModelFilePath,
+		AuthzOpenFGAStoreName: testStoreName,
+	}
 })
 
 var _ = Describe("Authz", func() {
@@ -58,6 +61,7 @@ var _ = Describe("Authz", func() {
 			ObjectType: documentType,
 			ObjectId:   "document1",
 		}
+		authz = openfga.NewAuthorizationHandler(cfg, true)
 	})
 
 	Describe("NewAuthz", func() {
@@ -139,7 +143,7 @@ var _ = Describe("Authz", func() {
 	})
 
 	Describe("RemoveRelation", func() {
-		It("should return error when removing non-existing relation", func() {
+		It("should do nothing when removing non-existing relation", func() {
 			err := authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
 		})

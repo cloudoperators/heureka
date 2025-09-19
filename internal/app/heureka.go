@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/activity"
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/component_version"
@@ -71,28 +72,36 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	profiler.Start()
 
 	er := event.NewEventRegistry(db)
-	rh := issue_repository.NewIssueRepositoryHandler(db, er, authz)
-	ivh := issue_variant.NewIssueVariantHandler(db, er, rh, cache, authz)
-	sh := severity.NewSeverityHandler(db, er, ivh, authz)
+
+	handlerContext := common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache,
+		Authz:    authz,
+	}
+
+	rh := issue_repository.NewIssueRepositoryHandler(handlerContext)
+	ivh := issue_variant.NewIssueVariantHandler(handlerContext, rh)
+	sh := severity.NewSeverityHandler(handlerContext, ivh)
 
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
-		ActivityHandler:          activity.NewActivityHandler(db, er, authz),
-		ComponentHandler:         component.NewComponentHandler(db, er, cache, authz),
-		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er, cache, authz),
-		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er, cache, authz),
-		EvidenceHandler:          evidence.NewEvidenceHandler(db, er, authz),
-		IssueHandler:             issue.NewIssueHandler(db, er, cache, authz),
-		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er, authz),
-		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh, cache, authz),
+		ActivityHandler:          activity.NewActivityHandler(handlerContext),
+		ComponentHandler:         component.NewComponentHandler(handlerContext),
+		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(handlerContext),
+		ComponentVersionHandler:  component_version.NewComponentVersionHandler(handlerContext),
+		EvidenceHandler:          evidence.NewEvidenceHandler(handlerContext),
+		IssueHandler:             issue.NewIssueHandler(handlerContext),
+		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(handlerContext),
+		IssueMatchHandler:        issue_match.NewIssueMatchHandler(handlerContext, sh),
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
-		ScannerRunHandler:        scanner_run.NewScannerRunHandler(db, er),
-		ServiceHandler:           service.NewServiceHandler(db, er, cache, authz),
+		ScannerRunHandler:        scanner_run.NewScannerRunHandler(handlerContext),
+		ServiceHandler:           service.NewServiceHandler(handlerContext),
 		SeverityHandler:          sh,
-		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er, authz),
-		UserHandler:              user.NewUserHandler(db, er, authz),
+		SupportGroupHandler:      support_group.NewSupportGroupHandler(handlerContext),
+		UserHandler:              user.NewUserHandler(handlerContext),
 		eventRegistry:            er,
 		database:                 db,
 		cache:                    cache,

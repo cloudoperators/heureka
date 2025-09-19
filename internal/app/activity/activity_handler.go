@@ -9,7 +9,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
-	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -20,10 +19,10 @@ type activityHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewActivityHandler(db database.Database, er event.EventRegistry, authz openfga.Authorization) ActivityHandler {
+func NewActivityHandler(handlerContext common.HandlerContext) ActivityHandler {
 	return &activityHandler{
-		database:      db,
-		eventRegistry: er,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
 	}
 }
 

@@ -23,40 +23,47 @@ type Authz struct {
 // Creates new Authorization implement using OpenFGA
 func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	fgaClient, err := client.NewSdkClient(&client.ClientConfiguration{
-		ApiUrl: cfg.OpenFGApiUrl,
+		ApiUrl: cfg.AuthzOpenFGApiUrl,
+		Credentials: &credentials.Credentials{
+			Method: credentials.CredentialsMethodApiToken,
+			Config: &credentials.Config{
+				ApiToken: cfg.AuthTokenSecret,
+			},
+		},
 	})
 	if err != nil {
 		l.Error("Could not initialize OpenFGA client: ", err)
 		return nil
 	}
 
-	// If enabled, token will be passed as the Bearer request header
-	if cfg.AuthzEnabled {
-		fgaClient.GetConfig().Credentials = &credentials.Credentials{
-			Method: credentials.CredentialsMethodApiToken,
-			Config: &credentials.Config{
-				ApiToken: cfg.AuthTokenSecret,
-			},
-		}
-	}
-
-	storeId, err := CheckStore(fgaClient, cfg.OpenFGAStoreName)
+	// Check if the store already exists, otherwise create it
+	storeId, err := CheckStore(fgaClient, cfg.AuthzOpenFGAStoreName)
 	if err != nil {
 		l.Error("Could not list OpenFGA stores: ", err)
 		return nil
 	}
 	if storeId == "" {
-		// Create the store
-		store, err := fgaClient.CreateStore(context.Background()).Body(client.ClientCreateStoreRequest{Name: cfg.OpenFGAStoreName}).Execute()
+		// store does not exist, create it
+		store, err := fgaClient.CreateStore(context.Background()).Body(client.ClientCreateStoreRequest{Name: cfg.AuthzOpenFGAStoreName}).Execute()
 		if err != nil {
 			l.Error("Could not create OpenFGA store: ", err)
 			return nil
 		}
-
 		storeId = store.Id
+	}
+	// update the storeId of the current instance
+	fgaClient.SetStoreId(storeId)
 
+	// Check if the model already exists, otherwise create it
+	modelId, err := CheckModel(fgaClient, storeId)
+	if err != nil {
+		l.Error("Could not list OpenFGA models: ", err)
+		return nil
+	}
+	if modelId == "" {
+		// model does not exist, create it
 		// Create the authorization model request from the model file
-		modelRequest, err := getAuthModelRequestFromFile(cfg.AuthModelFilePath)
+		modelRequest, err := getAuthModelRequestFromFile(cfg.AuthzModelFilePath)
 		if err != nil {
 			l.Error("Could not parse OpenFGA model file: ", err)
 			return nil
@@ -68,12 +75,10 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 			l.Error("Could not create OpenFGA authorization model: ", err)
 			return nil
 		}
-
-		// update the modelId of the current instance
-		fgaClient.SetAuthorizationModelId(modelResponse.AuthorizationModelId)
+		modelId = modelResponse.AuthorizationModelId
 	}
-	// update the storeId of the current instance
-	fgaClient.SetStoreId(storeId)
+	// update the modelId of the current instance
+	fgaClient.SetAuthorizationModelId(modelId)
 
 	l.Info("Initializing authorization with OpenFGA")
 	return &Authz{config: cfg, logger: l, client: fgaClient}
@@ -111,6 +116,20 @@ func CheckStore(fgaClient *client.OpenFgaClient, storeName string) (string, erro
 		if s.Name == storeName {
 			return s.Id, nil
 		}
+	}
+	return "", nil
+}
+
+// CheckModel checks if an authorization model exists in OpenFGA for the given store.
+func CheckModel(fgaClient *client.OpenFgaClient, storeId string) (string, error) {
+	modelsResponse, err := fgaClient.ReadAuthorizationModels(context.Background()).Options(
+		client.ClientReadAuthorizationModelsOptions{StoreId: &storeId},
+	).Execute()
+	if err != nil {
+		return "", err
+	}
+	if len(modelsResponse.AuthorizationModels) > 0 {
+		return modelsResponse.AuthorizationModels[0].Id, nil
 	}
 	return "", nil
 }

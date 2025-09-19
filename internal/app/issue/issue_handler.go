@@ -18,7 +18,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
-	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,16 +31,16 @@ var CacheTtlCountIssueRatings = 12 * time.Hour
 type issueHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
-	logger        *logrus.Logger
 	cache         cache.Cache
+	logger        *logrus.Logger
 }
 
-func NewIssueHandler(db database.Database, er event.EventRegistry, cache cache.Cache, authz openfga.Authorization) IssueHandler {
+func NewIssueHandler(handlerContext common.HandlerContext) IssueHandler {
 	return &issueHandler{
-		database:      db,
-		eventRegistry: er,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
+		cache:         handlerContext.Cache,
 		logger:        logrus.New(),
-		cache:         cache,
 	}
 }
 

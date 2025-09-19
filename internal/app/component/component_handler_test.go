@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	c "github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/openfga"
@@ -51,12 +52,20 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		componentHandler c.ComponentHandler
 		filter           *entity.ComponentFilter
 		options          *entity.ListOptions
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = getComponentFilter()
+
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -68,7 +77,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		})
 
 		It("shows the total count in the results", func() {
-			componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+			componentHandler = c.NewComponentHandler(handlerContext)
 			res, err := componentHandler.ListComponents(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -91,7 +100,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			}
 			db.On("GetComponents", filter).Return(components, nil)
 			db.On("GetAllComponentIds", filter).Return(ids, nil)
-			componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+			componentHandler = c.NewComponentHandler(handlerContext)
 			res, err := componentHandler.ListComponents(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -111,6 +120,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -125,6 +135,12 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("creates component", func() {
@@ -132,7 +148,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponent", &component).Return(&component, nil)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
-		componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+		componentHandler = c.NewComponentHandler(handlerContext)
 		newComponent, err := componentHandler.CreateComponent(&component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponent.Id).NotTo(BeEquivalentTo(0))
@@ -149,6 +165,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -163,12 +180,18 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("updates component", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponent", &component).Return(nil)
-		componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+		componentHandler = c.NewComponentHandler(handlerContext)
 		component.CCRN = "NewComponent"
 		filter.Id = []*int64{&component.Id}
 		db.On("GetComponents", filter).Return([]entity.Component{component}, nil)
@@ -187,6 +210,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		componentHandler c.ComponentHandler
 		id               int64
 		filter           *entity.ComponentFilter
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -201,12 +225,18 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("deletes component", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponent", id, mock.Anything).Return(nil)
-		componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+		componentHandler = c.NewComponentHandler(handlerContext)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
 		err := componentHandler.DeleteComponent(id)
 		Expect(err).To(BeNil(), "no error should be thrown")

@@ -13,7 +13,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -25,16 +24,16 @@ var CacheTtlCountIssueVariants = 12 * time.Hour
 type issueVariantHandler struct {
 	database          database.Database
 	eventRegistry     event.EventRegistry
-	repositoryService issue_repository.IssueRepositoryHandler
 	cache             cache.Cache
+	repositoryService issue_repository.IssueRepositoryHandler
 }
 
-func NewIssueVariantHandler(database database.Database, eventRegistry event.EventRegistry, rs issue_repository.IssueRepositoryHandler, cache cache.Cache, authz openfga.Authorization) IssueVariantHandler {
+func NewIssueVariantHandler(handlerContext common.HandlerContext, rs issue_repository.IssueRepositoryHandler) IssueVariantHandler {
 	return &issueVariantHandler{
-		database:          database,
-		eventRegistry:     eventRegistry,
+		database:          handlerContext.DB,
+		eventRegistry:     handlerContext.EventReg,
 		repositoryService: rs,
-		cache:             cache,
+		cache:             handlerContext.Cache,
 	}
 }
 
