@@ -5,8 +5,9 @@ package mariadb
 
 import (
 	"embed"
+	"io/fs"
 )
 
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
-var Migration *embed.FS = &migrationFiles
+var Migration fs.FS = &migrationFiles
