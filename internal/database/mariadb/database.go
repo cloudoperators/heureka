@@ -630,8 +630,66 @@ func (s *SqlDatabase) tableExists(table string) (bool, error) {
 
 const PostMigrationProcedureRegistryTable = "post_migration_procedure_registry"
 
-func (s *SqlDatabase) getPostMigrationProcedures() ([]string, error) {
-	var procs []string
+type PostMigrationProcedure struct {
+	Caller  string `db:"caller"`
+	Checker string `db:"checker"`
+}
+
+func (pmp PostMigrationProcedure) hasChecker() bool {
+	return pmp.Checker != ""
+}
+
+func (s *SqlDatabase) callPostMigrationProcedureBg(proc PostMigrationProcedure) error {
+	exists, err := s.procedureExists(proc.Caller)
+	if err != nil {
+		return fmt.Errorf("Could not check caller procedure exists: %w", err)
+	} else if !exists {
+		return fmt.Errorf("Caller procedure '%s' does not exist", proc.Caller)
+	}
+
+	go func() {
+		s.db.Exec(fmt.Sprintf("CALL %s();", proc.Caller))
+	}()
+
+	return nil
+}
+
+func (s *SqlDatabase) callPostMigrationProcedure(proc PostMigrationProcedure, pmCtx *postMigrationContext) error {
+	exists, err := s.procedureExists(proc.Caller)
+	if err != nil {
+		return fmt.Errorf("Could not check caller procedure exists: %w", err)
+	} else if !exists {
+		return fmt.Errorf("Caller procedure '%s' does not exist", proc.Caller)
+	}
+
+	pmCtx.wg.Add(1)
+	go func() {
+		defer pmCtx.wg.Done()
+		if _, err := s.db.Exec(fmt.Sprintf("CALL %s();", proc.Caller)); err != nil {
+			pmCtx.appendErrorMessage(fmt.Sprintf("%s: %v", proc, err))
+		}
+	}()
+
+	return nil
+}
+
+func (s *SqlDatabase) checkPostMigrationProcedure(proc PostMigrationProcedure) (bool, error) {
+	exists, err := s.procedureExists(proc.Checker)
+	if err != nil {
+		return false, fmt.Errorf("Could not check, check procedure exists: %w", err)
+	} else if !exists {
+		return false, fmt.Errorf("Checker procedure '%s' does not exist", proc.Checker)
+	}
+	var valid bool
+	err = s.db.QueryRow(fmt.Sprintf("CALL %s(@res); SELECT @res;", proc.Checker)).Scan(&valid)
+	if err != nil {
+		return false, fmt.Errorf("Failed to execute checker: %w", err)
+	}
+	return valid, nil
+}
+
+func (s *SqlDatabase) getPostMigrationProcedures() ([]PostMigrationProcedure, error) {
+	var procs []PostMigrationProcedure
 
 	exists, err := s.tableExists(PostMigrationProcedureRegistryTable)
 	if err != nil {
@@ -640,11 +698,31 @@ func (s *SqlDatabase) getPostMigrationProcedures() ([]string, error) {
 		return procs, nil
 	}
 
-	err = s.db.Select(&procs, fmt.Sprintf("SELECT name FROM %s", PostMigrationProcedureRegistryTable))
+	err = s.db.Select(&procs, fmt.Sprintf("SELECT caller,checker FROM %s", PostMigrationProcedureRegistryTable))
 	if err != nil {
 		return nil, err
 	}
 	return procs, nil
+}
+
+type postMigrationContext struct {
+	wg   sync.WaitGroup
+	mu   sync.Mutex
+	errs []string
+}
+
+func (pmc *postMigrationContext) appendErrorMessage(msg string) {
+	pmc.mu.Lock()
+	pmc.errs = append(pmc.errs, msg)
+	pmc.mu.Unlock()
+}
+
+func (pmc postMigrationContext) hasError() bool {
+	return len(pmc.errs) > 0
+}
+
+func (pmc postMigrationContext) getError() error {
+	return fmt.Errorf("Error when exeute joined callers: [%s]", strings.Join(pmc.errs, "; "))
 }
 
 func (s *SqlDatabase) RunPostMigrationsNoClose() error {
@@ -652,31 +730,26 @@ func (s *SqlDatabase) RunPostMigrationsNoClose() error {
 	if err != nil {
 		return fmt.Errorf("Failed to get post migration procedures: %w", err)
 	}
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	var errs []string
+	var pmCtx postMigrationContext
 	for _, p := range procs {
-		exists, err := s.procedureExists(p)
-		if err != nil {
-			return fmt.Errorf("Could not check call procedure exists: %w", err)
-		} else if !exists {
-			return fmt.Errorf("Call procedure '%s' does not exist", p)
-		}
-		query := fmt.Sprintf("CALL %s();", p)
-		wg.Add(1)
-		go func(query string) {
-			defer wg.Done()
-			if _, err := s.db.Exec(query); err != nil {
-				mu.Lock()
-				errs = append(errs, fmt.Sprintf("%s: %v", p, err))
-				mu.Unlock()
-
+		if p.hasChecker() {
+			isUpdated, err := s.checkPostMigrationProcedure(p)
+			if err != nil {
+				return fmt.Errorf("Could not check post migration procedure: %w", err)
+			} else if isUpdated {
+				if err := s.callPostMigrationProcedureBg(p); err != nil {
+					return fmt.Errorf("Failed to call post migration procedure (bg): %w", err)
+				}
+				continue
 			}
-		}(query)
-		wg.Wait()
-		if len(errs) > 0 {
-			return fmt.Errorf("Error when exeute callers: [%s]", strings.Join(errs, "; "))
 		}
+		if err := s.callPostMigrationProcedure(p, &pmCtx); err != nil {
+			return fmt.Errorf("Failed to call post migration procedure: %w", err)
+		}
+	}
+	pmCtx.wg.Wait()
+	if pmCtx.hasError() {
+		return pmCtx.getError()
 	}
 	return nil
 }
