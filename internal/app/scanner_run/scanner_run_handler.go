@@ -6,6 +6,7 @@ package scanner_run
 import (
 	"fmt"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -16,10 +17,10 @@ type scannerRunHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewScannerRunHandler(db database.Database, er event.EventRegistry) ScannerRunHandler {
+func NewScannerRunHandler(handlerContext common.HandlerContext) ScannerRunHandler {
 	return &scannerRunHandler{
-		database:      db,
-		eventRegistry: er,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
 	}
 }
 

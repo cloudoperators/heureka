@@ -120,8 +120,12 @@ func (e *ListSupportGroupCcrnsEvent) Name() event.EventName {
 func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	ResourceType := "support_group"
-	ResourceRelation := "role"
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "support_group",
+		Relation:   "role",
+	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnSupportGroupCreateAuthz",
@@ -131,17 +135,11 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 	})
 
 	if createEvent, ok := e.(*CreateSupportGroupEvent); ok {
-		resourceId := strconv.FormatInt(createEvent.SupportGroup.Id, 10)
-		user := authz.GetCurrentUser()
-		userFieldName := "role"
+		objectId := strconv.FormatInt(createEvent.SupportGroup.Id, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
 
-		authz.HandleCreateAuthzRelation(
-			userFieldName,
-			user,
-			resourceId,
-			ResourceType,
-			ResourceRelation,
-		)
+		authz.HandleCreateAuthzRelation(r)
 	} else {
 		l.Error("Wrong event")
 	}

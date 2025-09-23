@@ -7,31 +7,56 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type UserType string
+type UserId string
+type ObjectType string
+type RelationType string
+type ObjectId string
+
+type PermissionInput struct {
+	UserType   UserType
+	UserId     UserId
+	Relation   RelationType
+	ObjectType ObjectType
+	ObjectId   ObjectId
+}
+
+type RelationInput struct {
+	UserType   UserType
+	UserId     UserId
+	Relation   RelationType
+	ObjectType ObjectType
+	ObjectId   ObjectId
+}
+
+type AccessibleResource struct {
+	ObjectType ObjectType
+	ObjectId   ObjectId
+}
+
 type Authorization interface {
 	// check if userId has permission on resourceId
-	CheckPermission(userFieldName string, userId string, resourceId string, resourceType string, permission string) (bool, error)
+	CheckPermission(p PermissionInput) (bool, error)
 	// add relationship between userId and resourceId
-	AddRelation(userFieldName string, userId string, resourceId string, resourceType string, relation string) error
+	AddRelation(r RelationInput) error
 	// remove relationship between userId and resourceId
-	RemoveRelation(userFieldName string, userId string, resourceId string, resourceType string, relation string) error
+	RemoveRelation(r RelationInput) error
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
-	ListAccessibleResources(userFieldName string, userId string, resourceType string, permission string, relation string) ([]string, error)
-	// Handler for generic event to create authz relation
-	HandleCreateAuthzRelation(
-		userFieldName string,
-		user string,
-		resourceId string,
-		resourceType string,
-		resourceRelation string,
-	)
+	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
 	// Placeholder function that mimics getting user from User Context
 	GetCurrentUser() string
+	// Handler for generic event to create authz relation
+	HandleCreateAuthzRelation(r RelationInput)
+	// Handler for generic event to delete authz relation
+	HandleDeleteAuthzRelation(r RelationInput)
+	// Handler for generic event to update authz relation
+	HandleUpdateAuthzRelation(r RelationInput)
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {
 	l := newLogger(enablelog)
 
-	if cfg.AuthzEnabled {
+	if cfg.AuthzOpenFGApiUrl != "" {
 		return NewAuthz(l, cfg)
 	}
 

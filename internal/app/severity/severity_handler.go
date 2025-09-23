@@ -4,11 +4,11 @@
 package severity
 
 import (
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -19,10 +19,10 @@ type severityHandler struct {
 	issueVariantHandler issue_variant.IssueVariantHandler
 }
 
-func NewSeverityHandler(database database.Database, eventRegistry event.EventRegistry, ivs issue_variant.IssueVariantHandler, authz openfga.Authorization) SeverityHandler {
+func NewSeverityHandler(handlerContext common.HandlerContext, ivs issue_variant.IssueVariantHandler) SeverityHandler {
 	return &severityHandler{
-		database:            database,
-		eventRegistry:       eventRegistry,
+		database:            handlerContext.DB,
+		eventRegistry:       handlerContext.EventReg,
 		issueVariantHandler: ivs,
 	}
 }

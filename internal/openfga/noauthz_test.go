@@ -15,13 +15,31 @@ var _ = Describe("NoAuthz", func() {
 	var (
 		cfg   *util.Config
 		authz openfga.Authorization
+		p     openfga.PermissionInput
+		r     openfga.RelationInput
 	)
 
 	BeforeEach(func() {
 		cfg = &util.Config{
-			AuthzEnabled: false,
+			AuthzOpenFGApiUrl: "",
 		}
-		authz = openfga.NewNoAuthz(cfg)
+		enableLogs := true
+		p = openfga.PermissionInput{
+			UserType:   "user",
+			UserId:     "user1",
+			Relation:   "read",
+			ObjectType: "doocument",
+			ObjectId:   "document1",
+		}
+		r = openfga.RelationInput{
+			UserType:   "user",
+			UserId:     "user1",
+			Relation:   "read",
+			ObjectType: "doocument",
+			ObjectId:   "document1",
+		}
+
+		authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	})
 
 	Describe("NewNoAuthz", func() {
@@ -32,7 +50,7 @@ var _ = Describe("NoAuthz", func() {
 
 	Describe("CheckPermission", func() {
 		It("should always return true and no error", func() {
-			ok, err := authz.CheckPermission("user", "user1", "resource1", "document", "read")
+			ok, err := authz.CheckPermission(p)
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
@@ -40,21 +58,23 @@ var _ = Describe("NoAuthz", func() {
 
 	Describe("AddRelation", func() {
 		It("should always return no error", func() {
-			err := authz.AddRelation("user", "user1", "resource1", "document", "member")
+			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
 		})
 	})
 
 	Describe("RemoveRelation", func() {
 		It("should always return no error", func() {
-			err := authz.RemoveRelation("user", "user1", "resource1", "document", "member")
+			r.Relation = "member"
+			err := authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
 		})
 	})
 
 	Describe("ListAccessibleResources", func() {
 		It("should always return an empty slice and no error", func() {
-			resources, err := authz.ListAccessibleResources("user", "user1", "resourceType", "read", "member")
+			p.Relation = "member"
+			resources, err := authz.ListAccessibleResources(p)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
 		})

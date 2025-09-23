@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	c "github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/openfga"
@@ -53,12 +54,20 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		componentHandler c.ComponentHandler
 		filter           *entity.ComponentFilter
 		options          *entity.ListOptions
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = getComponentFilter()
+
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -70,7 +79,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		})
 
 		It("shows the total count in the results", func() {
-			componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+			componentHandler = c.NewComponentHandler(handlerContext)
 			res, err := componentHandler.ListComponents(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -93,7 +102,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			}
 			db.On("GetComponents", filter).Return(components, nil)
 			db.On("GetAllComponentIds", filter).Return(ids, nil)
-			componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+			componentHandler = c.NewComponentHandler(handlerContext)
 			res, err := componentHandler.ListComponents(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -113,14 +122,10 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
-		authz            openfga.Authorization
-		cfg              *util.Config
+		handlerContext   common.HandlerContext
 		enableLogs       bool
-		userFieldName    string
-		userId           string
-		resourceId       string
-		resourceType     string
-		permission       string
+		p                openfga.PermissionInput
+		cfg              *util.Config
 	)
 
 	BeforeEach(func() {
@@ -129,6 +134,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		first := 10
 		var after int64
 		after = 0
+
 		filter = &entity.ComponentFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -136,19 +142,33 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 			},
 		}
 
-		// setup authz testing
-		userFieldName = "role"
-		userId = "testuser"
-		resourceId = ""
-		resourceType = "component"
-		permission = "role"
+		p = openfga.PermissionInput{
+			UserType:   "role",
+			UserId:     "testuser",
+			ObjectId:   "testcomponent",
+			ObjectType: "component",
+			Relation:   "role",
+		}
 
 		cfg = &util.Config{
-			AuthzEnabled:      true,
-			CurrentUser:       userId,
-			AuthModelFilePath: "../../../internal/openfga/model/model.fga",
-			OpenFGApiUrl:      "http://localhost:8080",
+			AuthzEnabled:          false,
+			AuthzModelFilePath:    "./internal/openfga/model/model.fga",
+			AuthzOpenFGApiUrl:     "http://localhost:8080",
+			AuthzOpenFGAStoreName: "heureka-store",
+			CurrentUser:           "testuser",
+			AuthTokenSecret:       "testsecret",
 		}
+
+		authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
+
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("creates component", func() {
@@ -156,7 +176,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponent", &component).Return(&component, nil)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
-		componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+		componentHandler = c.NewComponentHandler(handlerContext)
 		newComponent, err := componentHandler.CreateComponent(&component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponent.Id).NotTo(BeEquivalentTo(0))
@@ -183,12 +203,12 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				resourceId = strconv.FormatInt(createEvent.Component.Id, 10)
-
+				resourceId := strconv.FormatInt(createEvent.Component.Id, 10)
+				p.ObjectId = openfga.ObjectId(resourceId)
 				// Simulate event
 				c.OnComponentCreateAuthz(db, event, authz)
 
-				ok, err := authz.CheckPermission(userFieldName, userId, resourceId, resourceType, permission)
+				ok, err := authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
@@ -202,6 +222,10 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
+		handlerContext   common.HandlerContext
+		enableLogs       bool
+		p                openfga.PermissionInput
+		cfg              *util.Config
 	)
 
 	BeforeEach(func() {
@@ -210,18 +234,25 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		first := 10
 		var after int64
 		after = 0
+
 		filter = &entity.ComponentFilter{
 			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("updates component", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponent", &component).Return(nil)
-		componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+		componentHandler = c.NewComponentHandler(handlerContext)
 		component.CCRN = "NewComponent"
 		filter.Id = []*int64{&component.Id}
 		db.On("GetComponents", filter).Return([]entity.Component{component}, nil)
@@ -232,6 +263,35 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 			Expect(updatedComponent.Type).To(BeEquivalentTo(component.Type))
 		})
 	})
+
+	Context("when handling an UpdateComponentEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new component is created", func() {
+			It("should add user resource relationship tuple in openfga", func() {
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+				compFake := test.NewFakeComponentEntity()
+				createEvent := &c.CreateComponentEvent{
+					Component: &compFake,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+				resourceId := strconv.FormatInt(createEvent.Component.Id, 10)
+				p.ObjectId = openfga.ObjectId(resourceId)
+				// Simulate event
+				c.OnComponentUpdateAuthz(db, event, authz)
+
+				ok, err := authz.CheckPermission(p)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(ok).To(BeTrue(), "permission should be granted")
+			})
+		})
+	})
 })
 
 var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), func() {
@@ -240,6 +300,10 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		componentHandler c.ComponentHandler
 		id               int64
 		filter           *entity.ComponentFilter
+		handlerContext   common.HandlerContext
+		enableLogs       bool
+		p                openfga.PermissionInput
+		cfg              *util.Config
 	)
 
 	BeforeEach(func() {
@@ -254,12 +318,18 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("deletes component", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponent", id, mock.Anything).Return(nil)
-		componentHandler = c.NewComponentHandler(db, er, cache.NewNoCache(), authz)
+		componentHandler = c.NewComponentHandler(handlerContext)
 		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
 		err := componentHandler.DeleteComponent(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -268,5 +338,34 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		components, err := componentHandler.ListComponents(filter, &entity.ListOptions{})
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(components.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	Context("when handling an DeleteComponentEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new component is created", func() {
+			It("should add user resource relationship tuple in openfga", func() {
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+
+				compFake := test.NewFakeComponentEntity()
+				createEvent := &c.CreateComponentEvent{
+					Component: &compFake,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+				resourceId := strconv.FormatInt(createEvent.Component.Id, 10)
+				p.ObjectId = openfga.ObjectId(resourceId)
+				// Simulate event
+				c.OnComponentDeleteAuthz(db, event, authz)
+
+				ok, err := authz.CheckPermission(p)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(ok).To(BeTrue(), "permission should be granted")
+			})
+		})
 	})
 })

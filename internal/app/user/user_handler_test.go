@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	u "github.com/cloudoperators/heureka/internal/app/user"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -46,16 +47,22 @@ func getUserFilter() *entity.UserFilter {
 
 var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 	var (
-		db          *mocks.MockDatabase
-		userHandler u.UserHandler
-		filter      *entity.UserFilter
-		options     *entity.ListOptions
+		db             *mocks.MockDatabase
+		userHandler    u.UserHandler
+		filter         *entity.UserFilter
+		options        *entity.ListOptions
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = getUserFilter()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -67,7 +74,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 		})
 
 		It("shows the total count in the results", func() {
-			userHandler = u.NewUserHandler(db, er, authz)
+			userHandler = u.NewUserHandler(handlerContext)
 			res, err := userHandler.ListUsers(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -90,7 +97,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			}
 			db.On("GetUsers", filter).Return(users, nil)
 			db.On("GetAllUserIds", filter).Return(ids, nil)
-			userHandler = u.NewUserHandler(db, er, authz)
+			userHandler = u.NewUserHandler(handlerContext)
 			res, err := userHandler.ListUsers(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -106,10 +113,11 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 
 var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 	var (
-		db          *mocks.MockDatabase
-		userHandler u.UserHandler
-		user        entity.User
-		filter      *entity.UserFilter
+		db             *mocks.MockDatabase
+		userHandler    u.UserHandler
+		user           entity.User
+		filter         *entity.UserFilter
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -124,6 +132,11 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("creates user", func() {
@@ -131,7 +144,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateUser", &user).Return(&user, nil)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
-		userHandler = u.NewUserHandler(db, er, authz)
+		userHandler = u.NewUserHandler(handlerContext)
 		newUser, err := userHandler.CreateUser(&user)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newUser.Id).NotTo(BeEquivalentTo(0))
@@ -144,10 +157,11 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 
 var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 	var (
-		db          *mocks.MockDatabase
-		userHandler u.UserHandler
-		user        entity.User
-		filter      *entity.UserFilter
+		db             *mocks.MockDatabase
+		userHandler    u.UserHandler
+		user           entity.User
+		filter         *entity.UserFilter
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -162,12 +176,17 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("updates user", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateUser", &user).Return(nil)
-		userHandler = u.NewUserHandler(db, er, authz)
+		userHandler = u.NewUserHandler(handlerContext)
 		user.Name = "Sauron"
 		filter.Id = []*int64{&user.Id}
 		db.On("GetUsers", filter).Return([]entity.User{user}, nil)
@@ -182,10 +201,11 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 
 var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 	var (
-		db          *mocks.MockDatabase
-		userHandler u.UserHandler
-		id          int64
-		filter      *entity.UserFilter
+		db             *mocks.MockDatabase
+		userHandler    u.UserHandler
+		id             int64
+		filter         *entity.UserFilter
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -200,12 +220,17 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("deletes user", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteUser", id, mock.Anything).Return(nil)
-		userHandler = u.NewUserHandler(db, er, authz)
+		userHandler = u.NewUserHandler(handlerContext)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
 		err := userHandler.DeleteUser(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -218,11 +243,12 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 })
 var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 	var (
-		db          *mocks.MockDatabase
-		userHandler u.UserHandler
-		filter      *entity.UserFilter
-		options     *entity.ListOptions
-		name        string
+		db             *mocks.MockDatabase
+		userHandler    u.UserHandler
+		filter         *entity.UserFilter
+		options        *entity.ListOptions
+		name           string
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -230,6 +256,11 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 		options = entity.NewListOptions()
 		filter = getUserFilter()
 		name = "Stephen Haag"
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
@@ -239,7 +270,7 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 		})
 
 		It("it return the results", func() {
-			userHandler = u.NewUserHandler(db, er, authz)
+			userHandler = u.NewUserHandler(handlerContext)
 			res, err := userHandler.ListUserNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
@@ -254,7 +285,7 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 			db.On("GetUserNames", filter).Return([]string{name}, nil)
 		})
 		It("returns filtered users according to the service type", func() {
-			userHandler = u.NewUserHandler(db, er, authz)
+			userHandler = u.NewUserHandler(handlerContext)
 			res, err := userHandler.ListUserNames(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(name), "should only consist of name")
@@ -263,11 +294,12 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 })
 var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"), func() {
 	var (
-		db          *mocks.MockDatabase
-		userHandler u.UserHandler
-		filter      *entity.UserFilter
-		options     *entity.ListOptions
-		uuid        string
+		db             *mocks.MockDatabase
+		userHandler    u.UserHandler
+		filter         *entity.UserFilter
+		options        *entity.ListOptions
+		uuid           string
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -275,6 +307,11 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 		options = entity.NewListOptions()
 		filter = getUserFilter()
 		uuid = "I978974"
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
@@ -284,7 +321,7 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 		})
 
 		It("it return the results", func() {
-			userHandler = u.NewUserHandler(db, er, authz)
+			userHandler = u.NewUserHandler(handlerContext)
 			res, err := userHandler.ListUniqueUserIDs(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
@@ -299,7 +336,7 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 			db.On("GetUniqueUserIDs", filter).Return([]string{uuid}, nil)
 		})
 		It("returns filtered users according to the service type", func() {
-			userHandler = u.NewUserHandler(db, er, authz)
+			userHandler = u.NewUserHandler(handlerContext)
 			res, err := userHandler.ListUniqueUserIDs(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(uuid), "should only consist of UniqueUserID")

@@ -165,12 +165,16 @@ func (e *ListContextsEvent) Name() event.EventName {
 }
 
 // OnComponentInstanceCreateAuthz is a handler for the CreateComponentInstanceEvent
-// Is creating a openfga relation tuple for the component instance and the current user
+// It creates an OpenFGA relation tuple for the component instance and the current user
 func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	ResourceType := "component_instance"
-	ResourceRelation := "role"
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "component_instance",
+		Relation:   "role",
+	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentInstanceCreateAuthz",
@@ -180,17 +184,85 @@ func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz o
 	})
 
 	if createEvent, ok := e.(*CreateComponentInstanceEvent); ok {
-		resourceId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
-		user := authz.GetCurrentUser()
-		userFieldName := "role"
+		objectId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
 
-		authz.HandleCreateAuthzRelation(
-			userFieldName,
-			user,
-			resourceId,
-			ResourceType,
-			ResourceRelation,
-		)
+		authz.HandleCreateAuthzRelation(r)
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnComponentInstanceUpdateAuthz is a handler for the UpdateComponentInstanceEvent
+// It creates an OpenFGA relation tuple for the component instance and the current user
+func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "component_instance",
+		Relation:   "role",
+		UserType:   "role",
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnComponentInstanceUpdateAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if updateEvent, ok := e.(*UpdateComponentInstanceEvent); ok {
+		objectId := strconv.FormatInt(updateEvent.ComponentInstance.Id, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
+
+		// Handle Update here:
+		//recreate ci - user
+		//recreate ci - service
+		//recreate ci - role
+
+		//recreate ci - cv
+		//recreate ci - im
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnComponentInstanceDeleteAuthz is a handler for the DeleteComponentInstanceEvent
+// It creates an OpenFGA relation tuple for the component instance and the current user
+func OnComponentInstanceDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "component_instance",
+		Relation:   "role",
+		UserType:   "role",
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnComponentInstanceDeleteAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if deleteEvent, ok := e.(*DeleteComponentInstanceEvent); ok {
+		objectId := strconv.FormatInt(deleteEvent.ComponentInstanceID, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
+
+		// Handle Update here:
+		//recreate ci - user
+		//recreate ci - service
+		//recreate ci - role
+
+		//recreate ci - cv
+		//recreate ci - im
 	} else {
 		l.Error("Wrong event")
 	}

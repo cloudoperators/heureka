@@ -81,6 +81,8 @@ services:
   postgres:
     image: postgres:17
     container_name: postgres
+    profiles:
+      - openfga
     networks:
       - openfga
     ports:
@@ -100,6 +102,8 @@ services:
         condition: service_healthy
     image: openfga/openfga:latest
     container_name: migrate
+    profiles:
+      - openfga
     command: migrate
     environment:
       - OPENFGA_DATASTORE_ENGINE=postgres
@@ -107,16 +111,20 @@ services:
     networks:
       - openfga
 
-  openfga:
+  heureka-openfga:
     depends_on:
       migrate:
         condition: service_completed_successfully
     image: openfga/openfga:latest
     container_name: openfga
+    profiles:
+      - openfga
     environment:
       - OPENFGA_DATASTORE_ENGINE=postgres
       - OPENFGA_DATASTORE_URI=postgres://postgres:password@postgres:5432/postgres?sslmode=disable
       - OPENFGA_LOG_FORMAT=json
+      - OPENFGA_AUTHN_METHOD=preshared
+      - OPENFGA_AUTHN_PRESHARED_KEYS=${AUTH_TOKEN_SECRET}
     command: run
     networks:
       - openfga

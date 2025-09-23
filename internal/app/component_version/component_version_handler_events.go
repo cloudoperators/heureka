@@ -59,8 +59,12 @@ func (e *DeleteComponentVersionEvent) Name() event.EventName {
 func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	ResourceType := "component_version"
-	ResourceRelation := "role"
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "component_version",
+		Relation:   "role",
+	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentVersionCreateAuthz",
@@ -70,17 +74,83 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 	})
 
 	if createEvent, ok := e.(*CreateComponentVersionEvent); ok {
-		resourceId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
-		user := authz.GetCurrentUser()
-		userFieldName := "role"
+		objectId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
 
-		authz.HandleCreateAuthzRelation(
-			userFieldName,
-			user,
-			resourceId,
-			ResourceType,
-			ResourceRelation,
-		)
+		authz.HandleCreateAuthzRelation(r)
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnComponentVersionUpdateAuthz is a handler for the UpdateComponentVersionEvent
+// It creates an OpenFGA relation tuple for the component version and the current user
+func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "component_version",
+		Relation:   "role",
+		UserType:   "role",
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnComponentVersionUpdateAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if updateEvent, ok := e.(*UpdateComponentVersionEvent); ok {
+		objectId := strconv.FormatInt(updateEvent.ComponentVersion.Id, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
+
+		// Handle Update here:
+		//recreate cv - user
+		//recreate cv - ci
+		//recreate cv - role
+
+		//recreate cv - component
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnComponentVersionDeleteAuthz is a handler for the DeleteComponentVersionEvent
+// It creates an OpenFGA relation tuple for the component version and the current user
+func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "component_version",
+		Relation:   "role",
+		UserType:   "role",
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnComponentVersionDeleteAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if deleteEvent, ok := e.(*DeleteComponentVersionEvent); ok {
+		objectId := strconv.FormatInt(deleteEvent.ComponentVersionID, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
+
+		// Handle Delete here:
+		//recreate cv - user
+		//recreate cv - ci
+		//recreate cv - role
+
+		//recreate cv - component
 	} else {
 		l.Error("Wrong event")
 	}

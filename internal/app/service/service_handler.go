@@ -29,12 +29,12 @@ type serviceHandler struct {
 	authz         openfga.Authorization
 }
 
-func NewServiceHandler(db database.Database, er event.EventRegistry, cache cache.Cache, authz openfga.Authorization) ServiceHandler {
+func NewServiceHandler(handlerContext common.HandlerContext) ServiceHandler {
 	return &serviceHandler{
-		database:      db,
-		eventRegistry: er,
-		cache:         cache,
-		authz:         authz,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
+		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
 	}
 }
 

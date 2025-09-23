@@ -38,11 +38,12 @@ type Config struct {
 	AuthOidcClientId              string `envconfig:"AUTH_OIDC_CLIENT_ID" required:"false" json:"-"`
 	AuthOidcUrl                   string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
 	AuthzEnabled                  bool   `envconfig:"AUTHZ_ENABLED" required:"false" default:"false" json:"authzEnabled"`
-	OpenFGApiUrl                  string `envconfig:"FGA_API_URL" required:"false" json:"-"`
-	AuthModelFilePath             string `envconfig:"AUTH_MODEL_FILE_PATH" required:"false" json:"-"`
-	CurrentUser                   string `envconfig:"CURRENT_USER" required:"false" default:"heureka-admin" json:"currentUser"`
+	AuthzOpenFGApiUrl             string `envconfig:"AUTHZ_FGA_API_URL" required:"false" json:"-"`
+	AuthzOpenFGAStoreName         string `envconfig:"AUTHZ_FGA_STORE_NAME" required:"false" json:"-"`
+	AuthzModelFilePath            string `envconfig:"AUTHZ_MODEL_FILE_PATH" required:"false" json:"-"`
 	DefaultIssuePriority          int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
 	DefaultRepositoryName         string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
+	CurrentUser                   string `envconfig:"CURRENT_USER" required:"false" default:"heureka-admin" json:"currentUser"`
 	CacheEnable                   bool   `envconfig:"CACHE_ENABLE" default:"false" json:"-"`
 	CacheValkeyUrl                string `envconfig:"CACHE_VALKEY_URL" default:"" json:"-"`
 	CacheValkeyPassword           string `envconfig:"CACHE_VALKEY_PASSWORD" default:"" json:"-"`

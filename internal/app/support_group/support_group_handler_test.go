@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	sg "github.com/cloudoperators/heureka/internal/app/support_group"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -51,6 +52,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 		filter              *entity.SupportGroupFilter
 		options             *entity.ListOptions
 		order               []entity.Order
+		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -58,6 +60,11 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 		options = entity.NewListOptions()
 		filter = getSupportGroupFilter()
 		order = []entity.Order{}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -69,7 +76,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 		})
 
 		It("shows the total count in the results", func() {
-			supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			res, err := supportGroupHandler.ListSupportGroups(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -104,7 +111,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 			}
 			db.On("GetSupportGroups", filter, order).Return(supportGroups, nil)
 			db.On("GetAllSupportGroupCursors", filter, order).Return(cursors, nil)
-			supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			res, err := supportGroupHandler.ListSupportGroups(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -120,19 +127,15 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 
 var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"), func() {
 	var (
+		cfg                 *util.Config
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
-		authz               openfga.Authorization
-		cfg                 *util.Config
+		handlerContext      common.HandlerContext
 		enableLogs          bool
-		userFieldName       string
-		userId              string
-		resourceId          string
-		resourceType        string
-		permission          string
+		p                   openfga.PermissionInput
 	)
 
 	BeforeEach(func() {
@@ -148,18 +151,25 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 			},
 		}
 
-		// setup authz testing
-		userFieldName = "role"
-		userId = "testuser"
-		resourceId = ""
-		resourceType = "support_group"
-		permission = "role"
+		p = openfga.PermissionInput{
+			UserType:   "role",
+			UserId:     "testuser",
+			ObjectId:   "",
+			ObjectType: "support_group",
+			Relation:   "role",
+		}
+
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 
 		cfg = &util.Config{
-			AuthzEnabled:      true,
-			CurrentUser:       userId,
-			AuthModelFilePath: "../../../internal/openfga/model/model.fga",
-			OpenFGApiUrl:      "http://localhost:8080",
+			AuthzEnabled:       true,
+			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
+			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
+			AuthzOpenFGApiUrl:  "http://localhost:8080",
 		}
 	})
 
@@ -168,7 +178,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(&supportGroup)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newSupportGroup.Id).NotTo(BeEquivalentTo(0))
@@ -186,7 +196,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		Context("when new component instance is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
 				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
-
 				sgFake := test.NewFakeSupportGroupEntity()
 				createEvent := &sg.CreateSupportGroupEvent{
 					SupportGroup: &sgFake,
@@ -194,12 +203,13 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				resourceId = strconv.FormatInt(createEvent.SupportGroup.Id, 10)
+				objectId := strconv.FormatInt(createEvent.SupportGroup.Id, 10)
+				p.ObjectId = openfga.ObjectId(objectId)
 
 				// Simulate event
 				sg.OnSupportGroupCreateAuthz(db, event, authz)
 
-				ok, err := authz.CheckPermission(userFieldName, userId, resourceId, resourceType, permission)
+				ok, err := authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
@@ -214,6 +224,7 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 		supportGroup        entity.SupportGroupResult
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
+		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -228,12 +239,17 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("updates supportGroup", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateSupportGroup", supportGroup.SupportGroup).Return(nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		supportGroup.CCRN = "Team Alone"
 		filter.Id = []*int64{&supportGroup.Id}
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
@@ -253,6 +269,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
 		listOptions         *entity.ListOptions
+		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -268,12 +285,17 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("deletes supportGroup", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteSupportGroup", id, mock.Anything).Return(nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
 		err := supportGroupHandler.DeleteSupportGroup(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -293,6 +315,7 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 		supportGroup        entity.SupportGroupResult
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
+		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -309,12 +332,17 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 			},
 			Id: []*int64{&supportGroup.Id},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("adds service to supportGroup", func() {
 		db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		supportGroup, err := supportGroupHandler.AddServiceToSupportGroup(supportGroup.Id, service.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
@@ -323,7 +351,7 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 	It("removes service from supportGroup", func() {
 		db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		supportGroup, err := supportGroupHandler.RemoveServiceFromSupportGroup(supportGroup.Id, service.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
@@ -338,6 +366,7 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 		supportGroup        entity.SupportGroupResult
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
+		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -354,12 +383,17 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 			},
 			Id: []*int64{&supportGroup.Id},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("adds user to supportGroup", func() {
 		db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		supportGroup, err := supportGroupHandler.AddUserToSupportGroup(supportGroup.Id, user.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
@@ -368,7 +402,7 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 	It("removes user from supportGroup", func() {
 		db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		supportGroup, err := supportGroupHandler.RemoveUserFromSupportGroup(supportGroup.Id, user.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
@@ -382,6 +416,7 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 		filter              *entity.SupportGroupFilter
 		options             *entity.ListOptions
 		ccrn                string
+		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -389,6 +424,11 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 		options = entity.NewListOptions()
 		filter = getSupportGroupFilter()
 		ccrn = "src"
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
@@ -398,7 +438,7 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 		})
 
 		It("it return the results", func() {
-			supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			res, err := supportGroupHandler.ListSupportGroupCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
@@ -413,7 +453,7 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 			db.On("GetSupportGroupCcrns", filter).Return([]string{ccrn}, nil)
 		})
 		It("returns filtered userGroups according to the service type", func() {
-			supportGroupHandler = sg.NewSupportGroupHandler(db, er, authz)
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			res, err := supportGroupHandler.ListSupportGroupCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(ccrn), "should only consist of supportGroup")

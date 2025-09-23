@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/cache"
@@ -54,12 +55,19 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		componentInstanceHandler ci.ComponentInstanceHandler
 		filter                   *entity.ComponentInstanceFilter
 		options                  *entity.ListOptions
+		handlerContext           common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = componentInstanceFilter()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -71,7 +79,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		})
 
 		It("shows the total count in the results", func() {
-			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -104,7 +112,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 			}
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return(componentInstances, nil)
 			db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).Return(cursors, nil)
-			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -120,42 +128,45 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponentInstance"), func() {
 	var (
+		cfg                      *util.Config
 		db                       *mocks.MockDatabase
 		componentInstanceHandler ci.ComponentInstanceHandler
 		componentInstance        entity.ComponentInstance
-		authz                    openfga.Authorization
-		cfg                      *util.Config
+		handlerContext           common.HandlerContext
 		enableLogs               bool
-		userFieldName            string
-		userId                   string
-		resourceId               string
-		resourceType             string
-		permission               string
+		p                        openfga.PermissionInput
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		componentInstance = test.NewFakeComponentInstanceEntity()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 
-		// setup authz testing
-		userFieldName = "role"
-		userId = "testuser"
-		resourceId = "2198681"
-		resourceType = "component_instance"
-		permission = "role"
+		p = openfga.PermissionInput{
+			UserType:   "role",
+			UserId:     "testuser",
+			ObjectId:   "",
+			ObjectType: "component_instance",
+			Relation:   "role",
+		}
 
 		cfg = &util.Config{
-			AuthzEnabled:      true,
-			CurrentUser:       userId,
-			AuthModelFilePath: "../../../internal/openfga/model/model.fga",
-			OpenFGApiUrl:      "http://localhost:8080",
+			AuthzEnabled:       true,
+			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
+			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
+			AuthzOpenFGApiUrl:  "http://localhost:8080",
 		}
 	})
 
 	It("creates componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
+		componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 		// Ensure type is allowed if ParentId is set
 		componentInstance.Type = "RecordSet"
 		componentInstance.ParentId = 1234
@@ -197,12 +208,12 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				resourceId = strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
-
+				resourceId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
+				p.ObjectId = openfga.ObjectId(resourceId)
 				// Simulate event
 				ci.OnComponentInstanceCreateAuthz(db, event, authz)
 
-				ok, err := authz.CheckPermission(userFieldName, userId, resourceId, resourceType, permission)
+				ok, err := authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
@@ -216,6 +227,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstanceHandler ci.ComponentInstanceHandler
 		componentInstance        entity.ComponentInstanceResult
 		filter                   *entity.ComponentInstanceFilter
+		handlerContext           common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -229,12 +241,18 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("updates componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
+		componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 		componentInstance.Region = "NewRegion"
 		componentInstance.Cluster = "NewCluster"
 		componentInstance.Namespace = "NewNamespace"
@@ -276,6 +294,7 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		componentInstanceHandler ci.ComponentInstanceHandler
 		id                       int64
 		filter                   *entity.ComponentInstanceFilter
+		handlerContext           common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -289,12 +308,18 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("deletes componentInstance", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentInstance", id, mock.Anything).Return(nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
+		componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
 		err := componentInstanceHandler.DeleteComponentInstance(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -314,6 +339,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 		filter                   *entity.ComponentInstanceFilter
 		options                  *entity.ListOptions
 		CCRN                     string
+		handlerContext           common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -321,6 +347,12 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 		options = entity.NewListOptions()
 		filter = componentInstanceFilter()
 		CCRN = "ca9d963d-b441-4167-b08d-086e76186653"
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
@@ -330,7 +362,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 		})
 
 		It("it return the results", func() {
-			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			res, err := componentInstanceHandler.ListCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
@@ -345,7 +377,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 			db.On("GetCcrn", filter).Return([]string{CCRN}, nil)
 		})
 		It("returns filtered CCRN according to the CCRN type", func() {
-			componentInstanceHandler = ci.NewComponentInstanceHandler(db, er, cache.NewNoCache(), authz)
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			res, err := componentInstanceHandler.ListCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(CCRN), "should only consist of CCRN")

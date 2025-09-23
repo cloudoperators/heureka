@@ -217,8 +217,12 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	ResourceType := "issue_match"
-	ResourceRelation := "role"
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "issue_match",
+		Relation:   "role",
+	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnIssueMatchCreateAuthz",
@@ -228,17 +232,77 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 	})
 
 	if createEvent, ok := e.(*CreateIssueMatchEvent); ok {
-		resourceId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
-		user := authz.GetCurrentUser()
-		userFieldName := "role"
+		objectId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
 
-		authz.HandleCreateAuthzRelation(
-			userFieldName,
-			user,
-			resourceId,
-			ResourceType,
-			ResourceRelation,
-		)
+		authz.HandleCreateAuthzRelation(r)
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnIssueMatchUpdateAuthz is a handler for the UpdateIssueMatchEvent
+func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "issue_match",
+		Relation:   "role",
+		UserType:   "role",
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnIssueMatchUpdateAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if updateEvent, ok := e.(*UpdateIssueMatchEvent); ok {
+		objectId := strconv.FormatInt(updateEvent.IssueMatch.Id, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
+
+		// Handle Update here:
+		//recreate im - user
+		//recreate im - ci
+		//recreate im - role
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnIssueMatchDeleteAuthz is a handler for the DeleteIssueMatchEvent
+func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	userId := authz.GetCurrentUser()
+
+	r := openfga.RelationInput{
+		ObjectType: "issue_match",
+		Relation:   "role",
+		UserType:   "role",
+	}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnIssueMatchDeleteAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if deleteEvent, ok := e.(*DeleteIssueMatchEvent); ok {
+		objectId := strconv.FormatInt(deleteEvent.IssueMatchID, 10)
+		r.UserId = openfga.UserId(userId)
+		r.ObjectId = openfga.ObjectId(objectId)
+
+		// Handle Delete here:
+		//recreate im - user
+		//recreate im - ci
+		//recreate im - role
 	} else {
 		l.Error("Wrong event")
 	}
