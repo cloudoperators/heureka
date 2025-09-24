@@ -70,12 +70,6 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	// Check permissions if OpenFGA is enabled
-	//if cfg.EnableOpenFGA {
-	//err := openfga.CheckPermissions(...)
-	//if err != nil { ... }
-	//}
-
 	common.EnsurePaginated(&filter.Paginated)
 
 	l := logrus.WithFields(logrus.Fields{

@@ -37,10 +37,10 @@ var _ = BeforeSuite(func() {
 	}
 
 	cfg = &util.Config{
-		AuthTokenSecret:       os.Getenv("AUTH_TOKEN_SECRET"),
-		AuthzOpenFGApiUrl:     os.Getenv("AUTHZ_FGA_API_URL"),
+		AuthzOpenFgaApiUrl:    os.Getenv("AUTHZ_FGA_API_URL"),
+		AuthzOpenFgaApiToken:  os.Getenv("AUTHZ_FGA_API_TOKEN"),
 		AuthzModelFilePath:    testModelFilePath,
-		AuthzOpenFGAStoreName: testStoreName,
+		AuthzOpenFgaStoreName: testStoreName,
 	}
 })
 

@@ -48,7 +48,7 @@ type Authorization interface {
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {
 	l := newLogger(enablelog)
 
-	if cfg.AuthzOpenFGApiUrl != "" {
+	if cfg.AuthzOpenFgaApiUrl != "" {
 		return NewAuthz(l, cfg)
 	}
 

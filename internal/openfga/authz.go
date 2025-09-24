@@ -23,11 +23,11 @@ type Authz struct {
 // Creates new Authorization implement using OpenFGA
 func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	fgaClient, err := client.NewSdkClient(&client.ClientConfiguration{
-		ApiUrl: cfg.AuthzOpenFGApiUrl,
+		ApiUrl: cfg.AuthzOpenFgaApiUrl,
 		Credentials: &credentials.Credentials{
 			Method: credentials.CredentialsMethodApiToken,
 			Config: &credentials.Config{
-				ApiToken: cfg.AuthTokenSecret,
+				ApiToken: cfg.AuthzOpenFgaApiToken,
 			},
 		},
 	})
@@ -37,14 +37,14 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	}
 
 	// Check if the store already exists, otherwise create it
-	storeId, err := CheckStore(fgaClient, cfg.AuthzOpenFGAStoreName)
+	storeId, err := CheckStore(fgaClient, cfg.AuthzOpenFgaStoreName)
 	if err != nil {
 		l.Error("Could not list OpenFGA stores: ", err)
 		return nil
 	}
 	if storeId == "" {
 		// store does not exist, create it
-		store, err := fgaClient.CreateStore(context.Background()).Body(client.ClientCreateStoreRequest{Name: cfg.AuthzOpenFGAStoreName}).Execute()
+		store, err := fgaClient.CreateStore(context.Background()).Body(client.ClientCreateStoreRequest{Name: cfg.AuthzOpenFgaStoreName}).Execute()
 		if err != nil {
 			l.Error("Could not create OpenFGA store: ", err)
 			return nil

@@ -21,7 +21,7 @@ var _ = Describe("NoAuthz", func() {
 
 	BeforeEach(func() {
 		cfg = &util.Config{
-			AuthzOpenFGApiUrl: "",
+			AuthzOpenFgaApiUrl: "",
 		}
 		enableLogs := true
 		p = openfga.PermissionInput{
