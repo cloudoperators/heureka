@@ -113,9 +113,16 @@ func (dbm *LocalTestDataBaseManager) Setup() error {
 	dbm.loadDBClientIfNeeded()
 
 	//setup base schema to ensure schema loading works
-	err = dbm.dbClient.RunMigrations()
+	err = dbm.dbClient.RunUpMigrations()
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting up migrations Schema")
+		return err
+	}
+
+	dbm.loadDBClient()
+	err = dbm.dbClient.RunPostMigrations()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
 		return err
 	}
 
@@ -145,9 +152,15 @@ func (dbm *LocalTestDataBaseManager) ResetSchema(dbName string) error {
 		return err
 	}
 
-	err = dbm.dbClient.RunMigrations()
+	err = dbm.dbClient.RunUpMigrations()
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while creating database")
+		return err
+	}
+	dbm.loadDBClient()
+	err = dbm.dbClient.RunPostMigrationsNoClose()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
 		return err
 	}
 
@@ -237,7 +250,7 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to prepare DB schema")
 	}
 
-	err = dbm.dbClient.RunMigrations()
+	err = dbm.dbClient.RunUpMigrations()
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure during DB migration")
 	}
@@ -246,6 +259,11 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to create db connection")
 	}
+	err = dbClient.RunPostMigrationsNoClose()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
+	}
+
 	return dbClient
 }
 

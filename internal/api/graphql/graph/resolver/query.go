@@ -120,7 +120,7 @@ func (r *queryResolver) IssueCounts(ctx context.Context, filter *model.IssueFilt
 }
 
 func (r *queryResolver) Vulnerabilities(ctx context.Context, filter *model.VulnerabilityFilter, first *int, after *string) (*model.VulnerabilityConnection, error) {
-	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after)
+	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
 func (r *queryResolver) VulnerabilityFilterValues(ctx context.Context) (*model.VulnerabilityFilterValue, error) {
@@ -131,6 +131,11 @@ func (r *queryResolver) VulnerabilityFilterValues(ctx context.Context) (*model.V
 			Values:      lo.Map(model.AllSeverityValuesOrdered, func(s model.SeverityValues, _ int) *string { return pointer.String(s.String()) }),
 		},
 	}, nil
+}
+
+func (r *queryResolver) Images(ctx context.Context, filter *model.ImageFilter, first *int, after *string) (*model.ImageConnection, error) {
+	ctx = context.WithValue(ctx, "serviceFilter", filter.Service)
+	return baseResolver.ImageBaseResolver(r.App, ctx, filter, first, after)
 }
 
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }

@@ -18,7 +18,7 @@ import (
 )
 
 var CacheTtlGetComponentCcrns = 12 * time.Hour
-var CacheTtlGetAllComponentIds = 12 * time.Hour
+var CacheTtlGetAllComponentCursors = 12 * time.Hour
 var CacheTtlCountComponents = 12 * time.Hour
 
 type componentHandler struct {
@@ -48,36 +48,18 @@ func NewUserHandlerError(msg string) *ComponentHandlerError {
 	return &ComponentHandlerError{msg: msg}
 }
 
-func (cs *componentHandler) getComponentResults(filter *entity.ComponentFilter) ([]entity.ComponentResult, error) {
-	var componentResults []entity.ComponentResult
-	components, err := cs.database.GetComponents(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, c := range components {
-		component := c
-		cursor := fmt.Sprintf("%d", component.Id)
-		componentResults = append(componentResults, entity.ComponentResult{
-			WithCursor:            entity.WithCursor{Value: cursor},
-			ComponentAggregations: nil,
-			Component:             &component,
-		})
-	}
-	return componentResults, nil
-}
-
 func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, options *entity.ListOptions) (*entity.List[entity.ComponentResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginated(&filter.Paginated)
+	common.EnsurePaginatedX(&filter.PaginatedX)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListComponentsEventName,
 		"filter": filter,
 	})
 
-	res, err := cs.getComponentResults(filter)
+	res, err := cs.database.GetComponents(filter, options.Order)
 
 	if err != nil {
 		l.Error(err)
@@ -86,19 +68,20 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := cache.CallCached[[]int64](
+			cursors, err := cache.CallCached[[]string](
 				cs.cache,
-				CacheTtlGetAllComponentIds,
-				"GetAllComponentIds",
-				cs.database.GetAllComponentIds,
+				CacheTtlGetAllComponentCursors,
+				"GetAllComponentCursors",
+				cs.database.GetAllComponentCursors,
 				filter,
+				options.Order,
 			)
 			if err != nil {
 				l.Error(err)
 				return nil, NewUserHandlerError("Error while getting all Ids")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](
@@ -144,7 +127,8 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	}
 	component.UpdatedBy = component.CreatedBy
 
-	components, err := cs.ListComponents(f, &entity.ListOptions{})
+	lo := entity.NewListOptions()
+	components, err := cs.ListComponents(f, lo)
 
 	if err != nil {
 		l.Error(err)
@@ -187,7 +171,8 @@ func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entit
 		return nil, NewUserHandlerError("Internal error while updating component.")
 	}
 
-	componentResult, err := cs.ListComponents(&entity.ComponentFilter{Id: []*int64{&component.Id}}, &entity.ListOptions{})
+	lo := entity.NewListOptions()
+	componentResult, err := cs.ListComponents(&entity.ComponentFilter{Id: []*int64{&component.Id}}, lo)
 
 	if err != nil {
 		l.Error(err)
@@ -250,4 +235,21 @@ func (cs *componentHandler) ListComponentCcrns(filter *entity.ComponentFilter, o
 	cs.eventRegistry.PushEvent(&ListComponentCcrnsEvent{Filter: filter, Options: options, CCRNs: componentCcrns})
 
 	return componentCcrns, nil
+}
+
+func (cs *componentHandler) GetComponentVulnerabilityCounts(filter *entity.ComponentFilter) ([]entity.IssueSeverityCounts, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  GetComponentIssueSeverityCountsEventName,
+		"filter": filter,
+	})
+
+	counts, err := cs.database.CountComponentVulnerabilities(filter)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Internal error while retrieving issue severity counts.")
+	}
+
+	cs.eventRegistry.PushEvent(&GetComponentIssueSeverityCountsEvent{Filter: filter, Counts: counts})
+
+	return counts, nil
 }

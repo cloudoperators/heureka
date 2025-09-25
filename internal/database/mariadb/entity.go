@@ -121,6 +121,7 @@ type DatabaseRow interface {
 		IssueRepositoryServiceRow |
 		IssueMatchChangeRow |
 		ServiceIssueVariantRow |
+		RatingCount |
 		RowComposite
 }
 

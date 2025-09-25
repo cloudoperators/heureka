@@ -48,4 +48,6 @@ spec:
               value: "in-cluster"
             - name: CONFIG_PATH
               value: {{ .Values.scanner.config_mount_path }}
+            - name: DEFAULT_KEPPEL_REGISTRY
+              value: {{ .Values.scanner.default_keppel_registry }}
           restartPolicy: OnFailure

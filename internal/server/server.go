@@ -55,21 +55,12 @@ func NewServer(cfg util.Config) *Server {
 
 	wg := sync.WaitGroup{}
 
-	db, err := mariadb.NewSqlDatabase(cfg)
-	if err != nil {
-		logrus.WithError(err).Fatalln("Error while Creating Db")
-	}
-	err = db.RunMigrations()
+	err := mariadb.RunMigrations(cfg)
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Migrating Db")
 	}
 
-	err = mariadb.EnableScheduler(cfg)
-	if err != nil {
-		logrus.WithError(err).Fatalln("Error while Enabling Scheduler Db")
-	}
-
-	db, err = mariadb.NewSqlDatabase(cfg)
+	db, err := mariadb.NewSqlDatabase(cfg)
 	if err != nil {
 		logrus.WithError(err).Fatalln("Error while Creating Db")
 	}
