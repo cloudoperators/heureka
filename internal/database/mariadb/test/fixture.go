@@ -2046,3 +2046,12 @@ func (s *DatabaseSeeder) RefreshCountIssueRatings() error {
 	`)
 	return err
 }
+
+func (s *DatabaseSeeder) RefreshComponentVulnerabilityCounts() error {
+	_, err := s.db.Exec(`
+		CALL refresh_mvSingleComponentByServiceVulnerabilityCounts_proc();
+		CALL refresh_mvAllComponentsByServiceVulnerabilityCounts_proc();
+	`)
+	return err
+
+}

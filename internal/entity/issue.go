@@ -60,6 +60,7 @@ type IssueFilter struct {
 	Id                              []*int64          `json:"id"`
 	ActivityId                      []*int64          `json:"activity_id"`
 	IssueMatchId                    []*int64          `json:"issue_match_id"`
+	ComponentId                     []*int64          `json:"component_id"`
 	ComponentVersionId              []*int64          `json:"component_version_id"`
 	IssueVariantId                  []*int64          `json:"issue_variant_id"`
 	IssueRepositoryId               []*int64          `json:"issue_repository_id"`
