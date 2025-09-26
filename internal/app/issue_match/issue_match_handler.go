@@ -23,16 +23,16 @@ var CacheTtlCountIssueMatches = 12 * time.Hour
 type issueMatchHandler struct {
 	database        database.Database
 	eventRegistry   event.EventRegistry
-	severityHandler severity.SeverityHandler
 	cache           cache.Cache
+	severityHandler severity.SeverityHandler
 }
 
-func NewIssueMatchHandler(database database.Database, eventRegistry event.EventRegistry, ss severity.SeverityHandler, cache cache.Cache) IssueMatchHandler {
+func NewIssueMatchHandler(handlerContext common.HandlerContext, ss severity.SeverityHandler) IssueMatchHandler {
 	return &issueMatchHandler{
-		database:        database,
-		eventRegistry:   eventRegistry,
+		database:        handlerContext.DB,
+		eventRegistry:   handlerContext.EventReg,
+		cache:           handlerContext.Cache,
 		severityHandler: ss,
-		cache:           cache,
 	}
 }
 

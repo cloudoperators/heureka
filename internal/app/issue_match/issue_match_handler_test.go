@@ -9,12 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	im "github.com/cloudoperators/heureka/internal/app/issue_match"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/samber/lo"
 
@@ -33,6 +35,7 @@ func TestIssueMatchHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -61,12 +64,19 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		issueMatchHandler im.IssueMatchHandler
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
+		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = getIssueMatchFilter()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -78,7 +88,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		})
 
 		It("shows the total count in the results", func() {
-			issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+			issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 			res, err := issueMatchHandler.ListIssueMatches(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -111,7 +121,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			}
 			db.On("GetIssueMatches", filter, []entity.Order{}).Return(matches, nil)
 			db.On("GetAllIssueMatchCursors", filter, []entity.Order{}).Return(cursors, nil)
-			issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+			issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 			res, err := issueMatchHandler.ListIssueMatches(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -137,7 +147,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			})
 			It("should return an empty result", func() {
 
-				issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 				res, err := issueMatchHandler.ListIssueMatches(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
@@ -153,7 +163,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 				db.On("GetIssueMatches", filter, []entity.Order{}).Return(issueMatches, nil)
 			})
 			It("should return the expected matches in the result", func() {
-				issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 				res, err := issueMatchHandler.ListIssueMatches(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(15), "return 15 results")
@@ -166,7 +176,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			})
 
 			It("should return the expected matches in the result", func() {
-				issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 				_, err := issueMatchHandler.ListIssueMatches(filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
@@ -187,6 +197,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ss                severity.SeverityHandler
 		ivs               issue_variant.IssueVariantHandler
 		rs                issue_repository.IssueRepositoryHandler
+		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -200,9 +211,15 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ivFilter.After = &after
 		irFilter.First = &first
 		irFilter.After = &after
-		rs = issue_repository.NewIssueRepositoryHandler(db, er)
-		ivs = issue_variant.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
-		ss = severity.NewSeverityHandler(db, er, ivs)
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
+		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
+		ivs = issue_variant.NewIssueVariantHandler(handlerContext, rs)
+		ss = severity.NewSeverityHandler(handlerContext, ivs)
 	})
 
 	It("creates issueMatch", func() {
@@ -216,7 +233,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		db.On("CreateIssueMatch", &issueMatch).Return(&issueMatch, nil)
 		db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
 		db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(db, er, ss, cache.NewNoCache())
+		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, ss)
 		newIssueMatch, err := issueMatchHandler.CreateIssueMatch(&issueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueMatch.Id).NotTo(BeEquivalentTo(0))
@@ -240,6 +257,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatchResult
 		filter            *entity.IssueMatchFilter
+		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -253,12 +271,18 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("updates issueMatch", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueMatch", issueMatch.IssueMatch).Return(nil)
-		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 		if issueMatch.Status == entity.NewIssueMatchStatusValue("new") {
 			issueMatch.Status = entity.NewIssueMatchStatusValue("risk_accepted")
 		} else {
@@ -289,6 +313,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		id                int64
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
+		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -303,12 +328,18 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 			},
 		}
 		options = entity.NewListOptions()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("deletes issueMatch", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueMatch", id, mock.Anything).Return(nil)
-		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 		err := issueMatchHandler.DeleteIssueMatch(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -327,6 +358,7 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 		evidence          entity.Evidence
 		issueMatch        entity.IssueMatchResult
 		filter            *entity.IssueMatchFilter
+		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -342,12 +374,18 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 			},
 			Id: []*int64{&issueMatch.Id},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("adds evidence to issueMatch", func() {
 		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
 		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 		issueMatch, err := issueMatchHandler.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
@@ -356,7 +394,7 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 	It("removes evidence from issueMatch", func() {
 		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
 		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(db, er, nil, cache.NewNoCache())
+		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 		issueMatch, err := issueMatchHandler.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")

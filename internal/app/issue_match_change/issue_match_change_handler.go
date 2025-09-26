@@ -19,10 +19,10 @@ type issueMatchChangeHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewIssueMatchChangeHandler(db database.Database, er event.EventRegistry) IssueMatchChangeHandler {
+func NewIssueMatchChangeHandler(handlerContext common.HandlerContext) IssueMatchChangeHandler {
 	return &issueMatchChangeHandler{
-		database:      db,
-		eventRegistry: er,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
 	}
 }
 

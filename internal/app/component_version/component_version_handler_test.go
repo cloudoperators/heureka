@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	cv "github.com/cloudoperators/heureka/internal/app/component_version"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/cache"
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -26,6 +28,7 @@ func TestComponentVersionHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -43,16 +46,23 @@ func getComponentVersionFilter() *entity.ComponentVersionFilter {
 
 var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVersions"), func() {
 	var (
-		db        *mocks.MockDatabase
-		cvHandler cv.ComponentVersionHandler
-		filter    *entity.ComponentVersionFilter
-		options   *entity.ListOptions
+		db             *mocks.MockDatabase
+		cvHandler      cv.ComponentVersionHandler
+		filter         *entity.ComponentVersionFilter
+		options        *entity.ListOptions
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = getComponentVersionFilter()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -64,7 +74,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		})
 
 		It("shows the total count in the results", func() {
-			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
+			cvHandler = cv.NewComponentVersionHandler(handlerContext)
 			res, err := cvHandler.ListComponentVersions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -97,7 +107,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 			db.On("GetComponentVersions", filter, []entity.Order{}).Return(componentVersions, nil)
 			db.On("GetAllComponentVersionCursors", filter, []entity.Order{}).Return(cursors, nil)
-			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
+			cvHandler = cv.NewComponentVersionHandler(handlerContext)
 			res, err := cvHandler.ListComponentVersions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -129,7 +139,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 
 			// Execute the handler
-			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
+			cvHandler = cv.NewComponentVersionHandler(handlerContext)
 			result, err := cvHandler.ListComponentVersions(tagFilter, options)
 
 			// Verify results
@@ -162,7 +172,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 
 			// Execute the handler
-			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
+			cvHandler = cv.NewComponentVersionHandler(handlerContext)
 			result, err := cvHandler.ListComponentVersions(repoFilter, options)
 
 			// Verify results
@@ -195,7 +205,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 
 			// Execute the handler
-			cvHandler = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
+			cvHandler = cv.NewComponentVersionHandler(handlerContext)
 			result, err := cvHandler.ListComponentVersions(orgFilter, options)
 
 			// Verify results
@@ -215,17 +225,24 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		db                     *mocks.MockDatabase
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersion
+		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		componentVersion = test.NewFakeComponentVersionEntity()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("creates componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
-		componenVersionService = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
+		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		newComponentVersion, err := componenVersionService.CreateComponentVersion(&componentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentVersion.Id).NotTo(BeEquivalentTo(0))
@@ -243,6 +260,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersionResult
 		filter                 *entity.ComponentVersionFilter
+		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -256,12 +274,18 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("updates componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateComponentVersion", componentVersion.ComponentVersion).Return(nil)
-		componenVersionService = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
+		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		componentVersion.Version = "7.3.3.1"
 		componentVersion.Tag = "updated-tag"
 		filter.Id = []*int64{&componentVersion.Id}
@@ -282,6 +306,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		componenVersionService cv.ComponentVersionHandler
 		id                     int64
 		filter                 *entity.ComponentVersionFilter
+		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -295,12 +320,18 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
 	})
 
 	It("deletes componentVersion", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
-		componenVersionService = cv.NewComponentVersionHandler(db, er, cache.NewNoCache())
+		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
 		err := componenVersionService.DeleteComponentVersion(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
