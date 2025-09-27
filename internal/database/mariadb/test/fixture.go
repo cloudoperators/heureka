@@ -2042,7 +2042,13 @@ func (s *DatabaseSeeder) RefreshServiceIssueCounters() error {
 
 func (s *DatabaseSeeder) RefreshCountIssueRatings() error {
 	_, err := s.db.Exec(`
-		CALL refresh_mvCountIssueRatings_proc();
+		CALL refresh_mvCountIssueRatingsUniqueService_proc();
+		CALL refresh_mvCountIssueRatingsService_proc();
+		CALL refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc();
+		CALL refresh_mvCountIssueRatingsSupportGroup_proc();
+		CALL refresh_mvCountIssueRatingsComponentVersion_proc();
+		CALL refresh_mvCountIssueRatingsServiceId_proc();
+		CALL refresh_mvCountIssueRatingsOther_proc();
 	`)
 	return err
 }
