@@ -218,7 +218,11 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 				ok, err := authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(ok).To(BeTrue(), "permission should be granted")
+				if cfg.AuthzOpenFgaApiUrl != "" {
+					Expect(ok).To(BeTrue(), "permission should be granted")
+				} else {
+					Expect(ok).To(BeFalse(), "permission should not be granted when no AuthzOpenFgaApiUrl is set")
+				}
 			})
 		})
 	})

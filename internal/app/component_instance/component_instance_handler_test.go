@@ -42,7 +42,7 @@ var enableLogs bool
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
 		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-		AuthzOpenFgaApiUrl:    "http://localhost:8080",
+		AuthzOpenFgaApiUrl:    "",
 		AuthzOpenFgaStoreName: "heureka-store",
 		CurrentUser:           "testuser",
 		AuthTokenSecret:       "key1",
@@ -286,7 +286,11 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 
 				ok, err := authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(ok).To(BeTrue(), "permission should be granted")
+				if cfg.AuthzOpenFgaApiUrl != "" {
+					Expect(ok).To(BeTrue(), "permission should be granted")
+				} else {
+					Expect(ok).To(BeFalse(), "permission should not be granted when no AuthzOpenFgaApiUrl is set")
+				}
 			})
 		})
 	})

@@ -32,7 +32,7 @@ func (a *NoAuthz) GetCurrentUser() string {
 
 // CheckPermission checks if userId has permission on resourceId.
 func (a *NoAuthz) CheckPermission(p PermissionInput) (bool, error) {
-	return true, nil
+	return false, nil
 }
 
 // AddRelation adds a relationship between userId and resourceId.
