@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,20 +60,14 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 		"parent":          parent,
 	}).Debug("Called ComponentBaseResolver")
 
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("ComponentBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("ComponentBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
-
 	if filter == nil {
 		filter = &model.ComponentFilter{}
 	}
 
 	f := &entity.ComponentFilter{
-		Paginated: entity.Paginated{First: first, After: afterId},
-		CCRN:      filter.ComponentCcrn,
-		State:     model.GetStateFilterType(filter.State),
+		PaginatedX: entity.PaginatedX{First: first, After: after},
+		CCRN:       filter.ComponentCcrn,
+		State:      model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -119,8 +114,8 @@ func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 	}
 
 	f := &entity.ComponentFilter{
-		Paginated: entity.Paginated{},
-		CCRN:      filter.ComponentCcrn,
+		PaginatedX: entity.PaginatedX{},
+		CCRN:       filter.ComponentCcrn,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -143,4 +138,55 @@ func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 	}
 
 	return &filterItem, nil
+}
+
+func ComponentIssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter, parent *model.NodeParent) (*model.SeverityCounts, error) {
+	requestedFields := GetPreloads(ctx)
+	logrus.WithFields(logrus.Fields{
+		"requestedFields": requestedFields,
+	}).Debug("Called ComponentIssueCountsBaseResolver")
+
+	if filter == nil {
+		filter = &model.ComponentFilter{}
+	}
+
+	var componentId []*int64
+	var err error
+	if parent != nil {
+		var pid *int64
+		if parent.Parent != nil {
+			parentId := parent.Parent.GetID()
+			pid, err = ParseCursor(&parentId)
+			if err != nil {
+				return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentIssueCountsBaseResolver"), "Issue", appErrors.InvalidArgument, "Error while parsing propagated ID"))
+			}
+		}
+
+		switch parent.ParentName {
+		case model.ImageNodeName:
+			componentId = []*int64{pid}
+		}
+	}
+
+	f := &entity.ComponentFilter{
+		Id:          componentId,
+		ServiceCCRN: filter.ServiceCcrn,
+	}
+
+	var severityCounts model.SeverityCounts
+	counts, err := app.GetComponentVulnerabilityCounts(f)
+	if err != nil {
+		return nil, ToGraphQLError(err)
+	}
+
+	for _, c := range counts {
+		severityCounts.Critical += int(c.Critical)
+		severityCounts.High += int(c.High)
+		severityCounts.Medium += int(c.Medium)
+		severityCounts.Low += int(c.Low)
+		severityCounts.None += int(c.None)
+		severityCounts.Total += int(c.Total)
+	}
+
+	return &severityCounts, nil
 }

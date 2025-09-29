@@ -13,6 +13,8 @@ import (
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -278,6 +280,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			var respData struct {
 				Services model.ServiceConnection `json:"Services"`
 			}
+			c := collate.New(language.English)
 
 			It("can order by ccrn", Label("withOrder.graphql"), func() {
 				// create a queryCollection (safe to share across requests)
@@ -313,7 +316,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				By("- returns the expected content in order", func() {
 					var prev string = ""
 					for _, im := range respData.Services.Edges {
-						Expect(*im.Node.Ccrn >= prev).Should(BeTrue())
+						Expect(c.CompareString(*im.Node.Ccrn, prev)).Should(BeNumerically(">=", 0))
 						prev = *im.Node.Ccrn
 					}
 				})

@@ -265,10 +265,10 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		}
 
 		cfg = &util.Config{
-			AuthzEnabled:       true,
+			AuthTokenSecret:    "key1",
 			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
 			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFGApiUrl:  "http://localhost:8080",
+			AuthzOpenFgaApiUrl: "http://localhost:8080",
 		}
 
 		cache := cache.NewNoCache()

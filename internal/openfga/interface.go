@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package openfga
 
 import (
@@ -56,7 +59,7 @@ type Authorization interface {
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {
 	l := newLogger(enablelog)
 
-	if cfg.AuthzOpenFGApiUrl != "" {
+	if cfg.AuthzOpenFgaApiUrl != "" {
 		return NewAuthz(l, cfg)
 	}
 

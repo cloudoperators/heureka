@@ -14,11 +14,12 @@ import (
 )
 
 const (
-	ListComponentsEventName     event.EventName = "ListComponents"
-	CreateComponentEventName    event.EventName = "CreateComponent"
-	UpdateComponentEventName    event.EventName = "UpdateComponent"
-	DeleteComponentEventName    event.EventName = "DeleteComponent"
-	ListComponentCcrnsEventName event.EventName = "ListComponentCcrns"
+	ListComponentsEventName                  event.EventName = "ListComponents"
+	CreateComponentEventName                 event.EventName = "CreateComponent"
+	UpdateComponentEventName                 event.EventName = "UpdateComponent"
+	DeleteComponentEventName                 event.EventName = "DeleteComponent"
+	ListComponentCcrnsEventName              event.EventName = "ListComponentCcrns"
+	GetComponentIssueSeverityCountsEventName event.EventName = "GetComponentIssueSeverityCounts"
 )
 
 type ListComponentsEvent struct {
@@ -63,6 +64,15 @@ type ListComponentCcrnsEvent struct {
 
 func (e *ListComponentCcrnsEvent) Name() event.EventName {
 	return ListComponentCcrnsEventName
+}
+
+type GetComponentIssueSeverityCountsEvent struct {
+	Filter *entity.ComponentFilter
+	Counts []entity.IssueSeverityCounts
+}
+
+func (e *GetComponentIssueSeverityCountsEvent) Name() event.EventName {
+	return GetComponentIssueSeverityCountsEventName
 }
 
 // OnComponentCreateAuthz is a handler for the CreateComponentEvent

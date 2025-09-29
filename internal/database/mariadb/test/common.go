@@ -210,6 +210,35 @@ func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, er
 	return components, nil
 }
 
+func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	type tempComponentVersion struct {
+		Version      string `json:"version"`
+		ComponentID  int64  `json:"component_id"`
+		Tag          string `json:"tag"`
+		Repository   string `json:"repository"`
+		Organization string `json:"organization"`
+	}
+	var tempComponents []tempComponentVersion
+	if err := json.Unmarshal(data, &tempComponents); err != nil {
+		return nil, err
+	}
+	components := make([]mariadb.ComponentVersionRow, len(tempComponents))
+	for i, tc := range tempComponents {
+		components[i] = mariadb.ComponentVersionRow{
+			Version:      sql.NullString{String: tc.Version, Valid: true},
+			Tag:          sql.NullString{String: tc.Tag, Valid: true},
+			ComponentId:  sql.NullInt64{Int64: tc.ComponentID, Valid: true},
+			Repository:   sql.NullString{String: tc.Repository, Valid: true},
+			Organization: sql.NullString{String: tc.Organization, Valid: true},
+		}
+	}
+	return components, nil
+}
+
 func LoadIssueVariants(filename string) ([]mariadb.IssueVariantRow, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {

@@ -4,6 +4,8 @@
 package component_instance_test
 
 import (
+	"errors"
+
 	"math"
 	"strconv"
 	"testing"
@@ -16,6 +18,7 @@ import (
 	dbtest "github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -124,6 +127,65 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
 	})
+
+	Context("when GetComponentInstances fails", func() {
+		It("should return Internal error", func() {
+			// Mock database error
+			dbError := errors.New("database connection failed")
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, dbError)
+
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+			result, err := componentInstanceHandler.ListComponentInstances(filter, options)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			// Verify it's our structured error with correct code
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("ComponentInstances"), "should reference ComponentInstances entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("componentInstanceHandler.ListComponentInstances"), "should include operation")
+			Expect(appErr.Err.Error()).To(ContainSubstring("database connection failed"), "should contain original error message")
+		})
+	})
+
+	Context("when GetAllComponentInstanceCursors fails", func() {
+		BeforeEach(func() {
+			options.ShowPageInfo = true
+			filter.First = lo.ToPtr(10)
+		})
+
+		It("should return Internal error", func() {
+			componentInstances := []entity.ComponentInstanceResult{}
+			for _, ci := range test.NNewFakeComponentInstances(5) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, ci))
+				componentInstances = append(componentInstances, entity.ComponentInstanceResult{
+					WithCursor:        entity.WithCursor{Value: cursor},
+					ComponentInstance: lo.ToPtr(ci),
+				})
+			}
+
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return(componentInstances, nil)
+			cursorsError := errors.New("cursor database error")
+			db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).Return([]string{}, cursorsError)
+
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+			result, err := componentInstanceHandler.ListComponentInstances(filter, options)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("ComponentInstanceCursors"), "should reference ComponentInstanceCursors entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("componentInstanceHandler.ListComponentInstances"), "should include operation")
+		})
+	})
+
 })
 
 var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponentInstance"), func() {
@@ -151,43 +213,46 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			UserType:   "role",
 			UserId:     "testuser",
 			ObjectId:   "",
-			ObjectType: "component_instance",
+			ObjectType: "component_version",
 			Relation:   "role",
 		}
 
 		cfg = &util.Config{
-			AuthzEnabled:       true,
+			AuthTokenSecret:    "key1",
 			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
 			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFGApiUrl:  "http://localhost:8080",
+			AuthzOpenFgaApiUrl: "http://localhost:8080",
 		}
 	})
 
-	It("creates componentInstance", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("CreateComponentInstance", &componentInstance).Return(&componentInstance, nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-		// Ensure type is allowed if ParentId is set
-		componentInstance.Type = "RecordSet"
-		componentInstance.ParentId = 1234
-		newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
-		By("setting fields", func() {
-			Expect(newComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
-			Expect(newComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
-			Expect(newComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
-			Expect(newComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
-			Expect(newComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
-			Expect(newComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
-			Expect(newComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
-			Expect(newComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
-			Expect(newComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
-			Expect(newComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
-			Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
-			Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
-			Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
-			Expect(newComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+	Context("with valid input", func() {
+		It("creates componentInstance", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("CreateComponentInstance", mock.AnythingOfType("*entity.ComponentInstance")).Return(&componentInstance, nil)
+
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+			// Ensure type is allowed if ParentId is set
+			componentInstance.Type = "RecordSet"
+			componentInstance.ParentId = 1234
+			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
+			By("setting fields", func() {
+				Expect(newComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+				Expect(newComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
+				Expect(newComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+				Expect(newComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+				Expect(newComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
+				Expect(newComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
+				Expect(newComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
+				Expect(newComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
+				Expect(newComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
+				Expect(newComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
+				Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
+				Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
+				Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+				Expect(newComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+			})
 		})
 	})
 
@@ -248,42 +313,42 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			Authz:    authz,
 		}
 	})
-
-	It("updates componentInstance", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-		componentInstance.Region = "NewRegion"
-		componentInstance.Cluster = "NewCluster"
-		componentInstance.Namespace = "NewNamespace"
-		componentInstance.Domain = "NewDomain"
-		componentInstance.Project = "NewProject"
-		componentInstance.Pod = "NewPod"
-		componentInstance.Container = "NewContainer"
-		componentInstance.Type = "RecordSet"
-		componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
-		componentInstance.ParentId = 1234
-		componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
-		filter.Id = []*int64{&componentInstance.Id}
-		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
-		updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, nil)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		By("setting fields", func() {
-			Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
-			Expect(updatedComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
-			Expect(updatedComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
-			Expect(updatedComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
-			Expect(updatedComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
-			Expect(updatedComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
-			Expect(updatedComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
-			Expect(updatedComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
-			Expect(updatedComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
-			Expect(updatedComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
-			Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
-			Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
-			Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
-			Expect(updatedComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
-
+	Context("with valid input", func() {
+		It("updates componentInstance", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil) // Changed: return actual user ID
+			db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+			componentInstance.Region = "NewRegion"
+			componentInstance.Cluster = "NewCluster"
+			componentInstance.Namespace = "NewNamespace"
+			componentInstance.Domain = "NewDomain"
+			componentInstance.Project = "NewProject"
+			componentInstance.Pod = "NewPod"
+			componentInstance.Container = "NewContainer"
+			componentInstance.Type = "RecordSet"
+			componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
+			componentInstance.ParentId = 1234
+			componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
+			filter.Id = []*int64{&componentInstance.Id}
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
+			updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, nil)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			By("setting fields", func() {
+				Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+				Expect(updatedComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
+				Expect(updatedComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+				Expect(updatedComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+				Expect(updatedComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
+				Expect(updatedComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
+				Expect(updatedComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
+				Expect(updatedComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
+				Expect(updatedComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
+				Expect(updatedComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
+				Expect(updatedComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
+				Expect(updatedComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
+				Expect(updatedComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+				Expect(updatedComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+			})
 		})
 	})
 })
@@ -316,19 +381,21 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		}
 	})
 
-	It("deletes componentInstance", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("DeleteComponentInstance", id, mock.Anything).Return(nil)
-		componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-		db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
-		err := componentInstanceHandler.DeleteComponentInstance(id)
-		Expect(err).To(BeNil(), "no error should be thrown")
+	Context("with valid input", func() {
+		It("deletes componentInstance", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil) // Changed: return actual user ID
+			db.On("DeleteComponentInstance", id, int64(123)).Return(nil)    // Changed: specify exact user ID
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
+			err := componentInstanceHandler.DeleteComponentInstance(id)
+			Expect(err).To(BeNil(), "no error should be thrown")
 
-		filter.Id = []*int64{&id}
-		lo := entity.NewListOptions()
-		componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, lo)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(componentInstances.Elements).To(BeEmpty(), "no error should be thrown")
+			filter.Id = []*int64{&id}
+			lo := entity.NewListOptions()
+			componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, lo)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(componentInstances.Elements).To(BeEmpty(), "component instance should be deleted")
+		})
 	})
 })
 
@@ -356,7 +423,6 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetCcrn", filter).Return([]string{}, nil)
 		})
@@ -368,6 +434,7 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
 	})
+
 	When("specific CCRN filter is applied", func() {
 		BeforeEach(func() {
 			filter = &entity.ComponentInstanceFilter{
@@ -381,6 +448,30 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 			res, err := componentInstanceHandler.ListCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(CCRN), "should only consist of CCRN")
+		})
+	})
+
+	// NEW: Add error handling test case
+	Context("when database operation fails", func() {
+		It("should return Internal error", func() {
+			// Mock database error
+			dbError := errors.New("database connection failed")
+			db.On("GetCcrn", filter).Return([]string{}, dbError)
+
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+			result, err := componentInstanceHandler.ListCcrns(filter, options)
+
+			Expect(result).To(BeNil(), "no result should be returned")
+			Expect(err).ToNot(BeNil(), "error should be returned")
+
+			// Verify it's our structured error with correct code
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+			Expect(appErr.Entity).To(Equal("ComponentInstanceCcrns"), "should reference ComponentInstanceCcrns entity")
+			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
+			Expect(appErr.Op).To(Equal("componentInstanceHandler.ListCcrns"), "should include operation")
+			Expect(appErr.Err.Error()).To(ContainSubstring("database connection failed"), "should contain original error message")
 		})
 	})
 })

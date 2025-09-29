@@ -124,8 +124,14 @@ create-migration:
 check-call-cached:
 	go generate ./internal/cache
 
+# check-migration-files target:
+# First check if '!checkexistingmigration' smart commit tag is not used in any commit on your branch
+# if it is used, then skip further check
+# if smart commit was not found, check for modification of any migration file existing in main branch
+# NOTE: new files created in your branch will not be checked for modification/creation
 check-migration-files:
-	@comm -12 <(git diff --name-only origin/main...HEAD | grep '^$(MIGRATIONS_DIR)' | sort) <(git ls-tree -r --name-only origin/main | grep '^$(MIGRATIONS_DIR)' | sort) | grep -q . && { echo "Forbidden change detected!"; exit 1; } || echo "No forbidden changes."
+	@git log origin/main..HEAD --pretty=%B | grep -Eq "[!]changeexistingmigration" || \
+	(comm -12 <(git diff --name-only origin/main...HEAD | grep '^$(MIGRATIONS_DIR)' | sort) <(git ls-tree -r --name-only origin/main | grep '^$(MIGRATIONS_DIR)' | sort) | grep -q . && { echo "Forbidden change detected!"; exit 1; } || echo "No forbidden changes.")
 
 ui-up:
 	$(DOCKER_COMPOSE) --profile ui up -d

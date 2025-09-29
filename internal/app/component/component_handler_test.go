@@ -11,13 +11,13 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	c "github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/openfga"
-	"github.com/cloudoperators/heureka/internal/util"
-
 	"github.com/cloudoperators/heureka/internal/cache"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -40,7 +40,7 @@ var _ = BeforeSuite(func() {
 func getComponentFilter() *entity.ComponentFilter {
 	cCCRN := "SomeNotExistingComponent"
 	return &entity.ComponentFilter{
-		Paginated: entity.Paginated{
+		PaginatedX: entity.PaginatedX{
 			First: nil,
 			After: nil,
 		},
@@ -74,7 +74,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetComponents", filter).Return([]entity.Component{}, nil)
+			db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
 			db.On("CountComponents", filter).Return(int64(1337), nil)
 		})
 
@@ -92,16 +92,26 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			components := test.NNewFakeComponentEntities(resElements)
-
-			var ids = lo.Map(components, func(c entity.Component, _ int) int64 { return c.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			components := []entity.ComponentResult{}
+			for _, c := range test.NNewFakeComponentEntities(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, c, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+				components = append(components, entity.ComponentResult{WithCursor: entity.WithCursor{Value: cursor}, Component: lo.ToPtr(c)})
 			}
-			db.On("GetComponents", filter).Return(components, nil)
-			db.On("GetAllComponentIds", filter).Return(ids, nil)
+
+			var cursors = lo.Map(components, func(m entity.ComponentResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *m.Component, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+				return cursor
+			})
+
+			var i int64 = 0
+			for len(cursors) < dbElements {
+				i++
+				component := test.NewFakeComponentEntity()
+				c, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, component, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+				cursors = append(cursors, c)
+			}
+			db.On("GetComponents", filter, []entity.Order{}).Return(components, nil)
+			db.On("GetAllComponentCursors", filter, []entity.Order{}).Return(cursors, nil)
 			componentHandler = c.NewComponentHandler(handlerContext)
 			res, err := componentHandler.ListComponents(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -132,35 +142,13 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		db = mocks.NewMockDatabase(GinkgoT())
 		component = test.NewFakeComponentEntity()
 		first := 10
-		var after int64
-		after = 0
-
+		after := ""
 		filter = &entity.ComponentFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
 		}
-
-		p = openfga.PermissionInput{
-			UserType:   "role",
-			UserId:     "testuser",
-			ObjectId:   "testcomponent",
-			ObjectType: "component",
-			Relation:   "role",
-		}
-
-		cfg = &util.Config{
-			AuthzEnabled:          false,
-			AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-			AuthzOpenFGApiUrl:     "http://localhost:8080",
-			AuthzOpenFGAStoreName: "heureka-store",
-			CurrentUser:           "testuser",
-			AuthTokenSecret:       "testsecret",
-		}
-
-		authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
-
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
@@ -168,14 +156,27 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 			Authz:    authz,
 		}
 
-		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
+		p = openfga.PermissionInput{
+			UserType:   "role",
+			UserId:     "testuser",
+			ObjectId:   "",
+			ObjectType: "component_version",
+			Relation:   "role",
+		}
+
+		cfg = &util.Config{
+			AuthTokenSecret:    "key1",
+			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
+			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
+			AuthzOpenFgaApiUrl: "http://localhost:8080",
+		}
 	})
 
 	It("creates component", func() {
 		filter.CCRN = []*string{&component.CCRN}
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponent", &component).Return(&component, nil)
-		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
+		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
 		componentHandler = c.NewComponentHandler(handlerContext)
 		newComponent, err := componentHandler.CreateComponent(&component)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -220,23 +221,21 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 	var (
 		db               *mocks.MockDatabase
 		componentHandler c.ComponentHandler
-		component        entity.Component
+		component        entity.ComponentResult
 		filter           *entity.ComponentFilter
 		handlerContext   common.HandlerContext
-		enableLogs       bool
 		p                openfga.PermissionInput
+		enableLogs       bool
 		cfg              *util.Config
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		component = test.NewFakeComponentEntity()
+		component = test.NewFakeComponentResult()
 		first := 10
-		var after int64
-		after = 0
-
+		after := ""
 		filter = &entity.ComponentFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -247,16 +246,31 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
+
+		p = openfga.PermissionInput{
+			UserType:   "role",
+			UserId:     "testuser",
+			ObjectId:   "",
+			ObjectType: "component_version",
+			Relation:   "role",
+		}
+
+		cfg = &util.Config{
+			AuthTokenSecret:    "key1",
+			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
+			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
+			AuthzOpenFgaApiUrl: "http://localhost:8080",
+		}
 	})
 
 	It("updates component", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("UpdateComponent", &component).Return(nil)
+		db.On("UpdateComponent", component.Component).Return(nil)
 		componentHandler = c.NewComponentHandler(handlerContext)
 		component.CCRN = "NewComponent"
 		filter.Id = []*int64{&component.Id}
-		db.On("GetComponents", filter).Return([]entity.Component{component}, nil)
-		updatedComponent, err := componentHandler.UpdateComponent(&component)
+		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{component}, nil)
+		updatedComponent, err := componentHandler.UpdateComponent(component.Component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponent.CCRN).To(BeEquivalentTo(component.CCRN))
@@ -301,19 +315,18 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		id               int64
 		filter           *entity.ComponentFilter
 		handlerContext   common.HandlerContext
-		enableLogs       bool
 		p                openfga.PermissionInput
 		cfg              *util.Config
+		enableLogs       bool
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		after := ""
 		filter = &entity.ComponentFilter{
-			Paginated: entity.Paginated{
+			PaginatedX: entity.PaginatedX{
 				First: &first,
 				After: &after,
 			},
@@ -324,18 +337,34 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
+
+		p = openfga.PermissionInput{
+			UserType:   "role",
+			UserId:     "testuser",
+			ObjectId:   "",
+			ObjectType: "component_version",
+			Relation:   "role",
+		}
+
+		cfg = &util.Config{
+			AuthTokenSecret:    "key1",
+			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
+			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
+			AuthzOpenFgaApiUrl: "http://localhost:8080",
+		}
 	})
 
 	It("deletes component", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponent", id, mock.Anything).Return(nil)
 		componentHandler = c.NewComponentHandler(handlerContext)
-		db.On("GetComponents", filter).Return([]entity.Component{}, nil)
+		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
 		err := componentHandler.DeleteComponent(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		components, err := componentHandler.ListComponents(filter, &entity.ListOptions{})
+		lo := entity.NewListOptions()
+		components, err := componentHandler.ListComponents(filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(components.Elements).To(BeEmpty(), "no error should be thrown")
 	})

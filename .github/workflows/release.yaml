@@ -47,7 +47,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 18
 
@@ -103,7 +103,7 @@ jobs:
 
       # Install the cosign tool
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3.9.2
+        uses: sigstore/cosign-installer@v3.10.0
         with:
           cosign-release: 'v2.2.3'
 

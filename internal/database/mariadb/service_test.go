@@ -10,6 +10,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 
 	"math/rand"
 	"sort"
@@ -987,12 +989,14 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	var seedCollection *test.SeedCollection
+	var c *collate.Collator
 
 	BeforeEach(func() {
 		var err error
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+		c = collate.New(language.English)
 	})
 	AfterEach(func() {
 		seeder.CloseDbConnection()
@@ -1124,7 +1128,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 			testOrder(order, func(res []entity.ServiceResult) {
 				var prev string = ""
 				for _, r := range res {
-					Expect(r.Service.CCRN >= prev).Should(BeTrue())
+					Expect(c.CompareString(r.Service.CCRN, prev)).Should(BeNumerically(">=", 0))
 					prev = r.Service.CCRN
 				}
 			})
@@ -1162,7 +1166,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 			testOrder(order, func(res []entity.ServiceResult) {
 				var prev string = "\U0010FFFF"
 				for _, r := range res {
-					Expect(r.Service.CCRN <= prev).Should(BeTrue())
+					Expect(c.CompareString(r.Service.CCRN, prev)).Should(BeNumerically("<=", 0))
 					prev = r.Service.CCRN
 				}
 			})

@@ -124,6 +124,8 @@ services:
       - OPENFGA_DATASTORE_URI=postgres://postgres:password@postgres:5432/postgres?sslmode=disable
       - OPENFGA_LOG_FORMAT=json
       - OPENFGA_AUTHN_METHOD=preshared
+      - OPENFGA_AUTHN_PRESHARED_KEYS=${AUTHZ_FGA_API_TOKEN}
+      - OPENFGA_AUTHN_METHOD=preshared
       - OPENFGA_AUTHN_PRESHARED_KEYS=${AUTH_TOKEN_SECRET}
     command: run
     networks:

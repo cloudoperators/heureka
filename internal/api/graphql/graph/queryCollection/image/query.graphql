@@ -1,0 +1,95 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+query GetImages(
+    $filter: ImageFilter
+    $first: Int
+    $after: String
+    $firstVulnerabilities: Int
+    $afterVulnerabilities: String
+    $firstVersions: Int
+    $afterVersions: String
+) {
+  # This query is designed for listing the Images of a Service
+  # - It's ordered by Vulnerability Count per default, then by Repository
+  # - Default page size is 10, but can be overridden by the $first parameter
+  Images(first: $first, after: $after, filter: $filter) {
+    # Counts will result in a subquery. Request only if needed.
+    # Counts number of Vulnerabilities per severity
+    counts{
+      critical
+      high
+      medium
+      low
+      none
+      total
+    }
+    edges{
+      node{
+        id
+        repository
+        imageRegistryUrl
+        # Counts will result in a subquery. Request only if needed.
+        # Counts number of Vulnerabilities per severity
+        vulnerabilityCounts{
+          critical
+          high
+          medium
+          low
+          none
+          total
+        }
+        # The versions list is ordered by Vulnerability Count, Repository per default
+        # Default page size is 10, but can be overridden by the $first parameter
+        versions(first: $firstVersions, after: $afterVersions){
+          edges{
+            node{
+              id
+              version
+            }
+          }
+        }
+        # - Only returns Issues of type Vulnerability
+        # - Only returns Issues with at least one IssueMatch with status "new"
+        # - It's ordered by severity per default
+        # - Default page size is 10, but can be overridden by the $first parameter
+        vulnerabilities(first: $firstVulnerabilities, after: $afterVulnerabilities){
+          edges{
+            node{
+              id
+              severity
+              name
+              sourceUrl
+              earliestTargetRemediationDate
+              description
+            }
+          }
+          # Requesting pageInfo will result in a subquery. Request only if needed.
+          pageInfo{
+            pageNumber
+            pages{
+              after
+              pageNumber
+            }
+          }
+        }
+      }
+    }
+    # Total count will result in a subquery. Request only if needed.
+    totalCount
+    # Requesting pageInfo will result in a subquery. Request only if needed.
+    pageInfo {
+        hasNextPage
+        hasPreviousPage
+        isValidPage
+        pageNumber
+        nextPageAfter
+        pages {
+            after
+            isCurrent
+            pageNumber
+            pageCount
+        }
+    }
+  }
+}

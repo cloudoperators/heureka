@@ -46,6 +46,7 @@ func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, cur
 	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 	return filterParameters
 }
@@ -65,6 +66,7 @@ func getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "I.issue"))
 
@@ -165,10 +167,16 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 		}
 	}
 
-	if len(filter.ComponentVersionId) > 0 {
+	if len(filter.ComponentVersionId) > 0 || len(filter.ComponentId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
 		`)
+
+		if len(filter.ComponentId) > 0 && !(len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices) {
+			joins = fmt.Sprintf("%s\n%s", joins, `
+				LEFT JOIN ComponentVersion CV ON CVI.componentversionissue_component_version_id = CV.componentversion_id
+			`)
+		}
 	}
 
 	if len(filter.IssueRepositoryId) > 0 || len(filter.IssueVariantId) > 0 || len(filter.Search) > 0 || orderByRating {

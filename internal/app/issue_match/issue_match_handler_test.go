@@ -226,10 +226,10 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		}
 
 		cfg = &util.Config{
-			AuthzEnabled:       true,
+			AuthTokenSecret:    "key1",
 			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
 			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFGApiUrl:  "http://localhost:8080",
+			AuthzOpenFgaApiUrl: "http://localhost:8080",
 		}
 
 		handlerContext = common.HandlerContext{

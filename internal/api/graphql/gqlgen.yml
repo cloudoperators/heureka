@@ -210,6 +210,14 @@ models:
         resolver: true
       supportGroups:
         resolver: true
+  Image:
+    fields:
+      versions:
+        resolver: true
+      vulnerabilityCounts:
+        resolver: true
+      vulnerabilities:
+        resolver: true
   VulnerabilityFilterValue:
     fields:
       supportGroup:

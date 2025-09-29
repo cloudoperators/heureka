@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -14,6 +15,15 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	interUtil "github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/util"
+)
+
+// Example CCRN: ccrn://docker.io/library/nginx
+const (
+	ccrnSchemeIndex    = 0
+	ccrnRegistryIndex  = 1
+	ccrnNamespaceIndex = 2
+	ccrnRepoIndex      = 3
+	expectedTokenCount = 4
 )
 
 // add custom models here
@@ -372,6 +382,25 @@ func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
 		Completed: sr.Completed,
 		StartRun:  startRun,
 		EndRun:    endRun,
+	}
+}
+
+func NewImage(component *entity.Component) Image {
+	tokens := strings.Split(component.CCRN, "/")
+
+	var repository string
+	if len(tokens) == expectedTokenCount {
+		// Full CCRN: namespace + repository
+		repository = fmt.Sprintf("%s/%s", tokens[ccrnNamespaceIndex], tokens[ccrnRepoIndex])
+	} else {
+		// Fallback: last token is assumed to be the repository name
+		repository = tokens[len(tokens)-1]
+	}
+
+	return Image{
+		ID:               fmt.Sprintf("%d", component.Id),
+		ImageRegistryURL: &component.CCRN,
+		Repository:       &repository,
 	}
 }
 

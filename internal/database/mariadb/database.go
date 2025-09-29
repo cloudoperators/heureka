@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -122,6 +124,7 @@ type Db interface {
 	GetDbInstance() *sql.DB
 	Preparex(query string) (Stmt, error)
 	PrepareNamed(query string) (NamedStmt, error)
+	Select(dest interface{}, query string, args ...interface{}) error
 	Query(query string, args ...interface{}) (SqlRows, error)
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
@@ -220,7 +223,7 @@ func GetVersion(cfg util.Config) (string, error) {
 	return v, nil
 }
 
-func (s *SqlDatabase) RunMigrations() error {
+func (s *SqlDatabase) RunUpMigrations() error {
 	m, err := s.openMigration()
 	if err != nil {
 		return err
@@ -567,6 +570,120 @@ func buildJsonQueryParameters(params []interface{}, filter []*entity.Json) []int
 		}
 	}
 	return buildQueryParameters(params, conQueryParams)
+}
+
+func RunMigrations(cfg util.Config) error {
+	db, err := NewSqlDatabase(cfg)
+	if err != nil {
+		return fmt.Errorf("Error while Creating Db: %w", err)
+	}
+	err = db.RunUpMigrations()
+	if err != nil {
+		return fmt.Errorf("Error while Migrating Db: %w", err)
+	}
+
+	db, err = NewSqlDatabase(cfg)
+	if err != nil {
+		return fmt.Errorf("Error while Creating Db: %w", err)
+	}
+	db.RunPostMigrations()
+
+	err = EnableScheduler(cfg)
+	if err != nil {
+		return fmt.Errorf("Error while Enabling Scheduler Db: %w", err)
+	}
+	return nil
+}
+
+func (s *SqlDatabase) procedureExists(procedure string) (bool, error) {
+	var count int
+	err := s.db.QueryRow(fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM information_schema.routines
+		WHERE routine_schema = DATABASE()
+		  AND routine_type = 'PROCEDURE'
+		  AND routine_name = '%s';
+	`, procedure)).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("Could not check if procedure exists '%s', %w", procedure, err)
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (s *SqlDatabase) tableExists(table string) (bool, error) {
+	var count int
+	err := s.db.Get(&count, `
+		SELECT COUNT(*)
+		FROM information_schema.tables
+		WHERE table_schema = DATABASE()
+		  AND table_name = ?
+	`, table)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+const PostMigrationProcedureRegistryTable = "post_migration_procedure_registry"
+
+func (s *SqlDatabase) getPostMigrationProcedures() ([]string, error) {
+	var procs []string
+
+	exists, err := s.tableExists(PostMigrationProcedureRegistryTable)
+	if err != nil {
+		return procs, fmt.Errorf("Could not check if table exists: %w", err)
+	} else if !exists {
+		return procs, nil
+	}
+
+	err = s.db.Select(&procs, fmt.Sprintf("SELECT name FROM %s", PostMigrationProcedureRegistryTable))
+	if err != nil {
+		return nil, err
+	}
+	return procs, nil
+}
+
+func (s *SqlDatabase) RunPostMigrationsNoClose() error {
+	procs, err := s.getPostMigrationProcedures()
+	if err != nil {
+		return fmt.Errorf("Failed to get post migration procedures: %w", err)
+	}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var errs []string
+	for _, p := range procs {
+		exists, err := s.procedureExists(p)
+		if err != nil {
+			return fmt.Errorf("Could not check call procedure exists: %w", err)
+		} else if !exists {
+			return fmt.Errorf("Call procedure '%s' does not exist", p)
+		}
+		query := fmt.Sprintf("CALL %s();", p)
+		wg.Add(1)
+		go func(query string) {
+			defer wg.Done()
+			if _, err := s.db.Exec(query); err != nil {
+				mu.Lock()
+				errs = append(errs, fmt.Sprintf("%s: %v", p, err))
+				mu.Unlock()
+
+			}
+		}(query)
+	}
+	wg.Wait()
+	if len(errs) > 0 {
+		return fmt.Errorf("Error when exeute callers: [%s]", strings.Join(errs, "; "))
+	}
+	return nil
+}
+
+func (s *SqlDatabase) RunPostMigrations() error {
+	defer s.CloseConnection()
+	return s.RunPostMigrationsNoClose()
 }
 
 func EnableScheduler(cfg util.Config) error {

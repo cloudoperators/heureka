@@ -5,15 +5,17 @@ package processor
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	HeurekaUrl  string `envconfig:"HEUREKA_URL" required:"true" json:"-"`
-	ClusterName string `envconfig:"HEUREKA_CLUSTER_NAME" required:"true" json:"-"`
-	RegionName  string `envconfig:"HEUREKA_CLUSTER_REGION" required:"true" json:"-"`
-	ConfigPath  string `envconfig:"CONFIG_PATH" default:"/etc/config" required:"true"`
+	HeurekaUrl            string `envconfig:"HEUREKA_URL" required:"true" json:"-"`
+	ClusterName           string `envconfig:"HEUREKA_CLUSTER_NAME" required:"true" json:"-"`
+	RegionName            string `envconfig:"HEUREKA_CLUSTER_REGION" required:"true" json:"-"`
+	ConfigPath            string `envconfig:"CONFIG_PATH" default:"/etc/config" required:"true"`
+	DefaultKeppelRegistry string `envconfig:"DEFAULT_KEPPEL_REGISTRY" required:"true"`
 }
 
 func (c *Config) LoadAdvancedConfig() (*AdvancedConfig, error) {

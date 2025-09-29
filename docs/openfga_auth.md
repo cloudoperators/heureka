@@ -6,7 +6,7 @@ It works using an OpenFGA server loaded with a custom authorization model for He
 ## Setup Details
 
 The OpenFGA server is setup in the [docker-compose](/docker-compose.yaml) file with each service tied to the `openfga` profile.
-It is setup using [API token auth](https://github.com/openfga/go-sdk?tab=readme-ov-file#api-token), with the `AUTH_TOKEN_SECRET` environment variable being used as the token.
+It is setup using [API token auth](https://github.com/openfga/go-sdk?tab=readme-ov-file#api-token), with the `AUTHZ_FGA_API_TOKEN` environment variable being used as the api token.
 
 The Heureka app's OpenFGA interface is implemented using the [openfga/go-sdk](https://github.com/openfga/go-sdk), and is in the /internal/openfga directory.
 Upon starting up, Heureka checks if the `AUTHZ_FGA_API_URL` is empty or not to determine if auth should be setup or not.
@@ -43,8 +43,8 @@ The following four environment variables must be set to use OpenFGA
     - A name for Heureka's store within the OpenFGA server
 - AUTHZ_MODEL_FILE_PATH
     - The file path to Heureka's authorization model definition (internal/openfga/model/model.fga)
-- AUTH_TOKEN_SECRET
-    - An auth token to be used for communication between the OpenFGA server and Heureka
+- AUTHZ_FGA_API_TOKEN
+    - An api token to be used for communication between the OpenFGA server and Heureka
 
 With the above variables set, use the following command to run the OpenFGA server
 

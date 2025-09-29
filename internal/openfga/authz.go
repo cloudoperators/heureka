@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package openfga
 
 import (
@@ -24,7 +27,7 @@ type Authz struct {
 // Creates new Authorization implement using OpenFGA
 func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	fgaClient, err := client.NewSdkClient(&client.ClientConfiguration{
-		ApiUrl: cfg.AuthzOpenFGApiUrl,
+		ApiUrl: cfg.AuthzOpenFgaApiUrl,
 		Credentials: &credentials.Credentials{
 			Method: credentials.CredentialsMethodApiToken,
 			Config: &credentials.Config{
@@ -38,14 +41,14 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	}
 
 	// Check if the store already exists, otherwise create it
-	storeId, err := CheckStore(fgaClient, cfg.AuthzOpenFGAStoreName)
+	storeId, err := CheckStore(fgaClient, cfg.AuthzOpenFgaStoreName)
 	if err != nil {
 		l.Error("Could not list OpenFGA stores: ", err)
 		return nil
 	}
 	if storeId == "" {
 		// store does not exist, create it
-		store, err := fgaClient.CreateStore(context.Background()).Body(client.ClientCreateStoreRequest{Name: cfg.AuthzOpenFGAStoreName}).Execute()
+		store, err := fgaClient.CreateStore(context.Background()).Body(client.ClientCreateStoreRequest{Name: cfg.AuthzOpenFgaStoreName}).Execute()
 		if err != nil {
 			l.Error("Could not create OpenFGA store: ", err)
 			return nil
@@ -217,7 +220,6 @@ func (a *Authz) CheckTuple(r RelationInput) (bool, error) {
 	return len(resp.Tuples) > 0, nil
 }
 
-// CheckPermission checks if userId has permission on resourceId.
 func (a *Authz) CheckPermission(p PermissionInput) (bool, error) {
 	req := client.ClientCheckRequest{
 		User:     string(p.UserType) + ":" + string(p.UserId),

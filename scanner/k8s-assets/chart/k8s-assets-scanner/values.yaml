@@ -13,6 +13,7 @@ scanner:
   support_group_label: "ccloud/support-group"
   service_label: "ccloud/service"
   scanner_timeout: "30s"
+  default_keppel_registry: "keppel.com"
 
 image:
   repository: ghcr.io/cloudoperators/heureka-scanner-k8s-assets

@@ -28,3 +28,10 @@ func NNewFakeComponentEntities(n int) []entity.Component {
 	}
 	return r
 }
+
+func NewFakeComponentResult() entity.ComponentResult {
+	c := NewFakeComponentEntity()
+	return entity.ComponentResult{
+		Component: &c,
+	}
+}
