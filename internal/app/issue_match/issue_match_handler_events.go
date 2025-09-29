@@ -222,6 +222,7 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 	r := openfga.RelationInput{
 		ObjectType: "issue_match",
 		Relation:   "role",
+		UserType:   "role",
 	}
 
 	l := logrus.WithFields(logrus.Fields{

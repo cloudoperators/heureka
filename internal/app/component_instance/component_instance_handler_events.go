@@ -174,6 +174,7 @@ func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz o
 	r := openfga.RelationInput{
 		ObjectType: "component_instance",
 		Relation:   "role",
+		UserType:   "role",
 	}
 
 	l := logrus.WithFields(logrus.Fields{

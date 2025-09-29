@@ -50,3 +50,13 @@ func (a *NoAuthz) ListAccessibleResources(p PermissionInput) ([]AccessibleResour
 	resources := []AccessibleResource{}
 	return resources, nil
 }
+
+// DeleteObjectRelations deletes all relations for a given object.
+func (a *NoAuthz) DeleteObjectRelations(d DeleteObjectInput) error {
+	return nil
+}
+
+// DeleteObjectRelations deletes all relations for a given object.
+func (a *NoAuthz) DeleteUserRelations(d DeleteUserInput) error {
+	return nil
+}

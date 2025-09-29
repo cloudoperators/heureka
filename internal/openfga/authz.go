@@ -98,6 +98,52 @@ func (a *Authz) GetCurrentUser() string {
 	return a.config.CurrentUser
 }
 
+func (a *Authz) listAndDeleteRelations(req client.ClientReadRequest, log string) error {
+	resp, err := a.client.Read(context.Background()).Body(req).Execute()
+	if err != nil {
+		a.logger.Errorf("%s OpenFGA Read error: %v", log, err)
+		return err
+	}
+
+	var deletes []client.ClientTupleKeyWithoutCondition
+	for _, tuple := range resp.Tuples {
+		deletes = append(deletes, client.ClientTupleKeyWithoutCondition{
+			User:     tuple.Key.User,
+			Relation: tuple.Key.Relation,
+			Object:   tuple.Key.Object,
+		})
+	}
+
+	if len(deletes) == 0 {
+		return nil
+	}
+
+	writeReq := client.ClientWriteRequest{
+		Deletes: deletes,
+	}
+	_, err = a.client.Write(context.Background()).Body(writeReq).Execute()
+	if err != nil {
+		a.logger.Errorf("%s OpenFGA Write error: %v", log, err)
+	}
+	return err
+}
+
+func (a *Authz) DeleteUserRelations(r DeleteUserInput) error {
+	userString := string(r.UserType) + ":" + string(r.UserId)
+	req := client.ClientReadRequest{
+		User: &userString,
+	}
+	return a.listAndDeleteRelations(req, "DeleteUserRelations")
+}
+
+func (a *Authz) DeleteObjectRelations(r DeleteObjectInput) error {
+	objectString := string(r.ObjectType) + ":" + string(r.ObjectId)
+	req := client.ClientReadRequest{
+		Object: &objectString,
+	}
+	return a.listAndDeleteRelations(req, "DeleteObjectRelations")
+}
+
 func (a *Authz) HandleCreateAuthzRelation(r RelationInput) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":            "HandleCreateAuthzRelation",
@@ -146,7 +192,7 @@ func (a *Authz) HandleDeleteAuthzRelation(r RelationInput) {
 	if err != nil {
 		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	} else {
-		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+		l.WithField("event-step", "OpenFGA AddRelation").Infof("Removed relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	}
 }
 

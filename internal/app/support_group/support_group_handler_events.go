@@ -125,6 +125,7 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 	r := openfga.RelationInput{
 		ObjectType: "support_group",
 		Relation:   "role",
+		UserType:   "role",
 	}
 
 	l := logrus.WithFields(logrus.Fields{

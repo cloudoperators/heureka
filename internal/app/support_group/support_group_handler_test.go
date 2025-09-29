@@ -11,6 +11,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	sg "github.com/cloudoperators/heureka/internal/app/support_group"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -30,10 +31,29 @@ func TestSupportGroupHandler(t *testing.T) {
 
 var er event.EventRegistry
 var authz openfga.Authorization
+var handlerContext common.HandlerContext
+var cfg *util.Config
+var enableLogs bool
 
 var _ = BeforeSuite(func() {
+	cfg = &util.Config{
+		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
+		AuthzOpenFgaStoreName: "heureka-store",
+		CurrentUser:           "testuser",
+		AuthTokenSecret:       "key1",
+		AuthzOpenFgaApiToken:  "key1",
+	}
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
+	handlerContext = common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache.NewNoCache(),
+		Authz:    authz,
+	}
 })
 
 func getSupportGroupFilter() *entity.SupportGroupFilter {
@@ -127,14 +147,11 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 
 var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"), func() {
 	var (
-		cfg                 *util.Config
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
-		handlerContext      common.HandlerContext
-		enableLogs          bool
 		p                   openfga.PermissionInput
 	)
 
@@ -159,18 +176,8 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 			Relation:   "role",
 		}
 
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
-
-		cfg = &util.Config{
-			AuthTokenSecret:    "key1",
-			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
-			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFgaApiUrl: "http://localhost:8080",
-		}
+		handlerContext.DB = db
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("creates supportGroup", func() {

@@ -16,6 +16,16 @@ type ObjectType string
 type RelationType string
 type ObjectId string
 
+type DeleteUserInput struct {
+	UserType UserType
+	UserId   UserId
+}
+
+type DeleteObjectInput struct {
+	ObjectType ObjectType
+	ObjectId   ObjectId
+}
+
 type PermissionInput struct {
 	UserType   UserType
 	UserId     UserId
@@ -54,6 +64,10 @@ type Authorization interface {
 	HandleDeleteAuthzRelation(r RelationInput)
 	// Handler for generic event to update authz relation
 	HandleUpdateAuthzRelation(r RelationInput)
+	// Delete all relations for a given user
+	DeleteUserRelations(r DeleteUserInput) error
+	// Delete all relations for a given object
+	DeleteObjectRelations(r DeleteObjectInput) error
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {

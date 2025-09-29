@@ -64,6 +64,7 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 	r := openfga.RelationInput{
 		ObjectType: "component_version",
 		Relation:   "role",
+		UserType:   "role",
 	}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -85,7 +86,6 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 }
 
 // OnComponentVersionUpdateAuthz is a handler for the UpdateComponentVersionEvent
-// It creates an OpenFGA relation tuple for the component version and the current user
 func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
@@ -121,7 +121,6 @@ func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz op
 }
 
 // OnComponentVersionDeleteAuthz is a handler for the DeleteComponentVersionEvent
-// It creates an OpenFGA relation tuple for the component version and the current user
 func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()

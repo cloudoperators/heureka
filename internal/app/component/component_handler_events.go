@@ -152,7 +152,7 @@ func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.A
 	}
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentCreateAuthz",
+		"event":             "OnComponentDeleteAuthz",
 		"payload":           e,
 		"default_priority":  defaultPrio,
 		"default_repo_name": defaultRepoName,
@@ -164,9 +164,16 @@ func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.A
 		r.ObjectId = openfga.ObjectId(objectId)
 
 		// Handle Delete here:
-		//recreate component - user
-		//recreate component - cv
-		//recreate component - role
+		//delete component - user
+		//delete component - cv
+		r.ObjectType = "component"
+		r.UserType = "role"
+		authz.HandleDeleteAuthzRelation(r)
+		//delete component - role
+		r.ObjectType = "component"
+		r.UserType = "role"
+		authz.HandleDeleteAuthzRelation(r)
+
 	} else {
 		l.Error("Wrong event")
 	}

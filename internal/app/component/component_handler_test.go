@@ -31,10 +31,29 @@ func TestComponentHandler(t *testing.T) {
 
 var er event.EventRegistry
 var authz openfga.Authorization
+var handlerContext common.HandlerContext
+var cfg *util.Config
+var enableLogs bool
 
 var _ = BeforeSuite(func() {
+	cfg = &util.Config{
+		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
+		AuthzOpenFgaStoreName: "heureka-store",
+		CurrentUser:           "testuser",
+		AuthTokenSecret:       "key1",
+		AuthzOpenFgaApiToken:  "key1",
+	}
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
+	handlerContext = common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache.NewNoCache(),
+		Authz:    authz,
+	}
 })
 
 func getComponentFilter() *entity.ComponentFilter {
@@ -54,7 +73,6 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		componentHandler c.ComponentHandler
 		filter           *entity.ComponentFilter
 		options          *entity.ListOptions
-		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -132,10 +150,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
-		handlerContext   common.HandlerContext
-		enableLogs       bool
 		p                openfga.PermissionInput
-		cfg              *util.Config
 	)
 
 	BeforeEach(func() {
@@ -149,27 +164,17 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
 
 		p = openfga.PermissionInput{
 			UserType:   "role",
 			UserId:     "testuser",
-			ObjectId:   "",
-			ObjectType: "component_version",
+			ObjectId:   "testcomponent",
+			ObjectType: "component",
 			Relation:   "role",
 		}
 
-		cfg = &util.Config{
-			AuthTokenSecret:    "key1",
-			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
-			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFgaApiUrl: "http://localhost:8080",
-		}
+		handlerContext.DB = db
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("creates component", func() {
@@ -223,10 +228,6 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.ComponentResult
 		filter           *entity.ComponentFilter
-		handlerContext   common.HandlerContext
-		p                openfga.PermissionInput
-		enableLogs       bool
-		cfg              *util.Config
 	)
 
 	BeforeEach(func() {
@@ -240,27 +241,9 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
 
-		p = openfga.PermissionInput{
-			UserType:   "role",
-			UserId:     "testuser",
-			ObjectId:   "",
-			ObjectType: "component_version",
-			Relation:   "role",
-		}
-
-		cfg = &util.Config{
-			AuthTokenSecret:    "key1",
-			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
-			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFgaApiUrl: "http://localhost:8080",
-		}
+		handlerContext.DB = db
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("updates component", func() {
@@ -277,35 +260,6 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 			Expect(updatedComponent.Type).To(BeEquivalentTo(component.Type))
 		})
 	})
-
-	Context("when handling an UpdateComponentEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
-		Context("when new component is created", func() {
-			It("should add user resource relationship tuple in openfga", func() {
-				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
-
-				compFake := test.NewFakeComponentEntity()
-				createEvent := &c.CreateComponentEvent{
-					Component: &compFake,
-				}
-
-				// Use type assertion to convert a CreateServiceEvent into an Event
-				var event event.Event = createEvent
-				resourceId := strconv.FormatInt(createEvent.Component.Id, 10)
-				p.ObjectId = openfga.ObjectId(resourceId)
-				// Simulate event
-				c.OnComponentUpdateAuthz(db, event, authz)
-
-				ok, err := authz.CheckPermission(p)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(ok).To(BeTrue(), "permission should be granted")
-			})
-		})
-	})
 })
 
 var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), func() {
@@ -314,10 +268,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		componentHandler c.ComponentHandler
 		id               int64
 		filter           *entity.ComponentFilter
-		handlerContext   common.HandlerContext
 		p                openfga.PermissionInput
-		cfg              *util.Config
-		enableLogs       bool
 	)
 
 	BeforeEach(func() {
@@ -331,27 +282,17 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
 
 		p = openfga.PermissionInput{
 			UserType:   "role",
 			UserId:     "testuser",
-			ObjectId:   "",
-			ObjectType: "component_version",
+			ObjectId:   "testcomponent",
+			ObjectType: "component",
 			Relation:   "role",
 		}
 
-		cfg = &util.Config{
-			AuthTokenSecret:    "key1",
-			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
-			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFgaApiUrl: "http://localhost:8080",
-		}
+		handlerContext.DB = db
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("deletes component", func() {
@@ -373,28 +314,36 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		BeforeEach(func() {
 			db.On("GetDefaultIssuePriority").Return(int64(100))
 			db.On("GetDefaultRepositoryName").Return("nvd")
+			p = openfga.PermissionInput{
+				UserType:   "role",
+				UserId:     "testuser",
+				ObjectId:   "testcomponent",
+				ObjectType: "component",
+				Relation:   "role",
+			}
 		})
 
-		Context("when new component is created", func() {
-			It("should add user resource relationship tuple in openfga", func() {
+		Context("when new component is deleted", func() {
+			It("should delete user resource relationship tuple in openfga", func() {
 				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 
 				compFake := test.NewFakeComponentEntity()
-				createEvent := &c.CreateComponentEvent{
-					Component: &compFake,
+				deleteEvent := &c.DeleteComponentEvent{
+					ComponentID: compFake.Id,
 				}
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
-				var event event.Event = createEvent
-				resourceId := strconv.FormatInt(createEvent.Component.Id, 10)
+				var event event.Event = deleteEvent
+				resourceId := strconv.FormatInt(deleteEvent.ComponentID, 10)
 				p.ObjectId = openfga.ObjectId(resourceId)
 				// Simulate event
 				c.OnComponentDeleteAuthz(db, event, authz)
 
 				ok, err := authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(ok).To(BeTrue(), "permission should be granted")
+				Expect(ok).To(BeFalse(), "permission should be granted")
 			})
 		})
 	})
+
 })

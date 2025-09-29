@@ -33,10 +33,29 @@ func TestServiceHandler(t *testing.T) {
 
 var er event.EventRegistry
 var authz openfga.Authorization
+var handlerContext common.HandlerContext
+var cfg *util.Config
+var enableLogs bool
 
 var _ = BeforeSuite(func() {
+	cfg = &util.Config{
+		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
+		AuthzOpenFgaStoreName: "heureka-store",
+		CurrentUser:           "testuser",
+		AuthTokenSecret:       "key1",
+		AuthzOpenFgaApiToken:  "key1",
+	}
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
+	handlerContext = common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache.NewNoCache(),
+		Authz:    authz,
+	}
 })
 
 func getServiceFilter() *entity.ServiceFilter {
@@ -58,7 +77,6 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		serviceHandler s.ServiceHandler
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
-		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -227,13 +245,10 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 
 var _ = Describe("When creating Service", Label("app", "CreateService"), func() {
 	var (
-		cfg            *util.Config
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
 		service        entity.Service
 		filter         *entity.ServiceFilter
-		handlerContext common.HandlerContext
-		enableLogs     bool
 		p              openfga.PermissionInput
 	)
 
@@ -253,31 +268,13 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		p = openfga.PermissionInput{
 			UserType:   "role",
 			UserId:     "testuser",
-			ObjectId:   "",
-			ObjectType: "support_group",
+			ObjectId:   "test_service",
+			ObjectType: "service",
 			Relation:   "role",
 		}
 
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
-
-		cfg = &util.Config{
-			AuthTokenSecret:    "key1",
-			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
-			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFgaApiUrl: "http://localhost:8080",
-		}
-
-		cache := cache.NewNoCache()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache,
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("creates service", func() {
@@ -398,7 +395,6 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 		serviceHandler s.ServiceHandler
 		service        entity.ServiceResult
 		filter         *entity.ServiceFilter
-		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -442,7 +438,6 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		serviceHandler s.ServiceHandler
 		id             int64
 		filter         *entity.ServiceFilter
-		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -488,7 +483,6 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		service        entity.ServiceResult
 		owner          entity.User
 		filter         *entity.ServiceFilter
-		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -592,7 +586,6 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 		name           string
-		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {

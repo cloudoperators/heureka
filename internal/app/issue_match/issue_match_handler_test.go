@@ -38,10 +38,29 @@ func TestIssueMatchHandler(t *testing.T) {
 
 var er event.EventRegistry
 var authz openfga.Authorization
+var handlerContext common.HandlerContext
+var cfg *util.Config
+var enableLogs bool
 
 var _ = BeforeSuite(func() {
+	cfg = &util.Config{
+		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
+		AuthzOpenFgaStoreName: "heureka-store",
+		CurrentUser:           "testuser",
+		AuthTokenSecret:       "key1",
+		AuthzOpenFgaApiToken:  "key1",
+	}
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
+	handlerContext = common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache.NewNoCache(),
+		Authz:    authz,
+	}
 })
 
 func getIssueMatchFilter() *entity.IssueMatchFilter {
@@ -189,7 +208,6 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), func() {
 	var (
-		cfg               *util.Config
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatch
@@ -200,8 +218,6 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ss                severity.SeverityHandler
 		ivs               issue_variant.IssueVariantHandler
 		rs                issue_repository.IssueRepositoryHandler
-		handlerContext    common.HandlerContext
-		enableLogs        bool
 		p                 openfga.PermissionInput
 	)
 
@@ -220,24 +236,13 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		p = openfga.PermissionInput{
 			UserType:   "role",
 			UserId:     "testuser",
-			ObjectId:   "",
-			ObjectType: "support_group",
+			ObjectId:   "test_issue_match",
+			ObjectType: "issue_match",
 			Relation:   "role",
 		}
 
-		cfg = &util.Config{
-			AuthTokenSecret:    "key1",
-			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
-			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFgaApiUrl: "http://localhost:8080",
-		}
-
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
 		ivs = issue_variant.NewIssueVariantHandler(handlerContext, rs)
 		ss = severity.NewSeverityHandler(handlerContext, ivs)

@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "test",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/internal/app/component/component_handler_test.go",
+            "program": "${workspaceFolder}/internal/app/support_group/support_group_test.go",
             "env": {},
             "args": []
         },

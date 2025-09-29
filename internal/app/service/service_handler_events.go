@@ -170,6 +170,7 @@ func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Aut
 	r := openfga.RelationInput{
 		ObjectType: "service",
 		Relation:   "role",
+		UserType:   "role",
 	}
 
 	l := logrus.WithFields(logrus.Fields{

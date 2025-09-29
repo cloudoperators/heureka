@@ -35,10 +35,29 @@ func TestComponentInstanceHandler(t *testing.T) {
 
 var er event.EventRegistry
 var authz openfga.Authorization
+var handlerContext common.HandlerContext
+var cfg *util.Config
+var enableLogs bool
 
 var _ = BeforeSuite(func() {
+	cfg = &util.Config{
+		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
+		AuthzOpenFgaStoreName: "heureka-store",
+		CurrentUser:           "testuser",
+		AuthTokenSecret:       "key1",
+		AuthzOpenFgaApiToken:  "key1",
+	}
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
+	handlerContext = common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache.NewNoCache(),
+		Authz:    authz,
+	}
 })
 
 func componentInstanceFilter() *entity.ComponentInstanceFilter {
@@ -190,39 +209,26 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponentInstance"), func() {
 	var (
-		cfg                      *util.Config
 		db                       *mocks.MockDatabase
 		componentInstanceHandler ci.ComponentInstanceHandler
 		componentInstance        entity.ComponentInstance
-		handlerContext           common.HandlerContext
-		enableLogs               bool
 		p                        openfga.PermissionInput
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		componentInstance = test.NewFakeComponentInstanceEntity()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
 
 		p = openfga.PermissionInput{
 			UserType:   "role",
 			UserId:     "testuser",
-			ObjectId:   "",
-			ObjectType: "component_version",
+			ObjectId:   "test_component_instance",
+			ObjectType: "component_instance",
 			Relation:   "role",
 		}
 
-		cfg = &util.Config{
-			AuthTokenSecret:    "key1",
-			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
-			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFgaApiUrl: "http://localhost:8080",
-		}
+		handlerContext.DB = db
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	Context("with valid input", func() {
@@ -292,7 +298,6 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		componentInstanceHandler ci.ComponentInstanceHandler
 		componentInstance        entity.ComponentInstanceResult
 		filter                   *entity.ComponentInstanceFilter
-		handlerContext           common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -359,7 +364,6 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		componentInstanceHandler ci.ComponentInstanceHandler
 		id                       int64
 		filter                   *entity.ComponentInstanceFilter
-		handlerContext           common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -406,7 +410,6 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 		filter                   *entity.ComponentInstanceFilter
 		options                  *entity.ListOptions
 		CCRN                     string
-		handlerContext           common.HandlerContext
 	)
 
 	BeforeEach(func() {

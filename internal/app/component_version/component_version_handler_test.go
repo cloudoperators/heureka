@@ -31,10 +31,29 @@ func TestComponentVersionHandler(t *testing.T) {
 
 var er event.EventRegistry
 var authz openfga.Authorization
+var handlerContext common.HandlerContext
+var cfg *util.Config
+var enableLogs bool
 
 var _ = BeforeSuite(func() {
+	cfg = &util.Config{
+		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
+		AuthzOpenFgaStoreName: "heureka-store",
+		CurrentUser:           "testuser",
+		AuthTokenSecret:       "key1",
+		AuthzOpenFgaApiToken:  "key1",
+	}
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
+	handlerContext = common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache.NewNoCache(),
+		Authz:    authz,
+	}
 })
 
 func getComponentVersionFilter() *entity.ComponentVersionFilter {
@@ -48,11 +67,10 @@ func getComponentVersionFilter() *entity.ComponentVersionFilter {
 
 var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVersions"), func() {
 	var (
-		db             *mocks.MockDatabase
-		cvHandler      cv.ComponentVersionHandler
-		filter         *entity.ComponentVersionFilter
-		options        *entity.ListOptions
-		handlerContext common.HandlerContext
+		db        *mocks.MockDatabase
+		cvHandler cv.ComponentVersionHandler
+		filter    *entity.ComponentVersionFilter
+		options   *entity.ListOptions
 	)
 
 	BeforeEach(func() {
@@ -224,12 +242,9 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponentVersion"), func() {
 	var (
-		cfg                    *util.Config
 		db                     *mocks.MockDatabase
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersion
-		handlerContext         common.HandlerContext
-		enableLogs             bool
 		p                      openfga.PermissionInput
 	)
 
@@ -251,12 +266,8 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 			Relation:   "role",
 		}
 
-		cfg = &util.Config{
-			AuthTokenSecret:    "key1",
-			CurrentUser:        handlerContext.Authz.GetCurrentUser(),
-			AuthzModelFilePath: "../../../internal/openfga/model/model.fga",
-			AuthzOpenFgaApiUrl: "http://localhost:8080",
-		}
+		handlerContext.DB = db
+		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("creates componentVersion", func() {
@@ -309,7 +320,6 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersionResult
 		filter                 *entity.ComponentVersionFilter
-		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -355,7 +365,6 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		componenVersionService cv.ComponentVersionHandler
 		id                     int64
 		filter                 *entity.ComponentVersionFilter
-		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {
