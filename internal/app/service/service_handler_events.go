@@ -19,6 +19,8 @@ const (
 	ListServicesEventName                     event.EventName = "ListServices"
 	GetServiceEventName                       event.EventName = "GetService"
 	ListServiceCcrnsEventName                 event.EventName = "ListServiceCcrns"
+	ListServiceDomainsEventName               event.EventName = "ListServiceDomains"
+	ListServiceRegionsEventName               event.EventName = "ListServiceRegions"
 	AddIssueRepositoryToServiceEventName      event.EventName = "AddIssueRepositoryToService"
 	RemoveIssueRepositoryFromServiceEventName event.EventName = "RemoveIssueRepositoryFromService"
 )
@@ -92,6 +94,26 @@ type ListServiceCcrnsEvent struct {
 
 func (e *ListServiceCcrnsEvent) Name() event.EventName {
 	return ListServiceCcrnsEventName
+}
+
+type ListServiceDomainsEvent struct {
+	Filter  *entity.ServiceFilter
+	Options *entity.ListOptions
+	Domains []string
+}
+
+func (e *ListServiceDomainsEvent) Name() event.EventName {
+	return ListServiceDomainsEventName
+}
+
+type ListServiceRegionsEvent struct {
+	Filter  *entity.ServiceFilter
+	Options *entity.ListOptions
+	Regions []string
+}
+
+func (e *ListServiceRegionsEvent) Name() event.EventName {
+	return ListServiceRegionsEventName
 }
 
 type AddIssueRepositoryToServiceEvent struct {

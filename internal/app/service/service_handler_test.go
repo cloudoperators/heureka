@@ -530,3 +530,95 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 		})
 	})
 })
+
+var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomains"), func() {
+	var (
+		db             *mocks.MockDatabase
+		serviceHandler s.ServiceHandler
+		filter         *entity.ServiceFilter
+		options        *entity.ListOptions
+		domain         string
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = entity.NewListOptions()
+		filter = getServiceFilter()
+		domain = "f1"
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetServiceDomains", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
+			res, err := serviceHandler.ListServiceDomains(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific serviceDomains filter is applied", func() {
+		BeforeEach(func() {
+			filter = &entity.ServiceFilter{
+				Domain: []*string{&domain},
+			}
+
+			db.On("GetServiceDomains", filter).Return([]string{domain}, nil)
+		})
+		It("returns filtered services according to the service type", func() {
+			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
+			res, err := serviceHandler.ListServiceDomains(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf(domain), "should only consist of domain")
+		})
+	})
+})
+
+var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions"), func() {
+	var (
+		db             *mocks.MockDatabase
+		serviceHandler s.ServiceHandler
+		filter         *entity.ServiceFilter
+		options        *entity.ListOptions
+		region         string
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = entity.NewListOptions()
+		filter = getServiceFilter()
+		region = "f1"
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetServiceRegions", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
+			res, err := serviceHandler.ListServiceRegions(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific serviceRegions filter is applied", func() {
+		BeforeEach(func() {
+			filter = &entity.ServiceFilter{
+				Region: []*string{&region},
+			}
+
+			db.On("GetServiceRegions", filter).Return([]string{region}, nil)
+		})
+		It("returns filtered services according to the service type", func() {
+			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
+			res, err := serviceHandler.ListServiceRegions(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf(region), "should only consist of region")
+		})
+	})
+})

@@ -8,6 +8,8 @@ query {
             node {
                 id
                 ccrn
+                domain
+                region
                 issueCounts {
                     critical
                     high
