@@ -25,11 +25,11 @@ type componentVersionHandler struct {
 	cache         cache.Cache
 }
 
-func NewComponentVersionHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache) ComponentVersionHandler {
+func NewComponentVersionHandler(handlerContext common.HandlerContext) ComponentVersionHandler {
 	return &componentVersionHandler{
-		database:      database,
-		eventRegistry: eventRegistry,
-		cache:         cache,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
+		cache:         handlerContext.Cache,
 	}
 }
 

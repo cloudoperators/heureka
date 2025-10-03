@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"strconv"
 
+	"time"
+
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	applog "github.com/cloudoperators/heureka/internal/app/logging"
-	"time"
 
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
@@ -30,16 +31,16 @@ var CacheTtlCountIssueRatings = 12 * time.Hour
 type issueHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
-	logger        *logrus.Logger
 	cache         cache.Cache
+	logger        *logrus.Logger
 }
 
-func NewIssueHandler(db database.Database, er event.EventRegistry, cache cache.Cache) IssueHandler {
+func NewIssueHandler(handlerContext common.HandlerContext) IssueHandler {
 	return &issueHandler{
-		database:      db,
-		eventRegistry: er,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
+		cache:         handlerContext.Cache,
 		logger:        logrus.New(),
-		cache:         cache,
 	}
 }
 

@@ -19,10 +19,10 @@ type evidenceHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewEvidenceHandler(db database.Database, er event.EventRegistry) EvidenceHandler {
+func NewEvidenceHandler(handlerContext common.HandlerContext) EvidenceHandler {
 	return &evidenceHandler{
-		database:      db,
-		eventRegistry: er,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
 	}
 }
 

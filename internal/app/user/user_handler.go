@@ -19,10 +19,10 @@ type userHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewUserHandler(db database.Database, er event.EventRegistry) UserHandler {
+func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
 	return &userHandler{
-		database:      db,
-		eventRegistry: er,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
 	}
 }
 

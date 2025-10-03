@@ -6,6 +6,7 @@ package scanner_run
 import (
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 
@@ -33,17 +34,22 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	var (
 		db                *mocks.MockDatabase
 		scannerRunHandler ScannerRunHandler
+		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		sre = test.NewFakeScannerRunEntity()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+		}
 	})
 
 	It("creates a scannerrun", func() {
 		db.On("CreateScannerRun", sre).Return(true, nil)
 
-		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRunHandler = NewScannerRunHandler(handlerContext)
 		_, err := scannerRunHandler.CreateScannerRun(sre)
 		Expect(err).To(BeNil())
 	})
@@ -53,7 +59,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("CompleteScannerRun", sre.UUID).Return(true, nil)
 		db.On("Autoclose").Return(true, nil)
 
-		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRunHandler = NewScannerRunHandler(handlerContext)
 		scannerRunHandler.CreateScannerRun(sre)
 		_, err := scannerRunHandler.CompleteScannerRun(sre.UUID)
 
@@ -64,7 +70,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("CreateScannerRun", sre).Return(true, nil)
 		db.On("FailScannerRun", sre.UUID, "Booom!").Return(true, nil)
 
-		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRunHandler = NewScannerRunHandler(handlerContext)
 		scannerRunHandler.CreateScannerRun(sre)
 		_, err := scannerRunHandler.FailScannerRun(sre.UUID, "Booom!")
 
@@ -74,7 +80,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	It("Retrieves list of scannerrun tags", func() {
 		db.On("GetScannerRunTags").Return([]string{"tag1", "tag2"}, nil)
 
-		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRunHandler = NewScannerRunHandler(handlerContext)
 		tags, err := scannerRunHandler.GetScannerRunTags()
 
 		Expect(err).To(BeNil())
@@ -86,7 +92,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 
 		db.On("GetScannerRuns", &entity.ScannerRunFilter{}).Return([]entity.ScannerRun{*sre}, nil)
 
-		scannerRunHandler = NewScannerRunHandler(db, er)
+		scannerRunHandler = NewScannerRunHandler(handlerContext)
 		scannerRuns, err := scannerRunHandler.GetScannerRuns(&entity.ScannerRunFilter{}, nil)
 
 		Expect(err).To(BeNil())

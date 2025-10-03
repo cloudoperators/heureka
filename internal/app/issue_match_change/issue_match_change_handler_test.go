@@ -7,11 +7,13 @@ import (
 	"math"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	imc "github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -24,6 +26,7 @@ func TestIssueHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -49,12 +52,18 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 		issueMatchChangeHandler imc.IssueMatchChangeHandler
 		filter                  *entity.IssueMatchChangeFilter
 		options                 *entity.ListOptions
+		handlerContext          common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = getIssueMatchChangeFilter()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -66,7 +75,7 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 		})
 
 		It("shows the total count in the results", func() {
-			issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
+			issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(handlerContext)
 			res, err := issueMatchChangeHandler.ListIssueMatchChanges(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -89,7 +98,7 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 			}
 			db.On("GetIssueMatchChanges", filter).Return(imcs, nil)
 			db.On("GetAllIssueMatchChangeIds", filter).Return(ids, nil)
-			issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
+			issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(handlerContext)
 			res, err := issueMatchChangeHandler.ListIssueMatchChanges(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -108,17 +117,23 @@ var _ = Describe("When creating IssueMatchChange", Label("app", "CreateIssueMatc
 		db                      *mocks.MockDatabase
 		issueMatchChangeHandler imc.IssueMatchChangeHandler
 		issueMatchChange        entity.IssueMatchChange
+		handlerContext          common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		issueMatchChange = test.NewFakeIssueMatchChange()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("creates issueMatchChange", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueMatchChange", &issueMatchChange).Return(&issueMatchChange, nil)
-		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
+		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(handlerContext)
 		newIssueMatchChange, err := issueMatchChangeHandler.CreateIssueMatchChange(&issueMatchChange)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueMatchChange.Id).NotTo(BeEquivalentTo(0))
@@ -134,6 +149,7 @@ var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatc
 		issueMatchChangeHandler imc.IssueMatchChangeHandler
 		issueMatchChange        entity.IssueMatchChange
 		filter                  *entity.IssueMatchChangeFilter
+		handlerContext          common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -148,12 +164,17 @@ var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatc
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("updates issueMatchChange", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssueMatchChange", &issueMatchChange).Return(nil)
-		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
+		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(handlerContext)
 		if issueMatchChange.Action == entity.IssueMatchChangeActionAdd.String() {
 			issueMatchChange.Action = entity.IssueMatchChangeActionRemove.String()
 		} else {
@@ -175,6 +196,7 @@ var _ = Describe("When deleting IssueMatchChange", Label("app", "DeleteIssueMatc
 		issueMatchChangeHandler imc.IssueMatchChangeHandler
 		id                      int64
 		filter                  *entity.IssueMatchChangeFilter
+		handlerContext          common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -189,12 +211,17 @@ var _ = Describe("When deleting IssueMatchChange", Label("app", "DeleteIssueMatc
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("deletes issueMatchChange", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueMatchChange", id, mock.Anything).Return(nil)
-		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(db, er)
+		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(handlerContext)
 		db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{}, nil)
 		err := issueMatchChangeHandler.DeleteIssueMatchChange(id)
 		Expect(err).To(BeNil(), "no error should be thrown")
