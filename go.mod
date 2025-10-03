@@ -5,8 +5,8 @@ go 1.24.0
 toolchain go1.24.1
 
 require (
-	github.com/99designs/gqlgen v0.17.80
-	github.com/brianvoe/gofakeit/v7 v7.7.1
+	github.com/99designs/gqlgen v0.17.81
+	github.com/brianvoe/gofakeit/v7 v7.7.3
 	github.com/coreos/go-oidc v2.4.0+incompatible
 	github.com/docker/docker v28.4.0+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
@@ -30,8 +30,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.11.1
-	github.com/valkey-io/valkey-go v1.0.65
-	github.com/vektah/gqlparser/v2 v2.5.30
+	github.com/valkey-io/valkey-go v1.0.66
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/text v0.29.0
 	golang.org/x/time v0.13.0
@@ -111,6 +110,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/urfave/cli/v2 v2.27.7 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.30 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0 // indirect
