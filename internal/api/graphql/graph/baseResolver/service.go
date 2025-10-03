@@ -95,6 +95,8 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		PaginatedX:        entity.PaginatedX{First: first, After: after},
 		SupportGroupCCRN:  filter.SupportGroupCcrn,
 		CCRN:              filter.ServiceCcrn,
+		Domain:            filter.Domain,
+		Region:            filter.Region,
 		OwnerName:         filter.UserName,
 		OwnerId:           ownerId,
 		ActivityId:        activityId,
@@ -171,7 +173,25 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	return &connection, nil
 
 }
+
 func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	return ServiceFilterBaseResolver(app.ListServiceCcrns, ctx, filter, &FilterDisplayServiceCcrn)
+}
+
+func ServiceDomainBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	return ServiceFilterBaseResolver(app.ListServiceDomains, ctx, filter, &FilterDisplayDomain)
+}
+
+func ServiceRegionBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	return ServiceFilterBaseResolver(app.ListServiceRegions, ctx, filter, &FilterDisplayRegion)
+}
+
+func ServiceFilterBaseResolver(
+	appCall func(filter *entity.ServiceFilter, opt *entity.ListOptions) ([]string, error),
+	ctx context.Context,
+	filter *model.ServiceFilter,
+	filterDisplay *string,
+) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -185,16 +205,18 @@ func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		PaginatedX:       entity.PaginatedX{},
 		SupportGroupCCRN: filter.SupportGroupCcrn,
 		CCRN:             filter.ServiceCcrn,
+		Domain:           filter.Domain,
+		Region:           filter.Region,
 		OwnerName:        filter.UserName,
 		State:            model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListServiceCcrns(f, opt)
+	names, err := appCall(f, opt)
 
 	if err != nil {
-		return nil, NewResolverError("ServiceCcrnBaseResolver", err.Error())
+		return nil, NewResolverError("ServiceFilterBaseResolver", err.Error())
 	}
 
 	var pointerNames []*string
@@ -204,7 +226,7 @@ func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	filterItem := model.FilterItem{
-		DisplayName: &FilterDisplayServiceCcrn,
+		DisplayName: filterDisplay,
 		Values:      pointerNames,
 	}
 

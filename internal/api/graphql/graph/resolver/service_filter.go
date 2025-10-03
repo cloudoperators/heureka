@@ -25,6 +25,26 @@ func (r *serviceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model
 	return item, err
 }
 
+func (r *serviceFilterValueResolver) Domain(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ServiceDomainBaseResolver(r.App, ctx, filter)
+
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterDomain
+	return item, err
+}
+
+func (r *serviceFilterValueResolver) Region(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ServiceRegionBaseResolver(r.App, ctx, filter)
+
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterRegion
+	return item, err
+}
+
 func (r *serviceFilterValueResolver) UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.UniqueUserIDBaseResolver(r.App, ctx, filter)
 	if err != nil {

@@ -9,6 +9,8 @@ mutation ($serviceId: ID!, $issueRepositoryId: ID!, $priority: Int!) {
     ) {
         id
         ccrn
+        domain
+        region
         issueRepositories {
             edges {
                 node {

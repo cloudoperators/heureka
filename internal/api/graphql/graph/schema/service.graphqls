@@ -4,6 +4,8 @@
 type Service implements Node {
     id: ID!
     ccrn: String
+    domain: String
+    region: String
     owners(filter: UserFilter, first: Int, after: String): UserConnection
     supportGroups(filter: SupportGroupFilter, first: Int, after: String, orderBy: [SupportGroupOrderBy]): SupportGroupConnection
     activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
@@ -23,6 +25,8 @@ type ServiceMetadata {
 
 input ServiceInput {
     ccrn: String
+    domain: String
+    region: String
 }
 
 type ServiceConnection implements Connection {
@@ -40,6 +44,8 @@ type ServiceEdge implements Edge {
 
 input ServiceFilter {
     serviceCcrn: [String]
+    domain: [String]
+    region: [String]
     uniqueUserId: [String]
     type: [Int]
     userName: [String]

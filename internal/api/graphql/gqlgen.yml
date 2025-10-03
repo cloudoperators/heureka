@@ -246,6 +246,10 @@ models:
     fields:
       serviceCcrn:
         resolver: true
+      domain:
+        resolver: true
+      region:
+        resolver: true
       uniqueUserId:
         resolver: true
       userName:
