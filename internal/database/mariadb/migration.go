@@ -22,7 +22,7 @@ import (
 
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
-var Migration fs.FS = &migrationFiles
+var MigrationFs fs.FS = &migrationFiles
 
 func (s *SqlDatabase) GetVersion() (string, error) {
 	m, err := s.openMigration()
@@ -89,7 +89,7 @@ func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
 		return nil, fmt.Errorf("Could not connect DB: %w", err)
 	}
 
-	d, err := iofs.New(Migration, "migrations")
+	d, err := iofs.New(MigrationFs, "migrations")
 	if err != nil {
 		return nil, err
 	}

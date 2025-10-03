@@ -160,12 +160,7 @@ func (s *SqlDatabase) ConnectDB(dbName string) error {
 }
 
 func (s *SqlDatabase) connectDB() error {
-	_, err := s.db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", s.dbName))
-	if err != nil {
-		return fmt.Errorf("Could not create database '%s'. %w", s.dbName, err)
-	}
-
-	_, err = s.db.Exec(fmt.Sprintf("USE %s", s.dbName))
+	_, err := s.db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s ; USE %s", s.dbName, s.dbName))
 	if err != nil {
 		return fmt.Errorf("Could not use database '%s'. %w", s.dbName, err)
 	}
