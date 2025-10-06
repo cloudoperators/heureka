@@ -237,13 +237,7 @@ func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz o
 func OnComponentInstanceDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "component_instance",
-		Relation:   "role",
-		UserType:   "role",
-	}
+	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentInstanceDeleteAuthz",
@@ -254,16 +248,20 @@ func OnComponentInstanceDeleteAuthz(db database.Database, e event.Event, authz o
 
 	if deleteEvent, ok := e.(*DeleteComponentInstanceEvent); ok {
 		objectId := strconv.FormatInt(deleteEvent.ComponentInstanceID, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
 
-		// Handle Update here:
-		//recreate ci - user
-		//recreate ci - service
-		//recreate ci - role
+		// Delete all tuples where object is the component_instance
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			ObjectType: "component_instance",
+			ObjectId:   openfga.ObjectId(objectId),
+		})
 
-		//recreate ci - cv
-		//recreate ci - im
+		// Delete all tuples where user is the component_instance
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType: "component_instance",
+			UserId:   openfga.UserId(objectId),
+		})
+
+		authz.RemoveRelationBulk(deleteInput)
 	} else {
 		l.Error("Wrong event")
 	}

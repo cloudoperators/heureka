@@ -280,13 +280,7 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "issue_match",
-		Relation:   "role",
-		UserType:   "role",
-	}
+	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnIssueMatchDeleteAuthz",
@@ -297,13 +291,20 @@ func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.
 
 	if deleteEvent, ok := e.(*DeleteIssueMatchEvent); ok {
 		objectId := strconv.FormatInt(deleteEvent.IssueMatchID, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
 
-		// Handle Delete here:
-		//recreate im - user
-		//recreate im - ci
-		//recreate im - role
+		// Delete all tuples where object is the issue_match
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			ObjectType: "issue_match",
+			ObjectId:   openfga.ObjectId(objectId),
+		})
+
+		// Delete all tuples where user is the issue_match
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType: "issue_match",
+			UserId:   openfga.UserId(objectId),
+		})
+
+		authz.RemoveRelationBulk(deleteInput)
 	} else {
 		l.Error("Wrong event")
 	}

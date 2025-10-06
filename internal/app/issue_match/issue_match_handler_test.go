@@ -45,11 +45,11 @@ var enableLogs bool
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
 		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-		AuthzOpenFgaApiUrl:    "",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
 		AuthzOpenFgaStoreName: "heureka-store",
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "key1",
-		AuthzOpenFgaApiToken:  "key1",
+		AuthTokenSecret:       "testkey",
+		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -407,6 +407,60 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, options)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatches.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	Context("when handling a DeleteIssueMatchEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new issue match is deleted", func() {
+			It("should delete tuples related to that issuematch in openfga", func() {
+				// Test OnIssueMatchDeleteAuthz against all possible relations
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+				imFake := test.NewFakeIssueMatch()
+				deleteEvent := &im.DeleteIssueMatchEvent{
+					IssueMatchID: imFake.Id,
+				}
+				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.IssueMatchID, 10))
+				relations := []openfga.RelationInput{
+					{ // user - issue_match: a user can view the issue match
+						UserType:   "user",
+						UserId:     "userID",
+						ObjectId:   objectId,
+						ObjectType: "issue_match",
+						Relation:   "can_view",
+					},
+					{ // component_instance - issue_match: a component instance is related to the issue match
+						UserType:   "component_instance",
+						UserId:     "componentInstanceID",
+						ObjectId:   objectId,
+						ObjectType: "issue_match",
+						Relation:   "component_instance",
+					},
+					{ // role - issue_match: a role is assigned to the issue match
+						UserType:   "role",
+						UserId:     "roleID",
+						ObjectId:   objectId,
+						ObjectType: "issue_match",
+						Relation:   "role",
+					},
+				}
+
+				for _, rel := range relations {
+					authz.AddRelation(rel)
+				}
+
+				var event event.Event = deleteEvent
+				// Simulate event
+				im.OnIssueMatchDeleteAuthz(db, event, authz)
+
+				remaining, err := authz.ListRelations(relations)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
+			})
+		})
 	})
 })
 

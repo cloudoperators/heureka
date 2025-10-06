@@ -41,8 +41,8 @@ var _ = BeforeSuite(func() {
 		AuthzOpenFgaApiUrl:    "http://localhost:8080",
 		AuthzOpenFgaStoreName: "heureka-store",
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "key1",
-		AuthzOpenFgaApiToken:  "key1",
+		AuthTokenSecret:       "testkey",
+		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -403,5 +403,67 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		componentVersions, err := componenVersionService.ListComponentVersions(filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(componentVersions.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	Context("when handling a DeleteComponentVersionEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new component version is deleted", func() {
+			It("should delete tuples related to that component version in openfga", func() {
+				// Test OnComponentVersionDeleteAuthz against all possible relations
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+				cvFake := test.NewFakeComponentVersionEntity()
+				deleteEvent := &cv.DeleteComponentVersionEvent{
+					ComponentVersionID: cvFake.Id,
+				}
+				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.ComponentVersionID, 10))
+				userId := openfga.UserId(strconv.FormatInt(deleteEvent.ComponentVersionID, 10))
+				relations := []openfga.RelationInput{
+					{ // user - component_version: a user can view the component version
+						UserType:   "user",
+						UserId:     "userID",
+						ObjectId:   objectId,
+						ObjectType: "component_version",
+						Relation:   "can_view",
+					},
+					{ // component_instance - component_version: a component instance is related to the component version
+						UserType:   "component_instance",
+						UserId:     "componentinstanceID",
+						ObjectId:   objectId,
+						ObjectType: "component_version",
+						Relation:   "component_instance",
+					},
+					{ // role - component_version: a role is assigned to the component version
+						UserType:   "role",
+						UserId:     "roleID",
+						ObjectId:   objectId,
+						ObjectType: "component_version",
+						Relation:   "role",
+					},
+					{ // component_version - component: a component version is related to a component
+						UserType:   "component_version",
+						UserId:     userId,
+						ObjectId:   "componentId",
+						ObjectType: "component",
+						Relation:   "component",
+					},
+				}
+
+				for _, rel := range relations {
+					authz.AddRelation(rel)
+				}
+
+				var event event.Event = deleteEvent
+				// Simulate event
+				cv.OnComponentVersionDeleteAuthz(db, event, authz)
+
+				remaining, err := authz.ListRelations(relations)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
+			})
+		})
 	})
 })

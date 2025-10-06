@@ -40,11 +40,11 @@ var enableLogs bool
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
 		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-		AuthzOpenFgaApiUrl:    "",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
 		AuthzOpenFgaStoreName: "heureka-store",
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "key1",
-		AuthzOpenFgaApiToken:  "key1",
+		AuthTokenSecret:       "testkey",
+		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -477,6 +477,69 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		services, err := serviceHandler.ListServices(filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(services.Elements).To(BeEmpty(), "no services should be found")
+	})
+
+	Context("when handling a DeleteServiceEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new service is deleted", func() {
+			It("should delete tuples related to that service in openfga", func() {
+				// Test OnServiceDeleteAuthz against all possible relations
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+				srv := test.NewFakeServiceEntity()
+				deleteEvent := &s.DeleteServiceEvent{
+					ServiceID: srv.Id,
+				}
+				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.ServiceID, 10))
+				userId := openfga.UserId(strconv.FormatInt(deleteEvent.ServiceID, 10))
+
+				relations := []openfga.RelationInput{
+					{ // user - service: a user can view the service
+						UserType:   "user",
+						UserId:     "userID",
+						ObjectId:   objectId,
+						ObjectType: "service",
+						Relation:   "can_view",
+					},
+					{ // role - service: a role is assigned to the service
+						UserType:   "role",
+						UserId:     "roleID",
+						ObjectId:   objectId,
+						ObjectType: "service",
+						Relation:   "role",
+					},
+					{ // support group - service: a support group is related to the service
+						UserType:   "support_group",
+						UserId:     "supportGroupID",
+						ObjectId:   objectId,
+						ObjectType: "service",
+						Relation:   "support_group",
+					},
+					{ // service - component_instance: a service is related to a component instance
+						UserType:   "service",
+						UserId:     userId,
+						ObjectId:   "componentInstanceID",
+						ObjectType: "component_instance",
+						Relation:   "service",
+					},
+				}
+
+				for _, rel := range relations {
+					authz.AddRelation(rel)
+				}
+
+				var event event.Event = deleteEvent
+				// Simulate event
+				s.OnServiceDeleteAuthz(db, event, authz)
+
+				remaining, err := authz.ListRelations(relations)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
+			})
+		})
 	})
 })
 

@@ -42,11 +42,11 @@ var enableLogs bool
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
 		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-		AuthzOpenFgaApiUrl:    "",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
 		AuthzOpenFgaStoreName: "heureka-store",
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "key1",
-		AuthzOpenFgaApiToken:  "key1",
+		AuthTokenSecret:       "testkey",
+		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -403,6 +403,75 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 			componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, lo)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(componentInstances.Elements).To(BeEmpty(), "component instance should be deleted")
+		})
+
+		Context("when handling a DeleteComponentInstanceEvent", func() {
+			BeforeEach(func() {
+				db.On("GetDefaultIssuePriority").Return(int64(100))
+				db.On("GetDefaultRepositoryName").Return("nvd")
+			})
+
+			Context("when new component instance is deleted", func() {
+				It("should delete tuples related to that component instance in openfga", func() {
+					// Test OnComponentInstanceDeleteAuthz against all possible relations
+					authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+					ciFake := test.NewFakeComponentInstanceEntity()
+					deleteEvent := &ci.DeleteComponentInstanceEvent{
+						ComponentInstanceID: ciFake.Id,
+					}
+					objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.ComponentInstanceID, 10))
+					userId := openfga.UserId(strconv.FormatInt(deleteEvent.ComponentInstanceID, 10))
+					relations := []openfga.RelationInput{
+						{ // role - component_instance: a role is assigned to the component instance
+							UserType:   "role",
+							UserId:     "roleID",
+							ObjectId:   objectId,
+							ObjectType: "component_instance",
+							Relation:   "role",
+						},
+						{ // service - component_instance: a service is related to the component instance
+							UserType:   "service",
+							UserId:     "serviceID",
+							ObjectId:   objectId,
+							ObjectType: "component_instance",
+							Relation:   "related_service",
+						},
+						{ // user - component_instance: a user can view the component instance
+							UserType:   "user",
+							UserId:     "userID",
+							ObjectId:   objectId,
+							ObjectType: "component_instance",
+							Relation:   "can_view",
+						},
+						{ // component_instance - component_version: a component instance is related to a component version
+							UserType:   "component_instance",
+							UserId:     userId,
+							ObjectId:   "cvID",
+							ObjectType: "component_version",
+							Relation:   "component_instance",
+						},
+						{ // component_instance - issue_match: a component instance is related to an issue match
+							UserType:   "component_instance",
+							UserId:     userId,
+							ObjectId:   "issueMatchID",
+							ObjectType: "issue_match",
+							Relation:   "component_instance",
+						},
+					}
+
+					for _, rel := range relations {
+						authz.AddRelation(rel)
+					}
+
+					var event event.Event = deleteEvent
+					// Simulate event
+					ci.OnComponentInstanceDeleteAuthz(db, event, authz)
+
+					remaining, err := authz.ListRelations(relations)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
+				})
+			})
 		})
 	})
 })

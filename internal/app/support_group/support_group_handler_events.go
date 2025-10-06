@@ -145,3 +145,37 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 		l.Error("Wrong event")
 	}
 }
+
+// OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
+func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	deleteInput := []openfga.RelationInput{}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnSupportGroupDeleteAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if deleteEvent, ok := e.(*DeleteSupportGroupEvent); ok {
+		objectId := strconv.FormatInt(deleteEvent.SupportGroupID, 10)
+
+		// Delete all tuples where object is the support_group
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			ObjectType: "support_group",
+			ObjectId:   openfga.ObjectId(objectId),
+		})
+
+		// Delete all tuples where user is the support_group
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType: "support_group",
+			UserId:   openfga.UserId(objectId),
+		})
+
+		authz.RemoveRelationBulk(deleteInput)
+	} else {
+		l.Error("Wrong event")
+	}
+}

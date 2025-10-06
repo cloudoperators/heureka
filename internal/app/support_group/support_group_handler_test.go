@@ -41,8 +41,8 @@ var _ = BeforeSuite(func() {
 		AuthzOpenFgaApiUrl:    "http://localhost:8080",
 		AuthzOpenFgaStoreName: "heureka-store",
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "key1",
-		AuthzOpenFgaApiToken:  "key1",
+		AuthTokenSecret:       "testkey",
+		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -315,6 +315,69 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		supportGroups, err := supportGroupHandler.ListSupportGroups(filter, listOptions)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroups.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	Context("when handling a DeleteSupportGroupEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new support group is deleted", func() {
+			It("should delete tuples related to that support group in openfga", func() {
+				// Test OnSupportGroupDeleteAuthz against all possible relations
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+				sgFake := test.NewFakeSupportGroupEntity()
+				deleteEvent := &sg.DeleteSupportGroupEvent{
+					SupportGroupID: sgFake.Id,
+				}
+				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.SupportGroupID, 10))
+				userId := openfga.UserId(strconv.FormatInt(deleteEvent.SupportGroupID, 10))
+
+				relations := []openfga.RelationInput{
+					{ // user - support_group
+						UserType:   "user",
+						UserId:     "userID",
+						ObjectId:   objectId,
+						ObjectType: "support_group",
+						Relation:   "member",
+					},
+					{ // support_group - support_group
+						UserType:   "support_group",
+						UserId:     userId,
+						ObjectId:   objectId,
+						ObjectType: "support_group",
+						Relation:   "support_group",
+					},
+					{ // role - support_group
+						UserType:   "role",
+						UserId:     "roleID",
+						ObjectId:   objectId,
+						ObjectType: "support_group",
+						Relation:   "role",
+					},
+					{ // support_group - service
+						UserType:   "support_group",
+						UserId:     userId,
+						ObjectId:   "serviceID",
+						ObjectType: "service",
+						Relation:   "support_group",
+					},
+				}
+
+				for _, rel := range relations {
+					authz.AddRelation(rel)
+				}
+
+				var event event.Event = deleteEvent
+				// Simulate event
+				sg.OnSupportGroupDeleteAuthz(db, event, authz)
+
+				remaining, err := authz.ListRelations(relations)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
+			})
+		})
 	})
 })
 

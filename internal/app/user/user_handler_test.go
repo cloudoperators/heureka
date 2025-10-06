@@ -5,15 +5,18 @@ package user_test
 
 import (
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	u "github.com/cloudoperators/heureka/internal/app/user"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -27,10 +30,29 @@ func TestUserHandler(t *testing.T) {
 
 var er event.EventRegistry
 var authz openfga.Authorization
+var handlerContext common.HandlerContext
+var cfg *util.Config
+var enableLogs bool
 
 var _ = BeforeSuite(func() {
+	cfg = &util.Config{
+		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
+		AuthzOpenFgaStoreName: "heureka-store",
+		CurrentUser:           "testuser",
+		AuthTokenSecret:       "testkey",
+		AuthzOpenFgaApiToken:  "testkey",
+	}
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
+	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 	er = event.NewEventRegistry(db, authz)
+	handlerContext = common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache.NewNoCache(),
+		Authz:    authz,
+	}
 })
 
 func getUserFilter() *entity.UserFilter {
@@ -240,7 +262,49 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(users.Elements).To(BeEmpty(), "no error should be thrown")
 	})
+
+	Context("when handling a DeleteUserEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		Context("when new user is deleted", func() {
+			It("should delete tuples related to that user in openfga", func() {
+				// Test OnUserDeleteAuthz against all possible relations
+				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+				userFake := test.NewFakeUserEntity()
+				deleteEvent := &u.DeleteUserEvent{
+					UserID: userFake.Id,
+				}
+				userId := openfga.UserId(strconv.FormatInt(deleteEvent.UserID, 10))
+
+				relations := []openfga.RelationInput{
+					{ // user - role
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "roleID",
+						ObjectType: "role",
+						Relation:   "admin",
+					},
+				}
+
+				for _, rel := range relations {
+					authz.AddRelation(rel)
+				}
+
+				var event event.Event = deleteEvent
+				// Simulate event
+				u.OnUserDeleteAuthz(db, event, authz)
+
+				remaining, err := authz.ListRelations(relations)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
+			})
+		})
+	})
 })
+
 var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 	var (
 		db             *mocks.MockDatabase

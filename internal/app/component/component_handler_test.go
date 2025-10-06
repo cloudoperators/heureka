@@ -38,11 +38,11 @@ var enableLogs bool
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
 		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-		AuthzOpenFgaApiUrl:    "",
+		AuthzOpenFgaApiUrl:    "http://localhost:8080",
 		AuthzOpenFgaStoreName: "heureka-store",
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "key1",
-		AuthzOpenFgaApiToken:  "key1",
+		AuthTokenSecret:       "testkey",
+		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -272,7 +272,6 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		componentHandler c.ComponentHandler
 		id               int64
 		filter           *entity.ComponentFilter
-		p                openfga.PermissionInput
 	)
 
 	BeforeEach(func() {
@@ -285,14 +284,6 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 				First: &first,
 				After: &after,
 			},
-		}
-
-		p = openfga.PermissionInput{
-			UserType:   "role",
-			UserId:     "testuser",
-			ObjectId:   "testcomponent",
-			ObjectType: "component",
-			Relation:   "role",
 		}
 
 		handlerContext.DB = db
@@ -318,34 +309,51 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		BeforeEach(func() {
 			db.On("GetDefaultIssuePriority").Return(int64(100))
 			db.On("GetDefaultRepositoryName").Return("nvd")
-			p = openfga.PermissionInput{
-				UserType:   "role",
-				UserId:     "testuser",
-				ObjectId:   "testcomponent",
-				ObjectType: "component",
-				Relation:   "role",
-			}
 		})
 
 		Context("when new component is deleted", func() {
-			It("should delete user resource relationship tuple in openfga", func() {
+			It("should delete tuples related to that component in openfga", func() {
+				// Test OnComponentDeleteAuthz against all possible relations
 				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
-
 				compFake := test.NewFakeComponentEntity()
 				deleteEvent := &c.DeleteComponentEvent{
 					ComponentID: compFake.Id,
 				}
+				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.ComponentID, 10))
+				relations := []openfga.RelationInput{
+					{ // role - component: a role is assigned to the component
+						UserType:   "role",
+						UserId:     "roleID",
+						ObjectId:   objectId,
+						ObjectType: "component",
+						Relation:   "role",
+					},
+					{ // component_version - component: a component version is related to the component
+						UserType:   "component_version",
+						UserId:     "cvID",
+						ObjectId:   objectId,
+						ObjectType: "component",
+						Relation:   "component_version",
+					},
+					{ // user - component: a user can view the component
+						UserType:   "user",
+						UserId:     "userID",
+						ObjectId:   objectId,
+						ObjectType: "component",
+						Relation:   "can_view",
+					},
+				}
 
-				// Use type assertion to convert a CreateServiceEvent into an Event
+				for _, rel := range relations {
+					authz.AddRelation(rel)
+				}
+
 				var event event.Event = deleteEvent
-				resourceId := strconv.FormatInt(deleteEvent.ComponentID, 10)
-				p.ObjectId = openfga.ObjectId(resourceId)
-				// Simulate event
 				c.OnComponentDeleteAuthz(db, event, authz)
 
-				ok, err := authz.CheckPermission(p)
+				remaining, err := authz.ListRelations(relations)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(ok).To(BeFalse(), "permission should be granted")
+				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
 			})
 		})
 	})

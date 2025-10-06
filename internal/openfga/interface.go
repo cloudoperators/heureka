@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/openfga/go-sdk/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,12 +17,10 @@ type ObjectType string
 type RelationType string
 type ObjectId string
 
-type DeleteUserInput struct {
-	UserType UserType
-	UserId   UserId
-}
-
-type DeleteObjectInput struct {
+type DeleteRelationInput struct {
+	UserType   UserType
+	UserId     UserId
+	Relation   RelationType
 	ObjectType ObjectType
 	ObjectId   ObjectId
 }
@@ -48,12 +47,16 @@ type AccessibleResource struct {
 }
 
 type Authorization interface {
-	// check if userId has permission on resourceId
+	// Check if userId has permission on resourceId
 	CheckPermission(p PermissionInput) (bool, error)
-	// add relationship between userId and resourceId
+	// Add relationship between userId and resourceId
 	AddRelation(r RelationInput) error
-	// remove relationship between userId and resourceId
+	// Remove a single relationship between userId and resourceId
 	RemoveRelation(r RelationInput) error
+	// Remove multiple relations by providing a filter for tuples to delete
+	RemoveRelationBulk(r []RelationInput) error
+	// List Relations based on multiple filters
+	ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
 	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
 	// Placeholder function that mimics getting user from User Context
@@ -64,10 +67,6 @@ type Authorization interface {
 	HandleDeleteAuthzRelation(r RelationInput)
 	// Handler for generic event to update authz relation
 	HandleUpdateAuthzRelation(r RelationInput)
-	// Delete all relations for a given user
-	DeleteUserRelations(r DeleteUserInput) error
-	// Delete all relations for a given object
-	DeleteObjectRelations(r DeleteObjectInput) error
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {

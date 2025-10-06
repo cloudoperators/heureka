@@ -124,13 +124,7 @@ func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz op
 func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "component_version",
-		Relation:   "role",
-		UserType:   "role",
-	}
+	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentVersionDeleteAuthz",
@@ -141,15 +135,20 @@ func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz op
 
 	if deleteEvent, ok := e.(*DeleteComponentVersionEvent); ok {
 		objectId := strconv.FormatInt(deleteEvent.ComponentVersionID, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
 
-		// Handle Delete here:
-		//recreate cv - user
-		//recreate cv - ci
-		//recreate cv - role
+		// Delete all tuples where object is the component_version
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			ObjectType: "component_version",
+			ObjectId:   openfga.ObjectId(objectId),
+		})
 
-		//recreate cv - component
+		// Delete all tuples where user is the component_version
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType: "component_version",
+			UserId:   openfga.UserId(objectId),
+		})
+
+		authz.RemoveRelationBulk(deleteInput)
 	} else {
 		l.Error("Wrong event")
 	}

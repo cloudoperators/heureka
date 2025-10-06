@@ -98,50 +98,68 @@ func (a *Authz) GetCurrentUser() string {
 	return a.config.CurrentUser
 }
 
-func (a *Authz) listAndDeleteRelations(req client.ClientReadRequest, log string) error {
+func (a *Authz) ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
+	req := client.ClientReadRequest{} // Empty request returns all tuples
 	resp, err := a.client.Read(context.Background()).Body(req).Execute()
 	if err != nil {
-		a.logger.Errorf("%s OpenFGA Read error: %v", log, err)
+		a.logger.Errorf("OpenFGA Read (ListRelations) error: %v", err)
+		return nil, err
+	}
+
+	var tuples []client.ClientTupleKeyWithoutCondition
+	for _, tuple := range resp.Tuples {
+		userParts := strings.SplitN(tuple.Key.User, ":", 2)
+		objectParts := strings.SplitN(tuple.Key.Object, ":", 2)
+
+		for _, r := range filters {
+			if r.UserType != "" && (len(userParts) < 1 || userParts[0] != string(r.UserType)) {
+				continue
+			}
+			if r.UserId != "" && (len(userParts) < 2 || userParts[1] != string(r.UserId)) {
+				continue
+			}
+			if r.Relation != "" && tuple.Key.Relation != string(r.Relation) {
+				continue
+			}
+			if r.ObjectType != "" && (len(objectParts) < 1 || objectParts[0] != string(r.ObjectType)) {
+				continue
+			}
+			if r.ObjectId != "" && (len(objectParts) < 2 || objectParts[1] != string(r.ObjectId)) {
+				continue
+			}
+
+			// If all specified fields match for this filter, add the tuple and break to avoid duplicates
+			tuples = append(tuples, client.ClientTupleKeyWithoutCondition{
+				User:     tuple.Key.User,
+				Relation: tuple.Key.Relation,
+				Object:   tuple.Key.Object,
+			})
+			break
+		}
+	}
+	return tuples, nil
+}
+
+func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
+	tuples, err := a.ListRelations(r)
+	if err != nil {
 		return err
 	}
 
-	var deletes []client.ClientTupleKeyWithoutCondition
-	for _, tuple := range resp.Tuples {
-		deletes = append(deletes, client.ClientTupleKeyWithoutCondition{
-			User:     tuple.Key.User,
-			Relation: tuple.Key.Relation,
-			Object:   tuple.Key.Object,
-		})
-	}
-
-	if len(deletes) == 0 {
+	if len(tuples) == 0 {
 		return nil
 	}
 
 	writeReq := client.ClientWriteRequest{
-		Deletes: deletes,
+		Deletes: tuples,
 	}
 	_, err = a.client.Write(context.Background()).Body(writeReq).Execute()
 	if err != nil {
-		a.logger.Errorf("%s OpenFGA Write error: %v", log, err)
+		a.logger.Errorf("OpenFGA Delete (DeleteRelations) error: %v", err)
+	} else {
+		a.logger.Infof("OpenFGA Delete (DeleteRelations): Deleted %d relations", len(tuples))
 	}
 	return err
-}
-
-func (a *Authz) DeleteUserRelations(r DeleteUserInput) error {
-	userString := string(r.UserType) + ":" + string(r.UserId)
-	req := client.ClientReadRequest{
-		User: &userString,
-	}
-	return a.listAndDeleteRelations(req, "DeleteUserRelations")
-}
-
-func (a *Authz) DeleteObjectRelations(r DeleteObjectInput) error {
-	objectString := string(r.ObjectType) + ":" + string(r.ObjectId)
-	req := client.ClientReadRequest{
-		Object: &objectString,
-	}
-	return a.listAndDeleteRelations(req, "DeleteObjectRelations")
 }
 
 func (a *Authz) HandleCreateAuthzRelation(r RelationInput) {

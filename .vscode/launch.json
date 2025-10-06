@@ -10,11 +10,11 @@
             "request": "launch",
             "mode": "test",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/internal/app/support_group/support_group_test.go",
+            "program": "${workspaceFolder}/internal/app/component/component_handler_test.go",
             "env": {},
             "args": []
         },
-            {
+        {
       "name": "Debug All Tests (ginkgo -r)",
       "type": "go",
       "request": "launch",
@@ -22,7 +22,7 @@
       "program": "${workspaceFolder}",
       "args": ["-ginkgo.v", "-ginkgo.r"], // -ginkgo.r for recursive, -ginkgo.v for verbose
       "env": {}
-    },
+        },
         {
             "name": "Launch K8sScanner",
             "type": "go",

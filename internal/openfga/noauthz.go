@@ -5,6 +5,7 @@ package openfga
 
 import (
 	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/openfga/go-sdk/client"
 )
 
 type NoAuthz struct {
@@ -52,11 +53,11 @@ func (a *NoAuthz) ListAccessibleResources(p PermissionInput) ([]AccessibleResour
 }
 
 // DeleteObjectRelations deletes all relations for a given object.
-func (a *NoAuthz) DeleteObjectRelations(d DeleteObjectInput) error {
+func (a *NoAuthz) RemoveRelationBulk(input []RelationInput) error {
 	return nil
 }
 
-// DeleteObjectRelations deletes all relations for a given object.
-func (a *NoAuthz) DeleteUserRelations(d DeleteUserInput) error {
-	return nil
+// ListRelations lists all relations for a given input.
+func (a *NoAuthz) ListRelations(input []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
+	return []client.ClientTupleKeyWithoutCondition{}, nil
 }
