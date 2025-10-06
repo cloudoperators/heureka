@@ -596,6 +596,7 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 		domain         string
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -603,6 +604,13 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		domain = "f1"
+		cache := cache.NewNoCache()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache,
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
@@ -612,7 +620,7 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 		})
 
 		It("it return the results", func() {
-			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
+			serviceHandler = s.NewServiceHandler(handlerContext)
 			res, err := serviceHandler.ListServiceDomains(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
@@ -627,7 +635,7 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 			db.On("GetServiceDomains", filter).Return([]string{domain}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
-			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
+			serviceHandler = s.NewServiceHandler(handlerContext)
 			res, err := serviceHandler.ListServiceDomains(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(domain), "should only consist of domain")
@@ -642,6 +650,7 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 		region         string
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -649,6 +658,13 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		region = "f1"
+		cache := cache.NewNoCache()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache,
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
@@ -658,7 +674,7 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 		})
 
 		It("it return the results", func() {
-			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
+			serviceHandler = s.NewServiceHandler(handlerContext)
 			res, err := serviceHandler.ListServiceRegions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
@@ -673,7 +689,7 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 			db.On("GetServiceRegions", filter).Return([]string{region}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
-			serviceHandler = s.NewServiceHandler(db, er, cache.NewNoCache())
+			serviceHandler = s.NewServiceHandler(handlerContext)
 			res, err := serviceHandler.ListServiceRegions(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(region), "should only consist of region")
