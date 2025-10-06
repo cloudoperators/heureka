@@ -8,6 +8,7 @@ package severity_test
 import (
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
@@ -16,6 +17,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -51,6 +53,8 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		issueVariants    []entity.IssueVariant
 		repositories     []entity.IssueRepository
 		maxSeverityScore float64
+		authz            openfga.Authorization
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -64,8 +68,14 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		irFilter = entity.NewIssueRepositoryFilter()
 		irFilter.First = &first
 		irFilter.After = &after
-		rs = issue_repository.NewIssueRepositoryHandler(db, er)
-		ivs = issue_variant.NewIssueVariantHandler(db, er, rs, cache.NewNoCache())
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache.NewNoCache(),
+			Authz:    authz,
+		}
+		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
+		ivs = issue_variant.NewIssueVariantHandler(handlerContext, rs)
 	})
 
 	Context("issue repositories have different priority", func() {
@@ -89,7 +99,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				issueVariants[1].Severity.Score = maxSeverityScore
 			})
 			It("returns severity value", func() {
-				severityHandler = ss.NewSeverityHandler(db, er, ivs)
+				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
 				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
@@ -103,7 +113,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				issueVariants[1].Severity.Score = maxSeverityScore - 1
 			})
 			It("returns severity value", func() {
-				severityHandler = ss.NewSeverityHandler(db, er, ivs)
+				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
 				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
@@ -133,7 +143,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				issueVariants[1].Severity.Score = maxSeverityScore - 1
 			})
 			It("return severity value", func() {
-				severityHandler = ss.NewSeverityHandler(db, er, ivs)
+				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
 				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")

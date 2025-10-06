@@ -19,10 +19,10 @@ type activityHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewActivityHandler(db database.Database, er event.EventRegistry) ActivityHandler {
+func NewActivityHandler(handlerContext common.HandlerContext) ActivityHandler {
 	return &activityHandler{
-		database:      db,
-		eventRegistry: er,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
 	}
 }
 

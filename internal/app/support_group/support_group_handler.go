@@ -19,10 +19,10 @@ type supportGroupHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewSupportGroupHandler(database database.Database, eventRegistry event.EventRegistry) SupportGroupHandler {
+func NewSupportGroupHandler(handlerContext common.HandlerContext) SupportGroupHandler {
 	return &supportGroupHandler{
-		database:      database,
-		eventRegistry: eventRegistry,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
 	}
 }
 

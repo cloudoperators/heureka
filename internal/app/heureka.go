@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/activity"
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/component_version"
@@ -27,6 +28,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/user"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
@@ -47,6 +49,8 @@ type HeurekaApp struct {
 	support_group.SupportGroupHandler
 	user.UserHandler
 
+	authz openfga.Authorization
+
 	eventRegistry event.EventRegistry
 	database      database.Database
 
@@ -60,39 +64,53 @@ type HeurekaApp struct {
 
 func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database, cfg util.Config) *HeurekaApp {
 	cache := NewAppCache(ctx, wg, cfg)
+	enableLogs := true
+
+	authz := openfga.NewAuthorizationHandler(&cfg, enableLogs)
+
 	profiler := profiler.NewProfiler(cfg.CpuProfilerFilePath)
 	profiler.Start()
 
 	er := event.NewEventRegistry(db)
-	rh := issue_repository.NewIssueRepositoryHandler(db, er)
-	ivh := issue_variant.NewIssueVariantHandler(db, er, rh, cache)
-	sh := severity.NewSeverityHandler(db, er, ivh)
+
+	handlerContext := common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    cache,
+		Authz:    authz,
+	}
+
+	rh := issue_repository.NewIssueRepositoryHandler(handlerContext)
+	ivh := issue_variant.NewIssueVariantHandler(handlerContext, rh)
+	sh := severity.NewSeverityHandler(handlerContext, ivh)
 
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
-		ActivityHandler:          activity.NewActivityHandler(db, er),
-		ComponentHandler:         component.NewComponentHandler(db, er, cache),
-		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(db, er, cache),
-		ComponentVersionHandler:  component_version.NewComponentVersionHandler(db, er, cache),
-		EvidenceHandler:          evidence.NewEvidenceHandler(db, er),
-		IssueHandler:             issue.NewIssueHandler(db, er, cache),
-		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(db, er),
-		IssueMatchHandler:        issue_match.NewIssueMatchHandler(db, er, sh, cache),
+		ActivityHandler:          activity.NewActivityHandler(handlerContext),
+		ComponentHandler:         component.NewComponentHandler(handlerContext),
+		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(handlerContext),
+		ComponentVersionHandler:  component_version.NewComponentVersionHandler(handlerContext),
+		EvidenceHandler:          evidence.NewEvidenceHandler(handlerContext),
+		IssueHandler:             issue.NewIssueHandler(handlerContext),
+		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(handlerContext),
+		IssueMatchHandler:        issue_match.NewIssueMatchHandler(handlerContext, sh),
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
-		ScannerRunHandler:        scanner_run.NewScannerRunHandler(db, er),
-		ServiceHandler:           service.NewServiceHandler(db, er, cache),
+		ScannerRunHandler:        scanner_run.NewScannerRunHandler(handlerContext),
+		ServiceHandler:           service.NewServiceHandler(handlerContext),
 		SeverityHandler:          sh,
-		SupportGroupHandler:      support_group.NewSupportGroupHandler(db, er),
-		UserHandler:              user.NewUserHandler(db, er),
-		eventRegistry:            er,
-		database:                 db,
-		cache:                    cache,
+		SupportGroupHandler:      support_group.NewSupportGroupHandler(handlerContext),
+		UserHandler:              user.NewUserHandler(handlerContext),
+		eventRegistry:            handlerContext.EventReg,
+		database:                 handlerContext.DB,
+		cache:                    handlerContext.Cache,
 		ctx:                      ctx,
+		authz:                    handlerContext.Authz,
 		wg:                       wg,
 		profiler:                 profiler,
 	}
+
 	heureka.SubscribeHandlers()
 	return heureka
 }

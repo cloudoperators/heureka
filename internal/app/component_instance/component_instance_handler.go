@@ -8,6 +8,8 @@ import (
 
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	applog "github.com/cloudoperators/heureka/internal/app/logging"
@@ -16,7 +18,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/sirupsen/logrus"
-	"strconv"
 )
 
 var CacheTtlGetComponentInstances = 12 * time.Hour
@@ -30,11 +31,11 @@ type componentInstanceHandler struct {
 	logger        *logrus.Logger
 }
 
-func NewComponentInstanceHandler(database database.Database, eventRegistry event.EventRegistry, cache cache.Cache) ComponentInstanceHandler {
+func NewComponentInstanceHandler(handlerContext common.HandlerContext) ComponentInstanceHandler {
 	return &componentInstanceHandler{
-		database:      database,
-		eventRegistry: eventRegistry,
-		cache:         cache,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
+		cache:         handlerContext.Cache,
 		logger:        logrus.New(),
 	}
 }

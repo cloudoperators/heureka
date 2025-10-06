@@ -7,11 +7,13 @@ import (
 	"math"
 	"testing"
 
+	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	es "github.com/cloudoperators/heureka/internal/app/evidence"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -24,6 +26,7 @@ func TestEvidenceHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -53,12 +56,18 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 		evidenceHandler es.EvidenceHandler
 		filter          *entity.EvidenceFilter
 		options         *entity.ListOptions
+		handlerContext  common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = evidenceListOptions()
 		filter = evidenceFilter()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -70,7 +79,7 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 		})
 
 		It("shows the total count in the results", func() {
-			evidenceHandler = es.NewEvidenceHandler(db, er)
+			evidenceHandler = es.NewEvidenceHandler(handlerContext)
 			res, err := evidenceHandler.ListEvidences(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
@@ -93,7 +102,7 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 			}
 			db.On("GetEvidences", filter).Return(evidences, nil)
 			db.On("GetAllEvidenceIds", filter).Return(ids, nil)
-			evidenceHandler = es.NewEvidenceHandler(db, er)
+			evidenceHandler = es.NewEvidenceHandler(handlerContext)
 			res, err := evidenceHandler.ListEvidences(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -112,17 +121,23 @@ var _ = Describe("When creating Evidence", Label("app", "CreateEvidence"), func(
 		db              *mocks.MockDatabase
 		evidenceHandler es.EvidenceHandler
 		evidence        entity.Evidence
+		handlerContext  common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		evidence = test.NewFakeEvidenceEntity()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("creates evidence", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateEvidence", &evidence).Return(&evidence, nil)
-		evidenceHandler = es.NewEvidenceHandler(db, er)
+		evidenceHandler = es.NewEvidenceHandler(handlerContext)
 		newEvidence, err := evidenceHandler.CreateEvidence(&evidence)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newEvidence.Id).NotTo(BeEquivalentTo(0))
@@ -143,6 +158,7 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 		evidenceHandler es.EvidenceHandler
 		evidence        entity.Evidence
 		filter          *entity.EvidenceFilter
+		handlerContext  common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -157,12 +173,17 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("updates evidence", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateEvidence", &evidence).Return(nil)
-		evidenceHandler = es.NewEvidenceHandler(db, er)
+		evidenceHandler = es.NewEvidenceHandler(handlerContext)
 		evidence.Description = "New Description"
 		filter.Id = []*int64{&evidence.Id}
 		db.On("GetEvidences", filter).Return([]entity.Evidence{evidence}, nil)
@@ -185,6 +206,7 @@ var _ = Describe("When deleting Evidence", Label("app", "DeleteEvidence"), func(
 		evidenceHandler es.EvidenceHandler
 		id              int64
 		filter          *entity.EvidenceFilter
+		handlerContext  common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -199,12 +221,17 @@ var _ = Describe("When deleting Evidence", Label("app", "DeleteEvidence"), func(
 				After: &after,
 			},
 		}
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("deletes evidence", func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteEvidence", id, mock.Anything).Return(nil)
-		evidenceHandler = es.NewEvidenceHandler(db, er)
+		evidenceHandler = es.NewEvidenceHandler(handlerContext)
 		db.On("GetEvidences", filter).Return([]entity.Evidence{}, nil)
 		err := evidenceHandler.DeleteEvidence(id)
 		Expect(err).To(BeNil(), "no error should be thrown")

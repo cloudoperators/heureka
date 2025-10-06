@@ -90,6 +90,9 @@ test-app: gqlgen install-build-dependencies
 test-access: gqlgen install-build-dependencies
 	ginkgo -r internal/api/graphql/access
 
+test-authorization: gqlgen install-build-dependencies
+	ginkgo -r internal/openfga
+
 test-db: gqlgen install-build-dependencies
 	ginkgo -r internal/database/mariadb
 
@@ -135,3 +138,9 @@ ui-up:
 
 ui-down:
 	$(DOCKER_COMPOSE) --profile ui down
+
+openfga-up:
+	$(DOCKER_COMPOSE) --profile openfga up
+
+openfga-down:
+	$(DOCKER_COMPOSE) --profile openfga down

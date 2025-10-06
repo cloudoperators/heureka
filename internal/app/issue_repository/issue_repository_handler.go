@@ -18,10 +18,10 @@ type issueRepositoryHandler struct {
 	eventRegistry event.EventRegistry
 }
 
-func NewIssueRepositoryHandler(database database.Database, eventRegistry event.EventRegistry) IssueRepositoryHandler {
+func NewIssueRepositoryHandler(handlerContext common.HandlerContext) IssueRepositoryHandler {
 	return &issueRepositoryHandler{
-		database:      database,
-		eventRegistry: eventRegistry,
+		database:      handlerContext.DB,
+		eventRegistry: handlerContext.EventReg,
 	}
 }
 
