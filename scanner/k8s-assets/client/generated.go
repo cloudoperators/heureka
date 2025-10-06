@@ -674,11 +674,19 @@ func (v *ServiceFilter) GetSearch() []string { return v.Search }
 func (v *ServiceFilter) GetState() []StateFilter { return v.State }
 
 type ServiceInput struct {
-	Ccrn string `json:"ccrn"`
+	Ccrn   string `json:"ccrn"`
+	Domain string `json:"domain"`
+	Region string `json:"region"`
 }
 
 // GetCcrn returns ServiceInput.Ccrn, and is useful for accessing the field via an interface.
 func (v *ServiceInput) GetCcrn() string { return v.Ccrn }
+
+// GetDomain returns ServiceInput.Domain, and is useful for accessing the field via an interface.
+func (v *ServiceInput) GetDomain() string { return v.Domain }
+
+// GetRegion returns ServiceInput.Region, and is useful for accessing the field via an interface.
+func (v *ServiceInput) GetRegion() string { return v.Region }
 
 type StateFilter string
 

@@ -125,6 +125,11 @@ func (dbm *LocalTestDataBaseManager) Setup() error {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
 		return err
 	}
+	err = dbm.dbClient.WaitPostMigrations()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while waiting for post migration procedures")
+		return err
+	}
 
 	return nil
 }
@@ -158,9 +163,14 @@ func (dbm *LocalTestDataBaseManager) ResetSchema(dbName string) error {
 		return err
 	}
 	dbm.loadDBClient()
-	err = dbm.dbClient.RunPostMigrationsNoClose()
+	err = dbm.dbClient.RunPostMigrations()
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
+		return err
+	}
+	err = dbm.dbClient.WaitPostMigrations()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while waiting for post migration procedures")
 		return err
 	}
 
@@ -259,12 +269,20 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to create db connection")
 	}
-	err = dbClient.RunPostMigrationsNoClose()
+	err = dbClient.RunPostMigrations()
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
 	}
+	err = dbClient.WaitPostMigrations()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while waiting for post migration procedures")
+	}
 
-	return dbClient
+	resultDbClient, err := dbm.createNewConnection()
+	if err != nil {
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to create db connection")
+	}
+	return resultDbClient
 }
 
 func (dbm *LocalTestDataBaseManager) NewTestSchemaWithoutMigration() *mariadb.SqlDatabase {

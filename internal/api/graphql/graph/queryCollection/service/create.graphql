@@ -7,5 +7,7 @@ mutation ($input: ServiceInput!) {
     ) {
         id
         ccrn
+        domain
+        region
     }
 }

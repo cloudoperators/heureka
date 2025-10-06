@@ -3,6 +3,8 @@
 
 type ServiceFilterValue {
     serviceCcrn(filter: ServiceFilter): FilterItem
+    domain(filter: ServiceFilter): FilterItem
+    region(filter: ServiceFilter): FilterItem
     uniqueUserId(filter: UserFilter): FilterItem
     userName(filter: UserFilter): FilterItem
     supportGroupCcrn(filter: SupportGroupFilter): FilterItem
