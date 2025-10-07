@@ -236,6 +236,39 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			})
 		})
 	})
+
+	Context("with valid input w/o Component Version", func() {
+		It("creates componentInstance", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("CreateComponentInstance", mock.AnythingOfType("*entity.ComponentInstance")).Return(&componentInstance, nil)
+
+			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+			// Ensure type is allowed if ParentId is set
+			componentInstance.Type = "RecordSet"
+			componentInstance.ParentId = 1234
+			// Set ComponentVersionId to 0 to test creation without it
+			componentInstance.ComponentVersionId = 0
+			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
+			By("setting fields", func() {
+				Expect(newComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
+				Expect(newComponentInstance.Region).To(BeEquivalentTo(componentInstance.Region))
+				Expect(newComponentInstance.Cluster).To(BeEquivalentTo(componentInstance.Cluster))
+				Expect(newComponentInstance.Namespace).To(BeEquivalentTo(componentInstance.Namespace))
+				Expect(newComponentInstance.Domain).To(BeEquivalentTo(componentInstance.Domain))
+				Expect(newComponentInstance.Project).To(BeEquivalentTo(componentInstance.Project))
+				Expect(newComponentInstance.Pod).To(BeEquivalentTo(componentInstance.Pod))
+				Expect(newComponentInstance.Container).To(BeEquivalentTo(componentInstance.Container))
+				Expect(newComponentInstance.Type).To(BeEquivalentTo(componentInstance.Type))
+				Expect(newComponentInstance.Context).To(BeEquivalentTo(componentInstance.Context))
+				Expect(newComponentInstance.Count).To(BeEquivalentTo(componentInstance.Count))
+				Expect(newComponentInstance.ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
+				Expect(newComponentInstance.ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
+				Expect(newComponentInstance.ParentId).To(BeEquivalentTo(componentInstance.ParentId))
+			})
+		})
+	})
 })
 
 var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponentInstance"), func() {
