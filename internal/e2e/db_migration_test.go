@@ -10,6 +10,7 @@ import (
 	"path"
 	"regexp"
 	"testing/fstest"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -284,6 +285,10 @@ func (dbmt *DbMigrationTest) dbShouldNotContainTable(tablename string) {
 	Expect(dbmt.tableExists(tablename)).To(BeFalse())
 }
 
+func waitForPostMigration() {
+	time.Sleep(100 * time.Millisecond)
+}
+
 var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrations"), func() {
 	var migrationTest DbMigrationTest
 	BeforeEach(func() {
@@ -327,6 +332,7 @@ var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrat
 		It("executes post migration procedure after successful migration", func() {
 			migrationTest.dbVersionIsMvTestTable()
 			migrationTest.createHeurekaServer()
+			waitForPostMigration()
 			migrationTest.dbShouldContainPostMigrationProcedureData()
 		})
 	})
