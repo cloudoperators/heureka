@@ -32,10 +32,8 @@ const (
 
 func NewDatabaseManager() (TestDatabaseManager, error) {
 	backOff := 20
-	localTestDB := os.Getenv("LOCAL_TEST_DB")
 	var tdm TestDatabaseManager
-
-	if localTestDB != "true" {
+	if os.Getenv("LOCAL_TEST_DB") != "true" {
 		tdm = NewContainerizedTestDatabaseManager()
 	} else {
 		tdm = NewLocalTestDatabaseManager()
@@ -76,6 +74,7 @@ func (dbm *LocalTestDataBaseManager) rootUserConfig() util.Config {
 	cfg := dbm.Config.Config
 	cfg.DBUser = "root"
 	cfg.DBPassword = cfg.DBRootPassword
+	cfg.DBName = ""
 	return cfg
 }
 
@@ -109,25 +108,9 @@ func (dbm *LocalTestDataBaseManager) Setup() error {
 		return err
 	}
 
-	//load the client
-	dbm.loadDBClientIfNeeded()
-
-	//setup base schema to ensure schema loading works
-	err = dbm.dbClient.RunUpMigrations()
+	err = mariadb.RunMigrationsSync(dbm.rootUserConfig())
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting up migrations Schema")
-		return err
-	}
-
-	dbm.loadDBClient()
-	err = dbm.dbClient.RunPostMigrations()
-	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
-		return err
-	}
-	err = dbm.dbClient.WaitPostMigrations()
-	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while waiting for post migration procedures")
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting migrations schema")
 		return err
 	}
 
@@ -157,20 +140,9 @@ func (dbm *LocalTestDataBaseManager) ResetSchema(dbName string) error {
 		return err
 	}
 
-	err = dbm.dbClient.RunUpMigrations()
+	err = mariadb.RunMigrationsSync(dbm.DbConfig())
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while creating database")
-		return err
-	}
-	dbm.loadDBClient()
-	err = dbm.dbClient.RunPostMigrations()
-	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
-		return err
-	}
-	err = dbm.dbClient.WaitPostMigrations()
-	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while waiting for post migration procedures")
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while resetting migrations schema")
 		return err
 	}
 
@@ -260,22 +232,9 @@ func (dbm *LocalTestDataBaseManager) NewTestSchema() *mariadb.SqlDatabase {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to prepare DB schema")
 	}
 
-	err = dbm.dbClient.RunUpMigrations()
+	err = mariadb.RunMigrationsSync(dbm.DbConfig())
 	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure during DB migration")
-	}
-
-	dbClient, err := dbm.createNewConnection()
-	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failed to create db connection")
-	}
-	err = dbClient.RunPostMigrations()
-	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while calling post migration procedures")
-	}
-	err = dbClient.WaitPostMigrations()
-	if err != nil {
-		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while waiting for post migration procedures")
+		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while resetting migrations schema")
 	}
 
 	resultDbClient, err := dbm.createNewConnection()
@@ -318,11 +277,11 @@ type ContainerizedTestDataBaseManager struct {
 }
 
 func NewContainerizedTestDatabaseManager() *ContainerizedTestDataBaseManager {
-	tdbm := &ContainerizedTestDataBaseManager{}
+	tdbm := ContainerizedTestDataBaseManager{}
 	loadConfig(&tdbm.Config)
 	tdbm.Config.DBName = ""
 	tdbm.LocalTestDataBaseManager = NewLocalTestDatabaseManager()
-	return tdbm
+	return &tdbm
 }
 
 func (dbm *ContainerizedTestDataBaseManager) getDockerAuthString() (string, error) {

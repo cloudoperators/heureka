@@ -109,6 +109,35 @@ func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
 }
 
 func RunMigrations(cfg util.Config) error {
+	err := runNewUpMigrations(cfg)
+	if err != nil {
+		return err
+	}
+	err = runNewPostMigrationsAsync(cfg)
+	if err != nil {
+		return err
+	}
+
+	err = EnableScheduler(cfg)
+	if err != nil {
+		return fmt.Errorf("Error while Enabling Scheduler Db: %w", err)
+	}
+	return nil
+}
+
+func RunMigrationsSync(cfg util.Config) error {
+	err := runNewUpMigrations(cfg)
+	if err != nil {
+		return err
+	}
+	err = runNewPostMigrationsSync(cfg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func runNewUpMigrations(cfg util.Config) error {
 	db, err := NewSqlDatabase(cfg)
 	if err != nil {
 		return fmt.Errorf("Error while Creating Db: %w", err)
@@ -117,21 +146,39 @@ func RunMigrations(cfg util.Config) error {
 	if err != nil {
 		return fmt.Errorf("Error while Migrating Db: %w", err)
 	}
+	return nil
+}
 
-	db, err = NewSqlDatabase(cfg)
+func runNewPostMigrationsAsync(cfg util.Config) error {
+	_, err := runNewPostMigrations(cfg)
 	if err != nil {
-		return fmt.Errorf("Error while Creating Db: %w", err)
+		return err
+	}
+	return nil
+}
+
+func runNewPostMigrationsSync(cfg util.Config) error {
+	db, err := runNewPostMigrations(cfg)
+	if err != nil {
+		return err
+	}
+	err = db.WaitPostMigrations()
+	if err != nil {
+		return fmt.Errorf("Error while waiting for post migration procedures: %w", err)
+	}
+	return nil
+}
+
+func runNewPostMigrations(cfg util.Config) (*SqlDatabase, error) {
+	db, err := NewSqlDatabase(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("Error while Creating Db: %w", err)
 	}
 	err = db.RunPostMigrations()
 	if err != nil {
-		return fmt.Errorf("Error while starting Post Migration procedures: %w", err)
+		return nil, fmt.Errorf("Error while starting Post Migration procedures: %w", err)
 	}
-
-	err = EnableScheduler(cfg)
-	if err != nil {
-		return fmt.Errorf("Error while Enabling Scheduler Db: %w", err)
-	}
-	return nil
+	return db, nil
 }
 
 func (s *SqlDatabase) procedureExists(procedure string) (bool, error) {
