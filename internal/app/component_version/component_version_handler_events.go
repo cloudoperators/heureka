@@ -59,13 +59,6 @@ func (e *DeleteComponentVersionEvent) Name() event.EventName {
 func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "component_version",
-		Relation:   "role",
-		UserType:   "role",
-	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentVersionCreateAuthz",
@@ -75,11 +68,22 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 	})
 
 	if createEvent, ok := e.(*CreateComponentVersionEvent); ok {
-		objectId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
+		versionId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
+		userId := authz.GetCurrentUser()
 
-		authz.HandleCreateAuthzRelation(r)
+		rlist := []openfga.RelationInput{
+			{
+				UserType:   "role",
+				UserId:     openfga.UserId(userId),
+				Relation:   "role",
+				ObjectType: "component_version",
+				ObjectId:   openfga.ObjectId(versionId),
+			},
+		}
+
+		for _, rel := range rlist {
+			authz.AddRelation(rel)
+		}
 	} else {
 		l.Error("Wrong event")
 	}

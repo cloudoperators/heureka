@@ -18,13 +18,7 @@ func NewNoAuthz(cfg *util.Config) Authorization {
 	}
 }
 
-func (a *NoAuthz) HandleCreateAuthzRelation(r RelationInput) {
-}
-
-func (a *NoAuthz) HandleDeleteAuthzRelation(r RelationInput) {
-}
-
-func (a *NoAuthz) HandleUpdateAuthzRelation(r RelationInput) {
+func (a *NoAuthz) UpdateRelation(r RelationInput) {
 }
 
 func (a *NoAuthz) GetCurrentUser() string {

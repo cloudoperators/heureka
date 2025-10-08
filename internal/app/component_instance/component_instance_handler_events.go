@@ -169,13 +169,6 @@ func (e *ListContextsEvent) Name() event.EventName {
 func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "component_instance",
-		Relation:   "role",
-		UserType:   "role",
-	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentInstanceCreateAuthz",
@@ -185,11 +178,38 @@ func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz o
 	})
 
 	if createEvent, ok := e.(*CreateComponentInstanceEvent); ok {
-		objectId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
+		instanceId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
+		serviceId := strconv.FormatInt(createEvent.ComponentInstance.ServiceId, 10)
+		componentVersionId := strconv.FormatInt(createEvent.ComponentInstance.ComponentVersionId, 10)
+		userId := authz.GetCurrentUser()
 
-		authz.HandleCreateAuthzRelation(r)
+		rlist := []openfga.RelationInput{
+			{
+				UserType:   "role",
+				UserId:     openfga.UserId(userId),
+				Relation:   "role",
+				ObjectType: "component_instance",
+				ObjectId:   openfga.ObjectId(instanceId),
+			},
+			{
+				UserType:   "service",
+				UserId:     openfga.UserId(serviceId),
+				Relation:   "related_service",
+				ObjectType: "component_instance",
+				ObjectId:   openfga.ObjectId(instanceId),
+			},
+			{
+				UserType:   "component_instance",
+				UserId:     openfga.UserId(instanceId),
+				Relation:   "role",
+				ObjectType: "component_version",
+				ObjectId:   openfga.ObjectId(componentVersionId),
+			},
+		}
+
+		for _, rel := range rlist {
+			authz.AddRelation(rel)
+		}
 	} else {
 		l.Error("Wrong event")
 	}

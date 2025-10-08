@@ -165,13 +165,6 @@ func OnServiceCreate(db database.Database, e event.Event, authz openfga.Authoriz
 func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "service",
-		Relation:   "role",
-		UserType:   "role",
-	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnServiceCreateAuthz",
@@ -181,11 +174,22 @@ func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Aut
 	})
 
 	if createEvent, ok := e.(*CreateServiceEvent); ok {
-		objectId := strconv.FormatInt(createEvent.Service.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
+		serviceId := strconv.FormatInt(createEvent.Service.Id, 10)
+		userId := authz.GetCurrentUser()
 
-		authz.HandleCreateAuthzRelation(r)
+		rlist := []openfga.RelationInput{
+			{
+				UserType:   "role",
+				UserId:     openfga.UserId(userId),
+				Relation:   "role",
+				ObjectType: "service",
+				ObjectId:   openfga.ObjectId(serviceId),
+			},
+		}
+
+		for _, rel := range rlist {
+			authz.AddRelation(rel)
+		}
 	} else {
 		l.Error("Wrong event")
 	}

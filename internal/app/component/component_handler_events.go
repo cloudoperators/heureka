@@ -80,13 +80,6 @@ func (e *GetComponentIssueSeverityCountsEvent) Name() event.EventName {
 func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "component",
-		Relation:   "role",
-		UserType:   "role",
-	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentCreateAuthz",
@@ -96,11 +89,22 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 	})
 
 	if createEvent, ok := e.(*CreateComponentEvent); ok {
-		objectId := strconv.FormatInt(createEvent.Component.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
+		componentId := strconv.FormatInt(createEvent.Component.Id, 10)
+		userId := authz.GetCurrentUser()
 
-		authz.HandleCreateAuthzRelation(r)
+		rlist := []openfga.RelationInput{
+			{
+				UserType:   "role",
+				UserId:     openfga.UserId(userId),
+				Relation:   "role",
+				ObjectType: "component",
+				ObjectId:   openfga.ObjectId(componentId),
+			},
+		}
+
+		for _, rel := range rlist {
+			authz.AddRelation(rel)
+		}
 	} else {
 		l.Error("Wrong event")
 	}
@@ -155,6 +159,7 @@ func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.A
 	if deleteEvent, ok := e.(*DeleteComponentEvent); ok {
 		deleteElement := openfga.RelationInput{}
 		objectId := strconv.FormatInt(deleteEvent.ComponentID, 10)
+
 		deleteElement.ObjectType = "component"
 		deleteElement.ObjectId = openfga.ObjectId(objectId)
 		deleteInput = append(deleteInput, deleteElement)

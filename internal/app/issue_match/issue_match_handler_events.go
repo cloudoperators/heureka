@@ -217,13 +217,6 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "issue_match",
-		Relation:   "role",
-		UserType:   "role",
-	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnIssueMatchCreateAuthz",
@@ -233,11 +226,22 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 	})
 
 	if createEvent, ok := e.(*CreateIssueMatchEvent); ok {
-		objectId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
+		issueMatchId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
+		userId := authz.GetCurrentUser()
 
-		authz.HandleCreateAuthzRelation(r)
+		rlist := []openfga.RelationInput{
+			{
+				UserType:   "role",
+				UserId:     openfga.UserId(userId),
+				Relation:   "role",
+				ObjectType: "issue_match",
+				ObjectId:   openfga.ObjectId(issueMatchId),
+			},
+		}
+
+		for _, rel := range rlist {
+			authz.AddRelation(rel)
+		}
 	} else {
 		l.Error("Wrong event")
 	}

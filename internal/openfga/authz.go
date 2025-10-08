@@ -162,24 +162,7 @@ func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
 	return err
 }
 
-func (a *Authz) HandleCreateAuthzRelation(r RelationInput) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":            "HandleCreateAuthzRelation",
-		"user":             r.UserId,
-		"resourceId":       r.ObjectId,
-		"resourceType":     r.ObjectType,
-		"resourceRelation": r.Relation,
-	})
-
-	err := a.AddRelation(r)
-	if err != nil {
-		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
-	} else {
-		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
-	}
-}
-
-func (a *Authz) HandleUpdateAuthzRelation(r RelationInput) {
+func (a *Authz) UpdateRelation(r RelationInput) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":            "HandleCreateAuthzRelation",
 		"user":             r.UserId,
@@ -194,23 +177,6 @@ func (a *Authz) HandleUpdateAuthzRelation(r RelationInput) {
 		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	} else {
 		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
-	}
-}
-
-func (a *Authz) HandleDeleteAuthzRelation(r RelationInput) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":            "HandleCreateAuthzRelation",
-		"user":             r.UserId,
-		"resourceId":       r.ObjectId,
-		"resourceType":     r.ObjectType,
-		"resourceRelation": r.Relation,
-	})
-
-	err := a.RemoveRelation(r)
-	if err != nil {
-		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
-	} else {
-		l.WithField("event-step", "OpenFGA AddRelation").Infof("Removed relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	}
 }
 

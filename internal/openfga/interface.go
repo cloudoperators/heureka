@@ -53,20 +53,16 @@ type Authorization interface {
 	AddRelation(r RelationInput) error
 	// Remove a single relationship between userId and resourceId
 	RemoveRelation(r RelationInput) error
-	// Remove multiple relations by providing a filter for tuples to delete
+	// Remove all relations that match any given RelationInput as filters
 	RemoveRelationBulk(r []RelationInput) error
+	// Handler for generic event to update authz relation
+	UpdateRelation(r RelationInput)
 	// List Relations based on multiple filters
 	ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
 	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
 	// Placeholder function that mimics getting user from User Context
 	GetCurrentUser() string
-	// Handler for generic event to create authz relation
-	HandleCreateAuthzRelation(r RelationInput)
-	// Handler for generic event to delete authz relation
-	HandleDeleteAuthzRelation(r RelationInput)
-	// Handler for generic event to update authz relation
-	HandleUpdateAuthzRelation(r RelationInput)
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {
