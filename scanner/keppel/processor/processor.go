@@ -201,7 +201,7 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 // to fetch the next batch.
 func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize int) ([]*client.ComponentAggregate, error) {
 	var allComponents []*client.ComponentAggregate
-	cursor := "0" // Set initial cursor to "0"
+	cursor := "" // Set initial cursor to ""
 
 	for {
 		// ListComponents also returns the ComponentVersions of each Component
