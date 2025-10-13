@@ -2,5 +2,5 @@
 -- SPDX-License-Identifier: Apache-2.0
 
 ALTER TABLE Service
-DROP COLUMN service_domain,
-DROP COLUMN service_region;
+DROP COLUMN IF EXISTS service_domain,
+DROP COLUMN IF EXISTS service_region;
