@@ -769,6 +769,22 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 				testIssueSeverityCount(filter, severityCounts)
 			})
+			It("returns the correct count for services in support goups", func() {
+				severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+				Expect(err).To(BeNil())
+
+				for _, sg := range seedCollection.SupportGroupRows {
+
+					filter := &entity.IssueFilter{
+						AllServices:      true,
+						SupportGroupCCRN: []*string{&sg.CCRN.String},
+					}
+
+					strId := fmt.Sprintf("%d", sg.Id.Int64)
+
+					testIssueSeverityCount(filter, severityCounts[strId])
+				}
+			})
 			It("returns the correct count for component version issues", func() {
 				severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
 				Expect(err).To(BeNil())
