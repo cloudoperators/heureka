@@ -87,6 +87,16 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 		"filter": filter,
 	})
 
+	// Authorization check
+	accessibleServiceIds, err := s.authz.GetListOfAccessibleObjectIds("service")
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while listing accessible services for user")
+	}
+
+	// Update the filter.Id based on accessibleServiceIds
+	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleServiceIds)
+
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.ServiceResult](
 			s.cache,

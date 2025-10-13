@@ -61,6 +61,8 @@ type Authorization interface {
 	ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
 	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
+	// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
+	GetListOfAccessibleObjectIds(objectType ObjectType) ([]*int64, error)
 	// Placeholder function that mimics getting user from User Context
 	GetCurrentUser() string
 }

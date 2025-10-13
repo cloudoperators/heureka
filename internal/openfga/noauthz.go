@@ -46,6 +46,11 @@ func (a *NoAuthz) ListAccessibleResources(p PermissionInput) ([]AccessibleResour
 	return resources, nil
 }
 
+// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
+func (a *NoAuthz) GetListOfAccessibleObjectIds(objectType ObjectType) ([]*int64, error) {
+	return []*int64{}, nil
+}
+
 // DeleteObjectRelations deletes all relations for a given object.
 func (a *NoAuthz) RemoveRelationBulk(input []RelationInput) error {
 	return nil

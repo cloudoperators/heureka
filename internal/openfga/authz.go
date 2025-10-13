@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/util"
@@ -31,7 +32,7 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 		Credentials: &credentials.Credentials{
 			Method: credentials.CredentialsMethodApiToken,
 			Config: &credentials.Config{
-				ApiToken: cfg.AuthTokenSecret,
+				ApiToken: cfg.AuthzOpenFgaApiToken,
 			},
 		},
 	})
@@ -342,5 +343,42 @@ func (a *Authz) ListAccessibleResources(p PermissionInput) ([]AccessibleResource
 		}
 	}
 
+	// if resources is empty, add a -1 resource to indicate no access
+	if len(resources) == 0 {
+		resources = append(resources, AccessibleResource{
+			ObjectType: p.ObjectType,
+			ObjectId:   ObjectId("-1"),
+		})
+	}
+
 	return resources, nil
+}
+
+// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
+func (a *Authz) GetListOfAccessibleObjectIds(objectType ObjectType) ([]*int64, error) {
+	userId := a.GetCurrentUser()
+
+	permission := PermissionInput{
+		UserType:   "user",
+		UserId:     UserId(userId),
+		Relation:   "can_view",
+		ObjectType: objectType,
+		ObjectId:   "*",
+	}
+
+	// Get all services the user has access to
+	accessibleServices, err := a.ListAccessibleResources(permission)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert []openfga.ObjectId to []int64
+	var ids []*int64
+	for _, resource := range accessibleServices {
+		if intId, err := strconv.ParseInt(string(resource.ObjectId), 10, 64); err == nil {
+			ids = append(ids, &intId)
+		}
+	}
+
+	return ids, nil
 }
