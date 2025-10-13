@@ -125,15 +125,39 @@ BEGIN
 END;
 
 -- Create new event to update counters using split procedures
-CREATE EVENT refresh_mvCountIssueRatings
+CREATE EVENT refresh_mvCountIssueRatingsUniqueService
 ON SCHEDULE EVERY 1 HOUR
 DO
   CALL refresh_mvCountIssueRatingsUniqueService_proc();
+
+CREATE EVENT refresh_mvCountIssueRatingsService
+ON SCHEDULE EVERY 1 HOUR
+DO
   CALL refresh_mvCountIssueRatingsService_proc();
+
+CREATE EVENT refresh_mvCountIssueRatingsServiceWithoutSupportGroup
+ON SCHEDULE EVERY 1 HOUR
+DO
   CALL refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc();
+
+CREATE EVENT refresh_mvCountIssueRatingsSupportGroup
+ON SCHEDULE EVERY 1 HOUR
+DO
   CALL refresh_mvCountIssueRatingsSupportGroup_proc();
+
+CREATE EVENT refresh_mvCountIssueRatingsComponentVersion
+ON SCHEDULE EVERY 1 HOUR
+DO
   CALL refresh_mvCountIssueRatingsComponentVersion_proc();
+
+CREATE EVENT refresh_mvCountIssueRatingsServiceId
+ON SCHEDULE EVERY 1 HOUR
+DO
   CALL refresh_mvCountIssueRatingsServiceId_proc();
+
+CREATE EVENT refresh_mvCountIssueRatingsOther
+ON SCHEDULE EVERY 1 HOUR
+DO
   CALL refresh_mvCountIssueRatingsOther_proc();
 
 -- Add post migration procedures for all 7 mv tables updating particular counters
