@@ -254,12 +254,18 @@ func (s *SqlDatabase) GetSupportGroupsBatch(filter *entity.SupportGroupFilter, o
 	})
 
 	baseQuery := `
-		SELECT SG.*, IM.issuematch_issue_id FROM SupportGroup SG
+		SELECT * FROM ( SELECT SG.*, IM.issuematch_issue_id, ROW_NUMBER() OVER ( PARTITION BY IM.issuematch_issue_id ORDER BY SG.supportgroup_ccrn ASC ) as rn FROM SupportGroup SG
 		%s
 		%s
 		%s
-		GROUP BY SG.supportgroup_id ORDER BY %s LIMIT ?
+		) t WHERE rn <= ? ORDER BY %s
     `
+// remove LIMIT ? from this query use it's argument in  WHERE
+//		) t WHERE rn <= ? ORDER BY %s
+// is it safe when LIMIT and OFFSET will be used?
+// old:
+//		) t WHERE rn <= 20 ORDER BY %s LIMIT ?
+
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, true, order, l)
 

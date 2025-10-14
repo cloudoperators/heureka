@@ -671,6 +671,7 @@ type SupportGroupBatchRow struct {
 	UpdatedAt sql.NullTime   `db:"supportgroup_updated_at" json:"updated_at"`
 	UpdatedBy sql.NullInt64  `db:"supportgroup_updated_by" json:"updated_by"`
 	IssueId   sql.NullInt64  `db:"issuematch_issue_id" json:"issue_id"`
+    RowNum    int            `db:"rn" json:"-"`
 }
 
 func (sgbr *SupportGroupBatchRow) AsSupportGroupAndIssueId() (entity.SupportGroup, int64) {
