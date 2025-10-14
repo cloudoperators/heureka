@@ -47,7 +47,7 @@ func (a *NoAuthz) ListAccessibleResources(p PermissionInput) ([]AccessibleResour
 }
 
 // GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
-func (a *NoAuthz) GetListOfAccessibleObjectIds(objectType ObjectType) ([]*int64, error) {
+func (a *NoAuthz) GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType) ([]*int64, error) {
 	return []*int64{}, nil
 }
 

@@ -355,12 +355,10 @@ func (a *Authz) ListAccessibleResources(p PermissionInput) ([]AccessibleResource
 }
 
 // GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
-func (a *Authz) GetListOfAccessibleObjectIds(objectType ObjectType) ([]*int64, error) {
-	userId := a.GetCurrentUser()
-
+func (a *Authz) GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType) ([]*int64, error) {
 	permission := PermissionInput{
 		UserType:   "user",
-		UserId:     UserId(userId),
+		UserId:     userId,
 		Relation:   "can_view",
 		ObjectType: objectType,
 		ObjectId:   "*",
