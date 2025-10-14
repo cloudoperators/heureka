@@ -697,6 +697,7 @@ func (s *DatabaseSeeder) SeedServices(num int) []mariadb.BaseServiceRow {
 		service := NewFakeBaseService()
 		serviceId, err := s.InsertFakeBaseService(service)
 		if err != nil {
+			fmt.Printf("Service error: %e", err)
 			logrus.WithField("seed_type", "Services").Debug(err)
 		} else {
 			service.Id = sql.NullInt64{Int64: serviceId, Valid: true}
@@ -1099,10 +1100,14 @@ func (s *DatabaseSeeder) InsertFakeBaseService(service mariadb.BaseServiceRow) (
 	query := `
 		INSERT INTO Service (
 			service_ccrn,
+			service_domain,
+			service_region,
 			service_created_by,
 			service_updated_by
 		) VALUES (
 			:service_ccrn,
+			:service_domain,
+			:service_region,
 			:service_created_by,
 			:service_updated_by
 		)`
@@ -1409,8 +1414,13 @@ func NewFakeIssueRepository() mariadb.IssueRepositoryRow {
 }
 
 func NewFakeBaseService() mariadb.BaseServiceRow {
+	ccrn := fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID())
+	domain := strings.ToLower(gofakeit.SongName())
+	region := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"})
 	return mariadb.BaseServiceRow{
-		CCRN:      sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+		CCRN:      sql.NullString{String: ccrn, Valid: true},
+		Domain:    sql.NullString{String: domain, Valid: true},
+		Region:    sql.NullString{String: region, Valid: true},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
@@ -2042,7 +2052,13 @@ func (s *DatabaseSeeder) RefreshServiceIssueCounters() error {
 
 func (s *DatabaseSeeder) RefreshCountIssueRatings() error {
 	_, err := s.db.Exec(`
-		CALL refresh_mvCountIssueRatings_proc();
+		CALL refresh_mvCountIssueRatingsUniqueService_proc();
+		CALL refresh_mvCountIssueRatingsService_proc();
+		CALL refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc();
+		CALL refresh_mvCountIssueRatingsSupportGroup_proc();
+		CALL refresh_mvCountIssueRatingsComponentVersion_proc();
+		CALL refresh_mvCountIssueRatingsServiceId_proc();
+		CALL refresh_mvCountIssueRatingsOther_proc();
 	`)
 	return err
 }

@@ -10,6 +10,7 @@ import (
 	"path"
 	"regexp"
 	"testing/fstest"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -68,7 +69,7 @@ func MergeToMapFS(sources ...fs.FS) (fstest.MapFS, error) {
 }
 
 func setDbTestMigration(migrationFiles fs.FS) {
-	mariadb.Migration = migrationFiles
+	mariadb.MigrationFs = migrationFiles
 }
 
 func setDbAMigration() {
@@ -80,13 +81,13 @@ func setDbABMigration() {
 }
 
 func addDbMvTestTableMigration() {
-	mapFS, err := MergeToMapFS(mariadb.Migration, migrationMvTestTableMigrationFiles)
+	mapFS, err := MergeToMapFS(mariadb.MigrationFs, migrationMvTestTableMigrationFiles)
 	Expect(err).To(BeNil())
 	setDbTestMigration(&mapFS)
 }
 
 func addDbMvTestTableAndAddPostMigrationMigration() {
-	mapFS, err := MergeToMapFS(mariadb.Migration, migrationMvTestTableMigrationFiles, migrationAddPostMigrationMigrationFiles)
+	mapFS, err := MergeToMapFS(mariadb.MigrationFs, migrationMvTestTableMigrationFiles, migrationAddPostMigrationMigrationFiles)
 	Expect(err).To(BeNil())
 	setDbTestMigration(&mapFS)
 }
@@ -117,7 +118,10 @@ func getMvTestTableMigrationVersion() string {
 	return getFirstMigrationVersionFromFiles(&migrationMvTestTableMigrationFiles)
 }
 
-func tableExists(db *sqlx.DB, tableName string) bool {
+func (dbmt *DbMigrationTest) tableExists(tableName string) bool {
+	db := dbmt.dbConnect()
+	defer db.Close()
+
 	var exists bool
 	query := `
         SELECT COUNT(*) > 0
@@ -136,7 +140,10 @@ func tableExists(db *sqlx.DB, tableName string) bool {
 	return exists
 }
 
-func countRows(db *sqlx.DB, tableName string) int {
+func (dbmt *DbMigrationTest) countRows(tableName string) int {
+	db := dbmt.dbConnect()
+	defer db.Close()
+
 	query := fmt.Sprintf("SELECT COUNT(*) FROM `%s`", tableName)
 	var count int
 	err := db.Get(&count, query)
@@ -151,7 +158,7 @@ type DbMigrationTest struct {
 }
 
 func (dbmt *DbMigrationTest) setup() {
-	dbmt.heurekaMigration = mariadb.Migration
+	dbmt.heurekaMigration = mariadb.MigrationFs
 	dbmt.db = dbm.NewTestSchemaWithoutMigration()
 	dbmt.cfg = dbm.DbConfig()
 	dbmt.cfg.Port = util2.GetRandomFreePort()
@@ -159,7 +166,7 @@ func (dbmt *DbMigrationTest) setup() {
 
 func (dbmt *DbMigrationTest) teardown() {
 	dbm.TestTearDown(dbmt.db)
-	mariadb.Migration = dbmt.heurekaMigration
+	mariadb.MigrationFs = dbmt.heurekaMigration
 }
 
 func (dbmt *DbMigrationTest) dbVersionIsZero() {
@@ -206,19 +213,21 @@ func (dbmt *DbMigrationTest) dbShouldContainABMigrations() {
 }
 
 func (dbmt *DbMigrationTest) dbShouldContainPostMigrationProcedureData() {
-	sx, err := mariadb.Connect(dbmt.cfg)
-	Expect(err).To(BeNil())
-	defer sx.Close()
-	count := countRows(sx, "mvTestData")
-	Expect(count).To(Equal(1))
+	dbmt.dbExpectRows("mvTestData", 1)
 }
 
 func (dbmt *DbMigrationTest) dbShouldNotContainPostMigrationProcedureData() {
+	dbmt.dbExpectRows("mvTestData", 0)
+}
+
+func (dbmt *DbMigrationTest) dbExpectRows(tablename string, rows int) {
+	Expect(dbmt.countRows(tablename)).To(Equal(rows))
+}
+
+func (dbmt *DbMigrationTest) dbConnect() *sqlx.DB {
 	sx, err := mariadb.Connect(dbmt.cfg)
 	Expect(err).To(BeNil())
-	defer sx.Close()
-	count := countRows(sx, "mvTestData")
-	Expect(count).To(Equal(0))
+	return sx
 }
 
 func (dbmt *DbMigrationTest) dbVersionShouldBeZero() {
@@ -249,43 +258,35 @@ func (dbmt *DbMigrationTest) dbVersionShouldBeMvTestTable() {
 }
 
 func (dbmt *DbMigrationTest) dbShouldContainAMigrationTable() {
-	sx, err := mariadb.Connect(dbmt.cfg)
-	Expect(err).To(BeNil())
-	defer sx.Close()
-	exists := tableExists(sx, "A_USER")
-	Expect(exists).To(BeTrue())
+	dbmt.dbShouldContainTable("A_USER")
 }
 
 func (dbmt *DbMigrationTest) dbShouldNotContainAMigrationTable() {
-	sx, err := mariadb.Connect(dbmt.cfg)
-	Expect(err).To(BeNil())
-	defer sx.Close()
-	exists := tableExists(sx, "A_USER")
-	Expect(exists).To(BeFalse())
+	dbmt.dbShouldNotContainTable("A_USER")
 }
 
 func (dbmt *DbMigrationTest) dbShouldContainBMigrationTable() {
-	sx, err := mariadb.Connect(dbmt.cfg)
-	Expect(err).To(BeNil())
-	defer sx.Close()
-	exists := tableExists(sx, "B_USER")
-	Expect(exists).To(BeTrue())
+	dbmt.dbShouldContainTable("B_USER")
 }
 
 func (dbmt *DbMigrationTest) dbShouldNotContainBMigrationTable() {
-	sx, err := mariadb.Connect(dbmt.cfg)
-	Expect(err).To(BeNil())
-	defer sx.Close()
-	exists := tableExists(sx, "B_USER")
-	Expect(exists).To(BeFalse())
+	dbmt.dbShouldNotContainTable("B_USER")
 }
 
 func (dbmt *DbMigrationTest) dbShouldNotContainPostMigrationProcedureRefreshTable() {
-	sx, err := mariadb.Connect(dbmt.cfg)
-	Expect(err).To(BeNil())
-	defer sx.Close()
-	exists := tableExists(sx, "mvTestData")
-	Expect(exists).To(BeFalse())
+	dbmt.dbShouldNotContainTable("mvTestData")
+}
+
+func (dbmt *DbMigrationTest) dbShouldContainTable(tablename string) {
+	Expect(dbmt.tableExists(tablename)).To(BeTrue())
+}
+
+func (dbmt *DbMigrationTest) dbShouldNotContainTable(tablename string) {
+	Expect(dbmt.tableExists(tablename)).To(BeFalse())
+}
+
+func waitForPostMigration() {
+	time.Sleep(100 * time.Millisecond)
 }
 
 var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrations"), func() {
@@ -331,6 +332,7 @@ var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrat
 		It("executes post migration procedure after successful migration", func() {
 			migrationTest.dbVersionIsMvTestTable()
 			migrationTest.createHeurekaServer()
+			waitForPostMigration()
 			migrationTest.dbShouldContainPostMigrationProcedureData()
 		})
 	})

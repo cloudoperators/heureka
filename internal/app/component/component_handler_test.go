@@ -73,6 +73,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		componentHandler c.ComponentHandler
 		filter           *entity.ComponentFilter
 		options          *entity.ListOptions
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -232,6 +233,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.ComponentResult
 		filter           *entity.ComponentFilter
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -272,6 +274,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		componentHandler c.ComponentHandler
 		id               int64
 		filter           *entity.ComponentFilter
+		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {

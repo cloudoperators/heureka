@@ -8,6 +8,8 @@ mutation ($serviceId: ID!, $issueRepositoryId: ID!) {
     ) {
         id
         ccrn
+        domain
+        region
         issueRepositories {
             edges {
                 node {

@@ -564,6 +564,8 @@ func NewService(s *entity.Service) Service {
 	return Service{
 		ID:       fmt.Sprintf("%d", s.Id),
 		Ccrn:     &s.CCRN,
+		Domain:   &s.Domain,
+		Region:   &s.Region,
 		Metadata: getModelMetadata(s.BaseService.Metadata),
 	}
 }
@@ -581,6 +583,8 @@ func NewServiceWithAggregations(service *entity.ServiceResult) Service {
 	return Service{
 		ID:             fmt.Sprintf("%d", service.Id),
 		Ccrn:           &service.CCRN,
+		Domain:         &service.Domain,
+		Region:         &service.Region,
 		ObjectMetadata: &objectMetadata,
 		Metadata:       getModelMetadata(service.BaseService.Metadata),
 	}
@@ -589,7 +593,9 @@ func NewServiceWithAggregations(service *entity.ServiceResult) Service {
 func NewServiceEntity(service *ServiceInput) entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
-			CCRN: lo.FromPtr(service.Ccrn),
+			CCRN:   lo.FromPtr(service.Ccrn),
+			Domain: lo.FromPtr(service.Domain),
+			Region: lo.FromPtr(service.Region),
 		},
 	}
 }

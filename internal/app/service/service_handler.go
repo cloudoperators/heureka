@@ -16,7 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetServiceCcrns = 12 * time.Hour
+var CacheTtlGetServiceAttrs = 12 * time.Hour
 var CacheTtlGetServicesWithAggregations = 12 * time.Hour
 var CacheTtlGetServices = 12 * time.Hour
 var CacheTtlGetAllSericeCursors = 12 * time.Hour
@@ -328,7 +328,7 @@ func (s *serviceHandler) ListServiceCcrns(filter *entity.ServiceFilter, options 
 		"event":  ListServiceCcrnsEventName,
 		"filter": filter,
 	})
-	serviceCcrns, err := cache.CallCached[[]string](s.cache, CacheTtlGetServiceCcrns, "GetServiceCcrns", s.database.GetServiceCcrns, filter)
+	serviceCcrns, err := cache.CallCached[[]string](s.cache, CacheTtlGetServiceAttrs, "GetServiceCcrns", s.database.GetServiceCcrns, filter)
 
 	if err != nil {
 		l.Error(err)
@@ -338,4 +338,38 @@ func (s *serviceHandler) ListServiceCcrns(filter *entity.ServiceFilter, options 
 	s.eventRegistry.PushEvent(&ListServiceCcrnsEvent{Filter: filter, Options: options, Ccrns: serviceCcrns})
 
 	return serviceCcrns, nil
+}
+
+func (s *serviceHandler) ListServiceDomains(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListServiceDomainsEventName,
+		"filter": filter,
+	})
+	serviceDomains, err := cache.CallCached[[]string](s.cache, CacheTtlGetServiceAttrs, "GetServiceDomains", s.database.GetServiceDomains, filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while retrieving serviceDomains.")
+	}
+
+	s.eventRegistry.PushEvent(&ListServiceDomainsEvent{Filter: filter, Options: options, Domains: serviceDomains})
+
+	return serviceDomains, nil
+}
+
+func (s *serviceHandler) ListServiceRegions(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":  ListServiceRegionsEventName,
+		"filter": filter,
+	})
+	serviceRegions, err := cache.CallCached[[]string](s.cache, CacheTtlGetServiceAttrs, "GetServiceRegions", s.database.GetServiceRegions, filter)
+
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Internal error while retrieving serviceRegions.")
+	}
+
+	s.eventRegistry.PushEvent(&ListServiceRegionsEvent{Filter: filter, Options: options, Regions: serviceRegions})
+
+	return serviceRegions, nil
 }

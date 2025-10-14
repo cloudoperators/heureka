@@ -67,10 +67,11 @@ func getComponentVersionFilter() *entity.ComponentVersionFilter {
 
 var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVersions"), func() {
 	var (
-		db        *mocks.MockDatabase
-		cvHandler cv.ComponentVersionHandler
-		filter    *entity.ComponentVersionFilter
-		options   *entity.ListOptions
+		db             *mocks.MockDatabase
+		cvHandler      cv.ComponentVersionHandler
+		filter         *entity.ComponentVersionFilter
+		options        *entity.ListOptions
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -324,6 +325,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersionResult
 		filter                 *entity.ComponentVersionFilter
+		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -369,6 +371,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		componenVersionService cv.ComponentVersionHandler
 		id                     int64
 		filter                 *entity.ComponentVersionFilter
+		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {

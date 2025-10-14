@@ -77,6 +77,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		serviceHandler s.ServiceHandler
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -399,6 +400,7 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 		serviceHandler s.ServiceHandler
 		service        entity.ServiceResult
 		filter         *entity.ServiceFilter
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -442,6 +444,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		serviceHandler s.ServiceHandler
 		id             int64
 		filter         *entity.ServiceFilter
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -550,6 +553,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		service        entity.ServiceResult
 		owner          entity.User
 		filter         *entity.ServiceFilter
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -653,6 +657,7 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 		name           string
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -695,6 +700,114 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 			res, err := serviceHandler.ListServiceCcrns(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(name), "should only consist of serviceCcrn")
+		})
+	})
+})
+
+var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomains"), func() {
+	var (
+		db             *mocks.MockDatabase
+		serviceHandler s.ServiceHandler
+		filter         *entity.ServiceFilter
+		options        *entity.ListOptions
+		domain         string
+		handlerContext common.HandlerContext
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = entity.NewListOptions()
+		filter = getServiceFilter()
+		domain = "f1"
+		cache := cache.NewNoCache()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache,
+			Authz:    authz,
+		}
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetServiceDomains", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			serviceHandler = s.NewServiceHandler(handlerContext)
+			res, err := serviceHandler.ListServiceDomains(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific serviceDomains filter is applied", func() {
+		BeforeEach(func() {
+			filter = &entity.ServiceFilter{
+				Domain: []*string{&domain},
+			}
+
+			db.On("GetServiceDomains", filter).Return([]string{domain}, nil)
+		})
+		It("returns filtered services according to the service type", func() {
+			serviceHandler = s.NewServiceHandler(handlerContext)
+			res, err := serviceHandler.ListServiceDomains(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf(domain), "should only consist of domain")
+		})
+	})
+})
+
+var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions"), func() {
+	var (
+		db             *mocks.MockDatabase
+		serviceHandler s.ServiceHandler
+		filter         *entity.ServiceFilter
+		options        *entity.ListOptions
+		region         string
+		handlerContext common.HandlerContext
+	)
+
+	BeforeEach(func() {
+		db = mocks.NewMockDatabase(GinkgoT())
+		options = entity.NewListOptions()
+		filter = getServiceFilter()
+		region = "f1"
+		cache := cache.NewNoCache()
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Cache:    cache,
+			Authz:    authz,
+		}
+	})
+
+	When("no filters are used", func() {
+
+		BeforeEach(func() {
+			db.On("GetServiceRegions", filter).Return([]string{}, nil)
+		})
+
+		It("it return the results", func() {
+			serviceHandler = s.NewServiceHandler(handlerContext)
+			res, err := serviceHandler.ListServiceRegions(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(BeEmpty(), "return correct result")
+		})
+	})
+	When("specific serviceRegions filter is applied", func() {
+		BeforeEach(func() {
+			filter = &entity.ServiceFilter{
+				Region: []*string{&region},
+			}
+
+			db.On("GetServiceRegions", filter).Return([]string{region}, nil)
+		})
+		It("returns filtered services according to the service type", func() {
+			serviceHandler = s.NewServiceHandler(handlerContext)
+			res, err := serviceHandler.ListServiceRegions(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(res).Should(ConsistOf(region), "should only consist of region")
 		})
 	})
 })
