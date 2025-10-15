@@ -110,39 +110,6 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 	}
 }
 
-// OnComponentUpdateAuthz is a handler for the UpdateComponentEvent
-func OnComponentUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "component",
-		Relation:   "role",
-		UserType:   "role",
-	}
-
-	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentCreateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
-	})
-
-	if updateEvent, ok := e.(*UpdateComponentEvent); ok {
-		objectId := strconv.FormatInt(updateEvent.Component.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
-
-		// Handle Update here:
-		//recreate component - user
-		//recreate component - cv
-		//recreate component - role
-	} else {
-		l.Error("Wrong event")
-	}
-}
-
 // OnComponentDeleteAuthz is a handler for the DeleteComponentEvent
 func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()

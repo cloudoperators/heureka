@@ -6,9 +6,6 @@
 networks:
   openfga:
 
-networks:
-  openfga:
-
 services:
   heureka-db:
     image: mariadb:latest

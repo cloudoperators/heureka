@@ -29,11 +29,8 @@ func TestComponentVersionHandler(t *testing.T) {
 	RunSpecs(t, "Component Version Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
 var handlerContext common.HandlerContext
 var cfg *util.Config
-var enableLogs bool
 
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
@@ -45,14 +42,10 @@ var _ = BeforeSuite(func() {
 		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
-	db := mocks.NewMockDatabase(GinkgoT())
-	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
-	er = event.NewEventRegistry(db, authz)
+	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
-		DB:       db,
-		EventReg: er,
-		Cache:    cache.NewNoCache(),
-		Authz:    authz,
+		Cache: cache.NewNoCache(),
+		Authz: authz,
 	}
 })
 
@@ -67,23 +60,21 @@ func getComponentVersionFilter() *entity.ComponentVersionFilter {
 
 var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVersions"), func() {
 	var (
-		db             *mocks.MockDatabase
-		cvHandler      cv.ComponentVersionHandler
-		filter         *entity.ComponentVersionFilter
-		options        *entity.ListOptions
-		handlerContext common.HandlerContext
+		er        event.EventRegistry
+		db        *mocks.MockDatabase
+		cvHandler cv.ComponentVersionHandler
+		filter    *entity.ComponentVersionFilter
+		options   *entity.ListOptions
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+
 		options = entity.NewListOptions()
 		filter = getComponentVersionFilter()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -243,6 +234,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponentVersion"), func() {
 	var (
+		er                     event.EventRegistry
 		db                     *mocks.MockDatabase
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersion
@@ -251,13 +243,8 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		componentVersion = test.NewFakeComponentVersionEntity()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
 
 		p = openfga.PermissionInput{
 			UserType:   "role",
@@ -268,6 +255,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		}
 
 		handlerContext.DB = db
+		handlerContext.EventReg = er
 		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
@@ -293,8 +281,6 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 
 		Context("when new component instance is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
-				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
-
 				cvFake := test.NewFakeComponentVersionEntity()
 				createEvent := &cv.CreateComponentVersionEvent{
 					ComponentVersion: &cvFake,
@@ -305,9 +291,9 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 				resourceId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
 				p.ObjectId = openfga.ObjectId(resourceId)
 				// Simulate event
-				cv.OnComponentVersionCreateAuthz(db, event, authz)
+				cv.OnComponentVersionCreateAuthz(db, event, handlerContext.Authz)
 
-				ok, err := authz.CheckPermission(p)
+				ok, err := handlerContext.Authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				if cfg.AuthzOpenFgaApiUrl != "" {
 					Expect(ok).To(BeTrue(), "permission should be granted")
@@ -321,15 +307,16 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 
 var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponentVersion"), func() {
 	var (
+		er                     event.EventRegistry
 		db                     *mocks.MockDatabase
 		componenVersionService cv.ComponentVersionHandler
 		componentVersion       entity.ComponentVersionResult
 		filter                 *entity.ComponentVersionFilter
-		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		componentVersion = test.NewFakeComponentVersionResult()
 		first := 10
 		after := ""
@@ -339,12 +326,8 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("updates componentVersion", func() {
@@ -363,19 +346,70 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 			Expect(updatedComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
 		})
 	})
+
+	Context("when handling an UpdateComponentVersionEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		It("should update the component relation tuple in openfga", func() {
+			cvFake := test.NewFakeComponentVersionEntity()
+			oldComponentId := int64(12345)
+			newComponentId := int64(67890)
+
+			// Add an initial relation: component_version -> old component
+			initialRelation := openfga.RelationInput{
+				UserType:   "component_version",
+				UserId:     openfga.UserId(strconv.FormatInt(cvFake.Id, 10)),
+				Relation:   "component_version",
+				ObjectType: "component",
+				ObjectId:   openfga.ObjectId(strconv.FormatInt(oldComponentId, 10)),
+			}
+			handlerContext.Authz.AddRelation(initialRelation)
+
+			// Prepare the update event with the new component id
+			cvFake.ComponentId = newComponentId
+			updateEvent := &cv.UpdateComponentVersionEvent{
+				ComponentVersion: &cvFake,
+			}
+			var event event.Event = updateEvent
+
+			// Simulate event
+			cv.OnComponentVersionUpdateAuthz(db, event, handlerContext.Authz)
+
+			// Check that the old relation is gone
+			remainingOld, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{initialRelation})
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remainingOld).To(BeEmpty(), "old relation should be removed")
+
+			// Check that the new relation exists
+			newRelation := openfga.RelationInput{
+				UserType:   "component_version",
+				UserId:     openfga.UserId(strconv.FormatInt(cvFake.Id, 10)),
+				Relation:   "component_version",
+				ObjectType: "component",
+				ObjectId:   openfga.ObjectId(strconv.FormatInt(newComponentId, 10)),
+			}
+			remainingNew, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{newRelation})
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
+		})
+	})
 })
 
 var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponentVersion"), func() {
 	var (
+		er                     event.EventRegistry
 		db                     *mocks.MockDatabase
 		componenVersionService cv.ComponentVersionHandler
 		id                     int64
 		filter                 *entity.ComponentVersionFilter
-		handlerContext         common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		id = 1
 		first := 10
 		after := ""
@@ -385,12 +419,8 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("deletes componentVersion", func() {
@@ -417,7 +447,6 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		Context("when new component version is deleted", func() {
 			It("should delete tuples related to that component version in openfga", func() {
 				// Test OnComponentVersionDeleteAuthz against all possible relations
-				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 				cvFake := test.NewFakeComponentVersionEntity()
 				deleteEvent := &cv.DeleteComponentVersionEvent{
 					ComponentVersionID: cvFake.Id,
@@ -456,14 +485,14 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 				}
 
 				for _, rel := range relations {
-					authz.AddRelation(rel)
+					handlerContext.Authz.AddRelation(rel)
 				}
 
 				var event event.Event = deleteEvent
 				// Simulate event
-				cv.OnComponentVersionDeleteAuthz(db, event, authz)
+				cv.OnComponentVersionDeleteAuthz(db, event, handlerContext.Authz)
 
-				remaining, err := authz.ListRelations(relations)
+				remaining, err := handlerContext.Authz.ListRelations(relations)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
 			})

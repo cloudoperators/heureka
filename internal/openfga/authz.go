@@ -155,7 +155,7 @@ func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
 	return err
 }
 
-func (a *Authz) UpdateRelation(r RelationInput) {
+func (a *Authz) UpdateRelation(r RelationInput, u RelationInput) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event":            "HandleCreateAuthzRelation",
 		"user":             r.UserId,
@@ -164,19 +164,21 @@ func (a *Authz) UpdateRelation(r RelationInput) {
 		"resourceRelation": r.Relation,
 	})
 
-	err := a.RemoveRelation(r)
+	err := a.RemoveRelationBulk([]RelationInput{r})
 	if err != nil {
 		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while removing relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	} else {
 		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	}
 
-	err = a.AddRelation(r)
+	err = a.AddRelation(u)
 	if err != nil {
 		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	} else {
 		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	}
+
+	return err
 }
 
 // Reads the authorization model from a file, before creating the model in OpenFGA
