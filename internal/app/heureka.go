@@ -171,6 +171,7 @@ func (h *HeurekaApp) SubscribeAuthzHandlers() {
 		{component.CreateComponentEventName, event.EventHandlerFunc(component.OnComponentCreateAuthz)},
 		{issue_match.CreateIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchCreateAuthz)},
 		// Delete events
+		{user.DeleteUserEventName, event.EventHandlerFunc(user.OnUserDeleteAuthz)},
 		{service.DeleteServiceEventName, event.EventHandlerFunc(service.OnServiceDeleteAuthz)},
 		{component_instance.DeleteComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceDeleteAuthz)},
 		{component_version.DeleteComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionDeleteAuthz)},

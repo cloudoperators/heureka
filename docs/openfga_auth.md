@@ -64,6 +64,7 @@ Using the event handling system, openfga tuples are modified based on the event 
 | RemoveServiceFromSupportGroup | OnRemoveServiceFromSupportGroup | remove support_group - service                                                              |
 | AddUsertoSupportGroup   | OnAddUserToSupportGroup        | add support_group - user                                                                         |
 | RemoveUserFromSupportGroup | OnRemoveUserFromSupportGroup | remove support_group - user                                                                  |
+| DeleteUser         | OnUserDeleteAuthz         | delete user - role<br>delete user - service<br>delete user - component_instance<br>delete user - support_group<br>delete user - issue_match<br>delete user - component_version<br>delete user - component         |
 | CreateComponent         | OnComponentCreateAuthz         | add role - component                                                                             |
 | DeleteComponent         | OnComponentDeleteAuthz         | delete user - component<br>delete component_version - component<br>delete role - component        |
 

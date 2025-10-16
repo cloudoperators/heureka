@@ -287,6 +287,48 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 						ObjectType: "role",
 						Relation:   "admin",
 					},
+					{ // user - service
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "serviceID",
+						ObjectType: "service",
+						Relation:   "member",
+					},
+					{ // user - component_instance
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "componentInstanceID",
+						ObjectType: "component_instance",
+						Relation:   "can_view",
+					},
+					{ // user - support_group
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "supportGroupID",
+						ObjectType: "support_group",
+						Relation:   "member",
+					},
+					{ // user - issue_match
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "issueMatchID",
+						ObjectType: "issue_match",
+						Relation:   "can_view",
+					},
+					{ // user - component_version
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "componentVersionID",
+						ObjectType: "component_version",
+						Relation:   "can_view",
+					},
+					{ // user - component
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "componentID",
+						ObjectType: "component",
+						Relation:   "can_view",
+					},
 				}
 
 				for _, rel := range relations {
