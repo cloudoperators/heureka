@@ -95,21 +95,21 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 	}
 
 	// Authorization check
-	accessibleServiceIds, err := s.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), "service")
+	accessibleSupportGroupIds, err := s.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), "support_group")
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Error while listing accessible services for user")
 	}
 
-	// Update the filter.Id based on accessibleServiceIds
-	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleServiceIds)
+	// Update the filter.Id based on accessibleSupportGroupIds
+	filter.SupportGroupId = common.CombineFilterWithAccesibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
 
 	// log the current user, accessible services, and filter after authz
 	l = logrus.WithFields(logrus.Fields{
 		"event":                 ListServicesEventName,
 		"current_user_id":       currentUserId,
-		"accessible_service":    accessibleServiceIds,
-		"filter.id_after_authz": filter.Id,
+		"accessible_sg":         accessibleSupportGroupIds,
+		"filter.id_after_authz": filter.SupportGroupId,
 	})
 	l.Info("Listing services with authorization applied")
 

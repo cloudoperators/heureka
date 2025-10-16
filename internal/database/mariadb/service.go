@@ -288,6 +288,13 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.O
 
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, true, order, l)
 
+	// log the statement and parameters for debugging
+	logrus.WithFields(logrus.Fields{
+		"query":             stmt,
+		"support group ids": filter.SupportGroupId,
+		"parameters":        filterParameters,
+	}).Debug("Prepared statement and parameters for GetServices")
+
 	if err != nil {
 		return nil, err
 	}
