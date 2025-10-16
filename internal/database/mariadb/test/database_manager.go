@@ -158,15 +158,6 @@ func (dbm *LocalTestDataBaseManager) TearDown() error {
 	return dbm.cleanupSchemas()
 }
 
-func removeValue[T comparable](s []T, value T) []T {
-	for i, v := range s {
-		if v == value {
-			return append(s[:i], s[i+1:]...)
-		}
-	}
-	return s // value not found
-}
-
 func (dbm *LocalTestDataBaseManager) cleanupSchemas() error {
 	var err error
 	for _, schema := range dbm.Schemas {
