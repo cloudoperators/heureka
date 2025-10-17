@@ -55,6 +55,30 @@ func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 		"event": GetServiceEventName,
 		"id":    serviceId,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(s.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	hasPermission, err := s.authz.CheckPermission(openfga.PermissionInput{
+		UserType:   "user",
+		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
+		Relation:   "can_view",
+		ObjectType: "service",
+		ObjectId:   openfga.ObjectId(fmt.Sprint(serviceId)),
+	})
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while checking permission for user")
+	}
+	if !hasPermission {
+		return nil, NewServiceHandlerError("User does not have permission to view this service")
+	}
+
 	serviceFilter := entity.ServiceFilter{Id: []*int64{&serviceId}}
 	lo := entity.NewListOptions()
 
