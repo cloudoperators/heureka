@@ -1,4 +1,7 @@
 {
     "go.testEnvFile": "${workspaceFolder}/.testenv-devcontainer",
-    "ginkgotools.ginkgoPath": "go run github.com/onsi/ginkgo/v2/ginkgo"
+    "ginkgotools.ginkgoPath": "go run github.com/onsi/ginkgo/v2/ginkgo",
+    "go.delveConfig": {
+    "showGlobalVariables": true,
+    },
 }

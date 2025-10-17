@@ -7,6 +7,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,7 +54,7 @@ func (e *DeleteIssueRepositoryEvent) Name() event.EventName {
 
 // OnIssueRepositoryCreate is a handler for the CreateIssueRepositoryEvent
 // Is adding the default priority  for the default issue repository
-func OnIssueRepositoryCreate(db database.Database, e event.Event) {
+func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 
 	l := logrus.WithFields(logrus.Fields{

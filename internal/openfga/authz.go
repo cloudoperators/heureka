@@ -87,6 +87,100 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	return &Authz{config: cfg, logger: l, client: fgaClient}
 }
 
+func (a *Authz) GetCurrentUser() string {
+	return a.config.CurrentUser
+}
+
+func (a *Authz) ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
+	req := client.ClientReadRequest{} // Empty request returns all tuples
+	resp, err := a.client.Read(context.Background()).Body(req).Execute()
+	if err != nil {
+		a.logger.Errorf("OpenFGA Read (ListRelations) error: %v", err)
+		return nil, err
+	}
+
+	var tuples []client.ClientTupleKeyWithoutCondition
+	for _, tuple := range resp.Tuples {
+		userParts := strings.SplitN(tuple.Key.User, ":", 2)
+		objectParts := strings.SplitN(tuple.Key.Object, ":", 2)
+
+		for _, r := range filters {
+			if r.UserType != "" && (len(userParts) < 1 || userParts[0] != string(r.UserType)) {
+				continue
+			}
+			if r.UserId != "" && (len(userParts) < 2 || userParts[1] != string(r.UserId)) {
+				continue
+			}
+			if r.Relation != "" && tuple.Key.Relation != string(r.Relation) {
+				continue
+			}
+			if r.ObjectType != "" && (len(objectParts) < 1 || objectParts[0] != string(r.ObjectType)) {
+				continue
+			}
+			if r.ObjectId != "" && (len(objectParts) < 2 || objectParts[1] != string(r.ObjectId)) {
+				continue
+			}
+
+			// If all specified fields match for this filter, add the tuple and break to avoid duplicates
+			tuples = append(tuples, client.ClientTupleKeyWithoutCondition{
+				User:     tuple.Key.User,
+				Relation: tuple.Key.Relation,
+				Object:   tuple.Key.Object,
+			})
+			break
+		}
+	}
+	return tuples, nil
+}
+
+func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
+	tuples, err := a.ListRelations(r)
+	if err != nil {
+		return err
+	}
+
+	if len(tuples) == 0 {
+		return nil
+	}
+
+	writeReq := client.ClientWriteRequest{
+		Deletes: tuples,
+	}
+	_, err = a.client.Write(context.Background()).Body(writeReq).Execute()
+	if err != nil {
+		a.logger.Errorf("OpenFGA Delete (DeleteRelations) error: %v", err)
+	} else {
+		a.logger.Infof("OpenFGA Delete (DeleteRelations): Deleted %d relations", len(tuples))
+	}
+	return err
+}
+
+func (a *Authz) UpdateRelation(r RelationInput, u RelationInput) error {
+	l := logrus.WithFields(logrus.Fields{
+		"event":            "HandleCreateAuthzRelation",
+		"user":             r.UserId,
+		"resourceId":       r.ObjectId,
+		"resourceType":     r.ObjectType,
+		"resourceRelation": r.Relation,
+	})
+
+	err := a.RemoveRelationBulk([]RelationInput{r})
+	if err != nil {
+		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while removing relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+	} else {
+		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+	}
+
+	err = a.AddRelation(u)
+	if err != nil {
+		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+	} else {
+		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+	}
+
+	return err
+}
+
 // Reads the authorization model from a file, before creating the model in OpenFGA
 func getAuthModelRequestFromFile(filePath string) (*client.ClientWriteAuthorizationModelRequest, error) {
 	modelBytes, err := os.ReadFile(filePath)
@@ -157,7 +251,6 @@ func (a *Authz) CheckTuple(r RelationInput) (bool, error) {
 	return len(resp.Tuples) > 0, nil
 }
 
-// CheckPermission checks if userId has permission on resourceId.
 func (a *Authz) CheckPermission(p PermissionInput) (bool, error) {
 	req := client.ClientCheckRequest{
 		User:     string(p.UserType) + ":" + string(p.UserId),

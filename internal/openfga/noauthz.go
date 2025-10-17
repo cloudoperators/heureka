@@ -5,6 +5,7 @@ package openfga
 
 import (
 	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/openfga/go-sdk/client"
 )
 
 type NoAuthz struct {
@@ -17,9 +18,13 @@ func NewNoAuthz(cfg *util.Config) Authorization {
 	}
 }
 
+func (a *NoAuthz) GetCurrentUser() string {
+	return ""
+}
+
 // CheckPermission checks if userId has permission on resourceId.
 func (a *NoAuthz) CheckPermission(p PermissionInput) (bool, error) {
-	return true, nil
+	return false, nil
 }
 
 // AddRelation adds a relationship between userId and resourceId.
@@ -36,4 +41,19 @@ func (a *NoAuthz) RemoveRelation(r RelationInput) error {
 func (a *NoAuthz) ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error) {
 	resources := []AccessibleResource{}
 	return resources, nil
+}
+
+// DeleteObjectRelations deletes all relations for a given object.
+func (a *NoAuthz) RemoveRelationBulk(input []RelationInput) error {
+	return nil
+}
+
+// UpdateRelation updates a relationship between userId and resourceId.
+func (a *NoAuthz) UpdateRelation(r RelationInput, u RelationInput) error {
+	return nil
+}
+
+// ListRelations lists all relations for a given input.
+func (a *NoAuthz) ListRelations(input []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
+	return []client.ClientTupleKeyWithoutCondition{}, nil
 }
