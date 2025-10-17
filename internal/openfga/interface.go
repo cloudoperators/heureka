@@ -17,14 +17,6 @@ type ObjectType string
 type RelationType string
 type ObjectId string
 
-type DeleteRelationInput struct {
-	UserType   UserType
-	UserId     UserId
-	Relation   RelationType
-	ObjectType ObjectType
-	ObjectId   ObjectId
-}
-
 type PermissionInput struct {
 	UserType   UserType
 	UserId     UserId
@@ -55,8 +47,8 @@ type Authorization interface {
 	RemoveRelation(r RelationInput) error
 	// Remove all relations that match any given RelationInput as filters
 	RemoveRelationBulk(r []RelationInput) error
-	// Handler for generic event to update authz relation
-	UpdateRelation(r RelationInput)
+	// Update relations based on filters provided
+	UpdateRelation(r RelationInput, u RelationInput) error
 	// List Relations based on multiple filters
 	ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.

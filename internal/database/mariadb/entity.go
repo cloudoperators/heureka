@@ -669,6 +669,8 @@ type ServiceRow struct {
 type BaseServiceRow struct {
 	Id        sql.NullInt64  `db:"service_id" json:"id"`
 	CCRN      sql.NullString `db:"service_ccrn" json:"ccrn"`
+	Domain    sql.NullString `db:"service_domain" json:"domain"`
+	Region    sql.NullString `db:"service_region" json:"region"`
 	CreatedAt sql.NullTime   `db:"service_created_at" json:"created_at"`
 	CreatedBy sql.NullInt64  `db:"service_created_by" json:"created_by"`
 	DeletedAt sql.NullTime   `db:"service_deleted_at" json:"deleted_at,omitempty"`
@@ -680,6 +682,8 @@ func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
 	return entity.BaseService{
 		Id:         GetInt64Value(bsr.Id),
 		CCRN:       GetStringValue(bsr.CCRN),
+		Domain:     GetStringValue(bsr.Domain),
+		Region:     GetStringValue(bsr.Region),
 		Owners:     []entity.User{},
 		Activities: []entity.Activity{},
 		Metadata: entity.Metadata{
@@ -704,6 +708,8 @@ func (sr *ServiceRow) AsService() entity.Service {
 		BaseService: entity.BaseService{
 			Id:         GetInt64Value(sr.Id),
 			CCRN:       GetStringValue(sr.CCRN),
+			Domain:     GetStringValue(sr.Domain),
+			Region:     GetStringValue(sr.Region),
 			Owners:     []entity.User{},
 			Activities: []entity.Activity{},
 			Metadata: entity.Metadata{
@@ -724,6 +730,8 @@ func (sr *ServiceRow) AsService() entity.Service {
 func (sr *ServiceRow) FromService(s *entity.Service) {
 	sr.Id = sql.NullInt64{Int64: s.Id, Valid: true}
 	sr.CCRN = sql.NullString{String: s.CCRN, Valid: true}
+	sr.Domain = sql.NullString{String: s.Domain, Valid: true}
+	sr.Region = sql.NullString{String: s.Region, Valid: true}
 	sr.BaseServiceRow.CreatedAt = sql.NullTime{Time: s.BaseService.CreatedAt, Valid: true}
 	sr.BaseServiceRow.CreatedBy = sql.NullInt64{Int64: s.BaseService.CreatedBy, Valid: true}
 	sr.BaseServiceRow.DeletedAt = sql.NullTime{Time: s.BaseService.DeletedAt, Valid: true}
@@ -751,6 +759,8 @@ func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggre
 			BaseService: entity.BaseService{
 				Id:         GetInt64Value(sbr.BaseServiceRow.Id),
 				CCRN:       GetStringValue(sbr.BaseServiceRow.CCRN),
+				Domain:     GetStringValue(sbr.BaseServiceRow.Domain),
+				Region:     GetStringValue(sbr.BaseServiceRow.Region),
 				Owners:     []entity.User{},
 				Activities: []entity.Activity{},
 				Metadata: entity.Metadata{

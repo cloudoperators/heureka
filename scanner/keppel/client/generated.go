@@ -92,6 +92,7 @@ func (v *ComponentConnectionEdgesComponentEdge) GetCursor() string { return v.Cu
 type ComponentFilter struct {
 	ComponentCcrn []string      `json:"componentCcrn"`
 	State         []StateFilter `json:"state"`
+	ServiceCcrn   []string      `json:"serviceCcrn"`
 }
 
 // GetComponentCcrn returns ComponentFilter.ComponentCcrn, and is useful for accessing the field via an interface.
@@ -99,6 +100,9 @@ func (v *ComponentFilter) GetComponentCcrn() []string { return v.ComponentCcrn }
 
 // GetState returns ComponentFilter.State, and is useful for accessing the field via an interface.
 func (v *ComponentFilter) GetState() []StateFilter { return v.State }
+
+// GetServiceCcrn returns ComponentFilter.ServiceCcrn, and is useful for accessing the field via an interface.
+func (v *ComponentFilter) GetServiceCcrn() []string { return v.ServiceCcrn }
 
 type ComponentInput struct {
 	Ccrn string              `json:"ccrn"`

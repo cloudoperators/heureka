@@ -90,16 +90,11 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 }
 
 // OnComponentVersionUpdateAuthz is a handler for the UpdateComponentVersionEvent
+// Fields that can be updated in Component Version which affect tuple relations include:
+// componentversion_component_id
 func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "component_version",
-		Relation:   "role",
-		UserType:   "role",
-	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentVersionUpdateAuthz",
@@ -109,16 +104,27 @@ func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz op
 	})
 
 	if updateEvent, ok := e.(*UpdateComponentVersionEvent); ok {
-		objectId := strconv.FormatInt(updateEvent.ComponentVersion.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
+		versionId := strconv.FormatInt(updateEvent.ComponentVersion.Id, 10)
+		newComponentId := strconv.FormatInt(updateEvent.ComponentVersion.ComponentId, 10)
 
-		// Handle Update here:
-		//recreate cv - user
-		//recreate cv - ci
-		//recreate cv - role
-
-		//recreate cv - component
+		if newComponentId != "" {
+			// Remove any existing relation where this component_version is connected to any component
+			removeInput := openfga.RelationInput{
+				UserType:   "component_version",
+				UserId:     openfga.UserId(versionId),
+				Relation:   "component_version",
+				ObjectType: "component",
+				// ObjectId left empty to match any component
+			}
+			newRelation := openfga.RelationInput{
+				UserType:   "component_version",
+				UserId:     openfga.UserId(versionId),
+				Relation:   "component_version",
+				ObjectType: "component",
+				ObjectId:   openfga.ObjectId(newComponentId),
+			}
+			authz.UpdateRelation(removeInput, newRelation)
+		}
 	} else {
 		l.Error("Wrong event")
 	}

@@ -134,15 +134,6 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 		return nil, err
 	}
 
-	if componentInstance.ComponentVersionId <= 0 {
-		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "valid component version ID is required")
-		applog.LogError(ci.logger, err, logrus.Fields{
-			"component_version_id": componentInstance.ComponentVersionId,
-			"ccrn":                 componentInstance.CCRN,
-		})
-		return nil, err
-	}
-
 	if componentInstance.ServiceId <= 0 {
 		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "valid service ID is required")
 		applog.LogError(ci.logger, err, logrus.Fields{

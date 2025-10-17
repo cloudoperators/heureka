@@ -37,6 +37,8 @@ var (
 	FilterDisplayContext               string = "Context"
 
 	ServiceFilterServiceCcrn      string = "serviceCcrn"
+	ServiceFilterDomain           string = "domain"
+	ServiceFilterRegion           string = "region"
 	ServiceFilterUniqueUserId     string = "uniqueUserId"
 	ServiceFilterType             string = "type"
 	ServiceFilterUserName         string = "userName"

@@ -155,6 +155,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 							for _, row := range seedCollection.ServiceRows {
 								if r.Id == row.Id.Int64 {
 									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "Name should match")
+									Expect(r.Domain).Should(BeEquivalentTo(row.Domain.String), "Domain should match")
+									Expect(r.Region).Should(BeEquivalentTo(row.Region.String), "Region should match")
 									Expect(r.BaseService.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
 									Expect(r.BaseService.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
@@ -211,6 +213,42 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					By("returning expected number of results", func() {
 						Expect(len(entries)).To(BeEquivalentTo(len(seedCollection.ServiceRows)))
+					})
+				})
+				It("can filter by a single service domain", func() {
+					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					filter := &entity.ServiceFilter{Domain: []*string{&row.Domain.String}}
+
+					entries, err := db.GetServices(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+					By("returning entries include the service domain", func() {
+						for _, entry := range entries {
+							Expect(entry.Domain).To(BeEquivalentTo(row.Domain.String))
+						}
+					})
+				})
+				It("can filter by a single service region", func() {
+					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					filter := &entity.ServiceFilter{Region: []*string{&row.Region.String}}
+
+					entries, err := db.GetServices(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+					By("returning entries include the service region", func() {
+						for _, entry := range entries {
+							Expect(entry.Region).To(BeEquivalentTo(row.Region.String))
+						}
 					})
 				})
 				It("can filter by a single service Id", func() {
@@ -694,6 +732,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				service := seedCollection.ServiceRows[0].AsService()
 
 				service.CCRN = "SecretService"
+				service.Domain = "PrivateDomain"
+				service.Region = "test-mx-1"
 				err := db.UpdateService(&service)
 
 				By("throwing no error", func() {
@@ -978,6 +1018,92 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 								})
 							})
 						})
+					})
+				})
+			})
+		})
+	})
+	When("Getting ServiceDomains", Label("GetServiceDomains"), func() {
+		Context("and the database is empty", func() {
+			It("can perform the list query", func() {
+				res, err := db.GetServiceDomains(nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning an empty list", func() {
+					Expect(res).To(BeEmpty())
+				})
+			})
+		})
+		Context("and we have 10 services in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+
+			Context("and using no filter", func() {
+				It("can fetch the items correctly", func() {
+					res, err := db.GetServiceDomains(nil)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
+					})
+
+					existingServiceDomains := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
+						return s.Domain.String
+					})
+
+					By("returning the correct domains", func() {
+						left, right := lo.Difference(res, existingServiceDomains)
+						Expect(left).Should(BeEmpty())
+						Expect(right).Should(BeEmpty())
+					})
+				})
+			})
+		})
+	})
+	When("Getting ServiceRegions", Label("GetServiceRegions"), func() {
+		Context("and the database is empty", func() {
+			It("can perform the list query", func() {
+				res, err := db.GetServiceRegions(nil)
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
+				})
+				By("returning an empty list", func() {
+					Expect(res).To(BeEmpty())
+				})
+			})
+		})
+		Context("and we have 10 services in the database", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+
+			Context("and using no filter", func() {
+				It("can fetch the items correctly", func() {
+					res, err := db.GetServiceRegions(nil)
+
+					By("throwing no error", func() {
+						Expect(err).Should(BeNil())
+					})
+
+					By("returning the correct number of results", func() {
+						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
+					})
+
+					existingServiceRegions := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
+						return s.Region.String
+					})
+
+					By("returning the correct domains", func() {
+						left, right := lo.Difference(res, existingServiceRegions)
+						Expect(left).Should(BeEmpty())
+						Expect(right).Should(BeEmpty())
 					})
 				})
 			})

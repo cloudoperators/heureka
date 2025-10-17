@@ -13,6 +13,8 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
             node { 
                 id
                 ccrn
+                domain
+                region
                 owners { 
                     totalCount
                     edges { 

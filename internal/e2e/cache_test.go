@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudoperators/heureka/internal/e2e/common"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
@@ -83,7 +83,7 @@ func newCacheTest(valkeyUrl string, ttl time.Duration, cacheEnable bool, maxDbCo
 
 	ct.seedCollection = ct.seeder.SeedDbWithNFakeData(testResourceCount)
 
-	service.CacheTtlGetServiceCcrns = ttl
+	service.CacheTtlGetServiceAttrs = ttl
 	return &ct
 }
 

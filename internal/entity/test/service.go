@@ -4,6 +4,8 @@
 package test
 
 import (
+	"strings"
+
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/cloudoperators/heureka/internal/entity"
 )
@@ -13,6 +15,8 @@ func NewFakeServiceEntity() entity.Service {
 		BaseService: entity.BaseService{
 			Id:           int64(gofakeit.Number(1, 10000000)),
 			CCRN:         gofakeit.Name(),
+			Domain:       strings.ToLower(gofakeit.SongName()),
+			Region:       gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"}),
 			SupportGroup: nil,
 			Activities:   nil,
 			Owners:       nil,

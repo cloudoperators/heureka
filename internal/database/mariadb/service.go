@@ -19,6 +19,8 @@ const (
 func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool, cursorFields []Field) []interface{} {
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.Domain)
+	filterParameters = buildQueryParameters(filterParameters, filter.Region)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
@@ -44,6 +46,8 @@ func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter,
 func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.CCRN, "S.service_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Domain, "S.service_domain = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Region, "S.service_region = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "S.service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerName, "U.user_name = ?", OP_OR))
@@ -147,6 +151,8 @@ func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.Servi
 			},
 			SupportGroupCCRN:  nil,
 			CCRN:              nil,
+			Domain:            nil,
+			Region:            nil,
 			Id:                nil,
 			OwnerName:         nil,
 			SupportGroupId:    nil,
@@ -168,6 +174,12 @@ func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 	fl := []string{}
 	if service.CCRN != "" {
 		fl = append(fl, "service_ccrn = :service_ccrn")
+	}
+	if service.Domain != "" {
+		fl = append(fl, "service_domain = :service_domain")
+	}
+	if service.Region != "" {
+		fl = append(fl, "service_domain = :service_region")
 	}
 	if service.BaseService.UpdatedBy != 0 {
 		fl = append(fl, "service_updated_by = :service_updated_by")
@@ -494,10 +506,14 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 	query := `
 		INSERT INTO Service (
 			service_ccrn,
+			service_domain,
+			service_region,
 			service_created_by,
 			service_updated_by
 		) VALUES (
 			:service_ccrn,
+			:service_domain,
+			:service_region,
 			:service_created_by,
 			:service_updated_by
 		)
@@ -667,18 +683,20 @@ func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRep
 	return err
 }
 
-func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, error) {
+func (s *SqlDatabase) getServiceAttr(attrName string, filter *entity.ServiceFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
-		"event":  "database.GetServiceCcrns",
+		"event":  "database.getServiceAttr",
 	})
 
 	baseQuery := `
-    SELECT service_ccrn FROM Service S
+    SELECT service_%s FROM Service S
     %s
     %s
     ORDER BY %s
     `
+
+	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
 	filter = s.ensureServiceFilter(filter)
@@ -703,19 +721,43 @@ func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, e
 	defer rows.Close()
 
 	// Collect the results
-	serviceCcrns := []string{}
-	var ccrn string
+	serviceAttrs := []string{}
+	var attrVal string
 	for rows.Next() {
-		if err := rows.Scan(&ccrn); err != nil {
+		if err := rows.Scan(&attrVal); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
-		serviceCcrns = append(serviceCcrns, ccrn)
+		serviceAttrs = append(serviceAttrs, attrVal)
 	}
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
 	}
 
-	return serviceCcrns, nil
+	return serviceAttrs, nil
+}
+
+func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, error) {
+	ccrns, err := s.getServiceAttr("ccrn", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Service ccrns: %w", err)
+	}
+	return ccrns, nil
+}
+
+func (s *SqlDatabase) GetServiceDomains(filter *entity.ServiceFilter) ([]string, error) {
+	domains, err := s.getServiceAttr("domain", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Service domains: %w", err)
+	}
+	return domains, nil
+}
+
+func (s *SqlDatabase) GetServiceRegions(filter *entity.ServiceFilter) ([]string, error) {
+	regions, err := s.getServiceAttr("region", filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Service regions: %w", err)
+	}
+	return regions, nil
 }

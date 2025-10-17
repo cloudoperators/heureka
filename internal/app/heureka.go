@@ -171,12 +171,23 @@ func (h *HeurekaApp) SubscribeAuthzHandlers() {
 		{component.CreateComponentEventName, event.EventHandlerFunc(component.OnComponentCreateAuthz)},
 		{issue_match.CreateIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchCreateAuthz)},
 		// Delete events
+		{user.DeleteUserEventName, event.EventHandlerFunc(user.OnUserDeleteAuthz)},
 		{service.DeleteServiceEventName, event.EventHandlerFunc(service.OnServiceDeleteAuthz)},
 		{component_instance.DeleteComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceDeleteAuthz)},
 		{component_version.DeleteComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionDeleteAuthz)},
 		{support_group.DeleteSupportGroupEventName, event.EventHandlerFunc(support_group.OnSupportGroupDeleteAuthz)},
 		{component.DeleteComponentEventName, event.EventHandlerFunc(component.OnComponentDeleteAuthz)},
 		{issue_match.DeleteIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchDeleteAuthz)},
+		// Update events
+		{component_version.UpdateComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionUpdateAuthz)},
+		{issue_match.UpdateIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchUpdateAuthz)},
+		{component_instance.UpdateComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceUpdateAuthz)},
+		{support_group.AddServiceToSupportGroupEventName, event.EventHandlerFunc(support_group.OnAddServiceToSupportGroup)},
+		{support_group.RemoveServiceFromSupportGroupEventName, event.EventHandlerFunc(support_group.OnRemoveServiceFromSupportGroup)},
+		{support_group.AddUserToSupportGroupEventName, event.EventHandlerFunc(support_group.OnAddUserToSupportGroup)},
+		{support_group.RemoveUserFromSupportGroupEventName, event.EventHandlerFunc(support_group.OnRemoveUserFromSupportGroup)},
+		{service.AddOwnerToServiceEventName, event.EventHandlerFunc(service.OnAddOwnerToService)},
+		{service.RemoveOwnerFromServiceEventName, event.EventHandlerFunc(service.OnRemoveOwnerFromService)},
 	}
 
 	for _, handler := range authzHandlers {

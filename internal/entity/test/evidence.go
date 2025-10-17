@@ -15,7 +15,7 @@ func NewFakeEvidenceEntity() entity.Evidence {
 	t := gofakeit.RandomString(entity.AllEvidenceTypeValues)
 	return entity.Evidence{
 		Id:          int64(gofakeit.Number(1, 10000000)),
-		Description: gofakeit.Sentence(10),
+		Description: gofakeit.Sentence(),
 		RaaEnd:      gofakeit.Date(),
 		Type:        entity.NewEvidenceTypeValue(t),
 		Severity:    severity,

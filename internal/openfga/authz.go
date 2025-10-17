@@ -6,7 +6,6 @@ package openfga
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -68,12 +67,6 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	if modelId == "" {
 		// model does not exist, create it
 		// Create the authorization model request from the model file
-		cwd, err := os.Getwd()
-		if err != nil {
-			l.Error("Could not get current working directory: ", err)
-			return nil
-		}
-		fmt.Print(cwd)
 		modelRequest, err := getAuthModelRequestFromFile(cfg.AuthzModelFilePath)
 		if err != nil {
 			l.Error("Could not parse OpenFGA model file: ", err)
@@ -163,7 +156,7 @@ func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
 	return err
 }
 
-func (a *Authz) UpdateRelation(r RelationInput) {
+func (a *Authz) UpdateRelation(r RelationInput, u RelationInput) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event":            "HandleCreateAuthzRelation",
 		"user":             r.UserId,
@@ -172,13 +165,21 @@ func (a *Authz) UpdateRelation(r RelationInput) {
 		"resourceRelation": r.Relation,
 	})
 
-	err := a.RemoveRelation(r)
-	err = a.AddRelation(r)
+	err := a.RemoveRelationBulk([]RelationInput{r})
+	if err != nil {
+		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while removing relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+	} else {
+		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+	}
+
+	err = a.AddRelation(u)
 	if err != nil {
 		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	} else {
 		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	}
+
+	return err
 }
 
 // Reads the authorization model from a file, before creating the model in OpenFGA

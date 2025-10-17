@@ -36,11 +36,8 @@ func TestIssueMatchHandler(t *testing.T) {
 	RunSpecs(t, "IssueMatch Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
 var handlerContext common.HandlerContext
 var cfg *util.Config
-var enableLogs bool
 
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
@@ -52,14 +49,10 @@ var _ = BeforeSuite(func() {
 		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
-	db := mocks.NewMockDatabase(GinkgoT())
-	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
-	er = event.NewEventRegistry(db, authz)
+	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
-		DB:       db,
-		EventReg: er,
-		Cache:    cache.NewNoCache(),
-		Authz:    authz,
+		Cache: cache.NewNoCache(),
+		Authz: authz,
 	}
 })
 
@@ -81,23 +74,20 @@ func getIssueMatchFilter() *entity.IssueMatchFilter {
 
 var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getIssueMatchFilter()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -208,6 +198,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatch
@@ -223,6 +214,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		issueMatch = test.NewFakeIssueMatch()
 		ivFilter = entity.NewIssueVariantFilter()
 		irFilter = entity.NewIssueRepositoryFilter()
@@ -242,6 +234,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		}
 
 		handlerContext.DB = db
+		handlerContext.EventReg = er
 		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
 		ivs = issue_variant.NewIssueVariantHandler(handlerContext, rs)
@@ -284,8 +277,6 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 
 		Context("when new issue match is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
-				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
-
 				imFake := test.NewFakeIssueMatch()
 				createEvent := &im.CreateIssueMatchEvent{
 					IssueMatch: &imFake,
@@ -296,9 +287,9 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 				resourceId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
 				p.ObjectId = openfga.ObjectId(resourceId)
 				// Simulate event
-				im.OnIssueMatchCreateAuthz(db, event, authz)
+				im.OnIssueMatchCreateAuthz(db, event, handlerContext.Authz)
 
-				ok, err := authz.CheckPermission(p)
+				ok, err := handlerContext.Authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				if cfg.AuthzOpenFgaApiUrl != "" {
 					Expect(ok).To(BeTrue(), "permission should be granted")
@@ -312,15 +303,17 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 
 var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatchResult
 		filter            *entity.IssueMatchFilter
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+
 		issueMatch = test.NewFakeIssueMatchResult()
 		first := 10
 		after := ""
@@ -330,12 +323,8 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("updates issueMatch", func() {
@@ -363,20 +352,72 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 			Expect(updatedIssueMatch.Severity.Value).To(BeEquivalentTo(issueMatch.Severity.Value))
 		})
 	})
+
+	Context("when handling an UpdateIssueMatchEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
+		It("should update the component_instance relation tuple in openfga", func() {
+			imFake := test.NewFakeIssueMatch()
+			oldComponentInstanceId := int64(12345)
+			newComponentInstanceId := int64(67890)
+
+			// Add an initial relation: issue_match -> old component_instance
+			initialRelation := openfga.RelationInput{
+				UserType:   "component_instance",
+				UserId:     openfga.UserId(strconv.FormatInt(oldComponentInstanceId, 10)),
+				Relation:   "component_instance",
+				ObjectType: "issue_match",
+				ObjectId:   openfga.ObjectId(strconv.FormatInt(imFake.Id, 10)),
+			}
+			handlerContext.Authz.AddRelation(initialRelation)
+
+			// Prepare the update event with the new component_instance id
+			imFake.ComponentInstanceId = newComponentInstanceId
+			updateEvent := &im.UpdateIssueMatchEvent{
+				IssueMatch: &imFake,
+			}
+			var event event.Event = updateEvent
+
+			// Simulate event
+			im.OnIssueMatchUpdateAuthz(db, event, handlerContext.Authz)
+
+			// Check that the old relation is gone
+			remainingOld, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{initialRelation})
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remainingOld).To(BeEmpty(), "old relation should be removed")
+
+			// Check that the new relation exists
+			newRelation := openfga.RelationInput{
+				UserType:   "component_instance",
+				UserId:     openfga.UserId(strconv.FormatInt(newComponentInstanceId, 10)),
+				Relation:   "component_instance",
+				ObjectType: "issue_match",
+				ObjectId:   openfga.ObjectId(strconv.FormatInt(imFake.Id, 10)),
+			}
+			remainingNew, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{newRelation})
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
+		})
+	})
 })
 
 var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		id                int64
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+
 		id = 1
 		first := 10
 		after := ""
@@ -387,12 +428,8 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 			},
 		}
 		options = entity.NewListOptions()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("deletes issueMatch", func() {
@@ -418,7 +455,6 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		Context("when new issue match is deleted", func() {
 			It("should delete tuples related to that issuematch in openfga", func() {
 				// Test OnIssueMatchDeleteAuthz against all possible relations
-				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 				imFake := test.NewFakeIssueMatch()
 				deleteEvent := &im.DeleteIssueMatchEvent{
 					IssueMatchID: imFake.Id,
@@ -449,14 +485,14 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 				}
 
 				for _, rel := range relations {
-					authz.AddRelation(rel)
+					handlerContext.Authz.AddRelation(rel)
 				}
 
 				var event event.Event = deleteEvent
 				// Simulate event
-				im.OnIssueMatchDeleteAuthz(db, event, authz)
+				im.OnIssueMatchDeleteAuthz(db, event, handlerContext.Authz)
 
-				remaining, err := authz.ListRelations(relations)
+				remaining, err := handlerContext.Authz.ListRelations(relations)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
 			})
@@ -466,16 +502,18 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 
 var _ = Describe("When modifying relationship of evidence and issueMatch", Label("app", "EvidenceIssueMatchRelationship"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		evidence          entity.Evidence
 		issueMatch        entity.IssueMatchResult
 		filter            *entity.IssueMatchFilter
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+
 		issueMatch = test.NewFakeIssueMatchResult()
 		evidence = test.NewFakeEvidenceEntity()
 		first := 10
@@ -487,12 +525,8 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 			},
 			Id: []*int64{&issueMatch.Id},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Cache:    cache.NewNoCache(),
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("adds evidence to issueMatch", func() {

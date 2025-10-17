@@ -216,17 +216,12 @@ func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz o
 }
 
 // OnComponentInstanceUpdateAuthz is a handler for the UpdateComponentInstanceEvent
-// It creates an OpenFGA relation tuple for the component instance and the current user
+// Fields that can be updated in Component Instance which affect tuple relations include:
+// componentinstance_component_version_id
+// componentinstance_service_id
 func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "component_instance",
-		Relation:   "role",
-		UserType:   "role",
-	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnComponentInstanceUpdateAuthz",
@@ -236,17 +231,43 @@ func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz o
 	})
 
 	if updateEvent, ok := e.(*UpdateComponentInstanceEvent); ok {
-		objectId := strconv.FormatInt(updateEvent.ComponentInstance.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
+		instanceId := strconv.FormatInt(updateEvent.ComponentInstance.Id, 10)
+		serviceId := strconv.FormatInt(updateEvent.ComponentInstance.ServiceId, 10)
+		componentVersionId := strconv.FormatInt(updateEvent.ComponentInstance.ComponentVersionId, 10)
 
-		// Handle Update here:
-		//recreate ci - user
-		//recreate ci - service
-		//recreate ci - role
+		// Update service relation
+		removeServiceInput := openfga.RelationInput{
+			Relation:   "related_service",
+			ObjectType: "component_instance",
+			ObjectId:   openfga.ObjectId(instanceId),
+			UserType:   "service",
+			// UserId left empty to match any service
+		}
+		newServiceRelation := openfga.RelationInput{
+			UserType:   "service",
+			UserId:     openfga.UserId(serviceId),
+			Relation:   "related_service",
+			ObjectType: "component_instance",
+			ObjectId:   openfga.ObjectId(instanceId),
+		}
+		authz.UpdateRelation(removeServiceInput, newServiceRelation)
 
-		//recreate ci - cv
-		//recreate ci - im
+		// Update component_version relation
+		removeComponentVersionInput := openfga.RelationInput{
+			UserType:   "component_instance",
+			UserId:     openfga.UserId(instanceId),
+			Relation:   "component_instance",
+			ObjectType: "component_version",
+			// ObjectId left empty to match any component_version
+		}
+		newComponentVersionRelation := openfga.RelationInput{
+			UserType:   "component_instance",
+			UserId:     openfga.UserId(instanceId),
+			Relation:   "component_instance",
+			ObjectType: "component_version",
+			ObjectId:   openfga.ObjectId(componentVersionId),
+		}
+		authz.UpdateRelation(removeComponentVersionInput, newComponentVersionRelation)
 	} else {
 		l.Error("Wrong event")
 	}

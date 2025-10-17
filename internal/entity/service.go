@@ -7,6 +7,8 @@ type BaseService struct {
 	Metadata
 	Id             int64         `json:"id"`
 	CCRN           string        `json:"ccrn"`
+	Domain         string        `json:"domain"`
+	Region         string        `json:"region"`
 	SupportGroup   *SupportGroup `json:"support_group,omitempty"`
 	SupportGroupId int64         `db:"service_support_group_id"`
 	Owners         []User        `json:"owners,omitempty"`
@@ -29,6 +31,8 @@ type ServiceFilter struct {
 	SupportGroupCCRN    []*string         `json:"support_group_ccrn"`
 	Id                  []*int64          `json:"id"`
 	CCRN                []*string         `json:"ccrn"`
+	Domain              []*string         `json:"domian"`
+	Region              []*string         `json:"region"`
 	OwnerName           []*string         `json:"owner_name"`
 	OwnerId             []*int64          `json:"owner_id"`
 	IssueId             []*int64          `json:"issue_id"`

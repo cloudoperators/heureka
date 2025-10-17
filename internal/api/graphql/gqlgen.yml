@@ -244,13 +244,17 @@ models:
         resolver: true
   ServiceFilterValue:
     fields:
-      serviceCcrn:
+      service:
+        resolver: true
+      domain:
+        resolver: true
+      region:
         resolver: true
       uniqueUserId:
         resolver: true
       userName:
         resolver: true
-      supportGroupCcrn:
+      supportGroup:
         resolver: true
       user:
         resolver: true

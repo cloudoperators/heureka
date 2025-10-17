@@ -146,8 +146,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		user = test.NewFakeUserEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := int64(0)
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -190,8 +189,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		user = test.NewFakeUserEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := int64(0)
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -234,8 +232,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		after := int64(0)
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -286,6 +283,48 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 						ObjectId:   "roleID",
 						ObjectType: "role",
 						Relation:   "admin",
+					},
+					{ // user - service
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "serviceID",
+						ObjectType: "service",
+						Relation:   "member",
+					},
+					{ // user - component_instance
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "componentInstanceID",
+						ObjectType: "component_instance",
+						Relation:   "can_view",
+					},
+					{ // user - support_group
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "supportGroupID",
+						ObjectType: "support_group",
+						Relation:   "member",
+					},
+					{ // user - issue_match
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "issueMatchID",
+						ObjectType: "issue_match",
+						Relation:   "can_view",
+					},
+					{ // user - component_version
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "componentVersionID",
+						ObjectType: "component_version",
+						Relation:   "can_view",
+					},
+					{ // user - component
+						UserType:   "user",
+						UserId:     userId,
+						ObjectId:   "componentID",
+						ObjectType: "component",
+						Relation:   "can_view",
 					},
 				}
 

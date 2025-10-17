@@ -29,11 +29,8 @@ func TestSupportGroupHandler(t *testing.T) {
 	RunSpecs(t, "Support Group Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
 var handlerContext common.HandlerContext
 var cfg *util.Config
-var enableLogs bool
 
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
@@ -45,14 +42,10 @@ var _ = BeforeSuite(func() {
 		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
-	db := mocks.NewMockDatabase(GinkgoT())
-	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
-	er = event.NewEventRegistry(db, authz)
+	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
-		DB:       db,
-		EventReg: er,
-		Cache:    cache.NewNoCache(),
-		Authz:    authz,
+		Cache: cache.NewNoCache(),
+		Authz: authz,
 	}
 })
 
@@ -67,12 +60,12 @@ func getSupportGroupFilter() *entity.SupportGroupFilter {
 
 var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups"), func() {
 	var (
+		er                  event.EventRegistry
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		filter              *entity.SupportGroupFilter
 		options             *entity.ListOptions
 		order               []entity.Order
-		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -80,11 +73,9 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 		options = entity.NewListOptions()
 		filter = getSupportGroupFilter()
 		order = []entity.Order{}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -147,6 +138,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 
 var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"), func() {
 	var (
+		er                  event.EventRegistry
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		supportGroup        entity.SupportGroup
@@ -175,8 +167,9 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 			ObjectType: "support_group",
 			Relation:   "role",
 		}
-
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		handlerContext.DB = db
+		handlerContext.EventReg = er
 		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
@@ -202,7 +195,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 		Context("when new component instance is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
-				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 				sgFake := test.NewFakeSupportGroupEntity()
 				createEvent := &sg.CreateSupportGroupEvent{
 					SupportGroup: &sgFake,
@@ -214,9 +206,9 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 				p.ObjectId = openfga.ObjectId(objectId)
 
 				// Simulate event
-				sg.OnSupportGroupCreateAuthz(db, event, authz)
+				sg.OnSupportGroupCreateAuthz(db, event, handlerContext.Authz)
 
-				ok, err := authz.CheckPermission(p)
+				ok, err := handlerContext.Authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				if cfg.AuthzOpenFgaApiUrl != "" {
 					Expect(ok).To(BeTrue(), "permission should be granted")
@@ -230,12 +222,12 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"), func() {
 	var (
+		er                  event.EventRegistry
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		supportGroup        entity.SupportGroupResult
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
-		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -250,11 +242,9 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("updates supportGroup", func() {
@@ -274,13 +264,13 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 
 var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"), func() {
 	var (
+		er                  event.EventRegistry
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		id                  int64
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
 		listOptions         *entity.ListOptions
-		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -296,11 +286,9 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("deletes supportGroup", func() {
@@ -326,7 +314,6 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		Context("when new support group is deleted", func() {
 			It("should delete tuples related to that support group in openfga", func() {
 				// Test OnSupportGroupDeleteAuthz against all possible relations
-				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 				sgFake := test.NewFakeSupportGroupEntity()
 				deleteEvent := &sg.DeleteSupportGroupEvent{
 					SupportGroupID: sgFake.Id,
@@ -366,14 +353,14 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 				}
 
 				for _, rel := range relations {
-					authz.AddRelation(rel)
+					handlerContext.Authz.AddRelation(rel)
 				}
 
 				var event event.Event = deleteEvent
 				// Simulate event
-				sg.OnSupportGroupDeleteAuthz(db, event, authz)
+				sg.OnSupportGroupDeleteAuthz(db, event, handlerContext.Authz)
 
-				remaining, err := authz.ListRelations(relations)
+				remaining, err := handlerContext.Authz.ListRelations(relations)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
 			})
@@ -383,13 +370,13 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 
 var _ = Describe("When modifying relationship of Service and SupportGroup", Label("app", "ServiceSupportGroupRelationship"), func() {
 	var (
+		er                  event.EventRegistry
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		service             entity.Service
 		supportGroup        entity.SupportGroupResult
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
-		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -406,11 +393,9 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 			},
 			Id: []*int64{&supportGroup.Id},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("adds service to supportGroup", func() {
@@ -422,6 +407,34 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
 
+	Context("when handling an AddServiceToSupportGroupEvent", func() {
+		It("should add the service-supportGroup relation tuple in openfga", func() {
+			sgFake := test.NewFakeSupportGroupResult()
+			serviceFake := test.NewFakeServiceEntity()
+			addEvent := &sg.AddServiceToSupportGroupEvent{
+				SupportGroupID: sgFake.Id,
+				ServiceID:      serviceFake.Id,
+			}
+			supportGroupId := openfga.UserId(strconv.FormatInt(addEvent.SupportGroupID, 10))
+			serviceId := openfga.ObjectId(strconv.FormatInt(addEvent.ServiceID, 10))
+
+			rel := openfga.RelationInput{
+				UserType:   "support_group",
+				UserId:     supportGroupId,
+				ObjectType: "service",
+				ObjectId:   serviceId,
+				Relation:   "support_group",
+			}
+
+			var event event.Event = addEvent
+			sg.OnAddServiceToSupportGroup(db, event, handlerContext.Authz)
+
+			remaining, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{rel})
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remaining).NotTo(BeEmpty(), "relation should exist after addition")
+		})
+	})
+
 	It("removes service from supportGroup", func() {
 		db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
@@ -430,17 +443,46 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
+
+	Context("when handling a RemoveServiceFromSupportGroupEvent", func() {
+		It("should remove the service-supportGroup relation tuple in openfga", func() {
+			sgFake := test.NewFakeSupportGroupResult()
+			serviceFake := test.NewFakeServiceEntity()
+			removeEvent := &sg.RemoveServiceFromSupportGroupEvent{
+				SupportGroupID: sgFake.Id,
+				ServiceID:      serviceFake.Id,
+			}
+			supportGroupId := openfga.UserId(strconv.FormatInt(removeEvent.SupportGroupID, 10))
+			serviceId := openfga.ObjectId(strconv.FormatInt(removeEvent.ServiceID, 10))
+
+			rel := openfga.RelationInput{
+				UserType:   "support_group",
+				UserId:     supportGroupId,
+				ObjectType: "service",
+				ObjectId:   serviceId,
+				Relation:   "support_group",
+			}
+			handlerContext.Authz.AddRelation(rel)
+
+			var event event.Event = removeEvent
+			sg.OnRemoveServiceFromSupportGroup(db, event, handlerContext.Authz)
+
+			remaining, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{rel})
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
+		})
+	})
 })
 
 var _ = Describe("When modifying relationship of User and SupportGroup", Label("app", "UserSupportGroupRelationship"), func() {
 	var (
+		er                  event.EventRegistry
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		user                entity.User
 		supportGroup        entity.SupportGroupResult
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
-		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -457,11 +499,9 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 			},
 			Id: []*int64{&supportGroup.Id},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("adds user to supportGroup", func() {
@@ -473,6 +513,34 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
 
+	Context("when handling an AddUserToSupportGroupEvent", func() {
+		It("should add the user-supportGroup relation tuple in openfga", func() {
+			sgFake := test.NewFakeSupportGroupResult()
+			userFake := test.NewFakeUserEntity()
+			addEvent := &sg.AddUserToSupportGroupEvent{
+				SupportGroupID: sgFake.Id,
+				UserID:         userFake.Id,
+			}
+			supportGroupId := openfga.ObjectId(strconv.FormatInt(addEvent.SupportGroupID, 10))
+			userId := openfga.UserId(strconv.FormatInt(addEvent.UserID, 10))
+
+			rel := openfga.RelationInput{
+				UserType:   "user",
+				UserId:     userId,
+				ObjectType: "support_group",
+				ObjectId:   supportGroupId,
+				Relation:   "member",
+			}
+
+			var event event.Event = addEvent
+			sg.OnAddUserToSupportGroup(db, event, handlerContext.Authz)
+
+			remaining, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{rel})
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remaining).NotTo(BeEmpty(), "relation should exist after addition")
+		})
+	})
+
 	It("removes user from supportGroup", func() {
 		db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
@@ -481,16 +549,45 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 	})
+
+	Context("when handling a RemoveUserFromSupportGroupEvent", func() {
+		It("should remove the user-supportGroup relation tuple in openfga", func() {
+			sgFake := test.NewFakeSupportGroupResult()
+			userFake := test.NewFakeUserEntity()
+			removeEvent := &sg.RemoveUserFromSupportGroupEvent{
+				SupportGroupID: sgFake.Id,
+				UserID:         userFake.Id,
+			}
+			supportGroupId := openfga.ObjectId(strconv.FormatInt(removeEvent.SupportGroupID, 10))
+			userId := openfga.UserId(strconv.FormatInt(removeEvent.UserID, 10))
+
+			rel := openfga.RelationInput{
+				UserType:   "user",
+				UserId:     userId,
+				ObjectType: "support_group",
+				ObjectId:   supportGroupId,
+				Relation:   "member",
+			}
+			handlerContext.Authz.AddRelation(rel)
+
+			var event event.Event = removeEvent
+			sg.OnRemoveUserFromSupportGroup(db, event, handlerContext.Authz)
+
+			remaining, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{rel})
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
+		})
+	})
 })
 
 var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGroupCcrns"), func() {
 	var (
+		er                  event.EventRegistry
 		db                  *mocks.MockDatabase
 		supportGroupHandler sg.SupportGroupHandler
 		filter              *entity.SupportGroupFilter
 		options             *entity.ListOptions
 		ccrn                string
-		handlerContext      common.HandlerContext
 	)
 
 	BeforeEach(func() {
@@ -498,11 +595,9 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 		options = entity.NewListOptions()
 		filter = getSupportGroupFilter()
 		ccrn = "src"
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	When("no filters are used", func() {

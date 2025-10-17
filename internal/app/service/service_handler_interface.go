@@ -14,6 +14,8 @@ type ServiceHandler interface {
 	AddOwnerToService(serviceId, ownerId int64) (*entity.Service, error)
 	RemoveOwnerFromService(serviceId, ownerId int64) (*entity.Service, error)
 	ListServiceCcrns(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
+	ListServiceDomains(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
+	ListServiceRegions(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
 	AddIssueRepositoryToService(int64, int64, int64) (*entity.Service, error)
 	RemoveIssueRepositoryFromService(int64, int64) (*entity.Service, error)
 }

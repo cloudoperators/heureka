@@ -9,5 +9,7 @@ mutation ($id: ID!, $input: ServiceInput!) {
         __typename
         id
         ccrn
+        domain
+        region
     }
 }

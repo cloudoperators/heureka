@@ -15,13 +15,33 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *serviceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+func (r *serviceFilterValueResolver) Service(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
 
 	if err != nil {
 		return nil, err
 	}
 	item.FilterName = &baseResolver.ServiceFilterServiceCcrn
+	return item, err
+}
+
+func (r *serviceFilterValueResolver) Domain(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ServiceDomainBaseResolver(r.App, ctx, filter)
+
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterDomain
+	return item, err
+}
+
+func (r *serviceFilterValueResolver) Region(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+	item, err := baseResolver.ServiceRegionBaseResolver(r.App, ctx, filter)
+
+	if err != nil {
+		return nil, err
+	}
+	item.FilterName = &baseResolver.ServiceFilterRegion
 	return item, err
 }
 
@@ -43,9 +63,8 @@ func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.Se
 	return item, err
 }
 
-func (r *serviceFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+func (r *serviceFilterValueResolver) SupportGroup(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
-
 	if err != nil {
 		return nil, err
 	}

@@ -248,16 +248,11 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 }
 
 // OnIssueMatchUpdateAuthz is a handler for the UpdateIssueMatchEvent
+// Fields that can be updated in Issue Match which affect tuple relations include:
+// issuematch_component_instance_id
 func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "issue_match",
-		Relation:   "role",
-		UserType:   "role",
-	}
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":             "OnIssueMatchUpdateAuthz",
@@ -267,14 +262,29 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 	})
 
 	if updateEvent, ok := e.(*UpdateIssueMatchEvent); ok {
-		objectId := strconv.FormatInt(updateEvent.IssueMatch.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
+		issueMatchId := strconv.FormatInt(updateEvent.IssueMatch.Id, 10)
+		newComponentInstanceId := strconv.FormatInt(updateEvent.IssueMatch.ComponentInstanceId, 10)
 
-		// Handle Update here:
-		//recreate im - user
-		//recreate im - ci
-		//recreate im - role
+		if newComponentInstanceId != "" {
+			// Remove any existing relation where this issue_match is connected to any component_instance
+			removeInput := openfga.RelationInput{
+				UserType:   "component_instance",
+				Relation:   "component_instance",
+				ObjectType: "issue_match",
+				ObjectId:   openfga.ObjectId(issueMatchId),
+			}
+			authz.RemoveRelationBulk([]openfga.RelationInput{removeInput})
+
+			// Add the new relation to the new component_instance
+			newRelation := openfga.RelationInput{
+				UserType:   "component_instance",
+				UserId:     openfga.UserId(newComponentInstanceId),
+				Relation:   "component_instance",
+				ObjectType: "issue_match",
+				ObjectId:   openfga.ObjectId(issueMatchId),
+			}
+			authz.AddRelation(newRelation)
+		}
 	} else {
 		l.Error("Wrong event")
 	}

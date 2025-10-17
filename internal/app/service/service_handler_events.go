@@ -22,6 +22,8 @@ const (
 	ListServicesEventName                     event.EventName = "ListServices"
 	GetServiceEventName                       event.EventName = "GetService"
 	ListServiceCcrnsEventName                 event.EventName = "ListServiceCcrns"
+	ListServiceDomainsEventName               event.EventName = "ListServiceDomains"
+	ListServiceRegionsEventName               event.EventName = "ListServiceRegions"
 	AddIssueRepositoryToServiceEventName      event.EventName = "AddIssueRepositoryToService"
 	RemoveIssueRepositoryFromServiceEventName event.EventName = "RemoveIssueRepositoryFromService"
 )
@@ -97,6 +99,26 @@ func (e *ListServiceCcrnsEvent) Name() event.EventName {
 	return ListServiceCcrnsEventName
 }
 
+type ListServiceDomainsEvent struct {
+	Filter  *entity.ServiceFilter
+	Options *entity.ListOptions
+	Domains []string
+}
+
+func (e *ListServiceDomainsEvent) Name() event.EventName {
+	return ListServiceDomainsEventName
+}
+
+type ListServiceRegionsEvent struct {
+	Filter  *entity.ServiceFilter
+	Options *entity.ListOptions
+	Regions []string
+}
+
+func (e *ListServiceRegionsEvent) Name() event.EventName {
+	return ListServiceRegionsEventName
+}
+
 type AddIssueRepositoryToServiceEvent struct {
 	ServiceID    int64
 	RepositoryID int64
@@ -159,8 +181,6 @@ func OnServiceCreate(db database.Database, e event.Event, authz openfga.Authoriz
 }
 
 // OnServiceCreateAuthz is a handler for the CreateServiceEvent
-// Is creating a openfga relation tuple for the service and the current user
-// OnServiceCreateAuthz is a handler for the CreateServiceEvent
 // It creates an OpenFGA relation tuple for the service and the current user
 func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
@@ -195,41 +215,8 @@ func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Aut
 	}
 }
 
-// OnServiceUpdateAuthz is a handler for the UpdateServiceEvent
-func OnServiceUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-	userId := authz.GetCurrentUser()
-
-	r := openfga.RelationInput{
-		ObjectType: "service",
-		Relation:   "role",
-		UserType:   "role",
-	}
-
-	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnServiceUpdateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
-	})
-
-	if updateEvent, ok := e.(*UpdateServiceEvent); ok {
-		objectId := strconv.FormatInt(updateEvent.Service.Id, 10)
-		r.UserId = openfga.UserId(userId)
-		r.ObjectId = openfga.ObjectId(objectId)
-
-		// remove service - user
-		//remove service - role
-		//remove service - support group
-
-		//remove service - component Instance
-	} else {
-		l.Error("Wrong event")
-	}
-}
-
 // OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
+// It deletes all OpenFGA relation tuples containing that service
 func OnServiceDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
 	defaultPrio := db.GetDefaultIssuePriority()
 	defaultRepoName := db.GetDefaultRepositoryName()
@@ -263,57 +250,51 @@ func OnServiceDeleteAuthz(db database.Database, e event.Event, authz openfga.Aut
 	}
 }
 
-// OnAddOwnerToServiceAuthz is a handler for the AddOwnerToServiceEvent
-func OnAddOwnerToServiceAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
-	r := openfga.RelationInput{
-		ObjectType: "service",
-		Relation:   "owner",
-		UserType:   "user",
-	}
-
+// OnAddOwnerToService is a handler for the AddOwnerToServiceEvent
+// It creates an OpenFGA relation tuple between the owner and the service
+func OnAddOwnerToService(db database.Database, e event.Event, authz openfga.Authorization) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnAddOwnerToServiceAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnAddOwnerToService",
+		"payload": e,
 	})
 
-	if addOwnerEvent, ok := e.(*AddOwnerToServiceEvent); ok {
-		r.UserId = openfga.UserId(strconv.FormatInt(addOwnerEvent.OwnerID, 10))
-		r.ObjectId = openfga.ObjectId(strconv.FormatInt(addOwnerEvent.ServiceID, 10))
+	if addEvent, ok := e.(*AddOwnerToServiceEvent); ok {
+		serviceId := strconv.FormatInt(addEvent.ServiceID, 10)
+		ownerId := strconv.FormatInt(addEvent.OwnerID, 10)
 
-		// add service - user
+		rel := openfga.RelationInput{
+			UserType:   "user",
+			UserId:     openfga.UserId(ownerId),
+			ObjectType: "service",
+			ObjectId:   openfga.ObjectId(serviceId),
+			Relation:   "owner",
+		}
+		authz.AddRelation(rel)
 	} else {
 		l.Error("Wrong event")
 	}
 }
 
-// OnRemoveOwnerFromServiceAuthz is a handler for the RemoveOwnerFromServiceEvent
-func OnRemoveOwnerFromServiceAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
-	r := openfga.RelationInput{
-		ObjectType: "service",
-		Relation:   "owner",
-		UserType:   "user",
-	}
-
+// OnRemoveOwnerFromService is a handler for the RemoveOwnerFromServiceEvent
+// It removes the OpenFGA relation tuple between the owner and the service
+func OnRemoveOwnerFromService(db database.Database, e event.Event, authz openfga.Authorization) {
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnRemoveOwnerFromServiceAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnRemoveOwnerFromService",
+		"payload": e,
 	})
 
-	if removeOwnerEvent, ok := e.(*RemoveOwnerFromServiceEvent); ok {
-		r.UserId = openfga.UserId(strconv.FormatInt(removeOwnerEvent.OwnerID, 10))
-		r.ObjectId = openfga.ObjectId(strconv.FormatInt(removeOwnerEvent.ServiceID, 10))
+	if removeEvent, ok := e.(*RemoveOwnerFromServiceEvent); ok {
+		serviceId := strconv.FormatInt(removeEvent.ServiceID, 10)
+		ownerId := strconv.FormatInt(removeEvent.OwnerID, 10)
 
-		// remove service - user
+		rel := openfga.RelationInput{
+			UserType:   "user",
+			UserId:     openfga.UserId(ownerId),
+			ObjectType: "service",
+			ObjectId:   openfga.ObjectId(serviceId),
+			Relation:   "owner",
+		}
+		authz.RemoveRelation(rel)
 	} else {
 		l.Error("Wrong event")
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -143,8 +144,8 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 			if err != nil {
 				log.WithFields(log.Fields{
 					"vulnerabilityID":    vulnerability.VulnerabilityID,
-					"issueID":            issue.Id,
-					"issuePrimaryName":   issue.PrimaryName,
+					"issueID":            lo.Ternary(issue != nil, issue.Id, ""),
+					"issuePrimaryName":   lo.Ternary(issue != nil, issue.PrimaryName, ""),
 					"componentVersionID": componentVersionId,
 					"report":             report.ArtifactName,
 				}).WithError(err).Error("Error while getting issue")
@@ -200,7 +201,7 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 // to fetch the next batch.
 func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize int) ([]*client.ComponentAggregate, error) {
 	var allComponents []*client.ComponentAggregate
-	cursor := "0" // Set initial cursor to "0"
+	cursor := "" // Set initial cursor to ""
 
 	for {
 		// ListComponents also returns the ComponentVersions of each Component

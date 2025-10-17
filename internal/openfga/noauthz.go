@@ -18,9 +18,6 @@ func NewNoAuthz(cfg *util.Config) Authorization {
 	}
 }
 
-func (a *NoAuthz) UpdateRelation(r RelationInput) {
-}
-
 func (a *NoAuthz) GetCurrentUser() string {
 	return ""
 }
@@ -53,6 +50,11 @@ func (a *NoAuthz) GetListOfAccessibleObjectIds(userId UserId, objectType ObjectT
 
 // DeleteObjectRelations deletes all relations for a given object.
 func (a *NoAuthz) RemoveRelationBulk(input []RelationInput) error {
+	return nil
+}
+
+// UpdateRelation updates a relationship between userId and resourceId.
+func (a *NoAuthz) UpdateRelation(r RelationInput, u RelationInput) error {
 	return nil
 }
 
