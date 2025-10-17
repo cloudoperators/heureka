@@ -137,7 +137,7 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 			It("creates new ScannerRun and fails the scanner run", func() {
 				sampleTag := gofakeit.Word()
 				sampleUUID := gofakeit.UUID()
-				sampleMessage := gofakeit.Sentence(10)
+				sampleMessage := gofakeit.Sentence()
 
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
