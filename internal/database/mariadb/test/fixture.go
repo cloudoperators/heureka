@@ -1568,7 +1568,7 @@ func NewFakeEvidence() mariadb.EvidenceRow {
 	cvss, _ := metric.NewEnvironmental().Decode(v)
 	rating := cvss.Severity().String()
 	return mariadb.EvidenceRow{
-		Description: sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+		Description: sql.NullString{String: gofakeit.Sentence(), Valid: true},
 		Type: sql.NullString{
 			String: gofakeit.RandomString(types),
 			Valid:  true,
