@@ -146,8 +146,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		user = test.NewFakeUserEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := int64(0)
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -190,8 +189,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		user = test.NewFakeUserEntity()
 		first := 10
-		var after int64
-		after = 0
+		after := int64(0)
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -234,8 +232,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		after := int64(0)
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -264,11 +261,6 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 	})
 
 	Context("when handling a DeleteUserEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new user is deleted", func() {
 			It("should delete tuples related to that user in openfga", func() {
 				// Test OnUserDeleteAuthz against all possible relations
