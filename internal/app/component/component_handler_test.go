@@ -31,7 +31,6 @@ func TestComponentHandler(t *testing.T) {
 
 var handlerContext common.HandlerContext
 var cfg *util.Config
-var enableLogs bool
 
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
@@ -42,11 +41,15 @@ var _ = BeforeSuite(func() {
 		AuthTokenSecret:       "testkey",
 		AuthzOpenFgaApiToken:  "testkey",
 	}
-	enableLogs = false
+	enableLogs := false
+	db := mocks.NewMockDatabase(GinkgoT())
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+	er := event.NewEventRegistry(db, authz)
 	handlerContext = common.HandlerContext{
-		Cache: cache.NewNoCache(),
-		Authz: authz,
+		DB:       db,
+		EventReg: er,
+		Cache:    cache.NewNoCache(),
+		Authz:    authz,
 	}
 })
 
@@ -72,7 +75,6 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getComponentFilter()
@@ -149,7 +151,6 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		component = test.NewFakeComponentEntity()
 		first := 10
@@ -232,7 +233,6 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		component = test.NewFakeComponentResult()
 		first := 10
@@ -276,7 +276,6 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		id = 1
 		first := 10
