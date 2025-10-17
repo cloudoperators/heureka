@@ -13,7 +13,7 @@ package common
 // example 3:
 // filter.Id: [123, 789]
 // accessibleServiceIds: [456, 101, 102]
-// result: []
+// result: [-1]
 
 // example 4:
 // filter.Id: [123, 456, 789]
@@ -38,6 +38,11 @@ func CombineFilterWithAccesibleIds(filterIds []*int64, accessibleIds []*int64) [
 		if len(filterIds) > 0 {
 			// Intersection of filterIds and accessibleIds
 			filterIds = getIntersectionOfIdSlices(filterIds, accessibleIds)
+
+			// If intersection is empty, return [-1] to indicate no access
+			if len(filterIds) == 0 {
+				filterIds = []*int64{Int64Ptr(-1)}
+			}
 		} else {
 			// No filterIds: use accessibleIds as filter
 			filterIds = accessibleIds
@@ -61,4 +66,9 @@ func getIntersectionOfIdSlices(slice1 []*int64, slice2 []*int64) []*int64 {
 		}
 	}
 	return intersection
+}
+
+// Int64Ptr returns a pointer to the given int64 value.
+func Int64Ptr(i int64) *int64 {
+	return &i
 }
