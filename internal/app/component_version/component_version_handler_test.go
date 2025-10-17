@@ -480,7 +480,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 						UserId:     userId,
 						ObjectId:   "componentId",
 						ObjectType: "component",
-						Relation:   "component",
+						Relation:   "component_version",
 					},
 				}
 

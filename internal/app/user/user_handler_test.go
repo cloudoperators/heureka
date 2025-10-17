@@ -261,6 +261,11 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 	})
 
 	Context("when handling a DeleteUserEvent", func() {
+		BeforeEach(func() {
+			db.On("GetDefaultIssuePriority").Return(int64(100))
+			db.On("GetDefaultRepositoryName").Return("nvd")
+		})
+
 		Context("when new user is deleted", func() {
 			It("should delete tuples related to that user in openfga", func() {
 				// Test OnUserDeleteAuthz against all possible relations
