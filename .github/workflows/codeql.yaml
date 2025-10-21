@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
     with:
-      runs-on: "['default']"
+      runs-on: "['ubuntu-latest']"
       language: "['go']"
       go-check: true
       go-version: "['1.22']"

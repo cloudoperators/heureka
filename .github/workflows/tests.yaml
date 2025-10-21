@@ -3,7 +3,7 @@ on: [pull_request]
 
 jobs:
   tests:
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     services:
       mariadb:
         image: mariadb:latest
