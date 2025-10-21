@@ -54,7 +54,7 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
 			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/service.graphql")
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/serviceCcrns.graphql")
 
 			Expect(err).To(BeNil())
 			str := string(b)
@@ -70,12 +70,12 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ServiceFilterValues.Service.Values).To(BeEmpty())
+			Expect(respData.ServiceFilterValues.ServiceCcrn.Values).To(BeEmpty())
 		})
-		It("returns empty for supportGroups", func() {
+		It("returns empty for supportGroupCcrns", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroup.graphql")
+			b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroupCcrns.graphql")
 
 			Expect(err).To(BeNil())
 			str := string(b)
@@ -91,7 +91,7 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 			}
 
-			Expect(respData.ServiceFilterValues.SupportGroup.Values).To(BeEmpty())
+			Expect(respData.ServiceFilterValues.SupportGroupCcrn.Values).To(BeEmpty())
 		})
 		It("returns empty for userNames", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
@@ -144,10 +144,10 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
 		Context("and no additional filters are present", func() {
-			It("returns correct services", func() {
+			It("returns correct serviceCcrns", func() {
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/service.graphql")
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/serviceCcrns.graphql")
 
 				Expect(err).To(BeNil())
 				str := string(b)
@@ -163,20 +163,20 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ServiceFilterValues.Service.Values)).To(Equal(len(seedCollection.ServiceRows)))
+				Expect(len(respData.ServiceFilterValues.ServiceCcrn.Values)).To(Equal(len(seedCollection.ServiceRows)))
 
 				existingServiceCcrns := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
 					return s.CCRN.String
 				})
 
-				for _, ccrn := range respData.ServiceFilterValues.Service.Values {
+				for _, ccrn := range respData.ServiceFilterValues.ServiceCcrn.Values {
 					Expect(lo.Contains(existingServiceCcrns, *ccrn)).To(BeTrue())
 				}
 			})
-			It("returns correct supportGroups", func() {
+			It("returns correct supportGroupCcrns", func() {
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroup.graphql")
+				b, err := os.ReadFile("../api/graphql/graph/queryCollection/serviceFilter/supportGroupCcrns.graphql")
 
 				Expect(err).To(BeNil())
 				str := string(b)
@@ -192,13 +192,13 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
 				}
 
-				Expect(len(respData.ServiceFilterValues.SupportGroup.Values)).To(Equal(len(seedCollection.SupportGroupRows)))
+				Expect(len(respData.ServiceFilterValues.SupportGroupCcrn.Values)).To(Equal(len(seedCollection.SupportGroupRows)))
 
 				existingsupportGroupCcrns := lo.Map(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow, index int) string {
 					return s.CCRN.String
 				})
 
-				for _, ccrn := range respData.ServiceFilterValues.SupportGroup.Values {
+				for _, ccrn := range respData.ServiceFilterValues.SupportGroupCcrn.Values {
 					Expect(lo.Contains(existingsupportGroupCcrns, *ccrn)).To(BeTrue())
 				}
 			})

@@ -244,7 +244,7 @@ models:
         resolver: true
   ServiceFilterValue:
     fields:
-      service:
+      serviceCcrn:
         resolver: true
       domain:
         resolver: true
@@ -254,7 +254,7 @@ models:
         resolver: true
       userName:
         resolver: true
-      supportGroup:
+      supportGroupCcrn:
         resolver: true
       user:
         resolver: true
