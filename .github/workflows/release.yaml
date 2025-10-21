@@ -28,7 +28,7 @@ jobs:
   # First, run the semantic release to determine if we have a new version
   release:
     name: Semantic Release
-    runs-on: default
+    runs-on: [ ubuntu-latest ]
     permissions:
       contents: write
       issues: write
@@ -71,7 +71,7 @@ jobs:
   build:
     name: Build Docker Images
     needs: release
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -180,7 +180,7 @@ jobs:
 
     name: Vulnerability Scan
     needs: build
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     steps:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

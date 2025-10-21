@@ -3,7 +3,7 @@ on: [pull_request]
 
 jobs:
   check-migration-files:
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     permissions:
       contents: read
     steps:
