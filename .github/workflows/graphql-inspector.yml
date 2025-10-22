@@ -10,6 +10,14 @@ jobs:
   schema-check:
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub App Token
+        id: github-app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+          private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          permission-pull-requests: write
+          
       - name: Checkout base branch (main)
         uses: actions/checkout@v5
         with:
@@ -79,7 +87,7 @@ jobs:
         id: generate-report
         uses: actions/github-script@v8
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.github-app-token.outputs.token }}
           script: |
             const fs = require('fs');
 
