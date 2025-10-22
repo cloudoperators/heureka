@@ -28,7 +28,7 @@ type ActivityEdge implements Edge {
 }
 
 input ActivityFilter {
-    serviceCcrn: [String]
+    service: [String]
     status: [ActivityStatusValues]
     state: [StateFilter!]
 }
