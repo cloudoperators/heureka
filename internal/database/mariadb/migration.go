@@ -24,7 +24,20 @@ import (
 var migrationFiles embed.FS
 var MigrationFs fs.FS = &migrationFiles
 
-func (s *SqlDatabase) GetVersion() (string, error) {
+func GetVersion(cfg util.Config) (string, error) {
+	db, err := NewSqlDatabase(cfg)
+	if err != nil {
+		return "", fmt.Errorf("Error while Creating Db")
+	}
+
+	v, err := db.getVersion()
+	if err != nil {
+		return "", fmt.Errorf("Error while checking Db migration: %w", err)
+	}
+	return v, nil
+}
+
+func (s *SqlDatabase) getVersion() (string, error) {
 	m, err := s.openMigration()
 	if err != nil {
 		return "", fmt.Errorf("Could not open migration without source: %w", err)
@@ -37,50 +50,6 @@ func (s *SqlDatabase) GetVersion() (string, error) {
 	}
 
 	return versionToString(v, d), nil
-}
-
-func GetVersion(cfg util.Config) (string, error) {
-	db, err := NewSqlDatabase(cfg)
-	if err != nil {
-		return "", fmt.Errorf("Error while Creating Db")
-	}
-
-	v, err := db.GetVersion()
-	if err != nil {
-		return "", fmt.Errorf("Error while checking Db migration: %w", err)
-	}
-	return v, nil
-}
-
-func (s *SqlDatabase) RunUpMigrations() error {
-	m, err := s.openMigration()
-	if err != nil {
-		return err
-	}
-	defer m.Close()
-
-	err = m.Up()
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-func versionToString(v uint, dirty bool) string {
-	var dirtyStr string
-	if dirty {
-		dirtyStr = " (DIRTY)"
-	}
-	return fmt.Sprintf("%d%s", v, dirtyStr)
-}
-
-func getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
-	version, dirty, err := m.Version()
-	if err != nil && err != migrate.ErrNilVersion {
-		return 0, false, err
-	}
-	return version, dirty, nil
 }
 
 func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
@@ -108,6 +77,22 @@ func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
 	return m, nil
 }
 
+func getMigrationVersion(m *migrate.Migrate) (uint, bool, error) {
+	version, dirty, err := m.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		return 0, false, err
+	}
+	return version, dirty, nil
+}
+
+func versionToString(v uint, dirty bool) string {
+	var dirtyStr string
+	if dirty {
+		dirtyStr = " (DIRTY)"
+	}
+	return fmt.Sprintf("%d%s", v, dirtyStr)
+}
+
 func RunMigrations(cfg util.Config) error {
 	err := runNewUpMigrations(cfg)
 	if err != nil {
@@ -118,9 +103,33 @@ func RunMigrations(cfg util.Config) error {
 		return err
 	}
 
-	err = EnableScheduler(cfg)
+	err = enableScheduler(cfg)
 	if err != nil {
 		return fmt.Errorf("Error while Enabling Scheduler Db: %w", err)
+	}
+	return nil
+}
+
+func enableScheduler(cfg util.Config) error {
+	db, err := GetSqlxRootConnection(cfg)
+	if err != nil {
+		logrus.WithError(err).Error(err)
+		return err
+	}
+	defer db.Close()
+
+	_, err = db.Exec("SET GLOBAL event_scheduler = ON;")
+	if err != nil {
+		logrus.WithError(err).Error(err)
+		return err
+	}
+	return nil
+}
+
+func runNewPostMigrationsAsync(cfg util.Config) error {
+	_, err := runNewPostMigrations(cfg)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -131,26 +140,6 @@ func RunMigrationsSync(cfg util.Config) error {
 		return err
 	}
 	err = runNewPostMigrationsSync(cfg)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func runNewUpMigrations(cfg util.Config) error {
-	db, err := NewSqlDatabase(cfg)
-	if err != nil {
-		return fmt.Errorf("Error while Creating Db: %w", err)
-	}
-	err = db.RunUpMigrations()
-	if err != nil {
-		return fmt.Errorf("Error while Migrating Db: %w", err)
-	}
-	return nil
-}
-
-func runNewPostMigrationsAsync(cfg util.Config) error {
-	_, err := runNewPostMigrations(cfg)
 	if err != nil {
 		return err
 	}
@@ -169,48 +158,43 @@ func runNewPostMigrationsSync(cfg util.Config) error {
 	return nil
 }
 
+func (s *SqlDatabase) runUpMigrations() error {
+	m, err := s.openMigration()
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+
+	err = m.Up()
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 func runNewPostMigrations(cfg util.Config) (*SqlDatabase, error) {
 	db, err := NewSqlDatabase(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error while Creating Db: %w", err)
 	}
-	err = db.RunPostMigrations()
+	err = db.runPostMigrations()
 	if err != nil {
 		return nil, fmt.Errorf("Error while starting Post Migration procedures: %w", err)
 	}
 	return db, nil
 }
 
-func (s *SqlDatabase) proceduresExist(procedures []string) (bool, error) {
-	if len(procedures) == 0 {
-		return true, nil
-	}
-
-	placeholders := make([]string, len(procedures))
-	args := make([]interface{}, len(procedures))
-	for i, p := range procedures {
-		placeholders[i] = "?"
-		args[i] = p
-	}
-
-	query := fmt.Sprintf(`
-		SELECT COUNT(*)
-		FROM information_schema.routines
-		WHERE routine_schema = DATABASE()
-		  AND routine_type = 'PROCEDURE'
-		  AND routine_name IN (%s);
-	`, strings.Join(placeholders, ","))
-
-	var count int
-	err := s.db.QueryRow(query, args...).Scan(&count)
+func runNewUpMigrations(cfg util.Config) error {
+	db, err := NewSqlDatabase(cfg)
 	if err != nil {
-		return false, fmt.Errorf("could not check if procedures exist: %w", err)
+		return fmt.Errorf("Error while Creating Db: %w", err)
 	}
-
-	if count == len(procedures) {
-		return true, nil
+	err = db.runUpMigrations()
+	if err != nil {
+		return fmt.Errorf("Error while Migrating Db: %w", err)
 	}
-	return false, nil
+	return nil
 }
 
 func (s *SqlDatabase) tableExists(table string) (bool, error) {
@@ -265,7 +249,7 @@ func (pmc postMigrationContext) getError() error {
 	return fmt.Errorf("Error when exeute joined callers: [%s]", strings.Join(pmc.errs, "; "))
 }
 
-func (s *SqlDatabase) RunPostMigrations() error {
+func (s *SqlDatabase) runPostMigrations() error {
 	procs, err := s.getPostMigrationProcedures()
 	if err != nil {
 		return fmt.Errorf("Failed to get post migration procedures: %w", err)
@@ -288,6 +272,38 @@ func (s *SqlDatabase) checkProceduresExist(procs []string) error {
 	return nil
 }
 
+func (s *SqlDatabase) proceduresExist(procedures []string) (bool, error) {
+	if len(procedures) == 0 {
+		return true, nil
+	}
+
+	placeholders := make([]string, len(procedures))
+	args := make([]interface{}, len(procedures))
+	for i, p := range procedures {
+		placeholders[i] = "?"
+		args[i] = p
+	}
+
+	query := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM information_schema.routines
+		WHERE routine_schema = DATABASE()
+		  AND routine_type = 'PROCEDURE'
+		  AND routine_name IN (%s);
+	`, strings.Join(placeholders, ","))
+
+	var count int
+	err := s.db.QueryRow(query, args...).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("could not check if procedures exist: %w", err)
+	}
+
+	if count == len(procedures) {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (s *SqlDatabase) runPostMigrationProceduresInBackground(procs []string) error {
 	for _, p := range procs {
 		s.postMigrationCtx.wg.Add(1)
@@ -299,7 +315,9 @@ func (s *SqlDatabase) runPostMigrationProceduresInBackground(procs []string) err
 		}()
 	}
 	go func() {
-		s.postMigrationCtx.wg.Wait()
+		if err := s.WaitPostMigrations(); err != nil {
+			logrus.WithError(err).Error(err)
+		}
 		s.CloseConnection()
 	}()
 	return nil
@@ -309,22 +327,6 @@ func (s *SqlDatabase) WaitPostMigrations() error {
 	s.postMigrationCtx.wg.Wait()
 	if s.postMigrationCtx.hasError() {
 		return s.postMigrationCtx.getError()
-	}
-	return nil
-}
-
-func EnableScheduler(cfg util.Config) error {
-	db, err := getSqlxRootConnection(cfg)
-	if err != nil {
-		logrus.WithError(err).Error(err)
-		return err
-	}
-	defer db.Close()
-
-	_, err = db.Exec("SET GLOBAL event_scheduler = ON;")
-	if err != nil {
-		logrus.WithError(err).Error(err)
-		return err
 	}
 	return nil
 }
