@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -22,10 +23,11 @@ func TestServiceHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 var sre *entity.ScannerRun

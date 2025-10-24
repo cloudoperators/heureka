@@ -4,8 +4,13 @@
 package support_group
 
 import (
+	"strconv"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -108,4 +113,173 @@ type ListSupportGroupCcrnsEvent struct {
 
 func (e *ListSupportGroupCcrnsEvent) Name() event.EventName {
 	return ListSupportGroupCcrnsEventName
+}
+
+// OnSupportGroupCreateAuthz is a handler for the CreateSupportGroupEvent
+// It creates an OpenFGA relation tuple for the support group and the current user
+func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnSupportGroupCreateAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if createEvent, ok := e.(*CreateSupportGroupEvent); ok {
+		supportGroupId := strconv.FormatInt(createEvent.SupportGroup.Id, 10)
+		userId := authz.GetCurrentUser()
+
+		rlist := []openfga.RelationInput{
+			{
+				UserType:   "role",
+				UserId:     openfga.UserId(userId),
+				Relation:   "role",
+				ObjectType: "support_group",
+				ObjectId:   openfga.ObjectId(supportGroupId),
+			},
+		}
+
+		for _, rel := range rlist {
+			authz.AddRelation(rel)
+		}
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
+func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	defaultPrio := db.GetDefaultIssuePriority()
+	defaultRepoName := db.GetDefaultRepositoryName()
+	deleteInput := []openfga.RelationInput{}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":             "OnSupportGroupDeleteAuthz",
+		"payload":           e,
+		"default_priority":  defaultPrio,
+		"default_repo_name": defaultRepoName,
+	})
+
+	if deleteEvent, ok := e.(*DeleteSupportGroupEvent); ok {
+		objectId := strconv.FormatInt(deleteEvent.SupportGroupID, 10)
+
+		// Delete all tuples where object is the support_group
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			ObjectType: "support_group",
+			ObjectId:   openfga.ObjectId(objectId),
+		})
+
+		// Delete all tuples where user is the support_group
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType: "support_group",
+			UserId:   openfga.UserId(objectId),
+		})
+
+		authz.RemoveRelationBulk(deleteInput)
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnAddServiceToSupportGroup is a handler for the AddServiceToSupportGroupEvent
+// It creates an OpenFGA relation tuple between the support group and the service
+func OnAddServiceToSupportGroup(db database.Database, e event.Event, authz openfga.Authorization) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnAddServiceToSupportGroup",
+		"payload": e,
+	})
+
+	if addEvent, ok := e.(*AddServiceToSupportGroupEvent); ok {
+		supportGroupId := strconv.FormatInt(addEvent.SupportGroupID, 10)
+		serviceId := strconv.FormatInt(addEvent.ServiceID, 10)
+
+		rel := openfga.RelationInput{
+			UserType:   "support_group",
+			UserId:     openfga.UserId(supportGroupId),
+			ObjectType: "service",
+			ObjectId:   openfga.ObjectId(serviceId),
+			Relation:   "support_group",
+		}
+		authz.AddRelation(rel)
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnRemoveServiceFromSupportGroup is a handler for the RemoveServiceFromSupportGroupEvent
+// It removes the OpenFGA relation tuple between the support group and the service
+func OnRemoveServiceFromSupportGroup(db database.Database, e event.Event, authz openfga.Authorization) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnRemoveServiceFromSupportGroup",
+		"payload": e,
+	})
+
+	if removeEvent, ok := e.(*RemoveServiceFromSupportGroupEvent); ok {
+		supportGroupId := strconv.FormatInt(removeEvent.SupportGroupID, 10)
+		serviceId := strconv.FormatInt(removeEvent.ServiceID, 10)
+
+		rel := openfga.RelationInput{
+			UserType:   "support_group",
+			UserId:     openfga.UserId(supportGroupId),
+			ObjectType: "service",
+			ObjectId:   openfga.ObjectId(serviceId),
+			Relation:   "support_group",
+		}
+		authz.RemoveRelation(rel)
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnAddUserToSupportGroup is a handler for the AddUserToSupportGroupEvent
+// It creates an OpenFGA relation tuple between the user and the support group
+func OnAddUserToSupportGroup(db database.Database, e event.Event, authz openfga.Authorization) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnAddUserToSupportGroup",
+		"payload": e,
+	})
+
+	if addEvent, ok := e.(*AddUserToSupportGroupEvent); ok {
+		supportGroupId := strconv.FormatInt(addEvent.SupportGroupID, 10)
+		userId := strconv.FormatInt(addEvent.UserID, 10)
+
+		rel := openfga.RelationInput{
+			UserType:   "user",
+			UserId:     openfga.UserId(userId),
+			ObjectType: "support_group",
+			ObjectId:   openfga.ObjectId(supportGroupId),
+			Relation:   "member",
+		}
+		authz.AddRelation(rel)
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnRemoveUserFromSupportGroup is a handler for the RemoveUserFromSupportGroupEvent
+// It removes the OpenFGA relation tuple between the user and the support group
+func OnRemoveUserFromSupportGroup(db database.Database, e event.Event, authz openfga.Authorization) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnRemoveUserFromSupportGroup",
+		"payload": e,
+	})
+
+	if removeEvent, ok := e.(*RemoveUserFromSupportGroupEvent); ok {
+		supportGroupId := strconv.FormatInt(removeEvent.SupportGroupID, 10)
+		userId := strconv.FormatInt(removeEvent.UserID, 10)
+
+		rel := openfga.RelationInput{
+			UserType:   "user",
+			UserId:     openfga.UserId(userId),
+			ObjectType: "support_group",
+			ObjectId:   openfga.ObjectId(supportGroupId),
+			Relation:   "member",
+		}
+		authz.RemoveRelation(rel)
+	} else {
+		l.Error("Wrong event")
+	}
 }
