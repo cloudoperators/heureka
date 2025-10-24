@@ -5,6 +5,7 @@ package component_test
 
 import (
 	"math"
+	"os"
 	"strconv"
 	"testing"
 
@@ -34,12 +35,11 @@ var cfg *util.Config
 
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
-		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-		AuthzOpenFgaApiUrl:    "http://localhost:8080",
-		AuthzOpenFgaStoreName: "heureka-store",
+		AuthzOpenFgaApiUrl:    os.Getenv("AUTHZ_FGA_API_URL"),
+		AuthzOpenFgaApiToken:  os.Getenv("AUTHZ_FGA_API_TOKEN"),
+		AuthzOpenFgaStoreName: os.Getenv("AUTHZ_FGA_STORE_NAME"),
+		AuthzModelFilePath:    os.Getenv("AUTHZ_MODEL_FILE_PATH"),
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "testkey",
-		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -172,7 +172,6 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 
 		handlerContext.DB = db
 		handlerContext.EventReg = er
-		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("creates component", func() {
@@ -246,7 +245,6 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 
 		handlerContext.DB = db
 		handlerContext.EventReg = er
-		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("updates component", func() {
@@ -289,7 +287,6 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 
 		handlerContext.DB = db
 		handlerContext.EventReg = er
-		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
 	})
 
 	It("deletes component", func() {

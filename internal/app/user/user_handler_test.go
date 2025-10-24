@@ -5,6 +5,7 @@ package user_test
 
 import (
 	"math"
+	"os"
 	"strconv"
 	"testing"
 
@@ -36,12 +37,11 @@ var enableLogs bool
 
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
-		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-		AuthzOpenFgaApiUrl:    "http://localhost:8080",
-		AuthzOpenFgaStoreName: "heureka-store",
+		AuthzOpenFgaApiUrl:    os.Getenv("AUTHZ_FGA_API_URL"),
+		AuthzOpenFgaApiToken:  os.Getenv("AUTHZ_FGA_API_TOKEN"),
+		AuthzOpenFgaStoreName: os.Getenv("AUTHZ_FGA_STORE_NAME"),
+		AuthzModelFilePath:    os.Getenv("AUTHZ_MODEL_FILE_PATH"),
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "testkey",
-		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())

@@ -6,6 +6,7 @@ package issue_match_test
 import (
 	"errors"
 	"math"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -41,12 +42,11 @@ var cfg *util.Config
 
 var _ = BeforeSuite(func() {
 	cfg = &util.Config{
-		AuthzModelFilePath:    "./internal/openfga/model/model.fga",
-		AuthzOpenFgaApiUrl:    "http://localhost:8080",
-		AuthzOpenFgaStoreName: "heureka-store",
+		AuthzOpenFgaApiUrl:    os.Getenv("AUTHZ_FGA_API_URL"),
+		AuthzOpenFgaApiToken:  os.Getenv("AUTHZ_FGA_API_TOKEN"),
+		AuthzOpenFgaStoreName: os.Getenv("AUTHZ_FGA_STORE_NAME"),
+		AuthzModelFilePath:    os.Getenv("AUTHZ_MODEL_FILE_PATH"),
 		CurrentUser:           "testuser",
-		AuthTokenSecret:       "testkey",
-		AuthzOpenFgaApiToken:  "testkey",
 	}
 	enableLogs := false
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
@@ -235,7 +235,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 
 		handlerContext.DB = db
 		handlerContext.EventReg = er
-		cfg.CurrentUser = handlerContext.Authz.GetCurrentUser()
+
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
 		ivs = issue_variant.NewIssueVariantHandler(handlerContext, rs)
 		ss = severity.NewSeverityHandler(handlerContext, ivs)
