@@ -35,30 +35,6 @@ func buildDSN(user string, pass string, cfg util.Config) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", user, pass, cfg.DBAddress, cfg.DBPort, cfg.DBName)
 }
 
-func TestConnection(cfg util.Config, backOff int) error {
-	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
-		// No need to test local socket connection
-		return nil
-	}
-	if backOff <= 0 {
-		return fmt.Errorf("Unable to connect to Database, exceeded backoffs...")
-	}
-
-	db, err := GetSqlxConnection(cfg)
-	if err != nil {
-		fmt.Printf("Error connecting to DB: %s\n", err)
-		return TestConnection(cfg, backOff-1)
-	}
-	defer db.Close()
-	err = db.Ping()
-	if err != nil {
-		//before next try wait 100 milliseconds
-		time.Sleep(100 * time.Millisecond)
-		return TestConnection(cfg, backOff-1)
-	}
-	return nil
-}
-
 func Connect(cfg util.Config) (*sqlx.DB, error) {
 	db, err := GetSqlxConnection(cfg)
 	if err != nil {
