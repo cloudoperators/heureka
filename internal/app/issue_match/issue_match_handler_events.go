@@ -4,6 +4,7 @@
 package issue_match
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -11,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -86,7 +88,7 @@ func (e *RemoveEvidenceFromIssueMatchEvent) Name() event.EventName {
 	return RemoveEvidenceFromIssueMatchEventName
 }
 
-func OnComponentInstanceCreate(db database.Database, event event.Event) {
+func OnComponentInstanceCreate(db database.Database, event event.Event, authz openfga.Authorization) {
 	if createEvent, ok := event.(*component_instance.CreateComponentInstanceEvent); ok {
 		OnComponentVersionAssignmentToComponentInstance(db, createEvent.ComponentInstance.Id, createEvent.ComponentInstance.ComponentVersionId)
 	}
@@ -207,5 +209,103 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
 			return
 		}
+	}
+}
+
+// OnIssueMatchCreateAuthz is a handler for the CreateIssueMatchEvent
+// It creates an OpenFGA relation tuple for the issue match and the current user
+func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueMatchCreateAuthz",
+		"payload": e,
+	})
+
+	if createEvent, ok := e.(*CreateIssueMatchEvent); ok {
+		issueMatchId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
+		userId := authz.GetCurrentUser()
+
+		rlist := []openfga.RelationInput{
+			{
+				UserType:   "role",
+				UserId:     openfga.UserId(userId),
+				Relation:   "role",
+				ObjectType: "issue_match",
+				ObjectId:   openfga.ObjectId(issueMatchId),
+			},
+		}
+
+		for _, rel := range rlist {
+			authz.AddRelation(rel)
+		}
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnIssueMatchUpdateAuthz is a handler for the UpdateIssueMatchEvent
+// Fields that can be updated in Issue Match which affect tuple relations include:
+// issuematch_component_instance_id
+func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueMatchUpdateAuthz",
+		"payload": e,
+	})
+
+	if updateEvent, ok := e.(*UpdateIssueMatchEvent); ok {
+		issueMatchId := strconv.FormatInt(updateEvent.IssueMatch.Id, 10)
+		newComponentInstanceId := strconv.FormatInt(updateEvent.IssueMatch.ComponentInstanceId, 10)
+
+		if newComponentInstanceId != "" {
+			// Remove any existing relation where this issue_match is connected to any component_instance
+			removeInput := openfga.RelationInput{
+				UserType:   "component_instance",
+				Relation:   "component_instance",
+				ObjectType: "issue_match",
+				ObjectId:   openfga.ObjectId(issueMatchId),
+			}
+			authz.RemoveRelationBulk([]openfga.RelationInput{removeInput})
+
+			// Add the new relation to the new component_instance
+			newRelation := openfga.RelationInput{
+				UserType:   "component_instance",
+				UserId:     openfga.UserId(newComponentInstanceId),
+				Relation:   "component_instance",
+				ObjectType: "issue_match",
+				ObjectId:   openfga.ObjectId(issueMatchId),
+			}
+			authz.AddRelation(newRelation)
+		}
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnIssueMatchDeleteAuthz is a handler for the DeleteIssueMatchEvent
+func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	deleteInput := []openfga.RelationInput{}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueMatchDeleteAuthz",
+		"payload": e,
+	})
+
+	if deleteEvent, ok := e.(*DeleteIssueMatchEvent); ok {
+		objectId := strconv.FormatInt(deleteEvent.IssueMatchID, 10)
+
+		// Delete all tuples where object is the issue_match
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			ObjectType: "issue_match",
+			ObjectId:   openfga.ObjectId(objectId),
+		})
+
+		// Delete all tuples where user is the issue_match
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType: "issue_match",
+			UserId:   openfga.UserId(objectId),
+		})
+
+		authz.RemoveRelationBulk(deleteInput)
+	} else {
+		l.Error("Wrong event")
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/openfga/go-sdk/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +22,7 @@ type PermissionInput struct {
 	UserId     UserId
 	Relation   RelationType
 	ObjectType ObjectType
-	ObjectId   string
+	ObjectId   ObjectId
 }
 
 type RelationInput struct {
@@ -29,7 +30,7 @@ type RelationInput struct {
 	UserId     UserId
 	Relation   RelationType
 	ObjectType ObjectType
-	ObjectId   string
+	ObjectId   ObjectId
 }
 
 type AccessibleResource struct {
@@ -38,14 +39,22 @@ type AccessibleResource struct {
 }
 
 type Authorization interface {
-	// check if userId has permission on resourceId
+	// Check if userId has permission on resourceId
 	CheckPermission(p PermissionInput) (bool, error)
-	// add relationship between userId and resourceId
+	// Add relationship between userId and resourceId
 	AddRelation(r RelationInput) error
-	// remove relationship between userId and resourceId
+	// Remove a single relationship between userId and resourceId
 	RemoveRelation(r RelationInput) error
+	// Remove all relations that match any given RelationInput as filters
+	RemoveRelationBulk(r []RelationInput) error
+	// Update relations based on filters provided
+	UpdateRelation(r RelationInput, u RelationInput) error
+	// List Relations based on multiple filters
+	ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
 	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
+	// Placeholder function that mimics getting user from User Context
+	GetCurrentUser() string
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {

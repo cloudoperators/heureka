@@ -4,8 +4,13 @@
 package user
 
 import (
+	"strconv"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -81,4 +86,34 @@ type ListUserNamesAndIdsEvent struct {
 
 func (e *ListUserNamesAndIdsEvent) Name() event.EventName {
 	return ListUserNamesAndIdsEventName
+}
+
+// OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
+func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	deleteInput := []openfga.RelationInput{}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnUserDeleteAuthz",
+		"payload": e,
+	})
+
+	if deleteEvent, ok := e.(*DeleteUserEvent); ok {
+		objectId := strconv.FormatInt(deleteEvent.UserID, 10)
+
+		// Delete all tuples where object is the user
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			ObjectType: "user",
+			ObjectId:   openfga.ObjectId(objectId),
+		})
+
+		// Delete all tuples where user is the user
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType: "user",
+			UserId:   openfga.UserId(objectId),
+		})
+
+		authz.RemoveRelationBulk(deleteInput)
+	} else {
+		l.Error("Wrong event")
+	}
 }

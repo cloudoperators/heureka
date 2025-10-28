@@ -4,8 +4,13 @@
 package component
 
 import (
+	"strconv"
+
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -68,4 +73,57 @@ type GetComponentIssueSeverityCountsEvent struct {
 
 func (e *GetComponentIssueSeverityCountsEvent) Name() event.EventName {
 	return GetComponentIssueSeverityCountsEventName
+}
+
+// OnComponentCreateAuthz is a handler for the CreateComponentEvent
+// It creates an OpenFGA relation tuple for the component and the current user
+func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnComponentCreateAuthz",
+		"payload": e,
+	})
+
+	if createEvent, ok := e.(*CreateComponentEvent); ok {
+		componentId := strconv.FormatInt(createEvent.Component.Id, 10)
+		userId := authz.GetCurrentUser()
+
+		rlist := []openfga.RelationInput{
+			{
+				UserType:   "role",
+				UserId:     openfga.UserId(userId),
+				Relation:   "role",
+				ObjectType: "component",
+				ObjectId:   openfga.ObjectId(componentId),
+			},
+		}
+
+		for _, rel := range rlist {
+			authz.AddRelation(rel)
+		}
+	} else {
+		l.Error("Wrong event")
+	}
+}
+
+// OnComponentDeleteAuthz is a handler for the DeleteComponentEvent
+func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	deleteInput := []openfga.RelationInput{}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnComponentDeleteAuthz",
+		"payload": e,
+	})
+
+	if deleteEvent, ok := e.(*DeleteComponentEvent); ok {
+		deleteElement := openfga.RelationInput{}
+		objectId := strconv.FormatInt(deleteEvent.ComponentID, 10)
+
+		deleteElement.ObjectType = "component"
+		deleteElement.ObjectId = openfga.ObjectId(objectId)
+		deleteInput = append(deleteInput, deleteElement)
+
+		authz.RemoveRelationBulk(deleteInput)
+	} else {
+		l.Error("Wrong event")
+	}
 }
