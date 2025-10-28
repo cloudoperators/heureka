@@ -28,9 +28,7 @@ func TestMariadb(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	var err error
-	dbm, err = test.NewDatabaseManager()
-	Expect(err).To(BeNil(), "Expecting Database initialization to be completed")
+	dbm = test.NewDatabaseManager()
 })
 
 var _ = AfterSuite(func() {

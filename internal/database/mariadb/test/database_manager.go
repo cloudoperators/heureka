@@ -30,19 +30,14 @@ const (
 	MARIADB_DEFAULT_PORT = "3306/tcp"
 )
 
-func NewDatabaseManager() (TestDatabaseManager, error) {
-	backOff := 20
+func NewDatabaseManager() TestDatabaseManager {
 	var tdm TestDatabaseManager
 	if os.Getenv("LOCAL_TEST_DB") != "true" {
 		tdm = NewContainerizedTestDatabaseManager()
 	} else {
 		tdm = NewLocalTestDatabaseManager()
 	}
-	// We test the connection with n(backoff) amounts of tries in a 500ms interval
-	if err := mariadb.TestConnection(tdm.DbConfig(), backOff); err != nil {
-		return nil, fmt.Errorf("Database should be reachable within %d Seconds: %w", backOff/2, err)
-	}
-	return tdm, nil
+	return tdm
 }
 
 type TestDatabaseManager interface {
@@ -102,13 +97,7 @@ func loadConfig[T any](config **T) {
 }
 
 func (dbm *LocalTestDataBaseManager) Setup() error {
-	//first ensure that you can connect
-	err := mariadb.TestConnection(dbm.Config.Config, 20)
-	if err != nil {
-		return err
-	}
-
-	err = mariadb.RunMigrationsSync(dbm.rootUserConfig())
+	err := mariadb.RunMigrationsSync(dbm.rootUserConfig())
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while setting migrations schema")
 		return err
@@ -118,17 +107,11 @@ func (dbm *LocalTestDataBaseManager) Setup() error {
 }
 
 func (dbm *LocalTestDataBaseManager) ResetSchema(dbName string) error {
-	//first ensure that you can connect
-	err := mariadb.TestConnection(dbm.Config.Config, 20)
-	if err != nil {
-		return err
-	}
-
 	//load the client
 	dbm.loadDBClientIfNeeded()
 
 	// Drop main heureka schema
-	err = dbm.dbClient.DropSchema(dbName)
+	err := dbm.dbClient.DropSchema(dbName)
 	if err != nil {
 		ginkgo.GinkgoLogr.WithCallDepth(5).Error(err, "Failure while dropping schema")
 		return err
@@ -207,11 +190,6 @@ func (dbm *LocalTestDataBaseManager) createNewConnection() (*mariadb.SqlDatabase
 	dbClient, err := mariadb.NewSqlDatabase(dbm.Config.Config)
 	if err != nil {
 		return nil, fmt.Errorf("Failure while loading DB Client for new Schema")
-	}
-
-	err = mariadb.TestConnection(dbm.Config.Config, 10)
-	if err != nil {
-		return nil, fmt.Errorf("Failure while testing connection for new Schema")
 	}
 
 	return dbClient, nil
