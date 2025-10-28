@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var dbm test.TestDatabaseManager
+var dbm *test.DatabaseManager
 
 func TestMariadb(t *testing.T) {
 	// Set the environment variables

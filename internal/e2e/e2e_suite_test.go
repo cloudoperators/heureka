@@ -16,7 +16,7 @@ import (
 )
 
 var dbConfig util2.Config
-var dbm test.TestDatabaseManager
+var dbm *test.DatabaseManager
 var db *mariadb.SqlDatabase
 
 func TestE2E(t *testing.T) {
