@@ -9,6 +9,7 @@ on:
 jobs:
   schema-check:
     runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
     steps:
       - name: Generate GitHub App Token
         id: github-app-token
