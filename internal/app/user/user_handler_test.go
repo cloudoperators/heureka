@@ -36,11 +36,13 @@ var cfg *util.Config
 var enableLogs bool
 
 var _ = BeforeSuite(func() {
+	modelFilePath := "./../../openfga/model/model.fga"
+
 	cfg = &util.Config{
 		AuthzOpenFgaApiUrl:    os.Getenv("AUTHZ_FGA_API_URL"),
 		AuthzOpenFgaApiToken:  os.Getenv("AUTHZ_FGA_API_TOKEN"),
 		AuthzOpenFgaStoreName: os.Getenv("AUTHZ_FGA_STORE_NAME"),
-		AuthzModelFilePath:    os.Getenv("AUTHZ_MODEL_FILE_PATH"),
+		AuthzModelFilePath:    modelFilePath,
 		CurrentUser:           "testuser",
 	}
 	enableLogs := false
