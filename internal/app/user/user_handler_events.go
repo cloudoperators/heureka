@@ -90,15 +90,11 @@ func (e *ListUserNamesAndIdsEvent) Name() event.EventName {
 
 // OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
 func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnUserDeleteAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnUserDeleteAuthz",
+		"payload": e,
 	})
 
 	if deleteEvent, ok := e.(*DeleteUserEvent); ok {

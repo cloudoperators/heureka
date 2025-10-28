@@ -215,14 +215,9 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 // OnIssueMatchCreateAuthz is a handler for the CreateIssueMatchEvent
 // It creates an OpenFGA relation tuple for the issue match and the current user
 func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnIssueMatchCreateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnIssueMatchCreateAuthz",
+		"payload": e,
 	})
 
 	if createEvent, ok := e.(*CreateIssueMatchEvent); ok {
@@ -251,14 +246,9 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 // Fields that can be updated in Issue Match which affect tuple relations include:
 // issuematch_component_instance_id
 func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnIssueMatchUpdateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnIssueMatchUpdateAuthz",
+		"payload": e,
 	})
 
 	if updateEvent, ok := e.(*UpdateIssueMatchEvent); ok {
@@ -292,15 +282,11 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 
 // OnIssueMatchDeleteAuthz is a handler for the DeleteIssueMatchEvent
 func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnIssueMatchDeleteAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnIssueMatchDeleteAuthz",
+		"payload": e,
 	})
 
 	if deleteEvent, ok := e.(*DeleteIssueMatchEvent); ok {

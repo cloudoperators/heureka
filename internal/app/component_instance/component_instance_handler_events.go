@@ -167,14 +167,9 @@ func (e *ListContextsEvent) Name() event.EventName {
 // OnComponentInstanceCreateAuthz is a handler for the CreateComponentInstanceEvent
 // It creates an OpenFGA relation tuple for the component instance and the current user
 func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentInstanceCreateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnComponentInstanceCreateAuthz",
+		"payload": e,
 	})
 
 	if createEvent, ok := e.(*CreateComponentInstanceEvent); ok {
@@ -220,14 +215,9 @@ func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz o
 // componentinstance_component_version_id
 // componentinstance_service_id
 func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentInstanceUpdateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnComponentInstanceUpdateAuthz",
+		"payload": e,
 	})
 
 	if updateEvent, ok := e.(*UpdateComponentInstanceEvent); ok {
@@ -276,15 +266,11 @@ func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz o
 // OnComponentInstanceDeleteAuthz is a handler for the DeleteComponentInstanceEvent
 // It creates an OpenFGA relation tuple for the component instance and the current user
 func OnComponentInstanceDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentInstanceDeleteAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnComponentInstanceDeleteAuthz",
+		"payload": e,
 	})
 
 	if deleteEvent, ok := e.(*DeleteComponentInstanceEvent); ok {

@@ -118,14 +118,9 @@ func (e *ListSupportGroupCcrnsEvent) Name() event.EventName {
 // OnSupportGroupCreateAuthz is a handler for the CreateSupportGroupEvent
 // It creates an OpenFGA relation tuple for the support group and the current user
 func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnSupportGroupCreateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnSupportGroupCreateAuthz",
+		"payload": e,
 	})
 
 	if createEvent, ok := e.(*CreateSupportGroupEvent); ok {
@@ -152,15 +147,11 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 
 // OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
 func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnSupportGroupDeleteAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnSupportGroupDeleteAuthz",
+		"payload": e,
 	})
 
 	if deleteEvent, ok := e.(*DeleteSupportGroupEvent); ok {

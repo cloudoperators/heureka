@@ -183,14 +183,9 @@ func OnServiceCreate(db database.Database, e event.Event, authz openfga.Authoriz
 // OnServiceCreateAuthz is a handler for the CreateServiceEvent
 // It creates an OpenFGA relation tuple for the service and the current user
 func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnServiceCreateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnServiceCreateAuthz",
+		"payload": e,
 	})
 
 	if createEvent, ok := e.(*CreateServiceEvent); ok {
@@ -218,15 +213,11 @@ func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Aut
 // OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
 // It deletes all OpenFGA relation tuples containing that service
 func OnServiceDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnServiceDeleteAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnServiceDeleteAuthz",
+		"payload": e,
 	})
 
 	if deleteEvent, ok := e.(*DeleteServiceEvent); ok {

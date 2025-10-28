@@ -78,14 +78,9 @@ func (e *GetComponentIssueSeverityCountsEvent) Name() event.EventName {
 // OnComponentCreateAuthz is a handler for the CreateComponentEvent
 // It creates an OpenFGA relation tuple for the component and the current user
 func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentCreateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnComponentCreateAuthz",
+		"payload": e,
 	})
 
 	if createEvent, ok := e.(*CreateComponentEvent); ok {
@@ -112,15 +107,11 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 
 // OnComponentDeleteAuthz is a handler for the DeleteComponentEvent
 func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentDeleteAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnComponentDeleteAuthz",
+		"payload": e,
 	})
 
 	if deleteEvent, ok := e.(*DeleteComponentEvent); ok {

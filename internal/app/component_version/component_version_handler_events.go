@@ -57,14 +57,9 @@ func (e *DeleteComponentVersionEvent) Name() event.EventName {
 // OnComponentVersionCreateAuthz is a handler for the CreateComponentVersionEvent
 // It creates an OpenFGA relation tuple for the component version and the current user
 func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentVersionCreateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnComponentVersionCreateAuthz",
+		"payload": e,
 	})
 
 	if createEvent, ok := e.(*CreateComponentVersionEvent); ok {
@@ -93,14 +88,9 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 // Fields that can be updated in Component Version which affect tuple relations include:
 // componentversion_component_id
 func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
-
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentVersionUpdateAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnComponentVersionUpdateAuthz",
+		"payload": e,
 	})
 
 	if updateEvent, ok := e.(*UpdateComponentVersionEvent); ok {
@@ -132,15 +122,11 @@ func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz op
 
 // OnComponentVersionDeleteAuthz is a handler for the DeleteComponentVersionEvent
 func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
-	defaultPrio := db.GetDefaultIssuePriority()
-	defaultRepoName := db.GetDefaultRepositoryName()
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
-		"event":             "OnComponentVersionDeleteAuthz",
-		"payload":           e,
-		"default_priority":  defaultPrio,
-		"default_repo_name": defaultRepoName,
+		"event":   "OnComponentVersionDeleteAuthz",
+		"payload": e,
 	})
 
 	if deleteEvent, ok := e.(*DeleteComponentVersionEvent); ok {
