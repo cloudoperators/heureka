@@ -56,8 +56,6 @@ DOCKER_CREDENTIAL_STORE=docker-credential-desktop
 
 LOG_PRETTY_PRINT=true
 
-LOCAL_TEST_DB=true
-
 SEED_MODE=false
 ```
 
@@ -135,11 +133,6 @@ Heureka uses [Ginkgo](https://onsi.github.io/ginkgo/) for behavior-driven develo
 - Application Layer Tests: These tests resides in the ./internal/app directory. Application layer tests focus on testing the application's behavior, such as handling requests and responses, executing appropriate logic, and more.
 
 - Database Tests: These tests are found in the ./internal/database/db directory. Database tests ensure that the application correctly interacts with the database. They test database queries, updates, deletions, and other related operations.
-
-In the `.test.env` file, the `LOCAL_TEST_DB` variable controls the database used for testing:
-
-- If `LOCAL_TEST_DB=true`, tests will interact with a **local database**. Please ensure your local database server is running before executing the tests.
-- If `LOCAL_TEST_DB=false`, tests will run against a **containerized database**.
 
 Run all tests:
 ```
