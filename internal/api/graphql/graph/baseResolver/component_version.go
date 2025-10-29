@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +22,7 @@ func SingleComponentVersionBaseResolver(app app.Heureka, ctx context.Context, pa
 	}).Debug("Called SingleComponentVersionBaseResolver")
 
 	if parent == nil {
-		return nil, NewResolverError("SingleComponentVersionBaseResolver", "Bad Request - No parent provided")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleComponentVersionBaseResolver"), "ComponentVersion", appErrors.InvalidArgument, "No parent provided"))
 	}
 
 	f := &entity.ComponentVersionFilter{
@@ -34,12 +35,12 @@ func SingleComponentVersionBaseResolver(app app.Heureka, ctx context.Context, pa
 
 	// error while fetching
 	if err != nil {
-		return nil, NewResolverError("SingleComponentVersionBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	// unexpected number of results (should at most be 1)
 	if len(componentVersions.Elements) > 1 {
-		return nil, NewResolverError("SingleComponentVersionBaseResolver", "Internal Error - found multiple component versions")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleComponentVersionBaseResolver"), "ComponentVersion", appErrors.Internal, "found multiple component versions"))
 	}
 
 	//not found
@@ -72,7 +73,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
 			logrus.WithField("parent", parent).Error("ComponentVersionBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing propagated ID")
+			return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentVersionBaseResolver"), "ComponentVersion", appErrors.InvalidArgument, "Error while parsing propagated ID"))
 		}
 
 		switch parent.ParentName {
@@ -87,20 +88,20 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		componentId, err = util.ConvertStrToIntSlice(filter.ComponentID)
 
 		if err != nil {
-			return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter component ID")
+			return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentVersionBaseResolver"), "ComponentVersion", appErrors.InvalidArgument, "Invalid ComponentID filter"))
 		}
 	}
 
 	serviceIds, err := util.ConvertStrToIntSlice(filter.ServiceID)
 
 	if err != nil {
-		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter service ID")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentVersionBaseResolver"), "ComponentVersion", appErrors.InvalidArgument, "Invalid ServiceID filter"))
 	}
 
 	repositoryIds, err := util.ConvertStrToIntSlice(filter.IssueRepositoryID)
 
 	if err != nil {
-		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter issue repository ID")
+		return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentVersionBaseResolver"), "ComponentVersion", appErrors.InvalidArgument, "Invalid IssueRepositoryID filter"))
 	}
 
 	f := &entity.ComponentVersionFilter{
@@ -131,9 +132,8 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 
 	componentVersions, err := app.ListComponentVersions(f, opt)
 
-	//@todo propper error handling
 	if err != nil {
-		return nil, NewResolverError("ComponentVersionBaseResolver", err.Error())
+		return nil, ToGraphQLError(err)
 	}
 
 	edges := []*model.ComponentVersionEdge{}
