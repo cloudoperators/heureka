@@ -35,6 +35,7 @@ func NewComponentVersionHandler(handlerContext common.HandlerContext) ComponentV
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		logger:        logrus.New(),
 	}
 }
 

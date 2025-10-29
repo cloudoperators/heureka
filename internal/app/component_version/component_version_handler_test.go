@@ -4,6 +4,7 @@
 package component_version_test
 
 import (
+	"errors"
 	"math"
 	"testing"
 
@@ -11,9 +12,11 @@ import (
 	cv "github.com/cloudoperators/heureka/internal/app/component_version"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/cache"
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
@@ -66,7 +69,6 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
@@ -119,6 +121,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
 	})
+
 	When("filtering by tag", func() {
 		It("filters results correctly", func() {
 			// Create test data with a specific tag
@@ -152,6 +155,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 		})
 	})
+
 	When("filtering by repository", func() {
 		It("filters results correctly", func() {
 			// Create test data with a specific repository
@@ -185,6 +189,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			}
 		})
 	})
+
 	When("filtering by organization", func() {
 		It("filters results correctly", func() {
 			// Create test data with a specific organization
@@ -216,6 +221,24 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			for _, element := range result.Elements {
 				Expect(element.ComponentVersion.Organization).To(Equal(testOrg))
 			}
+		})
+	})
+
+	When("database returns an error", func() {
+		It("returns Internal error with proper structure", func() {
+			db.On("GetComponentVersions", filter, []entity.Order{}).Return(nil, errors.New("database connection failed"))
+
+			cvHandler = cv.NewComponentVersionHandler(handlerContext)
+			result, err := cvHandler.ListComponentVersions(filter, options)
+
+			Expect(result).To(BeNil())
+			Expect(err).NotTo(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be appErrors.Error type")
+			Expect(appErr.Code).To(Equal(appErrors.Internal))
+			Expect(appErr.Entity).To(Equal("ComponentVersions"))
+			Expect(appErr.Op).To(ContainSubstring("ListComponentVersions"))
 		})
 	})
 })
@@ -250,6 +273,41 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 			Expect(newComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
 			Expect(newComponentVersion.ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
 			Expect(newComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
+		})
+	})
+
+	When("component version already exists", func() {
+		It("returns AlreadyExists error", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("CreateComponentVersion", &componentVersion).Return(nil,
+				database.NewDuplicateEntryDatabaseError("version already exists"))
+
+			componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+			result, err := componenVersionService.CreateComponentVersion(&componentVersion)
+
+			Expect(result).To(BeNil())
+			Expect(err).NotTo(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.AlreadyExists))
+			Expect(appErr.Entity).To(Equal("ComponentVersion"))
+		})
+	})
+
+	When("GetCurrentUserId fails", func() {
+		It("returns Internal error", func() {
+			db.On("GetAllUserIds", mock.Anything).Return(nil, errors.New("user service unavailable"))
+
+			componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+			result, err := componenVersionService.CreateComponentVersion(&componentVersion)
+
+			Expect(result).To(BeNil())
+			Expect(err).NotTo(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.Internal))
 		})
 	})
 })
@@ -298,6 +356,24 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 			Expect(updatedComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
 		})
 	})
+
+	When("database update fails", func() {
+		It("returns Internal error", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("UpdateComponentVersion", componentVersion.ComponentVersion).Return(errors.New("update query failed"))
+
+			componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+			result, err := componenVersionService.UpdateComponentVersion(componentVersion.ComponentVersion)
+
+			Expect(result).To(BeNil())
+			Expect(err).NotTo(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.Internal))
+			Expect(appErr.Entity).To(Equal("ComponentVersion"))
+		})
+	})
 })
 
 var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponentVersion"), func() {
@@ -341,5 +417,39 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		componentVersions, err := componenVersionService.ListComponentVersions(filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(componentVersions.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	When("GetCurrentUserId fails", func() {
+		It("returns Internal error", func() {
+			db.On("GetAllUserIds", mock.Anything).Return(nil, errors.New("user service unavailable"))
+
+			componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+			err := componenVersionService.DeleteComponentVersion(id)
+
+			Expect(err).NotTo(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.Internal))
+			Expect(appErr.Entity).To(Equal("ComponentVersion"))
+			Expect(appErr.Op).To(ContainSubstring("DeleteComponentVersion"))
+		})
+	})
+
+	When("database delete fails", func() {
+		It("returns Internal error with context", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{42}, nil)
+			db.On("DeleteComponentVersion", id, mock.Anything).Return(errors.New("database delete failed"))
+
+			componenVersionService = cv.NewComponentVersionHandler(handlerContext)
+			err := componenVersionService.DeleteComponentVersion(id)
+
+			Expect(err).NotTo(BeNil())
+
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.Internal))
+			Expect(appErr.Entity).To(Equal("ComponentVersion"))
+		})
 	})
 })
