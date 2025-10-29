@@ -134,7 +134,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	joins := s.getComponentVersionJoins(filter, order)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
 	}
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
@@ -169,7 +169,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
-		return nil, nil, fmt.Errorf("%s", msg)
+		return nil, nil, fmt.Errorf("failed to prepare ComponentVersion statement: %w", err)
 	}
 
 	//adding parameters
@@ -210,14 +210,17 @@ func (s *SqlDatabase) GetAllComponentVersionIds(filter *entity.ComponentVersionF
     `
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build ComponentVersion IDs query: %w", err)
 	}
-
 	defer stmt.Close()
 
-	return performIdScan(stmt, filterParameters, l)
+	ids, err := performIdScan(stmt, filterParameters, l)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentVersion IDs: %w", err)
+	}
+
+	return ids, nil
 }
 
 func (s *SqlDatabase) GetAllComponentVersionCursors(filter *entity.ComponentVersionFilter, order []entity.Order) ([]string, error) {
@@ -233,9 +236,8 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(filter *entity.ComponentVers
     `
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build ComponentVersion cursors query: %w", err)
 	}
 
 	rows, err := performListScan(
@@ -246,9 +248,8 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(filter *entity.ComponentVers
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get ComponentVersion cursors: %w", err)
 	}
 
 	return lo.Map(rows, func(row RowComposite, _ int) string {
@@ -278,14 +279,12 @@ func (s *SqlDatabase) GetComponentVersions(filter *entity.ComponentVersionFilter
 	filter = s.ensureComponentVersionFilter(filter)
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build ComponentVersions query: %w", err)
 	}
-
 	defer stmt.Close()
 
-	return performListScan(
+	results, err := performListScan(
 		stmt,
 		filterParameters,
 		l,
@@ -308,6 +307,11 @@ func (s *SqlDatabase) GetComponentVersions(filter *entity.ComponentVersionFilter
 			return append(l, cvr)
 		},
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ComponentVersions: %w", err)
+	}
+
+	return results, nil
 }
 
 func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilter) (int64, error) {
@@ -322,14 +326,17 @@ func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilt
 		ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("failed to build ComponentVersion count query: %w", err)
 	}
-
 	defer stmt.Close()
 
-	return performCountScan(stmt, filterParameters, l)
+	count, err := performCountScan(stmt, filterParameters, l)
+	if err != nil {
+		return -1, fmt.Errorf("failed to count ComponentVersions: %w", err)
+	}
+
+	return count, nil
 }
 
 func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
@@ -362,12 +369,12 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 	componentVersionRow.FromComponentVersion(componentVersion)
 
 	id, err := performInsert(s, query, componentVersionRow, l)
-
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "Error 1062") {
 			return nil, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("for ComponentVersion: %s ", componentVersion.Version))
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to create ComponentVersion with version '%s': %w",
+			componentVersion.Version, err)
 	}
 
 	componentVersion.Id = id
@@ -395,8 +402,12 @@ func (s *SqlDatabase) UpdateComponentVersion(componentVersion *entity.ComponentV
 	componentVersionRow.FromComponentVersion(componentVersion)
 
 	_, err := performExec(s, query, componentVersionRow, l)
+	if err != nil {
+		return fmt.Errorf("failed to update ComponentVersion with ID %d (version: '%s'): %w",
+			componentVersion.Id, componentVersion.Version, err)
+	}
 
-	return err
+	return nil
 }
 
 func (s *SqlDatabase) DeleteComponentVersion(id int64, userId int64) error {
@@ -418,6 +429,9 @@ func (s *SqlDatabase) DeleteComponentVersion(id int64, userId int64) error {
 	}
 
 	_, err := performExec(s, query, args, l)
+	if err != nil {
+		return fmt.Errorf("failed to delete ComponentVersion with ID %d: %w", id, err)
+	}
 
-	return err
+	return nil
 }
