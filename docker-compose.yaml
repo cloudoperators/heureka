@@ -11,6 +11,7 @@ services:
     image: mariadb:latest
     container_name: mariadb
     restart: always
+    command: --lower_case_table_names=1
     profiles:
       - db
     environment:
