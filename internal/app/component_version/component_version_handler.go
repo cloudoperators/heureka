@@ -211,22 +211,25 @@ func (cv *componentVersionHandler) UpdateComponentVersion(componentVersion *enti
 }
 
 func (cv *componentVersionHandler) DeleteComponentVersion(id int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"event": DeleteComponentVersionEventName,
-		"id":    id,
-	})
+	op := appErrors.Op("componentVersionHandler.DeleteComponentVersion")
 
 	userId, err := common.GetCurrentUserId(cv.database)
 	if err != nil {
-		l.Error(err)
-		return NewComponentVersionHandlerError("Internal error while deleting componentVersion (GetUserId).")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", strconv.FormatInt(id, 10), err)
+		applog.LogError(cv.logger, wrappedErr, logrus.Fields{
+			"id": id,
+		})
+		return wrappedErr
 	}
 
 	err = cv.database.DeleteComponentVersion(id, userId)
-
 	if err != nil {
-		l.Error(err)
-		return NewComponentVersionHandlerError("Internal error while deleting componentVersion.")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", strconv.FormatInt(id, 10), err)
+		applog.LogError(cv.logger, wrappedErr, logrus.Fields{
+			"id":      id,
+			"user_id": userId,
+		})
+		return wrappedErr
 	}
 
 	cv.eventRegistry.PushEvent(&DeleteComponentVersionEvent{
