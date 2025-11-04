@@ -4,6 +4,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -102,7 +103,7 @@ func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListO
 	return ret, nil
 }
 
-func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
+func (u *userHandler) CreateUser(ctx context.Context, user *entity.User) (*entity.User, error) {
 	f := &entity.UserFilter{
 		UniqueUserID: []*string{&user.UniqueUserID},
 	}
@@ -113,7 +114,7 @@ func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 	})
 
 	var err error
-	user.CreatedBy, err = common.GetCurrentUserId(u.database)
+	user.CreatedBy, err = common.GetCurrentUserId(ctx, u.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating user (GetUserId).")
@@ -143,14 +144,14 @@ func (u *userHandler) CreateUser(user *entity.User) (*entity.User, error) {
 	return newUser, nil
 }
 
-func (u *userHandler) UpdateUser(user *entity.User) (*entity.User, error) {
+func (u *userHandler) UpdateUser(ctx context.Context, user *entity.User) (*entity.User, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateUserEventName,
 		"object": user,
 	})
 
 	var err error
-	user.UpdatedBy, err = common.GetCurrentUserId(u.database)
+	user.UpdatedBy, err = common.GetCurrentUserId(ctx, u.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while updating user (GetUserId).")
@@ -180,13 +181,13 @@ func (u *userHandler) UpdateUser(user *entity.User) (*entity.User, error) {
 	return userResult.Elements[0].User, nil
 }
 
-func (u *userHandler) DeleteUser(id int64) error {
+func (u *userHandler) DeleteUser(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteUserEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(u.database)
+	userId, err := common.GetCurrentUserId(ctx, u.database)
 	if err != nil {
 		l.Error(err)
 		return NewUserHandlerError("Internal error while deleting user (GetUserId).")

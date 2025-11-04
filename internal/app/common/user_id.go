@@ -4,7 +4,10 @@
 package common
 
 import (
+	"context"
 	"fmt"
+
+	authentication_context "github.com/cloudoperators/heureka/internal/api/graphql/access/context"
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -13,8 +16,18 @@ import (
 const systemUserUniqueUserId = "S0000000"
 const unknownUser = int64(0)
 
-func GetCurrentUserId(db database.Database) (int64, error) {
-	return getUserIdFromDb(db, systemUserUniqueUserId)
+func GetCurrentUserId(ctx context.Context, db database.Database) (int64, error) {
+	if authentication_context.IsAuthenticationRequired(ctx) {
+		uniqueUserId, err := authentication_context.UserNameFromContext(ctx)
+
+		if err != nil {
+			return 0, fmt.Errorf("Could not get user name from context: %w", err)
+		}
+
+		return getUserIdFromDb(db, uniqueUserId)
+	} else {
+		return getUserIdFromDb(db, systemUserUniqueUserId)
+	}
 }
 
 func getUserIdFromDb(db database.Database, uniqueUserId string) (int64, error) {
@@ -26,4 +39,8 @@ func getUserIdFromDb(db database.Database, uniqueUserId string) (int64, error) {
 		return unknownUser, nil
 	}
 	return ids[0], nil
+}
+
+func NewAdminContext() context.Context {
+	return context.Background()
 }

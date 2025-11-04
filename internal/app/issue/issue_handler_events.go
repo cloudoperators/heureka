@@ -4,6 +4,7 @@
 package issue
 
 import (
+	"context"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -139,7 +140,7 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 			}
 
 			// Create new IssueMatches
-			createIssueMatches(db, l, compInst.Id, issueVariantMap)
+			createIssueMatches(common.NewAdminContext(), db, l, compInst.Id, issueVariantMap)
 		}
 	} else {
 		l.Error("Invalid event type received")
@@ -153,6 +154,7 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 // createIssueMatches creates new issue matches based on the component instance Id,
 // issue ID and their corresponding issue variants (sorted by priority)
 func createIssueMatches(
+	ctx context.Context,
 	db database.Database,
 	l *logrus.Entry,
 	componentInstanceId int64,
@@ -180,7 +182,7 @@ func createIssueMatches(
 			continue
 		}
 
-		user, err := common.GetCurrentUserId(db)
+		user, err := common.GetCurrentUserId(ctx, db)
 		if err != nil {
 			l.WithField("event-step", "GetCurrentUserId").WithError(err).Error("Error while getting current user ID")
 			continue

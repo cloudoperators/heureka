@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	. "github.com/onsi/ginkgo/v2"
@@ -496,7 +497,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				It("can delete component correctly", func() {
 					component := seedCollection.ComponentRows[0].AsComponent()
 
-					err := db.DeleteComponent(component.Id, systemUserId)
+					err := db.DeleteComponent(component.Id, common.SystemUserId)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())

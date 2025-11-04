@@ -9,6 +9,7 @@ import (
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	entityTest "github.com/cloudoperators/heureka/internal/entity/test"
@@ -697,7 +698,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			It("can delete componentInstance correctly", func() {
 				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
 
-				err := db.DeleteComponentInstance(componentInstance.Id, systemUserId)
+				err := db.DeleteComponentInstance(componentInstance.Id, common.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

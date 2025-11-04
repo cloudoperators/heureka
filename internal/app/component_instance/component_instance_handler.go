@@ -4,6 +4,7 @@
 package component_instance
 
 import (
+	"context"
 	"time"
 
 	"errors"
@@ -116,7 +117,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 	return result, nil
 }
 
-func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context, componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
 	op := appErrors.Op("componentInstanceHandler.CreateComponentInstance")
 
 	// Input validation - check for required fields
@@ -157,7 +158,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 
 	// Get current user for audit fields
 	var err error
-	componentInstance.CreatedBy, err = common.GetCurrentUserId(ci.database)
+	componentInstance.CreatedBy, err = common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -219,7 +220,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 	return newComponentInstance, nil
 }
 
-func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) UpdateComponentInstance(ctx context.Context, componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
 	op := appErrors.Op("componentInstanceHandler.UpdateComponentInstance")
 
 	// Input validation
@@ -249,7 +250,7 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 
 	// Get current user for audit fields
 	var err error
-	componentInstance.UpdatedBy, err = common.GetCurrentUserId(ci.database)
+	componentInstance.UpdatedBy, err = common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -319,7 +320,7 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 	return updatedComponentInstance, nil
 }
 
-func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
+func (ci *componentInstanceHandler) DeleteComponentInstance(ctx context.Context, id int64) error {
 	op := appErrors.Op("componentInstanceHandler.DeleteComponentInstance")
 
 	// Input validation
@@ -330,7 +331,7 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
 	}
 
 	// Get current user for audit fields
-	userId, err := common.GetCurrentUserId(ci.database)
+	userId, err := common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(id, 10), err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{

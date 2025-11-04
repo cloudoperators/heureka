@@ -137,7 +137,7 @@ var _ = Describe("When creating Activity", Label("app", "CreateActivity"), func(
 			Authz:    authz,
 		}
 		activityHandler = a.NewActivityHandler(handlerContext)
-		newActivity, err := activityHandler.CreateActivity(&activity)
+		newActivity, err := activityHandler.CreateActivity(common.NewAdminContext(), &activity)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newActivity.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -183,7 +183,7 @@ var _ = Describe("When updating Activity", Label("app", "UpdateService"), func()
 		}
 		filter.Id = []*int64{&activity.Id}
 		db.On("GetActivities", filter).Return([]entity.Activity{activity}, nil)
-		updatedActivity, err := activityHandler.UpdateActivity(&activity)
+		updatedActivity, err := activityHandler.UpdateActivity(common.NewAdminContext(), &activity)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedActivity.Status.String()).To(BeEquivalentTo(activity.Status.String()))
@@ -223,7 +223,7 @@ var _ = Describe("When deleting Activity", Label("app", "DeleteActivity"), func(
 		}
 		activityHandler = a.NewActivityHandler(handlerContext)
 		db.On("GetActivities", filter).Return([]entity.Activity{}, nil)
-		err := activityHandler.DeleteActivity(id)
+		err := activityHandler.DeleteActivity(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

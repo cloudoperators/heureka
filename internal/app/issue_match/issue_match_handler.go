@@ -4,6 +4,7 @@
 package issue_match
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -145,14 +146,14 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 	return ret, nil
 }
 
-func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) CreateIssueMatch(ctx context.Context, issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateIssueMatchEventName,
 		"object": issueMatch,
 	})
 
 	var err error
-	issueMatch.CreatedBy, err = common.GetCurrentUserId(im.database)
+	issueMatch.CreatedBy, err = common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while creating issueMatch (GetUserId).")
@@ -187,14 +188,14 @@ func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*e
 	return newIssueMatch, nil
 }
 
-func (im *issueMatchHandler) UpdateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) UpdateIssueMatch(ctx context.Context, issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueMatchEventName,
 		"object": issueMatch,
 	})
 
 	var err error
-	issueMatch.UpdatedBy, err = common.GetCurrentUserId(im.database)
+	issueMatch.UpdatedBy, err = common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while updating issueMatch (GetUserId).")
@@ -214,13 +215,13 @@ func (im *issueMatchHandler) UpdateIssueMatch(issueMatch *entity.IssueMatch) (*e
 	return im.GetIssueMatch(issueMatch.Id)
 }
 
-func (im *issueMatchHandler) DeleteIssueMatch(id int64) error {
+func (im *issueMatchHandler) DeleteIssueMatch(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteIssueMatchEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(im.database)
+	userId, err := common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
 		return NewIssueMatchHandlerError("Internal error while deleting issueMatch (GetUserId).")

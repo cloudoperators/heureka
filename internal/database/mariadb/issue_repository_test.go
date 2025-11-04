@@ -5,6 +5,7 @@ package mariadb_test
 
 import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	. "github.com/onsi/ginkgo/v2"
@@ -470,7 +471,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 			It("can delete issueRepository correctly", func() {
 				issueRepository := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
 
-				err := db.DeleteIssueRepository(issueRepository.Id, systemUserId)
+				err := db.DeleteIssueRepository(issueRepository.Id, common.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

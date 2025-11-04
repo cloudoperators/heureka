@@ -152,7 +152,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
-		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(&issueRepository)
+		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(common.NewAdminContext(), &issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueRepository.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -221,7 +221,7 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 		issueRepository.Name = "SecretRepository"
 		filter.Id = []*int64{&issueRepository.Id}
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{issueRepository}, nil)
-		updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(&issueRepository)
+		updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(common.NewAdminContext(), &issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueRepository.Name).To(BeEquivalentTo(issueRepository.Name))
@@ -262,7 +262,7 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 		db.On("DeleteIssueRepository", id, mock.Anything).Return(nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
-		err := issueRepositoryHandler.DeleteIssueRepository(id)
+		err := issueRepositoryHandler.DeleteIssueRepository(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

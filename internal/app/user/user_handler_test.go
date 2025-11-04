@@ -145,7 +145,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		db.On("CreateUser", &user).Return(&user, nil)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
 		userHandler = u.NewUserHandler(handlerContext)
-		newUser, err := userHandler.CreateUser(&user)
+		newUser, err := userHandler.CreateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newUser.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -190,7 +190,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		user.Name = "Sauron"
 		filter.Id = []*int64{&user.Id}
 		db.On("GetUsers", filter).Return([]entity.User{user}, nil)
-		updatedUser, err := userHandler.UpdateUser(&user)
+		updatedUser, err := userHandler.UpdateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedUser.Name).To(BeEquivalentTo(user.Name))
@@ -232,7 +232,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		db.On("DeleteUser", id, mock.Anything).Return(nil)
 		userHandler = u.NewUserHandler(handlerContext)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
-		err := userHandler.DeleteUser(id)
+		err := userHandler.DeleteUser(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

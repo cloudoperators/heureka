@@ -259,7 +259,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 
 		serviceHandler = s.NewServiceHandler(handlerContext)
-		newService, err := serviceHandler.CreateService(&service)
+		newService, err := serviceHandler.CreateService(common.NewAdminContext(), &service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newService.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -378,7 +378,7 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 		service.CCRN = "SecretService"
 		filter.Id = []*int64{&service.Id}
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
-		updatedService, err := serviceHandler.UpdateService(service.Service)
+		updatedService, err := serviceHandler.UpdateService(common.NewAdminContext(), service.Service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedService.CCRN).To(BeEquivalentTo(service.CCRN))
@@ -420,7 +420,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		db.On("DeleteService", id, mock.Anything).Return(nil)
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
-		err := serviceHandler.DeleteService(id)
+		err := serviceHandler.DeleteService(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

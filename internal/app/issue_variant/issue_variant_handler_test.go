@@ -262,7 +262,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(&issueVariant)
+		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(common.NewAdminContext(), &issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueVariant.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -316,7 +316,7 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		issueVariant.SecondaryName = "SecretAdvisory"
 		filter.Id = []*int64{&issueVariant.Id}
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{issueVariant}, nil)
-		updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(&issueVariant)
+		updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(common.NewAdminContext(), &issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueVariant.SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
@@ -367,7 +367,7 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		db.On("DeleteIssueVariant", id, mock.Anything).Return(nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
-		err := issueVariantHandler.DeleteIssueVariant(id)
+		err := issueVariantHandler.DeleteIssueVariant(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

@@ -15,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 
 	. "github.com/cloudoperators/heureka/internal/api/graphql/access/auth"
+	authctx "github.com/cloudoperators/heureka/internal/api/graphql/access/context"
 )
 
 func NewAuth(cfg *util.Config, enableLog bool) *Auth {
@@ -37,6 +38,7 @@ type authMethod interface {
 func (a *Auth) Middleware() gin.HandlerFunc {
 	return func(authCtx *gin.Context) {
 		if len(a.chain) > 0 {
+			authctx.SetAuthenticationRequired(authCtx)
 			var retMsg string
 			for _, auth := range a.chain {
 				if err := auth.Verify(authCtx); err == nil {

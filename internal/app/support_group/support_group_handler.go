@@ -4,6 +4,7 @@
 package support_group
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -115,7 +116,7 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 	return ret, nil
 }
 
-func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) CreateSupportGroup(ctx context.Context, supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateSupportGroupEventName,
 		"object": supportGroup,
@@ -126,7 +127,7 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	}
 
 	var err error
-	supportGroup.CreatedBy, err = common.GetCurrentUserId(sg.database)
+	supportGroup.CreatedBy, err = common.GetCurrentUserId(ctx, sg.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while creating supportGroup (GetUserId).")
@@ -159,14 +160,14 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	return newSupportGroup, nil
 }
 
-func (sg *supportGroupHandler) UpdateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) UpdateSupportGroup(ctx context.Context, supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateSupportGroupEventName,
 		"object": supportGroup,
 	})
 
 	var err error
-	supportGroup.UpdatedBy, err = common.GetCurrentUserId(sg.database)
+	supportGroup.UpdatedBy, err = common.GetCurrentUserId(ctx, sg.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while updating supportGroup (GetUserId).")
@@ -184,13 +185,13 @@ func (sg *supportGroupHandler) UpdateSupportGroup(supportGroup *entity.SupportGr
 	return sg.GetSupportGroup(supportGroup.Id)
 }
 
-func (sg *supportGroupHandler) DeleteSupportGroup(id int64) error {
+func (sg *supportGroupHandler) DeleteSupportGroup(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteSupportGroupEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(sg.database)
+	userId, err := common.GetCurrentUserId(ctx, sg.database)
 	if err != nil {
 		l.Error(err)
 		return NewSupportGroupHandlerError("Internal error while deleting supportGroup (GetUserId).")

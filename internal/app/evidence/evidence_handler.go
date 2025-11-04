@@ -4,6 +4,7 @@
 package evidence
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -103,14 +104,14 @@ func (e *evidenceHandler) ListEvidences(filter *entity.EvidenceFilter, options *
 	return ret, nil
 }
 
-func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
+func (e *evidenceHandler) CreateEvidence(ctx context.Context, evidence *entity.Evidence) (*entity.Evidence, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateEvidenceEventName,
 		"object": evidence,
 	})
 
 	var err error
-	evidence.CreatedBy, err = common.GetCurrentUserId(e.database)
+	evidence.CreatedBy, err = common.GetCurrentUserId(ctx, e.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Internal error while creating evidence (GetUserId).")
@@ -129,14 +130,14 @@ func (e *evidenceHandler) CreateEvidence(evidence *entity.Evidence) (*entity.Evi
 	return newEvidence, nil
 }
 
-func (e *evidenceHandler) UpdateEvidence(evidence *entity.Evidence) (*entity.Evidence, error) {
+func (e *evidenceHandler) UpdateEvidence(ctx context.Context, evidence *entity.Evidence) (*entity.Evidence, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateEvidenceEventName,
 		"object": evidence,
 	})
 
 	var err error
-	evidence.UpdatedBy, err = common.GetCurrentUserId(e.database)
+	evidence.UpdatedBy, err = common.GetCurrentUserId(ctx, e.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Internal error while updating evidence (GetUserId).")
@@ -166,13 +167,13 @@ func (e *evidenceHandler) UpdateEvidence(evidence *entity.Evidence) (*entity.Evi
 	return evidenceResult.Elements[0].Evidence, nil
 }
 
-func (e *evidenceHandler) DeleteEvidence(id int64) error {
+func (e *evidenceHandler) DeleteEvidence(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteEvidenceEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(e.database)
+	userId, err := common.GetCurrentUserId(ctx, e.database)
 	if err != nil {
 		l.Error(err)
 		return NewEvidenceHandlerError("Internal error while deleting evidence (GetUserId).")

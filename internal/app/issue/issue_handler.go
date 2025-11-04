@@ -4,6 +4,7 @@
 package issue
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -190,7 +191,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 	return &issueList, nil
 }
 
-func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
+func (is *issueHandler) CreateIssue(ctx context.Context, issue *entity.Issue) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.CreateIssue")
 
 	f := &entity.IssueFilter{
@@ -198,7 +199,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	}
 
 	var err error
-	issue.CreatedBy, err = common.GetCurrentUserId(is.database)
+	issue.CreatedBy, err = common.GetCurrentUserId(ctx, is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -247,11 +248,11 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	return newIssue, nil
 }
 
-func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) {
+func (is *issueHandler) UpdateIssue(ctx context.Context, issue *entity.Issue) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.UpdateIssue")
 
 	var err error
-	issue.UpdatedBy, err = common.GetCurrentUserId(is.database)
+	issue.UpdatedBy, err = common.GetCurrentUserId(ctx, is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(issue.Id, 10), err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -299,10 +300,10 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	return updatedIssue, nil
 }
 
-func (is *issueHandler) DeleteIssue(id int64) error {
+func (is *issueHandler) DeleteIssue(ctx context.Context, id int64) error {
 	op := appErrors.Op("issueHandler.DeleteIssue")
 
-	userId, err := common.GetCurrentUserId(is.database)
+	userId, err := common.GetCurrentUserId(ctx, is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(id, 10), err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{

@@ -4,6 +4,7 @@
 package activity
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -131,14 +132,14 @@ func (a *activityHandler) ListActivities(filter *entity.ActivityFilter, options 
 	return ret, nil
 }
 
-func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Activity, error) {
+func (a *activityHandler) CreateActivity(ctx context.Context, activity *entity.Activity) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ActivityCreateEventName,
 		"object": activity,
 	})
 
 	var err error
-	activity.CreatedBy, err = common.GetCurrentUserId(a.database)
+	activity.CreatedBy, err = common.GetCurrentUserId(ctx, a.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while creating activity (GetUserId).")
@@ -159,14 +160,14 @@ func (a *activityHandler) CreateActivity(activity *entity.Activity) (*entity.Act
 	return newActivity, nil
 }
 
-func (a *activityHandler) UpdateActivity(activity *entity.Activity) (*entity.Activity, error) {
+func (a *activityHandler) UpdateActivity(ctx context.Context, activity *entity.Activity) (*entity.Activity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ActivityUpdateEventName,
 		"object": activity,
 	})
 
 	var err error
-	activity.UpdatedBy, err = common.GetCurrentUserId(a.database)
+	activity.UpdatedBy, err = common.GetCurrentUserId(ctx, a.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while updating activity (GetUserId).")
@@ -186,13 +187,13 @@ func (a *activityHandler) UpdateActivity(activity *entity.Activity) (*entity.Act
 	return a.GetActivity(activity.Id)
 }
 
-func (a *activityHandler) DeleteActivity(id int64) error {
+func (a *activityHandler) DeleteActivity(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": ActivityDeleteEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(a.database)
+	userId, err := common.GetCurrentUserId(ctx, a.database)
 	if err != nil {
 		l.Error(err)
 		return NewActivityHandlerError("Internal error while deleting activity (GetUserId).")

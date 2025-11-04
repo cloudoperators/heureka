@@ -4,6 +4,7 @@
 package component_version
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -116,14 +117,14 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 	return ret, nil
 }
 
-func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
+func (cv *componentVersionHandler) CreateComponentVersion(ctx context.Context, componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentVersionEventName,
 		"object": componentVersion,
 	})
 
 	var err error
-	componentVersion.CreatedBy, err = common.GetCurrentUserId(cv.database)
+	componentVersion.CreatedBy, err = common.GetCurrentUserId(ctx, cv.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion (GetUserId).")
@@ -148,14 +149,14 @@ func (cv *componentVersionHandler) CreateComponentVersion(componentVersion *enti
 	return newComponent, nil
 }
 
-func (cv *componentVersionHandler) UpdateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
+func (cv *componentVersionHandler) UpdateComponentVersion(ctx context.Context, componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentVersionEventName,
 		"object": componentVersion,
 	})
 
 	var err error
-	componentVersion.UpdatedBy, err = common.GetCurrentUserId(cv.database)
+	componentVersion.UpdatedBy, err = common.GetCurrentUserId(ctx, cv.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while updating componentVersion (GetUserId).")
@@ -188,13 +189,13 @@ func (cv *componentVersionHandler) UpdateComponentVersion(componentVersion *enti
 	return componentVersionResult.Elements[0].ComponentVersion, nil
 }
 
-func (cv *componentVersionHandler) DeleteComponentVersion(id int64) error {
+func (cv *componentVersionHandler) DeleteComponentVersion(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteComponentVersionEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(cv.database)
+	userId, err := common.GetCurrentUserId(ctx, cv.database)
 	if err != nil {
 		l.Error(err)
 		return NewComponentVersionHandlerError("Internal error while deleting componentVersion (GetUserId).")
