@@ -18,9 +18,14 @@ CREATE TABLE IF NOT EXISTS mvServiceIssueCounts (
 -- 2. Create or replace the procedure that refreshes the table
 CREATE PROCEDURE refresh_mvServiceIssueCounts_proc()
 BEGIN
-    TRUNCATE TABLE mvServiceIssueCounts;
+    -- 1 Create a temporary table with the same structure as the target table
+    CREATE TABLE IF NOT EXISTS mvServiceIssueCounts_tmp LIKE mvServiceIssueCounts;
 
-    INSERT INTO mvServiceIssueCounts
+    -- 2 Clear any previous temporary data
+    DELETE FROM mvServiceIssueCounts_tmp;
+
+    -- 3 Fill the temporary table with fresh counts
+    INSERT INTO mvServiceIssueCounts_tmp
     SELECT
         S.service_id,
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical'
@@ -40,6 +45,14 @@ BEGIN
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = CVI.componentversionissue_issue_id
     WHERE S.service_deleted_at IS NULL
     GROUP BY S.service_id;
+
+    -- 4 Atomically swap tables (old → backup, new → live)
+    RENAME TABLE
+        mvServiceIssueCounts TO mvServiceIssueCounts_old,
+        mvServiceIssueCounts_tmp TO mvServiceIssueCounts;
+
+    -- 5 Clean up old table
+    DROP TABLE mvServiceIssueCounts_old;
 END;
 
 -- 3. Run the procedure once to populate the table initially
