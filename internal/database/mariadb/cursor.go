@@ -285,3 +285,19 @@ func WithComponent(order []entity.Order, c entity.Component, cv entity.Component
 		return nil
 	}
 }
+
+func WithRemediation(order []entity.Order, r entity.Remediation) NewCursor {
+
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.RemediationId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.RemediationId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationId, Value: r.Id, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}

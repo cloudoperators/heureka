@@ -62,6 +62,13 @@ func (r *serviceResolver) IssueMatches(ctx context.Context, obj *model.Service, 
 	})
 }
 
+func (r *serviceResolver) Remediations(ctx context.Context, obj *model.Service, filter *model.RemediationFilter, first *int, after *string) (*model.RemediationConnection, error) {
+	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
+		Parent:     obj,
+		ParentName: model.ServiceNodeName,
+	})
+}
+
 func (r *serviceResolver) IssueCounts(ctx context.Context, obj *model.Service, filter *model.IssueFilter) (*model.SeverityCounts, error) {
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,

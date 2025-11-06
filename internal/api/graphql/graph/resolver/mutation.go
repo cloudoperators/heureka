@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
@@ -911,6 +912,97 @@ func (r *mutationResolver) FailScannerRun(ctx context.Context, uuid string, mess
 		return false, baseResolver.NewResolverError("FailScannerRunMutationResolver", "Internal Error - when failing scannerRun")
 	}
 	return true, nil
+}
+
+func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.RemediationInput) (*model.Remediation, error) {
+	remediation := model.NewRemediationEntity(&input)
+
+	// fetch service id for given service name
+	serviceResult, err := r.App.ListServices(&entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
+	if err != nil || len(serviceResult.Elements) == 0 || len(serviceResult.Elements) > 1 {
+		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - service id not found")
+	}
+	remediation.ServiceId = serviceResult.Elements[0].Id
+
+	// fetch component id for given component name
+	componentResult, err := r.App.ListComponents(&entity.ComponentFilter{CCRN: []*string{input.Image}}, nil)
+	if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
+		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - component id not found")
+	}
+	remediation.ComponentId = componentResult.Elements[0].Id
+
+	// fetch issue id for given issue name
+	issueResult, err := r.App.ListIssues(&entity.IssueFilter{PrimaryName: []*string{input.Vulnerability}}, nil)
+	if err != nil || len(issueResult.Elements) == 0 || len(issueResult.Elements) > 1 {
+		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - issue id not found")
+	}
+	remediation.IssueId = issueResult.Elements[0].Issue.Id
+
+	// TODO: once authentication + user seeding is in place, fetch the user id of the remediated by user
+
+	_, err = r.App.CreateRemediation(&remediation)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation")
+	}
+	rmd := model.NewRemediation(&remediation)
+	return &rmd, nil
+}
+
+func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, input model.RemediationInput) (*model.Remediation, error) {
+	idInt, err := baseResolver.ParseCursor(&id)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation")
+	}
+	remediation := model.NewRemediationEntity(&input)
+	remediation.Id = *idInt
+
+	// if service name is updated, update foreign key as well
+	if input.Service != nil {
+		// fetch service id for given service name
+		serviceResult, err := r.App.ListServices(&entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
+		if err != nil || len(serviceResult.Elements) == 0 || len(serviceResult.Elements) > 1 {
+			return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation - service id not found")
+		}
+		remediation.ServiceId = serviceResult.Elements[0].Id
+	}
+
+	// if component name is updated, update foreign key as well
+	if input.Image != nil {
+		// fetch component id for given component name
+		componentResult, err := r.App.ListComponents(&entity.ComponentFilter{CCRN: []*string{input.Image}}, nil)
+		if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
+			return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation - component id not found")
+		}
+		remediation.ComponentId = componentResult.Elements[0].Id
+	}
+
+	if input.Vulnerability != nil {
+		// fetch issue id for given issue name
+		issueResult, err := r.App.ListIssues(&entity.IssueFilter{PrimaryName: []*string{input.Vulnerability}}, nil)
+		if err != nil || len(issueResult.Elements) == 0 || len(issueResult.Elements) > 1 {
+			return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation - issue id not found")
+		}
+		remediation.IssueId = issueResult.Elements[0].Issue.Id
+	}
+
+	updatedRemediation, err := r.App.UpdateRemediation(&remediation)
+	if err != nil {
+		return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation")
+	}
+	rm := model.NewRemediation(updatedRemediation)
+	return &rm, nil
+}
+
+func (r *mutationResolver) DeleteRemediation(ctx context.Context, id string) (string, error) {
+	idInt, err := baseResolver.ParseCursor(&id)
+	if err != nil {
+		return "", baseResolver.NewResolverError("DeleteRemediationResolver", "Internal Error - when deleting remediation")
+	}
+	err = r.App.DeleteRemediation(*idInt)
+	if err != nil {
+		return "", baseResolver.NewResolverError("DeleteRemediationMutationResolver", "Internal Error - when deleting remediation")
+	}
+	return id, nil
 }
 
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }

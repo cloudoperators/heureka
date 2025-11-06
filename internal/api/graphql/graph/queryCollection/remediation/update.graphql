@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+mutation ($id: ID!, $input: RemediationInput!) {
+    updateRemediation (
+        id: $id,
+        input: $input
+    ) {
+        id
+        description
+        service
+        serviceId
+        image
+        imageId
+        vulnerability
+        vulnerabilityId
+        remediationDate
+        expirationDate
+        remediatedBy
+    }
+}

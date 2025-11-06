@@ -91,6 +91,7 @@ type RowComposite struct {
 	*IssueMatchChangeRow
 	*ServiceIssueVariantRow
 	*RatingCount
+	*RemediationRow
 }
 
 type DatabaseRow interface {
@@ -1137,4 +1138,71 @@ func (srr *ScannerRunRow) FromScannerRun(sr *entity.ScannerRun) {
 	srr.StartRun = sql.NullTime{Time: sr.StartRun, Valid: true}
 	srr.EndRun = sql.NullTime{Time: sr.EndRun, Valid: true}
 	srr.IsCompleted = sql.NullBool{Bool: sr.Completed, Valid: true}
+}
+
+type RemediationRow struct {
+	Id              sql.NullInt64  `db:"remediation_id" json:"id"`
+	Type            sql.NullString `db:"remediation_type" json:"type"`
+	Description     sql.NullString `db:"remediation_description" json:"description"`
+	RemediationDate sql.NullTime   `db:"remediation_remediation_date" json:"remediation_date"`
+	ExpirationDate  sql.NullTime   `db:"remediation_expiration_date" json:"expiry_date"`
+	RemediatedBy    sql.NullString `db:"remediation_remediated_by" json:"remediated_by"`
+	RemediatedById  sql.NullInt64  `db:"remediation_remediated_by_id" json:"remediated_by_id"`
+	Service         sql.NullString `db:"remediation_service" json:"service"`
+	ServiceId       sql.NullInt64  `db:"remediation_service_id" json:"service_id"`
+	Component       sql.NullString `db:"remediation_component" json:"component"`
+	ComponentId     sql.NullInt64  `db:"remediation_component_id" json:"component_id"`
+	Issue           sql.NullString `db:"remediation_issue" json:"issue"`
+	IssueId         sql.NullInt64  `db:"remediation_issue_id" json:"issue_id"`
+	CreatedAt       sql.NullTime   `db:"remediation_created_at" json:"created_at"`
+	CreatedBy       sql.NullInt64  `db:"remediation_created_by" json:"created_by"`
+	DeletedAt       sql.NullTime   `db:"remediation_deleted_at" json:"deleted_at,omitempty"`
+	UpdatedAt       sql.NullTime   `db:"remediation_updated_at" json:"updated_at"`
+	UpdatedBy       sql.NullInt64  `db:"remediation_updated_by" json:"updated_by"`
+}
+
+func (rr *RemediationRow) AsRemediation() entity.Remediation {
+	return entity.Remediation{
+		Id:              GetInt64Value(rr.Id),
+		Description:     GetStringValue(rr.Description),
+		Type:            entity.NewRemediationType(GetStringValue(rr.Type)),
+		Component:       GetStringValue(rr.Component),
+		ComponentId:     GetInt64Value(rr.ComponentId),
+		Service:         GetStringValue(rr.Service),
+		ServiceId:       GetInt64Value(rr.ServiceId),
+		Issue:           GetStringValue(rr.Issue),
+		IssueId:         GetInt64Value(rr.IssueId),
+		RemediationDate: GetTimeValue(rr.RemediationDate),
+		ExpirationDate:  GetTimeValue(rr.ExpirationDate),
+		RemediatedBy:    GetStringValue(rr.RemediatedBy),
+		RemediatedById:  GetInt64Value(rr.RemediatedById),
+		Metadata: entity.Metadata{
+			CreatedAt: GetTimeValue(rr.CreatedAt),
+			CreatedBy: GetInt64Value(rr.CreatedBy),
+			DeletedAt: GetTimeValue(rr.DeletedAt),
+			UpdatedAt: GetTimeValue(rr.UpdatedAt),
+			UpdatedBy: GetInt64Value(rr.UpdatedBy),
+		},
+	}
+}
+
+func (rr *RemediationRow) FromRemediation(r *entity.Remediation) {
+	rr.Id = sql.NullInt64{Int64: r.Id, Valid: true}
+	rr.Description = sql.NullString{String: r.Description, Valid: true}
+	rr.Type = sql.NullString{String: r.Type.String(), Valid: true}
+	rr.Component = sql.NullString{String: r.Component, Valid: true}
+	rr.ComponentId = sql.NullInt64{Int64: r.ComponentId, Valid: true}
+	rr.Service = sql.NullString{String: r.Service, Valid: true}
+	rr.ServiceId = sql.NullInt64{Int64: r.ServiceId, Valid: true}
+	rr.Issue = sql.NullString{String: r.Issue, Valid: true}
+	rr.IssueId = sql.NullInt64{Int64: r.IssueId, Valid: true}
+	rr.RemediationDate = sql.NullTime{Time: r.RemediationDate, Valid: true}
+	rr.ExpirationDate = sql.NullTime{Time: r.ExpirationDate, Valid: true}
+	rr.RemediatedBy = sql.NullString{String: r.RemediatedBy, Valid: true}
+	rr.RemediatedById = sql.NullInt64{Int64: r.RemediatedById, Valid: true}
+	rr.CreatedAt = sql.NullTime{Time: r.CreatedAt, Valid: true}
+	rr.CreatedBy = sql.NullInt64{Int64: r.CreatedBy, Valid: true}
+	rr.DeletedAt = sql.NullTime{Time: r.DeletedAt, Valid: true}
+	rr.UpdatedAt = sql.NullTime{Time: r.UpdatedAt, Valid: true}
+	rr.UpdatedBy = sql.NullInt64{Int64: r.UpdatedBy, Valid: true}
 }

@@ -53,6 +53,7 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 	var pageInfo *entity.PageInfo
 
 	common.EnsurePaginatedX(&filter.PaginatedX)
+	options = common.EnsureListOptions(options)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListComponentsEventName,

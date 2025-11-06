@@ -44,6 +44,15 @@ func NewIssueHandler(handlerContext common.HandlerContext) IssueHandler {
 	}
 }
 
+func ensureIssueListOptions(options *entity.IssueListOptions) *entity.IssueListOptions {
+	if options == nil {
+		return &entity.IssueListOptions{
+			ListOptions: *common.EnsureListOptions(nil),
+		}
+	}
+	return options
+}
+
 func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.GetIssue")
 
@@ -98,6 +107,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 	}
 
 	common.EnsurePaginatedX(&filter.PaginatedX)
+	options = ensureIssueListOptions(options)
 
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.IssueResult](

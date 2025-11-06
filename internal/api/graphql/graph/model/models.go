@@ -818,3 +818,40 @@ func GetStateFilterType(sf []StateFilter) []entity.StateFilterType {
 	}
 	return []entity.StateFilterType{entity.Active}
 }
+
+func NewRemediationEntity(r *RemediationInput) entity.Remediation {
+	remediationDate, _ := time.Parse(time.RFC3339, lo.FromPtr(r.RemediationDate))
+	expirationDate, _ := time.Parse(time.RFC3339, lo.FromPtr(r.ExpirationDate))
+	rType := entity.NewRemediationType(lo.FromPtr(r.Type).String())
+	return entity.Remediation{
+		Description:     lo.FromPtr(r.Description),
+		Service:         lo.FromPtr(r.Service),
+		Component:       lo.FromPtr(r.Image),
+		Issue:           lo.FromPtr(r.Vulnerability),
+		Type:            rType,
+		RemediatedBy:    lo.FromPtr(r.RemediatedBy),
+		RemediationDate: remediationDate,
+		ExpirationDate:  expirationDate,
+	}
+}
+
+func NewRemediation(r *entity.Remediation) Remediation {
+	remediationDate := r.RemediationDate.Format(time.RFC3339)
+	expirationDate := r.ExpirationDate.Format(time.RFC3339)
+	remediationType := RemediationTypeValues(r.Type)
+	return Remediation{
+		ID:              fmt.Sprintf("%d", r.Id),
+		Description:     &r.Description,
+		Type:            &remediationType,
+		Service:         &r.Service,
+		ServiceID:       lo.ToPtr(fmt.Sprintf("%d", r.ServiceId)),
+		Image:           &r.Component,
+		ImageID:         lo.ToPtr(fmt.Sprintf("%d", r.ComponentId)),
+		Vulnerability:   &r.Issue,
+		VulnerabilityID: lo.ToPtr(fmt.Sprintf("%d", r.IssueId)),
+		RemediationDate: &remediationDate,
+		ExpirationDate:  &expirationDate,
+		RemediatedBy:    &r.RemediatedBy,
+		Metadata:        getModelMetadata(r.Metadata),
+	}
+}

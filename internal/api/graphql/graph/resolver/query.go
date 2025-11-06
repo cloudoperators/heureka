@@ -138,6 +138,10 @@ func (r *queryResolver) Images(ctx context.Context, filter *model.ImageFilter, f
 	return baseResolver.ImageBaseResolver(r.App, ctx, filter, first, after)
 }
 
+func (r *queryResolver) Remediations(ctx context.Context, filter *model.RemediationFilter, first *int, after *string) (*model.RemediationConnection, error) {
+	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, nil)
+}
+
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }

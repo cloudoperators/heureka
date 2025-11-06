@@ -154,6 +154,8 @@ models:
         resolver: true
       issueMatches:
         resolver: true
+      remediations:
+        resolver: true
       issueCounts:
         resolver: true
   SupportGroup:
