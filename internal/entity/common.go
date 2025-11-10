@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package entity
@@ -64,7 +64,9 @@ type HeurekaEntity interface {
 		IssueCount |
 		IssueTypeCounts |
 		IssueSeverityCounts |
-		ServiceIssueVariant
+		ServiceIssueVariant |
+		Remediation |
+		RemediationResult
 }
 
 type HeurekaFilter interface {
@@ -82,7 +84,8 @@ type HeurekaFilter interface {
 		ComponentFilter |
 		ComponentVersionFilter |
 		IssueRepositoryFilter |
-		SeverityFilter
+		SeverityFilter |
+		RemediationFilter
 }
 
 type HasCursor interface {

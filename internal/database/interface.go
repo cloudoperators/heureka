@@ -155,6 +155,13 @@ type Database interface {
 	GetScannerRunTags() ([]string, error)
 	CountScannerRuns(*entity.ScannerRunFilter) (int, error)
 
+	GetRemediations(*entity.RemediationFilter, []entity.Order) ([]entity.RemediationResult, error)
+	GetAllRemediationCursors(*entity.RemediationFilter, []entity.Order) ([]string, error)
+	CountRemediations(*entity.RemediationFilter) (int64, error)
+	CreateRemediation(*entity.Remediation) (*entity.Remediation, error)
+	UpdateRemediation(*entity.Remediation) error
+	DeleteRemediation(int64, int64) error
+
 	CloseConnection() error
 
 	CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error

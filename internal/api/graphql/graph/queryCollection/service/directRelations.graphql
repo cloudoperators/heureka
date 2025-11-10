@@ -104,6 +104,21 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
                         }
                     }
                 }
+                remediations {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            description
+                            service
+                            image
+                            vulnerability
+                            remediationDate
+                            expirationDate
+                            remediatedBy
+                        }
+                    }
+                }
             }
             cursor
         }

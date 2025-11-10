@@ -81,6 +81,7 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 	var err error
 
 	common.EnsurePaginatedX(&filter.PaginatedX)
+	options = common.EnsureListOptions(options)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListServicesEventName,

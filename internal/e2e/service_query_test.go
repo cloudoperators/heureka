@@ -266,6 +266,16 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 						Expect(im.Node.DiscoveryDate).ToNot(BeNil(), "issueMatch has a discoveryDate set")
 						Expect(im.Node.TargetRemediationDate).ToNot(BeNil(), "issueMatch has a targetRemediationDate set")
 					}
+
+					for _, remediation := range service.Node.Remediations.Edges {
+						Expect(remediation.Node.ID).ToNot(BeNil(), "remediation has a ID set")
+						Expect(remediation.Node.Description).ToNot(BeNil(), "remediation has a description set")
+						Expect(remediation.Node.Service).ToNot(BeNil(), "remediation has a service set")
+						Expect(remediation.Node.Vulnerability).ToNot(BeNil(), "remediation has a vulnerability set")
+						Expect(remediation.Node.RemediationDate).ToNot(BeNil(), "remediation has a remediation date set")
+						Expect(remediation.Node.ExpirationDate).ToNot(BeNil(), "remediation has a expiration date set")
+						Expect(remediation.Node.RemediatedBy).ToNot(BeNil(), "remediation has a remediated bby set")
+					}
 				}
 			})
 			It("- returns the expected PageInfo", func() {

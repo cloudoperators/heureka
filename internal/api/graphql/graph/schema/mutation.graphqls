@@ -73,4 +73,8 @@ type Mutation {
     createScannerRun(input: ScannerRunInput!): Boolean!
     completeScannerRun(uuid: String!): Boolean!
     failScannerRun(uuid: String!, message: String!): Boolean!
+
+    createRemediation(input: RemediationInput!): Remediation!
+    updateRemediation(id: ID!, input: RemediationInput!): Remediation!
+    deleteRemediation(id: ID!): String!
 }

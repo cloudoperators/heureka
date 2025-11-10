@@ -21,6 +21,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
 	"github.com/cloudoperators/heureka/internal/app/profiler"
+	"github.com/cloudoperators/heureka/internal/app/remediation"
 	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/app/severity"
@@ -48,6 +49,7 @@ type HeurekaApp struct {
 	severity.SeverityHandler
 	support_group.SupportGroupHandler
 	user.UserHandler
+	remediation.RemediationHandler
 
 	authz openfga.Authorization
 
@@ -102,6 +104,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		SeverityHandler:          sh,
 		SupportGroupHandler:      support_group.NewSupportGroupHandler(handlerContext),
 		UserHandler:              user.NewUserHandler(handlerContext),
+		RemediationHandler:       remediation.NewRemediationHandler(handlerContext),
 		eventRegistry:            handlerContext.EventReg,
 		database:                 handlerContext.DB,
 		cache:                    handlerContext.Cache,
