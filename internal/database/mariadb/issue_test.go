@@ -9,6 +9,7 @@ import (
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/pkg/util"
@@ -835,7 +836,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				im := test.NewFakeIssueMatch()
 				im.ComponentInstanceId = sql.NullInt64{Int64: 1, Valid: true}
 				im.IssueId = sql.NullInt64{Int64: 3, Valid: true}
-				im.UserId = sql.NullInt64{Int64: systemUserId, Valid: true}
+				im.UserId = sql.NullInt64{Int64: common.SystemUserId, Valid: true}
 				_, err = seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 
@@ -942,7 +943,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			It("can delete issue correctly", func() {
 				issue := seedCollection.IssueRows[0].AsIssue()
 
-				err := db.DeleteIssue(issue.Id, systemUserId)
+				err := db.DeleteIssue(issue.Id, common.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

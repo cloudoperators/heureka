@@ -138,7 +138,7 @@ var _ = Describe("When creating Evidence", Label("app", "CreateEvidence"), func(
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateEvidence", &evidence).Return(&evidence, nil)
 		evidenceHandler = es.NewEvidenceHandler(handlerContext)
-		newEvidence, err := evidenceHandler.CreateEvidence(&evidence)
+		newEvidence, err := evidenceHandler.CreateEvidence(common.NewAdminContext(), &evidence)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newEvidence.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -187,7 +187,7 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 		evidence.Description = "New Description"
 		filter.Id = []*int64{&evidence.Id}
 		db.On("GetEvidences", filter).Return([]entity.Evidence{evidence}, nil)
-		updatedEvidence, err := evidenceHandler.UpdateEvidence(&evidence)
+		updatedEvidence, err := evidenceHandler.UpdateEvidence(common.NewAdminContext(), &evidence)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedEvidence.Description).To(BeEquivalentTo(evidence.Description))
@@ -233,7 +233,7 @@ var _ = Describe("When deleting Evidence", Label("app", "DeleteEvidence"), func(
 		db.On("DeleteEvidence", id, mock.Anything).Return(nil)
 		evidenceHandler = es.NewEvidenceHandler(handlerContext)
 		db.On("GetEvidences", filter).Return([]entity.Evidence{}, nil)
-		err := evidenceHandler.DeleteEvidence(id)
+		err := evidenceHandler.DeleteEvidence(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

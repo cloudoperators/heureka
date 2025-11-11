@@ -49,7 +49,7 @@ func (tam TokenAuthMethod) Verify(c *gin.Context) error {
 		return err
 	}
 
-	authctx.ScannerNameToContext(c, claims.RegisteredClaims.Subject)
+	authctx.UserNameToContext(c, claims.RegisteredClaims.Subject)
 
 	return nil
 }

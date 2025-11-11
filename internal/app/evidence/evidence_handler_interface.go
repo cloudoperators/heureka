@@ -3,11 +3,15 @@
 
 package evidence
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type EvidenceHandler interface {
 	ListEvidences(*entity.EvidenceFilter, *entity.ListOptions) (*entity.List[entity.EvidenceResult], error)
-	CreateEvidence(*entity.Evidence) (*entity.Evidence, error)
-	UpdateEvidence(*entity.Evidence) (*entity.Evidence, error)
-	DeleteEvidence(int64) error
+	CreateEvidence(context.Context, *entity.Evidence) (*entity.Evidence, error)
+	UpdateEvidence(context.Context, *entity.Evidence) (*entity.Evidence, error)
+	DeleteEvidence(context.Context, int64) error
 }

@@ -243,7 +243,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
-		newComponentVersion, err := componenVersionService.CreateComponentVersion(&componentVersion)
+		newComponentVersion, err := componenVersionService.CreateComponentVersion(common.NewAdminContext(), &componentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentVersion.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -290,7 +290,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		componentVersion.Tag = "updated-tag"
 		filter.Id = []*int64{&componentVersion.Id}
 		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{componentVersion}, nil)
-		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(componentVersion.ComponentVersion)
+		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(common.NewAdminContext(), componentVersion.ComponentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
@@ -333,7 +333,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
-		err := componenVersionService.DeleteComponentVersion(id)
+		err := componenVersionService.DeleteComponentVersion(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

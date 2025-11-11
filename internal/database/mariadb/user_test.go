@@ -7,6 +7,7 @@ import (
 	"math/rand"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -531,7 +532,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			It("can delete user correctly", func() {
 				user := seedCollection.UserRows[0].AsUser()
 
-				err := db.DeleteUser(user.Id, systemUserId)
+				err := db.DeleteUser(user.Id, common.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

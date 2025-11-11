@@ -134,7 +134,7 @@ var _ = Describe("When creating IssueMatchChange", Label("app", "CreateIssueMatc
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueMatchChange", &issueMatchChange).Return(&issueMatchChange, nil)
 		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(handlerContext)
-		newIssueMatchChange, err := issueMatchChangeHandler.CreateIssueMatchChange(&issueMatchChange)
+		newIssueMatchChange, err := issueMatchChangeHandler.CreateIssueMatchChange(common.NewAdminContext(), &issueMatchChange)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueMatchChange.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -182,7 +182,7 @@ var _ = Describe("When updating IssueMatchChange", Label("app", "UpdateIssueMatc
 		}
 		filter.Id = []*int64{&issueMatchChange.Id}
 		db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{issueMatchChange}, nil)
-		updatedIssueMatchChange, err := issueMatchChangeHandler.UpdateIssueMatchChange(&issueMatchChange)
+		updatedIssueMatchChange, err := issueMatchChangeHandler.UpdateIssueMatchChange(common.NewAdminContext(), &issueMatchChange)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueMatchChange.Action).To(BeEquivalentTo(issueMatchChange.Action))
@@ -223,7 +223,7 @@ var _ = Describe("When deleting IssueMatchChange", Label("app", "DeleteIssueMatc
 		db.On("DeleteIssueMatchChange", id, mock.Anything).Return(nil)
 		issueMatchChangeHandler = imc.NewIssueMatchChangeHandler(handlerContext)
 		db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{}, nil)
-		err := issueMatchChangeHandler.DeleteIssueMatchChange(id)
+		err := issueMatchChangeHandler.DeleteIssueMatchChange(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

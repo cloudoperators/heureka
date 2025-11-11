@@ -4,6 +4,7 @@
 package component
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -109,7 +110,7 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 	return ret, nil
 }
 
-func (cs *componentHandler) CreateComponent(component *entity.Component) (*entity.Component, error) {
+func (cs *componentHandler) CreateComponent(ctx context.Context, component *entity.Component) (*entity.Component, error) {
 	f := &entity.ComponentFilter{
 		CCRN: []*string{&component.CCRN},
 	}
@@ -121,7 +122,7 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	})
 
 	var err error
-	component.CreatedBy, err = common.GetCurrentUserId(cs.database)
+	component.CreatedBy, err = common.GetCurrentUserId(ctx, cs.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating component (GetUserId).")
@@ -152,14 +153,14 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	return newComponent, nil
 }
 
-func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entity.Component, error) {
+func (cs *componentHandler) UpdateComponent(ctx context.Context, component *entity.Component) (*entity.Component, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentEventName,
 		"object": component,
 	})
 
 	var err error
-	component.UpdatedBy, err = common.GetCurrentUserId(cs.database)
+	component.UpdatedBy, err = common.GetCurrentUserId(ctx, cs.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while updating component (GetUserId).")
@@ -190,13 +191,13 @@ func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entit
 	return componentResult.Elements[0].Component, nil
 }
 
-func (cs *componentHandler) DeleteComponent(id int64) error {
+func (cs *componentHandler) DeleteComponent(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteComponentEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(cs.database)
+	userId, err := common.GetCurrentUserId(ctx, cs.database)
 	if err != nil {
 		l.Error(err)
 		return NewUserHandlerError("Internal error while deleting component (GetUserId).")

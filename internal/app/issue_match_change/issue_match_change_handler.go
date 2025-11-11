@@ -4,6 +4,7 @@
 package issue_match_change
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -106,14 +107,14 @@ func (imc *issueMatchChangeHandler) ListIssueMatchChanges(filter *entity.IssueMa
 	return ret, nil
 }
 
-func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+func (imc *issueMatchChangeHandler) CreateIssueMatchChange(ctx context.Context, issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateIssueMatchChangeEventName,
 		"object": issueMatchChange,
 	})
 
 	var err error
-	issueMatchChange.CreatedBy, err = common.GetCurrentUserId(imc.database)
+	issueMatchChange.CreatedBy, err = common.GetCurrentUserId(ctx, imc.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Internal error while creating issueMatchChange (GetUserId).")
@@ -134,14 +135,14 @@ func (imc *issueMatchChangeHandler) CreateIssueMatchChange(issueMatchChange *ent
 	return newIssueMatchChange, nil
 }
 
-func (imc *issueMatchChangeHandler) UpdateIssueMatchChange(issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
+func (imc *issueMatchChangeHandler) UpdateIssueMatchChange(ctx context.Context, issueMatchChange *entity.IssueMatchChange) (*entity.IssueMatchChange, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueMatchChangeEventName,
 		"object": issueMatchChange,
 	})
 
 	var err error
-	issueMatchChange.UpdatedBy, err = common.GetCurrentUserId(imc.database)
+	issueMatchChange.UpdatedBy, err = common.GetCurrentUserId(ctx, imc.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Internal error while updating issueMatchChange (GetUserId).")
@@ -173,13 +174,13 @@ func (imc *issueMatchChangeHandler) UpdateIssueMatchChange(issueMatchChange *ent
 	return imcResult.Elements[0].IssueMatchChange, nil
 }
 
-func (imc *issueMatchChangeHandler) DeleteIssueMatchChange(id int64) error {
+func (imc *issueMatchChangeHandler) DeleteIssueMatchChange(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteIssueMatchChangeEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(imc.database)
+	userId, err := common.GetCurrentUserId(ctx, imc.database)
 	if err != nil {
 		l.Error(err)
 		return NewIssueMatchChangeHandlerError("Internal error while deleting issueMatchChange (GetUserId).")

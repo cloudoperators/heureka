@@ -158,7 +158,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(&supportGroup)
+		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(common.NewAdminContext(), &supportGroup)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newSupportGroup.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -203,7 +203,7 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 		supportGroup.CCRN = "Team Alone"
 		filter.Id = []*int64{&supportGroup.Id}
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(supportGroup.SupportGroup)
+		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(common.NewAdminContext(), supportGroup.SupportGroup)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedSupportGroup.CCRN).To(BeEquivalentTo(supportGroup.CCRN))
@@ -247,7 +247,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		db.On("DeleteSupportGroup", id, mock.Anything).Return(nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
-		err := supportGroupHandler.DeleteSupportGroup(id)
+		err := supportGroupHandler.DeleteSupportGroup(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

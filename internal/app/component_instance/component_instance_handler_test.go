@@ -215,7 +215,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			// Ensure type is allowed if ParentId is set
 			componentInstance.Type = "RecordSet"
 			componentInstance.ParentId = 1234
-			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
+			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(common.NewAdminContext(), &componentInstance, nil)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
 			By("setting fields", func() {
@@ -248,7 +248,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			componentInstance.ParentId = 1234
 			// Set ComponentVersionId to 0 to test creation without it
 			componentInstance.ComponentVersionId = 0
-			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
+			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(common.NewAdminContext(), &componentInstance, nil)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
 			By("setting fields", func() {
@@ -316,7 +316,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 			filter.Id = []*int64{&componentInstance.Id}
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
-			updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, nil)
+			updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(common.NewAdminContext(), componentInstance.ComponentInstance, nil)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			By("setting fields", func() {
 				Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
@@ -372,7 +372,7 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 			db.On("DeleteComponentInstance", id, int64(123)).Return(nil)    // Changed: specify exact user ID
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
-			err := componentInstanceHandler.DeleteComponentInstance(id)
+			err := componentInstanceHandler.DeleteComponentInstance(common.NewAdminContext(), id)
 			Expect(err).To(BeNil(), "no error should be thrown")
 
 			filter.Id = []*int64{&id}

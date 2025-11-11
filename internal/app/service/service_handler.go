@@ -4,6 +4,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -156,7 +157,7 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 	return ret, nil
 }
 
-func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service, error) {
+func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Service) (*entity.Service, error) {
 	f := &entity.ServiceFilter{
 		CCRN: []*string{&service.CCRN},
 	}
@@ -168,7 +169,7 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 	})
 
 	var err error
-	service.BaseService.CreatedBy, err = common.GetCurrentUserId(s.database)
+	service.BaseService.CreatedBy, err = common.GetCurrentUserId(ctx, s.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while creating service (GetUserId).")
@@ -199,14 +200,14 @@ func (s *serviceHandler) CreateService(service *entity.Service) (*entity.Service
 	return newService, nil
 }
 
-func (s *serviceHandler) UpdateService(service *entity.Service) (*entity.Service, error) {
+func (s *serviceHandler) UpdateService(ctx context.Context, service *entity.Service) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateServiceEventName,
 		"object": service,
 	})
 
 	var err error
-	service.BaseService.UpdatedBy, err = common.GetCurrentUserId(s.database)
+	service.BaseService.UpdatedBy, err = common.GetCurrentUserId(ctx, s.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while updating service (GetUserId).")
@@ -224,13 +225,13 @@ func (s *serviceHandler) UpdateService(service *entity.Service) (*entity.Service
 	return s.GetService(service.Id)
 }
 
-func (s *serviceHandler) DeleteService(id int64) error {
+func (s *serviceHandler) DeleteService(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteServiceEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(s.database)
+	userId, err := common.GetCurrentUserId(ctx, s.database)
 	if err != nil {
 		l.Error(err)
 		return NewServiceHandlerError("Internal error while deleting service (GetUserId).")

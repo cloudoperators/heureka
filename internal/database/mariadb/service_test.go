@@ -5,6 +5,7 @@ package mariadb_test
 
 import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	. "github.com/onsi/ginkgo/v2"
@@ -766,7 +767,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			It("can delete service correctly", func() {
 				service := seedCollection.ServiceRows[0].AsService()
 
-				err := db.DeleteService(service.Id, systemUserId)
+				err := db.DeleteService(service.Id, common.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

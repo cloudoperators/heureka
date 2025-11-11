@@ -158,7 +158,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		db.On("CreateComponent", &component).Return(&component, nil)
 		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
 		componentHandler = c.NewComponentHandler(handlerContext)
-		newComponent, err := componentHandler.CreateComponent(&component)
+		newComponent, err := componentHandler.CreateComponent(common.NewAdminContext(), &component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponent.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -203,7 +203,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		component.CCRN = "NewComponent"
 		filter.Id = []*int64{&component.Id}
 		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{component}, nil)
-		updatedComponent, err := componentHandler.UpdateComponent(component.Component)
+		updatedComponent, err := componentHandler.UpdateComponent(common.NewAdminContext(), component.Component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponent.CCRN).To(BeEquivalentTo(component.CCRN))
@@ -245,7 +245,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		db.On("DeleteComponent", id, mock.Anything).Return(nil)
 		componentHandler = c.NewComponentHandler(handlerContext)
 		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
-		err := componentHandler.DeleteComponent(id)
+		err := componentHandler.DeleteComponent(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

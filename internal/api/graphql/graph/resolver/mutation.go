@@ -19,7 +19,7 @@ import (
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.User, error) {
 	user := model.NewUserEntity(&input)
-	newUser, err := r.App.CreateUser(&user)
+	newUser, err := r.App.CreateUser(ctx, &user)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateUserMutationResolver", "Internal Error - when creating user")
 	}
@@ -35,7 +35,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 	}
 	user := model.NewUserEntity(&input)
 	user.Id = *idInt
-	updatedUser, err := r.App.UpdateUser(&user)
+	updatedUser, err := r.App.UpdateUser(ctx, &user)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateUserMutationResolver", "Internal Error - when updating user")
 	}
@@ -49,7 +49,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (string, e
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteUserMutationResolver", "Internal Error - when deleting user")
 	}
-	err = r.App.DeleteUser(*idInt)
+	err = r.App.DeleteUser(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteUserMutationResolver", "Internal Error - when deleting user")
 	}
@@ -59,7 +59,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (string, e
 // CreateSupportGroup is the resolver for the createSupportGroup field.
 func (r *mutationResolver) CreateSupportGroup(ctx context.Context, input model.SupportGroupInput) (*model.SupportGroup, error) {
 	supportGroup := model.NewSupportGroupEntity(&input)
-	newSupportGroup, err := r.App.CreateSupportGroup(&supportGroup)
+	newSupportGroup, err := r.App.CreateSupportGroup(ctx, &supportGroup)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateSupportGroupMutationResolver", "Internal Error - when creating supportGroup")
 	}
@@ -75,7 +75,7 @@ func (r *mutationResolver) UpdateSupportGroup(ctx context.Context, id string, in
 	}
 	supportGroup := model.NewSupportGroupEntity(&input)
 	supportGroup.Id = *idInt
-	updatedSupportGroup, err := r.App.UpdateSupportGroup(&supportGroup)
+	updatedSupportGroup, err := r.App.UpdateSupportGroup(ctx, &supportGroup)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateSupportGroupMutationResolver", "Internal Error - when updating supportGroup")
 	}
@@ -89,7 +89,7 @@ func (r *mutationResolver) DeleteSupportGroup(ctx context.Context, id string) (s
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteSupportGroupMutationResolver", "Internal Error - when deleting supportGroup")
 	}
-	err = r.App.DeleteSupportGroup(*idInt)
+	err = r.App.DeleteSupportGroup(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteSupportGroupMutationResolver", "Internal Error - when deleting supportGroup")
 	}
@@ -187,7 +187,7 @@ func (r *mutationResolver) RemoveUserFromSupportGroup(ctx context.Context, suppo
 // CreateComponent is the resolver for the createComponent field.
 func (r *mutationResolver) CreateComponent(ctx context.Context, input model.ComponentInput) (*model.Component, error) {
 	component := model.NewComponentEntity(&input)
-	newComponent, err := r.App.CreateComponent(&component)
+	newComponent, err := r.App.CreateComponent(ctx, &component)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateComponentMutationResolver", "Internal Error - when creating component")
 	}
@@ -203,7 +203,7 @@ func (r *mutationResolver) UpdateComponent(ctx context.Context, id string, input
 	}
 	component := model.NewComponentEntity(&input)
 	component.Id = *idInt
-	updatedComponent, err := r.App.UpdateComponent(&component)
+	updatedComponent, err := r.App.UpdateComponent(ctx, &component)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateComponentMutationResolver", "Internal Error - when updating component")
 	}
@@ -217,7 +217,7 @@ func (r *mutationResolver) DeleteComponent(ctx context.Context, id string) (stri
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteComponentMutationResolver", "Internal Error - when deleting component")
 	}
-	err = r.App.DeleteComponent(*idInt)
+	err = r.App.DeleteComponent(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteComponentMutationResolver", "Internal Error - when deleting component")
 	}
@@ -227,7 +227,7 @@ func (r *mutationResolver) DeleteComponent(ctx context.Context, id string) (stri
 // CreateComponentInstance is the resolver for the createComponentInstance field.
 func (r *mutationResolver) CreateComponentInstance(ctx context.Context, input model.ComponentInstanceInput) (*model.ComponentInstance, error) {
 	componentInstance := model.NewComponentInstanceEntity(&input)
-	newComponentInstance, err := r.App.CreateComponentInstance(&componentInstance, input.UUID)
+	newComponentInstance, err := r.App.CreateComponentInstance(ctx, &componentInstance, input.UUID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateComponentInstanceMutationResolver", "Internal Error - when creating componentInstance")
 	}
@@ -243,7 +243,7 @@ func (r *mutationResolver) UpdateComponentInstance(ctx context.Context, id strin
 	}
 	componentInstance := model.NewComponentInstanceEntity(&input)
 	componentInstance.Id = *idInt
-	updatedComponentInstance, err := r.App.UpdateComponentInstance(&componentInstance, input.UUID)
+	updatedComponentInstance, err := r.App.UpdateComponentInstance(ctx, &componentInstance, input.UUID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateComponentInstanceMutationResolver", "Internal Error - when updating componentInstance")
 	}
@@ -257,7 +257,7 @@ func (r *mutationResolver) DeleteComponentInstance(ctx context.Context, id strin
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteComponentInstanceMutationResolver", "Internal Error - when deleting componentInstance")
 	}
-	err = r.App.DeleteComponentInstance(*idInt)
+	err = r.App.DeleteComponentInstance(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteComponentInstanceMutationResolver", "Internal Error - when deleting componentInstance")
 	}
@@ -267,7 +267,7 @@ func (r *mutationResolver) DeleteComponentInstance(ctx context.Context, id strin
 // CreateComponentVersion is the resolver for the createComponentVersion field.
 func (r *mutationResolver) CreateComponentVersion(ctx context.Context, input model.ComponentVersionInput) (*model.ComponentVersion, error) {
 	componentVersion := model.NewComponentVersionEntity(&input)
-	newComponentVersion, err := r.App.CreateComponentVersion(&componentVersion)
+	newComponentVersion, err := r.App.CreateComponentVersion(ctx, &componentVersion)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateComponentVersionMutationResolver", "Internal Error - when creating componentVersion")
 	}
@@ -283,7 +283,7 @@ func (r *mutationResolver) UpdateComponentVersion(ctx context.Context, id string
 	}
 	componentVersion := model.NewComponentVersionEntity(&input)
 	componentVersion.Id = *idInt
-	updatedComponentVersion, err := r.App.UpdateComponentVersion(&componentVersion)
+	updatedComponentVersion, err := r.App.UpdateComponentVersion(ctx, &componentVersion)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateComponentVersionMutationResolver", "Internal Error - when updating componentVersion")
 	}
@@ -297,7 +297,7 @@ func (r *mutationResolver) DeleteComponentVersion(ctx context.Context, id string
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteComponentVersionMutationResolver", "Internal Error - when deleting componentVersion")
 	}
-	err = r.App.DeleteComponentVersion(*idInt)
+	err = r.App.DeleteComponentVersion(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteComponentVersionMutationResolver", "Internal Error - when deleting componentVersion")
 	}
@@ -307,7 +307,7 @@ func (r *mutationResolver) DeleteComponentVersion(ctx context.Context, id string
 // CreateService is the resolver for the createService field.
 func (r *mutationResolver) CreateService(ctx context.Context, input model.ServiceInput) (*model.Service, error) {
 	service := model.NewServiceEntity(&input)
-	newService, err := r.App.CreateService(&service)
+	newService, err := r.App.CreateService(ctx, &service)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateServiceMutationResolver", "Internal Error - when creating service")
 	}
@@ -323,7 +323,7 @@ func (r *mutationResolver) UpdateService(ctx context.Context, id string, input m
 	}
 	service := model.NewServiceEntity(&input)
 	service.Id = *idInt
-	updatedService, err := r.App.UpdateService(&service)
+	updatedService, err := r.App.UpdateService(ctx, &service)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateServiceMutationResolver", "Internal Error - when updating service")
 	}
@@ -337,7 +337,7 @@ func (r *mutationResolver) DeleteService(ctx context.Context, id string) (string
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteServiceMutationResolver", "Internal Error - when deleting service")
 	}
-	err = r.App.DeleteService(*idInt)
+	err = r.App.DeleteService(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteServiceMutationResolver", "Internal Error - when deleting service")
 	}
@@ -435,7 +435,7 @@ func (r *mutationResolver) RemoveIssueRepositoryFromService(ctx context.Context,
 // CreateIssueRepository is the resolver for the createIssueRepository field.
 func (r *mutationResolver) CreateIssueRepository(ctx context.Context, input model.IssueRepositoryInput) (*model.IssueRepository, error) {
 	issueRepository := model.NewIssueRepositoryEntity(&input)
-	newIssueRepository, err := r.App.CreateIssueRepository(&issueRepository)
+	newIssueRepository, err := r.App.CreateIssueRepository(ctx, &issueRepository)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateIssueRepositoryMutationResolver", "Internal Error - when creating issueRepository")
 	}
@@ -451,7 +451,7 @@ func (r *mutationResolver) UpdateIssueRepository(ctx context.Context, id string,
 	}
 	issueRepository := model.NewIssueRepositoryEntity(&input)
 	issueRepository.Id = *idInt
-	updatedIssueRepository, err := r.App.UpdateIssueRepository(&issueRepository)
+	updatedIssueRepository, err := r.App.UpdateIssueRepository(ctx, &issueRepository)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateIssueRepositoryMutationResolver", "Internal Error - when updating issueRepository")
 	}
@@ -465,7 +465,7 @@ func (r *mutationResolver) DeleteIssueRepository(ctx context.Context, id string)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueRepositoryMutationResolver", "Internal Error - when deleting issueRepository")
 	}
-	err = r.App.DeleteIssueRepository(*idInt)
+	err = r.App.DeleteIssueRepository(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueRepositoryMutationResolver", "Internal Error - when deleting issueRepository")
 	}
@@ -475,7 +475,7 @@ func (r *mutationResolver) DeleteIssueRepository(ctx context.Context, id string)
 // CreateIssue is the resolver for the createIssue field.
 func (r *mutationResolver) CreateIssue(ctx context.Context, input model.IssueInput) (*model.Issue, error) {
 	issue := model.NewIssueEntity(&input)
-	newIssue, err := r.App.CreateIssue(&issue)
+	newIssue, err := r.App.CreateIssue(ctx, &issue)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateIssueMutationResolver", "Internal Error - when creating issue")
 	}
@@ -491,7 +491,7 @@ func (r *mutationResolver) UpdateIssue(ctx context.Context, id string, input mod
 	}
 	issue := model.NewIssueEntity(&input)
 	issue.Id = *idInt
-	updatedIssue, err := r.App.UpdateIssue(&issue)
+	updatedIssue, err := r.App.UpdateIssue(ctx, &issue)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateIssueMutationResolver", "Internal Error - when updating issue")
 	}
@@ -505,7 +505,7 @@ func (r *mutationResolver) DeleteIssue(ctx context.Context, id string) (string, 
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueMutationResolver", "Internal Error - when deleting issue")
 	}
-	err = r.App.DeleteIssue(*idInt)
+	err = r.App.DeleteIssue(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueMutationResolver", "Internal Error - when deleting issue")
 	}
@@ -559,7 +559,7 @@ func (r *mutationResolver) RemoveComponentVersionFromIssue(ctx context.Context, 
 // CreateIssueVariant is the resolver for the createIssueVariant field.
 func (r *mutationResolver) CreateIssueVariant(ctx context.Context, input model.IssueVariantInput) (*model.IssueVariant, error) {
 	issueVariant := model.NewIssueVariantEntity(&input)
-	newIssueVariant, err := r.App.CreateIssueVariant(&issueVariant)
+	newIssueVariant, err := r.App.CreateIssueVariant(ctx, &issueVariant)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateIssueVariantMutationResolver", "Internal Error - when creating issueVariant")
 	}
@@ -575,7 +575,7 @@ func (r *mutationResolver) UpdateIssueVariant(ctx context.Context, id string, in
 	}
 	issueVariant := model.NewIssueVariantEntity(&input)
 	issueVariant.Id = *idInt
-	updatedIssueVariant, err := r.App.UpdateIssueVariant(&issueVariant)
+	updatedIssueVariant, err := r.App.UpdateIssueVariant(ctx, &issueVariant)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateIssueVariantMutationResolver", "Internal Error - when updating issueVariant")
 	}
@@ -589,7 +589,7 @@ func (r *mutationResolver) DeleteIssueVariant(ctx context.Context, id string) (s
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueVariantMutationResolver", "Internal Error - when deleting issueVariant")
 	}
-	err = r.App.DeleteIssueVariant(*idInt)
+	err = r.App.DeleteIssueVariant(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueVariantMutationResolver", "Internal Error - when deleting issueVariant")
 	}
@@ -599,7 +599,7 @@ func (r *mutationResolver) DeleteIssueVariant(ctx context.Context, id string) (s
 // CreateEvidence is the resolver for the createEvidence field.
 func (r *mutationResolver) CreateEvidence(ctx context.Context, input model.EvidenceInput) (*model.Evidence, error) {
 	evidence := model.NewEvidenceEntity(&input)
-	newEvidence, err := r.App.CreateEvidence(&evidence)
+	newEvidence, err := r.App.CreateEvidence(ctx, &evidence)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateEvidenceMutationResolver", "Internal Error - when creating evidence")
 	}
@@ -615,7 +615,7 @@ func (r *mutationResolver) UpdateEvidence(ctx context.Context, id string, input 
 	}
 	evidence := model.NewEvidenceEntity(&input)
 	evidence.Id = *idInt
-	updatedEvidence, err := r.App.UpdateEvidence(&evidence)
+	updatedEvidence, err := r.App.UpdateEvidence(ctx, &evidence)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateEvidenceMutationResolver", "Internal Error - when updating evidence")
 	}
@@ -629,7 +629,7 @@ func (r *mutationResolver) DeleteEvidence(ctx context.Context, id string) (strin
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteEvidenceMutationResolver", "Internal Error - when deleting evidence")
 	}
-	err = r.App.DeleteEvidence(*idInt)
+	err = r.App.DeleteEvidence(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteEvidenceMutationResolver", "Internal Error - when deleting evidence")
 	}
@@ -639,7 +639,7 @@ func (r *mutationResolver) DeleteEvidence(ctx context.Context, id string) (strin
 // CreateIssueMatch is the resolver for the createIssueMatch field.
 func (r *mutationResolver) CreateIssueMatch(ctx context.Context, input model.IssueMatchInput) (*model.IssueMatch, error) {
 	issueMatch := model.NewIssueMatchEntity(&input)
-	newIssueMatch, err := r.App.CreateIssueMatch(&issueMatch)
+	newIssueMatch, err := r.App.CreateIssueMatch(ctx, &issueMatch)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateIssueMatchMutationResolver", "Internal Error - when creating issueMatch")
 	}
@@ -655,7 +655,7 @@ func (r *mutationResolver) UpdateIssueMatch(ctx context.Context, id string, inpu
 	}
 	issueMatch := model.NewIssueMatchEntity(&input)
 	issueMatch.Id = *idInt
-	updatedIssueMatch, err := r.App.UpdateIssueMatch(&issueMatch)
+	updatedIssueMatch, err := r.App.UpdateIssueMatch(ctx, &issueMatch)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateIssueMatchMutationResolver", "Internal Error - when updating issueMatch")
 	}
@@ -669,7 +669,7 @@ func (r *mutationResolver) DeleteIssueMatch(ctx context.Context, id string) (str
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueMatchMutationResolver", "Internal Error - when deleting issueMatch")
 	}
-	err = r.App.DeleteIssueMatch(*idInt)
+	err = r.App.DeleteIssueMatch(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueMatchMutationResolver", "Internal Error - when deleting issueMatch")
 	}
@@ -723,7 +723,7 @@ func (r *mutationResolver) RemoveEvidenceFromIssueMatch(ctx context.Context, iss
 // CreateIssueMatchChange is the resolver for the createIssueMatchChange field.
 func (r *mutationResolver) CreateIssueMatchChange(ctx context.Context, input model.IssueMatchChangeInput) (*model.IssueMatchChange, error) {
 	issueMatchChange := model.NewIssueMatchChangeEntity(&input)
-	newIssueMatchChange, err := r.App.CreateIssueMatchChange(&issueMatchChange)
+	newIssueMatchChange, err := r.App.CreateIssueMatchChange(ctx, &issueMatchChange)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateIssueMatchChangeMutationResolver", "Internal Error - when creating issueMatchChange")
 	}
@@ -739,7 +739,7 @@ func (r *mutationResolver) UpdateIssueMatchChange(ctx context.Context, id string
 	}
 	issueMatchChange := model.NewIssueMatchChangeEntity(&input)
 	issueMatchChange.Id = *idInt
-	updatedIssueMatchChange, err := r.App.UpdateIssueMatchChange(&issueMatchChange)
+	updatedIssueMatchChange, err := r.App.UpdateIssueMatchChange(ctx, &issueMatchChange)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateIssueMatchChangeMutationResolver", "Internal Error - when updating issueMatchChange")
 	}
@@ -753,7 +753,7 @@ func (r *mutationResolver) DeleteIssueMatchChange(ctx context.Context, id string
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueMatchChangeMutationResolver", "Internal Error - when deleting issueMatchChange")
 	}
-	err = r.App.DeleteIssueMatchChange(*idInt)
+	err = r.App.DeleteIssueMatchChange(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteIssueMatchChangeMutationResolver", "Internal Error - when deleting issueMatchChange")
 	}
@@ -763,7 +763,7 @@ func (r *mutationResolver) DeleteIssueMatchChange(ctx context.Context, id string
 // CreateActivity is the resolver for the createActivity field.
 func (r *mutationResolver) CreateActivity(ctx context.Context, input model.ActivityInput) (*model.Activity, error) {
 	activity := model.NewActivityEntity(&input)
-	newActivity, err := r.App.CreateActivity(&activity)
+	newActivity, err := r.App.CreateActivity(ctx, &activity)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateActivityMutationResolver", "Internal Error - when creating activity")
 	}
@@ -779,7 +779,7 @@ func (r *mutationResolver) UpdateActivity(ctx context.Context, id string, input 
 	}
 	activity := model.NewActivityEntity(&input)
 	activity.Id = *idInt
-	updatedActivity, err := r.App.UpdateActivity(&activity)
+	updatedActivity, err := r.App.UpdateActivity(ctx, &activity)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateActivityMutationResolver", "Internal Error - when updating activity")
 	}
@@ -793,7 +793,7 @@ func (r *mutationResolver) DeleteActivity(ctx context.Context, id string) (strin
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteActivityResolver", "Internal Error - when deleting activity")
 	}
-	err = r.App.DeleteActivity(*idInt)
+	err = r.App.DeleteActivity(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteActivityMutationResolver", "Internal Error - when deleting activity")
 	}

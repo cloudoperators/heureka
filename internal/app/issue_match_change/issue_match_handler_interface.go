@@ -3,11 +3,15 @@
 
 package issue_match_change
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type IssueMatchChangeHandler interface {
 	ListIssueMatchChanges(filter *entity.IssueMatchChangeFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchChangeResult], error)
-	CreateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
-	UpdateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
-	DeleteIssueMatchChange(int64) error
+	CreateIssueMatchChange(context.Context, *entity.IssueMatchChange) (*entity.IssueMatchChange, error)
+	UpdateIssueMatchChange(context.Context, *entity.IssueMatchChange) (*entity.IssueMatchChange, error)
+	DeleteIssueMatchChange(context.Context, int64) error
 }

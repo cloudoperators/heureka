@@ -11,6 +11,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
 	. "github.com/onsi/ginkgo/v2"
@@ -452,7 +453,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			It("can delete supportGroup correctly", func() {
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
-				err := db.DeleteSupportGroup(supportGroup.Id, systemUserId)
+				err := db.DeleteSupportGroup(supportGroup.Id, common.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
