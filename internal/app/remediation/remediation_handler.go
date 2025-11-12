@@ -4,6 +4,7 @@
 package remediation
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -114,7 +115,7 @@ func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter,
 	return result, nil
 }
 
-func (rh *remediationHandler) CreateRemediation(remediation *entity.Remediation) (*entity.Remediation, error) {
+func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation *entity.Remediation) (*entity.Remediation, error) {
 	op := appErrors.Op("remediationHandler.CreateRemediation")
 
 	// Input validation - check for required fields
@@ -134,7 +135,7 @@ func (rh *remediationHandler) CreateRemediation(remediation *entity.Remediation)
 
 	// Get current user for audit fields
 	var err error
-	remediation.CreatedBy, err = common.GetCurrentUserId(rh.database)
+	remediation.CreatedBy, err = common.GetCurrentUserId(ctx, rh.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
@@ -161,7 +162,7 @@ func (rh *remediationHandler) CreateRemediation(remediation *entity.Remediation)
 	return newRemediation, nil
 }
 
-func (rh *remediationHandler) UpdateRemediation(remediation *entity.Remediation) (*entity.Remediation, error) {
+func (rh *remediationHandler) UpdateRemediation(ctx context.Context, remediation *entity.Remediation) (*entity.Remediation, error) {
 	op := appErrors.Op("remediationHandler.UpdateRemediation")
 
 	// Input validation
@@ -179,7 +180,7 @@ func (rh *remediationHandler) UpdateRemediation(remediation *entity.Remediation)
 
 	// Get current user for audit fields
 	var err error
-	remediation.UpdatedBy, err = common.GetCurrentUserId(rh.database)
+	remediation.UpdatedBy, err = common.GetCurrentUserId(ctx, rh.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Remediation", strconv.FormatInt(remediation.Id, 10), err)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
@@ -228,7 +229,7 @@ func (rh *remediationHandler) UpdateRemediation(remediation *entity.Remediation)
 	return updatedRemediation, nil
 }
 
-func (rh *remediationHandler) DeleteRemediation(id int64) error {
+func (rh *remediationHandler) DeleteRemediation(ctx context.Context, id int64) error {
 	op := appErrors.Op("remediationHandler.DeleteRemediation")
 
 	// Input validation
@@ -239,7 +240,7 @@ func (rh *remediationHandler) DeleteRemediation(id int64) error {
 	}
 
 	// Get current user for audit fields
-	userId, err := common.GetCurrentUserId(rh.database)
+	userId, err := common.GetCurrentUserId(ctx, rh.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Remediation", strconv.FormatInt(id, 10), err)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
