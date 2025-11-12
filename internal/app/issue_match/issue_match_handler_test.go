@@ -272,11 +272,6 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 	})
 
 	Context("when handling a CreateIssueMatchEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new issue match is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
 				imFake := test.NewFakeIssueMatch()
@@ -356,11 +351,6 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 	})
 
 	Context("when handling an UpdateIssueMatchEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		It("should update the component_instance relation tuple in openfga", func() {
 			imFake := test.NewFakeIssueMatch()
 			oldComponentInstanceId := int64(12345)
@@ -449,11 +439,6 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 	})
 
 	Context("when handling a DeleteIssueMatchEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new issue match is deleted", func() {
 			It("should delete tuples related to that issuematch in openfga", func() {
 				// Test OnIssueMatchDeleteAuthz against all possible relations

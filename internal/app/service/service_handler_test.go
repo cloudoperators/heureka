@@ -361,7 +361,9 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				// TODO: we could also check for the error message here
 			})
 		})
+	})
 
+	Context("when handling a CreateServiceEvent authz", func() {
 		Context("when new service is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
 				srv := test.NewFakeServiceEntity()
@@ -469,11 +471,6 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 	})
 
 	Context("when handling a DeleteServiceEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new service is deleted", func() {
 			It("should delete tuples related to that service in openfga", func() {
 				// Test OnServiceDeleteAuthz against all possible relations

@@ -192,11 +192,6 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 	})
 
 	Context("when handling a CreateComponentEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new component is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
 				compFake := test.NewFakeComponentEntity()
@@ -307,11 +302,6 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 	})
 
 	Context("when handling an DeleteComponentEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new component is deleted", func() {
 			It("should delete tuples related to that component in openfga", func() {
 				// Test OnComponentDeleteAuthz against all possible relations

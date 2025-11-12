@@ -263,11 +263,6 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 	})
 
 	Context("when handling a CreateComponentInstanceEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new component instance is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
 				ciFake := test.NewFakeComponentInstanceEntity()
@@ -359,11 +354,6 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 	})
 
 	Context("when handling an UpdateComponentInstanceEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		It("should update service and component_version relations in openfga", func() {
 			ciFake := test.NewFakeComponentInstanceEntity()
 			oldServiceId := int64(111)
@@ -478,11 +468,6 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		})
 
 		Context("when handling a DeleteComponentInstanceEvent", func() {
-			BeforeEach(func() {
-				db.On("GetDefaultIssuePriority").Return(int64(100))
-				db.On("GetDefaultRepositoryName").Return("nvd")
-			})
-
 			Context("when new component instance is deleted", func() {
 				It("should delete tuples related to that component instance in openfga", func() {
 					// Test OnComponentInstanceDeleteAuthz against all possible relations

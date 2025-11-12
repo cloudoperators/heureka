@@ -189,11 +189,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 	})
 
 	Context("when handling a CreateComponentInstanceEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new component instance is created", func() {
 			It("should add user resource relationship tuple in openfga", func() {
 				sgFake := test.NewFakeSupportGroupEntity()
@@ -307,11 +302,6 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	})
 
 	Context("when handling a DeleteSupportGroupEvent", func() {
-		BeforeEach(func() {
-			db.On("GetDefaultIssuePriority").Return(int64(100))
-			db.On("GetDefaultRepositoryName").Return("nvd")
-		})
-
 		Context("when new support group is deleted", func() {
 			It("should delete tuples related to that support group in openfga", func() {
 				// Test OnSupportGroupDeleteAuthz against all possible relations
