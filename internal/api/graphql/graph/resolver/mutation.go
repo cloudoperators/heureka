@@ -940,7 +940,7 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 
 	// TODO: once authentication + user seeding is in place, fetch the user id of the remediated by user
 
-	_, err = r.App.CreateRemediation(&remediation)
+	_, err = r.App.CreateRemediation(ctx, &remediation)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation")
 	}
@@ -985,7 +985,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 		remediation.IssueId = issueResult.Elements[0].Issue.Id
 	}
 
-	updatedRemediation, err := r.App.UpdateRemediation(&remediation)
+	updatedRemediation, err := r.App.UpdateRemediation(ctx, &remediation)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation")
 	}
@@ -998,7 +998,7 @@ func (r *mutationResolver) DeleteRemediation(ctx context.Context, id string) (st
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteRemediationResolver", "Internal Error - when deleting remediation")
 	}
-	err = r.App.DeleteRemediation(*idInt)
+	err = r.App.DeleteRemediation(ctx, *idInt)
 	if err != nil {
 		return "", baseResolver.NewResolverError("DeleteRemediationMutationResolver", "Internal Error - when deleting remediation")
 	}
