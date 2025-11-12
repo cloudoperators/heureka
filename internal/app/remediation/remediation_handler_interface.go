@@ -3,11 +3,15 @@
 
 package remediation
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type RemediationHandler interface {
 	ListRemediations(*entity.RemediationFilter, *entity.ListOptions) (*entity.List[entity.RemediationResult], error)
-	CreateRemediation(*entity.Remediation) (*entity.Remediation, error)
-	UpdateRemediation(*entity.Remediation) (*entity.Remediation, error)
-	DeleteRemediation(int64) error
+	CreateRemediation(context.Context, *entity.Remediation) (*entity.Remediation, error)
+	UpdateRemediation(context.Context, *entity.Remediation) (*entity.Remediation, error)
+	DeleteRemediation(context.Context, int64) error
 }

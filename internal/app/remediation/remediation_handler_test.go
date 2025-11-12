@@ -15,6 +15,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	rh "github.com/cloudoperators/heureka/internal/app/remediation"
 	"github.com/cloudoperators/heureka/internal/cache"
+	db_common "github.com/cloudoperators/heureka/internal/database/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -206,10 +207,10 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 	Context("with valid input", func() {
 		It("creates remediation", func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
-			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).Return(&remediation, nil)
+			db.On("CreateRemediation", mock.AnythingOfType(db_common.SystemUserId, "*entity.Remediation")).Return(&remediation, nil)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			newRemediation, err := remediationHandler.CreateRemediation(&remediation)
+			newRemediation, err := remediationHandler.CreateRemediation(common.NewAdminContext(), &remediation)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(newRemediation.Id).NotTo(BeEquivalentTo(0))
 			By("setting fields", func() {
@@ -260,7 +261,7 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 	Context("with valid input", func() {
 		It("updates remediation", func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
-			db.On("UpdateRemediation", remediation.Remediation).Return(nil)
+			db.On("UpdateRemediation", db_common.SystemUserId, remediation.Remediation).Return(nil)
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
 			remediation.Description = "Updated description"
 			remediation.Service = "Updated Service"
@@ -268,7 +269,7 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 			remediation.Issue = "Updated Issue"
 			filter.Id = []*int64{&remediation.Id}
 			db.On("GetRemediations", filter, []entity.Order{}).Return([]entity.RemediationResult{remediation}, nil)
-			updatedRemediation, err := remediationHandler.UpdateRemediation(remediation.Remediation)
+			updatedRemediation, err := remediationHandler.UpdateRemediation(common.NewAdminContext(), remediation.Remediation)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			By("setting fields", func() {
 				Expect(updatedRemediation.Description).To(BeEquivalentTo(remediation.Description))
@@ -311,10 +312,10 @@ var _ = Describe("When deleting Remediation", Label("app", "DeleteRemediation"),
 	Context("with valid input", func() {
 		It("deletes remediation", func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
-			db.On("DeleteRemediation", id, int64(123)).Return(nil)
+			db.On("DeleteRemediation", db_common.SystemUserId, int64(123)).Return(nil)
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
 			db.On("GetRemediations", filter, []entity.Order{}).Return([]entity.RemediationResult{}, nil)
-			err := remediationHandler.DeleteRemediation(id)
+			err := remediationHandler.DeleteRemediation(common.NewAdminContext(), id)
 			Expect(err).To(BeNil(), "no error should be thrown")
 
 			filter.Id = []*int64{&id}
