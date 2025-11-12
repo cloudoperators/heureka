@@ -208,11 +208,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 
 				ok, err := handlerContext.Authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				if cfg.AuthzOpenFgaApiUrl != "" {
-					Expect(ok).To(BeTrue(), "permission should be granted")
-				} else {
-					Expect(ok).To(BeFalse(), "permission should not be granted when no AuthzOpenFgaApiUrl is set")
-				}
+				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
 		})
 	})

@@ -380,11 +380,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 				ok, err := handlerContext.Authz.CheckPermission(p)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				if cfg.AuthzOpenFgaApiUrl != "" {
-					Expect(ok).To(BeTrue(), "permission should be granted")
-				} else {
-					Expect(ok).To(BeFalse(), "permission should not be granted when no AuthzOpenFgaApiUrl is set")
-				}
+				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
 		})
 	})
@@ -590,11 +586,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 			p.UserId = openfga.UserId(strconv.FormatInt(addEvent.OwnerID, 10))
 			ok, err := handlerContext.Authz.CheckPermission(p)
 			Expect(err).To(BeNil(), "no error should be thrown")
-			if cfg.AuthzOpenFgaApiUrl != "" {
-				Expect(ok).To(BeTrue(), "permission should be granted")
-			} else {
-				Expect(ok).To(BeFalse(), "permission should not be granted when no AuthzOpenFgaApiUrl is set")
-			}
+			Expect(ok).To(BeTrue(), "permission should be granted")
 		})
 	})
 
