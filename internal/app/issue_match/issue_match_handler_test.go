@@ -20,7 +20,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -74,7 +73,6 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -214,7 +212,6 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -274,7 +271,6 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -331,7 +327,6 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -377,7 +372,6 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})

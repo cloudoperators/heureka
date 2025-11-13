@@ -13,7 +13,6 @@ import (
 
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	dbtest "github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -67,7 +66,6 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -201,7 +199,6 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -294,7 +291,6 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -361,7 +357,6 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -402,7 +397,6 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})

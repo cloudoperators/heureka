@@ -31,7 +31,7 @@ func NewCache(ctx context.Context, wg *sync.WaitGroup, config interface{}) Cache
 	case ValkeyCacheConfig:
 		return NewValkeyCache(ctx, wg, c)
 	}
-	return NewNoCache()
+	return nil
 }
 
 func getCallParameters(fn interface{}, args ...interface{}) (reflect.Value, []reflect.Value, error) {
@@ -80,6 +80,13 @@ func getReturnValues[T any](out []reflect.Value) (T, error) {
 }
 
 func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn interface{}, args ...interface{}) (T, error) {
+	if c == nil {
+		return callDisabled[T](fn, args...)
+	}
+	return callEnabled[T](c, ttl, fnname, fn, args...)
+}
+
+func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn interface{}, args ...interface{}) (T, error) {
 	var zero T
 	v, in, err := getCallParameters(fn, args...)
 	if err != nil {
@@ -127,6 +134,16 @@ func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn interface{}
 	}
 
 	return result, nil
+}
+
+func callDisabled[T any](fn interface{}, args ...interface{}) (T, error) {
+	var zero T
+	v, in, err := getCallParameters(fn, args...)
+	if err != nil {
+		return zero, fmt.Errorf("NoCache (param): Get call parameters failed: %w", err)
+	}
+	out := v.Call(in)
+	return getReturnValues[T](out)
 }
 
 // encode marshals any value to a JSON string.
