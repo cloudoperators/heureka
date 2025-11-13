@@ -13,7 +13,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
 	ss "github.com/cloudoperators/heureka/internal/app/severity"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -71,7 +70,6 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)

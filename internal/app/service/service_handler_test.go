@@ -14,7 +14,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/openfga"
 
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -63,11 +62,9 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})
@@ -243,11 +240,9 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				After: &after,
 			},
 		}
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})
@@ -362,11 +357,9 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 				After: &after,
 			},
 		}
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})
@@ -406,11 +399,9 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 				After: &after,
 			},
 		}
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})
@@ -454,11 +445,9 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 			},
 			Id: []*int64{&service.Id},
 		}
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})
@@ -507,11 +496,9 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 			Id: []*int64{&service.Id},
 		}
 		priority = 1
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})
@@ -550,11 +537,9 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		name = "f1"
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})
@@ -604,11 +589,9 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		domain = "f1"
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})
@@ -658,11 +641,9 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		region = "f1"
-		cache := cache.NewNoCache()
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache,
 			Authz:    authz,
 		}
 	})

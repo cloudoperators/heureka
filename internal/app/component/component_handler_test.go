@@ -10,7 +10,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	c "github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -63,7 +62,6 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -147,7 +145,6 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -191,7 +188,6 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -235,7 +231,6 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
