@@ -474,7 +474,7 @@ func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
 	issueRepositories := s.SeedIssueRepositories()
 	supportGroups := s.SeedSupportGroups(2)
 	issues := s.SeedIssues(10)
-	components := s.SeedComponents(1)
+	components := s.SeedComponents(2)
 	componentVersions := s.SeedComponentVersions(10, components)
 	services := s.SeedServices(5)
 	issueVariants, err := LoadIssueVariants(GetTestDataPath("../testdata/component_version_order/issue_variant.json"))
@@ -969,22 +969,13 @@ func (s *DatabaseSeeder) SeedRemediations(num int, services []mariadb.BaseServic
 		issue := issues[rand.Intn(len(issues))]
 		component := components[rand.Intn(len(components))]
 		// does not check if relation exists
-		r := mariadb.RemediationRow{
-			Description:     sql.NullString{String: gofakeit.Sentence(10), Valid: true},
-			RemediationDate: sql.NullTime{Time: time.Now().AddDate(0, 0, rand.Intn(30)), Valid: true},
-			ExpirationDate:  sql.NullTime{Time: time.Now().AddDate(0, 1, rand.Intn(30)), Valid: true},
-			Type:            sql.NullString{String: entity.AllRemediationTypes[rand.Intn(len(entity.AllRemediationTypes))], Valid: true},
-			ServiceId:       service.Id,
-			Service:         service.CCRN,
-			ComponentId:     component.Id,
-			Component:       component.CCRN,
-			IssueId:         issue.Id,
-			Issue:           issue.PrimaryName,
-			RemediatedBy:    sql.NullString{String: gofakeit.Name(), Valid: true},
-			RemediatedById:  sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
-			CreatedBy:       sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
-			UpdatedBy:       sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
-		}
+		r := NewFakeRemediation()
+		r.ComponentId = component.Id
+		r.Component = component.CCRN
+		r.ServiceId = service.Id
+		r.Service = service.CCRN
+		r.IssueId = issue.Id
+		r.Issue = issue.PrimaryName
 		id, err := s.InsertFakeRemediation(r)
 		r.Id = sql.NullInt64{Int64: id, Valid: true}
 		if err != nil {
@@ -1673,6 +1664,17 @@ func NewFakeIssueMatchChange() mariadb.IssueMatchChangeRow {
 		},
 		CreatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+	}
+}
+
+func NewFakeRemediation() mariadb.RemediationRow {
+	return mariadb.RemediationRow{
+		Description:     sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+		RemediationDate: sql.NullTime{Time: gofakeit.Date(), Valid: true},
+		ExpirationDate:  sql.NullTime{Time: gofakeit.Date(), Valid: true},
+		Type:            sql.NullString{String: "false_positive", Valid: true},
+		CreatedBy:       sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		UpdatedBy:       sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
 	}
 }
 
