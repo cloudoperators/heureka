@@ -1191,7 +1191,7 @@ func (rr *RemediationRow) FromRemediation(r *entity.Remediation) {
 	rr.Description = sql.NullString{String: r.Description, Valid: true}
 	rr.Type = sql.NullString{String: r.Type.String(), Valid: true}
 	rr.Component = sql.NullString{String: r.Component, Valid: true}
-	rr.ComponentId = sql.NullInt64{Int64: r.ComponentId, Valid: true}
+	rr.ComponentId = sql.NullInt64{Int64: r.ComponentId, Valid: r.ComponentId != -1}
 	rr.Service = sql.NullString{String: r.Service, Valid: true}
 	rr.ServiceId = sql.NullInt64{Int64: r.ServiceId, Valid: true}
 	rr.Issue = sql.NullString{String: r.Issue, Valid: true}
@@ -1199,7 +1199,7 @@ func (rr *RemediationRow) FromRemediation(r *entity.Remediation) {
 	rr.RemediationDate = sql.NullTime{Time: r.RemediationDate, Valid: true}
 	rr.ExpirationDate = sql.NullTime{Time: r.ExpirationDate, Valid: true}
 	rr.RemediatedBy = sql.NullString{String: r.RemediatedBy, Valid: true}
-	rr.RemediatedById = sql.NullInt64{Int64: r.RemediatedById, Valid: true}
+	rr.RemediatedById = sql.NullInt64{Int64: r.RemediatedById, Valid: r.RemediatedById != -1}
 	rr.CreatedAt = sql.NullTime{Time: r.CreatedAt, Valid: true}
 	rr.CreatedBy = sql.NullInt64{Int64: r.CreatedBy, Valid: true}
 	rr.DeletedAt = sql.NullTime{Time: r.DeletedAt, Valid: true}
