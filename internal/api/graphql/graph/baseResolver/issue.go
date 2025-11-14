@@ -69,8 +69,10 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		"parent":          parent,
 	}).Debug("Called IssueBaseResolver")
 
+	var irId []*int64
 	var activityId []*int64
 	var cvId []*int64
+	var err error
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -91,6 +93,13 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		filter = &model.IssueFilter{}
 	}
 
+	if filter.IssueRepositoryID != nil {
+		irId, err = util.ConvertStrToIntSlice(filter.IssueRepositoryID)
+		if err != nil {
+			return nil, NewResolverError("IssueBaseResolver", "Bad Request - unable to parse filter, the value of the filter IssueRepositoryId is invalid")
+		}
+	}
+
 	f := &entity.IssueFilter{
 		PaginatedX:         entity.PaginatedX{First: first, After: after},
 		ServiceCCRN:        filter.ServiceCcrn,
@@ -99,6 +108,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		ComponentVersionId: cvId,
 		PrimaryName:        filter.PrimaryName,
 		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		IssueRepositoryId:  irId,
 
 		Search: filter.Search,
 
@@ -166,8 +176,18 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 		"requestedFields": requestedFields,
 	}).Debug("Called IssueNameBaseResolver")
 
+	var irId []*int64
+	var err error
+
 	if filter == nil {
 		filter = &model.IssueFilter{}
+	}
+
+	if filter.IssueRepositoryID != nil {
+		irId, err = util.ConvertStrToIntSlice(filter.IssueRepositoryID)
+		if err != nil {
+			return nil, NewResolverError("IssueBaseResolver", "Bad Request - unable to parse filter, the value of the filter IssueRepositoryId is invalid")
+		}
 	}
 
 	f := &entity.IssueFilter{
@@ -176,6 +196,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 		PrimaryName:                     filter.PrimaryName,
 		SupportGroupCCRN:                filter.SupportGroupCcrn,
 		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		IssueRepositoryId:               irId,
 		Search:                          filter.Search,
 		IssueMatchStatus:                nil, //@todo Implement
 		IssueMatchDiscoveryDate:         nil, //@todo Implement
