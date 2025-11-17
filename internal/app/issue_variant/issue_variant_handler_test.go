@@ -11,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	iv "github.com/cloudoperators/heureka/internal/app/issue_variant"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -87,7 +86,6 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -166,7 +164,6 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -250,7 +247,6 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -303,7 +299,6 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -356,7 +351,6 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)

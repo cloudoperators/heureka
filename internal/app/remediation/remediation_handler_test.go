@@ -14,7 +14,6 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/event"
 	rh "github.com/cloudoperators/heureka/internal/app/remediation"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -64,7 +63,6 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -198,7 +196,6 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -253,7 +250,6 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -303,7 +299,6 @@ var _ = Describe("When deleting Remediation", Label("app", "DeleteRemediation"),
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})

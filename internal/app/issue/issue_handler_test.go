@@ -11,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
@@ -53,7 +52,6 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		issueHandler = issue.NewIssueHandler(handlerContext)
@@ -187,7 +185,6 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -413,7 +410,6 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -491,7 +487,6 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -647,7 +642,6 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -780,7 +774,6 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -866,7 +859,6 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -904,7 +896,6 @@ var _ = Describe("When getting Issue Severity Counts", Label("app", "GetIssueSev
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})

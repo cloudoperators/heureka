@@ -57,7 +57,7 @@ type cacheConfig struct {
 var valkeyCacheTestConfig = cacheConfig{valkeyUrl: valkeyUrl}
 var inMemoryCacheTestConfig = cacheConfig{}
 
-func newCacheTest(valkeyUrl string, ttl time.Duration, cacheEnable bool, maxDbConcurrentRefreshes int, throttleIntervalMSec int64, throttlePerInterval int, proxy bool) *cacheTest {
+func newCacheTest(valkeyUrl string, ttl time.Duration, maxDbConcurrentRefreshes int, throttleIntervalMSec int64, throttlePerInterval int, proxy bool) *cacheTest {
 	var ct cacheTest
 	ct.db = dbm.NewTestSchema()
 
@@ -72,7 +72,7 @@ func newCacheTest(valkeyUrl string, ttl time.Duration, cacheEnable bool, maxDbCo
 	}
 
 	ct.cfg.Port = util2.GetRandomFreePort()
-	ct.cfg.CacheEnable = cacheEnable
+	ct.cfg.CacheEnable = true
 	ct.cfg.CacheValkeyUrl = valkeyUrl
 	ct.cfg.CacheMaxDbConcurrentRefreshes = maxDbConcurrentRefreshes
 	ct.cfg.CacheThrottleIntervalMSec = throttleIntervalMSec
@@ -85,10 +85,6 @@ func newCacheTest(valkeyUrl string, ttl time.Duration, cacheEnable bool, maxDbCo
 
 	service.CacheTtlGetServiceAttrs = ttl
 	return &ct
-}
-
-func newNoCacheTest() *cacheTest {
-	return newCacheTest("", noCacheTtl, false, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
 }
 
 func (ct *cacheTest) startDbProxy() {
@@ -171,7 +167,7 @@ func (ct *cacheTest) expectMissHitCounter(expectedMiss, expectedHit int64) {
 
 func missTest(config cacheConfig) {
 	// GIVEN Cache is configured
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, true, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
+	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
 	defer ct.teardown()
 
 	// WHEN Test resource is queried for the first time
@@ -183,7 +179,7 @@ func missTest(config cacheConfig) {
 
 func hitTest(config cacheConfig) {
 	// GIVEN Cache is configured
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, true, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
+	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
 	defer ct.teardown()
 
 	// AND Cache contains test resource
@@ -198,7 +194,7 @@ func hitTest(config cacheConfig) {
 
 func expiredTest(config cacheConfig) {
 	// GIVEN Cache is configured with short TTL
-	ct := newCacheTest(config.valkeyUrl, ttl1Millisecond, true, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
+	ct := newCacheTest(config.valkeyUrl, ttl1Millisecond, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
 	defer ct.teardown()
 
 	// AND Test resource is queried for the first time
@@ -216,7 +212,7 @@ func expiredTest(config cacheConfig) {
 
 func backgroundUpdateTest(config cacheConfig) {
 	// GIVEN Cache is configured
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, true, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
+	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
 	defer ct.teardown()
 
 	// AND Test resource is queried for the first time
@@ -249,7 +245,7 @@ func backgroundUpdateRateBasedLimitTest(config cacheConfig) {
 	// -- Skip background update above the limit
 
 	// GIVEN Cache is configured with background update limit set to 2 per 1 second
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, true, noConcurrentLimit, 1000, 2, noProxy)
+	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, 1000, 2, noProxy)
 	defer ct.teardown()
 
 	// AND Three times resource is queried to update cache with test resource on miss and exhaust the limit of background updates
@@ -307,7 +303,7 @@ func backgroundUpdateConcurrentLimitTest(config cacheConfig) {
 	// -- Skip background update above the limit
 
 	// GIVEN Cache is configured with DB proxy and with background update concurrent limit set to 2
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, true, 2, noThrottleIntervalMSec, noThrottlePerInterval, withProxy)
+	ct := newCacheTest(config.valkeyUrl, defaultTtl, 2, noThrottleIntervalMSec, noThrottlePerInterval, withProxy)
 	defer ct.teardown()
 
 	// AND Resource is queried to update cache with test resource on miss
@@ -458,42 +454,6 @@ var _ = Describe("Using In memory cache", Label("e2e", "InMemoryCache"), Label("
 	Describe("Check background update concurrent-based limit", func() {
 		It("Should skip background updates above the concurrent limit AND execute new background updates when first background updates are over", func() {
 			backgroundUpdateConcurrentLimitTest(inMemoryCacheTestConfig)
-		})
-	})
-})
-
-var _ = Describe("Using No cache", Label("e2e", "NoCache"), Label("e2e", "Cache"), func() {
-
-	Describe("Check miss", func() {
-		It("Should keep miss counter 0 when resource is queried for the first time", func() {
-
-			// GIVEN No cache is configured
-			ct := newNoCacheTest()
-			defer ct.teardown()
-
-			// WHEN Test resource is queried for the first time
-			ct.testResourceIsQueried()
-
-			// THEN Miss = 0 and Hit = 0
-			ct.expectMissHitCounter(0, 0)
-		})
-	})
-
-	Describe("Check hit", func() {
-		It("Should keep hit counter 0 when the same resource is queried for the second time", func() {
-
-			// GIVEN No cache is configured
-			ct := newNoCacheTest()
-			defer ct.teardown()
-
-			// AND cache contains test resource
-			ct.testResourceIsQueried()
-
-			// WHEN Cached test resource is queried
-			ct.testResourceIsQueried()
-
-			// THEN Miss = 0 and Hit = 0
-			ct.expectMissHitCounter(0, 0)
 		})
 	})
 })

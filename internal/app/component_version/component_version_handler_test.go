@@ -10,7 +10,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	cv "github.com/cloudoperators/heureka/internal/app/component_version"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -60,7 +59,6 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -234,7 +232,6 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -277,7 +274,6 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -323,7 +319,6 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
