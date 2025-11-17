@@ -179,7 +179,7 @@ func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 		fl = append(fl, "service_domain = :service_domain")
 	}
 	if service.Region != "" {
-		fl = append(fl, "service_domain = :service_region")
+		fl = append(fl, "service_region = :service_region")
 	}
 	if service.BaseService.UpdatedBy != 0 {
 		fl = append(fl, "service_updated_by = :service_updated_by")
