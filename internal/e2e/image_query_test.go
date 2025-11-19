@@ -60,6 +60,19 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
 		})
 		It("returns the expected content and the expected PageInfo when filtered using repository", func() {
+			service := imgTest.services[0]
+			componentInstances := lo.Filter(imgTest.componentInstances, func(ci mariadb.ComponentInstanceRow, _ int) bool {
+				return ci.ServiceId.Int64 == service.Id.Int64
+			})
+			componentVersion, found := lo.Find(imgTest.componentVersions, func(cv mariadb.ComponentVersionRow) bool {
+				return cv.Id.Int64 == componentInstances[0].ComponentVersionId.Int64
+			})
+			// test data is setup so that first two component versions (having each one critical vulnerability)
+			// belong to first service and first component
+			counts := model.SeverityCounts{Critical: 2, Total: 2}
+
+			Expect(found).To(BeTrue(), "ComponentVersion for ComponentInstance should be found")
+
 			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
 			}](
@@ -67,17 +80,17 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 				"../api/graphql/graph/queryCollection/image/query.graphql",
 				map[string]interface{}{
 					"filter": map[string]any{
-						"repository": lo.Map(imgTest.componentVersions, func(item mariadb.ComponentVersionRow, index int) string { return item.Repository.String }),
+						"repository": []string{componentVersion.Repository.String},
+						"service":    []string{service.CCRN.String},
 					},
 					"first": 3,
 					"after": "",
 				},
 				map[string]string{"Cache-Control": "no-cache"})
 
-			expectRespDataCounts(respData.Images, 5, 3)
+			expectRespDataCounts(respData.Images, 1, 1)
 			expectRespImagesFilledAndInOrder(&respData.Images)
-			expectPageInfoTwoPagesBeingOnFirst(respData.Images.PageInfo)
-			Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
+			Expect(*respData.Images.Counts).To(Equal(counts))
 		})
 	})
 
@@ -90,8 +103,10 @@ type imageTest struct {
 	seeder *test.DatabaseSeeder
 	server *server.Server
 
-	componentVersions []mariadb.ComponentVersionRow
-	services          []mariadb.BaseServiceRow
+	componentVersions      []mariadb.ComponentVersionRow
+	services               []mariadb.BaseServiceRow
+	componentInstances     []mariadb.ComponentInstanceRow
+	componentVersionIssues []mariadb.ComponentVersionIssueRow
 }
 
 func newImageTest() *imageTest {
@@ -131,6 +146,8 @@ func (it *imageTest) seed10Entries() {
 
 	componentVersions, componentInstances, issueVariants, componentVersionIssues, issueMatches, err := loadTestData()
 	it.componentVersions = componentVersions
+	it.componentInstances = componentInstances
+	it.componentVersionIssues = componentVersionIssues
 	Expect(err).To(BeNil())
 	// Important: the order need to be preserved
 	for _, iv := range issueVariants {
@@ -150,16 +167,18 @@ func (it *imageTest) seed10Entries() {
 		}
 		it.counts.Total++
 	}
-	for _, cv := range it.componentVersions {
-		_, err := it.seeder.InsertFakeComponentVersion(cv)
+	for i, cv := range it.componentVersions {
+		id, err := it.seeder.InsertFakeComponentVersion(cv)
+		it.componentVersions[i].Id.Int64 = id
 		Expect(err).To(BeNil())
 	}
 	for _, cvi := range componentVersionIssues {
 		_, err := it.seeder.InsertFakeComponentVersionIssue(cvi)
 		Expect(err).To(BeNil())
 	}
-	for _, ci := range componentInstances {
-		_, err := it.seeder.InsertFakeComponentInstance(ci)
+	for i, ci := range componentInstances {
+		id, err := it.seeder.InsertFakeComponentInstance(ci)
+		it.componentInstances[i].Id.Int64 = id
 		Expect(err).To(BeNil())
 	}
 	for _, im := range issueMatches {

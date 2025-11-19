@@ -45,7 +45,8 @@ func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Imag
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
 	filter := &model.ComponentFilter{
-		ServiceCcrn: imageFilter.Service,
+		ServiceCcrn:                imageFilter.Service,
+		ComponentVersionRepository: imageFilter.Repository,
 	}
 	return baseResolver.ComponentIssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,

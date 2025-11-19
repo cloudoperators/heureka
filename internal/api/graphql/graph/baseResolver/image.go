@@ -75,7 +75,8 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 
 	if lo.Contains(requestedFields, "counts") {
 		icFilter := &entity.ComponentFilter{
-			ServiceCCRN: filter.Service,
+			ServiceCCRN:                filter.Service,
+			ComponentVersionRepository: filter.Repository,
 		}
 		counts, err := app.GetComponentVulnerabilityCounts(icFilter)
 		if err != nil {

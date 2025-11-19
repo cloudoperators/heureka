@@ -386,7 +386,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 	}
 
 	if len(filter.ComponentVersionRepository) > 0 {
-		query = fmt.Sprintf("%s INNER JOIN Service S ON S.service_id = CVR.service_id", query)
+		query = fmt.Sprintf("%s INNER JOIN ComponentVersion CV ON CV.componentversion_component_id = CVR.component_id", query)
 		fl = append(fl, buildFilterQuery(filter.ComponentVersionRepository, "CV.componentversion_repository = ?", OP_OR))
 		filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionRepository)
 	}
