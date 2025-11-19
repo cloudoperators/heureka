@@ -24,6 +24,7 @@ input ComponentFilter {
     componentCcrn: [String]
     state: [StateFilter!]
     serviceCcrn: [String]
+    componentVersionRepository: [String]
 }
 
 type ComponentConnection implements Connection {

@@ -229,7 +229,7 @@ func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) 
 	return *item.Node
 }
 
-func (at *authenticationTest) getQueryUrl() string {
+func (at authenticationTest) getQueryUrl() string {
 	return fmt.Sprintf("http://localhost:%s/query", at.cfg.Port)
 }
 
