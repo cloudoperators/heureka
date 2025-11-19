@@ -111,7 +111,7 @@ type authenticationTest struct {
 }
 
 func newAuthenticationTest() *authenticationTest {
-	db := dbm.NewTestSchema()
+	db := dbm.NewTestSchemaWithoutMigration()
 
 	cfg := dbm.DbConfig()
 	cfg.Port = util2.GetRandomFreePort()
@@ -124,8 +124,7 @@ func newAuthenticationTest() *authenticationTest {
 	Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 	cfg.Port = util2.GetRandomFreePort()
-	server := server.NewServer(cfg)
-	server.NonBlockingStart()
+	server := e2e_common.NewRunningServer(cfg)
 
 	seedCollection := seeder.SeedDbWithNFakeData(defaultTestFakeDataItems)
 
@@ -152,7 +151,7 @@ func (at *authenticationTest) getTestIssueCreatedByAndUpdatedBySystemUser() enti
 }
 
 func (at *authenticationTest) teardown() {
-	at.server.BlockingStop()
+	e2e_common.ServerTeardown(at.server)
 	at.oidcProvider.Stop()
 	dbm.TestTearDown(at.db)
 }

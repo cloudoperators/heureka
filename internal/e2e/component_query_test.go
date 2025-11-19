@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 
@@ -34,19 +35,17 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -192,19 +191,17 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -259,19 +256,17 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -327,19 +322,17 @@ var _ = Describe("Deleting Component via API", Label("e2e", "Components"), func(
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 

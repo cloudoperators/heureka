@@ -91,17 +91,15 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
