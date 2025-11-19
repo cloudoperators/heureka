@@ -256,6 +256,22 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						}
 					})
 				})
+				It("can filter by a single component version repository", func() {
+					componentVersionRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+
+					filter := &entity.ComponentFilter{ComponentVersionRepository: []*string{&componentVersionRow.Repository.String}}
+
+					entries, err := db.GetComponents(filter, []entity.Order{})
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+					By("returning correct entries", func() {
+						for _, entry := range entries {
+							Expect(entry.Component.Id).To(BeEquivalentTo(componentVersionRow.ComponentId.Int64))
+						}
+					})
+				})
 			})
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {

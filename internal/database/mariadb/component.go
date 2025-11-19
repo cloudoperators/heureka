@@ -18,6 +18,7 @@ func (s *SqlDatabase) getComponentFilterString(filter *entity.ComponentFilter) s
 	fl = append(fl, buildFilterQuery(filter.Id, "C.component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CV.componentversion_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.ComponentVersionRepository, "CV.componentversion_repository = ?", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "C.component"))
 
 	return combineFilterQueries(fl, OP_AND)
@@ -195,6 +196,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionRepository)
 	if withCursor {
 		p := CreateCursorParameters([]any{}, cursorFields)
 		filterParameters = append(filterParameters, p...)
