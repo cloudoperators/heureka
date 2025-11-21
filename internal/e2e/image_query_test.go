@@ -118,8 +118,7 @@ func newImageTest() *imageTest {
 	seeder, err := test.NewDatabaseSeeder(cfg)
 	Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
-	server := server.NewServer(cfg)
-	server.NonBlockingStart()
+	server := e2e_common.NewRunningServer(cfg)
 
 	return &imageTest{
 		cfg:    cfg,
@@ -130,7 +129,7 @@ func newImageTest() *imageTest {
 }
 
 func (it *imageTest) teardown() {
-	it.server.BlockingStop()
+	e2e_common.ServerTeardown(it.server)
 	dbm.TestTearDown(it.db)
 }
 

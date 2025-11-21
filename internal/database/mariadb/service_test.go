@@ -5,9 +5,9 @@ package mariadb_test
 
 import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -17,7 +17,7 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/cloudoperators/heureka/pkg/util"
+	pkg_util "github.com/cloudoperators/heureka/pkg/util"
 )
 
 var _ = Describe("Service", Label("database", "Service"), func() {
@@ -186,7 +186,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter by a random non existing service name", func() {
-					nonExistingName := util.GenerateRandomString(40, nil)
+					nonExistingName := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.ServiceFilter{CCRN: []*string{&nonExistingName}}
 
 					entries, err := db.GetServices(filter, nil)
@@ -767,7 +767,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			It("can delete service correctly", func() {
 				service := seedCollection.ServiceRows[0].AsService()
 
-				err := db.DeleteService(service.Id, common.SystemUserId)
+				err := db.DeleteService(service.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

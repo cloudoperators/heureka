@@ -176,3 +176,7 @@ func (h *HeurekaApp) Shutdown() error {
 func (h HeurekaApp) GetCache() cache.Cache {
 	return h.cache
 }
+
+func (h HeurekaApp) WaitPostMigrations() error {
+	return h.database.WaitPostMigrations()
+}

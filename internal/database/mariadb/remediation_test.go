@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -411,7 +411,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			It("can delete remediation correctly", func() {
 				remediation := seedCollection.RemediationRows[0].AsRemediation()
 
-				err := db.DeleteRemediation(remediation.Id, common.SystemUserId)
+				err := db.DeleteRemediation(remediation.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

@@ -167,4 +167,6 @@ type Database interface {
 	CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error
 
 	Autoclose() (bool, error)
+
+	WaitPostMigrations() error
 }

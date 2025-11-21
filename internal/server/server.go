@@ -209,6 +209,6 @@ func (s *Server) BlockingStop() {
 	}
 }
 
-func (s Server) App() *app.HeurekaApp {
+func (s Server) GetApp() *app.HeurekaApp {
 	return s.app
 }

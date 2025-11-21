@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/machinebox/graphql"
@@ -18,60 +19,56 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const NumberOfSystemUsers = 1
-const SystemUserId = 1
-const EmptyUserId = -1
-
-var SystemUserName = "systemuser"
-var SystemUserUniqueUserId = "S0000000"
+var systemUserName = "systemuser"
+var systemUserUniqueUserId = "S0000000"
 
 type Number interface {
 	int | int64
 }
 
 func SubtractSystemUsers[T Number](n T) T {
-	return n - NumberOfSystemUsers
+	return n - 1
 }
 
 func SubtractSystemUserName(v []*string) []*string {
 	return lo.Filter(v, func(val *string, _ int) bool {
-		return val == nil || *val != SystemUserName
+		return val == nil || *val != systemUserName
 	})
 }
 
 func SubtractSystemUserNameFromValueItems(v []*model.ValueItem) []*model.ValueItem {
 	return lo.Filter(v, func(val *model.ValueItem, _ int) bool {
-		return val == nil || *val.Value != SystemUserUniqueUserId
+		return val == nil || *val.Value != systemUserUniqueUserId
 	})
 }
 
 func SubtractSystemUserUniqueUserId(v []*string) []*string {
 	return lo.Filter(v, func(val *string, _ int) bool {
-		return val == nil || *val != SystemUserUniqueUserId
+		return val == nil || *val != systemUserUniqueUserId
 	})
 }
 
 func SubtractSystemUserUniqueUserIdVL(v []string) []string {
 	return lo.Filter(v, func(val string, _ int) bool {
-		return val != SystemUserUniqueUserId
+		return val != systemUserUniqueUserId
 	})
 }
 
 func SubtractSystemUserNameVL(v []string) []string {
 	return lo.Filter(v, func(val string, _ int) bool {
-		return val != SystemUserName
+		return val != systemUserName
 	})
 }
 
 func SubtractSystemUsersEntity(v []entity.User) []entity.User {
 	return lo.Filter(v, func(val entity.User, _ int) bool {
-		return val.UniqueUserID != SystemUserUniqueUserId
+		return val.UniqueUserID != systemUserUniqueUserId
 	})
 }
 
 func SubtractSystemUserId(v []int64) []int64 {
 	return lo.Filter(v, func(val int64, _ int) bool {
-		return val != SystemUserId
+		return val != util.SystemUserId
 	})
 }
 
