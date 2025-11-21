@@ -9,10 +9,10 @@ import (
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/pkg/util"
+	"github.com/cloudoperators/heureka/internal/util"
+	pkg_util "github.com/cloudoperators/heureka/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -195,7 +195,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter a non existing service name", func() {
-					nonExistingName := util.GenerateRandomString(40, nil)
+					nonExistingName := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&nonExistingName}}
 
 					entries, err := db.GetIssues(filter, nil)
@@ -836,7 +836,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				im := test.NewFakeIssueMatch()
 				im.ComponentInstanceId = sql.NullInt64{Int64: 1, Valid: true}
 				im.IssueId = sql.NullInt64{Int64: 3, Valid: true}
-				im.UserId = sql.NullInt64{Int64: common.SystemUserId, Valid: true}
+				im.UserId = sql.NullInt64{Int64: util.SystemUserId, Valid: true}
 				_, err = seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 
@@ -943,7 +943,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			It("can delete issue correctly", func() {
 				issue := seedCollection.IssueRows[0].AsIssue()
 
-				err := db.DeleteIssue(issue.Id, common.SystemUserId)
+				err := db.DeleteIssue(issue.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

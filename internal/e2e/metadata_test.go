@@ -114,13 +114,13 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 			Expect(issue.Type.String()).To(Equal(testCreatedIssueType))
 
 			Expect(issue.Metadata).To(Not(BeNil()))
-			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
+			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", util.lSystemUserId)))
 
 			createdAt := parseTimeExpectNoError(*issue.Metadata.CreatedAt)
 			updatedAt := parseTimeExpectNoError(*issue.Metadata.UpdatedAt)
 
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
-			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
+			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", util.SystemUserId)))
 			Expect(updatedAt).To(Equal(createdAt))
 			Expect(*issue.Metadata.DeletedAt).To(Equal(time.Unix(0, 0).Local().Format(dbDateLayout)))
 		})
@@ -138,13 +138,13 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 			Expect(issue.Type.String()).To(Equal(testUpdatedIssueType))
 
 			Expect(issue.Metadata).To(Not(BeNil()))
-			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
+			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", util.SystemUserId)))
 
 			createdAt := parseTimeExpectNoError(*issue.Metadata.CreatedAt)
 			updatedAt := parseTimeExpectNoError(*issue.Metadata.UpdatedAt)
 
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
-			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
+			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", util.SystemUserId)))
 			Expect(updatedAt).Should(BeTemporally("~", time.Now().UTC(), 2*time.Second))
 			Expect(updatedAt).Should(BeTemporally(">", createdAt))
 			Expect(*issue.Metadata.DeletedAt).To(Equal(time.Unix(0, 0).Local().Format(dbDateLayout)))
@@ -163,14 +163,14 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 			Expect(issue.Type.String()).To(Equal(testCreatedIssueType))
 
 			Expect(issue.Metadata).To(Not(BeNil()))
-			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
+			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", util.SystemUserId)))
 
 			createdAt := parseTimeExpectNoError(*issue.Metadata.CreatedAt)
 			deletedAt := parseTimeExpectNoError(*issue.Metadata.DeletedAt)
 			updatedAt := parseTimeExpectNoError(*issue.Metadata.UpdatedAt)
 
 			Expect(createdAt).Should(BeTemporally("~", time.Now().UTC(), 3*time.Second))
-			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", e2e_common.SystemUserId)))
+			Expect(*issue.Metadata.UpdatedBy).To(Equal(fmt.Sprintf("%d", util.SystemUserId)))
 			Expect(deletedAt).Should(BeTemporally("~", time.Now().UTC(), 2*time.Second))
 			Expect(deletedAt).Should(BeTemporally(">", createdAt))
 			Expect(deletedAt).To(Equal(updatedAt))

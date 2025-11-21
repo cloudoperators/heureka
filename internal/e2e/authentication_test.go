@@ -19,7 +19,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	db_common "github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	. "github.com/onsi/ginkgo/v2"
 
 	. "github.com/onsi/gomega"
@@ -139,14 +138,14 @@ func newAuthenticationTest() *authenticationTest {
 
 func (at *authenticationTest) getTestUser() entity.User {
 	user := at.seedCollection.UserRows[0].AsUser()
-	Expect(user.Id).To(Not(Equal(db_common.SystemUserId)))
+	Expect(user.Id).To(Not(Equal(util.SystemUserId)))
 	return user
 }
 
 func (at *authenticationTest) getTestIssueCreatedByAndUpdatedBySystemUser() entity.Issue {
 	issue := at.seedCollection.IssueRows[0].AsIssue()
-	Expect(issue.Metadata.CreatedBy).To(Equal(db_common.SystemUserId))
-	Expect(issue.Metadata.UpdatedBy).To(Equal(db_common.SystemUserId))
+	Expect(issue.Metadata.CreatedBy).To(Equal(util.SystemUserId))
+	Expect(issue.Metadata.UpdatedBy).To(Equal(util.SystemUserId))
 	return issue
 }
 
@@ -191,7 +190,7 @@ func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.
 		at.getHeaders(user))
 
 	Expect(*respData.Issue.Description).To(Equal(issue.Description))
-	Expect(*respData.Issue.Metadata.CreatedBy).To(Equal(strconv.FormatInt(db_common.SystemUserId, 10)))
+	Expect(*respData.Issue.Metadata.CreatedBy).To(Equal(strconv.FormatInt(util.SystemUserId, 10)))
 	return respData.Issue
 }
 

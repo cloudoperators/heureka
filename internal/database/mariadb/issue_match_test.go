@@ -11,9 +11,9 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -649,7 +649,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			It("can delete issueMatch correctly", func() {
 				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
 
-				err := db.DeleteIssueMatch(issueMatch.Id, common.SystemUserId)
+				err := db.DeleteIssueMatch(issueMatch.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
