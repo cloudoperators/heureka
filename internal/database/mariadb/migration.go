@@ -102,7 +102,6 @@ func RunMigrations(cfg util.Config) error {
 	if err != nil {
 		return err
 	}
-
 	err = enableScheduler(cfg)
 	if err != nil {
 		return fmt.Errorf("Error while Enabling Scheduler Db: %w", err)
@@ -258,7 +257,7 @@ func (s *SqlDatabase) runPostMigrations() error {
 	if err := s.checkProceduresExist(procs); err != nil {
 		return err
 	}
-	s.runPostMigrationProceduresInBackground(procs)
+	s.runPostMigrationProcessInBackground(procs)
 	return nil
 }
 
@@ -304,7 +303,12 @@ func (s *SqlDatabase) proceduresExist(procedures []string) (bool, error) {
 	return false, nil
 }
 
-func (s *SqlDatabase) runPostMigrationProceduresInBackground(procs []string) error {
+func (s *SqlDatabase) runPostMigrationProcessInBackground(procs []string) {
+	s.runPostMigrationProceduresInBackground(procs)
+	s.runPostMigrationCleanupRoutineInBackground(procs)
+}
+
+func (s *SqlDatabase) runPostMigrationProceduresInBackground(procs []string) {
 	for _, p := range procs {
 		s.postMigrationCtx.wg.Add(1)
 		go func() {
@@ -314,13 +318,15 @@ func (s *SqlDatabase) runPostMigrationProceduresInBackground(procs []string) err
 			}
 		}()
 	}
+}
+
+func (s *SqlDatabase) runPostMigrationCleanupRoutineInBackground(procs []string) {
 	go func() {
 		if err := s.WaitPostMigrations(); err != nil {
 			logrus.WithError(err).Error(err)
 		}
 		s.CloseConnection()
 	}()
-	return nil
 }
 
 func (s *SqlDatabase) WaitPostMigrations() error {
