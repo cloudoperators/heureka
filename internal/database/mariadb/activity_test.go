@@ -5,9 +5,9 @@ package mariadb_test
 
 import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -491,7 +491,7 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 			It("can delete activity correctly", func() {
 				activity := seedCollection.ActivityRows[0].AsActivity()
 
-				err := db.DeleteActivity(activity.Id, common.SystemUserId)
+				err := db.DeleteActivity(activity.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())

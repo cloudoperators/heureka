@@ -20,7 +20,7 @@ jobs:
           permission-pull-requests: write
           
       - name: Checkout base branch (main)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.base_ref }}
           path: base-branch
@@ -31,7 +31,7 @@ jobs:
           cat base-branch/internal/api/graphql/graph/schema/*.graphqls > .github/schemas/old-schema.graphql
 
       - name: Checkout PR branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: pr-branch
 
