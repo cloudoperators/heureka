@@ -3,4 +3,4 @@
 
 package util
 
-const SystemUserId = 1
+const SystemUserId = int64(1)

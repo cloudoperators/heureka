@@ -114,7 +114,7 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 			Expect(issue.Type.String()).To(Equal(testCreatedIssueType))
 
 			Expect(issue.Metadata).To(Not(BeNil()))
-			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", util.lSystemUserId)))
+			Expect(*issue.Metadata.CreatedBy).To(Equal(fmt.Sprintf("%d", util.SystemUserId)))
 
 			createdAt := parseTimeExpectNoError(*issue.Metadata.CreatedAt)
 			updatedAt := parseTimeExpectNoError(*issue.Metadata.UpdatedAt)

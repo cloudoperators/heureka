@@ -19,10 +19,10 @@ jobs:
       runs-on: "['ubuntu-latest']"
       language: "['go']"
       go-check: true
-      go-version: "['1.22']"
+      go-version: "['1.25']"
       node-check: false
       # node-version : "['node']"
       fail-fast: false  
       # timeout: 30
       autobuild: false
-      build_query: "go install github.com/vektra/mockery/v2@v2.46.3 && make build-binary"
+      build_query: "go install github.com/vektra/mockery/v2@v2.53.5 && make build-binary"
