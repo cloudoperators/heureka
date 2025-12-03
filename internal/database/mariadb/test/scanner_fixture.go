@@ -251,3 +251,19 @@ func (s *DatabaseSeeder) SeedScannerRunInstances(uuids ...string) error {
 	}
 	return nil
 }
+
+func (s *DatabaseSeeder) CleanupScannerRuns() error {
+	cleanupQuery := `
+	DELETE FROM ScannerRunIssueTracker;
+	DELETE FROM ScannerRun;
+	DELETE FROM Issue;
+	DELETE FROM Service;
+	DELETE FROM Component;
+	DELETE FROM ComponentVersion;
+	DELETE FROM ComponentInstance;
+	DELETE FROM IssueMatch;
+	`
+	var err error
+	_, err = s.db.Exec(cleanupQuery)
+	return err
+}
