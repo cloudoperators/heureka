@@ -375,6 +375,8 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 		SELECT CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM %s AS CVR
 	`
 
+	joins := ""
+
 	if len(filter.Id) == 0 && len(filter.ComponentVersionRepository) == 0 {
 		query = fmt.Sprintf(query, "mvAllComponentsByServiceVulnerabilityCounts")
 	} else {
@@ -382,13 +384,13 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 	}
 
 	if len(filter.ServiceCCRN) > 0 {
-		query = fmt.Sprintf("%s INNER JOIN Service S ON S.service_id = CVR.service_id", query)
+		joins = fmt.Sprintf("%s INNER JOIN Service S ON S.service_id = CVR.service_id", joins)
 		fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 		filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	}
 
 	if len(filter.ComponentVersionRepository) > 0 {
-		query = fmt.Sprintf("%s INNER JOIN ComponentVersion CV ON CV.componentversion_component_id = CVR.component_id", query)
+		joins = fmt.Sprintf("%s INNER JOIN ComponentVersion CV ON CV.componentversion_component_id = CVR.component_id", joins)
 		fl = append(fl, buildFilterQuery(filter.ComponentVersionRepository, "CV.componentversion_repository = ?", OP_OR))
 		filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionRepository)
 	}
@@ -399,9 +401,12 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 	}
 
 	filterStr := combineFilterQueries(fl, OP_AND)
+	query = fmt.Sprintf("%s %s", query, joins)
 	if filterStr != "" {
 		query = fmt.Sprintf("%s WHERE %s", query, filterStr)
 	}
+
+	query = fmt.Sprintf("%s GROUP BY CVR.component_id", query)
 
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
