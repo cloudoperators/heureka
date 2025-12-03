@@ -10,9 +10,9 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -421,7 +421,7 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 			It("can delete evidence correctly", func() {
 				evidence := seedCollection.EvidenceRows[0].AsEvidence()
 
-				err := db.DeleteEvidence(evidence.Id, common.SystemUserId)
+				err := db.DeleteEvidence(evidence.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
