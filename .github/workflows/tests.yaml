@@ -42,4 +42,4 @@ jobs:
           DB_ADDRESS: localhost
           DB_PORT: 3306
           DB_SCHEMA: internal/database/mariadb/init/schema.sql
-        run: ginkgo -r -randomize-all -randomize-suites
+        run: ginkgo --trace --progress -r -randomize-all -randomize-suites
