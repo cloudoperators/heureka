@@ -376,11 +376,13 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 	`
 
 	joins := ""
+	groupBy := ""
 
 	if len(filter.Id) == 0 && len(filter.ComponentVersionRepository) == 0 {
 		query = fmt.Sprintf(query, "mvAllComponentsByServiceVulnerabilityCounts")
 	} else {
 		query = fmt.Sprintf(query, "mvSingleComponentByServiceVulnerabilityCounts")
+		groupBy = "GROUP BY CVR.component_id"
 	}
 
 	if len(filter.ServiceCCRN) > 0 {
@@ -406,7 +408,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 		query = fmt.Sprintf("%s WHERE %s", query, filterStr)
 	}
 
-	query = fmt.Sprintf("%s GROUP BY CVR.component_id", query)
+	query = fmt.Sprintf("%s %s", query, groupBy)
 
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
