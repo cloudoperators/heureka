@@ -20,7 +20,7 @@ jobs:
         ports:
           - "6379:6379"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -42,4 +42,10 @@ jobs:
           DB_ADDRESS: localhost
           DB_PORT: 3306
           DB_SCHEMA: internal/database/mariadb/init/schema.sql
+<<<<<<< Updated upstream
         run: ginkgo --trace --progress -r -randomize-all -randomize-suites
+=======
+        run: ginkgo -r -randomize-all -randomize-suites
+
+CALL refresh_mvCountIssueRatingsComponentVersion_proc();
+>>>>>>> Stashed changes

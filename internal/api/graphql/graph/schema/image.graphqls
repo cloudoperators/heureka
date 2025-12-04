@@ -6,7 +6,7 @@ type Image implements Node {
     repository: String
     versions(first: Int, after: String): ComponentVersionConnection
     vulnerabilityCounts: SeverityCounts
-    vulnerabilities(first: Int, after: String): VulnerabilityConnection
+    vulnerabilities(first: Int, after: String, filter: VulnerabilityFilter): VulnerabilityConnection
     imageRegistryUrl: String
     pageInfo: PageInfo
 }

@@ -6,7 +6,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/log"
@@ -30,18 +29,18 @@ func main() {
 	}
 	cfg.ConfigToConsole()
 
-	if cfg.SeedMode {
-		if err = test.NewDatabaseManager().ResetSchema(cfg.DBName); err != nil {
-			logrus.WithError(err).Fatalln("Error while resetting database schema.")
-		}
+	// if cfg.SeedMode {
+	// 	if err = test.NewDatabaseManager().ResetSchema(cfg.DBName); err != nil {
+	// 		logrus.WithError(err).Fatalln("Error while resetting database schema.")
+	// 	}
 
-		seedDb, err := test.NewDatabaseSeeder(cfg)
-		if err != nil {
-			logrus.WithError(err).Fatalln("Error while initializing database seeder.")
-		}
+	// 	seedDb, err := test.NewDatabaseSeeder(cfg)
+	// 	if err != nil {
+	// 		logrus.WithError(err).Fatalln("Error while initializing database seeder.")
+	// 	}
 
-		seedDb.SeedDbForServer(100)
-	}
+	// 	seedDb.SeedDbForServer(100)
+	// }
 
 	s := server.NewServer(cfg)
 	s.Start()
