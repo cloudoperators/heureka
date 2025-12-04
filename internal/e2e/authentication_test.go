@@ -156,10 +156,10 @@ func (at *authenticationTest) teardown() {
 }
 
 func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.User) model.Issue {
-	respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issue model.Issue `json:"createIssue"`
 	}](
-		at.getQueryUrl(),
+		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_create.graphql",
 		map[string]interface{}{
 			"input": map[string]interface{}{
@@ -178,10 +178,10 @@ func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.
 
 func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.User) model.Issue {
 	issue.Description = "New Description"
-	respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issue model.Issue `json:"updateIssue"`
 	}](
-		at.getQueryUrl(),
+		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_update.graphql",
 		map[string]interface{}{
 			"id":    strconv.FormatInt(issue.Id, 10),
@@ -195,10 +195,10 @@ func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.
 }
 
 func (at *authenticationTest) deleteIssueByUser(issue entity.Issue, user entity.User) string {
-	respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Id string `json:"deleteIssue"`
 	}](
-		at.getQueryUrl(),
+		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_delete.graphql",
 		map[string]interface{}{
 			"id": strconv.FormatInt(issue.Id, 10),
@@ -210,10 +210,10 @@ func (at *authenticationTest) deleteIssueByUser(issue entity.Issue, user entity.
 }
 
 func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) model.Issue {
-	respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issues model.IssueConnection `json:"Issues"`
 	}](
-		at.getQueryUrl(),
+		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_get.graphql",
 		map[string]interface{}{
 			"filter": map[string]string{"state": "Deleted"},
@@ -227,15 +227,10 @@ func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) 
 	return *item.Node
 }
 
-func (at authenticationTest) getQueryUrl() string {
-	return fmt.Sprintf("http://localhost:%s/query", at.cfg.Port)
-}
-
 func (at *authenticationTest) getHeaders(user entity.User) map[string]string {
-	return map[string]string{
-		"Cache-Control": "no-cache",
-		"Authorization": at.getAuthenticationHeaderForUser(user),
-	}
+	headers := e2e_common.GqlStandardHeaders
+	headers["Authorization"] = at.getAuthenticationHeaderForUser(user)
+	return headers
 }
 
 func (at *authenticationTest) getAuthenticationHeaderForUser(user entity.User) string {

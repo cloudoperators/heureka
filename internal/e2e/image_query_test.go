@@ -9,7 +9,6 @@ import (
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"github.com/samber/lo"
 
@@ -43,7 +42,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
 			}](
-				imgTest.getQueryUrl(),
+				imgTest.port,
 				"../api/graphql/graph/queryCollection/image/query.graphql",
 				map[string]interface{}{
 					"filter": map[string]any{
@@ -51,8 +50,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 					},
 					"first": 3,
 					"after": "",
-				},
-				map[string]string{"Cache-Control": "no-cache"})
+				})
 
 			expectRespDataCounts(respData.Images, 5, 3)
 			expectRespImagesFilledAndInOrder(&respData.Images)
@@ -76,7 +74,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
 			}](
-				imgTest.getQueryUrl(),
+				imgTest.port,
 				"../api/graphql/graph/queryCollection/image/query.graphql",
 				map[string]interface{}{
 					"filter": map[string]any{
@@ -85,8 +83,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 					},
 					"first": 3,
 					"after": "",
-				},
-				map[string]string{"Cache-Control": "no-cache"})
+				})
 
 			expectRespDataCounts(respData.Images, 1, 1)
 			expectRespImagesFilledAndInOrder(&respData.Images)
@@ -97,7 +94,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 })
 
 type imageTest struct {
-	cfg    util.Config
+	port   string
 	counts model.SeverityCounts
 	db     *mariadb.SqlDatabase
 	seeder *test.DatabaseSeeder
@@ -121,7 +118,7 @@ func newImageTest() *imageTest {
 	server := e2e_common.NewRunningServer(cfg)
 
 	return &imageTest{
-		cfg:    cfg,
+		port:   cfg.Port,
 		db:     db,
 		seeder: seeder,
 		server: server,
@@ -210,10 +207,6 @@ func loadTestData() ([]mariadb.ComponentVersionRow, []mariadb.ComponentInstanceR
 		return nil, nil, nil, nil, nil, err
 	}
 	return componentVersions, componentInstances, issueVariants, cvIssues, issueMatches, nil
-}
-
-func (it *imageTest) getQueryUrl() string {
-	return fmt.Sprintf("http://localhost:%s/query", it.cfg.Port)
 }
 
 func EqualCounts(expected model.SeverityCounts) types.GomegaMatcher {
