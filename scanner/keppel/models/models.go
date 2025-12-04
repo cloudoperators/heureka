@@ -9,7 +9,7 @@ import (
 	"time"
 
 	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
-	stypes "github.com/aquasecurity/trivy/pkg/module/serialize"
+	"github.com/aquasecurity/trivy/pkg/types"
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
 )
 
@@ -71,7 +71,7 @@ type TrivyReport struct {
 	ArtifactName  string         `json:",omitempty"`
 	ArtifactType  string         `json:",omitempty"` // generic replacement for original type `artifact.Type`
 	Metadata      TrivyMetadata  `json:",omitempty"` // generic replacement for original type `types.Metadata`
-	Results       stypes.Results `json:",omitempty"` // compatible replacement for original type `types.Results`
+	Results       []types.Result `json:",omitempty"`
 }
 
 type TrivyMetadata struct {

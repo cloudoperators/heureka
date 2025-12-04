@@ -59,7 +59,7 @@ var inMemoryCacheTestConfig = cacheConfig{}
 
 func newCacheTest(valkeyUrl string, ttl time.Duration, maxDbConcurrentRefreshes int, throttleIntervalMSec int64, throttlePerInterval int, proxy bool) *cacheTest {
 	var ct cacheTest
-	ct.db = dbm.NewTestSchema()
+	ct.db = dbm.NewTestSchemaWithoutMigration()
 
 	var err error
 	ct.seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -78,8 +78,7 @@ func newCacheTest(valkeyUrl string, ttl time.Duration, maxDbConcurrentRefreshes 
 	ct.cfg.CacheThrottleIntervalMSec = throttleIntervalMSec
 	ct.cfg.CacheThrottlePerInterval = throttlePerInterval
 
-	ct.server = server.NewServer(ct.cfg)
-	ct.server.NonBlockingStart()
+	ct.server = e2e_common.NewRunningServer(ct.cfg)
 
 	ct.seedCollection = ct.seeder.SeedDbWithNFakeData(testResourceCount)
 
@@ -98,7 +97,7 @@ func (ct *cacheTest) startDbProxy() {
 }
 
 func (ct *cacheTest) teardown() {
-	ct.server.BlockingStop()
+	e2e_common.ServerTeardown(ct.server)
 	dbm.TestTearDown(ct.db)
 	if ct.dbProxy != nil {
 		ct.dbProxy.Stop()
@@ -160,7 +159,7 @@ func (ct *cacheTest) queryResource() {
 }
 
 func (ct *cacheTest) expectMissHitCounter(expectedMiss, expectedHit int64) {
-	stat := ct.server.App().GetCache().GetStat()
+	stat := ct.server.GetApp().GetCache().GetStat()
 	Expect(stat.Miss).To(Equal(expectedMiss))
 	Expect(stat.Hit).To(Equal(expectedHit))
 }

@@ -7,9 +7,9 @@ import (
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -18,7 +18,7 @@ import (
 
 	"math/rand"
 
-	"github.com/cloudoperators/heureka/pkg/util"
+	pkg_util "github.com/cloudoperators/heureka/pkg/util"
 )
 
 var _ = Describe("Component", Label("database", "Component"), func() {
@@ -202,7 +202,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					})
 				})
 				It("can filter by a random non existing component ccrn", func() {
-					nonExistingCCRN := util.GenerateRandomString(40, nil)
+					nonExistingCCRN := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.ComponentFilter{CCRN: []*string{&nonExistingCCRN}}
 
 					entries, err := db.GetComponents(filter, []entity.Order{})
@@ -513,7 +513,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				It("can delete component correctly", func() {
 					component := seedCollection.ComponentRows[0].AsComponent()
 
-					err := db.DeleteComponent(component.Id, common.SystemUserId)
+					err := db.DeleteComponent(component.Id, util.SystemUserId)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
