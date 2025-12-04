@@ -20,7 +20,7 @@ jobs:
         ports:
           - "6379:6379"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -28,7 +28,7 @@ jobs:
       - name: Install Ginkgo
         run: go install github.com/onsi/ginkgo/v2/ginkgo
       - name: Install Mockery
-        run: go install github.com/vektra/mockery/v2@v2.46.3
+        run: go install github.com/vektra/mockery/v2@v2.53.5
       - name: Generate Mockery code
         run: make mockery
       - name: Generate Gqlgen code

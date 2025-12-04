@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/oidc"
@@ -29,7 +30,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
 		cfg.AuthOidcClientId = "mock-client-id"
@@ -38,14 +39,13 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 		oidcProvider.Start()
 
 		queryUrl = fmt.Sprintf("http://localhost:%s/query", cfg.Port)
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 
 		oidcTokenStringHandler = test.CreateOidcTokenStringHandler(cfg.AuthOidcUrl, cfg.AuthOidcClientId, "dummyUserName")
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		oidcProvider.Stop()
 		dbm.TestTearDown(db)
 	})
