@@ -57,6 +57,9 @@ func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Imag
 func (r *imageResolver) Vulnerabilities(ctx context.Context, obj *model.Image, first *int, after *string, filter *model.VulnerabilityFilter) (*model.VulnerabilityConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
+	if filter == nil {
+		filter = &model.VulnerabilityFilter{}
+	}
 	filter.Service = append(filter.Service, imageFilter.Service...)
 	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
 		Parent:     obj,
