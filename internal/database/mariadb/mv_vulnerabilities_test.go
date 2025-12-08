@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	"github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -191,7 +191,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		BeforeEach(func() {
 			expirationDate := time.Now().Add(10 * 24 * time.Hour)
 			createdRemediation := insertRemediation(&seedCollection.ServiceRows[0], nil, expirationDate)
-			err := db.DeleteRemediation(createdRemediation.Id, common.SystemUserId)
+			err := db.DeleteRemediation(createdRemediation.Id, util.SystemUserId)
 			Expect(err).To(BeNil())
 			err = seeder.RefreshCountIssueRatings()
 			Expect(err).To(BeNil())
@@ -406,7 +406,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			im := test.NewFakeIssueMatch()
 			im.ComponentInstanceId = sql.NullInt64{Int64: 3, Valid: true}
 			im.IssueId = sql.NullInt64{Int64: r.IssueId, Valid: true}
-			im.UserId = sql.NullInt64{Int64: common.SystemUserId, Valid: true}
+			im.UserId = sql.NullInt64{Int64: util.SystemUserId, Valid: true}
 			_, err := seeder.InsertFakeIssueMatch(im)
 			Expect(err).To(BeNil())
 			seeder.RefreshCountIssueRatings()
