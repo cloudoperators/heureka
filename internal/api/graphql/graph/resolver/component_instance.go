@@ -54,6 +54,21 @@ func (r *componentInstanceResolver) Service(ctx context.Context, obj *model.Comp
 	})
 }
 
+func (r *componentInstanceResolver) Parent(ctx context.Context, obj *model.ComponentInstance) (*model.ComponentInstance, error) {
+	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ParentID})
+
+	if err != nil {
+		logrus.WithField("obj", obj).Error("ComponentInstanceResolver: Error while parsing childIds'")
+		return nil, err
+	}
+
+	return baseResolver.SingleComponentInstanceBaseResolver(r.App, ctx, &model.NodeParent{
+		Parent:     obj,
+		ParentName: model.ComponentInstanceNodeName,
+		ChildIds:   childIds,
+	})
+}
+
 func (r *Resolver) ComponentInstance() graph.ComponentInstanceResolver {
 	return &componentInstanceResolver{r}
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
@@ -28,17 +29,15 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -202,18 +201,16 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 		client = graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 

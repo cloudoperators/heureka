@@ -62,7 +62,6 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 	})
 
 	res, err := cs.database.GetComponents(filter, options.Order)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Error while filtering for Components")

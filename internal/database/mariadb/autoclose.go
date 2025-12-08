@@ -3,169 +3,144 @@
 
 package mariadb
 
-// autoCloseComponents is a SQL query that updates the IssueMatch table, setting the issuematch_status to 'mitigated'
-// for issues that are present in the second to last completed scanner run but not in the last completed scanner run.
-// It identifies these issues by comparing the component instances associated with each issue across the two most recent scanner runs.
-var autoCloseComponents = `
-	UPDATE IssueMatch 
-	SET
-		issuematch_status = 'mitigated'
-	WHERE 
-
-	    -- Only proceed if there are at least 2 completed scans
-		(SELECT COUNT(DISTINCT scannerrun_tag) FROM 
-			(SELECT scannerrun_tag, COUNT(*) 
-			FROM ScannerRun 
-			WHERE scannerrun_is_completed = TRUE 
-			GROUP BY scannerrun_tag 
-			HAVING COUNT(*) >= 2) AS tags_with_multiple_scans
-		) > 0 
-
-		AND issuematch_id IN (
-			SELECT DISTINCT issuematch_id FROM IssueMatch WHERE issuematch_component_instance_id NOT IN (
-				SELECT DISTINCT scannerruncomponentinstance_component_instance_id 
-				FROM  
-					ScannerRunComponentInstanceTracker
-				WHERE
-					scannerruncomponentinstance_scannerrun_run_id IN (
-					SELECT scannerrun_run_id 
-						FROM ScannerRun 
-						WHERE scannerrun_run_id IN (
-							SELECT scannerrun_run_id 
-								FROM	(
-									SELECT 
-										scannerrun_run_id, 
-										ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
-									FROM 
-										ScannerRun
-									WHERE 
-										scannerrun_is_completed = TRUE
-								) AS before_last
-								WHERE row_num = 2
-							)
-						)
-					)
-			) AND
-		issuematch_id NOT IN(
-			SELECT DISTINCT issuematch_id FROM IssueMatch WHERE issuematch_component_instance_id NOT IN (
-				SELECT DISTINCT scannerruncomponentinstance_component_instance_id 
-				FROM  
-					ScannerRunComponentInstanceTracker
-				WHERE
-					scannerruncomponentinstance_scannerrun_run_id IN (
-					SELECT scannerrun_run_id 
-						FROM ScannerRun 
-						WHERE scannerrun_run_id IN (
-							SELECT scannerrun_run_id 
-								FROM	(
-									SELECT 
-										scannerrun_run_id, 
-										ROW_NUMBER() OVER (PARTITION BY scannerrun_tag ORDER BY scannerrun_run_id DESC) AS row_num
-									FROM 
-										ScannerRun
-									WHERE 
-										scannerrun_is_completed = TRUE
-								) AS last
-								WHERE row_num = 1
-							)
-						)
-					)
-			)
-			`
+import (
+	"strings"
+)
 
 func (s *SqlDatabase) Autoclose() (bool, error) {
-	var err error
-	var autoclosed bool
-
-	rows, err := s.db.Query(`
-		SELECT
-		 	DISTINCT scannerrun_tag AS Tag,
-			COUNT(*) AS Count 
-			FROM ScannerRun 
-			WHERE 
-				scannerrun_is_completed = TRUE
-			GROUP BY scannerrun_tag`)
-
+	runs, err := s.fetchCompletedRunsWithNewestFirst()
 	if err != nil {
 		return false, err
 	}
+
+	return s.processAutocloseOnCompletedRuns(runs)
+}
+
+func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst() (map[string][]int, error) {
+	rows, err := s.db.Query(`
+        SELECT scannerrun_tag, scannerrun_run_id
+        FROM ScannerRun
+        WHERE scannerrun_is_completed = TRUE
+        ORDER BY scannerrun_tag, scannerrun_run_id DESC
+    `)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 
+	// tag -> list of runs (newest first)
+	runs := map[string][]int{}
+
 	for rows.Next() {
-		var count int
 		var tag string
-		err = rows.Scan(&tag, &count)
-
-		if err != nil {
-			return autoclosed, err
+		var id int
+		if err := rows.Scan(&tag, &id); err != nil {
+			return nil, err
 		}
-
-		if count >= 2 {
-			var id1, id2 int
-			{
-				rows, err := s.db.Query(`
-					SELECT scannerrun_run_id AS ID 
-					FROM ScannerRun 
-					WHERE scannerrun_tag=? 
-					ORDER BY scannerrun_run_id DESC LIMIT 2`, tag)
-				if err != nil {
-					return autoclosed, err
-				}
-				defer rows.Close()
-				rows.Next()
-
-				if rows.Err() != nil {
-					return autoclosed, rows.Err()
-				}
-
-				err = rows.Scan(&id1)
-
-				if err != nil {
-					return autoclosed, err
-				}
-
-				rows.Next()
-
-				if rows.Err() != nil {
-					return autoclosed, rows.Err()
-				}
-
-				err = rows.Scan(&id2)
-
-				if err != nil {
-					return autoclosed, err
-				}
-			}
-
-			row := s.db.QueryRow(`
-				SELECT COUNT(DISTINCT scannerrunissuetracker_issue_id) 
-				FROM ScannerRunIssueTracker WHERE 
-					(scannerrunissuetracker_issue_id NOT IN 
-						(SELECT scannerrunissuetracker_issue_id FROM ScannerRunIssueTracker WHERE scannerrunissuetracker_scannerrun_run_id = ?)) AND 
-					(scannerrunissuetracker_issue_id IN 
-						(SELECT scannerrunissuetracker_issue_id FROM ScannerRunIssueTracker WHERE scannerrunissuetracker_scannerrun_run_id = ?))`, id1, id2)
-
-			var issueCount int
-			err = row.Scan(&issueCount)
-			if err != nil {
-				return autoclosed, err
-			}
-			autoclosed = autoclosed || (issueCount > 0)
-		}
+		runs[tag] = append(runs[tag], id)
 	}
-
 	if rows.Err() != nil {
-		return autoclosed, rows.Err()
+		return nil, rows.Err()
 	}
+	return runs, nil
+}
 
-	if res, err := s.db.Exec(autoCloseComponents); err != nil {
-		return autoclosed, err
-	} else {
-		if rowsAffected, err := res.RowsAffected(); err != nil {
-			return autoclosed, err
-		} else if rowsAffected > 0 {
+func (s *SqlDatabase) processAutocloseOnCompletedRuns(runs map[string][]int) (bool, error) {
+	autoclosed := false
+
+	// For each tag, process only latest + second-latest
+	for _, tagRuns := range runs {
+
+		// Ensure it has at least 2 completed runs
+		if len(tagRuns) < 2 {
+			continue
+		}
+
+		closedForTag, err := s.processAutocloseForSingleTag(tagRuns)
+		if err != nil {
+			return false, err
+		}
+		if closedForTag {
 			autoclosed = true
 		}
 	}
 	return autoclosed, nil
+}
+
+func (s *SqlDatabase) processAutocloseForSingleTag(tagRuns []int) (bool, error) {
+	latest := tagRuns[0]
+	secondLatest := tagRuns[1]
+
+	// fetch issues for each run
+	latestIssues, err := s.fetchIssuesForRun(latest)
+	if err != nil {
+		return false, err
+	}
+
+	secondIssues, err := s.fetchIssuesForRun(secondLatest)
+	if err != nil {
+		return false, err
+	}
+
+	// Compute which issues disappeared
+	var missing []int
+	for issue := range secondIssues {
+		if _, stillThere := latestIssues[issue]; !stillThere {
+			missing = append(missing, issue)
+		}
+	}
+
+	// Mark as mitigated
+	if len(missing) > 0 {
+		if err := s.markIssuesMitigated(missing); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func (s *SqlDatabase) fetchIssuesForRun(runID int) (map[int]struct{}, error) {
+	rows, err := s.db.Query(`
+        SELECT scannerrunissuetracker_issue_id
+        FROM ScannerRunIssueTracker
+        WHERE scannerrunissuetracker_scannerrun_run_id = ?
+    `, runID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	issues := map[int]struct{}{}
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		issues[id] = struct{}{}
+	}
+	return issues, rows.Err()
+}
+
+func (s *SqlDatabase) markIssuesMitigated(issueIDs []int) error {
+	if len(issueIDs) == 0 {
+		return nil
+	}
+
+	placeholders := make([]string, len(issueIDs))
+	args := make([]interface{}, len(issueIDs))
+
+	for i, id := range issueIDs {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	q := `
+        UPDATE IssueMatch
+        SET issuematch_status = 'mitigated'
+        WHERE issuematch_issue_id IN (` + strings.Join(placeholders, ",") + `)
+    `
+	_, err := s.db.Exec(q, args...)
+	return err
 }

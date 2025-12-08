@@ -18,11 +18,12 @@ type ComponentResult struct {
 
 type ComponentFilter struct {
 	PaginatedX
-	CCRN               []*string         `json:"ccrn"`
-	ServiceCCRN        []*string         `json:"service_ccrn"`
-	Id                 []*int64          `json:"id"`
-	ComponentVersionId []*int64          `json:"component_version_id"`
-	State              []StateFilterType `json:"state"`
+	CCRN                       []*string         `json:"ccrn"`
+	ServiceCCRN                []*string         `json:"service_ccrn"`
+	Id                         []*int64          `json:"id"`
+	ComponentVersionId         []*int64          `json:"component_version_id"`
+	State                      []StateFilterType `json:"state"`
+	ComponentVersionRepository []*string         `json:"component_version_repository"`
 }
 
 type ComponentAggregations struct {

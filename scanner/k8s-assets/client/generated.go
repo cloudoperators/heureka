@@ -63,9 +63,10 @@ type ComponentConnectionEdgesComponentEdge struct {
 func (v *ComponentConnectionEdgesComponentEdge) GetNode() *Component { return v.Node }
 
 type ComponentFilter struct {
-	ComponentCcrn []string      `json:"componentCcrn"`
-	State         []StateFilter `json:"state"`
-	ServiceCcrn   []string      `json:"serviceCcrn"`
+	ComponentCcrn              []string      `json:"componentCcrn"`
+	State                      []StateFilter `json:"state"`
+	ServiceCcrn                []string      `json:"serviceCcrn"`
+	ComponentVersionRepository []string      `json:"componentVersionRepository"`
 }
 
 // GetComponentCcrn returns ComponentFilter.ComponentCcrn, and is useful for accessing the field via an interface.
@@ -76,6 +77,11 @@ func (v *ComponentFilter) GetState() []StateFilter { return v.State }
 
 // GetServiceCcrn returns ComponentFilter.ServiceCcrn, and is useful for accessing the field via an interface.
 func (v *ComponentFilter) GetServiceCcrn() []string { return v.ServiceCcrn }
+
+// GetComponentVersionRepository returns ComponentFilter.ComponentVersionRepository, and is useful for accessing the field via an interface.
+func (v *ComponentFilter) GetComponentVersionRepository() []string {
+	return v.ComponentVersionRepository
+}
 
 type ComponentInput struct {
 	Ccrn string              `json:"ccrn"`
@@ -281,6 +287,21 @@ const (
 	ComponentInstanceTypesProjectconfiguration ComponentInstanceTypes = "ProjectConfiguration"
 )
 
+var AllComponentInstanceTypes = []ComponentInstanceTypes{
+	ComponentInstanceTypesUnknown,
+	ComponentInstanceTypesProject,
+	ComponentInstanceTypesServer,
+	ComponentInstanceTypesSecuritygroup,
+	ComponentInstanceTypesSecuritygrouprule,
+	ComponentInstanceTypesDnszone,
+	ComponentInstanceTypesFloatingip,
+	ComponentInstanceTypesRbacpolicy,
+	ComponentInstanceTypesUser,
+	ComponentInstanceTypesContainer,
+	ComponentInstanceTypesRecordset,
+	ComponentInstanceTypesProjectconfiguration,
+}
+
 type ComponentTypeValues string
 
 const (
@@ -288,6 +309,12 @@ const (
 	ComponentTypeValuesVirtualmachineimage ComponentTypeValues = "virtualMachineImage"
 	ComponentTypeValuesRepository          ComponentTypeValues = "repository"
 )
+
+var AllComponentTypeValues = []ComponentTypeValues{
+	ComponentTypeValuesContainerimage,
+	ComponentTypeValuesVirtualmachineimage,
+	ComponentTypeValuesRepository,
+}
 
 // ComponentVersion includes the requested fields of the GraphQL type ComponentVersion.
 type ComponentVersion struct {
@@ -703,6 +730,11 @@ const (
 	StateFilterDeleted StateFilter = "Deleted"
 )
 
+var AllStateFilter = []StateFilter{
+	StateFilterActive,
+	StateFilterDeleted,
+}
+
 // SupportGroup includes the requested fields of the GraphQL type SupportGroup.
 type SupportGroup struct {
 	Id   string `json:"id"`
@@ -871,7 +903,7 @@ func (v *__UpdateComponentInstanceInput) GetId() string { return v.Id }
 // GetInput returns __UpdateComponentInstanceInput.Input, and is useful for accessing the field via an interface.
 func (v *__UpdateComponentInstanceInput) GetInput() *ComponentInstanceInput { return v.Input }
 
-// The query or mutation executed by AddServiceToSupportGroup.
+// The mutation executed by AddServiceToSupportGroup.
 const AddServiceToSupportGroup_Operation = `
 mutation AddServiceToSupportGroup ($supportGroupId: ID!, $serviceId: ID!) {
 	addServiceToSupportGroup(supportGroupId: $supportGroupId, serviceId: $serviceId) {
@@ -886,7 +918,7 @@ func AddServiceToSupportGroup(
 	client_ graphql.Client,
 	supportGroupId string,
 	serviceId string,
-) (*AddServiceToSupportGroupResponse, error) {
+) (data_ *AddServiceToSupportGroupResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "AddServiceToSupportGroup",
 		Query:  AddServiceToSupportGroup_Operation,
@@ -895,10 +927,9 @@ func AddServiceToSupportGroup(
 			ServiceId:      serviceId,
 		},
 	}
-	var err_ error
 
-	var data_ AddServiceToSupportGroupResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &AddServiceToSupportGroupResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -906,10 +937,10 @@ func AddServiceToSupportGroup(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by CompleteScannerRun.
+// The mutation executed by CompleteScannerRun.
 const CompleteScannerRun_Operation = `
 mutation CompleteScannerRun ($uuid: String!) {
 	completeScannerRun(uuid: $uuid)
@@ -920,7 +951,7 @@ func CompleteScannerRun(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	uuid string,
-) (*CompleteScannerRunResponse, error) {
+) (data_ *CompleteScannerRunResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CompleteScannerRun",
 		Query:  CompleteScannerRun_Operation,
@@ -928,10 +959,9 @@ func CompleteScannerRun(
 			Uuid: uuid,
 		},
 	}
-	var err_ error
 
-	var data_ CompleteScannerRunResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CompleteScannerRunResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -939,10 +969,10 @@ func CompleteScannerRun(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by CreateComponent.
+// The mutation executed by CreateComponent.
 const CreateComponent_Operation = `
 mutation CreateComponent ($input: ComponentInput!) {
 	createComponent(input: $input) {
@@ -957,7 +987,7 @@ func CreateComponent(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input *ComponentInput,
-) (*CreateComponentResponse, error) {
+) (data_ *CreateComponentResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateComponent",
 		Query:  CreateComponent_Operation,
@@ -965,10 +995,9 @@ func CreateComponent(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ CreateComponentResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CreateComponentResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -976,10 +1005,10 @@ func CreateComponent(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by CreateComponentInstance.
+// The mutation executed by CreateComponentInstance.
 const CreateComponentInstance_Operation = `
 mutation CreateComponentInstance ($input: ComponentInstanceInput!) {
 	createComponentInstance(input: $input) {
@@ -1001,7 +1030,7 @@ func CreateComponentInstance(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input *ComponentInstanceInput,
-) (*CreateComponentInstanceResponse, error) {
+) (data_ *CreateComponentInstanceResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateComponentInstance",
 		Query:  CreateComponentInstance_Operation,
@@ -1009,10 +1038,9 @@ func CreateComponentInstance(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ CreateComponentInstanceResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CreateComponentInstanceResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1020,10 +1048,10 @@ func CreateComponentInstance(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by CreateComponentVersion.
+// The mutation executed by CreateComponentVersion.
 const CreateComponentVersion_Operation = `
 mutation CreateComponentVersion ($input: ComponentVersionInput!) {
 	createComponentVersion(input: $input) {
@@ -1041,7 +1069,7 @@ func CreateComponentVersion(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input *ComponentVersionInput,
-) (*CreateComponentVersionResponse, error) {
+) (data_ *CreateComponentVersionResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateComponentVersion",
 		Query:  CreateComponentVersion_Operation,
@@ -1049,10 +1077,9 @@ func CreateComponentVersion(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ CreateComponentVersionResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CreateComponentVersionResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1060,10 +1087,10 @@ func CreateComponentVersion(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by CreateScannerRun.
+// The mutation executed by CreateScannerRun.
 const CreateScannerRun_Operation = `
 mutation CreateScannerRun ($input: ScannerRunInput!) {
 	createScannerRun(input: $input)
@@ -1074,7 +1101,7 @@ func CreateScannerRun(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input *ScannerRunInput,
-) (*CreateScannerRunResponse, error) {
+) (data_ *CreateScannerRunResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateScannerRun",
 		Query:  CreateScannerRun_Operation,
@@ -1082,10 +1109,9 @@ func CreateScannerRun(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ CreateScannerRunResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CreateScannerRunResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1093,10 +1119,10 @@ func CreateScannerRun(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by CreateService.
+// The mutation executed by CreateService.
 const CreateService_Operation = `
 mutation CreateService ($input: ServiceInput!) {
 	createService(input: $input) {
@@ -1110,7 +1136,7 @@ func CreateService(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input *ServiceInput,
-) (*CreateServiceResponse, error) {
+) (data_ *CreateServiceResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateService",
 		Query:  CreateService_Operation,
@@ -1118,10 +1144,9 @@ func CreateService(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ CreateServiceResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CreateServiceResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1129,10 +1154,10 @@ func CreateService(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by CreateSupportGroup.
+// The mutation executed by CreateSupportGroup.
 const CreateSupportGroup_Operation = `
 mutation CreateSupportGroup ($input: SupportGroupInput!) {
 	createSupportGroup(input: $input) {
@@ -1146,7 +1171,7 @@ func CreateSupportGroup(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input *SupportGroupInput,
-) (*CreateSupportGroupResponse, error) {
+) (data_ *CreateSupportGroupResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateSupportGroup",
 		Query:  CreateSupportGroup_Operation,
@@ -1154,10 +1179,9 @@ func CreateSupportGroup(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ CreateSupportGroupResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CreateSupportGroupResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1165,10 +1189,10 @@ func CreateSupportGroup(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by ListComponentInstances.
+// The query executed by ListComponentInstances.
 const ListComponentInstances_Operation = `
 query ListComponentInstances ($filter: ComponentInstanceFilter) {
 	ComponentInstances(filter: $filter) {
@@ -1186,7 +1210,7 @@ func ListComponentInstances(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *ComponentInstanceFilter,
-) (*ListComponentInstancesResponse, error) {
+) (data_ *ListComponentInstancesResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "ListComponentInstances",
 		Query:  ListComponentInstances_Operation,
@@ -1194,10 +1218,9 @@ func ListComponentInstances(
 			Filter: filter,
 		},
 	}
-	var err_ error
 
-	var data_ ListComponentInstancesResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &ListComponentInstancesResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1205,10 +1228,10 @@ func ListComponentInstances(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by ListComponentVersions.
+// The query executed by ListComponentVersions.
 const ListComponentVersions_Operation = `
 query ListComponentVersions ($filter: ComponentVersionFilter) {
 	ComponentVersions(filter: $filter) {
@@ -1231,7 +1254,7 @@ func ListComponentVersions(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *ComponentVersionFilter,
-) (*ListComponentVersionsResponse, error) {
+) (data_ *ListComponentVersionsResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "ListComponentVersions",
 		Query:  ListComponentVersions_Operation,
@@ -1239,10 +1262,9 @@ func ListComponentVersions(
 			Filter: filter,
 		},
 	}
-	var err_ error
 
-	var data_ ListComponentVersionsResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &ListComponentVersionsResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1250,10 +1272,10 @@ func ListComponentVersions(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by ListComponents.
+// The query executed by ListComponents.
 const ListComponents_Operation = `
 query ListComponents ($filter: ComponentFilter) {
 	Components(filter: $filter) {
@@ -1273,7 +1295,7 @@ func ListComponents(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *ComponentFilter,
-) (*ListComponentsResponse, error) {
+) (data_ *ListComponentsResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "ListComponents",
 		Query:  ListComponents_Operation,
@@ -1281,10 +1303,9 @@ func ListComponents(
 			Filter: filter,
 		},
 	}
-	var err_ error
 
-	var data_ ListComponentsResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &ListComponentsResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1292,10 +1313,10 @@ func ListComponents(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by ListServices.
+// The query executed by ListServices.
 const ListServices_Operation = `
 query ListServices ($filter: ServiceFilter) {
 	Services(filter: $filter) {
@@ -1313,7 +1334,7 @@ func ListServices(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *ServiceFilter,
-) (*ListServicesResponse, error) {
+) (data_ *ListServicesResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "ListServices",
 		Query:  ListServices_Operation,
@@ -1321,10 +1342,9 @@ func ListServices(
 			Filter: filter,
 		},
 	}
-	var err_ error
 
-	var data_ ListServicesResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &ListServicesResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1332,10 +1352,10 @@ func ListServices(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by ListSupportGroups.
+// The query executed by ListSupportGroups.
 const ListSupportGroups_Operation = `
 query ListSupportGroups ($filter: SupportGroupFilter) {
 	SupportGroups(filter: $filter) {
@@ -1353,7 +1373,7 @@ func ListSupportGroups(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	filter *SupportGroupFilter,
-) (*ListSupportGroupsResponse, error) {
+) (data_ *ListSupportGroupsResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "ListSupportGroups",
 		Query:  ListSupportGroups_Operation,
@@ -1361,10 +1381,9 @@ func ListSupportGroups(
 			Filter: filter,
 		},
 	}
-	var err_ error
 
-	var data_ ListSupportGroupsResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &ListSupportGroupsResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1372,10 +1391,10 @@ func ListSupportGroups(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by UpdateComponentInstance.
+// The mutation executed by UpdateComponentInstance.
 const UpdateComponentInstance_Operation = `
 mutation UpdateComponentInstance ($id: ID!, $input: ComponentInstanceInput!) {
 	updateComponentInstance(id: $id, input: $input) {
@@ -1398,7 +1417,7 @@ func UpdateComponentInstance(
 	client_ graphql.Client,
 	id string,
 	input *ComponentInstanceInput,
-) (*UpdateComponentInstanceResponse, error) {
+) (data_ *UpdateComponentInstanceResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "UpdateComponentInstance",
 		Query:  UpdateComponentInstance_Operation,
@@ -1407,10 +1426,9 @@ func UpdateComponentInstance(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ UpdateComponentInstanceResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &UpdateComponentInstanceResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -1418,5 +1436,5 @@ func UpdateComponentInstance(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }

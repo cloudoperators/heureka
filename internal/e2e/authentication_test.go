@@ -19,7 +19,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
-	db_common "github.com/cloudoperators/heureka/internal/database/mariadb/common"
 	. "github.com/onsi/ginkgo/v2"
 
 	. "github.com/onsi/gomega"
@@ -111,7 +110,7 @@ type authenticationTest struct {
 }
 
 func newAuthenticationTest() *authenticationTest {
-	db := dbm.NewTestSchema()
+	db := dbm.NewTestSchemaWithoutMigration()
 
 	cfg := dbm.DbConfig()
 	cfg.Port = util2.GetRandomFreePort()
@@ -124,8 +123,7 @@ func newAuthenticationTest() *authenticationTest {
 	Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 	cfg.Port = util2.GetRandomFreePort()
-	server := server.NewServer(cfg)
-	server.NonBlockingStart()
+	server := e2e_common.NewRunningServer(cfg)
 
 	seedCollection := seeder.SeedDbWithNFakeData(defaultTestFakeDataItems)
 
@@ -140,28 +138,28 @@ func newAuthenticationTest() *authenticationTest {
 
 func (at *authenticationTest) getTestUser() entity.User {
 	user := at.seedCollection.UserRows[0].AsUser()
-	Expect(user.Id).To(Not(Equal(db_common.SystemUserId)))
+	Expect(user.Id).To(Not(Equal(util.SystemUserId)))
 	return user
 }
 
 func (at *authenticationTest) getTestIssueCreatedByAndUpdatedBySystemUser() entity.Issue {
 	issue := at.seedCollection.IssueRows[0].AsIssue()
-	Expect(issue.Metadata.CreatedBy).To(Equal(db_common.SystemUserId))
-	Expect(issue.Metadata.UpdatedBy).To(Equal(db_common.SystemUserId))
+	Expect(issue.Metadata.CreatedBy).To(Equal(util.SystemUserId))
+	Expect(issue.Metadata.UpdatedBy).To(Equal(util.SystemUserId))
 	return issue
 }
 
 func (at *authenticationTest) teardown() {
-	at.server.BlockingStop()
+	e2e_common.ServerTeardown(at.server)
 	at.oidcProvider.Stop()
 	dbm.TestTearDown(at.db)
 }
 
 func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.User) model.Issue {
-	respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issue model.Issue `json:"createIssue"`
 	}](
-		at.getQueryUrl(),
+		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_create.graphql",
 		map[string]interface{}{
 			"input": map[string]interface{}{
@@ -180,10 +178,10 @@ func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.
 
 func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.User) model.Issue {
 	issue.Description = "New Description"
-	respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issue model.Issue `json:"updateIssue"`
 	}](
-		at.getQueryUrl(),
+		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_update.graphql",
 		map[string]interface{}{
 			"id":    strconv.FormatInt(issue.Id, 10),
@@ -192,15 +190,15 @@ func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.
 		at.getHeaders(user))
 
 	Expect(*respData.Issue.Description).To(Equal(issue.Description))
-	Expect(*respData.Issue.Metadata.CreatedBy).To(Equal(strconv.FormatInt(db_common.SystemUserId, 10)))
+	Expect(*respData.Issue.Metadata.CreatedBy).To(Equal(strconv.FormatInt(util.SystemUserId, 10)))
 	return respData.Issue
 }
 
 func (at *authenticationTest) deleteIssueByUser(issue entity.Issue, user entity.User) string {
-	respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Id string `json:"deleteIssue"`
 	}](
-		at.getQueryUrl(),
+		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_delete.graphql",
 		map[string]interface{}{
 			"id": strconv.FormatInt(issue.Id, 10),
@@ -212,10 +210,10 @@ func (at *authenticationTest) deleteIssueByUser(issue entity.Issue, user entity.
 }
 
 func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) model.Issue {
-	respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issues model.IssueConnection `json:"Issues"`
 	}](
-		at.getQueryUrl(),
+		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_get.graphql",
 		map[string]interface{}{
 			"filter": map[string]string{"state": "Deleted"},
@@ -229,15 +227,10 @@ func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) 
 	return *item.Node
 }
 
-func (at *authenticationTest) getQueryUrl() string {
-	return fmt.Sprintf("http://localhost:%s/query", at.cfg.Port)
-}
-
 func (at *authenticationTest) getHeaders(user entity.User) map[string]string {
-	return map[string]string{
-		"Cache-Control": "no-cache",
-		"Authorization": at.getAuthenticationHeaderForUser(user),
-	}
+	headers := e2e_common.GqlStandardHeaders
+	headers["Authorization"] = at.getAuthenticationHeaderForUser(user)
+	return headers
 }
 
 func (at *authenticationTest) getAuthenticationHeaderForUser(user entity.User) string {

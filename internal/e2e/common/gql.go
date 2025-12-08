@@ -5,6 +5,7 @@ package e2e_common
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	util2 "github.com/cloudoperators/heureka/pkg/util"
@@ -13,8 +14,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ExecuteGqlQueryFromFile[T any](url string, queryFilePath string, vars map[string]interface{}, headers map[string]string) T {
-	client, req := newClientAndRequestForGqlFileQuery(url, queryFilePath, vars, headers)
+var GqlStandardHeaders map[string]string = map[string]string{
+	"Cache-Control": "no-cache",
+}
+
+func ExecuteGqlQueryFromFile[T any](port string, queryFilePath string, vars map[string]interface{}) T {
+	return ExecuteGqlQueryFromFileWithHeaders[T](port, queryFilePath, vars, GqlStandardHeaders)
+}
+
+func ExecuteGqlQueryFromFileWithHeaders[T any](port string, queryFilePath string, vars map[string]interface{}, headers map[string]string) T {
+	client, req := newClientAndRequestForGqlFileQuery(port, queryFilePath, vars, headers)
 
 	var result T
 	if err := util2.RequestWithBackoff(func() error { return client.Run(context.Background(), req, &result) }); err != nil {
@@ -22,8 +31,9 @@ func ExecuteGqlQueryFromFile[T any](url string, queryFilePath string, vars map[s
 	}
 	return result
 }
-func newClientAndRequestForGqlFileQuery(url string, queryFilePath string, vars map[string]interface{}, headers map[string]string) (*graphql.Client, *graphql.Request) {
-	client := graphql.NewClient(url)
+
+func newClientAndRequestForGqlFileQuery(port string, queryFilePath string, vars map[string]interface{}, headers map[string]string) (*graphql.Client, *graphql.Request) {
+	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 	b, err := os.ReadFile(queryFilePath)
 	Expect(err).To(BeNil())
 	str := string(b)

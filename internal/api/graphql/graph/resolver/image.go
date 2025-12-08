@@ -19,9 +19,10 @@ import (
 
 func (r *imageResolver) Versions(ctx context.Context, obj *model.Image, first *int, after *string) (*model.ComponentVersionConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
-	serviceFilter := rootCtx.Args["filter"].(*model.ImageFilter)
+	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
 	filter := &model.ComponentVersionFilter{
-		ServiceCcrn: serviceFilter.Service,
+		ServiceCcrn: imageFilter.Service,
+		Repository:  imageFilter.Repository,
 	}
 	orderBy := []*model.ComponentVersionOrderBy{
 		{
@@ -42,9 +43,10 @@ func (r *imageResolver) Versions(ctx context.Context, obj *model.Image, first *i
 
 func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Image) (*model.SeverityCounts, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
-	serviceFilter := rootCtx.Args["filter"].(*model.ImageFilter)
+	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
 	filter := &model.ComponentFilter{
-		ServiceCcrn: serviceFilter.Service,
+		ServiceCcrn:                imageFilter.Service,
+		ComponentVersionRepository: imageFilter.Repository,
 	}
 	return baseResolver.ComponentIssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,
@@ -52,13 +54,14 @@ func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Imag
 	})
 }
 
-func (r *imageResolver) Vulnerabilities(ctx context.Context, obj *model.Image, first *int, after *string) (*model.VulnerabilityConnection, error) {
+func (r *imageResolver) Vulnerabilities(ctx context.Context, obj *model.Image, first *int, after *string, filter *model.VulnerabilityFilter) (*model.VulnerabilityConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
-	serviceFilter := rootCtx.Args["filter"].(*model.ImageFilter)
-	vulnerabilityFilter := &model.VulnerabilityFilter{
-		Service: serviceFilter.Service,
+	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
+	if filter == nil {
+		filter = &model.VulnerabilityFilter{}
 	}
-	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, vulnerabilityFilter, first, after, &model.NodeParent{
+	filter.Service = append(filter.Service, imageFilter.Service...)
+	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ImageNodeName,
 	})

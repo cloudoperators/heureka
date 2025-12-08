@@ -6,11 +6,13 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+	"os"
+
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
-	"os"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -32,18 +34,17 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -195,18 +196,17 @@ var _ = Describe("Creating Activity via API", Label("e2e", "Activities"), func()
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -259,18 +259,17 @@ var _ = Describe("Updating activity via API", Label("e2e", "Activities"), func()
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -325,18 +324,17 @@ var _ = Describe("Deleting Activity via API", Label("e2e", "Activities"), func()
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -388,18 +386,17 @@ var _ = Describe("Modifying Services of Activity via API", Label("e2e", "Service
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -507,18 +504,17 @@ var _ = Describe("Modifying Issues of Activity via API", Label("e2e", "ServiceIs
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
