@@ -1680,8 +1680,8 @@ func NewFakeRemediation() mariadb.RemediationRow {
 		RemediationDate: sql.NullTime{Time: gofakeit.Date(), Valid: true},
 		ExpirationDate:  sql.NullTime{Time: gofakeit.Date(), Valid: true},
 		Type:            sql.NullString{String: "false_positive", Valid: true},
-		CreatedBy:       sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
-		UpdatedBy:       sql.NullInt64{Int64: e2e_common.SystemUserId, Valid: true},
+		CreatedBy:       sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		UpdatedBy:       sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 	}
 }
 
