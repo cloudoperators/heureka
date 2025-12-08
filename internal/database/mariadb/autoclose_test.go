@@ -3,7 +3,6 @@
 
 package mariadb_test
 
-/*
 import (
 	"fmt"
 	"time"
@@ -202,4 +201,4 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), func() {
 			})
 		})
 	})
-})*/
+})

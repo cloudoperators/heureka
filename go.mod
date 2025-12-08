@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/99designs/gqlgen v0.17.84
-	github.com/brianvoe/gofakeit/v7 v7.12.0
+	github.com/brianvoe/gofakeit/v7 v7.12.1
 	github.com/coreos/go-oidc v2.4.0+incompatible
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
@@ -26,7 +26,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.11.1
-	github.com/valkey-io/valkey-go v1.0.68
+	github.com/valkey-io/valkey-go v1.0.69
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/text v0.31.0
 	golang.org/x/time v0.14.0
