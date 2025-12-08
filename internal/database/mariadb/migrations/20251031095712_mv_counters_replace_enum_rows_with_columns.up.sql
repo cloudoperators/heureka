@@ -90,7 +90,6 @@ BEGIN
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
     RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
     LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
-    LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
     LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
     LEFT JOIN SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id
     LEFT JOIN SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id
