@@ -41,7 +41,7 @@ For more info on how OpenFGA handles users, objects, and relations: https://open
 
 ## Handlers
 
-Using the event handling system, openfga tuples are modified based on the event handled. Based on the [Auth Model](https://github.com/cloudoperators/heureka/pull/829/files) defined, the OpenFGA tuples are implemented as follows here. 
+Using the event handling system, openfga tuples are modified based on the event handled. Based on the [Auth Model](https://github.com/cloudoperators/heureka/blob/main/internal/openfga/model/model.fga) defined, the OpenFGA tuples are implemented as follows here. 
 
 | Event                | Event Handler                        | Tuples Implemented                                                                                   |
 |-------------------------|-------------------------------|--------------------------------------------------------------------------------------------------|
