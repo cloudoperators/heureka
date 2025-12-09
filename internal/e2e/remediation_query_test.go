@@ -82,15 +82,13 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 						"after":  ""})
 				Expect(respData.Remediations.TotalCount).To(Equal(len(seedCollection.RemediationRows)))
 				Expect(len(respData.Remediations.Edges)).To(Equal(5))
-			})
-			It("- returns the expected PageInfo", func() {
+				//- returns the expected PageInfo
 				Expect(*respData.Remediations.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
 				Expect(*respData.Remediations.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
 				Expect(respData.Remediations.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
 				Expect(len(respData.Remediations.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
 				Expect(*respData.Remediations.PageInfo.PageNumber).To(Equal(1), "Correct page number")
-			})
-			It("- returns the expected content", func() {
+				//- returns the expected content
 				for _, remediation := range respData.Remediations.Edges {
 					Expect(remediation.Node.ID).ToNot(BeNil(), "remediation has ID set")
 					Expect(remediation.Node.Description).ToNot(BeNil(), "remediation has description set")
@@ -106,7 +104,6 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 					Expect(remediationFound).To(BeTrue(), "remediation exists in seeded data")
 				}
 			})
-
 		})
 	})
 })
