@@ -107,7 +107,7 @@ type imageTest struct {
 }
 
 func newImageTest() *imageTest {
-	db := dbm.NewTestSchema()
+	db := dbm.NewTestSchemaWithoutMigration()
 
 	cfg := dbm.DbConfig()
 	cfg.Port = util2.GetRandomFreePort()
