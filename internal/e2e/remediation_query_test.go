@@ -84,6 +84,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 				Expect(len(respData.Remediations.Edges)).To(Equal(5))
 			})
 			It("- returns the expected PageInfo", func() {
+				fmt.Println(respData.Remediations)
 				Expect(*respData.Remediations.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
 				Expect(*respData.Remediations.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
 				Expect(respData.Remediations.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
