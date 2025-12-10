@@ -158,7 +158,23 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 
 			testServicesTotalCount(totalCount)
 		})
+		It("can filter by service ccrn", func() {
+			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+			Expect(err).To(BeNil())
 
+			testServices(severityCounts)
+			for _, service := range seedCollection.ServiceRows {
+				serviceId := service.Id.Int64
+
+				filter := &entity.IssueFilter{
+					ServiceCCRN: []*string{&service.CCRN.String},
+				}
+
+				strId := fmt.Sprintf("%d", serviceId)
+
+				testIssueSeverityCount(filter, severityCounts[strId])
+			}
+		})
 	}
 
 	BeforeEach(func() {
