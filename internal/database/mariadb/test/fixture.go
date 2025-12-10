@@ -472,7 +472,7 @@ func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
 	issueRepositories := s.SeedIssueRepositories()
 	supportGroups := s.SeedSupportGroups(2)
 	issues := s.SeedIssues(10)
-	components := s.SeedComponents(1)
+	components := s.SeedComponents(2)
 	componentVersions := s.SeedComponentVersions(10, components)
 	services := s.SeedServices(5)
 	issueVariants, err := LoadIssueVariants(GetTestDataPath("../testdata/component_version_order/issue_variant.json"))
@@ -1671,6 +1671,17 @@ func NewFakeIssueMatchChange() mariadb.IssueMatchChangeRow {
 		},
 		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+	}
+}
+
+func NewFakeRemediation() mariadb.RemediationRow {
+	return mariadb.RemediationRow{
+		Description:     sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+		RemediationDate: sql.NullTime{Time: gofakeit.Date(), Valid: true},
+		ExpirationDate:  sql.NullTime{Time: gofakeit.Date(), Valid: true},
+		Type:            sql.NullString{String: "false_positive", Valid: true},
+		CreatedBy:       sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		UpdatedBy:       sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 	}
 }
 
