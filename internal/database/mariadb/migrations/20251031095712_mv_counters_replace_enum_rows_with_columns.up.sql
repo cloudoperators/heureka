@@ -291,7 +291,8 @@ DROP COLUMN issue_value,
 DROP COLUMN issue_count,
 ADD COLUMN issue_count INT GENERATED ALWAYS AS (
     critical_count + high_count + medium_count + low_count + none_count
-) STORED;
+) STORED,
+ADD COLUMN service_ccrn VARCHAR(255) DEFAULT NULL;
 
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsServiceId_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsServiceId_proc()
@@ -299,6 +300,7 @@ BEGIN
     TRUNCATE TABLE mvCountIssueRatingsServiceId;
     INSERT INTO mvCountIssueRatingsServiceId (
         service_id,
+        service_ccrn,
         critical_count,
         high_count,
         medium_count,
@@ -307,6 +309,7 @@ BEGIN
     )
     SELECT
         CI.componentinstance_service_id AS service_id,
+        S.service_ccrn AS service_ccrn,
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END) AS critical_count,
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END) AS high_count,
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END) AS medium_count,
@@ -316,6 +319,7 @@ BEGIN
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
     LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
     LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id AND CI.componentinstance_deleted_at IS NULL
+    LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
     LEFT JOIN Remediation R ON CI.componentinstance_service_id = R.remediation_service_id AND I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL
     WHERE I.issue_deleted_at IS NULL
     -- Count only non-remediated or with expired remediation
