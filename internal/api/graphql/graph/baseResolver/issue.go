@@ -265,7 +265,9 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		case model.ServiceNodeName:
 			serviceId = []*int64{pid}
 		case model.VulnerabilityNodeName:
-			unique = true
+			if len(filter.SupportGroupCcrn) == 0 {
+				unique = true
+			}
 		}
 	}
 
