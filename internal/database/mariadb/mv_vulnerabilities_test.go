@@ -90,6 +90,15 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		}
 	}
 
+	var testServicesTotalCountWithUnique = func(counts entity.IssueSeverityCounts) {
+		filter := &entity.IssueFilter{
+			Unique:      true,
+			AllServices: true,
+		}
+
+		testIssueSeverityCount(filter, counts)
+	}
+
 	var testServicesTotalCount = func(counts entity.IssueSeverityCounts) {
 		filter := &entity.IssueFilter{
 			AllServices: true,
@@ -141,6 +150,24 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			Expect(err).To(BeNil())
 
 			testServicesTotalCountWithSupportGroup(severityCounts)
+		})
+		It("return the total count for all services unique filter", func() {
+			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+			Expect(err).To(BeNil())
+			totalCounts := entity.IssueSeverityCounts{}
+			for _, count := range severityCounts {
+				totalCounts.Critical += count.Critical
+				totalCounts.High += count.High
+				totalCounts.Medium += count.Medium
+				totalCounts.Low += count.Low
+				totalCounts.None += count.None
+				totalCounts.Total += count.Total
+			}
+
+			iv := test.NewFakeIssueVariant(seedCollection.IssueRepositoryRows, seedCollection.IssueRows)
+			seeder.InsertFakeIssueVariant(iv)
+
+			testServicesTotalCountWithUnique(totalCounts)
 		})
 		It("return the total count for all services without support group filter", func() {
 			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
