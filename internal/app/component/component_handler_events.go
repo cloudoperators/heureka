@@ -90,19 +90,15 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 		componentId := strconv.FormatInt(createEvent.Component.Id, 10)
 		userId := authz.GetCurrentUser()
 
-		rlist := []openfga.RelationInput{
-			{
-				UserType:   "role",
-				UserId:     openfga.UserId(userId),
-				Relation:   "role",
-				ObjectType: "component",
-				ObjectId:   openfga.ObjectId(componentId),
-			},
+		rInput := openfga.RelationInput{
+			UserType:   "role",
+			UserId:     openfga.UserId(userId),
+			Relation:   "role",
+			ObjectType: "component",
+			ObjectId:   openfga.ObjectId(componentId),
 		}
 
-		for _, rel := range rlist {
-			authz.AddRelation(rel)
-		}
+		authz.AddRelation(rInput)
 	} else {
 		err := NewComponentHandlerError("OnComponentCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Component", "", err)
