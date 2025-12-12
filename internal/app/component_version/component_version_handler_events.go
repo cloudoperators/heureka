@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
@@ -57,6 +58,8 @@ func (e *DeleteComponentVersionEvent) Name() event.EventName {
 // OnComponentVersionCreateAuthz is a handler for the CreateComponentVersionEvent
 // It creates an OpenFGA relation tuple for the component version and the current user
 func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnComponentVersionCreateAuthz")
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentVersionCreateAuthz",
 		"payload": e,
@@ -80,7 +83,9 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 			authz.AddRelation(rel)
 		}
 	} else {
-		l.Error("Wrong event")
+		err := NewComponentVersionHandlerError("OnComponentVersionCreateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
+		l.Error(wrappedErr)
 	}
 }
 
@@ -88,6 +93,8 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 // Fields that can be updated in Component Version which affect tuple relations include:
 // componentversion_component_id
 func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnComponentVersionUpdateAuthz")
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentVersionUpdateAuthz",
 		"payload": e,
@@ -116,12 +123,16 @@ func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz op
 			authz.UpdateRelation(removeInput, newRelation)
 		}
 	} else {
-		l.Error("Wrong event")
+		err := NewComponentVersionHandlerError("OnComponentVersionUpdateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
+		l.Error(wrappedErr)
 	}
 }
 
 // OnComponentVersionDeleteAuthz is a handler for the DeleteComponentVersionEvent
 func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnComponentVersionDeleteAuthz")
+
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -146,6 +157,8 @@ func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz op
 
 		authz.RemoveRelationBulk(deleteInput)
 	} else {
-		l.Error("Wrong event")
+		err := NewComponentVersionHandlerError("OnComponentVersionDeleteAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
+		l.Error(wrappedErr)
 	}
 }

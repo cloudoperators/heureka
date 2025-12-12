@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
@@ -215,6 +216,8 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 // OnIssueMatchCreateAuthz is a handler for the CreateIssueMatchEvent
 // It creates an OpenFGA relation tuple for the issue match and the current user
 func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnIssueMatchCreateAuthz")
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnIssueMatchCreateAuthz",
 		"payload": e,
@@ -238,7 +241,9 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 			authz.AddRelation(rel)
 		}
 	} else {
-		l.Error("Wrong event")
+		err := NewIssueMatchHandlerError("OnIssueMatchCreateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+		l.Error(wrappedErr)
 	}
 }
 
@@ -246,6 +251,8 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 // Fields that can be updated in Issue Match which affect tuple relations include:
 // issuematch_component_instance_id
 func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnIssueMatchUpdateAuthz")
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnIssueMatchUpdateAuthz",
 		"payload": e,
@@ -276,12 +283,16 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 			authz.AddRelation(newRelation)
 		}
 	} else {
-		l.Error("Wrong event")
+		err := NewIssueMatchHandlerError("OnIssueMatchUpdateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+		l.Error(wrappedErr)
 	}
 }
 
 // OnIssueMatchDeleteAuthz is a handler for the DeleteIssueMatchEvent
 func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnIssueMatchDeleteAuthz")
+
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -306,6 +317,8 @@ func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.
 
 		authz.RemoveRelationBulk(deleteInput)
 	} else {
-		l.Error("Wrong event")
+		err := NewIssueMatchHandlerError("OnIssueMatchDeleteAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+		l.Error(wrappedErr)
 	}
 }

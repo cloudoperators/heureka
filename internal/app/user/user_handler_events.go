@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
@@ -90,6 +91,8 @@ func (e *ListUserNamesAndIdsEvent) Name() event.EventName {
 
 // OnServiceDeleteAuthz is a handler for the DeleteServiceEvent
 func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnUserDeleteAuthz")
+
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -114,6 +117,8 @@ func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Author
 
 		authz.RemoveRelationBulk(deleteInput)
 	} else {
-		l.Error("Wrong event")
+		err := NewUserHandlerError("OnUserDeleteAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "User", "", err)
+		l.Error(wrappedErr)
 	}
 }

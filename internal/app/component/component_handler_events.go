@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
@@ -78,6 +79,8 @@ func (e *GetComponentIssueSeverityCountsEvent) Name() event.EventName {
 // OnComponentCreateAuthz is a handler for the CreateComponentEvent
 // It creates an OpenFGA relation tuple for the component and the current user
 func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnComponentCreateAuthz")
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentCreateAuthz",
 		"payload": e,
@@ -101,12 +104,16 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 			authz.AddRelation(rel)
 		}
 	} else {
-		l.Error("Wrong event")
+		err := NewComponentHandlerError("OnComponentCreateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "Component", "", err)
+		l.Error(wrappedErr)
 	}
 }
 
 // OnComponentDeleteAuthz is a handler for the DeleteComponentEvent
 func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnComponentDeleteAuthz")
+
 	deleteInput := []openfga.RelationInput{}
 
 	l := logrus.WithFields(logrus.Fields{
@@ -124,6 +131,8 @@ func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.A
 
 		authz.RemoveRelationBulk(deleteInput)
 	} else {
-		l.Error("Wrong event")
+		err := NewComponentHandlerError("OnComponentDeleteAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "Component", "", err)
+		l.Error(wrappedErr)
 	}
 }
