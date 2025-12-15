@@ -14,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/samber/lo"
 )
 
 var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
@@ -190,11 +191,28 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			Expect(err).To(BeNil())
 
 			testServices(severityCounts)
+		})
+		It("can filter by support group ccrn and service ccrn", func() {
+			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+			Expect(err).To(BeNil())
+
 			for _, service := range seedCollection.ServiceRows {
 				serviceId := service.Id.Int64
+				sgId, found := lo.Find(seedCollection.SupportGroupServiceRows, func(sgs mariadb.SupportGroupServiceRow) bool {
+					return sgs.ServiceId.Int64 == serviceId
+				})
+
+				Expect(found).To(BeTrue(), "Support group for service should be found")
+
+				sg, found := lo.Find(seedCollection.SupportGroupRows, func(sg mariadb.SupportGroupRow) bool {
+					return sg.Id.Int64 == sgId.SupportGroupId.Int64
+				})
+
+				Expect(found).To(BeTrue(), "Support group should be found")
 
 				filter := &entity.IssueFilter{
-					ServiceCCRN: []*string{&service.CCRN.String},
+					ServiceCCRN:      []*string{&service.CCRN.String},
+					SupportGroupCCRN: []*string{&sg.CCRN.String},
 				}
 
 				strId := fmt.Sprintf("%d", serviceId)
