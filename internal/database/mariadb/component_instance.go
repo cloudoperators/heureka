@@ -5,10 +5,11 @@ package mariadb
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
 func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
@@ -595,8 +596,8 @@ func (s *SqlDatabase) GetContext(filter *entity.ComponentInstanceFilter) ([]stri
 func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {
 	query := `
         INSERT INTO ScannerRunComponentInstanceTracker (
-			scannerruncomponentinstance_component_instance_id, 
-			scannerruncomponentinstance_scannerrun_run_id
+			scannerruncomponentinstancetracker_component_instance_id, 
+			scannerruncomponentinstancetracker_scannerrun_run_id
 		)
         VALUES (?, ?)
     `
