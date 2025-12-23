@@ -4,10 +4,7 @@
 package mariadb
 
 import (
-	"database/sql"
-	"fmt"
 	"strings"
-	"time"
 )
 
 func (s *SqlDatabase) Autopatch() (bool, error) {
@@ -220,74 +217,51 @@ func (s *SqlDatabase) fetchIssuesForRun(scannerRunId int) (map[int]struct{}, err
 	return issues, rows.Err()
 }
 
-func (s *SqlDatabase) fetchServiceAndVersionForInstance(instanceID int) (int, int, error) {
-	row := s.db.QueryRow(`
-        SELECT componentinstance_service_id,
-               componentinstance_component_version_id
-        FROM ComponentInstance
-        WHERE componentinstance_id = ?`,
-		instanceID)
+type patchInfo struct {
+	serviceId            int
+	serviceName          string
+	componentVersionId   int
+	componentVersionName string
+}
 
-	var serviceID, versionID int
-	err := row.Scan(&serviceID, &versionID)
-	return serviceID, versionID, err
+func (s *SqlDatabase) fetchServiceAndVersionForInstance(instanceID int) (patchInfo, error) {
+	query := `
+        SELECT
+            ci.componentinstance_service_id,
+            s.service_ccrn,
+            ci.componentinstance_component_version_id,
+            cv.componentversion_version
+        FROM ComponentInstance ci
+        INNER JOIN Service s
+            ON ci.componentinstance_service_id = s.service_id
+        INNER JOIN ComponentVersion cv
+            ON ci.componentinstance_component_version_id = cv.componentversion_id
+        WHERE ci.componentinstance_id = ?`
+
+	row := s.db.QueryRow(query, instanceID)
+
+	var pInfo patchInfo
+	err := row.Scan(
+		&pInfo.serviceId,
+		&pInfo.serviceName,
+		&pInfo.componentVersionId,
+		&pInfo.componentVersionName,
+	)
+
+	return pInfo, err
 }
 
 func (s *SqlDatabase) insertPatch(di disappearedInstance) error {
-	serviceId, versionId, err := s.fetchServiceAndVersionForInstance(di.instId)
-	if err != nil {
-		return err
-	}
-
-	sri, err := s.getScannerRunInfoById(di.runId)
+	pInfo, err := s.fetchServiceAndVersionForInstance(di.instId)
 	if err != nil {
 		return err
 	}
 
 	_, err = s.db.Exec(`
-        INSERT INTO Patch (patch_service_id, patch_component_version_id, patch_scan_id, patch_scan_uuid, patch_scan_tag, patch_scan_start_run, patch_scan_end_run)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, serviceId, versionId, sri.id, sri.uuid, sri.tag, sri.startRun, sri.endRun)
+        INSERT INTO Patch (patch_service_id, patch_service_name, patch_component_version_id, patch_component_version_name)
+        VALUES (?, ?, ?, ?)
+    `, pInfo.serviceId, pInfo.serviceName, pInfo.componentVersionId, pInfo.componentVersionName)
 	return err
-}
-
-type scannerRunInfo struct {
-	id       uint
-	uuid     string
-	tag      string
-	startRun time.Time
-	endRun   time.Time
-}
-
-func (s *SqlDatabase) getScannerRunInfoById(scannerRunId int) (*scannerRunInfo, error) {
-	const query = `
-		SELECT
-			scannerrun_run_id,
-			scannerrun_uuid,
-			scannerrun_tag,
-			scannerrun_start_run,
-			scannerrun_end_run
-		FROM ScannerRun
-		WHERE scannerrun_run_id = ?
-	`
-
-	var sri scannerRunInfo
-	err := s.db.QueryRow(query, scannerRunId).Scan(
-		&sri.id,
-		&sri.uuid,
-		&sri.tag,
-		&sri.startRun,
-		&sri.endRun,
-	)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("scanner run %d not found", scannerRunId)
-		}
-		return nil, err
-	}
-
-	return &sri, nil
 }
 
 func (s *SqlDatabase) markIssuesMitigated(issueIDs []int) error {

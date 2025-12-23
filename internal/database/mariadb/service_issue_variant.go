@@ -5,11 +5,12 @@ package mariadb
 
 import (
 	"fmt"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureServiceIssueVariantFilter(f *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
+func ensureServiceIssueVariantFilter(f *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
 	var first = 1000
 	var after int64 = 0
 	if f == nil {
@@ -31,7 +32,7 @@ func (s *SqlDatabase) ensureServiceIssueVariantFilter(f *entity.ServiceIssueVari
 	return f
 }
 
-func (s *SqlDatabase) getServiceIssueVariantFilterString(filter *entity.ServiceIssueVariantFilter) string {
+func getServiceIssueVariantFilterString(filter *entity.ServiceIssueVariantFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "I.issue_id = ?", OP_OR))
@@ -42,10 +43,10 @@ func (s *SqlDatabase) getServiceIssueVariantFilterString(filter *entity.ServiceI
 
 func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter *entity.ServiceIssueVariantFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureServiceIssueVariantFilter(filter)
+	filter = ensureServiceIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getServiceIssueVariantFilterString(filter)
+	filterStr := getServiceIssueVariantFilterString(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "IV.issuevariant_id > ?")
 
 	whereClause := ""

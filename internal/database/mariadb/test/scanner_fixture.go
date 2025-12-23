@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+
 	"github.com/brianvoe/gofakeit/v7"
 )
 
@@ -372,4 +374,40 @@ func (s *DatabaseSeeder) CleanupScannerRuns() error {
 	var err error
 	_, err = s.db.Exec(cleanupQuery)
 	return err
+}
+
+func (s *DatabaseSeeder) FetchPatchByComponentInstanceCCRN(ccrn string) (*mariadb.PatchRow, error) {
+	query := `
+        SELECT
+            p.patch_id,
+            p.patch_service_id,
+            p.patch_service_name,
+            p.patch_component_version_id,
+            p.patch_component_version_name,
+            p.patch_created_at
+        FROM Patch p
+        INNER JOIN ComponentInstance ci
+            ON p.patch_service_id = ci.componentinstance_service_id
+            AND p.patch_component_version_id = ci.componentinstance_component_version_id
+        WHERE ci.componentinstance_ccrn = ?
+        LIMIT 1`
+
+	var p mariadb.PatchRow
+	err := s.db.QueryRow(query, ccrn).Scan(
+		&p.Id,
+		&p.ServiceId,
+		&p.ServiceName,
+		&p.ComponentVersionId,
+		&p.ComponentVersionName,
+		&p.CreatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("patch not found for component: '%s' %w", ccrn, err)
+		}
+		return nil, fmt.Errorf("failed to fetch patch by ccrn: %w", err)
+	}
+
+	return &p, nil
 }
