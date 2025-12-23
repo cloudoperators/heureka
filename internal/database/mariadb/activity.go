@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureActivityFilter(f *entity.ActivityFilter) *entity.ActivityFilter {
+func ensureActivityFilter(f *entity.ActivityFilter) *entity.ActivityFilter {
 	if f != nil {
 		return f
 	}
@@ -49,7 +49,7 @@ func (s *SqlDatabase) getActivityJoins(filter *entity.ActivityFilter) string {
 	return joins
 }
 
-func (s *SqlDatabase) getActivityFilterString(filter *entity.ActivityFilter) string {
+func getActivityFilterString(filter *entity.ActivityFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Status, "A.activity_status = ?", OP_OR))
@@ -62,7 +62,7 @@ func (s *SqlDatabase) getActivityFilterString(filter *entity.ActivityFilter) str
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getActivityUpdateFields(activity *entity.Activity) string {
+func getActivityUpdateFields(activity *entity.Activity) string {
 	fl := []string{}
 	if activity.Status != "" {
 		fl = append(fl, "activity_status = :activity_status")
@@ -75,10 +75,10 @@ func (s *SqlDatabase) getActivityUpdateFields(activity *entity.Activity) string 
 
 func (s *SqlDatabase) buildActivityStatement(baseQuery string, filter *entity.ActivityFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureActivityFilter(filter)
+	filter = ensureActivityFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getActivityFilterString(filter)
+	filterStr := getActivityFilterString(filter)
 	joins := s.getActivityJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "A.activity_id > ?")
 
@@ -157,7 +157,7 @@ func (s *SqlDatabase) GetActivities(filter *entity.ActivityFilter) ([]entity.Act
 		%s GROUP BY A.activity_id ORDER BY A.activity_id LIMIT ?
     `
 
-	filter = s.ensureActivityFilter(filter)
+	filter = ensureActivityFilter(filter)
 	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildActivityStatement(baseQuery, filter, true, l)
@@ -243,7 +243,7 @@ func (s *SqlDatabase) UpdateActivity(activity *entity.Activity) error {
 		WHERE activity_id = :activity_id
 	`
 
-	updateFields := s.getActivityUpdateFields(activity)
+	updateFields := getActivityUpdateFields(activity)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

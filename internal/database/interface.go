@@ -162,11 +162,16 @@ type Database interface {
 	UpdateRemediation(*entity.Remediation) error
 	DeleteRemediation(int64, int64) error
 
+	GetPatches(*entity.PatchFilter, []entity.Order) ([]entity.PatchResult, error)
+	GetAllPatchCursors(*entity.PatchFilter, []entity.Order) ([]string, error)
+	CountPatches(*entity.PatchFilter) (int64, error)
+
 	CloseConnection() error
 
 	CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error
 
 	Autoclose() (bool, error)
+	Autopatch() (bool, error)
 
 	WaitPostMigrations() error
 }

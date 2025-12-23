@@ -20,6 +20,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/patch"
 	"github.com/cloudoperators/heureka/internal/app/profiler"
 	"github.com/cloudoperators/heureka/internal/app/remediation"
 	"github.com/cloudoperators/heureka/internal/app/scanner_run"
@@ -50,6 +51,7 @@ type HeurekaApp struct {
 	support_group.SupportGroupHandler
 	user.UserHandler
 	remediation.RemediationHandler
+	patch.PatchHandler
 
 	authz openfga.Authorization
 
@@ -105,6 +107,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		SupportGroupHandler:      support_group.NewSupportGroupHandler(handlerContext),
 		UserHandler:              user.NewUserHandler(handlerContext),
 		RemediationHandler:       remediation.NewRemediationHandler(handlerContext),
+		PatchHandler:             patch.NewPatchHandler(handlerContext),
 		eventRegistry:            handlerContext.EventReg,
 		database:                 handlerContext.DB,
 		cache:                    handlerContext.Cache,
