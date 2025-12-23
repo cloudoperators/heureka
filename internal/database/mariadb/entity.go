@@ -287,6 +287,12 @@ type IssueMatchRow struct {
 }
 
 func (imr IssueMatchRow) AsIssueMatch() entity.IssueMatch {
+	var severity entity.Severity
+	if imr.Vector.String == "" {
+		severity = entity.NewSeverityFromRating(entity.SeverityValues(imr.Rating.String))
+	} else {
+		severity = entity.NewSeverity(GetStringValue(imr.Vector))
+	}
 	return entity.IssueMatch{
 		Id:                    GetInt64Value(imr.Id),
 		Status:                entity.NewIssueMatchStatusValue(GetStringValue(imr.Status)),
@@ -298,7 +304,7 @@ func (imr IssueMatchRow) AsIssueMatch() entity.IssueMatch {
 		IssueId:               GetInt64Value(imr.IssueId),
 		RemediationDate:       GetTimeValue(imr.RemediationDate),
 		TargetRemediationDate: GetTimeValue(imr.TargetRemediationDate),
-		Severity:              entity.NewSeverity(GetStringValue(imr.Vector)),
+		Severity:              severity,
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(imr.CreatedAt),
 			CreatedBy: GetInt64Value(imr.CreatedBy),

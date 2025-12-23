@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"database/sql"
 	"math/rand"
 	"sort"
 	"time"
@@ -1155,5 +1156,17 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 			Expect(res[3].Id).To(BeEquivalentTo(30))
 			Expect(res[4].Id).To(BeEquivalentTo(5))
 		})
+	})
+})
+
+var _ = Describe("Converting IssueMatchRow to IssueMatch", func() {
+	It("Sets Severity Value when vector is empty", func() {
+		row := mariadb.IssueMatchRow{
+			Rating: sql.NullString{String: "Critical", Valid: true},
+		}
+
+		im := row.AsIssueMatch()
+
+		Expect(im.Severity.Value).To(BeEquivalentTo("Critical"))
 	})
 })
