@@ -24,7 +24,7 @@ func getCountTable(filter *entity.IssueFilter) string {
 			// service list view total count without support group filter
 			return "mvCountIssueRatingsServiceWithoutSupportGroup"
 		}
-	} else if len(filter.SupportGroupCCRN) > 0 {
+	} else if len(filter.SupportGroupCCRN) > 0 && len(filter.ServiceCCRN) == 0 && len(filter.ServiceId) == 0 {
 		// Count issues in a support group
 		return "mvCountIssueRatingsSupportGroup"
 	} else if len(filter.ComponentVersionId) > 0 {
@@ -71,7 +71,7 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 		fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CIR.component_version_id = ?", OP_OR))
 	}
 
-	if len(filter.SupportGroupCCRN) > 0 {
+	if len(filter.SupportGroupCCRN) > 0 && len(filter.ServiceId) == 0 && len(filter.ServiceCCRN) == 0 {
 		filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 		fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "CIR.supportgroup_ccrn = ?", OP_OR))
 	}
