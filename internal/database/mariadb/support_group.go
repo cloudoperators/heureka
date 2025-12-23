@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) getSupportGroupFilterString(filter *entity.SupportGroupFilter) string {
+func getSupportGroupFilterString(filter *entity.SupportGroupFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "SG.supportgroup_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "SGS.supportgroupservice_service_id = ?", OP_OR))
@@ -24,7 +24,7 @@ func (s *SqlDatabase) getSupportGroupFilterString(filter *entity.SupportGroupFil
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getSupportGroupUpdateFields(supportGroup *entity.SupportGroup) string {
+func getSupportGroupUpdateFields(supportGroup *entity.SupportGroup) string {
 	fl := []string{}
 	if supportGroup.CCRN != "" {
 		fl = append(fl, "supportgroup_ccrn = :supportgroup_ccrn")
@@ -57,7 +57,7 @@ func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) st
 	return joins
 }
 
-func (s *SqlDatabase) ensureSupportGroupFilter(f *entity.SupportGroupFilter) *entity.SupportGroupFilter {
+func ensureSupportGroupFilter(f *entity.SupportGroupFilter) *entity.SupportGroupFilter {
 	var first int = 1000
 	var after string = ""
 	if f == nil {
@@ -84,10 +84,10 @@ func (s *SqlDatabase) ensureSupportGroupFilter(f *entity.SupportGroupFilter) *en
 
 func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entity.SupportGroupFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureSupportGroupFilter(filter)
+	filter = ensureSupportGroupFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getSupportGroupFilterString(filter)
+	filterStr := getSupportGroupFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, err
@@ -134,13 +134,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	filterParameters = buildQueryParameters(filterParameters, filter.UserId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -180,7 +174,7 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(filter *entity.SupportGroupFilte
 	    %s GROUP BY SG.supportgroup_id ORDER BY %s
     `
 
-	filter = s.ensureSupportGroupFilter(filter)
+	filter = ensureSupportGroupFilter(filter)
 	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, order, l)
 
 	if err != nil {
@@ -315,7 +309,7 @@ func (s *SqlDatabase) UpdateSupportGroup(supportGroup *entity.SupportGroup) erro
 		WHERE supportgroup_id = :supportgroup_id
 	`
 
-	updateFields := s.getSupportGroupUpdateFields(supportGroup)
+	updateFields := getSupportGroupUpdateFields(supportGroup)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
@@ -471,7 +465,7 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
 	}
 
 	// Ensure the filter is initialized
-	filter = s.ensureSupportGroupFilter(filter)
+	filter = ensureSupportGroupFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, order, l)

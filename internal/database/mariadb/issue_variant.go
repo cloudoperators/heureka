@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureIssueVariantFilter(f *entity.IssueVariantFilter) *entity.IssueVariantFilter {
+func ensureIssueVariantFilter(f *entity.IssueVariantFilter) *entity.IssueVariantFilter {
 	var first = 1000
 	var after int64 = 0
 	if f == nil {
@@ -62,7 +62,7 @@ func (s *SqlDatabase) getIssueVariantJoins(filter *entity.IssueVariantFilter) st
 	return joins
 }
 
-func (s *SqlDatabase) getIssueVariantFilterString(filter *entity.IssueVariantFilter) string {
+func getIssueVariantFilterString(filter *entity.IssueVariantFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "IV.issuevariant_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SecondaryName, "IV.issuevariant_secondary_name = ?", OP_OR))
@@ -75,7 +75,7 @@ func (s *SqlDatabase) getIssueVariantFilterString(filter *entity.IssueVariantFil
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVariant) string {
+func getIssueVariantUpdateFields(issueVariant *entity.IssueVariant) string {
 	fl := []string{}
 	if issueVariant.SecondaryName != "" {
 		fl = append(fl, "issuevariant_secondary_name = :issuevariant_secondary_name")
@@ -107,10 +107,10 @@ func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVari
 
 func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entity.IssueVariantFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureIssueVariantFilter(filter)
+	filter = ensureIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getIssueVariantFilterString(filter)
+	filterStr := getIssueVariantFilterString(filter)
 	joins := s.getIssueVariantJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "IV.issuevariant_id > ?")
 
@@ -288,7 +288,7 @@ func (s *SqlDatabase) UpdateIssueVariant(issueVariant *entity.IssueVariant) erro
 		WHERE issuevariant_id = :issuevariant_id
 	`
 
-	updateFields := s.getIssueVariantUpdateFields(issueVariant)
+	updateFields := getIssueVariantUpdateFields(issueVariant)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

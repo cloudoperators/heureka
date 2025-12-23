@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity.IssueMatchFilter {
+func ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity.IssueMatchFilter {
 	if f != nil {
 		return f
 	}
@@ -28,7 +28,7 @@ func (s *SqlDatabase) ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity
 	}
 }
 
-func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter) string {
+func getIssueMatchFilterString(filter *entity.IssueMatchFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
@@ -112,7 +112,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 	return joins
 }
 
-func (s *SqlDatabase) getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) string {
+func getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) string {
 	fl := []string{}
 	if issueMatch.Status != "" && issueMatch.Status != entity.IssueMatchStatusValuesNone {
 		fl = append(fl, "issuematch_status = :issuematch_status")
@@ -159,10 +159,10 @@ func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
 
 func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureIssueMatchFilter(filter)
+	filter = ensureIssueMatchFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getIssueMatchFilterString(filter)
+	filterStr := getIssueMatchFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, err
@@ -222,13 +222,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 
 	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -427,7 +421,7 @@ func (s *SqlDatabase) UpdateIssueMatch(issueMatch *entity.IssueMatch) error {
 		WHERE issuematch_id = :issuematch_id
 	`
 
-	updateFields := s.getIssueMatchUpdateFields(issueMatch)
+	updateFields := getIssueMatchUpdateFields(issueMatch)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

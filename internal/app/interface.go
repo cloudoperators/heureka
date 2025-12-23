@@ -14,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/patch"
 	"github.com/cloudoperators/heureka/internal/app/remediation"
 	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
@@ -40,6 +41,7 @@ type Heureka interface {
 	support_group.SupportGroupHandler
 	user.UserHandler
 	remediation.RemediationHandler
+	patch.PatchHandler
 
 	Shutdown() error
 }
