@@ -109,7 +109,7 @@ func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) 
 }
 
 func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.ScannerRun, error) {
-	filter = s.ensureScannerRunFilter(filter)
+	filter = ensureScannerRunFilter(filter)
 
 	baseQuery := `
 		SELECT * FROM ScannerRun
@@ -174,7 +174,7 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 	return queryArgs, baseQuery
 }
 
-func (s *SqlDatabase) ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity.ScannerRunFilter {
+func ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity.ScannerRunFilter {
 	var first int = 100
 	var after int64 = 0
 	if f == nil {

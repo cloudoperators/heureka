@@ -22,9 +22,10 @@ type scannerRun struct {
 }
 
 type autoScanTestInfo struct {
-	description    string
-	scannerRuns    []scannerRun
-	expectedResult bool
+	description       string
+	scannerRuns       []scannerRun
+	expectedResult    bool
+	patchedComponents []string
 }
 
 type autoScanTest struct {
@@ -59,8 +60,18 @@ func (ast *autoScanTest) Run(tag string, info autoScanTestInfo, fn func(db *mari
 	res, err := fn(ast.db)
 	Expect(err).To(BeNil(), fmt.Sprintf("%s THEN it should return no error", info.description))
 	Expect(res).To(BeEquivalentTo(info.expectedResult), fmt.Sprintf("%s THEN it should return %t", info.description, info.expectedResult))
+
+	for _, patchedComponent := range info.patchedComponents {
+		ast.ExpectPatchForComponent(patchedComponent)
+	}
+
 	err = ast.databaseSeeder.CleanupScannerRuns()
 	Expect(err).To(BeNil())
+}
+
+func (ast *autoScanTest) ExpectPatchForComponent(ccrn string) {
+	_, err := ast.databaseSeeder.FetchPatchByComponentInstanceCCRN(ccrn)
+	Expect(err).To(BeNil(), "Expected patch not found")
 }
 
 var _ = Describe("Autoclose", Label("database", "Autoclose"), Label("database", "AutoScanProcess"), func() {
@@ -74,85 +85,85 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), Label("database", 
 
 	var autocloseTests = []autoScanTestInfo{
 		{
-			"WHEN db has no scans",
-			[]scannerRun{},
-			false,
+			description:    "WHEN db has no scans",
+			scannerRuns:    []scannerRun{},
+			expectedResult: false,
 		},
 		{
-			"WHEN database has one not completed scan",
-			[]scannerRun{
+			description: "WHEN database has one not completed scan",
+			scannerRuns: []scannerRun{
 				{isNotCompleted: true},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN database has one completed empty scan",
-			[]scannerRun{
+			description: "WHEN database has one completed empty scan",
+			scannerRuns: []scannerRun{
 				{},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN database has one completed scan with one issue",
-			[]scannerRun{
+			description: "WHEN database has one completed scan with one issue",
+			scannerRuns: []scannerRun{
 				{issues: []string{"Issue1"}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN database has two completed empty scans",
-			[]scannerRun{
+			description: "WHEN database has two completed empty scans",
+			scannerRuns: []scannerRun{
 				{},
 				{},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN database has one completed scan with an issue and the second one not-completed without the issue",
-			[]scannerRun{
+			description: "WHEN database has one completed scan with an issue and the second one not-completed without the issue",
+			scannerRuns: []scannerRun{
 				{issues: []string{"Issue1"}},
 				{isNotCompleted: true},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN database has two completed scans where the first run found an issue and the second one has no longer the issue from previous run",
-			[]scannerRun{
+			description: "WHEN database has two completed scans where the first run found an issue and the second one has no longer the issue from previous run",
+			scannerRuns: []scannerRun{
 				{issues: []string{"Issue1"}},
 				{},
 			},
-			true,
+			expectedResult: true,
 		},
 		{
-			"WHEN database has two completed scans where the first run found an issue and the second one has the same issue",
-			[]scannerRun{
+			description: "WHEN database has two completed scans where the first run found an issue and the second one has the same issue",
+			scannerRuns: []scannerRun{
 				{issues: []string{"Issue1"}},
 				{issues: []string{"Issue1"}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN database has two completed scans where the first run found an issue and the second one has different issue",
-			[]scannerRun{
+			description: "WHEN database has two completed scans where the first run found an issue and the second one has different issue",
+			scannerRuns: []scannerRun{
 				{issues: []string{"Issue1"}},
 				{issues: []string{"Issue2"}},
 			},
-			true,
+			expectedResult: true,
 		},
 		{
-			"WHEN database has two completed scans where the first run found a componentInstance issue and the second one has no longer the issue from previous run",
-			[]scannerRun{
+			description: "WHEN database has two completed scans where the first run found a componentInstance issue and the second one has no longer the issue from previous run",
+			scannerRuns: []scannerRun{
 				{
 					issues:               []string{"Issue1"},
 					components:           []string{"Component1"},
 					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "Component1"}}},
 				{components: []string{"Component2"}},
 			},
-			true,
+			expectedResult: true,
 		},
 		{
-			"WHEN database has two completed scans where the first run found a componentInstance issue and the second one has the same issue",
-			[]scannerRun{
+			description: "WHEN database has two completed scans where the first run found a componentInstance issue and the second one has the same issue",
+			scannerRuns: []scannerRun{
 				{
 					issues:               []string{"Issue1"},
 					components:           []string{"Component1"},
@@ -162,52 +173,52 @@ var _ = Describe("Autoclose", Label("database", "Autoclose"), Label("database", 
 					components:           []string{"Component1"},
 					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "Component1"}}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN database has three completed empty scans",
-			[]scannerRun{
+			description: "WHEN database has three completed empty scans",
+			scannerRuns: []scannerRun{
 				{},
 				{},
 				{},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN 3 scans: <issue>, <no issue>, <no issue>",
-			[]scannerRun{
+			description: "WHEN 3 scans: <issue>, <no issue>, <no issue>",
+			scannerRuns: []scannerRun{
 				{issues: []string{"Issue1"}},
 				{},
 				{},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN 3 scans: <issue>, <issue>, <issue>",
-			[]scannerRun{
+			description: "WHEN 3 scans: <issue>, <issue>, <issue>",
+			scannerRuns: []scannerRun{
 				{issues: []string{"Issue1"}},
 				{issues: []string{"Issue1"}},
 				{issues: []string{"Issue1"}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN 3 scans: <issue>, <no issue>, <issue>",
-			[]scannerRun{
+			description: "WHEN 3 scans: <issue>, <no issue>, <issue>",
+			scannerRuns: []scannerRun{
 				{issues: []string{"Issue1"}},
 				{},
 				{issues: []string{"Issue1"}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN 3 scans: <no issue>, <issue>, <no issue>",
-			[]scannerRun{
+			description: "WHEN 3 scans: <no issue>, <issue>, <no issue>",
+			scannerRuns: []scannerRun{
 				{},
 				{issues: []string{"Issue1"}},
 				{},
 			},
-			true,
+			expectedResult: true,
 		},
 	}
 	When("Running autoclose", Label("Autoclose"), func() {
@@ -233,74 +244,76 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 
 	var autopatchTests = []autoScanTestInfo{
 		{
-			"WHEN db has no scans",
-			[]scannerRun{},
-			false,
+			description:    "WHEN db has no scans",
+			scannerRuns:    []scannerRun{},
+			expectedResult: false,
 		},
 		{
-			"WHEN there is one not-completed scan",
-			[]scannerRun{
+			description: "WHEN there is one not-completed scan",
+			scannerRuns: []scannerRun{
 				{isNotCompleted: true},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN single completed scan with no components",
-			[]scannerRun{
+			description: "WHEN single completed scan with no components",
+			scannerRuns: []scannerRun{
 				{},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN single completed scan with components",
-			[]scannerRun{
+			description: "WHEN single completed scan with components",
+			scannerRuns: []scannerRun{
 				{components: []string{"C1"}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN two completed empty scans",
-			[]scannerRun{
+			description: "WHEN two completed empty scans",
+			scannerRuns: []scannerRun{
 				{},
 				{},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN first completed scan has components and second is not completed",
-			[]scannerRun{
+			description: "WHEN first completed scan has components and second is not completed",
+			scannerRuns: []scannerRun{
 				{components: []string{"C1"}},
 				{isNotCompleted: true},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN two completed scans: first has component, second no longer has that component",
-			[]scannerRun{
+			description: "WHEN two completed scans: first has component, second no longer has that component",
+			scannerRuns: []scannerRun{
 				{components: []string{"C1"}},
 				{},
 			},
-			true,
+			expectedResult:    true,
+			patchedComponents: []string{"C1"},
 		},
 		{
-			"WHEN two completed scans: both have the same component",
-			[]scannerRun{
+			description: "WHEN two completed scans: both have the same component",
+			scannerRuns: []scannerRun{
 				{components: []string{"C1"}},
 				{components: []string{"C1"}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN two completed scans: first has C1, second has C2",
-			[]scannerRun{
+			description: "WHEN two completed scans: first has C1, second has C2",
+			scannerRuns: []scannerRun{
 				{components: []string{"C1"}},
 				{components: []string{"C2"}},
 			},
-			true, // C1 disappeared -> autopatch
+			expectedResult:    true, // C1 disappeared -> autopatch
+			patchedComponents: []string{"C1"},
 		},
 		{
-			"WHEN component instance is tied to IssueMatch and disappears",
-			[]scannerRun{
+			description: "WHEN component instance is tied to IssueMatch and disappears",
+			scannerRuns: []scannerRun{
 				{
 					issues:               []string{"Issue1"},
 					components:           []string{"C1"},
@@ -308,11 +321,12 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				},
 				{components: []string{"C2"}},
 			},
-			true,
+			expectedResult:    true,
+			patchedComponents: []string{"C1"},
 		},
 		{
-			"WHEN component instance is tied to IssueMatch and stays present in next run",
-			[]scannerRun{
+			description: "WHEN component instance is tied to IssueMatch and stays present in next run",
+			scannerRuns: []scannerRun{
 				{
 					issues:               []string{"Issue1"},
 					components:           []string{"C1"},
@@ -324,52 +338,53 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "C1"}},
 				},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN three completed empty scans",
-			[]scannerRun{
+			description: "WHEN three completed empty scans",
+			scannerRuns: []scannerRun{
 				{},
 				{},
 				{},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN 3 scans: <C1>, <no component>, <no component>",
-			[]scannerRun{
+			description: "WHEN 3 scans: <C1>, <no component>, <no component>",
+			scannerRuns: []scannerRun{
 				{components: []string{"C1"}},
 				{},
 				{},
 			},
-			false, // autopatch only compares newest & second newest
+			expectedResult: false, // autopatch only compares newest & second newest
 		},
 		{
-			"WHEN 3 scans: <C1>, <C1>, <C1>",
-			[]scannerRun{
+			description: "WHEN 3 scans: <C1>, <C1>, <C1>",
+			scannerRuns: []scannerRun{
 				{components: []string{"C1"}},
 				{components: []string{"C1"}},
 				{components: []string{"C1"}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN 3 scans: <C1>, <no component>, <C1>",
-			[]scannerRun{
+			description: "WHEN 3 scans: <C1>, <no component>, <C1>",
+			scannerRuns: []scannerRun{
 				{components: []string{"C1"}},
 				{},
 				{components: []string{"C1"}},
 			},
-			false,
+			expectedResult: false,
 		},
 		{
-			"WHEN 3 scans: <no component>, <C1>, <no component>",
-			[]scannerRun{
+			description: "WHEN 3 scans: <no component>, <C1>, <no component>",
+			scannerRuns: []scannerRun{
 				{},
 				{components: []string{"C1"}},
 				{},
 			},
-			true, // latest (no components) vs second-latest (C1)
+			expectedResult:    true, // latest (no components) vs second-latest (C1)
+			patchedComponents: []string{"C1"},
 		},
 	}
 

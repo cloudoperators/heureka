@@ -66,7 +66,9 @@ type HeurekaEntity interface {
 		IssueSeverityCounts |
 		ServiceIssueVariant |
 		Remediation |
-		RemediationResult
+		RemediationResult |
+		Patch |
+		PatchResult
 }
 
 type HeurekaFilter interface {
@@ -85,7 +87,8 @@ type HeurekaFilter interface {
 		ComponentVersionFilter |
 		IssueRepositoryFilter |
 		SeverityFilter |
-		RemediationFilter
+		RemediationFilter |
+		PatchFilter
 }
 
 type HasCursor interface {

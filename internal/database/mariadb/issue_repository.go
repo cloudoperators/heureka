@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) getIssueRepositoryFilterString(filter *entity.IssueRepositoryFilter) string {
+func getIssueRepositoryFilterString(filter *entity.IssueRepositoryFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Name, "IR.issuerepository_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "IR.issuerepository_id = ?", OP_OR))
@@ -37,7 +37,7 @@ func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilt
 	return joins
 }
 
-func (s *SqlDatabase) getIssueRepositoryUpdateFields(issueRepository *entity.IssueRepository) string {
+func getIssueRepositoryUpdateFields(issueRepository *entity.IssueRepository) string {
 	fl := []string{}
 	if issueRepository.Name != "" {
 		fl = append(fl, "issuerepository_name = :issuerepository_name")
@@ -59,7 +59,7 @@ func (s *SqlDatabase) getIssueRepositoryColumns(filter *entity.IssueRepositoryFi
 	return columns
 }
 
-func (s *SqlDatabase) ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
+func ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
 	var first int = 1000
 	var after int64 = 0
 	if f == nil {
@@ -85,10 +85,10 @@ func (s *SqlDatabase) ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilte
 
 func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *entity.IssueRepositoryFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureIssueRepositoryFilter(filter)
+	filter = ensureIssueRepositoryFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getIssueRepositoryFilterString(filter)
+	filterStr := getIssueRepositoryFilterString(filter)
 	joins := s.getIssueRepositoryJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "IR.issuerepository_id > ?")
 
@@ -165,7 +165,7 @@ func (s *SqlDatabase) GetIssueRepositories(filter *entity.IssueRepositoryFilter)
 		%s GROUP BY IR.issuerepository_id ORDER BY IR.issuerepository_id LIMIT ?
     `
 
-	filter = s.ensureIssueRepositoryFilter(filter)
+	filter = ensureIssueRepositoryFilter(filter)
 	columns := s.getIssueRepositoryColumns(filter)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
@@ -254,7 +254,7 @@ func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueReposit
 		WHERE issuerepository_id = :issuerepository_id
 	`
 
-	updateFields := s.getIssueRepositoryUpdateFields(issueRepository)
+	updateFields := getIssueRepositoryUpdateFields(issueRepository)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

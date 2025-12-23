@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) buildRemediationFilterParameters(filter *entity.RemediationFilter, withCursor bool, cursorFields []Field) []interface{} {
+func buildRemediationFilterParameters(filter *entity.RemediationFilter, withCursor bool, cursorFields []Field) []interface{} {
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
@@ -23,18 +23,12 @@ func (s *SqlDatabase) buildRemediationFilterParameters(filter *entity.Remediatio
 	filterParameters = buildQueryParameters(filterParameters, filter.Issue)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
 	return filterParameters
 }
 
-func (s *SqlDatabase) ensureRemediationFilter(filter *entity.RemediationFilter) *entity.RemediationFilter {
+func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.RemediationFilter {
 	var first int = 1000
 	var after string = ""
 	if filter == nil {
@@ -54,7 +48,7 @@ func (s *SqlDatabase) ensureRemediationFilter(filter *entity.RemediationFilter) 
 	return filter
 }
 
-func (s *SqlDatabase) getRemediationUpdateFields(remediation *entity.Remediation) string {
+func getRemediationUpdateFields(remediation *entity.Remediation) string {
 	fl := []string{}
 	if remediation.Description != "" {
 		fl = append(fl, "remediation_description = :remediation_description")
@@ -92,7 +86,7 @@ func (s *SqlDatabase) getRemediationUpdateFields(remediation *entity.Remediation
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) getRemediationFilterString(filter *entity.RemediationFilter) string {
+func getRemediationFilterString(filter *entity.RemediationFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "R.remediation_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "R.remediation_type = ?", OP_OR))
@@ -107,11 +101,10 @@ func (s *SqlDatabase) getRemediationFilterString(filter *entity.RemediationFilte
 }
 
 func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity.RemediationFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
-	var query string
-	filter = s.ensureRemediationFilter(filter)
+	filter = ensureRemediationFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getRemediationFilterString(filter)
+	filterStr := getRemediationFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
@@ -130,6 +123,7 @@ func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
 
+	var query string
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, orderStr)
 	} else {
@@ -148,7 +142,7 @@ func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity
 		return nil, nil, fmt.Errorf("failed to prepare Remediation statement: %w", err)
 	}
 
-	filterParameters := s.buildRemediationFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := buildRemediationFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -237,7 +231,7 @@ func (s *SqlDatabase) GetAllRemediationCursors(filter *entity.RemediationFilter,
 	    %s GROUP BY R.remediation_id ORDER BY %s
     `
 
-	filter = s.ensureRemediationFilter(filter)
+	filter = ensureRemediationFilter(filter)
 	stmt, filterParameters, err := s.buildRemediationStatement(baseQuery, filter, false, order, l)
 
 	if err != nil {
@@ -334,7 +328,7 @@ func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
 		WHERE remediation_id = :remediation_id
 	`
 
-	updateFields := s.getRemediationUpdateFields(remediation)
+	updateFields := getRemediationUpdateFields(remediation)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

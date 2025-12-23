@@ -2,16 +2,12 @@
 -- SPDX-License-Identifier: Apache-2.0
 
 CREATE TABLE Patch (
-    patch_id                INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    patch_id                     INT UNSIGNED NOT NULL AUTO_INCREMENT,
 
-    patch_service_id        INT UNSIGNED NOT NULL,
-    patch_component_version_id INT UNSIGNED NOT NULL,
-
-	patch_scan_id           INT UNSIGNED NOT NULL,
-	patch_scan_uuid         UUID NOT NULL UNIQUE,
-	patch_scan_tag          VARCHAR(255) NOT NULL,
-	patch_scan_start_run    TIMESTAMP NOT NULL,
-	patch_scan_end_run      TIMESTAMP NOT NULL,
+    patch_service_id             INT UNSIGNED NOT NULL,
+	patch_service_name           VARCHAR(255) NOT NULL,
+    patch_component_version_id   INT UNSIGNED NOT NULL,
+	patch_component_version_name VARCHAR(255) NOT NULL,
 
     patch_created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     patch_created_by        INT UNSIGNED NULL,

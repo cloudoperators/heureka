@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
+func ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
 	var first int = 1000
 	var after string = ""
 	if f == nil {
@@ -39,7 +39,7 @@ const (
 	componentInstanceWildCardFilterQuery = "CI.componentinstance_ccrn LIKE Concat('%',?,'%')"
 )
 
-func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
+func getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.CCRN, "CI.componentinstance_ccrn = ?", OP_OR))
@@ -79,7 +79,7 @@ func (s *SqlDatabase) getComponentInstanceJoins(filter *entity.ComponentInstance
 	return joins
 }
 
-func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity.ComponentInstance) string {
+func getComponentInstanceUpdateFields(componentInstance *entity.ComponentInstance) string {
 	fl := []string{}
 	if componentInstance.CCRN != "" {
 		fl = append(fl, "componentinstance_ccrn = :componentinstance_ccrn")
@@ -132,10 +132,10 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 
 func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *entity.ComponentInstanceFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureComponentInstanceFilter(filter)
+	filter = ensureComponentInstanceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getComponentInstanceFilterString(filter)
+	filterStr := getComponentInstanceFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
@@ -196,13 +196,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionVersion)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -410,7 +404,7 @@ func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.Componen
 		WHERE componentinstance_id = :componentinstance_id
 	`
 
-	updateFields := s.getComponentInstanceUpdateFields(componentInstance)
+	updateFields := getComponentInstanceUpdateFields(componentInstance)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
@@ -468,7 +462,7 @@ func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.C
 	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
-	filter = s.ensureComponentInstanceFilter(filter)
+	filter = ensureComponentInstanceFilter(filter)
 
 	order := []entity.Order{
 		{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},

@@ -287,7 +287,6 @@ func WithComponent(order []entity.Order, c entity.Component, cv entity.Component
 }
 
 func WithRemediation(order []entity.Order, r entity.Remediation) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.RemediationId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -300,4 +299,31 @@ func WithRemediation(order []entity.Order, r entity.Remediation) NewCursor {
 		}
 		return nil
 	}
+}
+
+func WithPatch(order []entity.Order, p entity.Patch) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.PatchId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.PatchId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.PatchId, Value: p.Id, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}
+
+func GetCursorQueryParameters(pagFirst *int, cursorFields []Field) []interface{} {
+	var cursorParameters []interface{}
+	p := CreateCursorParameters([]any{}, cursorFields)
+	cursorParameters = append(cursorParameters, p...)
+	if pagFirst == nil {
+		cursorParameters = append(cursorParameters, 1000)
+	} else {
+		cursorParameters = append(cursorParameters, pagFirst)
+	}
+	return cursorParameters
 }

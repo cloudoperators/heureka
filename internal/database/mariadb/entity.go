@@ -96,6 +96,7 @@ type RowComposite struct {
 	*ServiceIssueVariantRow
 	*RatingCount
 	*RemediationRow
+	*PatchRow
 }
 
 type DatabaseRow interface {
@@ -127,7 +128,8 @@ type DatabaseRow interface {
 		IssueMatchChangeRow |
 		ServiceIssueVariantRow |
 		RatingCount |
-		RowComposite
+		RowComposite |
+		PatchRow
 }
 
 type RatingCount struct {
@@ -1224,4 +1226,47 @@ func (rr *RemediationRow) FromRemediation(r *entity.Remediation) {
 	rr.DeletedAt = sql.NullTime{Time: r.DeletedAt, Valid: true}
 	rr.UpdatedAt = sql.NullTime{Time: r.UpdatedAt, Valid: true}
 	rr.UpdatedBy = sql.NullInt64{Int64: r.UpdatedBy, Valid: true}
+}
+
+type PatchRow struct {
+	Id                   sql.NullInt64  `db:"patch_id" json:"id"`
+	ServiceId            sql.NullInt64  `db:"patch_service_id" json:"service_id"`
+	ServiceName          sql.NullString `db:"patch_service_name" json:"service_name"`
+	ComponentVersionId   sql.NullInt64  `db:"patch_component_version_id" json:"compoidnent_version_id"`
+	ComponentVersionName sql.NullString `db:"patch_component_version_name" json:"compoidnent_version_name"`
+	CreatedAt            sql.NullTime   `db:"patch_created_at" json:"created_at"`
+	CreatedBy            sql.NullInt64  `db:"patch_created_by" json:"created_by"`
+	DeletedAt            sql.NullTime   `db:"patch_deleted_at" json:"deleted_at,omitempty"`
+	UpdatedAt            sql.NullTime   `db:"patch_updated_at" json:"updated_at"`
+	UpdatedBy            sql.NullInt64  `db:"patch_updated_by" json:"Updated_by"`
+}
+
+func (pr *PatchRow) AsPatch() entity.Patch {
+	return entity.Patch{
+		Id:                   GetInt64Value(pr.Id),
+		ServiceId:            GetInt64Value(pr.ServiceId),
+		ServiceName:          GetStringValue(pr.ServiceName),
+		ComponentVersionId:   GetInt64Value(pr.ComponentVersionId),
+		ComponentVersionName: GetStringValue(pr.ComponentVersionName),
+		Metadata: entity.Metadata{
+			CreatedAt: GetTimeValue(pr.CreatedAt),
+			CreatedBy: GetInt64Value(pr.CreatedBy),
+			DeletedAt: GetTimeValue(pr.DeletedAt),
+			UpdatedAt: GetTimeValue(pr.UpdatedAt),
+			UpdatedBy: GetInt64Value(pr.UpdatedBy),
+		},
+	}
+}
+
+func (pr *PatchRow) FromPatch(p *entity.Patch) {
+	pr.Id = sql.NullInt64{Int64: p.Id, Valid: true}
+	pr.ServiceId = sql.NullInt64{Int64: p.ServiceId, Valid: true}
+	pr.ServiceName = sql.NullString{String: p.ServiceName, Valid: true}
+	pr.ComponentVersionId = sql.NullInt64{Int64: p.ComponentVersionId, Valid: true}
+	pr.ComponentVersionName = sql.NullString{String: p.ComponentVersionName, Valid: true}
+	pr.CreatedAt = sql.NullTime{Time: p.CreatedAt, Valid: true}
+	pr.CreatedBy = sql.NullInt64{Int64: p.CreatedBy, Valid: true}
+	pr.DeletedAt = sql.NullTime{Time: p.DeletedAt, Valid: true}
+	pr.UpdatedAt = sql.NullTime{Time: p.UpdatedAt, Valid: true}
+	pr.UpdatedBy = sql.NullInt64{Int64: p.UpdatedBy, Valid: true}
 }
