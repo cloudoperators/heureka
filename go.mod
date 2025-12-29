@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/99designs/gqlgen v0.17.85
-	github.com/brianvoe/gofakeit/v7 v7.12.1
+	github.com/brianvoe/gofakeit/v7 v7.14.0
 	github.com/coreos/go-oidc v2.4.0+incompatible
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
