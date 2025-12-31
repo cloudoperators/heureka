@@ -106,6 +106,10 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 	if len(disappeared) == 0 {
 		return false, nil
 	}
+
+	//TODO: get disappearedServiceVersion
+	// iterate through patches related to service/version instead of componentinstance
+
 	// Create a patch for each disappeared instance
 	for _, di := range disappeared {
 		if err := s.insertPatch(di); err != nil {
@@ -113,6 +117,8 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		}
 	}
 
+	//TODO: remove IssueMatches iterating through disappearedComponentInstances and listing issueMatches (remove autoclosing because remove of issueMatches replaces mittigated state)
+	//TODO: remove componentinstances iterating through disappearedComponentInstances
 	return true, nil
 }
 

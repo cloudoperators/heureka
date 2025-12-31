@@ -411,3 +411,18 @@ func (s *DatabaseSeeder) FetchPatchByComponentInstanceCCRN(ccrn string) (*mariad
 
 	return &p, nil
 }
+
+func (s *DatabaseSeeder) GetCountOfPatches() (int64, error) {
+	const query = `
+		SELECT COUNT(*)
+		FROM Patch
+	`
+
+	var count int64
+	err := s.db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
