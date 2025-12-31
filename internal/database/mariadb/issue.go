@@ -19,19 +19,13 @@ const (
 	wildCardFilterParamCount = 2
 )
 
-func (s *SqlDatabase) buildIssueFilterParametersWithCursor(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
-	filterParameters := s.buildIssueFilterParameters(filter, cursorFields)
-	p := CreateCursorParameters([]any{}, cursorFields)
-	filterParameters = append(filterParameters, p...)
-	if filter.PaginatedX.First == nil {
-		filterParameters = append(filterParameters, 1000)
-	} else {
-		filterParameters = append(filterParameters, filter.PaginatedX.First)
-	}
+func buildIssueFilterParametersWithCursor(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
+	filterParameters := buildIssueFilterParameters(filter, cursorFields)
+	filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	return filterParameters
 }
 
-func (s *SqlDatabase) buildIssueFilterParameters(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
+func buildIssueFilterParameters(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
@@ -136,7 +130,7 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 	return joins
 }
 
-func (s *SqlDatabase) ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilter {
+func ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilter {
 	var first = 1000
 	var after string = ""
 	if f == nil {
@@ -233,7 +227,7 @@ func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueF
 }
 
 func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
-	ifilter := s.ensureIssueFilter(filter)
+	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
 	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
@@ -257,13 +251,13 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 	}
 
 	//adding parameters
-	filterParameters := s.buildIssueFilterParametersWithCursor(ifilter, cursorFields)
+	filterParameters := buildIssueFilterParametersWithCursor(ifilter, cursorFields)
 
 	return stmt, filterParameters, nil
 }
 
 func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
-	ifilter := s.ensureIssueFilter(filter)
+	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
 	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
@@ -287,13 +281,13 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	}
 
 	//adding parameters
-	filterParameters := s.buildIssueFilterParameters(ifilter, cursorFields)
+	filterParameters := buildIssueFilterParameters(ifilter, cursorFields)
 
 	return stmt, filterParameters, nil
 }
 
 func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
-	filter = s.ensureIssueFilter(filter)
+	filter = ensureIssueFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetIssuesWithAggregations",
@@ -342,7 +336,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
         JOIN Aggs A ON CIC.issue_id = A.issue_id;
     `
 
-	filter = s.ensureIssueFilter(filter)
+	filter = ensureIssueFilter(filter)
 	filterStr := getIssueFilterString(filter)
 	joins := getIssueJoins(filter, order)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
@@ -378,9 +372,9 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	}
 
 	// parameters for component instance query
-	filterParameters := s.buildIssueFilterParametersWithCursor(filter, cursorFields)
+	filterParameters := buildIssueFilterParametersWithCursor(filter, cursorFields)
 	// parameters for agg query
-	filterParameters = append(filterParameters, s.buildIssueFilterParametersWithCursor(filter, cursorFields)...)
+	filterParameters = append(filterParameters, buildIssueFilterParametersWithCursor(filter, cursorFields)...)
 
 	defer stmt.Close()
 
@@ -566,7 +560,7 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 		GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
     `
 
-	filter = s.ensureIssueFilter(filter)
+	filter = ensureIssueFilter(filter)
 
 	stmt, filterParameters, err := s.buildIssueStatementWithCursor(baseQuery, filter, order, l)
 
@@ -761,7 +755,7 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
 	}
 
 	// Ensure the filter is initialized
-	filter = s.ensureIssueFilter(filter)
+	filter = ensureIssueFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, order, l)

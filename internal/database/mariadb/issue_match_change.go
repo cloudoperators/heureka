@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureIssueMatchChangeFilter(f *entity.IssueMatchChangeFilter) *entity.IssueMatchChangeFilter {
+func ensureIssueMatchChangeFilter(f *entity.IssueMatchChangeFilter) *entity.IssueMatchChangeFilter {
 	if f != nil {
 		return f
 	}
@@ -30,7 +30,7 @@ func (s *SqlDatabase) ensureIssueMatchChangeFilter(f *entity.IssueMatchChangeFil
 	}
 }
 
-func (s *SqlDatabase) getIssueMatchChangeFilterString(filter *entity.IssueMatchChangeFilter) string {
+func getIssueMatchChangeFilterString(filter *entity.IssueMatchChangeFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "IMC.issuematchchange_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "IMC.issuematchchange_activity_id = ?", OP_OR))
@@ -41,7 +41,7 @@ func (s *SqlDatabase) getIssueMatchChangeFilterString(filter *entity.IssueMatchC
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getIssueMatchChangeUpdateFields(imc *entity.IssueMatchChange) string {
+func getIssueMatchChangeUpdateFields(imc *entity.IssueMatchChange) string {
 	fl := []string{}
 	if imc.Action != "" {
 		fl = append(fl, "issuematchchange_action = :issuematchchange_action")
@@ -54,10 +54,10 @@ func (s *SqlDatabase) getIssueMatchChangeUpdateFields(imc *entity.IssueMatchChan
 
 func (s *SqlDatabase) buildIssueMatchChangeStatement(baseQuery string, filter *entity.IssueMatchChangeFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureIssueMatchChangeFilter(filter)
+	filter = ensureIssueMatchChangeFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getIssueMatchChangeFilterString(filter)
+	filterStr := getIssueMatchChangeFilterString(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "IMC.issuematchchange_id > ?")
 
 	whereClause := ""
@@ -130,7 +130,7 @@ func (s *SqlDatabase) GetIssueMatchChanges(filter *entity.IssueMatchChangeFilter
 		%s %s GROUP BY IMC.issuematchchange_id ORDER BY IMC.issuematchchange_id LIMIT ?
 	`
 
-	filter = s.ensureIssueMatchChangeFilter(filter)
+	filter = ensureIssueMatchChangeFilter(filter)
 	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s")
 
 	stmt, filterParameters, err := s.buildIssueMatchChangeStatement(baseQuery, filter, true, l)
@@ -219,7 +219,7 @@ func (s *SqlDatabase) UpdateIssueMatchChange(imc *entity.IssueMatchChange) error
 		WHERE issuematchchange_id = :issuematchchange_id
 	`
 
-	updateFields := s.getIssueMatchChangeUpdateFields(imc)
+	updateFields := getIssueMatchChangeUpdateFields(imc)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
