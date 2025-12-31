@@ -61,12 +61,19 @@ func (ast *autoScanTest) Run(tag string, info autoScanTestInfo, fn func(db *mari
 	Expect(err).To(BeNil(), fmt.Sprintf("%s THEN it should return no error", info.description))
 	Expect(res).To(BeEquivalentTo(info.expectedResult), fmt.Sprintf("%s THEN it should return %t", info.description, info.expectedResult))
 
+	ast.ExpectNumberOfPatches(len(info.patchedComponents))
 	for _, patchedComponent := range info.patchedComponents {
 		ast.ExpectPatchForComponent(patchedComponent)
 	}
 
 	err = ast.databaseSeeder.CleanupScannerRuns()
 	Expect(err).To(BeNil())
+}
+
+func (ast *autoScanTest) ExpectNumberOfPatches(n int) {
+	patchCount, err := ast.databaseSeeder.GetCountOfPatches()
+	Expect(err).To(BeNil(), "Could not get patch count")
+	Expect(patchCount).To(BeEquivalentTo(int64(n)), "Not expected number of patches")
 }
 
 func (ast *autoScanTest) ExpectPatchForComponent(ccrn string) {
@@ -385,6 +392,15 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			},
 			expectedResult:    true, // latest (no components) vs second-latest (C1)
 			patchedComponents: []string{"C1"},
+		},
+		{
+			description: "WHEN 2 scans detect disappearance of 3 components with the same version and service id", //THEN only single patch should be created
+			scannerRuns: []scannerRun{
+				{components: []string{"C1", "C2", "C3"}},
+				{},
+			},
+			expectedResult:    true,
+			patchedComponents: []string{"C1"}, // can be whatever (C1, C2 or C3), because all of them have the same service id and version id
 		},
 	}
 
