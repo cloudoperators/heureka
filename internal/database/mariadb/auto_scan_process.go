@@ -107,15 +107,28 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		return false, nil
 	}
 
-	//TODO: get disappearedServiceVersion
-	// iterate through patches related to service/version instead of componentinstance
+	patches := make(map[patchInfo]struct{}) //TODO: extract method
+	for _, inst := range disappeared {
+		patchInfo, err := s.fetchServiceAndVersionForInstance(inst.instId)
+		if err != nil {
+			return false, err
+		}
+		patches[patchInfo] = struct{}{}
+	}
 
-	// Create a patch for each disappeared instance
-	for _, di := range disappeared {
-		if err := s.insertPatch(di); err != nil {
+	// iterate through patches related to service/version instead of componentinstance
+	for patch, _ := range patches {
+		if err := s.insertPatch(patch); err != nil {
 			return false, err
 		}
 	}
+
+	/*// Create a patch for each disappeared instance
+	for _, di := range disappeared {
+		if err := s.insertPatchForComponentInstance(di); err != nil {
+			return false, err
+		}
+	}*/
 
 	//TODO: remove IssueMatches iterating through disappearedComponentInstances and listing issueMatches (remove autoclosing because remove of issueMatches replaces mittigated state)
 	//TODO: remove componentinstances iterating through disappearedComponentInstances
@@ -257,16 +270,11 @@ func (s *SqlDatabase) fetchServiceAndVersionForInstance(instanceID int) (patchIn
 	return pInfo, err
 }
 
-func (s *SqlDatabase) insertPatch(di disappearedInstance) error {
-	pInfo, err := s.fetchServiceAndVersionForInstance(di.instId)
-	if err != nil {
-		return err
-	}
-
-	_, err = s.db.Exec(`
+func (s *SqlDatabase) insertPatch(patch patchInfo) error {
+	_, err := s.db.Exec(`
         INSERT INTO Patch (patch_service_id, patch_service_name, patch_component_version_id, patch_component_version_name)
         VALUES (?, ?, ?, ?)
-    `, pInfo.serviceId, pInfo.serviceName, pInfo.componentVersionId, pInfo.componentVersionName)
+    `, patch.serviceId, patch.serviceName, patch.componentVersionId, patch.componentVersionName)
 	return err
 }
 
