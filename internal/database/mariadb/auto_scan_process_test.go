@@ -22,10 +22,11 @@ type scannerRun struct {
 }
 
 type autoScanTestInfo struct {
-	description       string
-	scannerRuns       []scannerRun
-	expectedResult    bool
-	patchedComponents []string
+	description        string
+	scannerRuns        []scannerRun
+	expectedResult     bool
+	expectedPatchCount int
+	patchedComponents  []string
 }
 
 type autoScanTest struct {
@@ -58,27 +59,59 @@ func (ast *autoScanTest) Run(tag string, info autoScanTestInfo, fn func(db *mari
 	err := ast.databaseSeeder.SeedScannerRuns(scannerRuns...)
 	Expect(err).To(BeNil())
 	res, err := fn(ast.db)
+
+	// Expect no error in autopatch
 	Expect(err).To(BeNil(), fmt.Sprintf("%s THEN it should return no error", info.description))
+
+	// Expect boolean result
 	Expect(res).To(BeEquivalentTo(info.expectedResult), fmt.Sprintf("%s THEN it should return %t", info.description, info.expectedResult))
 
-	ast.ExpectNumberOfPatches(len(info.patchedComponents))
+	// Expect patch count
+	ast.ExpectNumberOfPatches(info.expectedPatchCount, info.description)
+
 	for _, patchedComponent := range info.patchedComponents {
-		ast.ExpectPatchForComponent(patchedComponent)
+		// Expect component to be patched
+		ast.ExpectPatchForComponent(patchedComponent, info.description)
+		// Expect component to be removed
+		ast.ExpectComponentToBeRemoved(patchedComponent, info.description)
+		// Expect issueMatches linked with component to be removed
+		ast.ExpectAllIssueMatchesLinkedWithComponentToBeRemoved(patchedComponent, info.description)
 	}
 
 	err = ast.databaseSeeder.CleanupScannerRuns()
 	Expect(err).To(BeNil())
 }
 
-func (ast *autoScanTest) ExpectNumberOfPatches(n int) {
+func (ast *autoScanTest) ExpectNumberOfPatches(n int, when string) {
 	patchCount, err := ast.databaseSeeder.GetCountOfPatches()
 	Expect(err).To(BeNil(), "Could not get patch count")
-	Expect(patchCount).To(BeEquivalentTo(int64(n)), "Not expected number of patches")
+	Expect(patchCount).To(BeEquivalentTo(int64(n)), "%s THEN it should create %d patches", when, n)
 }
 
-func (ast *autoScanTest) ExpectPatchForComponent(ccrn string) {
-	_, err := ast.databaseSeeder.FetchPatchByComponentInstanceCCRN(ccrn)
-	Expect(err).To(BeNil(), "Expected patch not found")
+func (ast *autoScanTest) ExpectPatchForComponent(componentName string, when string) {
+	patches, err := ast.databaseSeeder.FetchPatchesByComponentInstanceCCRN(componentName)
+	Expect(err).To(BeNil(), "%s THEN %s component should have one matching patch (%s)", when, componentName, err)
+	Expect(len(patches)).To(BeEquivalentTo(1), "%s THEN %s component should have one matching patch", when, componentName)
+}
+
+func (ast *autoScanTest) ExpectComponentToBeRemoved(componentName string, when string) {
+	component, err := ast.databaseSeeder.FetchComponentInstanceByCCRN(componentName)
+	Expect(err).To(BeNil(), "%s THEN %s component should be removed (%s)", when, componentName, err)
+	Expect(component.DeletedAt.Valid).To(BeEquivalentTo(true), "%s THEN %s component should be removed", when, componentName)
+	Expect(component.DeletedAt.Time.IsZero()).To(BeEquivalentTo(false), "%s THEN %s component should be removed", when, componentName)
+}
+
+func (ast *autoScanTest) ExpectAllIssueMatchesLinkedWithComponentToBeRemoved(componentName string, when string) {
+	component, err := ast.databaseSeeder.FetchComponentInstanceByCCRN(componentName)
+	Expect(err).To(BeNil(), "%s THEN issue matches for %s component should be removed (%s)", when, componentName, err)
+	Expect(component.Id.Valid).To(BeEquivalentTo(true), "%s THEN issue matches for %s component should be removed", when, componentName)
+	issueMatches, err := ast.databaseSeeder.FetchIssueMatchesByComponentInstance(component.Id.Int64)
+	Expect(err).To(BeNil(), "%s THEN issue matches for %s component should be removed (%s)", when, componentName, err)
+	for _, issueMatch := range issueMatches {
+		Expect(issueMatch.DeletedAt.Valid).To(BeEquivalentTo(true), "%s THEN issue match %d for %s component should be removed", when, issueMatch.Id.Int64, componentName)
+		Expect(issueMatch.DeletedAt.Time.IsZero()).To(BeEquivalentTo(false), "%s THEN issue match %s for %s component should be removed", when, issueMatch.Id.Int64, componentName)
+	}
+
 }
 
 var _ = Describe("Autoclose", Label("database", "Autoclose"), Label("database", "AutoScanProcess"), func() {
@@ -298,8 +331,9 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []string{"C1"}},
 				{},
 			},
-			expectedResult:    true,
-			patchedComponents: []string{"C1"},
+			expectedResult:     true,
+			expectedPatchCount: 1,
+			patchedComponents:  []string{"C1"},
 		},
 		{
 			description: "WHEN two completed scans: both have the same component",
@@ -315,8 +349,9 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []string{"C1"}},
 				{components: []string{"C2"}},
 			},
-			expectedResult:    true, // C1 disappeared -> autopatch
-			patchedComponents: []string{"C1"},
+			expectedResult:     true, // C1 disappeared -> autopatch
+			expectedPatchCount: 1,
+			patchedComponents:  []string{"C1"},
 		},
 		{
 			description: "WHEN component instance is tied to IssueMatch and disappears",
@@ -328,8 +363,9 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				},
 				{components: []string{"C2"}},
 			},
-			expectedResult:    true,
-			patchedComponents: []string{"C1"},
+			expectedResult:     true,
+			expectedPatchCount: 1,
+			patchedComponents:  []string{"C1"},
 		},
 		{
 			description: "WHEN component instance is tied to IssueMatch and stays present in next run",
@@ -390,8 +426,9 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []string{"C1"}},
 				{},
 			},
-			expectedResult:    true, // latest (no components) vs second-latest (C1)
-			patchedComponents: []string{"C1"},
+			expectedResult:     true, // latest (no components) vs second-latest (C1)
+			expectedPatchCount: 1,
+			patchedComponents:  []string{"C1"},
 		},
 		{
 			description: "WHEN 2 scans detect disappearance of 3 components with the same version and service id", //THEN only single patch should be created
@@ -399,8 +436,9 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []string{"C1", "C2", "C3"}},
 				{},
 			},
-			expectedResult:    true,
-			patchedComponents: []string{"C1"}, // can be whatever (C1, C2 or C3), because all of them have the same service id and version id
+			expectedResult:     true,
+			expectedPatchCount: 1,
+			patchedComponents:  []string{"C1", "C2", "C3"},
 		},
 	}
 

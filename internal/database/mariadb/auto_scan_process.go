@@ -5,6 +5,10 @@ package mariadb
 
 import (
 	"strings"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
+	"github.com/samber/lo"
 )
 
 func (s *SqlDatabase) Autopatch() (bool, error) {
@@ -123,15 +127,26 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		}
 	}
 
-	/*// Create a patch for each disappeared instance
+	//TODO: extract method; remove IssueMatches iterating through disappearedComponentInstances and listing issueMatches (remove autoclosing because remove of issueMatches replaces mitigated state)
 	for _, di := range disappeared {
-		if err := s.insertPatchForComponentInstance(di); err != nil {
+		issueMatchFilter := entity.IssueMatchFilter{ComponentInstanceId: []*int64{lo.ToPtr(int64(di.instId))}}
+		issueMatchIds, err := s.GetAllIssueMatchIds(&issueMatchFilter)
+		if err != nil {
 			return false, err
 		}
-	}*/
+		for _, issueMatchId := range issueMatchIds {
+			if err := s.DeleteIssueMatch(issueMatchId, util.SystemUserId); err != nil {
+				return false, err
+			}
+		}
+	}
 
-	//TODO: remove IssueMatches iterating through disappearedComponentInstances and listing issueMatches (remove autoclosing because remove of issueMatches replaces mittigated state)
-	//TODO: remove componentinstances iterating through disappearedComponentInstances
+	for _, di := range disappeared {
+		if err := s.DeleteComponentInstance(int64(di.instId), util.SystemUserId); err != nil {
+			return false, err
+		}
+	}
+
 	return true, nil
 }
 
