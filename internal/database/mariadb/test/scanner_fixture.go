@@ -85,10 +85,6 @@ func (srs *scannerRunsSeeder) processIssues(issues []string, scannerRunId int64)
 
 			srs.knownIssues[issue] = int(issueId)
 		}
-
-		if err := srs.dbSeeder.insertScannerRunIssueTracker(scannerRunId, srs.knownIssues[issue]); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -230,20 +226,6 @@ func (s *DatabaseSeeder) insertIssue(issue string) (int64, error) {
 	return res.LastInsertId()
 }
 
-func (s *DatabaseSeeder) insertScannerRunIssueTracker(scannerRunId int64, issueId int) error {
-	insertScannerRunIssueTracker := `
-		INSERT INTO ScannerRunIssueTracker (
-			scannerrunissuetracker_scannerrun_run_id,
-			scannerrunissuetracker_issue_id
-		) VALUES (
-			?,
-			?
-		)
-	`
-	_, err := s.db.Exec(insertScannerRunIssueTracker, scannerRunId, issueId)
-	return err
-}
-
 func (s *DatabaseSeeder) insertScannerRunComponentInstanceTracker(scannerRunId int64, componentId int) error {
 	insertScannerRunComponentInstanceTracker := `
 		INSERT INTO ScannerRunComponentInstanceTracker (
@@ -362,7 +344,6 @@ func (s *DatabaseSeeder) SeedScannerRunInstances(uuids ...string) error {
 
 func (s *DatabaseSeeder) CleanupScannerRuns() error {
 	cleanupQuery := `
-	DELETE FROM ScannerRunIssueTracker;
 	DELETE FROM ScannerRunComponentInstanceTracker;
 	DELETE FROM ScannerRun;
 	DELETE FROM IssueMatch;
@@ -431,34 +412,32 @@ func (s *DatabaseSeeder) FetchPatchesByComponentInstanceCCRN(
 	return patches, nil
 }
 
-func (s *DatabaseSeeder) FetchIssueMatchesByComponentInstance(
-	id int64,
-) ([]mariadb.IssueMatchRow, error) {
+func (s *DatabaseSeeder) FetchAllNamesOfDeletedIssueMatches() ([]string, error) {
 	query := `
         SELECT
-            im.issuematch_id,
-            im.issuematch_deleted_at
+            i.issue_primary_name
         FROM IssueMatch im
-        WHERE im.issuematch_component_instance_id = ?
+        INNER JOIN Issue i
+            ON im.issuematch_issue_id = i.issue_id
+        WHERE im.issuematch_deleted_at IS NOT NULL
     `
 
-	rows, err := s.db.Query(query, id)
+	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query issue matches by id: %w", err)
 	}
 	defer rows.Close()
 
-	var issueMatches []mariadb.IssueMatchRow
+	var issueNames []string
 
 	for rows.Next() {
-		var im mariadb.IssueMatchRow
+		var in string
 		if err := rows.Scan(
-			&im.Id,
-			&im.DeletedAt,
+			&in,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan issue match row: %w", err)
 		}
-		issueMatches = append(issueMatches, im)
+		issueNames = append(issueNames, in)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -466,11 +445,11 @@ func (s *DatabaseSeeder) FetchIssueMatchesByComponentInstance(
 	}
 
 	// Optional: return empty slice instead of nil
-	if issueMatches == nil {
-		return []mariadb.IssueMatchRow{}, nil
+	if issueNames == nil {
+		return []string{}, nil
 	}
 
-	return issueMatches, nil
+	return issueNames, nil
 }
 
 func (s *DatabaseSeeder) GetCountOfPatches() (int64, error) {

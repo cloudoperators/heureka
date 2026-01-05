@@ -4,8 +4,6 @@
 package mariadb
 
 import (
-	"strings"
-
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
@@ -18,15 +16,6 @@ func (s *SqlDatabase) Autopatch() (bool, error) {
 	}
 
 	return s.processAutopatchOnCompletedRuns(runs)
-}
-
-func (s *SqlDatabase) Autoclose() (bool, error) {
-	runs, err := s.fetchCompletedRunsWithNewestFirst()
-	if err != nil {
-		return false, err
-	}
-
-	return s.processAutocloseOnCompletedRuns(runs)
 }
 
 func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst() (map[string][]int, error) {
@@ -79,11 +68,6 @@ func (s *SqlDatabase) processAutopatchOnCompletedRuns(runs map[string][]int) (bo
 	return autopatched, nil
 }
 
-type disappearedInstance struct {
-	instId int
-	runId  int
-}
-
 func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) {
 	latest := tagRuns[0]
 	secondLatest := tagRuns[1]
@@ -99,110 +83,99 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		return false, err
 	}
 
-	// Compute disappeared instances
-	var disappeared []disappearedInstance
-	for inst := range secondLatestInstances {
-		if _, stillThere := latestInstances[inst]; !stillThere {
-			disappeared = append(disappeared, disappearedInstance{instId: inst, runId: latest})
-		}
-	}
-
-	if len(disappeared) == 0 {
+	disappearedInstances := getDisappearedInstances(latestInstances, secondLatestInstances)
+	if len(disappearedInstances) == 0 {
 		return false, nil
 	}
 
-	patches := make(map[patchInfo]struct{}) //TODO: extract method
-	for _, inst := range disappeared {
-		patchInfo, err := s.fetchServiceAndVersionForInstance(inst.instId)
-		if err != nil {
-			return false, err
-		}
-		patches[patchInfo] = struct{}{}
+	err = s.patchDisappeared(disappearedInstances)
+	if err != nil {
+		return false, err
 	}
 
-	// iterate through patches related to service/version instead of componentinstance
-	for patch, _ := range patches {
-		if err := s.insertPatch(patch); err != nil {
-			return false, err
-		}
+	err = s.deleteIssueMatchesOfDisappearedInstances(disappearedInstances)
+	if err != nil {
+		return false, err
 	}
 
-	//TODO: extract method; remove IssueMatches iterating through disappearedComponentInstances and listing issueMatches (remove autoclosing because remove of issueMatches replaces mitigated state)
-	for _, di := range disappeared {
-		issueMatchFilter := entity.IssueMatchFilter{ComponentInstanceId: []*int64{lo.ToPtr(int64(di.instId))}}
-		issueMatchIds, err := s.GetAllIssueMatchIds(&issueMatchFilter)
-		if err != nil {
-			return false, err
-		}
-		for _, issueMatchId := range issueMatchIds {
-			if err := s.DeleteIssueMatch(issueMatchId, util.SystemUserId); err != nil {
-				return false, err
-			}
-		}
-	}
-
-	for _, di := range disappeared {
-		if err := s.DeleteComponentInstance(int64(di.instId), util.SystemUserId); err != nil {
-			return false, err
-		}
+	err = s.deleteDisappearedInstances(disappearedInstances)
+	if err != nil {
+		return false, err
 	}
 
 	return true, nil
 }
 
-func (s *SqlDatabase) processAutocloseOnCompletedRuns(runs map[string][]int) (bool, error) {
-	autoclosed := false
-
-	// For each tag, process only latest + second-latest
-	for _, tagRuns := range runs {
-
-		// Ensure it has at least 2 completed runs
-		if len(tagRuns) < 2 {
-			continue
-		}
-
-		closedForTag, err := s.processAutocloseForSingleTag(tagRuns)
-		if err != nil {
-			return false, err
-		}
-		if closedForTag {
-			autoclosed = true
+func getDisappearedInstances(latestInstances map[int]struct{}, secondLatestInstances map[int]struct{}) []int {
+	// Compute disappeared instances
+	var disappeared []int
+	for inst := range secondLatestInstances {
+		if _, stillThere := latestInstances[inst]; !stillThere {
+			disappeared = append(disappeared, inst)
 		}
 	}
-	return autoclosed, nil
+	return disappeared
 }
 
-func (s *SqlDatabase) processAutocloseForSingleTag(tagRuns []int) (bool, error) {
-	latest := tagRuns[0]
-	secondLatest := tagRuns[1]
-
-	// fetch issues for each run
-	latestIssues, err := s.fetchIssuesForRun(latest)
+func (s *SqlDatabase) patchDisappeared(disappearedInstances []int) error {
+	patches, err := s.getPatches(disappearedInstances)
 	if err != nil {
-		return false, err
+		return err
 	}
+	return s.insertPatches(patches)
+}
 
-	secondIssues, err := s.fetchIssuesForRun(secondLatest)
-	if err != nil {
-		return false, err
+func (s *SqlDatabase) getPatches(disappearedInstances []int) (map[patchInfo]struct{}, error) {
+	patches := make(map[patchInfo]struct{})
+	for _, inst := range disappearedInstances {
+		patchInfo, err := s.fetchServiceAndVersionForInstance(inst)
+		if err != nil {
+			return nil, err
+		}
+		patches[patchInfo] = struct{}{}
 	}
+	return patches, nil
+}
 
-	// Compute which issues disappeared
-	var missing []int
-	for issue := range secondIssues {
-		if _, stillThere := latestIssues[issue]; !stillThere {
-			missing = append(missing, issue)
+func (s *SqlDatabase) insertPatches(patches map[patchInfo]struct{}) error {
+	for patch, _ := range patches {
+		if err := s.insertPatch(patch); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	// Mark as mitigated
-	if len(missing) > 0 {
-		if err := s.markIssuesMitigated(missing); err != nil {
-			return false, err
+func (s *SqlDatabase) deleteIssueMatchesOfDisappearedInstances(disappearedInstances []int) error {
+	for _, di := range disappearedInstances {
+		issueMatchFilter := entity.IssueMatchFilter{ComponentInstanceId: []*int64{lo.ToPtr(int64(di))}}
+		issueMatchIds, err := s.GetAllIssueMatchIds(&issueMatchFilter)
+		if err != nil {
+			return err
 		}
-		return true, nil
+		for _, issueMatchId := range issueMatchIds {
+			if err := s.DeleteIssueMatch(issueMatchId, util.SystemUserId); err != nil {
+				return err
+			}
+		}
 	}
-	return false, nil
+	return nil
+}
+
+func (s *SqlDatabase) deleteDisappearedInstances(disappearedInstances []int) error {
+	for _, di := range disappearedInstances {
+		if err := s.DeleteComponentInstance(int64(di), util.SystemUserId); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type patchInfo struct {
+	serviceId            int
+	serviceName          string
+	componentVersionId   int
+	componentVersionName string
 }
 
 func (s *SqlDatabase) fetchComponentInstancesForRun(scannerRunId int) (map[int]struct{}, error) {
@@ -226,36 +199,6 @@ func (s *SqlDatabase) fetchComponentInstancesForRun(scannerRunId int) (map[int]s
 		instances[id] = struct{}{}
 	}
 	return instances, rows.Err()
-}
-
-func (s *SqlDatabase) fetchIssuesForRun(scannerRunId int) (map[int]struct{}, error) {
-	rows, err := s.db.Query(`
-        SELECT scannerrunissuetracker_issue_id
-        FROM ScannerRunIssueTracker
-        WHERE scannerrunissuetracker_scannerrun_run_id = ?
-    `, scannerRunId)
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	issues := map[int]struct{}{}
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		issues[id] = struct{}{}
-	}
-	return issues, rows.Err()
-}
-
-type patchInfo struct {
-	serviceId            int
-	serviceName          string
-	componentVersionId   int
-	componentVersionName string
 }
 
 func (s *SqlDatabase) fetchServiceAndVersionForInstance(instanceID int) (patchInfo, error) {
@@ -290,27 +233,5 @@ func (s *SqlDatabase) insertPatch(patch patchInfo) error {
         INSERT INTO Patch (patch_service_id, patch_service_name, patch_component_version_id, patch_component_version_name)
         VALUES (?, ?, ?, ?)
     `, patch.serviceId, patch.serviceName, patch.componentVersionId, patch.componentVersionName)
-	return err
-}
-
-func (s *SqlDatabase) markIssuesMitigated(issueIDs []int) error {
-	if len(issueIDs) == 0 {
-		return nil
-	}
-
-	placeholders := make([]string, len(issueIDs))
-	args := make([]interface{}, len(issueIDs))
-
-	for i, id := range issueIDs {
-		placeholders[i] = "?"
-		args[i] = id
-	}
-
-	q := `
-        UPDATE IssueMatch
-        SET issuematch_status = 'mitigated'
-        WHERE issuematch_issue_id IN (` + strings.Join(placeholders, ",") + `)
-    `
-	_, err := s.db.Exec(q, args...)
 	return err
 }

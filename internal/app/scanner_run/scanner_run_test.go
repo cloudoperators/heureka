@@ -58,7 +58,6 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("CreateScannerRun", sre).Return(true, nil)
 		db.On("CompleteScannerRun", sre.UUID).Return(true, nil)
 		db.On("Autopatch").Return(true, nil)
-		db.On("Autoclose").Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(handlerContext)
 		scannerRunHandler.CreateScannerRun(sre)

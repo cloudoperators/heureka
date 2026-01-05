@@ -475,15 +475,6 @@ create table if not exists ScannerRun
     scannerrun_is_completed    boolean not null default false
 );
 
-create table if not exists ScannerRunIssueTracker
-(
-    scannerrunissuetracker_scannerrun_run_id int unsigned not null,
-    scannerrunissuetracker_issue_id int unsigned not null,
-
-    constraint fk_srit_sr_id foreign key (scannerrunissuetracker_scannerrun_run_id) references ScannerRun (scannerrun_run_id) on update cascade,
-    constraint fk_srit_i_id foreign key (scannerrunissuetracker_issue_id) references Issue (issue_id) on update cascade
-);
-
 create table if not exists ScannerRunComponentInstanceTracker
 (
     scannerruncomponentinstancetracker_scannerrun_run_id int unsigned not null,
