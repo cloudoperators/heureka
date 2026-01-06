@@ -210,10 +210,10 @@ func (s *SqlDatabase) fetchServiceAndVersionForInstance(instanceID int) (patchIn
             cv.componentversion_version
         FROM ComponentInstance ci
         INNER JOIN Service s
-            ON ci.componentinstance_service_id = s.service_id
+            ON ci.componentinstance_service_id = s.service_id AND s.service_deleted_at IS NULL
         INNER JOIN ComponentVersion cv
-            ON ci.componentinstance_component_version_id = cv.componentversion_id
-        WHERE ci.componentinstance_id = ?`
+            ON ci.componentinstance_component_version_id = cv.componentversion_id AND cv.componentversion_deleted_at IS NULL
+        WHERE ci.componentinstance_id = ? AND ci.componentinstance_deleted_at IS NULL`
 
 	row := s.db.QueryRow(query, instanceID)
 
