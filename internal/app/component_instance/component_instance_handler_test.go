@@ -360,17 +360,17 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			// Add initial relations
 			initialServiceRelation := openfga.RelationInput{
 				UserType:   "service",
-				UserId:     openfga.UserId(strconv.FormatInt(oldServiceId, 10)),
+				UserId:     openfga.UserIdFromInt(oldServiceId),
 				Relation:   "related_service",
 				ObjectType: "component_instance",
-				ObjectId:   openfga.ObjectId(strconv.FormatInt(ciFake.Id, 10)),
+				ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
 			}
 			initialComponentVersionRelation := openfga.RelationInput{
 				UserType:   "component_instance",
-				UserId:     openfga.UserId(strconv.FormatInt(ciFake.Id, 10)),
+				UserId:     openfga.UserIdFromInt(ciFake.Id),
 				Relation:   "component_instance",
 				ObjectType: "component_version",
-				ObjectId:   openfga.ObjectId(strconv.FormatInt(oldComponentVersionId, 10)),
+				ObjectId:   openfga.ObjectIdFromInt(oldComponentVersionId),
 			}
 			handlerContext.Authz.AddRelation(initialServiceRelation)
 			handlerContext.Authz.AddRelation(initialComponentVersionRelation)
@@ -398,17 +398,17 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			// Check that the new relations exist
 			newServiceRelation := openfga.RelationInput{
 				UserType:   "service",
-				UserId:     openfga.UserId(strconv.FormatInt(newServiceId, 10)),
+				UserId:     openfga.UserIdFromInt(newServiceId),
 				Relation:   "related_service",
 				ObjectType: "component_instance",
-				ObjectId:   openfga.ObjectId(strconv.FormatInt(ciFake.Id, 10)),
+				ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
 			}
 			newComponentVersionRelation := openfga.RelationInput{
 				UserType:   "component_instance",
-				UserId:     openfga.UserId(strconv.FormatInt(ciFake.Id, 10)),
+				UserId:     openfga.UserIdFromInt(ciFake.Id),
 				Relation:   "component_instance",
 				ObjectType: "component_version",
-				ObjectId:   openfga.ObjectId(strconv.FormatInt(newComponentVersionId, 10)),
+				ObjectId:   openfga.ObjectIdFromInt(newComponentVersionId),
 			}
 			remainingNewService, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{newServiceRelation})
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -471,8 +471,8 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 					deleteEvent := &ci.DeleteComponentInstanceEvent{
 						ComponentInstanceID: ciFake.Id,
 					}
-					objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.ComponentInstanceID, 10))
-					userId := openfga.UserId(strconv.FormatInt(deleteEvent.ComponentInstanceID, 10))
+					objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentInstanceID)
+					userId := openfga.UserIdFromInt(deleteEvent.ComponentInstanceID)
 					relations := []openfga.RelationInput{
 						{ // role - component_instance: a role is assigned to the component instance
 							UserType:   "role",

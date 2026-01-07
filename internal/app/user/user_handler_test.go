@@ -6,7 +6,6 @@ package user_test
 import (
 	"math"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -271,7 +270,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 				deleteEvent := &u.DeleteUserEvent{
 					UserID: userFake.Id,
 				}
-				userId := openfga.UserId(strconv.FormatInt(deleteEvent.UserID, 10))
+				userId := openfga.UserIdFromInt(deleteEvent.UserID)
 
 				relations := []openfga.RelationInput{
 					{ // user - role

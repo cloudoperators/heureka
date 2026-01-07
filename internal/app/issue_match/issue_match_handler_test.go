@@ -355,10 +355,10 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 			// Add an initial relation: issue_match -> old component_instance
 			initialRelation := openfga.RelationInput{
 				UserType:   "component_instance",
-				UserId:     openfga.UserId(strconv.FormatInt(oldComponentInstanceId, 10)),
+				UserId:     openfga.UserIdFromInt(oldComponentInstanceId),
 				Relation:   "component_instance",
 				ObjectType: "issue_match",
-				ObjectId:   openfga.ObjectId(strconv.FormatInt(imFake.Id, 10)),
+				ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
 			}
 			handlerContext.Authz.AddRelation(initialRelation)
 
@@ -380,10 +380,10 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 			// Check that the new relation exists
 			newRelation := openfga.RelationInput{
 				UserType:   "component_instance",
-				UserId:     openfga.UserId(strconv.FormatInt(newComponentInstanceId, 10)),
+				UserId:     openfga.UserIdFromInt(newComponentInstanceId),
 				Relation:   "component_instance",
 				ObjectType: "issue_match",
-				ObjectId:   openfga.ObjectId(strconv.FormatInt(imFake.Id, 10)),
+				ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
 			}
 			remainingNew, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{newRelation})
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -442,7 +442,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 				deleteEvent := &im.DeleteIssueMatchEvent{
 					IssueMatchID: imFake.Id,
 				}
-				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.IssueMatchID, 10))
+				objectId := openfga.ObjectIdFromInt(deleteEvent.IssueMatchID)
 				relations := []openfga.RelationInput{
 					{ // user - issue_match: a user can view the issue match
 						UserType:   "user",

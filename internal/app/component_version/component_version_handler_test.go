@@ -348,10 +348,10 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 			// Add an initial relation: component_version -> old component
 			initialRelation := openfga.RelationInput{
 				UserType:   "component_version",
-				UserId:     openfga.UserId(strconv.FormatInt(cvFake.Id, 10)),
+				UserId:     openfga.UserIdFromInt(cvFake.Id),
 				Relation:   "component_version",
 				ObjectType: "component",
-				ObjectId:   openfga.ObjectId(strconv.FormatInt(oldComponentId, 10)),
+				ObjectId:   openfga.ObjectIdFromInt(oldComponentId),
 			}
 			handlerContext.Authz.AddRelation(initialRelation)
 
@@ -373,10 +373,10 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 			// Check that the new relation exists
 			newRelation := openfga.RelationInput{
 				UserType:   "component_version",
-				UserId:     openfga.UserId(strconv.FormatInt(cvFake.Id, 10)),
+				UserId:     openfga.UserIdFromInt(cvFake.Id),
 				Relation:   "component_version",
 				ObjectType: "component",
-				ObjectId:   openfga.ObjectId(strconv.FormatInt(newComponentId, 10)),
+				ObjectId:   openfga.ObjectIdFromInt(newComponentId),
 			}
 			remainingNew, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{newRelation})
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -433,8 +433,8 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 				deleteEvent := &cv.DeleteComponentVersionEvent{
 					ComponentVersionID: cvFake.Id,
 				}
-				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.ComponentVersionID, 10))
-				userId := openfga.UserId(strconv.FormatInt(deleteEvent.ComponentVersionID, 10))
+				objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentVersionID)
+				userId := openfga.UserIdFromInt(deleteEvent.ComponentVersionID)
 				relations := []openfga.RelationInput{
 					{ // user - component_version: a user can view the component version
 						UserType:   "user",

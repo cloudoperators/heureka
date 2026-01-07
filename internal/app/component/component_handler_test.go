@@ -305,7 +305,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 				deleteEvent := &c.DeleteComponentEvent{
 					ComponentID: compFake.Id,
 				}
-				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.ComponentID, 10))
+				objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentID)
 				relations := []openfga.RelationInput{
 					{ // role - component: a role is assigned to the component
 						UserType:   "role",

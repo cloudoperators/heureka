@@ -474,8 +474,8 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 				deleteEvent := &s.DeleteServiceEvent{
 					ServiceID: srv.Id,
 				}
-				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.ServiceID, 10))
-				userId := openfga.UserId(strconv.FormatInt(deleteEvent.ServiceID, 10))
+				objectId := openfga.ObjectIdFromInt(deleteEvent.ServiceID)
+				userId := openfga.UserIdFromInt(deleteEvent.ServiceID)
 
 				relations := []openfga.RelationInput{
 					{ // user - service: a user can view the service
@@ -582,8 +582,8 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 			var event event.Event = addEvent
 			s.OnAddOwnerToService(db, event, handlerContext.Authz)
 
-			p.ObjectId = openfga.ObjectId(strconv.FormatInt(addEvent.ServiceID, 10))
-			p.UserId = openfga.UserId(strconv.FormatInt(addEvent.OwnerID, 10))
+			p.ObjectId = openfga.ObjectIdFromInt(addEvent.ServiceID)
+			p.UserId = openfga.UserIdFromInt(addEvent.OwnerID)
 			ok, err := handlerContext.Authz.CheckPermission(p)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(ok).To(BeTrue(), "permission should be granted")
@@ -607,8 +607,8 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 				ServiceID: serviceFake.Id,
 				OwnerID:   ownerFake.Id,
 			}
-			serviceId := openfga.ObjectId(strconv.FormatInt(removeEvent.ServiceID, 10))
-			ownerId := openfga.UserId(strconv.FormatInt(removeEvent.OwnerID, 10))
+			serviceId := openfga.ObjectIdFromInt(removeEvent.ServiceID)
+			ownerId := openfga.UserIdFromInt(removeEvent.OwnerID)
 
 			rel := openfga.RelationInput{
 				UserType:   "user",

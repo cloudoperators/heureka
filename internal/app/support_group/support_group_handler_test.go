@@ -305,8 +305,8 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 				deleteEvent := &sg.DeleteSupportGroupEvent{
 					SupportGroupID: sgFake.Id,
 				}
-				objectId := openfga.ObjectId(strconv.FormatInt(deleteEvent.SupportGroupID, 10))
-				userId := openfga.UserId(strconv.FormatInt(deleteEvent.SupportGroupID, 10))
+				objectId := openfga.ObjectIdFromInt(deleteEvent.SupportGroupID)
+				userId := openfga.UserIdFromInt(deleteEvent.SupportGroupID)
 
 				relations := []openfga.RelationInput{
 					{ // user - support_group
@@ -402,8 +402,8 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 				SupportGroupID: sgFake.Id,
 				ServiceID:      serviceFake.Id,
 			}
-			supportGroupId := openfga.UserId(strconv.FormatInt(addEvent.SupportGroupID, 10))
-			serviceId := openfga.ObjectId(strconv.FormatInt(addEvent.ServiceID, 10))
+			supportGroupId := openfga.UserIdFromInt(addEvent.SupportGroupID)
+			serviceId := openfga.ObjectIdFromInt(addEvent.ServiceID)
 
 			rel := openfga.RelationInput{
 				UserType:   "support_group",
@@ -439,8 +439,8 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 				SupportGroupID: sgFake.Id,
 				ServiceID:      serviceFake.Id,
 			}
-			supportGroupId := openfga.UserId(strconv.FormatInt(removeEvent.SupportGroupID, 10))
-			serviceId := openfga.ObjectId(strconv.FormatInt(removeEvent.ServiceID, 10))
+			supportGroupId := openfga.UserIdFromInt(removeEvent.SupportGroupID)
+			serviceId := openfga.ObjectIdFromInt(removeEvent.ServiceID)
 
 			rel := openfga.RelationInput{
 				UserType:   "support_group",
@@ -508,8 +508,8 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 				SupportGroupID: sgFake.Id,
 				UserID:         userFake.Id,
 			}
-			supportGroupId := openfga.ObjectId(strconv.FormatInt(addEvent.SupportGroupID, 10))
-			userId := openfga.UserId(strconv.FormatInt(addEvent.UserID, 10))
+			supportGroupId := openfga.ObjectIdFromInt(addEvent.SupportGroupID)
+			userId := openfga.UserIdFromInt(addEvent.UserID)
 
 			rel := openfga.RelationInput{
 				UserType:   "user",
@@ -545,8 +545,8 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 				SupportGroupID: sgFake.Id,
 				UserID:         userFake.Id,
 			}
-			supportGroupId := openfga.ObjectId(strconv.FormatInt(removeEvent.SupportGroupID, 10))
-			userId := openfga.UserId(strconv.FormatInt(removeEvent.UserID, 10))
+			supportGroupId := openfga.ObjectIdFromInt(removeEvent.SupportGroupID)
+			userId := openfga.UserIdFromInt(removeEvent.UserID)
 
 			rel := openfga.RelationInput{
 				UserType:   "user",
