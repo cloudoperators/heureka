@@ -27,6 +27,7 @@ const (
 	IssueMatchChangeNodeName  NodeName = "IssueMatchChange"
 	VulnerabilityNodeName     NodeName = "Vulnerability"
 	ImageNodeName             NodeName = "Image"
+	ImageVersionNodeName      NodeName = "ImageVersion"
 )
 
 type NodeParent struct {

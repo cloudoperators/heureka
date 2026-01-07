@@ -404,6 +404,16 @@ func NewImage(component *entity.Component) Image {
 	}
 }
 
+func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
+	return ImageVersion{
+		ID:         fmt.Sprintf("%d", componentVersion.Id),
+		Tag:        &componentVersion.Tag,
+		Version:    &componentVersion.Version,
+		Repository: &componentVersion.Repository,
+		Metadata:   getModelMetadata(componentVersion.Metadata),
+	}
+}
+
 func NewVulnerability(issue *entity.Issue) Vulnerability {
 	return Vulnerability{
 		ID:          fmt.Sprintf("%d", issue.Id),
