@@ -4,16 +4,12 @@
 package e2e_test
 
 import (
-	"context"
 	"database/sql"
-	"fmt"
-	"os"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
-	"github.com/machinebox/graphql"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -28,9 +24,6 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var respData struct {
-		ImageVersions model.ImageVersionConnection `json:"ImageVersions"`
-	}
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
@@ -108,21 +101,13 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 		It("can query image versions", func() {
 			idsBySeverity := []string{"3", "8", "2", "7", "1", "6", "5", "4", "10", "9"}
 
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/imageVersion/query.graphql")
-			Expect(err).To(BeNil())
-
-			str := string(b)
-			req := graphql.NewRequest(str)
-			req.Var("filter", map[string]string{})
-			req.Var("first", 10)
-			req.Var("after", "")
-			req.Header.Set("Cache-Control", "no-cache")
-
-			ctx := context.Background()
-			err = client.Run(ctx, req, &respData)
-
-			Expect(err).To(BeNil(), "Error while unmarshaling")
+			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+				ImageVersions model.ImageVersionConnection `json:"ImageVersions"`
+			}](
+				cfg.Port,
+				"../api/graphql/graph/queryCollection/imageVersion/query.graphql",
+				map[string]interface{}{"first": 10, "after": ""},
+			)
 			Expect(respData.ImageVersions.TotalCount).To(Equal(10))
 			Expect(len(respData.ImageVersions.Edges)).To(Equal(10))
 
