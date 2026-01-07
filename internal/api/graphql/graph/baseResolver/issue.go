@@ -260,7 +260,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		}
 
 		switch parent.ParentName {
-		case model.ComponentVersionNodeName:
+		case model.ComponentVersionNodeName, model.ImageVersionNodeName:
 			cvIds = []*int64{pid}
 		case model.ServiceNodeName:
 			serviceId = []*int64{pid}

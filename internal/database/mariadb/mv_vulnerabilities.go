@@ -108,15 +108,23 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 		return nil, err
 	}
 
-	if len(counts) == 0 {
-		return &entity.IssueSeverityCounts{
-			Critical: 0,
-			High:     0,
-			Medium:   0,
-			Low:      0,
-			None:     0,
-		}, nil
+	issueCounts := &entity.IssueSeverityCounts{
+		Critical: 0,
+		High:     0,
+		Medium:   0,
+		Low:      0,
+		None:     0,
+		Total:    0,
 	}
 
-	return &counts[0], err
+	for _, c := range counts {
+		issueCounts.Critical += c.Critical
+		issueCounts.High += c.High
+		issueCounts.Medium += c.Medium
+		issueCounts.Low += c.Low
+		issueCounts.None += c.None
+		issueCounts.Total += c.Total
+	}
+
+	return issueCounts, nil
 }

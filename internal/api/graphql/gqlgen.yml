@@ -222,6 +222,14 @@ models:
         resolver: true
       vulnerabilities:
         resolver: true
+  ImageVersion:
+    fields:
+      occurences:
+        resolver: true
+      vulnerabilities:
+        resolver: true
+      vulnerabilityCounts:
+        resolver: true
   VulnerabilityFilterValue:
     fields:
       supportGroup:

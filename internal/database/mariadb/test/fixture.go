@@ -625,6 +625,22 @@ func (s *DatabaseSeeder) SeedIssues(num int) []mariadb.IssueRow {
 	return issues
 }
 
+func (s *DatabaseSeeder) SeedVulnerabilities(num int) []mariadb.IssueRow {
+	var issues []mariadb.IssueRow
+	for i := 0; i < num; i++ {
+		issue := NewFakeIssue()
+		issue.Type = sql.NullString{String: string(entity.IssueTypeVulnerability), Valid: true}
+		iId, err := s.InsertFakeIssue(issue)
+		if err != nil {
+			logrus.WithField("seed_type", "Issues").Debug(err)
+		} else {
+			issue.Id = sql.NullInt64{Int64: iId, Valid: true}
+			issues = append(issues, issue)
+		}
+	}
+	return issues
+}
+
 func (s *DatabaseSeeder) SeedIssueVariants(num int, repos []mariadb.BaseIssueRepositoryRow, issues []mariadb.IssueRow) []mariadb.IssueVariantRow {
 	var variants []mariadb.IssueVariantRow
 	for i := 0; i < num; i++ {

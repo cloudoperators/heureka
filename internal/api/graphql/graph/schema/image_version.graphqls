@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type ImageVersion implements Node {
+    id: ID!
+    tag: String
+    version: String
+    repository: String
+    occurences(first: Int, after: String): ComponentInstanceConnection
+    vulnerabilities(first: Int, after: String, filter: VulnerabilityFilter): VulnerabilityConnection
+    vulnerabilityCounts: SeverityCounts
+    metadata: Metadata
+}
+
+type ImageVersionConnection implements Connection {
+  totalCount: Int!
+  counts: SeverityCounts
+  edges: [ImageVersionEdge]!
+  pageInfo: PageInfo
+}
+
+type ImageVersionEdge implements Edge {
+  node: ImageVersion!
+  cursor: String
+}
+
+input ImageVersionFilter {
+    image: [String]
+    version: [String]
+    service: [String]
+    tag: [String]
+    repository: [String]
+    state: [StateFilter!]
+}
