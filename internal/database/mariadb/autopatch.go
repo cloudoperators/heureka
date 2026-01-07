@@ -88,7 +88,7 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		return false, nil
 	}
 
-	err = s.patchDisappeared(disappearedInstances)
+	patches, err := s.getPatches(disappearedInstances)
 	if err != nil {
 		return false, err
 	}
@@ -99,6 +99,11 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 	}
 
 	err = s.deleteDisappearedInstances(disappearedInstances)
+	if err != nil {
+		return false, err
+	}
+
+	err = s.insertPatches(patches)
 	if err != nil {
 		return false, err
 	}
@@ -117,14 +122,6 @@ func getDisappearedInstances(latestInstances map[int]struct{}, secondLatestInsta
 	return disappeared
 }
 
-func (s *SqlDatabase) patchDisappeared(disappearedInstances []int) error {
-	patches, err := s.getPatches(disappearedInstances)
-	if err != nil {
-		return err
-	}
-	return s.insertPatches(patches)
-}
-
 func (s *SqlDatabase) getPatches(disappearedInstances []int) (map[patchInfo]struct{}, error) {
 	patches := make(map[patchInfo]struct{})
 	for _, inst := range disappearedInstances {
@@ -137,9 +134,10 @@ func (s *SqlDatabase) getPatches(disappearedInstances []int) (map[patchInfo]stru
 	return patches, nil
 }
 
+// Insert patches only for service/version which does not reflect any existing component instance (for removed instances)
 func (s *SqlDatabase) insertPatches(patches map[patchInfo]struct{}) error {
 	for patch, _ := range patches {
-		if err := s.insertPatch(patch); err != nil {
+		if err := s.insertPatchIfNoInstanceExists(patch); err != nil {
 			return err
 		}
 	}
@@ -228,10 +226,43 @@ func (s *SqlDatabase) fetchServiceAndVersionForInstance(instanceID int) (patchIn
 	return pInfo, err
 }
 
-func (s *SqlDatabase) insertPatch(patch patchInfo) error {
-	_, err := s.db.Exec(`
-        INSERT INTO Patch (patch_service_id, patch_service_name, patch_component_version_id, patch_component_version_name)
-        VALUES (?, ?, ?, ?)
-    `, patch.serviceId, patch.serviceName, patch.componentVersionId, patch.componentVersionName)
-	return err
+func (s *SqlDatabase) insertPatchIfNoInstanceExists(patch patchInfo) error {
+	query := `
+		INSERT INTO Patch (
+			patch_service_id,
+			patch_service_name,
+			patch_component_version_id,
+			patch_component_version_name
+		)
+		SELECT ?, ?, ?, ?
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM ComponentInstance ci
+			WHERE ci.componentinstance_service_id = ?
+			  AND ci.componentinstance_component_version_id = ?
+              AND ci.componentinstance_deleted_at IS NULL
+		)
+	`
+
+	res, err := s.db.Exec(
+		query,
+		patch.serviceId,
+		patch.serviceName,
+		patch.componentVersionId,
+		patch.componentVersionName,
+		patch.serviceId,
+		patch.componentVersionId,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	// Detection of skipped patch:
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		// Patch was NOT inserted
+	}
+
+	return nil
 }

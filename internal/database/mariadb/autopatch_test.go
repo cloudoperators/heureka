@@ -18,7 +18,7 @@ import (
 type scannerRun struct {
 	isNotCompleted       bool
 	issues               []string
-	components           []string
+	components           []test.Component
 	issueMatchComponents []test.IssueMatchComponent
 }
 
@@ -143,7 +143,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 		{
 			description: "WHEN single completed scan with components",
 			scannerRuns: []scannerRun{
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
 			},
 			expectedResult: false,
 		},
@@ -158,7 +158,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 		{
 			description: "WHEN first completed scan has components and second is not completed",
 			scannerRuns: []scannerRun{
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
 				{isNotCompleted: true},
 			},
 			expectedResult: false,
@@ -166,7 +166,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 		{
 			description: "WHEN two completed scans: first has component, second no longer has that component",
 			scannerRuns: []scannerRun{
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
 				{},
 			},
 			expectedResult:     true,
@@ -176,16 +176,16 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 		{
 			description: "WHEN two completed scans: both have the same component",
 			scannerRuns: []scannerRun{
-				{components: []string{"C1"}},
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
+				{components: []test.Component{{Name: "C1"}}},
 			},
 			expectedResult: false,
 		},
 		{
 			description: "WHEN two completed scans: first has C1, second has C2",
 			scannerRuns: []scannerRun{
-				{components: []string{"C1"}},
-				{components: []string{"C2"}},
+				{components: []test.Component{{Name: "C1"}}},
+				{components: []test.Component{{Name: "C2"}}},
 			},
 			expectedResult:     true, // C1 disappeared -> autopatch
 			expectedPatchCount: 1,
@@ -196,10 +196,10 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			scannerRuns: []scannerRun{
 				{
 					issues:               []string{"Issue1"},
-					components:           []string{"C1"},
+					components:           []test.Component{{Name: "C1"}},
 					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "C1"}},
 				},
-				{components: []string{"C2"}},
+				{components: []test.Component{{Name: "C2"}}},
 			},
 			expectedResult:                       true,
 			expectedPatchCount:                   1,
@@ -211,12 +211,12 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			scannerRuns: []scannerRun{
 				{
 					issues:               []string{"Issue1"},
-					components:           []string{"C1"},
+					components:           []test.Component{{Name: "C1"}},
 					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "C1"}},
 				},
 				{
 					issues:               []string{"Issue1"},
-					components:           []string{"C1"},
+					components:           []test.Component{{Name: "C1"}},
 					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "C1"}},
 				},
 			},
@@ -234,7 +234,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 		{
 			description: "WHEN 3 scans: <C1>, <no component>, <no component>",
 			scannerRuns: []scannerRun{
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
 				{},
 				{},
 			},
@@ -243,18 +243,18 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 		{
 			description: "WHEN 3 scans: <C1>, <C1>, <C1>",
 			scannerRuns: []scannerRun{
-				{components: []string{"C1"}},
-				{components: []string{"C1"}},
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
+				{components: []test.Component{{Name: "C1"}}},
+				{components: []test.Component{{Name: "C1"}}},
 			},
 			expectedResult: false,
 		},
 		{
 			description: "WHEN 3 scans: <C1>, <no component>, <C1>",
 			scannerRuns: []scannerRun{
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
 				{},
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
 			},
 			expectedResult: false,
 		},
@@ -262,7 +262,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			description: "WHEN 3 scans: <no component>, <C1>, <no component>",
 			scannerRuns: []scannerRun{
 				{},
-				{components: []string{"C1"}},
+				{components: []test.Component{{Name: "C1"}}},
 				{},
 			},
 			expectedResult:     true, // latest (no components) vs second-latest (C1)
@@ -274,7 +274,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			scannerRuns: []scannerRun{
 				{
 					issues:     []string{"IC1", "IC2a", "IC2b", "IC3", "IX"},
-					components: []string{"C1", "C2", "C3"},
+					components: []test.Component{{Name: "C1"}, {Name: "C2"}, {Name: "C3"}},
 					issueMatchComponents: []test.IssueMatchComponent{
 						{Issue: "IC1", Component: "C1"},
 						{Issue: "IC2a", Component: "C2"},
@@ -287,6 +287,25 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectedPatchCount:                   1,
 			patchedComponents:                    []string{"C1", "C2", "C3"},
 			expectDeletedIssueMatchesByIssueName: []string{"IC1", "IC2a", "IC2b", "IC3"},
+		},
+		{
+			description: "WHEN 1 component disappear from 2 components with the same version and service", //THEN patch should not be created
+			scannerRuns: []scannerRun{
+				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}, {Name: "C2", Version: "V1", Service: "S1"}}},
+				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
+			},
+			expectedResult:     true,
+			expectedPatchCount: 0,
+		},
+		{
+			description: "WHEN 1 component disappear from 2 components with different version and service", //THEN patch should be created
+			scannerRuns: []scannerRun{
+				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}, {Name: "C2", Version: "V2", Service: "S2"}}},
+				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
+			},
+			expectedResult:     true,
+			expectedPatchCount: 1,
+			patchedComponents:  []string{"C1"},
 		},
 	}
 

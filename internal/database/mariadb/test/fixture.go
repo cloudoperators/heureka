@@ -1018,8 +1018,8 @@ func (s *DatabaseSeeder) SeedRemediations(num int, services []mariadb.BaseServic
 func (s *DatabaseSeeder) SeedPatches(num int, services []mariadb.BaseServiceRow, componentVersions []mariadb.ComponentVersionRow) []mariadb.PatchRow {
 	var rows []mariadb.PatchRow
 	for i := 0; i < num; i++ {
-		service := services[rand.Intn(len(services))]
-		componentVersion := componentVersions[rand.Intn(len(componentVersions))]
+		service := services[i%len(services)]
+		componentVersion := componentVersions[i%len(componentVersions)]
 		// does not check if relation exists
 		p := mariadb.PatchRow{
 			ServiceId:            service.Id,
