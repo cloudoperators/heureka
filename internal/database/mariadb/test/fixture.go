@@ -1185,11 +1185,17 @@ func (s *DatabaseSeeder) InsertFakeComponent(component mariadb.ComponentRow) (in
 	query := `
 		INSERT INTO Component (
 			component_ccrn,
+			component_repository,
+			component_organization,
+			component_url,
 			component_type,
 			component_created_by,
 			component_updated_by
 		) VALUES (
 			:component_ccrn,
+			:component_repository,
+			:component_organization,
+			:component_url,
 			:component_type,
 			:component_created_by,
 			:component_updated_by
@@ -1535,12 +1541,15 @@ func NewFakeSupportGroup() mariadb.SupportGroupRow {
 
 func NewFakeComponent() mariadb.ComponentRow {
 	types := []string{"containerImage", "virtualMachineImage", "repository"}
-	ccrn := fmt.Sprintf("%s-%d", gofakeit.AppName(), gofakeit.UUID())
+	ccrn := fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID())
 	return mariadb.ComponentRow{
-		CCRN:      sql.NullString{String: ccrn, Valid: true},
-		Type:      sql.NullString{String: gofakeit.RandomString(types), Valid: true},
-		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-		UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		CCRN:         sql.NullString{String: ccrn, Valid: true},
+		Type:         sql.NullString{String: gofakeit.RandomString(types), Valid: true},
+		Repository:   sql.NullString{String: gofakeit.ProductName(), Valid: true},
+		Organization: sql.NullString{String: gofakeit.AppName(), Valid: true},
+		Url:          sql.NullString{String: gofakeit.URL(), Valid: true},
+		CreatedBy:    sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		UpdatedBy:    sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 	}
 }
 
