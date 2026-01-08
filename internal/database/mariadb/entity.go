@@ -556,21 +556,27 @@ func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIs
 }
 
 type ComponentRow struct {
-	Id        sql.NullInt64  `db:"component_id" json:"id"`
-	CCRN      sql.NullString `db:"component_ccrn" json:"ccrn"`
-	Type      sql.NullString `db:"component_type" json:"type"`
-	CreatedAt sql.NullTime   `db:"component_created_at" json:"created_at"`
-	CreatedBy sql.NullInt64  `db:"component_created_by" json:"created_by"`
-	DeletedAt sql.NullTime   `db:"component_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt sql.NullTime   `db:"component_updated_at" json:"updated_at"`
-	UpdatedBy sql.NullInt64  `db:"component_updated_by" json:"updated_by"`
+	Id           sql.NullInt64  `db:"component_id" json:"id"`
+	CCRN         sql.NullString `db:"component_ccrn" json:"ccrn"`
+	Repository   sql.NullString `db:"component_repository" json:"repository"`
+	Organization sql.NullString `db:"component_organization" json:"organization"`
+	Url          sql.NullString `db:"component_url" json:"url"`
+	Type         sql.NullString `db:"component_type" json:"type"`
+	CreatedAt    sql.NullTime   `db:"component_created_at" json:"created_at"`
+	CreatedBy    sql.NullInt64  `db:"component_created_by" json:"created_by"`
+	DeletedAt    sql.NullTime   `db:"component_deleted_at" json:"deleted_at,omitempty"`
+	UpdatedAt    sql.NullTime   `db:"component_updated_at" json:"updated_at"`
+	UpdatedBy    sql.NullInt64  `db:"component_updated_by" json:"updated_by"`
 }
 
 func (cr *ComponentRow) AsComponent() entity.Component {
 	return entity.Component{
-		Id:   GetInt64Value(cr.Id),
-		CCRN: GetStringValue(cr.CCRN),
-		Type: GetStringValue(cr.Type),
+		Id:           GetInt64Value(cr.Id),
+		CCRN:         GetStringValue(cr.CCRN),
+		Repository:   GetStringValue(cr.Repository),
+		Organization: GetStringValue(cr.Organization),
+		Url:          GetStringValue(cr.Url),
+		Type:         GetStringValue(cr.Type),
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(cr.CreatedAt),
 			CreatedBy: GetInt64Value(cr.CreatedBy),
@@ -584,6 +590,9 @@ func (cr *ComponentRow) AsComponent() entity.Component {
 func (cr *ComponentRow) FromComponent(c *entity.Component) {
 	cr.Id = sql.NullInt64{Int64: c.Id, Valid: true}
 	cr.CCRN = sql.NullString{String: c.CCRN, Valid: true}
+	cr.Repository = sql.NullString{String: c.Repository, Valid: true}
+	cr.Organization = sql.NullString{String: c.Organization, Valid: true}
+	cr.Url = sql.NullString{String: c.Url, Valid: true}
 	cr.Type = sql.NullString{String: c.Type, Valid: true}
 	cr.CreatedAt = sql.NullTime{Time: c.CreatedAt, Valid: true}
 	cr.CreatedBy = sql.NullInt64{Int64: c.CreatedBy, Valid: true}

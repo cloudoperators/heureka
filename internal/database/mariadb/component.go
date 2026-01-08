@@ -15,6 +15,8 @@ import (
 func (s *SqlDatabase) getComponentFilterString(filter *entity.ComponentFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.CCRN, "C.component_ccrn = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Repository, "C.component_repository = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Organization, "C.component_organization = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "C.component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CV.componentversion_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
@@ -136,6 +138,15 @@ func (s *SqlDatabase) getComponentUpdateFields(component *entity.Component) stri
 	if component.CCRN != "" {
 		fl = append(fl, "component_ccrn = :component_ccrn")
 	}
+	if component.Repository != "" {
+		fl = append(fl, "component_repository = :component_repository")
+	}
+	if component.Organization != "" {
+		fl = append(fl, "component_organization = :component_organization")
+	}
+	if component.Url != "" {
+		fl = append(fl, "component_url = :component_url")
+	}
 	if component.Type != "" {
 		fl = append(fl, "component_type = :component_type")
 	}
@@ -193,6 +204,8 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 	//adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
+	filterParameters = buildQueryParameters(filterParameters, filter.Repository)
+	filterParameters = buildQueryParameters(filterParameters, filter.Organization)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
@@ -443,11 +456,17 @@ func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Comp
 	query := `
 		INSERT INTO Component (
 			component_ccrn,
+			component_repository,
+			component_organization,
+			component_url,
 			component_type,
 			component_created_by,
 			component_updated_by
 		) VALUES (
 			:component_ccrn,
+			:component_repository,
+			:component_organization,
+			:component_url,
 			:component_type,
 			:component_created_by,
 			:component_updated_by

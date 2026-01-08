@@ -5,9 +5,12 @@ package entity
 
 type Component struct {
 	Metadata
-	Id   int64  `json:"id"`
-	CCRN string `json:"ccrn"`
-	Type string `json:"type"`
+	Id           int64  `json:"id"`
+	CCRN         string `json:"ccrn"`
+	Type         string `json:"type"`
+	Repository   string `json:"repository"`
+	Organization string `json:"organization"`
+	Url          string `json:"url"`
 }
 
 type ComponentResult struct {
@@ -19,6 +22,8 @@ type ComponentResult struct {
 type ComponentFilter struct {
 	PaginatedX
 	CCRN                       []*string         `json:"ccrn"`
+	Repository                 []*string         `json:"repository"`
+	Organization               []*string         `json:"organization"`
 	ServiceCCRN                []*string         `json:"service_ccrn"`
 	Id                         []*int64          `json:"id"`
 	ComponentVersionId         []*int64          `json:"component_version_id"`
