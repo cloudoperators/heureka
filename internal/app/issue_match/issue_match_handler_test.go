@@ -229,7 +229,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 
 		p = openfga.PermissionInput{
 			UserType:   "role",
-			UserId:     "testuser",
+			UserId:     "0",
 			ObjectId:   "test_issue_match",
 			ObjectType: "issue_match",
 			Relation:   "role",

@@ -179,12 +179,12 @@ func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz o
 		instanceId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
 		serviceId := strconv.FormatInt(createEvent.ComponentInstance.ServiceId, 10)
 		componentVersionId := strconv.FormatInt(createEvent.ComponentInstance.ComponentVersionId, 10)
-		userId := authz.GetCurrentUser()
+		userId := openfga.UserIdFromInt(createEvent.ComponentInstance.CreatedBy)
 
 		rlist := []openfga.RelationInput{
 			{
 				UserType:   "role",
-				UserId:     openfga.UserId(userId),
+				UserId:     userId,
 				Relation:   "role",
 				ObjectType: "component_instance",
 				ObjectId:   openfga.ObjectId(instanceId),

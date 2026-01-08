@@ -225,12 +225,12 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 
 	if createEvent, ok := e.(*CreateIssueMatchEvent); ok {
 		issueMatchId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
-		userId := authz.GetCurrentUser()
+		userId := openfga.UserIdFromInt(createEvent.IssueMatch.CreatedBy)
 
 		rlist := []openfga.RelationInput{
 			{
 				UserType:   "role",
-				UserId:     openfga.UserId(userId),
+				UserId:     userId,
 				Relation:   "role",
 				ObjectType: "issue_match",
 				ObjectId:   openfga.ObjectId(issueMatchId),

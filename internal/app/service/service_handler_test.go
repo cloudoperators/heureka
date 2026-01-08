@@ -264,7 +264,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 		p = openfga.PermissionInput{
 			UserType:   "role",
-			UserId:     "testuser",
+			UserId:     "0",
 			ObjectId:   "test_service",
 			ObjectType: "service",
 			Relation:   "role",

@@ -164,7 +164,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 		p = openfga.PermissionInput{
 			UserType:   "role",
-			UserId:     "testuser",
+			UserId:     "0",
 			ObjectId:   "",
 			ObjectType: "support_group",
 			Relation:   "role",

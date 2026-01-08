@@ -166,7 +166,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 
 		p = openfga.PermissionInput{
 			UserType:   "role",
-			UserId:     "testuser",
+			UserId:     "0",
 			ObjectId:   "testcomponent",
 			ObjectType: "component",
 			Relation:   "role",
