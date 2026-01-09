@@ -1139,6 +1139,11 @@ type ScannerRunRow struct {
 	StartRun    sql.NullTime   `db:"scannerrun_start_run"`
 	EndRun      sql.NullTime   `db:"scannerrun_end_run"`
 	IsCompleted sql.NullBool   `db:"scannerrun_is_completed"`
+	CreatedAt   sql.NullTime   `db:"scannerrun_created_at" json:"created_at"`
+	CreatedBy   sql.NullInt64  `db:"scannerrun_created_by" json:"created_by"`
+	DeletedAt   sql.NullTime   `db:"scannerrun_deleted_at" json:"deleted_at,omitempty"`
+	UpdatedAt   sql.NullTime   `db:"scannerrun_updated_at" json:"updated_at"`
+	UpdatedBy   sql.NullInt64  `db:"scannerrun_updated_by" json:"updated_by"`
 }
 
 func (srr *ScannerRunRow) AsScannerRun() entity.ScannerRun {
@@ -1149,6 +1154,13 @@ func (srr *ScannerRunRow) AsScannerRun() entity.ScannerRun {
 		StartRun:  GetTimeValue(srr.StartRun),
 		EndRun:    GetTimeValue(srr.EndRun),
 		Completed: GetBoolValue(srr.IsCompleted),
+		Metadata: entity.Metadata{
+			CreatedAt: GetTimeValue(srr.CreatedAt),
+			CreatedBy: GetInt64Value(srr.CreatedBy),
+			DeletedAt: GetTimeValue(srr.DeletedAt),
+			UpdatedAt: GetTimeValue(srr.UpdatedAt),
+			UpdatedBy: GetInt64Value(srr.UpdatedBy),
+		},
 	}
 }
 
@@ -1159,6 +1171,11 @@ func (srr *ScannerRunRow) FromScannerRun(sr *entity.ScannerRun) {
 	srr.StartRun = sql.NullTime{Time: sr.StartRun, Valid: true}
 	srr.EndRun = sql.NullTime{Time: sr.EndRun, Valid: true}
 	srr.IsCompleted = sql.NullBool{Bool: sr.Completed, Valid: true}
+	srr.CreatedAt = sql.NullTime{Time: sr.CreatedAt, Valid: true}
+	srr.CreatedBy = sql.NullInt64{Int64: sr.CreatedBy, Valid: true}
+	srr.DeletedAt = sql.NullTime{Time: sr.DeletedAt, Valid: true}
+	srr.UpdatedAt = sql.NullTime{Time: sr.UpdatedAt, Valid: true}
+	srr.UpdatedBy = sql.NullInt64{Int64: sr.UpdatedBy, Valid: true}
 }
 
 type RemediationRow struct {

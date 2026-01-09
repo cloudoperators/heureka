@@ -22,7 +22,7 @@ func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst() (map[string][]int, err
 	rows, err := s.db.Query(`
         SELECT scannerrun_tag, scannerrun_run_id
         FROM ScannerRun
-        WHERE scannerrun_is_completed = TRUE
+        WHERE scannerrun_is_completed = TRUE AND scannerrun_deleted_at IS NULL
         ORDER BY scannerrun_tag, scannerrun_run_id DESC
     `)
 	if err != nil {

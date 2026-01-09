@@ -472,7 +472,12 @@ create table if not exists ScannerRun
     
     scannerrun_end_run         timestamp default current_timestamp() not null,
 
-    scannerrun_is_completed    boolean not null default false
+    scannerrun_is_completed    boolean not null default false,
+    scannerrun_created_at      timestamp default current_timestamp() not null,
+    scannerrun_created_by      int unsigned                          null,
+    scannerrun_deleted_at      timestamp                             null,
+    scannerrun_updated_at      timestamp default current_timestamp() not null on update current_timestamp(),
+    scannerrun_updated_by      int unsigned                          null
 );
 
 create table if not exists ScannerRunComponentInstanceTracker

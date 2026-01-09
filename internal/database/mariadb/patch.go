@@ -63,6 +63,9 @@ func getPatchUpdateFields(patch *entity.Patch) string {
 	if patch.ComponentVersionName != "" {
 		fl = append(fl, "patch_component_version_name = :patch_component_version_name")
 	}
+	if patch.UpdatedBy != 0 {
+		fl = append(fl, "patch_updated_by = :patch_updated_by")
+	}
 	return strings.Join(fl, ", ")
 }
 

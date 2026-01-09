@@ -20,13 +20,17 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (bool, err
 			scannerrun_tag,
 			scannerrun_start_run,
 			scannerrun_end_run,
-			scannerrun_is_completed
+			scannerrun_is_completed,
+			scannerrun_created_by,
+			scannerrun_updated_by
 		) VALUES (
 			:scannerrun_uuid,
 			:scannerrun_tag,
 			:scannerrun_start_run,
 			:scannerrun_end_run,
-			:scannerrun_is_completed
+			:scannerrun_is_completed,
+			:scannerrun_created_by,
+			:scannerrun_updated_by
 		)
 	`
 
@@ -126,7 +130,7 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 
 	for rows.Next() {
 		srr := ScannerRunRow{}
-		err = rows.Scan(&srr.RunID, &srr.UUID, &srr.Tag, &srr.StartRun, &srr.EndRun, &srr.IsCompleted)
+		err = rows.Scan(&srr.RunID, &srr.UUID, &srr.Tag, &srr.StartRun, &srr.EndRun, &srr.IsCompleted, &srr.CreatedAt, &srr.CreatedBy, &srr.DeletedAt, &srr.UpdatedAt, &srr.UpdatedBy)
 
 		if err != nil {
 			return nil, err
