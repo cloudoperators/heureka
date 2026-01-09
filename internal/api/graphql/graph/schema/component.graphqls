@@ -4,6 +4,9 @@
 type Component implements Node {
     id: ID!
     ccrn: String
+    repository: String
+    organization: String
+    url: String
     type: ComponentTypeValues
     componentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     metadata: Metadata
@@ -11,6 +14,9 @@ type Component implements Node {
 
 input ComponentInput {
     ccrn: String
+    repository: String
+    organization: String
+    url: String
     type: ComponentTypeValues
 }
 
@@ -22,6 +28,8 @@ enum ComponentTypeValues {
 
 input ComponentFilter {
     componentCcrn: [String]
+    repository: [String]
+    organization: [String]
     state: [StateFilter!]
     serviceCcrn: [String]
     componentVersionRepository: [String]

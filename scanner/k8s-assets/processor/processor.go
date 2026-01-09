@@ -396,8 +396,11 @@ func (p *Processor) ProcessContainer(
 
 	if err != nil {
 		componentId, err = p.createComponent(ctx, &client.ComponentInput{
-			Ccrn: componentCcrn,
-			Type: client.ComponentTypeValuesContainerimage,
+			Ccrn:         componentCcrn,
+			Repository:   containerInfo.ImageRepository,
+			Organization: containerInfo.ImageAccount,
+			Url:          fmt.Sprintf("https://%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository),
+			Type:         client.ComponentTypeValuesContainerimage,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create Component. %w", err)
