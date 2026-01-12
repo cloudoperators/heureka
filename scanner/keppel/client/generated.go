@@ -91,6 +91,8 @@ func (v *ComponentConnectionEdgesComponentEdge) GetCursor() string { return v.Cu
 
 type ComponentFilter struct {
 	ComponentCcrn              []string      `json:"componentCcrn"`
+	Repository                 []string      `json:"repository"`
+	Organization               []string      `json:"organization"`
 	State                      []StateFilter `json:"state"`
 	ServiceCcrn                []string      `json:"serviceCcrn"`
 	ComponentVersionRepository []string      `json:"componentVersionRepository"`
@@ -98,6 +100,12 @@ type ComponentFilter struct {
 
 // GetComponentCcrn returns ComponentFilter.ComponentCcrn, and is useful for accessing the field via an interface.
 func (v *ComponentFilter) GetComponentCcrn() []string { return v.ComponentCcrn }
+
+// GetRepository returns ComponentFilter.Repository, and is useful for accessing the field via an interface.
+func (v *ComponentFilter) GetRepository() []string { return v.Repository }
+
+// GetOrganization returns ComponentFilter.Organization, and is useful for accessing the field via an interface.
+func (v *ComponentFilter) GetOrganization() []string { return v.Organization }
 
 // GetState returns ComponentFilter.State, and is useful for accessing the field via an interface.
 func (v *ComponentFilter) GetState() []StateFilter { return v.State }
@@ -111,12 +119,24 @@ func (v *ComponentFilter) GetComponentVersionRepository() []string {
 }
 
 type ComponentInput struct {
-	Ccrn string              `json:"ccrn"`
-	Type ComponentTypeValues `json:"type"`
+	Ccrn         string              `json:"ccrn"`
+	Repository   string              `json:"repository"`
+	Organization string              `json:"organization"`
+	Url          string              `json:"url"`
+	Type         ComponentTypeValues `json:"type"`
 }
 
 // GetCcrn returns ComponentInput.Ccrn, and is useful for accessing the field via an interface.
 func (v *ComponentInput) GetCcrn() string { return v.Ccrn }
+
+// GetRepository returns ComponentInput.Repository, and is useful for accessing the field via an interface.
+func (v *ComponentInput) GetRepository() string { return v.Repository }
+
+// GetOrganization returns ComponentInput.Organization, and is useful for accessing the field via an interface.
+func (v *ComponentInput) GetOrganization() string { return v.Organization }
+
+// GetUrl returns ComponentInput.Url, and is useful for accessing the field via an interface.
+func (v *ComponentInput) GetUrl() string { return v.Url }
 
 // GetType returns ComponentInput.Type, and is useful for accessing the field via an interface.
 func (v *ComponentInput) GetType() ComponentTypeValues { return v.Type }

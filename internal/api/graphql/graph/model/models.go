@@ -680,10 +680,13 @@ func NewEvidenceEntity(evidence *EvidenceInput) entity.Evidence {
 func NewComponent(component *entity.Component) Component {
 	componentType, _ := ComponentTypeValue(component.Type)
 	return Component{
-		ID:       fmt.Sprintf("%d", component.Id),
-		Ccrn:     &component.CCRN,
-		Type:     &componentType,
-		Metadata: getModelMetadata(component.Metadata),
+		ID:           fmt.Sprintf("%d", component.Id),
+		Ccrn:         &component.CCRN,
+		Repository:   &component.Repository,
+		Organization: &component.Organization,
+		URL:          &component.Url,
+		Type:         &componentType,
+		Metadata:     getModelMetadata(component.Metadata),
 	}
 }
 
@@ -693,8 +696,11 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 		componentType = component.Type.String()
 	}
 	return entity.Component{
-		CCRN: lo.FromPtr(component.Ccrn),
-		Type: componentType,
+		CCRN:         lo.FromPtr(component.Ccrn),
+		Repository:   lo.FromPtr(component.Repository),
+		Organization: lo.FromPtr(component.Organization),
+		Url:          lo.FromPtr(component.URL),
+		Type:         componentType,
 	}
 }
 
