@@ -25,8 +25,10 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsUniqueService_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsUniqueService_proc()
 BEGIN
-    TRUNCATE TABLE mvCountIssueRatingsUniqueService;
-    INSERT INTO mvCountIssueRatingsUniqueService (
+    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsUniqueService_tmp LIKE mvCountIssueRatingsUniqueService;
+    DELETE FROM mvCountIssueRatingsUniqueService_tmp;
+
+    INSERT INTO mvCountIssueRatingsUniqueService_tmp (
         critical_count,
         high_count,
         medium_count,
@@ -42,6 +44,11 @@ BEGIN
     FROM Issue I
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
     WHERE I.issue_deleted_at IS NULL;
+
+    RENAME TABLE
+        mvCountIssueRatingsUniqueService TO mvCountIssueRatingsUniqueService_old,
+        mvCountIssueRatingsUniqueService_tmp TO mvCountIssueRatingsUniqueService;
+    DROP TABLE mvCountIssueRatingsUniqueService_old;
 END;
 
 --
@@ -70,8 +77,10 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsService_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsService_proc()
 BEGIN
-    TRUNCATE TABLE mvCountIssueRatingsService;
-    INSERT INTO mvCountIssueRatingsService (
+    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsService_tmp LIKE mvCountIssueRatingsService;
+    DELETE FROM mvCountIssueRatingsService_tmp;
+
+    INSERT INTO mvCountIssueRatingsService_tmp (
         supportgroup_ccrn,
         critical_count,
         high_count,
@@ -97,6 +106,11 @@ BEGIN
     WHERE I.issue_deleted_at IS NULL
     AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
     GROUP BY SG.supportgroup_ccrn;
+
+    RENAME TABLE
+        mvCountIssueRatingsService TO mvCountIssueRatingsService_old,
+        mvCountIssueRatingsService_tmp TO mvCountIssueRatingsService;
+    DROP TABLE mvCountIssueRatingsService_old;
 END;
 
 --
@@ -124,8 +138,10 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc()
 BEGIN
-    TRUNCATE TABLE mvCountIssueRatingsServiceWithoutSupportGroup;
-    INSERT INTO mvCountIssueRatingsServiceWithoutSupportGroup (
+    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsServiceWithoutSupportGroup_tmp LIKE mvCountIssueRatingsServiceWithoutSupportGroup;
+    DELETE FROM mvCountIssueRatingsServiceWithoutSupportGroup_tmp;
+
+    INSERT INTO mvCountIssueRatingsServiceWithoutSupportGroup_tmp (
         critical_count,
         high_count,
         medium_count,
@@ -147,6 +163,11 @@ BEGIN
     LEFT JOIN Remediation R ON S.service_id = R.remediation_service_id AND I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL
     WHERE I.issue_deleted_at IS NULL
     AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE());
+
+    RENAME TABLE
+        mvCountIssueRatingsServiceWithoutSupportGroup TO mvCountIssueRatingsServiceWithoutSupportGroup_old,
+        mvCountIssueRatingsServiceWithoutSupportGroup_tmp TO mvCountIssueRatingsServiceWithoutSupportGroup;
+    DROP TABLE mvCountIssueRatingsServiceWithoutSupportGroup_old;
 END;
 
 --
@@ -175,8 +196,10 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsSupportGroup_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsSupportGroup_proc()
 BEGIN
-    TRUNCATE TABLE mvCountIssueRatingsSupportGroup;
-    INSERT INTO mvCountIssueRatingsSupportGroup (
+    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsSupportGroup_tmp LIKE mvCountIssueRatingsSupportGroup;
+    DELETE FROM mvCountIssueRatingsSupportGroup_tmp;
+
+    INSERT INTO mvCountIssueRatingsSupportGroup_tmp (
         supportgroup_ccrn,
         critical_count,
         high_count,
@@ -213,6 +236,11 @@ BEGIN
     -- Count only non-remediated or with expired remediation
     AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
     GROUP BY SG.supportgroup_ccrn;
+
+    RENAME TABLE
+        mvCountIssueRatingsSupportGroup TO mvCountIssueRatingsSupportGroup_old,
+        mvCountIssueRatingsSupportGroup_tmp TO mvCountIssueRatingsSupportGroup;
+    DROP TABLE mvCountIssueRatingsSupportGroup_old;
 END;
 
 --
@@ -243,8 +271,10 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsComponentVersion_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsComponentVersion_proc()
 BEGIN
-    TRUNCATE TABLE mvCountIssueRatingsComponentVersion;
-    INSERT INTO mvCountIssueRatingsComponentVersion (
+    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsComponentVersion_tmp LIKE mvCountIssueRatingsComponentVersion;
+    DELETE FROM mvCountIssueRatingsComponentVersion_tmp;
+
+    INSERT INTO mvCountIssueRatingsComponentVersion_tmp (
         component_version_id,
         service_id,
         service_ccrn,
@@ -272,6 +302,11 @@ BEGIN
     -- Count only non-remediated or with expired remediation
     (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
     GROUP BY CVI.componentversionissue_component_version_id;
+
+    RENAME TABLE
+        mvCountIssueRatingsComponentVersion TO mvCountIssueRatingsComponentVersion_old,
+        mvCountIssueRatingsComponentVersion_tmp TO mvCountIssueRatingsComponentVersion;
+    DROP TABLE mvCountIssueRatingsComponentVersion_old;
 END;
 
 --
@@ -301,8 +336,10 @@ ADD COLUMN service_ccrn VARCHAR(255) DEFAULT NULL;
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsServiceId_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsServiceId_proc()
 BEGIN
-    TRUNCATE TABLE mvCountIssueRatingsServiceId;
-    INSERT INTO mvCountIssueRatingsServiceId (
+    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsServiceId_tmp LIKE mvCountIssueRatingsServiceId;
+    DELETE FROM mvCountIssueRatingsServiceId_tmp;
+
+    INSERT INTO mvCountIssueRatingsServiceId_tmp (
         service_id,
         service_ccrn,
         critical_count,
@@ -329,6 +366,11 @@ BEGIN
     -- Count only non-remediated or with expired remediation
     AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
     GROUP BY CI.componentinstance_service_id;
+
+    RENAME TABLE
+        mvCountIssueRatingsServiceId TO mvCountIssueRatingsServiceId_old,
+        mvCountIssueRatingsServiceId_tmp TO mvCountIssueRatingsServiceId;
+    DROP TABLE mvCountIssueRatingsServiceId_old;
 END;
 
 --
@@ -357,9 +399,10 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsOther_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsOther_proc()
 BEGIN
-    TRUNCATE TABLE mvCountIssueRatingsOther;
+    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsOther_tmp LIKE mvCountIssueRatingsOther;
+    DELETE FROM mvCountIssueRatingsOther_tmp;
 
-    INSERT INTO mvCountIssueRatingsOther (
+    INSERT INTO mvCountIssueRatingsOther_tmp (
         critical_count,
         high_count,
         medium_count,
@@ -375,4 +418,9 @@ BEGIN
     FROM Issue I
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
     WHERE I.issue_deleted_at IS NULL;
+
+    RENAME TABLE
+        mvCountIssueRatingsOther TO mvCountIssueRatingsOther_old,
+        mvCountIssueRatingsOther_tmp TO mvCountIssueRatingsOther;
+    DROP TABLE mvCountIssueRatingsOther_old;
 END;
