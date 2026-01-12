@@ -98,8 +98,11 @@ func (p *Processor) CompleteScannerRun(ctx context.Context) error {
 
 func (p *Processor) ProcessRepository(registry string, account models.Account, repository models.Repository) (*client.Component, error) {
 	r, err := client.CreateComponent(context.Background(), *p.Client, &client.ComponentInput{
-		Ccrn: fmt.Sprintf("%s/%s/%s", registry, account.Name, repository.Name),
-		Type: client.ComponentTypeValuesContainerimage,
+		Ccrn:         fmt.Sprintf("%s/%s/%s", registry, account.Name, repository.Name),
+		Organization: account.Name,
+		Repository:   repository.Name,
+		Url:          fmt.Sprintf("https://%s/%s/%s", registry, account.Name, repository.Name),
+		Type:         client.ComponentTypeValuesContainerimage,
 	})
 
 	if err != nil {

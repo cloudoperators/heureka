@@ -156,6 +156,13 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				// additional checks are added based on bugs discovered during usage
 
 				for _, component := range respData.Components.Edges {
+					Expect(component.Node.ID).ToNot(BeNil(), "component has a ID set")
+					Expect(component.Node.Ccrn).ToNot(BeNil(), "component has a CCRN set")
+					Expect(component.Node.Repository).ToNot(BeNil(), "component has a Repository set")
+					Expect(component.Node.Organization).ToNot(BeNil(), "component has an Organization set")
+					Expect(component.Node.URL).ToNot(BeNil(), "component has a URL set")
+					Expect(component.Node.Type).ToNot(BeNil(), "component has a Type set")
+
 					for _, cv := range component.Node.ComponentVersions.Edges {
 						Expect(cv.Node.ID).ToNot(BeNil(), "componentVersion has a ID set")
 						Expect(cv.Node.Version).ToNot(BeNil(), "componentVersion has a version set")
@@ -226,8 +233,11 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 				req := graphql.NewRequest(str)
 
 				req.Var("input", map[string]string{
-					"type": component.Type,
-					"ccrn": component.CCRN,
+					"type":         component.Type,
+					"ccrn":         component.CCRN,
+					"repository":   component.Repository,
+					"organization": component.Organization,
+					"url":          component.Url,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")

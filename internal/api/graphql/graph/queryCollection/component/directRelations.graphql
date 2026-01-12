@@ -13,6 +13,9 @@ query ($filter: ComponentFilter, $first: Int, $after: String) {
             node { 
                 id
                 ccrn
+                repository
+                organization
+                url
                 type
                 componentVersions { 
                     totalCount
