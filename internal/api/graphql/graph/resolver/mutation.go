@@ -925,7 +925,7 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 	remediation.ServiceId = serviceResult.Elements[0].Id
 
 	// fetch component id for given component name
-	componentResult, err := r.App.ListComponents(&entity.ComponentFilter{CCRN: []*string{input.Image}}, nil)
+	componentResult, err := r.App.ListComponents(&entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
 	if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
 		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - component id not found")
 	}
