@@ -25,7 +25,7 @@ type scannerRun struct {
 type autoPatchTestInfo struct {
 	description                          string
 	scannerRuns                          []scannerRun
-	expectedResult                       bool
+	expectedResults                      []bool
 	expectedPatchCount                   int
 	patchedComponents                    []string
 	expectDeletedIssueMatchesByIssueName []string
@@ -38,9 +38,9 @@ type autoPatchTest struct {
 
 func newAutoPatchTest() *autoPatchTest {
 	db := dbm.NewTestSchema()
-	seeder, err := test.NewDatabaseSeeder(dbm.DbConfig())
+	dbSeeder, err := test.NewDatabaseSeeder(dbm.DbConfig())
 	Expect(err).To(BeNil(), "Database Seeder Setup should work")
-	return &autoPatchTest{db: db, databaseSeeder: seeder}
+	return &autoPatchTest{db: db, databaseSeeder: dbSeeder}
 }
 
 func (apt *autoPatchTest) TearDown() {
@@ -58,15 +58,24 @@ func (apt *autoPatchTest) Run(tag string, info autoPatchTestInfo, fn func(db *ma
 			IssueMatchComponents: r.issueMatchComponents,
 		}
 	})
-	err := apt.databaseSeeder.SeedScannerRuns(scannerRuns...)
-	Expect(err).To(BeNil())
+
+	scannerRunsSeeder := test.NewScannerRunsSeeder(apt.databaseSeeder)
+	Expect(len(info.expectedResults)).To(BeEquivalentTo(len(scannerRuns)), "Number of expected results should be equal to number of scans (%s)", info.description)
+
+	// run empty db autopatch
 	res, err := fn(apt.db)
+	Expect(err).To(BeNil(), "WHEN db has no scans THEN it should return no error")
+	Expect(res).To(BeEquivalentTo(false), "WHEN db has no scans THEN it should return false")
 
-	// Expect no error in autopatch
-	Expect(err).To(BeNil(), fmt.Sprintf("%s THEN it should return no error", info.description))
-
-	// Expect boolean result
-	Expect(res).To(BeEquivalentTo(info.expectedResult), fmt.Sprintf("%s THEN it should return %t", info.description, info.expectedResult))
+	for i, sr := range scannerRuns {
+		err := scannerRunsSeeder.Seed(sr)
+		Expect(err).To(BeNil())
+		res, err := fn(apt.db)
+		// Expect no error in autopatch
+		Expect(err).To(BeNil(), fmt.Sprintf("%s THEN it should return no error", info.description))
+		// Expect boolean result
+		Expect(res).To(BeEquivalentTo(info.expectedResults[i]), fmt.Sprintf("%s THEN it should return %t (for scan number: %d)", info.description, info.expectedResults[i], i))
+	}
 
 	// Expect patch count
 	apt.ExpectNumberOfPatches(info.expectedPatchCount, info.description)
@@ -94,7 +103,7 @@ func (apt *autoPatchTest) ExpectNumberOfPatches(n int, when string) {
 func (apt *autoPatchTest) ExpectPatchForComponent(componentName string, when string) {
 	patches, err := apt.databaseSeeder.FetchPatchesByComponentInstanceCCRN(componentName)
 	Expect(err).To(BeNil(), "%s THEN %s component should have one matching patch (%s)", when, componentName, err)
-	Expect(len(patches)).To(BeEquivalentTo(1), "%s THEN %s component should have one matching patch", when, componentName)
+	Expect(patches).NotTo(BeEmpty(), "%s THEN %s component should have at least one patch found", when, componentName)
 }
 
 func (apt *autoPatchTest) ExpectComponentToBeDeleted(componentName string, when string) {
@@ -122,30 +131,25 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 
 	var autopatchTests = []autoPatchTestInfo{
 		{
-			description:    "WHEN db has no scans",
-			scannerRuns:    []scannerRun{},
-			expectedResult: false,
-		},
-		{
 			description: "WHEN there is one not-completed scan",
 			scannerRuns: []scannerRun{
 				{isNotCompleted: true},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false},
 		},
 		{
 			description: "WHEN single completed scan with no components",
 			scannerRuns: []scannerRun{
 				{},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false},
 		},
 		{
 			description: "WHEN single completed scan with components",
 			scannerRuns: []scannerRun{
 				{components: []test.Component{{Name: "C1"}}},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false},
 		},
 		{
 			description: "WHEN two completed empty scans",
@@ -153,7 +157,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{},
 				{},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false, false},
 		},
 		{
 			description: "WHEN first completed scan has components and second is not completed",
@@ -161,7 +165,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []test.Component{{Name: "C1"}}},
 				{isNotCompleted: true},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false, false},
 		},
 		{
 			description: "WHEN two completed scans: first has component, second no longer has that component",
@@ -169,7 +173,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []test.Component{{Name: "C1"}}},
 				{},
 			},
-			expectedResult:     true,
+			expectedResults:    []bool{false, true},
 			expectedPatchCount: 1,
 			patchedComponents:  []string{"C1"},
 		},
@@ -179,7 +183,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []test.Component{{Name: "C1"}}},
 				{components: []test.Component{{Name: "C1"}}},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false, false},
 		},
 		{
 			description: "WHEN two completed scans: first has C1, second has C2",
@@ -187,7 +191,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []test.Component{{Name: "C1"}}},
 				{components: []test.Component{{Name: "C2"}}},
 			},
-			expectedResult:     true, // C1 disappeared -> autopatch
+			expectedResults:    []bool{false, true}, // C1 disappeared -> autopatch
 			expectedPatchCount: 1,
 			patchedComponents:  []string{"C1"},
 		},
@@ -201,7 +205,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				},
 				{components: []test.Component{{Name: "C2"}}},
 			},
-			expectedResult:                       true,
+			expectedResults:                      []bool{false, true},
 			expectedPatchCount:                   1,
 			patchedComponents:                    []string{"C1"},
 			expectDeletedIssueMatchesByIssueName: []string{"Issue1"},
@@ -220,7 +224,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "C1"}},
 				},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false, false},
 		},
 		{
 			description: "WHEN three completed empty scans",
@@ -229,7 +233,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{},
 				{},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false, false, false},
 		},
 		{
 			description: "WHEN 3 scans: <C1>, <no component>, <no component>",
@@ -238,7 +242,8 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{},
 				{},
 			},
-			expectedResult: false, // autopatch only compares newest & second newest
+			expectedResults:    []bool{false, true, false},
+			expectedPatchCount: 1,
 		},
 		{
 			description: "WHEN 3 scans: <C1>, <C1>, <C1>",
@@ -247,7 +252,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []test.Component{{Name: "C1"}}},
 				{components: []test.Component{{Name: "C1"}}},
 			},
-			expectedResult: false,
+			expectedResults: []bool{false, false, false},
 		},
 		{
 			description: "WHEN 3 scans: <C1>, <no component>, <C1>",
@@ -256,7 +261,9 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{},
 				{components: []test.Component{{Name: "C1"}}},
 			},
-			expectedResult: false,
+			expectedResults:    []bool{false, true, false},
+			expectedPatchCount: 1,
+			patchedComponents:  []string{"C1"},
 		},
 		{
 			description: "WHEN 3 scans: <no component>, <C1>, <no component>",
@@ -265,7 +272,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []test.Component{{Name: "C1"}}},
 				{},
 			},
-			expectedResult:     true, // latest (no components) vs second-latest (C1)
+			expectedResults:    []bool{false, false, true},
 			expectedPatchCount: 1,
 			patchedComponents:  []string{"C1"},
 		},
@@ -283,7 +290,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 					}},
 				{},
 			},
-			expectedResult:                       true,
+			expectedResults:                      []bool{false, true},
 			expectedPatchCount:                   1,
 			patchedComponents:                    []string{"C1", "C2", "C3"},
 			expectDeletedIssueMatchesByIssueName: []string{"IC1", "IC2a", "IC2b", "IC3"},
@@ -294,7 +301,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}, {Name: "C2", Version: "V1", Service: "S1"}}},
 				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
 			},
-			expectedResult:     true,
+			expectedResults:    []bool{false, true},
 			expectedPatchCount: 0,
 		},
 		{
@@ -303,9 +310,21 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}, {Name: "C2", Version: "V2", Service: "S2"}}},
 				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
 			},
-			expectedResult:     true,
+			expectedResults:    []bool{false, true},
 			expectedPatchCount: 1,
 			patchedComponents:  []string{"C1"},
+		},
+		{
+			description: "WHEN 4 scans detect disappearance of 1 component and the component appear and disappear again", //THEN two patches should be created for the same service and version
+			scannerRuns: []scannerRun{
+				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}}},
+				{},
+				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
+				{},
+			},
+			expectedResults:    []bool{false, true, false, true},
+			expectedPatchCount: 2,
+			patchedComponents:  []string{"C1", "C2"},
 		},
 	}
 

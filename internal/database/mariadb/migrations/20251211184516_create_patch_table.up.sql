@@ -17,10 +17,6 @@ CREATE TABLE Patch (
 
     PRIMARY KEY (patch_id),
 
-    -- Enforce uniqueness of (service, component version)
-    CONSTRAINT uq_patch_service_component
-        UNIQUE (patch_service_id, patch_component_version_id),
-
     CONSTRAINT fk_patch_service
         FOREIGN KEY (patch_service_id)
         REFERENCES Service(service_id)
@@ -31,4 +27,3 @@ CREATE TABLE Patch (
         REFERENCES ComponentVersion(componentversion_id)
         ON DELETE CASCADE
 );
-

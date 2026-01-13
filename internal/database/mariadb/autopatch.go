@@ -87,7 +87,6 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 	if len(disappearedInstances) == 0 {
 		return false, nil
 	}
-
 	patches, err := s.getPatches(disappearedInstances)
 	if err != nil {
 		return false, err

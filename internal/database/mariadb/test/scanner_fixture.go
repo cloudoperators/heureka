@@ -33,7 +33,7 @@ type ScannerRunDef struct {
 	IssueMatchComponents []IssueMatchComponent
 }
 
-type scannerRunsSeeder struct {
+type ScannerRunsSeeder struct {
 	serviceCounter          int
 	componentCounter        int
 	componentVersionCounter int
@@ -47,8 +47,8 @@ type scannerRunsSeeder struct {
 	knownComponents         map[string]int64
 }
 
-func newScannerRunsSeeder(dbSeeder *DatabaseSeeder) *scannerRunsSeeder {
-	return &scannerRunsSeeder{
+func NewScannerRunsSeeder(dbSeeder *DatabaseSeeder) *ScannerRunsSeeder {
+	return &ScannerRunsSeeder{
 		dbSeeder:                dbSeeder,
 		knownComponentInstances: make(map[string]int),
 		knownIssues:             make(map[string]int),
@@ -57,17 +57,14 @@ func newScannerRunsSeeder(dbSeeder *DatabaseSeeder) *scannerRunsSeeder {
 		knownComponents:         make(map[string]int64)}
 }
 
-func (s *DatabaseSeeder) SeedScannerRuns(scannerRunDefs ...ScannerRunDef) error {
-	srs := newScannerRunsSeeder(s)
-	for _, srd := range scannerRunDefs {
-		if err := srs.processScannerRunInstance(srd); err != nil {
-			return err
-		}
+func (srs *ScannerRunsSeeder) Seed(srd ScannerRunDef) error {
+	if err := srs.processScannerRunInstance(srd); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (srs *scannerRunsSeeder) processScannerRunInstance(srd ScannerRunDef) error {
+func (srs *ScannerRunsSeeder) processScannerRunInstance(srd ScannerRunDef) error {
 	res, err := srs.dbSeeder.insertScannerRunInstance(gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
 	if err != nil {
 		return err
@@ -89,7 +86,7 @@ func (srs *scannerRunsSeeder) processScannerRunInstance(srd ScannerRunDef) error
 	return nil
 }
 
-func (srs *scannerRunsSeeder) processIssues(issues []string, scannerRunId int64) error {
+func (srs *ScannerRunsSeeder) processIssues(issues []string, scannerRunId int64) error {
 	for _, issue := range issues {
 		if _, ok := srs.knownIssues[issue]; !ok {
 			issueId, err := srs.dbSeeder.insertIssue(issue)
@@ -111,7 +108,7 @@ type dataFeeds struct {
 	scannerRunId int64
 }
 
-func (srs *scannerRunsSeeder) processComponents(components []Component, scannerRunId int64) error {
+func (srs *ScannerRunsSeeder) processComponents(components []Component, scannerRunId int64) error {
 	if len(components) > 0 {
 		defaultFeeds, err := srs.createDefaultDataFeeds(scannerRunId)
 		if err != nil {
@@ -126,7 +123,7 @@ func (srs *scannerRunsSeeder) processComponents(components []Component, scannerR
 	return nil
 }
 
-func (srs *scannerRunsSeeder) createDefaultDataFeeds(scannerRunId int64) (*dataFeeds, error) {
+func (srs *ScannerRunsSeeder) createDefaultDataFeeds(scannerRunId int64) (*dataFeeds, error) {
 	serviceId, err := srs.insertNextService()
 	if err != nil {
 		return nil, err
@@ -145,25 +142,25 @@ func (srs *scannerRunsSeeder) createDefaultDataFeeds(scannerRunId int64) (*dataF
 	return &dataFeeds{serviceId: serviceId, componentId: componentId, versionId: versionId, scannerRunId: scannerRunId}, nil
 }
 
-func (srs *scannerRunsSeeder) insertNextService() (int64, error) {
+func (srs *ScannerRunsSeeder) insertNextService() (int64, error) {
 	serviceCcrn := fmt.Sprintf("service-%d", srs.serviceCounter)
 	srs.serviceCounter++
 	return srs.insertService(serviceCcrn)
 }
 
-func (srs *scannerRunsSeeder) insertNextComponent() (int64, error) {
+func (srs *ScannerRunsSeeder) insertNextComponent() (int64, error) {
 	componentCcrn := fmt.Sprintf("component-%d", srs.componentCounter)
 	srs.componentCounter++
 	return srs.insertComponent(componentCcrn)
 }
 
-func (srs *scannerRunsSeeder) insertNextComponentVersion(componentId int64) (int64, error) {
+func (srs *ScannerRunsSeeder) insertNextComponentVersion(componentId int64) (int64, error) {
 	versionName := fmt.Sprintf("version-%d", srs.componentVersionCounter)
 	srs.componentVersionCounter++
 	return srs.insertComponentVersion(versionName, componentId)
 }
 
-func (srs *scannerRunsSeeder) insertService(serviceCcrn string) (int64, error) {
+func (srs *ScannerRunsSeeder) insertService(serviceCcrn string) (int64, error) {
 	if serviceId, ok := srs.knownServices[serviceCcrn]; ok {
 		return serviceId, nil
 	}
@@ -175,7 +172,7 @@ func (srs *scannerRunsSeeder) insertService(serviceCcrn string) (int64, error) {
 	return serviceId, nil
 }
 
-func (srs *scannerRunsSeeder) insertComponent(componentCcrn string) (int64, error) {
+func (srs *ScannerRunsSeeder) insertComponent(componentCcrn string) (int64, error) {
 	componentId, err := srs.dbSeeder.getOrCreateComponent(componentCcrn)
 	if componentId, ok := srs.knownComponents[componentCcrn]; ok {
 		return componentId, nil
@@ -187,7 +184,7 @@ func (srs *scannerRunsSeeder) insertComponent(componentCcrn string) (int64, erro
 	return componentId, nil
 }
 
-func (srs *scannerRunsSeeder) insertComponentVersion(versionName string, componentId int64) (int64, error) {
+func (srs *ScannerRunsSeeder) insertComponentVersion(versionName string, componentId int64) (int64, error) {
 	if versionId, ok := srs.knownVersions[versionName]; ok {
 		return versionId, nil
 	}
@@ -199,7 +196,7 @@ func (srs *scannerRunsSeeder) insertComponentVersion(versionName string, compone
 	return versionId, nil
 }
 
-func (srs *scannerRunsSeeder) processComponentInstances(components []Component, defaultFeeds *dataFeeds) error {
+func (srs *ScannerRunsSeeder) processComponentInstances(components []Component, defaultFeeds *dataFeeds) error {
 	for _, component := range components {
 		if err := srs.processComponentInstance(component, defaultFeeds); err != nil {
 			return err
@@ -208,14 +205,14 @@ func (srs *scannerRunsSeeder) processComponentInstances(components []Component, 
 	return nil
 }
 
-func (srs *scannerRunsSeeder) processComponentInstance(component Component, defaultFeeds *dataFeeds) error {
+func (srs *ScannerRunsSeeder) processComponentInstance(component Component, defaultFeeds *dataFeeds) error {
 	if componentId, ok := srs.knownComponentInstances[component.Name]; ok {
 		return srs.dbSeeder.insertScannerRunComponentInstanceTracker(defaultFeeds.scannerRunId, componentId)
 	}
 	return srs.insertNewComponentInstance(component, defaultFeeds)
 }
 
-func (srs *scannerRunsSeeder) insertNewComponentInstance(component Component, defaultFeeds *dataFeeds) error {
+func (srs *ScannerRunsSeeder) insertNewComponentInstance(component Component, defaultFeeds *dataFeeds) error {
 	var err error
 	versionId := defaultFeeds.versionId
 	serviceId := defaultFeeds.serviceId
@@ -247,7 +244,7 @@ func (srs *scannerRunsSeeder) insertNewComponentInstance(component Component, de
 	return nil
 }
 
-func (srs *scannerRunsSeeder) processIssueMatchComponents(imc []IssueMatchComponent) error {
+func (srs *ScannerRunsSeeder) processIssueMatchComponents(imc []IssueMatchComponent) error {
 	for _, issueMatch := range imc {
 		issue := srs.knownIssues[issueMatch.Issue]
 		componentId := srs.knownComponentInstances[issueMatch.Component]

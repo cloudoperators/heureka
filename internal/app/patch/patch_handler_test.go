@@ -169,8 +169,3 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 	})
 
 })
-
-/*
-})
-
-*/
