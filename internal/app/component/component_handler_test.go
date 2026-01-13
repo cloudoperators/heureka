@@ -90,12 +90,12 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			filter.First = &pageSize
 			components := []entity.ComponentResult{}
 			for _, c := range test.NNewFakeComponentEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, c, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, c, entity.IssueSeverityCounts{}))
 				components = append(components, entity.ComponentResult{WithCursor: entity.WithCursor{Value: cursor}, Component: lo.ToPtr(c)})
 			}
 
 			var cursors = lo.Map(components, func(m entity.ComponentResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *m.Component, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *m.Component, entity.IssueSeverityCounts{}))
 				return cursor
 			})
 
@@ -103,7 +103,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			for len(cursors) < dbElements {
 				i++
 				component := test.NewFakeComponentEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, component, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+				c, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, component, entity.IssueSeverityCounts{}))
 				cursors = append(cursors, c)
 			}
 			db.On("GetComponents", filter, []entity.Order{}).Return(components, nil)

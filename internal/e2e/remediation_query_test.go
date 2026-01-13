@@ -139,7 +139,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			remediation = testentity.NewFakeRemediationEntity()
 			remediation.Service = seedCollection.ServiceRows[0].CCRN.String
-			remediation.Component = seedCollection.ComponentRows[0].CCRN.String
+			remediation.Component = seedCollection.ComponentRows[0].Repository.String
 			remediation.Issue = seedCollection.IssueRows[0].PrimaryName.String
 		})
 
@@ -253,10 +253,10 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 					map[string]interface{}{
 						"id": fmt.Sprintf("%d", remediation.Id),
 						"input": map[string]string{
-							"image": component.CCRN.String,
+							"image": component.Repository.String,
 						}})
 
-				Expect(*respData.Remediation.Image).To(Equal(component.CCRN.String))
+				Expect(*respData.Remediation.Image).To(Equal(component.Repository.String))
 				Expect(*respData.Remediation.ImageID).To(Equal(fmt.Sprintf("%d", component.Id.Int64)))
 			})
 			It("updates issue id", func() {
