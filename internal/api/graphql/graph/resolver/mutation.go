@@ -969,7 +969,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 	// if component name is updated, update foreign key as well
 	if input.Image != nil {
 		// fetch component id for given component name
-		componentResult, err := r.App.ListComponents(&entity.ComponentFilter{CCRN: []*string{input.Image}}, nil)
+		componentResult, err := r.App.ListComponents(&entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
 		if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
 			return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation - component id not found")
 		}
