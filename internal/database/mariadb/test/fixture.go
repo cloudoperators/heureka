@@ -45,6 +45,7 @@ type SeedCollection struct {
 	IssueMatchChangeRows       []mariadb.IssueMatchChangeRow
 	IssueRepositoryServiceRows []mariadb.IssueRepositoryServiceRow
 	RemediationRows            []mariadb.RemediationRow
+	PatchRows                  []mariadb.PatchRow
 }
 
 func (s *SeedCollection) GetComponentInstanceById(id int64) *mariadb.ComponentInstanceRow {
@@ -352,6 +353,7 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 	issueRepositoryServices := s.SeedIssueRepositoryServices(n, services, repos)
 	issueMatchChanges := s.SeedIssueMatchChanges(n, issueMatches, activities)
 	remediations := s.SeedRemediations(n, services, components, issues)
+	patches := s.SeedPatches(n, services, componentVersions)
 
 	return &SeedCollection{
 		IssueVariantRows:           issueVariants,
@@ -376,6 +378,7 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 		IssueRepositoryServiceRows: issueRepositoryServices,
 		IssueMatchChangeRows:       issueMatchChanges,
 		RemediationRows:            remediations,
+		PatchRows:                  patches,
 	}
 }
 
@@ -402,6 +405,7 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 	issueRepositoryServices := s.SeedIssueRepositoryServices(n/2, services, repos)
 	issueMatchChanges := s.SeedIssueMatchChanges(n, issueMatches, activities)
 	remediations := s.SeedRemediations(n, services, components, issues)
+	patches := s.SeedPatches(n, services, componentVersions)
 
 	return &SeedCollection{
 		IssueVariantRows:           issueVariants,
@@ -426,6 +430,7 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 		IssueRepositoryServiceRows: issueRepositoryServices,
 		IssueMatchChangeRows:       issueMatchChanges,
 		RemediationRows:            remediations,
+		PatchRows:                  patches,
 	}
 }
 
@@ -550,6 +555,7 @@ func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
 		IssueRepositoryServiceRows: nil,
 		IssueMatchChangeRows:       nil,
 		RemediationRows:            nil,
+		PatchRows:                  nil,
 	}, nil
 }
 
@@ -1009,6 +1015,30 @@ func (s *DatabaseSeeder) SeedRemediations(num int, services []mariadb.BaseServic
 	return rows
 }
 
+func (s *DatabaseSeeder) SeedPatches(num int, services []mariadb.BaseServiceRow, componentVersions []mariadb.ComponentVersionRow) []mariadb.PatchRow {
+	var rows []mariadb.PatchRow
+	for i := 0; i < num; i++ {
+		service := services[i%len(services)]
+		componentVersion := componentVersions[i%len(componentVersions)]
+		// does not check if relation exists
+		p := mariadb.PatchRow{
+			ServiceId:            service.Id,
+			ServiceName:          service.CCRN,
+			ComponentVersionId:   componentVersion.Id,
+			ComponentVersionName: componentVersion.Version,
+			CreatedBy:            sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+			UpdatedBy:            sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		}
+		id, err := s.InsertFakePatch(p)
+		p.Id = sql.NullInt64{Int64: id, Valid: true}
+		if err != nil {
+			logrus.WithField("seed_type", "Patch").Debug(err)
+		}
+		rows = append(rows, p)
+	}
+	return rows
+}
+
 func (s *DatabaseSeeder) InsertFakeIssueMatchEvidence(ime mariadb.IssueMatchEvidenceRow) (int64, error) {
 	query := `
 		INSERT INTO IssueMatchEvidence (
@@ -1426,6 +1456,29 @@ func (s *DatabaseSeeder) InsertFakeRemediation(r mariadb.RemediationRow) (int64,
 	return s.ExecPreparedNamed(query, r)
 }
 
+func (s *DatabaseSeeder) InsertFakePatch(p mariadb.PatchRow) (int64, error) {
+	query := `
+		INSERT INTO Patch (
+			patch_id,
+			patch_service_id,
+			patch_service_name,
+			patch_component_version_id,
+			patch_component_version_name,
+			patch_created_by,
+			patch_updated_by
+		) VALUES (
+			:patch_id,
+			:patch_service_id,
+			:patch_service_name,
+			:patch_component_version_id,
+			:patch_component_version_name,
+			:patch_created_by,
+			:patch_updated_by
+		)
+	`
+	return s.ExecPreparedNamed(query, p)
+}
+
 func (s *DatabaseSeeder) ExecPreparedNamed(query string, obj any) (int64, error) {
 	stmt, err := s.db.PrepareNamed(query)
 	if err != nil {
@@ -1707,6 +1760,18 @@ func NewFakeRemediation() mariadb.RemediationRow {
 		Type:            sql.NullString{String: "false_positive", Valid: true},
 		CreatedBy:       sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 		UpdatedBy:       sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+	}
+}
+
+func NewFakePatch() mariadb.PatchRow {
+	return mariadb.PatchRow{
+		Id:                   sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		ServiceId:            sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		ServiceName:          sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+		ComponentVersionId:   sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		ComponentVersionName: sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+		CreatedBy:            sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		UpdatedBy:            sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 	}
 }
 

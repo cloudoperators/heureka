@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type Patch implements Node {
+    id: ID!
+    serviceId: ID
+    serviceName: String
+    componentVersionId: ID
+    componentVersionName: String
+    metadata: Metadata
+}
+
+type PatchConnection implements Connection {
+    totalCount: Int!
+    edges: [PatchEdge]
+    pageInfo: PageInfo
+}
+
+type PatchEdge implements Edge {
+    node: Patch!
+    cursor: String
+}
+
+input PatchFilter {
+    id: [String]
+    serviceId: [String]
+    serviceName: [String]
+    componentVersionId: [String]
+    componentVersionName: [String]
+    state: [StateFilter!]
+}

@@ -850,3 +850,14 @@ func NewRemediation(r *entity.Remediation) Remediation {
 		Metadata:        getModelMetadata(r.Metadata),
 	}
 }
+
+func NewPatch(p *entity.Patch) Patch {
+	return Patch{
+		ID:                   fmt.Sprintf("%d", p.Id),
+		ServiceID:            lo.ToPtr(fmt.Sprintf("%d", p.ServiceId)),
+		ServiceName:          &p.ServiceName,
+		ComponentVersionID:   lo.ToPtr(fmt.Sprintf("%d", p.ComponentVersionId)),
+		ComponentVersionName: &p.ComponentVersionName,
+		Metadata:             getModelMetadata(p.Metadata),
+	}
+}

@@ -40,6 +40,7 @@ const (
 	NoneCount
 
 	RemediationId
+	PatchId
 
 	SupportGroupId
 	SupportGroupCcrn

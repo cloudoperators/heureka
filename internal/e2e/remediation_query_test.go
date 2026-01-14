@@ -46,7 +46,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 	})
 
 	When("the database is empty", func() {
-		It("returns empty resultset", func() {
+		It("returns empty result set", func() {
 
 			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Remediations model.RemediationConnection `json:"Remediations"`

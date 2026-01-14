@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureEvidenceFilter(f *entity.EvidenceFilter) *entity.EvidenceFilter {
+func ensureEvidenceFilter(f *entity.EvidenceFilter) *entity.EvidenceFilter {
 	var first int = 1000
 	var after int64 = 0
 	if f == nil {
@@ -41,7 +41,7 @@ func (s *SqlDatabase) getEvidenceJoins(filter *entity.EvidenceFilter) string {
 	return joins
 }
 
-func (s *SqlDatabase) getEvidenceFilterString(filter *entity.EvidenceFilter) string {
+func getEvidenceFilterString(filter *entity.EvidenceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "E.evidence_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ActivityId, "E.evidence_activity_id = ?", OP_OR))
@@ -52,7 +52,7 @@ func (s *SqlDatabase) getEvidenceFilterString(filter *entity.EvidenceFilter) str
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getEvidenceUpdateFields(evidence *entity.Evidence) string {
+func getEvidenceUpdateFields(evidence *entity.Evidence) string {
 	fl := []string{}
 	if evidence.UserId != 0 {
 		fl = append(fl, "evidence_author_id = :evidence_author_id")
@@ -83,10 +83,10 @@ func (s *SqlDatabase) getEvidenceUpdateFields(evidence *entity.Evidence) string 
 
 func (s *SqlDatabase) buildEvidenceStatement(baseQuery string, filter *entity.EvidenceFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureEvidenceFilter(filter)
+	filter = ensureEvidenceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getEvidenceFilterString(filter)
+	filterStr := getEvidenceFilterString(filter)
 	joins := s.getEvidenceJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "E.evidence_id > ?")
 
@@ -163,7 +163,7 @@ func (s *SqlDatabase) GetEvidences(filter *entity.EvidenceFilter) ([]entity.Evid
 		%s GROUP BY E.evidence_id ORDER BY E.evidence_id LIMIT ?
     `
 
-	filter = s.ensureEvidenceFilter(filter)
+	filter = ensureEvidenceFilter(filter)
 	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildEvidenceStatement(baseQuery, filter, true, l)
@@ -261,7 +261,7 @@ func (s *SqlDatabase) UpdateEvidence(evidence *entity.Evidence) error {
 		WHERE evidence_id = :evidence_id
 	`
 
-	updateFields := s.getEvidenceUpdateFields(evidence)
+	updateFields := getEvidenceUpdateFields(evidence)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

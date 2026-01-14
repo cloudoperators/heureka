@@ -27,4 +27,5 @@ type Query {
     Images(filter: ImageFilter, first: Int, after: String): ImageConnection
     ImageVersions(filter: ImageVersionFilter, first: Int, after: String): ImageVersionConnection
     Remediations(filter: RemediationFilter, first: Int, after: String): RemediationConnection
+    Patches(filter: PatchFilter, first: Int, after: String): PatchConnection
 }
