@@ -4,8 +4,6 @@
 package service
 
 import (
-	"strconv"
-
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -196,22 +194,19 @@ func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Aut
 	})
 
 	if createEvent, ok := e.(*CreateServiceEvent); ok {
-		serviceId := strconv.FormatInt(createEvent.Service.Id, 10)
 		userId := openfga.UserIdFromInt(createEvent.Service.BaseService.CreatedBy)
 
-		rlist := []openfga.RelationInput{
+		relations := []openfga.RelationInput{
 			{
-				UserType:   "role",
+				UserType:   openfga.TypeRole,
 				UserId:     userId,
-				Relation:   "role",
-				ObjectType: "service",
-				ObjectId:   openfga.ObjectId(serviceId),
+				Relation:   openfga.RelRole,
+				ObjectType: openfga.TypeService,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.Service.Id),
 			},
 		}
 
-		for _, rel := range rlist {
-			authz.AddRelation(rel)
-		}
+		openfga.AddRelations(authz, relations)
 	} else {
 		err := NewServiceHandlerError("OnServiceCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
@@ -232,18 +227,16 @@ func OnServiceDeleteAuthz(db database.Database, e event.Event, authz openfga.Aut
 	})
 
 	if deleteEvent, ok := e.(*DeleteServiceEvent); ok {
-		objectId := strconv.FormatInt(deleteEvent.ServiceID, 10)
-
 		// Delete all tuples where object is the service
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			ObjectType: "service",
-			ObjectId:   openfga.ObjectId(objectId),
+			ObjectType: openfga.TypeService,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.ServiceID),
 		})
 
 		// Delete all tuples where user is the service
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: "service",
-			UserId:   openfga.UserId(objectId),
+			UserType: openfga.TypeService,
+			UserId:   openfga.UserIdFromInt(deleteEvent.ServiceID),
 		})
 
 		authz.RemoveRelationBulk(deleteInput)
@@ -265,17 +258,17 @@ func OnAddOwnerToService(db database.Database, e event.Event, authz openfga.Auth
 	})
 
 	if addEvent, ok := e.(*AddOwnerToServiceEvent); ok {
-		serviceId := strconv.FormatInt(addEvent.ServiceID, 10)
-		ownerId := strconv.FormatInt(addEvent.OwnerID, 10)
-
-		rel := openfga.RelationInput{
-			UserType:   "user",
-			UserId:     openfga.UserId(ownerId),
-			ObjectType: "service",
-			ObjectId:   openfga.ObjectId(serviceId),
-			Relation:   "owner",
+		relations := []openfga.RelationInput{
+			{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(addEvent.OwnerID),
+				ObjectType: openfga.TypeService,
+				ObjectId:   openfga.ObjectIdFromInt(addEvent.ServiceID),
+				Relation:   openfga.RelOwner,
+			},
 		}
-		authz.AddRelation(rel)
+
+		openfga.AddRelations(authz, relations)
 	} else {
 		err := NewServiceHandlerError("OnAddOwnerToService: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
@@ -294,15 +287,12 @@ func OnRemoveOwnerFromService(db database.Database, e event.Event, authz openfga
 	})
 
 	if removeEvent, ok := e.(*RemoveOwnerFromServiceEvent); ok {
-		serviceId := strconv.FormatInt(removeEvent.ServiceID, 10)
-		ownerId := strconv.FormatInt(removeEvent.OwnerID, 10)
-
 		rel := openfga.RelationInput{
-			UserType:   "user",
-			UserId:     openfga.UserId(ownerId),
-			ObjectType: "service",
-			ObjectId:   openfga.ObjectId(serviceId),
-			Relation:   "owner",
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(removeEvent.OwnerID),
+			ObjectType: openfga.TypeService,
+			ObjectId:   openfga.ObjectIdFromInt(removeEvent.ServiceID),
+			Relation:   openfga.RelOwner,
 		}
 		authz.RemoveRelation(rel)
 	} else {

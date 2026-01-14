@@ -249,11 +249,11 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		componentVersion = test.NewFakeComponentVersionEntity()
 
 		p = openfga.PermissionInput{
-			UserType:   "role",
+			UserType:   openfga.TypeRole,
 			UserId:     "0",
 			ObjectId:   "",
-			ObjectType: "component_version",
-			Relation:   "role",
+			ObjectType: openfga.TypeComponentVersion,
+			Relation:   openfga.TypeRole,
 		}
 
 		handlerContext.DB = db
@@ -353,7 +353,8 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 				ObjectType: "component",
 				ObjectId:   openfga.ObjectIdFromInt(oldComponentId),
 			}
-			handlerContext.Authz.AddRelation(initialRelation)
+			// Bulk add instead of single add
+			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{initialRelation})
 
 			// Prepare the update event with the new component id
 			cvFake.ComponentId = newComponentId
@@ -372,10 +373,10 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 
 			// Check that the new relation exists
 			newRelation := openfga.RelationInput{
-				UserType:   "component_version",
+				UserType:   openfga.TypeComponentVersion,
 				UserId:     openfga.UserIdFromInt(cvFake.Id),
-				Relation:   "component_version",
-				ObjectType: "component",
+				Relation:   openfga.RelComponentVersion,
+				ObjectType: openfga.TypeComponent,
 				ObjectId:   openfga.ObjectIdFromInt(newComponentId),
 			}
 			remainingNew, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{newRelation})
@@ -437,38 +438,36 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 				userId := openfga.UserIdFromInt(deleteEvent.ComponentVersionID)
 				relations := []openfga.RelationInput{
 					{ // user - component_version: a user can view the component version
-						UserType:   "user",
-						UserId:     "userID",
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.IDUser,
 						ObjectId:   objectId,
-						ObjectType: "component_version",
-						Relation:   "can_view",
+						ObjectType: openfga.TypeComponentVersion,
+						Relation:   openfga.RelCanView,
 					},
 					{ // component_instance - component_version: a component instance is related to the component version
-						UserType:   "component_instance",
-						UserId:     "componentinstanceID",
+						UserType:   openfga.TypeComponentInstance,
+						UserId:     openfga.IDComponentInstance,
 						ObjectId:   objectId,
-						ObjectType: "component_version",
-						Relation:   "component_instance",
+						ObjectType: openfga.TypeComponentVersion,
+						Relation:   openfga.RelComponentInstance,
 					},
 					{ // role - component_version: a role is assigned to the component version
-						UserType:   "role",
-						UserId:     "roleID",
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.IDRole,
 						ObjectId:   objectId,
-						ObjectType: "component_version",
-						Relation:   "role",
+						ObjectType: openfga.TypeComponentVersion,
+						Relation:   openfga.RelRole,
 					},
 					{ // component_version - component: a component version is related to a component
-						UserType:   "component_version",
+						UserType:   openfga.TypeComponentVersion,
 						UserId:     userId,
-						ObjectId:   "componentId",
-						ObjectType: "component",
-						Relation:   "component_version",
+						ObjectId:   openfga.IDComponent,
+						ObjectType: openfga.TypeComponent,
+						Relation:   openfga.RelComponentVersion,
 					},
 				}
 
-				for _, rel := range relations {
-					handlerContext.Authz.AddRelation(rel)
-				}
+				openfga.AddRelations(handlerContext.Authz, relations)
 
 				var event event.Event = deleteEvent
 				// Simulate event

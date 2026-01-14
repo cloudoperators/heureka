@@ -7,7 +7,6 @@ import (
 	"errors"
 	"math"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -228,11 +227,11 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		irFilter.After = &after
 
 		p = openfga.PermissionInput{
-			UserType:   "role",
+			UserType:   openfga.TypeRole,
 			UserId:     "0",
 			ObjectId:   "test_issue_match",
-			ObjectType: "issue_match",
-			Relation:   "role",
+			ObjectType: openfga.TypeIssueMatch,
+			Relation:   openfga.TypeRole,
 		}
 
 		handlerContext.DB = db
@@ -281,8 +280,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				resourceId := strconv.FormatInt(createEvent.IssueMatch.Id, 10)
-				p.ObjectId = openfga.ObjectId(resourceId)
+				p.ObjectId = openfga.ObjectIdFromInt(createEvent.IssueMatch.Id)
 				// Simulate event
 				im.OnIssueMatchCreateAuthz(db, event, handlerContext.Authz)
 
@@ -354,13 +352,14 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 
 			// Add an initial relation: issue_match -> old component_instance
 			initialRelation := openfga.RelationInput{
-				UserType:   "component_instance",
+				UserType:   openfga.TypeComponentInstance,
 				UserId:     openfga.UserIdFromInt(oldComponentInstanceId),
-				Relation:   "component_instance",
-				ObjectType: "issue_match",
+				Relation:   openfga.RelComponentInstance,
+				ObjectType: openfga.TypeIssueMatch,
 				ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
 			}
-			handlerContext.Authz.AddRelation(initialRelation)
+
+			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{initialRelation})
 
 			// Prepare the update event with the new component_instance id
 			imFake.ComponentInstanceId = newComponentInstanceId
@@ -379,10 +378,10 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 
 			// Check that the new relation exists
 			newRelation := openfga.RelationInput{
-				UserType:   "component_instance",
+				UserType:   openfga.TypeComponentInstance,
 				UserId:     openfga.UserIdFromInt(newComponentInstanceId),
-				Relation:   "component_instance",
-				ObjectType: "issue_match",
+				Relation:   openfga.RelComponentInstance,
+				ObjectType: openfga.TypeIssueMatch,
 				ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
 			}
 			remainingNew, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{newRelation})
@@ -445,31 +444,29 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 				objectId := openfga.ObjectIdFromInt(deleteEvent.IssueMatchID)
 				relations := []openfga.RelationInput{
 					{ // user - issue_match: a user can view the issue match
-						UserType:   "user",
-						UserId:     "userID",
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.IDUser,
 						ObjectId:   objectId,
-						ObjectType: "issue_match",
-						Relation:   "can_view",
+						ObjectType: openfga.TypeIssueMatch,
+						Relation:   openfga.RelCanView,
 					},
 					{ // component_instance - issue_match: a component instance is related to the issue match
-						UserType:   "component_instance",
-						UserId:     "componentInstanceID",
+						UserType:   openfga.TypeComponentInstance,
+						UserId:     openfga.IDComponentInstance,
 						ObjectId:   objectId,
-						ObjectType: "issue_match",
-						Relation:   "component_instance",
+						ObjectType: openfga.TypeIssueMatch,
+						Relation:   openfga.RelComponentInstance,
 					},
 					{ // role - issue_match: a role is assigned to the issue match
-						UserType:   "role",
-						UserId:     "roleID",
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.IDRole,
 						ObjectId:   objectId,
-						ObjectType: "issue_match",
-						Relation:   "role",
+						ObjectType: openfga.TypeIssueMatch,
+						Relation:   openfga.RelRole,
 					},
 				}
 
-				for _, rel := range relations {
-					handlerContext.Authz.AddRelation(rel)
-				}
+				openfga.AddRelations(handlerContext.Authz, relations)
 
 				var event event.Event = deleteEvent
 				// Simulate event

@@ -4,8 +4,6 @@
 package component_instance
 
 import (
-	"strconv"
-
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -176,38 +174,33 @@ func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz o
 	})
 
 	if createEvent, ok := e.(*CreateComponentInstanceEvent); ok {
-		instanceId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
-		serviceId := strconv.FormatInt(createEvent.ComponentInstance.ServiceId, 10)
-		componentVersionId := strconv.FormatInt(createEvent.ComponentInstance.ComponentVersionId, 10)
 		userId := openfga.UserIdFromInt(createEvent.ComponentInstance.CreatedBy)
 
-		rlist := []openfga.RelationInput{
+		relations := []openfga.RelationInput{
 			{
-				UserType:   "role",
+				UserType:   openfga.TypeRole,
 				UserId:     userId,
-				Relation:   "role",
-				ObjectType: "component_instance",
-				ObjectId:   openfga.ObjectId(instanceId),
+				Relation:   openfga.RelRole,
+				ObjectType: openfga.TypeComponentInstance,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.ComponentInstance.Id),
 			},
 			{
-				UserType:   "service",
-				UserId:     openfga.UserId(serviceId),
-				Relation:   "related_service",
-				ObjectType: "component_instance",
-				ObjectId:   openfga.ObjectId(instanceId),
+				UserType:   openfga.TypeService,
+				UserId:     openfga.UserIdFromInt(createEvent.ComponentInstance.ServiceId),
+				Relation:   openfga.RelRelatedService,
+				ObjectType: openfga.TypeComponentInstance,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.ComponentInstance.Id),
 			},
 			{
-				UserType:   "component_instance",
-				UserId:     openfga.UserId(instanceId),
-				Relation:   "role",
-				ObjectType: "component_version",
-				ObjectId:   openfga.ObjectId(componentVersionId),
+				UserType:   openfga.TypeComponentInstance,
+				UserId:     openfga.UserIdFromInt(createEvent.ComponentInstance.Id),
+				Relation:   openfga.RelComponentInstance,
+				ObjectType: openfga.TypeComponentVersion,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.ComponentInstance.ComponentVersionId),
 			},
 		}
 
-		for _, rel := range rlist {
-			authz.AddRelation(rel)
-		}
+		openfga.AddRelations(authz, relations)
 	} else {
 		err := NewComponentInstanceHandlerError("OnComponentInstanceCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
@@ -228,41 +221,36 @@ func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz o
 	})
 
 	if updateEvent, ok := e.(*UpdateComponentInstanceEvent); ok {
-		instanceId := strconv.FormatInt(updateEvent.ComponentInstance.Id, 10)
-		serviceId := strconv.FormatInt(updateEvent.ComponentInstance.ServiceId, 10)
-		componentVersionId := strconv.FormatInt(updateEvent.ComponentInstance.ComponentVersionId, 10)
-
-		// Update service relation
 		removeServiceInput := openfga.RelationInput{
-			Relation:   "related_service",
-			ObjectType: "component_instance",
-			ObjectId:   openfga.ObjectId(instanceId),
-			UserType:   "service",
+			Relation:   openfga.RelRelatedService,
+			ObjectType: openfga.TypeComponentInstance,
+			ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.Id),
+			UserType:   openfga.TypeService,
 			// UserId left empty to match any service
 		}
 		newServiceRelation := openfga.RelationInput{
-			UserType:   "service",
-			UserId:     openfga.UserId(serviceId),
-			Relation:   "related_service",
-			ObjectType: "component_instance",
-			ObjectId:   openfga.ObjectId(instanceId),
+			UserType:   openfga.TypeService,
+			UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.ServiceId),
+			Relation:   openfga.RelRelatedService,
+			ObjectType: openfga.TypeComponentInstance,
+			ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.Id),
 		}
 		authz.UpdateRelation(removeServiceInput, newServiceRelation)
 
 		// Update component_version relation
 		removeComponentVersionInput := openfga.RelationInput{
-			UserType:   "component_instance",
-			UserId:     openfga.UserId(instanceId),
-			Relation:   "component_instance",
-			ObjectType: "component_version",
+			UserType:   openfga.TypeComponentInstance,
+			UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.Id),
+			Relation:   openfga.RelComponentInstance,
+			ObjectType: openfga.TypeComponentVersion,
 			// ObjectId left empty to match any component_version
 		}
 		newComponentVersionRelation := openfga.RelationInput{
-			UserType:   "component_instance",
-			UserId:     openfga.UserId(instanceId),
-			Relation:   "component_instance",
-			ObjectType: "component_version",
-			ObjectId:   openfga.ObjectId(componentVersionId),
+			UserType:   openfga.TypeComponentInstance,
+			UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.Id),
+			Relation:   openfga.RelComponentInstance,
+			ObjectType: openfga.TypeComponentVersion,
+			ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.ComponentVersionId),
 		}
 		authz.UpdateRelation(removeComponentVersionInput, newComponentVersionRelation)
 	} else {
@@ -285,18 +273,16 @@ func OnComponentInstanceDeleteAuthz(db database.Database, e event.Event, authz o
 	})
 
 	if deleteEvent, ok := e.(*DeleteComponentInstanceEvent); ok {
-		objectId := strconv.FormatInt(deleteEvent.ComponentInstanceID, 10)
-
 		// Delete all tuples where object is the component_instance
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			ObjectType: "component_instance",
-			ObjectId:   openfga.ObjectId(objectId),
+			ObjectType: openfga.TypeComponentInstance,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.ComponentInstanceID),
 		})
 
 		// Delete all tuples where user is the component_instance
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: "component_instance",
-			UserId:   openfga.UserId(objectId),
+			UserType: openfga.TypeComponentInstance,
+			UserId:   openfga.UserIdFromInt(deleteEvent.ComponentInstanceID),
 		})
 
 		authz.RemoveRelationBulk(deleteInput)

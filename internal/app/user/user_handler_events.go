@@ -4,8 +4,6 @@
 package user
 
 import (
-	"strconv"
-
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -101,18 +99,16 @@ func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Author
 	})
 
 	if deleteEvent, ok := e.(*DeleteUserEvent); ok {
-		objectId := strconv.FormatInt(deleteEvent.UserID, 10)
-
 		// Delete all tuples where object is the user
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			ObjectType: "user",
-			ObjectId:   openfga.ObjectId(objectId),
+			ObjectType: openfga.TypeUser,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.UserID),
 		})
 
 		// Delete all tuples where user is the user
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: "user",
-			UserId:   openfga.UserId(objectId),
+			UserType: openfga.TypeUser,
+			UserId:   openfga.UserIdFromInt(deleteEvent.UserID),
 		})
 
 		authz.RemoveRelationBulk(deleteInput)

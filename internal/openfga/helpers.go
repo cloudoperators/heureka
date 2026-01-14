@@ -11,3 +11,10 @@ func ObjectIdFromInt(id int64) ObjectId {
 func UserIdFromInt(id int64) UserId {
 	return UserId(strconv.FormatInt(id, 10))
 }
+
+// AddRelations accepts a slice of RelationInput and adds them
+func AddRelations(authz Authorization, relations []RelationInput) {
+	for _, r := range relations {
+		authz.AddRelation(r)
+	}
+}

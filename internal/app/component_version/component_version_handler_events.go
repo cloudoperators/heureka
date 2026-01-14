@@ -66,22 +66,19 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 	})
 
 	if createEvent, ok := e.(*CreateComponentVersionEvent); ok {
-		versionId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
 		userId := openfga.UserIdFromInt(createEvent.ComponentVersion.CreatedBy)
 
-		rlist := []openfga.RelationInput{
+		relations := []openfga.RelationInput{
 			{
-				UserType:   "role",
+				UserType:   openfga.TypeRole,
 				UserId:     userId,
-				Relation:   "role",
-				ObjectType: "component_version",
-				ObjectId:   openfga.ObjectId(versionId),
+				Relation:   openfga.RelRole,
+				ObjectType: openfga.TypeComponentVersion,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.ComponentVersion.Id),
 			},
 		}
 
-		for _, rel := range rlist {
-			authz.AddRelation(rel)
-		}
+		openfga.AddRelations(authz, relations)
 	} else {
 		err := NewComponentVersionHandlerError("OnComponentVersionCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
@@ -101,24 +98,23 @@ func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz op
 	})
 
 	if updateEvent, ok := e.(*UpdateComponentVersionEvent); ok {
-		versionId := strconv.FormatInt(updateEvent.ComponentVersion.Id, 10)
 		newComponentId := strconv.FormatInt(updateEvent.ComponentVersion.ComponentId, 10)
 
 		if newComponentId != "" {
 			// Remove any existing relation where this component_version is connected to any component
 			removeInput := openfga.RelationInput{
-				UserType:   "component_version",
-				UserId:     openfga.UserId(versionId),
-				Relation:   "component_version",
-				ObjectType: "component",
+				UserType:   openfga.TypeComponentVersion,
+				UserId:     openfga.UserIdFromInt(updateEvent.ComponentVersion.Id),
+				Relation:   openfga.RelComponentVersion,
+				ObjectType: openfga.TypeComponent,
 				// ObjectId left empty to match any component
 			}
 			newRelation := openfga.RelationInput{
-				UserType:   "component_version",
-				UserId:     openfga.UserId(versionId),
-				Relation:   "component_version",
-				ObjectType: "component",
-				ObjectId:   openfga.ObjectId(newComponentId),
+				UserType:   openfga.TypeComponentVersion,
+				UserId:     openfga.UserIdFromInt(updateEvent.ComponentVersion.Id),
+				Relation:   openfga.RelComponentVersion,
+				ObjectType: openfga.TypeComponent,
+				ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentVersion.ComponentId),
 			}
 			authz.UpdateRelation(removeInput, newRelation)
 		}
@@ -141,18 +137,16 @@ func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz op
 	})
 
 	if deleteEvent, ok := e.(*DeleteComponentVersionEvent); ok {
-		objectId := strconv.FormatInt(deleteEvent.ComponentVersionID, 10)
-
 		// Delete all tuples where object is the component_version
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			ObjectType: "component_version",
-			ObjectId:   openfga.ObjectId(objectId),
+			ObjectType: openfga.TypeComponentVersion,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.ComponentVersionID),
 		})
 
 		// Delete all tuples where user is the component_version
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: "component_version",
-			UserId:   openfga.UserId(objectId),
+			UserType: openfga.TypeComponentVersion,
+			UserId:   openfga.UserIdFromInt(deleteEvent.ComponentVersionID),
 		})
 
 		authz.RemoveRelationBulk(deleteInput)

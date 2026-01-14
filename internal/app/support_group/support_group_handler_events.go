@@ -4,8 +4,6 @@
 package support_group
 
 import (
-	"strconv"
-
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -127,22 +125,19 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 	})
 
 	if createEvent, ok := e.(*CreateSupportGroupEvent); ok {
-		supportGroupId := strconv.FormatInt(createEvent.SupportGroup.Id, 10)
 		userId := openfga.UserIdFromInt(createEvent.SupportGroup.CreatedBy)
 
-		rlist := []openfga.RelationInput{
+		relations := []openfga.RelationInput{
 			{
-				UserType:   "role",
+				UserType:   openfga.TypeRole,
 				UserId:     userId,
-				Relation:   "role",
-				ObjectType: "support_group",
-				ObjectId:   openfga.ObjectId(supportGroupId),
+				Relation:   openfga.RelRole,
+				ObjectType: openfga.TypeSupportGroup,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.SupportGroup.Id),
 			},
 		}
 
-		for _, rel := range rlist {
-			authz.AddRelation(rel)
-		}
+		openfga.AddRelations(authz, relations)
 	} else {
 		err := NewSupportGroupHandlerError("OnSupportGroupCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
@@ -162,18 +157,17 @@ func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfg
 	})
 
 	if deleteEvent, ok := e.(*DeleteSupportGroupEvent); ok {
-		objectId := strconv.FormatInt(deleteEvent.SupportGroupID, 10)
 
 		// Delete all tuples where object is the support_group
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			ObjectType: "support_group",
-			ObjectId:   openfga.ObjectId(objectId),
+			ObjectType: openfga.TypeSupportGroup,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.SupportGroupID),
 		})
 
 		// Delete all tuples where user is the support_group
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: "support_group",
-			UserId:   openfga.UserId(objectId),
+			UserType: openfga.TypeSupportGroup,
+			UserId:   openfga.UserIdFromInt(deleteEvent.SupportGroupID),
 		})
 
 		authz.RemoveRelationBulk(deleteInput)
@@ -195,17 +189,16 @@ func OnAddServiceToSupportGroup(db database.Database, e event.Event, authz openf
 	})
 
 	if addEvent, ok := e.(*AddServiceToSupportGroupEvent); ok {
-		supportGroupId := strconv.FormatInt(addEvent.SupportGroupID, 10)
-		serviceId := strconv.FormatInt(addEvent.ServiceID, 10)
-
-		rel := openfga.RelationInput{
-			UserType:   "support_group",
-			UserId:     openfga.UserId(supportGroupId),
-			ObjectType: "service",
-			ObjectId:   openfga.ObjectId(serviceId),
-			Relation:   "support_group",
+		relations := []openfga.RelationInput{
+			{
+				UserType:   openfga.TypeSupportGroup,
+				UserId:     openfga.UserIdFromInt(addEvent.SupportGroupID),
+				ObjectType: openfga.TypeService,
+				ObjectId:   openfga.ObjectIdFromInt(addEvent.ServiceID),
+				Relation:   openfga.RelSupportGroup,
+			},
 		}
-		authz.AddRelation(rel)
+		openfga.AddRelations(authz, relations)
 	} else {
 		err := NewSupportGroupHandlerError("OnAddServiceToSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
@@ -224,15 +217,12 @@ func OnRemoveServiceFromSupportGroup(db database.Database, e event.Event, authz 
 	})
 
 	if removeEvent, ok := e.(*RemoveServiceFromSupportGroupEvent); ok {
-		supportGroupId := strconv.FormatInt(removeEvent.SupportGroupID, 10)
-		serviceId := strconv.FormatInt(removeEvent.ServiceID, 10)
-
 		rel := openfga.RelationInput{
-			UserType:   "support_group",
-			UserId:     openfga.UserId(supportGroupId),
-			ObjectType: "service",
-			ObjectId:   openfga.ObjectId(serviceId),
-			Relation:   "support_group",
+			UserType:   openfga.TypeSupportGroup,
+			UserId:     openfga.UserIdFromInt(removeEvent.SupportGroupID),
+			ObjectType: openfga.TypeService,
+			ObjectId:   openfga.ObjectIdFromInt(removeEvent.ServiceID),
+			Relation:   openfga.RelSupportGroup,
 		}
 		authz.RemoveRelation(rel)
 	} else {
@@ -253,17 +243,16 @@ func OnAddUserToSupportGroup(db database.Database, e event.Event, authz openfga.
 	})
 
 	if addEvent, ok := e.(*AddUserToSupportGroupEvent); ok {
-		supportGroupId := strconv.FormatInt(addEvent.SupportGroupID, 10)
-		userId := strconv.FormatInt(addEvent.UserID, 10)
-
-		rel := openfga.RelationInput{
-			UserType:   "user",
-			UserId:     openfga.UserId(userId),
-			ObjectType: "support_group",
-			ObjectId:   openfga.ObjectId(supportGroupId),
-			Relation:   "member",
+		relations := []openfga.RelationInput{
+			{
+				UserType:   openfga.TypeUser,
+				UserId:     openfga.UserIdFromInt(addEvent.UserID),
+				ObjectType: openfga.TypeSupportGroup,
+				ObjectId:   openfga.ObjectIdFromInt(addEvent.SupportGroupID),
+				Relation:   openfga.RelMember,
+			},
 		}
-		authz.AddRelation(rel)
+		openfga.AddRelations(authz, relations)
 	} else {
 		err := NewSupportGroupHandlerError("OnAddUserToSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
@@ -282,15 +271,12 @@ func OnRemoveUserFromSupportGroup(db database.Database, e event.Event, authz ope
 	})
 
 	if removeEvent, ok := e.(*RemoveUserFromSupportGroupEvent); ok {
-		supportGroupId := strconv.FormatInt(removeEvent.SupportGroupID, 10)
-		userId := strconv.FormatInt(removeEvent.UserID, 10)
-
 		rel := openfga.RelationInput{
-			UserType:   "user",
-			UserId:     openfga.UserId(userId),
-			ObjectType: "support_group",
-			ObjectId:   openfga.ObjectId(supportGroupId),
-			Relation:   "member",
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(removeEvent.UserID),
+			ObjectType: openfga.TypeSupportGroup,
+			ObjectId:   openfga.ObjectIdFromInt(removeEvent.SupportGroupID),
+			Relation:   openfga.RelMember,
 		}
 		authz.RemoveRelation(rel)
 	} else {

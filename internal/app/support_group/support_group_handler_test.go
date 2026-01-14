@@ -6,7 +6,6 @@ package support_group_test
 import (
 	"math"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -198,8 +197,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				objectId := strconv.FormatInt(createEvent.SupportGroup.Id, 10)
-				p.ObjectId = openfga.ObjectId(objectId)
+				p.ObjectId = openfga.ObjectIdFromInt(createEvent.SupportGroup.Id)
 
 				// Simulate event
 				sg.OnSupportGroupCreateAuthz(db, event, handlerContext.Authz)
@@ -310,38 +308,36 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 
 				relations := []openfga.RelationInput{
 					{ // user - support_group
-						UserType:   "user",
-						UserId:     "userID",
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.IDUser,
 						ObjectId:   objectId,
-						ObjectType: "support_group",
-						Relation:   "member",
+						ObjectType: openfga.TypeSupportGroup,
+						Relation:   openfga.RelMember,
 					},
 					{ // support_group - support_group
-						UserType:   "support_group",
+						UserType:   openfga.TypeSupportGroup,
 						UserId:     userId,
 						ObjectId:   objectId,
-						ObjectType: "support_group",
-						Relation:   "support_group",
+						ObjectType: openfga.TypeSupportGroup,
+						Relation:   openfga.RelSupportGroup,
 					},
 					{ // role - support_group
-						UserType:   "role",
-						UserId:     "roleID",
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.IDRole,
 						ObjectId:   objectId,
-						ObjectType: "support_group",
-						Relation:   "role",
+						ObjectType: openfga.TypeSupportGroup,
+						Relation:   openfga.RelRole,
 					},
 					{ // support_group - service
-						UserType:   "support_group",
+						UserType:   openfga.TypeSupportGroup,
 						UserId:     userId,
-						ObjectId:   "serviceID",
-						ObjectType: "service",
-						Relation:   "support_group",
+						ObjectId:   openfga.IDService,
+						ObjectType: openfga.TypeService,
+						Relation:   openfga.RelSupportGroup,
 					},
 				}
 
-				for _, rel := range relations {
-					handlerContext.Authz.AddRelation(rel)
-				}
+				openfga.AddRelations(handlerContext.Authz, relations)
 
 				var event event.Event = deleteEvent
 				// Simulate event
@@ -406,11 +402,11 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 			serviceId := openfga.ObjectIdFromInt(addEvent.ServiceID)
 
 			rel := openfga.RelationInput{
-				UserType:   "support_group",
+				UserType:   openfga.TypeSupportGroup,
 				UserId:     supportGroupId,
-				ObjectType: "service",
+				ObjectType: openfga.TypeService,
 				ObjectId:   serviceId,
-				Relation:   "support_group",
+				Relation:   openfga.RelSupportGroup,
 			}
 
 			var event event.Event = addEvent
@@ -443,13 +439,14 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 			serviceId := openfga.ObjectIdFromInt(removeEvent.ServiceID)
 
 			rel := openfga.RelationInput{
-				UserType:   "support_group",
+				UserType:   openfga.TypeSupportGroup,
 				UserId:     supportGroupId,
-				ObjectType: "service",
+				ObjectType: openfga.TypeService,
 				ObjectId:   serviceId,
-				Relation:   "support_group",
+				Relation:   openfga.TypeSupportGroup,
 			}
-			handlerContext.Authz.AddRelation(rel)
+
+			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{rel})
 
 			var event event.Event = removeEvent
 			sg.OnRemoveServiceFromSupportGroup(db, event, handlerContext.Authz)
@@ -512,11 +509,11 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 			userId := openfga.UserIdFromInt(addEvent.UserID)
 
 			rel := openfga.RelationInput{
-				UserType:   "user",
+				UserType:   openfga.TypeUser,
 				UserId:     userId,
-				ObjectType: "support_group",
+				ObjectType: openfga.TypeSupportGroup,
 				ObjectId:   supportGroupId,
-				Relation:   "member",
+				Relation:   openfga.RelMember,
 			}
 
 			var event event.Event = addEvent
@@ -549,13 +546,14 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 			userId := openfga.UserIdFromInt(removeEvent.UserID)
 
 			rel := openfga.RelationInput{
-				UserType:   "user",
+				UserType:   openfga.TypeUser,
 				UserId:     userId,
-				ObjectType: "support_group",
+				ObjectType: openfga.TypeSupportGroup,
 				ObjectId:   supportGroupId,
-				Relation:   "member",
+				Relation:   openfga.RelMember,
 			}
-			handlerContext.Authz.AddRelation(rel)
+			// Bulk add instead of single add
+			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{rel})
 
 			var event event.Event = removeEvent
 			sg.OnRemoveUserFromSupportGroup(db, event, handlerContext.Authz)

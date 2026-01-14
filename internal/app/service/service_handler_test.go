@@ -7,7 +7,6 @@ import (
 	"errors"
 	"math"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -263,11 +262,11 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		}
 
 		p = openfga.PermissionInput{
-			UserType:   "role",
+			UserType:   openfga.TypeRole,
 			UserId:     "0",
-			ObjectId:   "test_service",
-			ObjectType: "service",
-			Relation:   "role",
+			ObjectId:   openfga.IDService,
+			ObjectType: openfga.TypeService,
+			Relation:   openfga.RelRole,
 		}
 
 		handlerContext.DB = db
@@ -373,8 +372,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				resourceId := strconv.FormatInt(createEvent.Service.Id, 10)
-				p.ObjectId = openfga.ObjectId(resourceId)
+				p.ObjectId = openfga.ObjectIdFromInt(createEvent.Service.Id)
 				// Simulate event
 				s.OnServiceCreateAuthz(db, event, handlerContext.Authz)
 
@@ -479,38 +477,36 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 
 				relations := []openfga.RelationInput{
 					{ // user - service: a user can view the service
-						UserType:   "user",
-						UserId:     "userID",
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.IDUser,
 						ObjectId:   objectId,
-						ObjectType: "service",
-						Relation:   "can_view",
+						ObjectType: openfga.TypeService,
+						Relation:   openfga.RelCanView,
 					},
 					{ // role - service: a role is assigned to the service
-						UserType:   "role",
-						UserId:     "roleID",
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.IDRole,
 						ObjectId:   objectId,
-						ObjectType: "service",
-						Relation:   "role",
+						ObjectType: openfga.TypeService,
+						Relation:   openfga.RelRole,
 					},
 					{ // support group - service: a support group is related to the service
-						UserType:   "support_group",
-						UserId:     "supportGroupID",
+						UserType:   openfga.TypeSupportGroup,
+						UserId:     openfga.IDSupportGroup,
 						ObjectId:   objectId,
-						ObjectType: "service",
-						Relation:   "support_group",
+						ObjectType: openfga.TypeService,
+						Relation:   openfga.RelSupportGroup,
 					},
 					{ // service - component_instance: a service is related to a component instance
-						UserType:   "service",
+						UserType:   openfga.TypeService,
 						UserId:     userId,
-						ObjectId:   "componentInstanceID",
-						ObjectType: "component_instance",
-						Relation:   "related_service",
+						ObjectId:   openfga.IDComponentInstance,
+						ObjectType: openfga.RelComponentInstance,
+						Relation:   openfga.RelRelatedService,
 					},
 				}
 
-				for _, rel := range relations {
-					handlerContext.Authz.AddRelation(rel)
-				}
+				openfga.AddRelations(handlerContext.Authz, relations)
 
 				var event event.Event = deleteEvent
 				// Simulate event
@@ -553,11 +549,11 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		handlerContext.EventReg = er
 
 		p = openfga.PermissionInput{
-			UserType:   "user",
+			UserType:   openfga.TypeUser,
 			UserId:     "",
-			ObjectType: "service",
+			ObjectType: openfga.TypeService,
 			ObjectId:   "",
-			Relation:   "owner",
+			Relation:   openfga.RelOwner,
 		}
 	})
 
@@ -611,13 +607,14 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 			ownerId := openfga.UserIdFromInt(removeEvent.OwnerID)
 
 			rel := openfga.RelationInput{
-				UserType:   "user",
+				UserType:   openfga.TypeUser,
 				UserId:     ownerId,
-				ObjectType: "service",
+				ObjectType: openfga.TypeService,
 				ObjectId:   serviceId,
-				Relation:   "owner",
+				Relation:   openfga.RelOwner,
 			}
-			handlerContext.Authz.AddRelation(rel)
+
+			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{rel})
 
 			var event event.Event = removeEvent
 			s.OnRemoveOwnerFromService(db, event, handlerContext.Authz)

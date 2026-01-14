@@ -17,6 +17,43 @@ type ObjectType string
 type RelationType string
 type ObjectId string
 
+// IDs (shared across userId/objectId tuple definitions)
+const (
+	IDUser              = "userID"
+	IDRole              = "roleID"
+	IDSupportGroup      = "supportGroupID"
+	IDService           = "serviceID"
+	IDComponent         = "componentID"
+	IDComponentVersion  = "componentVersionID"
+	IDComponentInstance = "componentInstanceID"
+	IDIssueMatch        = "issueMatchID"
+)
+
+// Types (shared across userType/objectType tuple definitions)
+const (
+	TypeUser              = "user"
+	TypeRole              = "role"
+	TypeSupportGroup      = "support_group"
+	TypeService           = "service"
+	TypeComponent         = "component"
+	TypeComponentVersion  = "component_version"
+	TypeComponentInstance = "component_instance"
+	TypeIssueMatch        = "issue_match"
+)
+
+// Relations (shared across relations tuple definitions)
+const (
+	RelCanView           = "can_view"
+	RelRole              = "role"
+	RelSupportGroup      = "support_group"
+	RelRelatedService    = "related_service"
+	RelOwner             = "owner"
+	RelAdmin             = "admin"
+	RelMember            = "member"
+	RelComponentInstance = "component_instance"
+	RelComponentVersion  = "component_version"
+)
+
 type PermissionInput struct {
 	UserType   UserType
 	UserId     UserId

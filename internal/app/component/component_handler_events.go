@@ -4,8 +4,6 @@
 package component
 
 import (
-	"strconv"
-
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -87,18 +85,19 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 	})
 
 	if createEvent, ok := e.(*CreateComponentEvent); ok {
-		componentId := strconv.FormatInt(createEvent.Component.Id, 10)
 		userId := openfga.UserIdFromInt(createEvent.Component.CreatedBy)
 
-		rInput := openfga.RelationInput{
-			UserType:   "role",
-			UserId:     userId,
-			Relation:   "role",
-			ObjectType: "component",
-			ObjectId:   openfga.ObjectId(componentId),
+		relations := []openfga.RelationInput{
+			{
+				UserType:   openfga.TypeRole,
+				UserId:     userId,
+				Relation:   openfga.RelRole,
+				ObjectType: openfga.TypeComponent,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.Component.Id),
+			},
 		}
 
-		authz.AddRelation(rInput)
+		openfga.AddRelations(authz, relations)
 	} else {
 		err := NewComponentHandlerError("OnComponentCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Component", "", err)
@@ -118,11 +117,10 @@ func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.A
 	})
 
 	if deleteEvent, ok := e.(*DeleteComponentEvent); ok {
-		deleteElement := openfga.RelationInput{}
-		objectId := strconv.FormatInt(deleteEvent.ComponentID, 10)
-
-		deleteElement.ObjectType = "component"
-		deleteElement.ObjectId = openfga.ObjectId(objectId)
+		deleteElement := openfga.RelationInput{
+			ObjectType: openfga.TypeComponent,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.ComponentID),
+		}
 		deleteInput = append(deleteInput, deleteElement)
 
 		authz.RemoveRelationBulk(deleteInput)

@@ -6,7 +6,6 @@ package component_test
 import (
 	"math"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -165,11 +164,11 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		}
 
 		p = openfga.PermissionInput{
-			UserType:   "role",
+			UserType:   openfga.TypeRole,
 			UserId:     "0",
 			ObjectId:   "testcomponent",
-			ObjectType: "component",
-			Relation:   "role",
+			ObjectType: openfga.TypeComponent,
+			Relation:   openfga.RelRole,
 		}
 
 		handlerContext.DB = db
@@ -201,8 +200,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				resourceId := strconv.FormatInt(createEvent.Component.Id, 10)
-				p.ObjectId = openfga.ObjectId(resourceId)
+				p.ObjectId = openfga.ObjectIdFromInt(createEvent.Component.Id)
 				// Simulate event
 				c.OnComponentCreateAuthz(db, event, handlerContext.Authz)
 
@@ -308,31 +306,29 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 				objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentID)
 				relations := []openfga.RelationInput{
 					{ // role - component: a role is assigned to the component
-						UserType:   "role",
-						UserId:     "roleID",
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.IDRole,
 						ObjectId:   objectId,
-						ObjectType: "component",
-						Relation:   "role",
+						ObjectType: openfga.TypeComponent,
+						Relation:   openfga.RelRole,
 					},
 					{ // component_version - component: a component version is related to the component
-						UserType:   "component_version",
-						UserId:     "cvID",
+						UserType:   openfga.TypeComponentVersion,
+						UserId:     openfga.IDComponentVersion,
 						ObjectId:   objectId,
-						ObjectType: "component",
-						Relation:   "component_version",
+						ObjectType: openfga.TypeComponent,
+						Relation:   openfga.RelComponentVersion,
 					},
 					{ // user - component: a user can view the component
-						UserType:   "user",
-						UserId:     "userID",
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.IDUser,
 						ObjectId:   objectId,
-						ObjectType: "component",
-						Relation:   "can_view",
+						ObjectType: openfga.TypeComponent,
+						Relation:   openfga.RelCanView,
 					},
 				}
 
-				for _, rel := range relations {
-					handlerContext.Authz.AddRelation(rel)
-				}
+				openfga.AddRelations(handlerContext.Authz, relations)
 
 				var event event.Event = deleteEvent
 				c.OnComponentDeleteAuthz(db, event, handlerContext.Authz)

@@ -274,59 +274,57 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 
 				relations := []openfga.RelationInput{
 					{ // user - role
-						UserType:   "user",
+						UserType:   openfga.TypeUser,
 						UserId:     userId,
-						ObjectId:   "roleID",
-						ObjectType: "role",
-						Relation:   "admin",
+						ObjectId:   openfga.IDRole,
+						ObjectType: openfga.TypeRole,
+						Relation:   openfga.RelAdmin,
 					},
 					{ // user - service
-						UserType:   "user",
+						UserType:   openfga.TypeUser,
 						UserId:     userId,
-						ObjectId:   "serviceID",
-						ObjectType: "service",
-						Relation:   "member",
+						ObjectId:   openfga.IDService,
+						ObjectType: openfga.TypeService,
+						Relation:   openfga.RelMember,
 					},
 					{ // user - component_instance
-						UserType:   "user",
+						UserType:   openfga.TypeUser,
 						UserId:     userId,
-						ObjectId:   "componentInstanceID",
-						ObjectType: "component_instance",
-						Relation:   "can_view",
+						ObjectId:   openfga.IDComponentInstance,
+						ObjectType: openfga.TypeComponentInstance,
+						Relation:   openfga.RelCanView,
 					},
 					{ // user - support_group
-						UserType:   "user",
+						UserType:   openfga.TypeUser,
 						UserId:     userId,
-						ObjectId:   "supportGroupID",
-						ObjectType: "support_group",
-						Relation:   "member",
+						ObjectId:   openfga.IDSupportGroup,
+						ObjectType: openfga.TypeSupportGroup,
+						Relation:   openfga.RelMember,
 					},
 					{ // user - issue_match
-						UserType:   "user",
+						UserType:   openfga.TypeUser,
 						UserId:     userId,
-						ObjectId:   "issueMatchID",
-						ObjectType: "issue_match",
-						Relation:   "can_view",
+						ObjectId:   openfga.IDIssueMatch,
+						ObjectType: openfga.TypeIssueMatch,
+						Relation:   openfga.RelCanView,
 					},
 					{ // user - component_version
-						UserType:   "user",
+						UserType:   openfga.TypeUser,
 						UserId:     userId,
-						ObjectId:   "componentVersionID",
-						ObjectType: "component_version",
-						Relation:   "can_view",
+						ObjectId:   openfga.IDComponentVersion,
+						ObjectType: openfga.TypeComponentVersion,
+						Relation:   openfga.RelCanView,
 					},
 					{ // user - component
-						UserType:   "user",
+						UserType:   openfga.TypeUser,
 						UserId:     userId,
-						ObjectId:   "componentID",
-						ObjectType: "component",
-						Relation:   "can_view",
+						ObjectId:   openfga.IDComponent,
+						ObjectType: openfga.TypeComponent,
+						Relation:   openfga.RelCanView,
 					},
 				}
 
-				for _, rel := range relations {
-					authz.AddRelation(rel)
-				}
+				openfga.AddRelations(handlerContext.Authz, relations)
 
 				var event event.Event = deleteEvent
 				// Simulate event
