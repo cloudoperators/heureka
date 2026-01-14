@@ -78,7 +78,11 @@ func OnComponentVersionCreateAuthz(db database.Database, e event.Event, authz op
 			},
 		}
 
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewComponentVersionHandlerError("OnComponentVersionCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
@@ -116,7 +120,11 @@ func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz op
 				ObjectType: openfga.TypeComponent,
 				ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentVersion.ComponentId),
 			}
-			authz.UpdateRelation(removeInput, newRelation)
+			err := authz.UpdateRelation(removeInput, newRelation)
+			if err != nil {
+				wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
+				l.Error(wrappedErr)
+			}
 		}
 	} else {
 		err := NewComponentVersionHandlerError("OnComponentVersionUpdateAuthz: triggered with wrong event type")
@@ -149,7 +157,11 @@ func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz op
 			UserId:   openfga.UserIdFromInt(deleteEvent.ComponentVersionID),
 		})
 
-		authz.RemoveRelationBulk(deleteInput)
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewComponentVersionHandlerError("OnComponentVersionDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)

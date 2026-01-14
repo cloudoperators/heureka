@@ -200,7 +200,11 @@ func OnComponentInstanceCreateAuthz(db database.Database, e event.Event, authz o
 			},
 		}
 
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewComponentInstanceHandlerError("OnComponentInstanceCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
@@ -235,7 +239,11 @@ func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz o
 			ObjectType: openfga.TypeComponentInstance,
 			ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.Id),
 		}
-		authz.UpdateRelation(removeServiceInput, newServiceRelation)
+		err := authz.UpdateRelation(removeServiceInput, newServiceRelation)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
+			l.Error(wrappedErr)
+		}
 
 		// Update component_version relation
 		removeComponentVersionInput := openfga.RelationInput{
@@ -252,7 +260,11 @@ func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz o
 			ObjectType: openfga.TypeComponentVersion,
 			ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.ComponentVersionId),
 		}
-		authz.UpdateRelation(removeComponentVersionInput, newComponentVersionRelation)
+		err = authz.UpdateRelation(removeComponentVersionInput, newComponentVersionRelation)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewComponentInstanceHandlerError("OnComponentInstanceUpdateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
@@ -285,7 +297,11 @@ func OnComponentInstanceDeleteAuthz(db database.Database, e event.Event, authz o
 			UserId:   openfga.UserIdFromInt(deleteEvent.ComponentInstanceID),
 		})
 
-		authz.RemoveRelationBulk(deleteInput)
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewComponentInstanceHandlerError("OnComponentInstanceDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)

@@ -206,7 +206,11 @@ func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Aut
 			},
 		}
 
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewServiceHandlerError("OnServiceCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
@@ -239,7 +243,11 @@ func OnServiceDeleteAuthz(db database.Database, e event.Event, authz openfga.Aut
 			UserId:   openfga.UserIdFromInt(deleteEvent.ServiceID),
 		})
 
-		authz.RemoveRelationBulk(deleteInput)
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewServiceHandlerError("OnServiceDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
@@ -268,7 +276,11 @@ func OnAddOwnerToService(db database.Database, e event.Event, authz openfga.Auth
 			},
 		}
 
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewServiceHandlerError("OnAddOwnerToService: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
@@ -294,7 +306,11 @@ func OnRemoveOwnerFromService(db database.Database, e event.Event, authz openfga
 			ObjectId:   openfga.ObjectIdFromInt(removeEvent.ServiceID),
 			Relation:   openfga.RelOwner,
 		}
-		authz.RemoveRelation(rel)
+		err := authz.RemoveRelation(rel)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewServiceHandlerError("OnRemoveOwnerFromService: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Service", "", err)

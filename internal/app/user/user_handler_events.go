@@ -111,7 +111,11 @@ func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Author
 			UserId:   openfga.UserIdFromInt(deleteEvent.UserID),
 		})
 
-		authz.RemoveRelationBulk(deleteInput)
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "User", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewUserHandlerError("OnUserDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "User", "", err)

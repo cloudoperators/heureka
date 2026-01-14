@@ -236,7 +236,11 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 			},
 		}
 
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewIssueMatchHandlerError("OnIssueMatchCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
@@ -266,7 +270,11 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 				ObjectType: openfga.TypeIssueMatch,
 				ObjectId:   openfga.ObjectIdFromInt(updateEvent.IssueMatch.Id),
 			}
-			authz.RemoveRelationBulk([]openfga.RelationInput{removeInput})
+			err := authz.RemoveRelationBulk([]openfga.RelationInput{removeInput})
+			if err != nil {
+				wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+				l.Error(wrappedErr)
+			}
 
 			// Add the new relation to the new component_instance
 			newRelation := openfga.RelationInput{
@@ -277,7 +285,11 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 				ObjectId:   openfga.ObjectIdFromInt(updateEvent.IssueMatch.Id),
 			}
 
-			openfga.AddRelations(authz, []openfga.RelationInput{newRelation})
+			err = openfga.AddRelations(authz, []openfga.RelationInput{newRelation})
+			if err != nil {
+				wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+				l.Error(wrappedErr)
+			}
 		}
 	} else {
 		err := NewIssueMatchHandlerError("OnIssueMatchUpdateAuthz: triggered with wrong event type")
@@ -310,7 +322,11 @@ func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.
 			UserId:   openfga.UserIdFromInt(deleteEvent.IssueMatchID),
 		})
 
-		authz.RemoveRelationBulk(deleteInput)
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewIssueMatchHandlerError("OnIssueMatchDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)

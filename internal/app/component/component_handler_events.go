@@ -97,7 +97,11 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 			},
 		}
 
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Component", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewComponentHandlerError("OnComponentCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Component", "", err)
@@ -123,7 +127,11 @@ func OnComponentDeleteAuthz(db database.Database, e event.Event, authz openfga.A
 		}
 		deleteInput = append(deleteInput, deleteElement)
 
-		authz.RemoveRelationBulk(deleteInput)
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Component", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewComponentHandlerError("OnComponentDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "Component", "", err)

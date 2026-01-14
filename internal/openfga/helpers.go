@@ -13,8 +13,12 @@ func UserIdFromInt(id int64) UserId {
 }
 
 // AddRelations accepts a slice of RelationInput and adds them
-func AddRelations(authz Authorization, relations []RelationInput) {
+func AddRelations(authz Authorization, relations []RelationInput) error {
 	for _, r := range relations {
-		authz.AddRelation(r)
+		err := authz.AddRelation(r)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }

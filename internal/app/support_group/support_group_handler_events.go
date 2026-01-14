@@ -137,7 +137,11 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 			},
 		}
 
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewSupportGroupHandlerError("OnSupportGroupCreateAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
@@ -170,7 +174,11 @@ func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfg
 			UserId:   openfga.UserIdFromInt(deleteEvent.SupportGroupID),
 		})
 
-		authz.RemoveRelationBulk(deleteInput)
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewSupportGroupHandlerError("OnSupportGroupDeleteAuthz: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
@@ -198,7 +206,11 @@ func OnAddServiceToSupportGroup(db database.Database, e event.Event, authz openf
 				Relation:   openfga.RelSupportGroup,
 			},
 		}
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewSupportGroupHandlerError("OnAddServiceToSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
@@ -224,7 +236,11 @@ func OnRemoveServiceFromSupportGroup(db database.Database, e event.Event, authz 
 			ObjectId:   openfga.ObjectIdFromInt(removeEvent.ServiceID),
 			Relation:   openfga.RelSupportGroup,
 		}
-		authz.RemoveRelation(rel)
+		err := authz.RemoveRelation(rel)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewSupportGroupHandlerError("OnRemoveServiceFromSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
@@ -252,7 +268,11 @@ func OnAddUserToSupportGroup(db database.Database, e event.Event, authz openfga.
 				Relation:   openfga.RelMember,
 			},
 		}
-		openfga.AddRelations(authz, relations)
+		err := openfga.AddRelations(authz, relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewSupportGroupHandlerError("OnAddUserToSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
@@ -278,7 +298,11 @@ func OnRemoveUserFromSupportGroup(db database.Database, e event.Event, authz ope
 			ObjectId:   openfga.ObjectIdFromInt(removeEvent.SupportGroupID),
 			Relation:   openfga.RelMember,
 		}
-		authz.RemoveRelation(rel)
+		err := authz.RemoveRelation(rel)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
+			l.Error(wrappedErr)
+		}
 	} else {
 		err := NewSupportGroupHandlerError("OnRemoveUserFromSupportGroup: triggered with wrong event type")
 		wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
