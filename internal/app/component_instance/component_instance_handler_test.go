@@ -5,7 +5,6 @@ package component_instance_test
 
 import (
 	"errors"
-	"os"
 
 	"math"
 	"strconv"
@@ -38,15 +37,7 @@ var handlerContext common.HandlerContext
 var cfg *util.Config
 
 var _ = BeforeSuite(func() {
-	modelFilePath := "./../../openfga/model/model.fga"
-
-	cfg = &util.Config{
-		AuthzOpenFgaApiUrl:    os.Getenv("AUTHZ_FGA_API_URL"),
-		AuthzOpenFgaApiToken:  os.Getenv("AUTHZ_FGA_API_TOKEN"),
-		AuthzOpenFgaStoreName: os.Getenv("AUTHZ_FGA_STORE_NAME"),
-		AuthzModelFilePath:    modelFilePath,
-		CurrentUser:           "testuser",
-	}
+	cfg = common.GetTestConfig()
 	enableLogs := false
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{

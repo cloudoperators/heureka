@@ -5,7 +5,6 @@ package user_test
 
 import (
 	"math"
-	"os"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -35,15 +34,7 @@ var cfg *util.Config
 var enableLogs bool
 
 var _ = BeforeSuite(func() {
-	modelFilePath := "./../../openfga/model/model.fga"
-
-	cfg = &util.Config{
-		AuthzOpenFgaApiUrl:    os.Getenv("AUTHZ_FGA_API_URL"),
-		AuthzOpenFgaApiToken:  os.Getenv("AUTHZ_FGA_API_TOKEN"),
-		AuthzOpenFgaStoreName: os.Getenv("AUTHZ_FGA_STORE_NAME"),
-		AuthzModelFilePath:    modelFilePath,
-		CurrentUser:           "testuser",
-	}
+	cfg = common.GetTestConfig()
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
 	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
