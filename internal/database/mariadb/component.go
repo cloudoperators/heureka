@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) getComponentFilterString(filter *entity.ComponentFilter) string {
+func getComponentFilterString(filter *entity.ComponentFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.CCRN, "C.component_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Repository, "C.component_repository = ?", OP_OR))
@@ -26,7 +26,7 @@ func (s *SqlDatabase) getComponentFilterString(filter *entity.ComponentFilter) s
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) ensureComponentFilter(f *entity.ComponentFilter) *entity.ComponentFilter {
+func ensureComponentFilter(f *entity.ComponentFilter) *entity.ComponentFilter {
 	var first = 1000
 	after := ""
 	if f == nil {
@@ -133,7 +133,7 @@ func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
 	return columns
 }
 
-func (s *SqlDatabase) getComponentUpdateFields(component *entity.Component) string {
+func getComponentUpdateFields(component *entity.Component) string {
 	fl := []string{}
 	if component.CCRN != "" {
 		fl = append(fl, "component_ccrn = :component_ccrn")
@@ -158,10 +158,10 @@ func (s *SqlDatabase) getComponentUpdateFields(component *entity.Component) stri
 
 func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.ComponentFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureComponentFilter(filter)
+	filter = ensureComponentFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getComponentFilterString(filter)
+	filterStr := getComponentFilterString(filter)
 	joins := s.getComponentJoins(filter, order)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
@@ -211,13 +211,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionRepository)
 	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -257,7 +251,7 @@ func (s *SqlDatabase) GetAllComponentCursors(filter *entity.ComponentFilter, ord
 	    %s GROUP BY C.component_id ORDER BY %s
     `
 
-	filter = s.ensureComponentFilter(filter)
+	filter = ensureComponentFilter(filter)
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, false, order, l)
@@ -312,7 +306,7 @@ func (s *SqlDatabase) GetComponents(filter *entity.ComponentFilter, order []enti
 		%s GROUP BY C.component_id ORDER BY %s LIMIT ?
     `
 
-	filter = s.ensureComponentFilter(filter)
+	filter = ensureComponentFilter(filter)
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
@@ -382,7 +376,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 	var fl []string
 	var filterParameters []interface{}
 
-	filter = s.ensureComponentFilter(filter)
+	filter = ensureComponentFilter(filter)
 
 	query := `
 		SELECT CVR.critical_count, CVR.high_count, CVR.medium_count, CVR.low_count, CVR.none_count FROM %s AS CVR
@@ -499,7 +493,7 @@ func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
 		WHERE component_id = :component_id
 	`
 
-	updateFields := s.getComponentUpdateFields(component)
+	updateFields := getComponentUpdateFields(component)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
@@ -548,7 +542,7 @@ func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]strin
     `
 
 	// Ensure the filter is initialized
-	filter = s.ensureComponentFilter(filter)
+	filter = ensureComponentFilter(filter)
 	order := []entity.Order{
 		{
 			By:        entity.ComponentCcrn,

@@ -46,10 +46,11 @@ func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (bool, error) {
 		return false, &ScannerRunHandlerError{msg: "Error updating scanner run"}
 	}
 
-	// Trigger autoclose whenever a scanner run has completed successfully
-	if _, err := srh.database.Autoclose(); err != nil {
-		return false, &ScannerRunHandlerError{msg: "Error executing autoclose in CompleteScannerRun"}
+	// Trigger autopatch whenever a scanner run has completed successfully
+	if _, err := srh.database.Autopatch(); err != nil {
+		return false, &ScannerRunHandlerError{msg: "Error executing autopatch in CompleteScannerRun"}
 	}
+
 	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{successfulRun: true})
 	return true, nil
 }

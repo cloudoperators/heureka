@@ -71,6 +71,8 @@ func ColumnName(f entity.OrderByField) string {
 		return "none_count"
 	case entity.RemediationId:
 		return "remediation_id"
+	case entity.PatchId:
+		return "patch_id"
 	default:
 		return ""
 	}

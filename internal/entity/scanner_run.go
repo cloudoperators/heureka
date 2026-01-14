@@ -6,6 +6,7 @@ package entity
 import "time"
 
 type ScannerRun struct {
+	Metadata
 	RunID     int64     `json:"run_id"`
 	UUID      string    `json:"uuid"`
 	Tag       string    `json:"tag"`

@@ -16,8 +16,8 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/olekukonko/tablewriter v1.1.2
-	github.com/onsi/ginkgo/v2 v2.27.4
-	github.com/onsi/gomega v1.39.0
+	github.com/onsi/ginkgo/v2 v2.27.3
+	github.com/onsi/gomega v1.38.3
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/openfga/go-sdk v0.7.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -27,8 +27,9 @@ require (
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.11.1
 	github.com/valkey-io/valkey-go v1.0.70
+	github.com/vektah/gqlparser/v2 v2.5.31
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	golang.org/x/text v0.33.0
+	golang.org/x/text v0.32.0
 	golang.org/x/time v0.14.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 )
@@ -46,7 +47,6 @@ require (
 	github.com/openfga/api/proto v0.0.0-20240905181937-3583905f61a6 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/urfave/cli/v3 v3.6.1 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.31 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect

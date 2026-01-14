@@ -38,15 +38,6 @@ var _ = BeforeSuite(func() {
 	er = event.NewEventRegistry(db)
 })
 
-func remediationFilter() *entity.RemediationFilter {
-	return &entity.RemediationFilter{
-		PaginatedX: entity.PaginatedX{
-			First: nil,
-			After: nil,
-		},
-	}
-}
-
 var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), func() {
 	var (
 		db                 *mocks.MockDatabase
@@ -59,7 +50,12 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
-		filter = remediationFilter()
+		filter = &entity.RemediationFilter{
+			PaginatedX: entity.PaginatedX{
+				First: nil,
+				After: nil,
+			},
+		}
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,

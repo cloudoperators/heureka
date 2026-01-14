@@ -46,7 +46,7 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	var fl []string
 	var filterParameters []any
 
-	filter = s.ensureIssueFilter(filter)
+	filter = ensureIssueFilter(filter)
 
 	baseQuery := `
 		SELECT CIR.critical_count, CIR.high_count, CIR.medium_count, CIR.low_count, CIR.none_count FROM %s AS CIR
