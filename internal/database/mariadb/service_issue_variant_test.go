@@ -120,7 +120,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 						iv := mariadb.IssueVariantRow{
 							IssueId:           issue.Id,
 							IssueRepositoryId: ir.Id,
-							SecondaryName:     sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 9999)), Valid: true},
+							SecondaryName:     sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 99999999)), Valid: true},
 							Description:       issue.Description,
 							Vector:            sql.NullString{String: v, Valid: true},
 							Rating:            sql.NullString{String: rating, Valid: true},

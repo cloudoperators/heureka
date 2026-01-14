@@ -65,11 +65,14 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			componentVersion, found := lo.Find(imgTest.componentVersions, func(cv mariadb.ComponentVersionRow) bool {
 				return cv.Id.Int64 == componentInstances[0].ComponentVersionId.Int64
 			})
+			Expect(found).To(BeTrue(), "ComponentVersion for ComponentInstance should be found")
+			component, foundComp := lo.Find(imgTest.components, func(c mariadb.ComponentRow) bool {
+				return c.Id.Int64 == componentVersion.ComponentId.Int64
+			})
+			Expect(foundComp).To(BeTrue(), "Component for ComponentVersion should be found")
 			// test data is setup so that first two component versions (having each one critical vulnerability)
 			// belong to first service and first component
 			counts := model.SeverityCounts{Critical: 2, Total: 2}
-
-			Expect(found).To(BeTrue(), "ComponentVersion for ComponentInstance should be found")
 
 			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
@@ -78,7 +81,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 				"../api/graphql/graph/queryCollection/image/query.graphql",
 				map[string]interface{}{
 					"filter": map[string]any{
-						"repository": []string{componentVersion.Repository.String},
+						"repository": []string{component.Repository.String},
 						"service":    []string{service.CCRN.String},
 					},
 					"first": 3,
@@ -104,6 +107,7 @@ type imageTest struct {
 	services               []mariadb.BaseServiceRow
 	componentInstances     []mariadb.ComponentInstanceRow
 	componentVersionIssues []mariadb.ComponentVersionIssueRow
+	components             []mariadb.ComponentRow
 }
 
 func newImageTest() *imageTest {
@@ -137,7 +141,7 @@ func (it *imageTest) seed10Entries() {
 		issue.Type.String = entity.IssueTypeVulnerability.String()
 		it.seeder.InsertFakeIssue(issue)
 	}
-	it.seeder.SeedComponents(5)
+	it.components = it.seeder.SeedComponents(5)
 	it.services = it.seeder.SeedServices(5)
 
 	componentVersions, componentInstances, issueVariants, componentVersionIssues, issueMatches, err := loadTestData()

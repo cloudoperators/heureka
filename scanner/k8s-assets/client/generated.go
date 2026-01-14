@@ -63,12 +63,11 @@ type ComponentConnectionEdgesComponentEdge struct {
 func (v *ComponentConnectionEdgesComponentEdge) GetNode() *Component { return v.Node }
 
 type ComponentFilter struct {
-	ComponentCcrn              []string      `json:"componentCcrn"`
-	Repository                 []string      `json:"repository"`
-	Organization               []string      `json:"organization"`
-	State                      []StateFilter `json:"state"`
-	ServiceCcrn                []string      `json:"serviceCcrn"`
-	ComponentVersionRepository []string      `json:"componentVersionRepository"`
+	ComponentCcrn []string      `json:"componentCcrn"`
+	Repository    []string      `json:"repository"`
+	Organization  []string      `json:"organization"`
+	State         []StateFilter `json:"state"`
+	ServiceCcrn   []string      `json:"serviceCcrn"`
 }
 
 // GetComponentCcrn returns ComponentFilter.ComponentCcrn, and is useful for accessing the field via an interface.
@@ -85,11 +84,6 @@ func (v *ComponentFilter) GetState() []StateFilter { return v.State }
 
 // GetServiceCcrn returns ComponentFilter.ServiceCcrn, and is useful for accessing the field via an interface.
 func (v *ComponentFilter) GetServiceCcrn() []string { return v.ServiceCcrn }
-
-// GetComponentVersionRepository returns ComponentFilter.ComponentVersionRepository, and is useful for accessing the field via an interface.
-func (v *ComponentFilter) GetComponentVersionRepository() []string {
-	return v.ComponentVersionRepository
-}
 
 type ComponentInput struct {
 	Ccrn         string              `json:"ccrn"`

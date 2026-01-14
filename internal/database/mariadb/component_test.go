@@ -197,20 +197,12 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						}
 					})
 				})
-				It("can filter by a single component version repository", func() {
-					componentVersionRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+				It("can filter by a single component repository", func() {
+					filter := &entity.ComponentFilter{Repository: []*string{&randomComponent.Repository.String}}
 
-					component, found := lo.Find(seedCollection.ComponentRows, func(cr mariadb.ComponentRow) bool {
-						return cr.Id.Int64 == componentVersionRow.ComponentId.Int64
-					})
-
-					Expect(found).To(BeTrue(), "Component for ComponentVersion should be found")
-
-					filter := &entity.ComponentFilter{ComponentVersionRepository: []*string{&componentVersionRow.Repository.String}}
-
-					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{component}, func(entries []entity.ComponentResult) {
+					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{randomComponent}, func(entries []entity.ComponentResult) {
 						for _, entry := range entries {
-							Expect(entry.Id).To(BeEquivalentTo(component.Id.Int64))
+							Expect(entry.Id).To(BeEquivalentTo(randomComponent.Id.Int64))
 						}
 					})
 				})
@@ -226,7 +218,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.ComponentResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *entries[len(entries)-1].Component, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+							after, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *entries[len(entries)-1].Component, entity.IssueSeverityCounts{}))
 							return after
 						},
 						len(seedCollection.ComponentRows),
@@ -623,19 +615,14 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 
 		It("can order by component version repository", func() {
 			order := []entity.Order{
-				{By: entity.ComponentVersionRepository, Direction: entity.OrderDirectionAsc},
+				{By: entity.ComponentRepository, Direction: entity.OrderDirectionAsc},
 			}
 
 			testOrder(order, func(res []entity.ComponentResult) {
 				var prev string = ""
 				for _, r := range res {
-					cv, found := lo.Find(seedCollection.ComponentVersionRows, func(cvr mariadb.ComponentVersionRow) bool {
-						return cvr.ComponentId.Int64 == r.Id
-					})
-					if found {
-						Expect(c.CompareString(cv.Repository.String, prev)).Should(BeNumerically(">=", 0))
-						prev = cv.Repository.String
-					}
+					Expect(c.CompareString(r.Repository, prev)).Should(BeNumerically(">=", 0))
+					prev = r.Repository
 				}
 			})
 		})
@@ -666,19 +653,14 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 
 		It("can order by component version repository", func() {
 			order := []entity.Order{
-				{By: entity.ComponentVersionRepository, Direction: entity.OrderDirectionDesc},
+				{By: entity.ComponentRepository, Direction: entity.OrderDirectionDesc},
 			}
 
 			testOrder(order, func(res []entity.ComponentResult) {
 				var prev string = "\U0010FFFF"
 				for _, r := range res {
-					cv, found := lo.Find(seedCollection.ComponentVersionRows, func(cvr mariadb.ComponentVersionRow) bool {
-						return cvr.ComponentId.Int64 == r.Id
-					})
-					if found {
-						Expect(c.CompareString(cv.Repository.String, prev)).Should(BeNumerically("<=", 0))
-						prev = cv.Repository.String
-					}
+					Expect(c.CompareString(r.Repository, prev)).Should(BeNumerically("<=", 0))
+					prev = r.Repository
 				}
 			})
 		})

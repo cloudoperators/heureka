@@ -22,6 +22,7 @@ const (
 
 	ComponentId
 	ComponentCcrn
+	ComponentRepository
 
 	IssueId
 	IssuePrimaryName

@@ -20,7 +20,6 @@ func getComponentFilterString(filter *entity.ComponentFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Id, "C.component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CV.componentversion_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentVersionRepository, "CV.componentversion_repository = ?", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "C.component"))
 
 	return combineFilterQueries(fl, OP_AND)
@@ -81,35 +80,30 @@ func (s *SqlDatabase) getComponentJoins(filter *entity.ComponentFilter, order []
 }
 
 func (s *SqlDatabase) needComponentVersion(filter *entity.ComponentFilter, order []entity.Order) bool {
-	orderByRepository := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.ComponentVersionRepository
-	})
 	return len(filter.ComponentVersionId) > 0 ||
-		len(filter.ServiceCCRN) > 0 ||
-		len(filter.ComponentVersionRepository) > 0 ||
-		orderByRepository
+		len(filter.ServiceCCRN) > 0
 }
 
 func (s *SqlDatabase) needComponentInstance(filter *entity.ComponentFilter) bool {
-	return len(filter.ServiceCCRN) > 0 || len(filter.ComponentVersionRepository) > 0
+	return len(filter.ServiceCCRN) > 0
 }
 
 func (s *SqlDatabase) needService(filter *entity.ComponentFilter) bool {
-	return len(filter.ServiceCCRN) > 0 || len(filter.ComponentVersionRepository) > 0
+	return len(filter.ServiceCCRN) > 0
 }
 
 func (s *SqlDatabase) needSingleComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order []entity.Order) bool {
 	orderByCount := lo.ContainsBy(order, func(o entity.Order) bool {
 		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
 	})
-	return orderByCount && (len(filter.Id) > 0 && (len(filter.ServiceCCRN) > 0 || len(filter.ComponentVersionRepository) > 0))
+	return orderByCount && (len(filter.Id) > 0 && (len(filter.ServiceCCRN) > 0))
 }
 
 func (s *SqlDatabase) needAllComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order []entity.Order) bool {
 	orderByCount := lo.ContainsBy(order, func(o entity.Order) bool {
 		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
 	})
-	return orderByCount && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0 || len(filter.ComponentVersionRepository) > 0))
+	return orderByCount && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0))
 }
 
 func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
@@ -126,8 +120,6 @@ func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
 			columns = fmt.Sprintf("%s, CVR.low_count", columns)
 		case entity.NoneCount:
 			columns = fmt.Sprintf("%s, CVR.none_count", columns)
-		case entity.ComponentVersionRepository:
-			columns = fmt.Sprintf("%s, CV.componentversion_repository", columns)
 		}
 	}
 	return columns
@@ -209,7 +201,6 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionRepository)
 	if withCursor {
 		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
@@ -283,12 +274,7 @@ func (s *SqlDatabase) GetAllComponentCursors(filter *entity.ComponentFilter, ord
 			isc = row.RatingCount.AsIssueSeverityCounts()
 		}
 
-		var cv entity.ComponentVersion
-		if row.ComponentVersionRow != nil {
-			cv = row.ComponentVersionRow.AsComponentVersion()
-		}
-
-		cursor, _ := EncodeCursor(WithComponent(order, c, cv, isc))
+		cursor, _ := EncodeCursor(WithComponent(order, c, isc))
 
 		return cursor
 	}), nil
@@ -330,12 +316,7 @@ func (s *SqlDatabase) GetComponents(filter *entity.ComponentFilter, order []enti
 				isc = e.RatingCount.AsIssueSeverityCounts()
 			}
 
-			var cv entity.ComponentVersion
-			if e.ComponentVersionRow != nil {
-				cv = e.ComponentVersionRow.AsComponentVersion()
-			}
-
-			cursor, _ := EncodeCursor(WithComponent(order, c, cv, isc))
+			cursor, _ := EncodeCursor(WithComponent(order, c, isc))
 
 			cr := entity.ComponentResult{
 				WithCursor: entity.WithCursor{Value: cursor},
@@ -385,7 +366,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 	joins := ""
 	groupBy := ""
 
-	if len(filter.Id) == 0 && len(filter.ComponentVersionRepository) == 0 {
+	if len(filter.Id) == 0 && len(filter.Repository) == 0 {
 		query = fmt.Sprintf(query, "mvAllComponentsByServiceVulnerabilityCounts")
 	} else {
 		query = fmt.Sprintf(query, "mvSingleComponentByServiceVulnerabilityCounts")
@@ -398,10 +379,10 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 		filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	}
 
-	if len(filter.ComponentVersionRepository) > 0 {
-		joins = fmt.Sprintf("%s INNER JOIN ComponentVersion CV ON CV.componentversion_component_id = CVR.component_id", joins)
-		fl = append(fl, buildFilterQuery(filter.ComponentVersionRepository, "CV.componentversion_repository = ?", OP_OR))
-		filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionRepository)
+	if len(filter.Repository) > 0 {
+		joins = fmt.Sprintf("%s INNER JOIN Component C ON C.component_id = CVR.component_id", joins)
+		fl = append(fl, buildFilterQuery(filter.Repository, "C.component_repository = ?", OP_OR))
+		filterParameters = buildQueryParameters(filterParameters, filter.Repository)
 	}
 
 	if len(filter.Id) > 0 {

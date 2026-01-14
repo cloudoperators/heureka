@@ -257,7 +257,7 @@ func WithSupportGroup(order []entity.Order, sg entity.SupportGroup) NewCursor {
 	}
 }
 
-func WithComponent(order []entity.Order, c entity.Component, cv entity.ComponentVersion, isc entity.IssueSeverityCounts) NewCursor {
+func WithComponent(order []entity.Order, c entity.Component, isc entity.IssueSeverityCounts) NewCursor {
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ComponentId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -266,8 +266,8 @@ func WithComponent(order []entity.Order, c entity.Component, cv entity.Component
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentId, Value: c.Id, Order: o.Direction})
 			case entity.ComponentCcrn:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentCcrn, Value: c.CCRN, Order: o.Direction})
-			case entity.ComponentVersionRepository:
-				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionRepository, Value: cv.Repository, Order: o.Direction})
+			case entity.ComponentRepository:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentRepository, Value: c.Repository, Order: o.Direction})
 			case entity.CriticalCount:
 				cursors.fields = append(cursors.fields, Field{Name: entity.CriticalCount, Value: isc.Critical, Order: o.Direction})
 			case entity.HighCount:
