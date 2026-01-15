@@ -330,13 +330,46 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 
 				openfga.AddRelations(handlerContext.Authz, relations)
 
+				// get the number of relations before deletion
+				relationsBefore, err := handlerContext.Authz.ListRelations(relations)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(relationsBefore).To(HaveLen(len(relations)), "all relations should exist before deletion")
+
+				// check that relations were created
+				for _, r := range relations {
+					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
+						UserType:   r.UserType,
+						UserId:     r.UserId,
+						ObjectType: r.ObjectType,
+						ObjectId:   r.ObjectId,
+						Relation:   r.Relation,
+					})
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(ok).To(BeTrue(), "permission should be granted")
+				}
+
 				var event event.Event = deleteEvent
 				// Simulate event
 				sg.OnSupportGroupDeleteAuthz(db, event, handlerContext.Authz)
 
-				remaining, err := handlerContext.Authz.ListRelations(relations)
+				// get the number of relations after deletion
+				relationsAfter, err := handlerContext.Authz.ListRelations(relations)
 				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(remaining).To(BeEmpty(), "no relations should remain after deletion")
+				Expect(len(relationsAfter) < len(relationsBefore)).To(BeTrue(), "less relations after deletion")
+				Expect(relationsAfter).To(BeEmpty(), "no relations should exist after deletion")
+
+				// verify that relations were deleted
+				for _, r := range relations {
+					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
+						UserType:   r.UserType,
+						UserId:     r.UserId,
+						ObjectType: r.ObjectType,
+						ObjectId:   r.ObjectId,
+						Relation:   r.Relation,
+					})
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(ok).To(BeFalse(), "permission should NOT be granted")
+				}
 			})
 		})
 	})
