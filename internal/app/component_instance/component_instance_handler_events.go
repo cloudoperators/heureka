@@ -225,45 +225,80 @@ func OnComponentInstanceUpdateAuthz(db database.Database, e event.Event, authz o
 	})
 
 	if updateEvent, ok := e.(*UpdateComponentInstanceEvent); ok {
-		removeServiceInput := openfga.RelationInput{
-			Relation:   openfga.RelRelatedService,
-			ObjectType: openfga.TypeComponentInstance,
-			ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.Id),
-			UserType:   openfga.TypeService,
-			// UserId left empty to match any service
-		}
-		newServiceRelation := openfga.RelationInput{
-			UserType:   openfga.TypeService,
-			UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.ServiceId),
-			Relation:   openfga.RelRelatedService,
-			ObjectType: openfga.TypeComponentInstance,
-			ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.Id),
-		}
-		err := authz.UpdateRelation(removeServiceInput, newServiceRelation)
+		// check if the service relation needs to be updated by looking up existing relations
+		existingServiceRelations, err := authz.ListRelations([]openfga.RelationInput{
+			{
+				UserType:   openfga.TypeService,
+				UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.ServiceId),
+				Relation:   openfga.RelRelatedService,
+				ObjectType: openfga.TypeComponentInstance,
+				ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.Id),
+			},
+		})
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
 			l.Error(wrappedErr)
+			return
+		}
+		// If no existing relation found, then the service relation needs to be updated
+		if len(existingServiceRelations) == 0 {
+			removeServiceInput := openfga.RelationInput{
+				Relation:   openfga.RelRelatedService,
+				ObjectType: openfga.TypeComponentInstance,
+				ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.Id),
+				UserType:   openfga.TypeService,
+				// UserId left empty to match any service
+			}
+			newServiceRelation := openfga.RelationInput{
+				UserType:   openfga.TypeService,
+				UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.ServiceId),
+				Relation:   openfga.RelRelatedService,
+				ObjectType: openfga.TypeComponentInstance,
+				ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.Id),
+			}
+			err := authz.UpdateRelation(removeServiceInput, newServiceRelation)
+			if err != nil {
+				wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
+				l.Error(wrappedErr)
+			}
 		}
 
-		// Update component_version relation
-		removeComponentVersionInput := openfga.RelationInput{
-			UserType:   openfga.TypeComponentInstance,
-			UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.Id),
-			Relation:   openfga.RelComponentInstance,
-			ObjectType: openfga.TypeComponentVersion,
-			// ObjectId left empty to match any component_version
-		}
-		newComponentVersionRelation := openfga.RelationInput{
-			UserType:   openfga.TypeComponentInstance,
-			UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.Id),
-			Relation:   openfga.RelComponentInstance,
-			ObjectType: openfga.TypeComponentVersion,
-			ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.ComponentVersionId),
-		}
-		err = authz.UpdateRelation(removeComponentVersionInput, newComponentVersionRelation)
+		// check if the component_version relation needs to be updated by looking up existing relations
+		existingComponentVersionRelations, err := authz.ListRelations([]openfga.RelationInput{
+			{
+				Relation:   openfga.RelComponentInstance,
+				ObjectType: openfga.TypeComponentVersion,
+				ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.ComponentVersionId),
+				UserType:   openfga.TypeComponentInstance,
+				UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.Id),
+			},
+		})
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
 			l.Error(wrappedErr)
+			return
+		}
+		// If no existing relation found, then the component_version relation needs to be updated
+		if len(existingComponentVersionRelations) == 0 {
+			removeComponentVersionInput := openfga.RelationInput{
+				UserType:   openfga.TypeComponentInstance,
+				UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.Id),
+				Relation:   openfga.RelComponentInstance,
+				ObjectType: openfga.TypeComponentVersion,
+				// ObjectId left empty to match any component_version
+			}
+			newComponentVersionRelation := openfga.RelationInput{
+				UserType:   openfga.TypeComponentInstance,
+				UserId:     openfga.UserIdFromInt(updateEvent.ComponentInstance.Id),
+				Relation:   openfga.RelComponentInstance,
+				ObjectType: openfga.TypeComponentVersion,
+				ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentInstance.ComponentVersionId),
+			}
+			err = authz.UpdateRelation(removeComponentVersionInput, newComponentVersionRelation)
+			if err != nil {
+				wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
+				l.Error(wrappedErr)
+			}
 		}
 	} else {
 		err := NewComponentInstanceHandlerError("OnComponentInstanceUpdateAuthz: triggered with wrong event type")
