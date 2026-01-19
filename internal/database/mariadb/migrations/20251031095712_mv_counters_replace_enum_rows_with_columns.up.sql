@@ -53,7 +53,7 @@ BEGIN
         medium_count   = VALUES(medium_count),
         low_count      = VALUES(low_count),
         none_count     = VALUES(none_count),
-        is_active      = VALUES(is_active);
+        is_active      = 1;
 
     DELETE FROM mvCountIssueRatingsUniqueService
     WHERE is_active = 0;
@@ -124,7 +124,7 @@ BEGIN
         medium_count   = VALUES(medium_count),
         low_count      = VALUES(low_count),
         none_count     = VALUES(none_count),
-        is_active      = VALUES(is_active);
+        is_active      = 1;
 
     DELETE FROM mvCountIssueRatingsService
     WHERE is_active = 0;
@@ -191,7 +191,7 @@ BEGIN
         medium_count   = VALUES(medium_count),
         low_count      = VALUES(low_count),
         none_count     = VALUES(none_count),
-        is_active      = VALUES(is_active);
+        is_active      = 1;
 
     DELETE FROM mvCountIssueRatingsServiceWithoutSupportGroup
     WHERE is_active = 0;
@@ -272,7 +272,7 @@ BEGIN
         medium_count   = VALUES(medium_count),
         low_count      = VALUES(low_count),
         none_count     = VALUES(none_count),
-        is_active      = VALUES(is_active);
+        is_active      = 1;
 
     DELETE FROM mvCountIssueRatingsSupportGroup
     WHERE is_active = 0;
@@ -345,7 +345,7 @@ BEGIN
         medium_count   = VALUES(medium_count),
         low_count      = VALUES(low_count),
         none_count     = VALUES(none_count),
-        is_active      = VALUES(is_active);
+        is_active      = 1;
 
     DELETE FROM mvCountIssueRatingsComponentVersion
     WHERE is_active = 0;
@@ -417,7 +417,7 @@ BEGIN
         medium_count   = VALUES(medium_count),
         low_count      = VALUES(low_count),
         none_count     = VALUES(none_count),
-        is_active      = VALUES(is_active);
+        is_active      = 1;
 
     DELETE FROM mvCountIssueRatingsServiceId
     WHERE is_active = 0;
@@ -478,7 +478,7 @@ BEGIN
         medium_count   = VALUES(medium_count),
         low_count      = VALUES(low_count),
         none_count     = VALUES(none_count),
-        is_active      = VALUES(is_active);
+        is_active      = 1;
 
     DELETE FROM mvCountIssueRatingsOther
     WHERE is_active = 0;
