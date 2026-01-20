@@ -12,6 +12,7 @@ query ($filter: RemediationFilter, $first: Int, $after: String) {
             node { 
                 id
                 description
+                severity
                 service
                 image
                 vulnerability

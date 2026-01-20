@@ -15,6 +15,7 @@ import (
 func buildRemediationFilterParameters(filter *entity.RemediationFilter, withCursor bool, cursorFields []Field) []interface{} {
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
+	filterParameters = buildQueryParameters(filterParameters, filter.Severity)
 	filterParameters = buildQueryParameters(filterParameters, filter.Type)
 	filterParameters = buildQueryParameters(filterParameters, filter.Service)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
@@ -56,6 +57,9 @@ func getRemediationUpdateFields(remediation *entity.Remediation) string {
 	if remediation.Type != "" && remediation.Type != entity.RemediationTypeUnknown {
 		fl = append(fl, "remediation_type = :remediation_type")
 	}
+	if remediation.Severity != "" && remediation.Severity != entity.SeverityValuesUnknown {
+		fl = append(fl, "remediation_severity = :remediation_severity")
+	}
 	if !remediation.RemediationDate.IsZero() {
 		fl = append(fl, "remediation_remediation_date = :remediation_remediation_date")
 	}
@@ -89,6 +93,7 @@ func getRemediationUpdateFields(remediation *entity.Remediation) string {
 func getRemediationFilterString(filter *entity.RemediationFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "R.remediation_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Severity, "R.remediation_severity = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Type, "R.remediation_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Service, "R.remediation_service = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "R.remediation_service_id = ?", OP_OR))
@@ -272,6 +277,7 @@ func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entit
 		INSERT INTO Remediation (
 			remediation_description,
 			remediation_type,
+			remediation_severity,
 			remediation_remediation_date,
 			remediation_expiration_date,
 			remediation_service,
@@ -287,6 +293,7 @@ func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entit
 		) VALUES (
 			:remediation_description,
 			:remediation_type,
+			:remediation_severity,
 			:remediation_remediation_date,
 			:remediation_expiration_date,
 			:remediation_service,

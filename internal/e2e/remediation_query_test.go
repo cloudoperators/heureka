@@ -92,6 +92,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 				for _, remediation := range respData.Remediations.Edges {
 					Expect(remediation.Node.ID).ToNot(BeNil(), "remediation has ID set")
 					Expect(remediation.Node.Description).ToNot(BeNil(), "remediation has description set")
+					Expect(remediation.Node.Severity).ToNot(BeNil(), "remediation has severity set")
 					Expect(remediation.Node.RemediatedBy).ToNot(BeNil(), "remediation has remediatedBy set")
 					Expect(remediation.Node.RemediationDate).ToNot(BeNil(), "remediation has remediationDate set")
 					Expect(remediation.Node.Service).ToNot(BeNil(), "remediation has service set")
@@ -153,7 +154,8 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					map[string]interface{}{
 						"input": map[string]string{
 							"description":     remediation.Description,
-							"type":            string(remediation.Type),
+							"type":            remediation.Type.String(),
+							"severity":        remediation.Severity.String(),
 							"service":         remediation.Service,
 							"image":           remediation.Component,
 							"vulnerability":   remediation.Issue,
@@ -162,6 +164,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"remediatedBy":    remediation.RemediatedBy,
 						}})
 				Expect(*respData.Remediation.Description).To(Equal(remediation.Description))
+				Expect(respData.Remediation.Severity.String()).To(Equal(remediation.Severity.String()))
 				Expect(*respData.Remediation.Service).To(Equal(remediation.Service))
 				Expect(*respData.Remediation.Vulnerability).To(Equal(remediation.Issue))
 				Expect(*respData.Remediation.Image).To(Equal(remediation.Component))
@@ -221,6 +224,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						}})
 
 				Expect(*respData.Remediation.Description).To(Equal(description))
+				Expect(respData.Remediation.Severity.String()).To(Equal(remediation.Severity.String()))
 				Expect(*respData.Remediation.Service).To(Equal(remediation.Service))
 				Expect(*respData.Remediation.Vulnerability).To(Equal(remediation.Issue))
 				Expect(*respData.Remediation.Image).To(Equal(remediation.Component))
