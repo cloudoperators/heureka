@@ -10,9 +10,11 @@ import (
 
 func NewFakeRemediationEntity() entity.Remediation {
 	t := gofakeit.RandomString(entity.AllRemediationTypes)
+	s := gofakeit.RandomString(entity.AllSeverityValuesString)
 	return entity.Remediation{
 		Id:              int64(gofakeit.Number(1, 10000000)),
 		Description:     gofakeit.Sentence(10),
+		Severity:        entity.NewSeverityValues(s),
 		RemediationDate: gofakeit.Date(),
 		ExpirationDate:  gofakeit.Date(),
 		Type:            entity.NewRemediationType(t),

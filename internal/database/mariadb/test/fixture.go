@@ -988,9 +988,11 @@ func (s *DatabaseSeeder) SeedRemediations(num int, services []mariadb.BaseServic
 		service := services[rand.Intn(len(services))]
 		issue := issues[rand.Intn(len(issues))]
 		component := components[rand.Intn(len(components))]
+		severity := gofakeit.RandomString(entity.AllSeverityValuesString)
 		// does not check if relation exists
 		r := mariadb.RemediationRow{
 			Description:     sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+			Severity:        sql.NullString{String: severity, Valid: true},
 			RemediationDate: sql.NullTime{Time: time.Now().AddDate(0, 0, rand.Intn(30)), Valid: true},
 			ExpirationDate:  sql.NullTime{Time: time.Now().AddDate(0, 1, rand.Intn(30)), Valid: true},
 			Type:            sql.NullString{String: entity.AllRemediationTypes[rand.Intn(len(entity.AllRemediationTypes))], Valid: true},
@@ -1424,6 +1426,7 @@ func (s *DatabaseSeeder) InsertFakeRemediation(r mariadb.RemediationRow) (int64,
 		INSERT INTO Remediation (
 			remediation_description,
 			remediation_type,
+			remediation_severity,
 			remediation_remediation_date,
 			remediation_expiration_date,
 			remediation_service,
@@ -1439,6 +1442,7 @@ func (s *DatabaseSeeder) InsertFakeRemediation(r mariadb.RemediationRow) (int64,
 		) VALUES (
 			:remediation_description,
 			:remediation_type,
+			:remediation_severity,
 			:remediation_remediation_date,
 			:remediation_expiration_date,
 			:remediation_service,
@@ -1753,8 +1757,10 @@ func NewFakeIssueMatchChange() mariadb.IssueMatchChangeRow {
 }
 
 func NewFakeRemediation() mariadb.RemediationRow {
+	severity := gofakeit.RandomString(entity.AllSeverityValuesString)
 	return mariadb.RemediationRow{
 		Description:     sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+		Severity:        sql.NullString{String: severity, Valid: true},
 		RemediationDate: sql.NullTime{Time: gofakeit.Date(), Valid: true},
 		ExpirationDate:  sql.NullTime{Time: gofakeit.Date(), Valid: true},
 		Type:            sql.NullString{String: "false_positive", Valid: true},

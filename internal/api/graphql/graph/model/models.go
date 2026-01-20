@@ -818,8 +818,10 @@ func NewRemediationEntity(r *RemediationInput) entity.Remediation {
 	remediationDate, _ := time.Parse(time.RFC3339, lo.FromPtr(r.RemediationDate))
 	expirationDate, _ := time.Parse(time.RFC3339, lo.FromPtr(r.ExpirationDate))
 	rType := entity.NewRemediationType(lo.FromPtr(r.Type).String())
+	rSeverity := entity.NewSeverityValues(lo.FromPtr(r.Severity).String())
 	return entity.Remediation{
 		Description:     lo.FromPtr(r.Description),
+		Severity:        rSeverity,
 		Service:         lo.FromPtr(r.Service),
 		Component:       lo.FromPtr(r.Image),
 		Issue:           lo.FromPtr(r.Vulnerability),
@@ -834,9 +836,11 @@ func NewRemediation(r *entity.Remediation) Remediation {
 	remediationDate := r.RemediationDate.Format(time.RFC3339)
 	expirationDate := r.ExpirationDate.Format(time.RFC3339)
 	remediationType := RemediationTypeValues(r.Type)
+	remediationSeverity := SeverityValues(r.Severity.String())
 	return Remediation{
 		ID:              fmt.Sprintf("%d", r.Id),
 		Description:     &r.Description,
+		Severity:        &remediationSeverity,
 		Type:            &remediationType,
 		Service:         &r.Service,
 		ServiceID:       lo.ToPtr(fmt.Sprintf("%d", r.ServiceId)),

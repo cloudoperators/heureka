@@ -5,6 +5,7 @@ type Remediation implements Node {
     id: ID!
     type: RemediationTypeValues
     description: String
+    severity: SeverityValues
     expirationDate: DateTime
     remediationDate: DateTime
     remediatedBy: String
@@ -34,6 +35,7 @@ type RemediationEdge implements Edge {
 
 input RemediationFilter {
     type: [RemediationTypeValues]
+    severity: [SeverityValues]
     service: [String]
     image: [String]
     vulnerability: [String]
@@ -43,6 +45,7 @@ input RemediationFilter {
 input RemediationInput {
     type: RemediationTypeValues
     description: String
+    severity: SeverityValues
     remediationDate: DateTime
     remediatedBy: String
     service: String

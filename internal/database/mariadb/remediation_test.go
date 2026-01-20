@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v7"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -109,6 +110,22 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 					By("returned entry includes the id", func() {
 						Expect(entries[0].Id).To(BeEquivalentTo(row.Id.Int64))
+					})
+				})
+				It("can filter by a single serverity", func() {
+					severity := gofakeit.RandomString(entity.AllSeverityValuesString)
+					filter := &entity.RemediationFilter{Severity: []*string{&severity}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returned entry includes the severity", func() {
+						for _, entry := range entries {
+							Expect(entry.Severity).To(BeEquivalentTo(severity))
+						}
 					})
 				})
 				It("can filter by a single service", func() {
@@ -331,6 +348,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					Type:            sql.NullString{String: entity.RemediationTypeFalsePositive.String(), Valid: true},
 					ExpirationDate:  sql.NullTime{Time: time.Now(), Valid: true},
 					RemediationDate: sql.NullTime{Time: time.Now(), Valid: true},
+					Severity:        sql.NullString{String: "Medium", Valid: true},
 					Description:     sql.NullString{String: "New Remediation", Valid: true},
 					Service:         sql.NullString{String: "Service", Valid: true},
 					ServiceId:       sql.NullInt64{Int64: 1, Valid: true},

@@ -35,6 +35,7 @@ type Remediation struct {
 	Description     string          `json:"description"`
 	RemediationDate time.Time       `json:"remediation_date"`
 	ExpirationDate  time.Time       `json:"expiration_date"`
+	Severity        SeverityValues  `json:"severity"`
 	Service         string          `json:"service"`
 	ServiceId       int64           `json:"service_id"`
 	Component       string          `json:"component"`
@@ -48,6 +49,7 @@ type Remediation struct {
 type RemediationFilter struct {
 	PaginatedX
 	Id          []*int64          `json:"id"`
+	Severity    []*string         `json:"severity"`
 	Service     []*string         `json:"service"`
 	ServiceId   []*int64          `json:"service_id"`
 	Component   []*string         `json:"component"`
