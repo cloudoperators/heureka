@@ -259,8 +259,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 		seedCollection, err = seeder.SeedForIssueCounts()
 		Expect(err).To(BeNil())
-		err = seeder.RefreshCountIssueRatings()
-		Expect(err).To(BeNil())
+		Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 	})
 	AfterEach(func() {
 		dbm.TestTearDown(db)
@@ -274,7 +273,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		BeforeEach(func() {
 			expirationDate := time.Now().Add(-10 * 24 * time.Hour)
 			insertRemediation(&seedCollection.ServiceRows[0], nil, expirationDate)
-			seeder.RefreshCountIssueRatings()
+			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 		})
 		testNoActiveRemediation()
 	})
@@ -284,7 +283,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			createdRemediation := insertRemediation(&seedCollection.ServiceRows[0], nil, expirationDate)
 			err := db.DeleteRemediation(createdRemediation.Id, util.SystemUserId)
 			Expect(err).To(BeNil())
-			err = seeder.RefreshCountIssueRatings()
+			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 			Expect(err).To(BeNil())
 		})
 		testNoActiveRemediation()
@@ -296,7 +295,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		BeforeEach(func() {
 			expirationDate := time.Now().Add(10 * 24 * time.Hour)
 			remediation = insertRemediation(&seedCollection.ServiceRows[0], nil, expirationDate)
-			seeder.RefreshCountIssueRatings()
+			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 			// remediation for previously critical issue
 			serviceCounts = entity.IssueSeverityCounts{
 				Critical: 0,
@@ -327,7 +326,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			componentInstance := ci.AsComponentInstance()
 			newCi, err := db.CreateComponentInstance(&componentInstance)
 			Expect(err).To(BeNil())
-			seeder.RefreshCountIssueRatings()
+			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 
 			counts, err := db.CountIssueRatings(&entity.IssueFilter{
 				ComponentVersionId: []*int64{&cv.Id.Int64},
@@ -358,7 +357,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			Expect(countsEmpty.Total).To(BeEquivalentTo(severityCounts[cvId].Total))
 		})
 		It("returns the correct count for services", func() {
-			seeder.RefreshCountIssueRatings()
+			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
 			Expect(err).To(BeNil())
 			severityCounts[serviceId] = serviceCounts
@@ -417,7 +416,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		BeforeEach(func() {
 			expirationDate := time.Now().Add(10 * 24 * time.Hour)
 			r := insertRemediation(&seedCollection.ServiceRows[0], &seedCollection.ComponentRows[0], expirationDate)
-			seeder.RefreshCountIssueRatings()
+			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 			// remediation for previously critical issue
 			serviceCounts = entity.IssueSeverityCounts{
 				Critical: 0,
@@ -437,7 +436,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			testComponentVersions(severityCounts)
 		})
 		It("returns the correct count for services", func() {
-			seeder.RefreshCountIssueRatings()
+			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
 			Expect(err).To(BeNil())
 			severityCounts[serviceId] = serviceCounts
@@ -500,7 +499,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			im.UserId = sql.NullInt64{Int64: util.SystemUserId, Valid: true}
 			_, err := seeder.InsertFakeIssueMatch(im)
 			Expect(err).To(BeNil())
-			seeder.RefreshCountIssueRatings()
+			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 		})
 		It("returns the total count for all services with support group filter", func() {
 			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))

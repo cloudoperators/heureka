@@ -22,34 +22,43 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
     critical_count + high_count + medium_count + low_count + none_count
 ) STORED;
 
+ALTER TABLE mvCountIssueRatingsUniqueService
+  ADD COLUMN id INT NOT NULL PRIMARY KEY,
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1,
+  ADD INDEX idx_mvCountIssueRatingsUniqueService_active (is_active);
+
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsUniqueService_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsUniqueService_proc()
 BEGIN
-    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsUniqueService_tmp LIKE mvCountIssueRatingsUniqueService;
-    DELETE FROM mvCountIssueRatingsUniqueService_tmp;
+    UPDATE mvCountIssueRatingsUniqueService
+    SET is_active = 0
+    WHERE is_active = 1;
 
-    INSERT INTO mvCountIssueRatingsUniqueService_tmp (
-        critical_count,
-        high_count,
-        medium_count,
-        low_count,
-        none_count
-    )
+    INSERT INTO mvCountIssueRatingsUniqueService
+        (id, critical_count, high_count, medium_count, low_count, none_count, is_active)
     SELECT
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END) AS critical_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High' THEN IV.issuevariant_issue_id END) AS high_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium' THEN IV.issuevariant_issue_id END) AS medium_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low' THEN IV.issuevariant_issue_id END) AS low_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) AS none_count
+        1,
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High'     THEN IV.issuevariant_issue_id END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium'   THEN IV.issuevariant_issue_id END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low'      THEN IV.issuevariant_issue_id END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None'     THEN IV.issuevariant_issue_id END),
+        1
     FROM Issue I
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
-    WHERE I.issue_deleted_at IS NULL;
+    WHERE I.issue_deleted_at IS NULL
+    ON DUPLICATE KEY UPDATE
+        critical_count = VALUES(critical_count),
+        high_count     = VALUES(high_count),
+        medium_count   = VALUES(medium_count),
+        low_count      = VALUES(low_count),
+        none_count     = VALUES(none_count),
+        is_active      = 1;
 
-    RENAME TABLE
-        mvCountIssueRatingsUniqueService TO mvCountIssueRatingsUniqueService_old,
-        mvCountIssueRatingsUniqueService_tmp TO mvCountIssueRatingsUniqueService;
-    DROP TABLE mvCountIssueRatingsUniqueService_old;
+    DELETE FROM mvCountIssueRatingsUniqueService
+    WHERE is_active = 0;
 END;
+
 
 --
 
@@ -74,27 +83,28 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
     critical_count + high_count + medium_count + low_count + none_count
 ) STORED;
 
+ALTER TABLE mvCountIssueRatingsService
+  ADD PRIMARY KEY (supportgroup_ccrn),
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1,
+  ADD INDEX idx_mvCountIssueRatingsService_active (is_active);
+
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsService_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsService_proc()
 BEGIN
-    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsService_tmp LIKE mvCountIssueRatingsService;
-    DELETE FROM mvCountIssueRatingsService_tmp;
+    UPDATE mvCountIssueRatingsService
+    SET is_active = 0
+    WHERE is_active = 1;
 
-    INSERT INTO mvCountIssueRatingsService_tmp (
-        supportgroup_ccrn,
-        critical_count,
-        high_count,
-        medium_count,
-        low_count,
-        none_count
-    )
+    INSERT INTO mvCountIssueRatingsService
+        (supportgroup_ccrn, critical_count, high_count, medium_count, low_count, none_count, is_active)
     SELECT
-        COALESCE(SG.supportgroup_ccrn, 'UNKNOWN') AS supportgroup_ccrn,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS critical_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS high_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS medium_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS low_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS none_count
+        COALESCE(SG.supportgroup_ccrn, 'UNKNOWN'),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High'     THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium'   THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low'      THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None'     THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        1
     FROM Issue I
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
     RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
@@ -102,16 +112,24 @@ BEGIN
     LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
     LEFT JOIN SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id
     LEFT JOIN SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id
-    LEFT JOIN Remediation R ON S.service_id = R.remediation_service_id AND I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL
+    LEFT JOIN Remediation R ON S.service_id = R.remediation_service_id
+        AND I.issue_id = R.remediation_issue_id
+        AND R.remediation_deleted_at IS NULL
     WHERE I.issue_deleted_at IS NULL
-    AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
-    GROUP BY SG.supportgroup_ccrn;
+      AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
+    GROUP BY SG.supportgroup_ccrn
+    ON DUPLICATE KEY UPDATE
+        critical_count = VALUES(critical_count),
+        high_count     = VALUES(high_count),
+        medium_count   = VALUES(medium_count),
+        low_count      = VALUES(low_count),
+        none_count     = VALUES(none_count),
+        is_active      = 1;
 
-    RENAME TABLE
-        mvCountIssueRatingsService TO mvCountIssueRatingsService_old,
-        mvCountIssueRatingsService_tmp TO mvCountIssueRatingsService;
-    DROP TABLE mvCountIssueRatingsService_old;
+    DELETE FROM mvCountIssueRatingsService
+    WHERE is_active = 0;
 END;
+
 
 --
 
@@ -135,40 +153,50 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
     critical_count + high_count + medium_count + low_count + none_count
 ) STORED;
 
+ALTER TABLE mvCountIssueRatingsServiceWithoutSupportGroup
+  ADD COLUMN id INT NOT NULL PRIMARY KEY,
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1,
+  ADD INDEX idx_mvCountIssueRatingsServiceWithoutSupportGroup_active (is_active);
+
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsServiceWithoutSupportGroup_proc()
 BEGIN
-    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsServiceWithoutSupportGroup_tmp LIKE mvCountIssueRatingsServiceWithoutSupportGroup;
-    DELETE FROM mvCountIssueRatingsServiceWithoutSupportGroup_tmp;
+    UPDATE mvCountIssueRatingsServiceWithoutSupportGroup
+    SET is_active = 0
+    WHERE is_active = 1;
 
-    INSERT INTO mvCountIssueRatingsServiceWithoutSupportGroup_tmp (
-        critical_count,
-        high_count,
-        medium_count,
-        low_count,
-        none_count
-    )
+    INSERT INTO mvCountIssueRatingsServiceWithoutSupportGroup
+        (id, critical_count, high_count, medium_count, low_count, none_count, is_active)
     SELECT
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS critical_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS high_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS medium_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS low_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END) AS none_count
+        1,
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High'     THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium'   THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low'      THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None'     THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id) END),
+        1
     FROM Issue I
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
     RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
     LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
-    LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
     LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
-    LEFT JOIN Remediation R ON S.service_id = R.remediation_service_id AND I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL
+    LEFT JOIN Remediation R ON S.service_id = R.remediation_service_id
+        AND I.issue_id = R.remediation_issue_id
+        AND R.remediation_deleted_at IS NULL
     WHERE I.issue_deleted_at IS NULL
-    AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE());
+      AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
+    ON DUPLICATE KEY UPDATE
+        critical_count = VALUES(critical_count),
+        high_count     = VALUES(high_count),
+        medium_count   = VALUES(medium_count),
+        low_count      = VALUES(low_count),
+        none_count     = VALUES(none_count),
+        is_active      = 1;
 
-    RENAME TABLE
-        mvCountIssueRatingsServiceWithoutSupportGroup TO mvCountIssueRatingsServiceWithoutSupportGroup_old,
-        mvCountIssueRatingsServiceWithoutSupportGroup_tmp TO mvCountIssueRatingsServiceWithoutSupportGroup;
-    DROP TABLE mvCountIssueRatingsServiceWithoutSupportGroup_old;
+    DELETE FROM mvCountIssueRatingsServiceWithoutSupportGroup
+    WHERE is_active = 0;
 END;
+
 
 --
 
@@ -193,55 +221,63 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
     critical_count + high_count + medium_count + low_count + none_count
 ) STORED;
 
+ALTER TABLE mvCountIssueRatingsSupportGroup
+  ADD PRIMARY KEY (supportgroup_ccrn),
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1,
+  ADD INDEX idx_mvCountIssueRatingsSupportGroup_active (is_active);
+
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsSupportGroup_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsSupportGroup_proc()
 BEGIN
-    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsSupportGroup_tmp LIKE mvCountIssueRatingsSupportGroup;
-    DELETE FROM mvCountIssueRatingsSupportGroup_tmp;
+    UPDATE mvCountIssueRatingsSupportGroup
+    SET is_active = 0
+    WHERE is_active = 1;
 
-    INSERT INTO mvCountIssueRatingsSupportGroup_tmp (
-        supportgroup_ccrn,
-        critical_count,
-        high_count,
-        medium_count,
-        low_count,
-        none_count
-    )
+    INSERT INTO mvCountIssueRatingsSupportGroup
+        (supportgroup_ccrn, critical_count, high_count, medium_count, low_count, none_count, is_active)
     SELECT
-        COALESCE(SG.supportgroup_ccrn, 'UNKNOWN') AS supportgroup_ccrn,
+        COALESCE(SG.supportgroup_ccrn, 'UNKNOWN'),
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical'
             THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id)
-        END) AS critical_count,
+        END),
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High'
             THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id)
-        END) AS high_count,
+        END),
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium'
             THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id)
-        END) AS medium_count,
+        END),
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low'
             THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id)
-        END) AS low_count,
+        END),
         COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None'
             THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id)
-        END) AS none_count
+        END),
+        1
     FROM Issue I
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
     LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
     LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
     LEFT JOIN SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id
     LEFT JOIN SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id
-    LEFT JOIN Remediation R ON SGS.supportgroupservice_service_id  = R.remediation_service_id AND I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL
+    LEFT JOIN Remediation R ON SGS.supportgroupservice_service_id = R.remediation_service_id
+        AND I.issue_id = R.remediation_issue_id
+        AND R.remediation_deleted_at IS NULL
     WHERE I.issue_deleted_at IS NULL
-    AND CI.componentinstance_deleted_at IS NULL
-    -- Count only non-remediated or with expired remediation
-    AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
-    GROUP BY SG.supportgroup_ccrn;
+      AND CI.componentinstance_deleted_at IS NULL
+      AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
+    GROUP BY SG.supportgroup_ccrn
+    ON DUPLICATE KEY UPDATE
+        critical_count = VALUES(critical_count),
+        high_count     = VALUES(high_count),
+        medium_count   = VALUES(medium_count),
+        low_count      = VALUES(low_count),
+        none_count     = VALUES(none_count),
+        is_active      = 1;
 
-    RENAME TABLE
-        mvCountIssueRatingsSupportGroup TO mvCountIssueRatingsSupportGroup_old,
-        mvCountIssueRatingsSupportGroup_tmp TO mvCountIssueRatingsSupportGroup;
-    DROP TABLE mvCountIssueRatingsSupportGroup_old;
+    DELETE FROM mvCountIssueRatingsSupportGroup
+    WHERE is_active = 0;
 END;
+
 
 --
 
@@ -268,45 +304,51 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
     critical_count + high_count + medium_count + low_count + none_count
 ) STORED;
 
+ALTER TABLE mvCountIssueRatingsComponentVersion
+  ADD PRIMARY KEY (component_version_id),
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1,
+  ADD INDEX idx_mvCountIssueRatingsComponentVersion_active (is_active);
+
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsComponentVersion_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsComponentVersion_proc()
 BEGIN
-    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsComponentVersion_tmp LIKE mvCountIssueRatingsComponentVersion;
-    DELETE FROM mvCountIssueRatingsComponentVersion_tmp;
+    UPDATE mvCountIssueRatingsComponentVersion
+    SET is_active = 0
+    WHERE is_active = 1;
 
-    INSERT INTO mvCountIssueRatingsComponentVersion_tmp (
-        component_version_id,
-        service_id,
-        service_ccrn,
-        critical_count,
-        high_count,
-        medium_count,
-        low_count,
-        none_count
-    )
+    INSERT INTO mvCountIssueRatingsComponentVersion
+        (component_version_id, service_id, service_ccrn, critical_count, high_count, medium_count, low_count, none_count, is_active)
     SELECT
-        CVI.componentversionissue_component_version_id AS component_version_id,
-        CI.componentinstance_service_id AS service_id,
-        S.service_ccrn AS service_ccrn,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END) AS critical_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High' THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END) AS high_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium' THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END) AS medium_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low' THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END) AS low_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None' THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END) AS none_count
+        CVI.componentversionissue_component_version_id,
+        CI.componentinstance_service_id,
+        S.service_ccrn,
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High'     THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium'   THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low'      THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None'     THEN CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id) END),
+        1
     FROM ComponentVersionIssue CVI
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = CVI.componentversionissue_issue_id
     INNER JOIN ComponentInstance CI ON CVI.componentversionissue_component_version_id = CI.componentinstance_component_version_id
     INNER JOIN Service S ON CI.componentinstance_service_id = S.service_id
-    LEFT JOIN Remediation R ON CI.componentinstance_service_id = R.remediation_service_id AND CVI.componentversionissue_issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL
-    WHERE
-    -- Count only non-remediated or with expired remediation
-    (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
-    GROUP BY CVI.componentversionissue_component_version_id;
+    LEFT JOIN Remediation R ON CI.componentinstance_service_id = R.remediation_service_id
+        AND CVI.componentversionissue_issue_id = R.remediation_issue_id
+        AND R.remediation_deleted_at IS NULL
+    WHERE (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
+    GROUP BY CVI.componentversionissue_component_version_id
+    ON DUPLICATE KEY UPDATE
+        service_id     = VALUES(service_id),
+        service_ccrn   = VALUES(service_ccrn),
+        critical_count = VALUES(critical_count),
+        high_count     = VALUES(high_count),
+        medium_count   = VALUES(medium_count),
+        low_count      = VALUES(low_count),
+        none_count     = VALUES(none_count),
+        is_active      = 1;
 
-    RENAME TABLE
-        mvCountIssueRatingsComponentVersion TO mvCountIssueRatingsComponentVersion_old,
-        mvCountIssueRatingsComponentVersion_tmp TO mvCountIssueRatingsComponentVersion;
-    DROP TABLE mvCountIssueRatingsComponentVersion_old;
+    DELETE FROM mvCountIssueRatingsComponentVersion
+    WHERE is_active = 0;
 END;
 
 --
@@ -333,45 +375,54 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
 ) STORED,
 ADD COLUMN service_ccrn VARCHAR(255) DEFAULT NULL;
 
+ALTER TABLE mvCountIssueRatingsServiceId
+  ADD PRIMARY KEY (service_id),
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1,
+  ADD INDEX idx_mvCountIssueRatingsServiceId_active (is_active);
+
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsServiceId_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsServiceId_proc()
 BEGIN
-    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsServiceId_tmp LIKE mvCountIssueRatingsServiceId;
-    DELETE FROM mvCountIssueRatingsServiceId_tmp;
+    UPDATE mvCountIssueRatingsServiceId
+    SET is_active = 0
+    WHERE is_active = 1;
 
-    INSERT INTO mvCountIssueRatingsServiceId_tmp (
-        service_id,
-        service_ccrn,
-        critical_count,
-        high_count,
-        medium_count,
-        low_count,
-        none_count
-    )
+    INSERT INTO mvCountIssueRatingsServiceId
+        (service_id, service_ccrn, critical_count, high_count, medium_count, low_count, none_count, is_active)
     SELECT
-        CI.componentinstance_service_id AS service_id,
-        S.service_ccrn AS service_ccrn,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END) AS critical_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END) AS high_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END) AS medium_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END) AS low_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END) AS none_count
+        CI.componentinstance_service_id,
+        S.service_ccrn,
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High'     THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium'   THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low'      THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None'     THEN CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id) END),
+        1
     FROM Issue I
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
     LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
-    LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id AND CI.componentinstance_deleted_at IS NULL
+    LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
+        AND CI.componentinstance_deleted_at IS NULL
     LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
-    LEFT JOIN Remediation R ON CI.componentinstance_service_id = R.remediation_service_id AND I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL
+    LEFT JOIN Remediation R ON CI.componentinstance_service_id = R.remediation_service_id
+        AND I.issue_id = R.remediation_issue_id
+        AND R.remediation_deleted_at IS NULL
     WHERE I.issue_deleted_at IS NULL
-    -- Count only non-remediated or with expired remediation
-    AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
-    GROUP BY CI.componentinstance_service_id;
+      AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
+    GROUP BY CI.componentinstance_service_id
+    ON DUPLICATE KEY UPDATE
+        service_ccrn   = VALUES(service_ccrn),
+        critical_count = VALUES(critical_count),
+        high_count     = VALUES(high_count),
+        medium_count   = VALUES(medium_count),
+        low_count      = VALUES(low_count),
+        none_count     = VALUES(none_count),
+        is_active      = 1;
 
-    RENAME TABLE
-        mvCountIssueRatingsServiceId TO mvCountIssueRatingsServiceId_old,
-        mvCountIssueRatingsServiceId_tmp TO mvCountIssueRatingsServiceId;
-    DROP TABLE mvCountIssueRatingsServiceId_old;
+    DELETE FROM mvCountIssueRatingsServiceId
+    WHERE is_active = 0;
 END;
+
 
 --
 
@@ -396,31 +447,39 @@ ADD COLUMN issue_count INT GENERATED ALWAYS AS (
     critical_count + high_count + medium_count + low_count + none_count
 ) STORED;
 
+ALTER TABLE mvCountIssueRatingsOther
+  ADD COLUMN id INT NOT NULL PRIMARY KEY,
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1,
+  ADD INDEX idx_mvCountIssueRatingsOther_active (is_active);
+
 DROP PROCEDURE IF EXISTS refresh_mvCountIssueRatingsOther_proc;
 CREATE PROCEDURE refresh_mvCountIssueRatingsOther_proc()
 BEGIN
-    CREATE TABLE IF NOT EXISTS mvCountIssueRatingsOther_tmp LIKE mvCountIssueRatingsOther;
-    DELETE FROM mvCountIssueRatingsOther_tmp;
+    UPDATE mvCountIssueRatingsOther
+    SET is_active = 0
+    WHERE is_active = 1;
 
-    INSERT INTO mvCountIssueRatingsOther_tmp (
-        critical_count,
-        high_count,
-        medium_count,
-        low_count,
-        none_count
-    )
+    INSERT INTO mvCountIssueRatingsOther
+        (id, critical_count, high_count, medium_count, low_count, none_count, is_active)
     SELECT
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END) AS critical_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High' THEN IV.issuevariant_issue_id END) AS high_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium' THEN IV.issuevariant_issue_id END) AS medium_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low' THEN IV.issuevariant_issue_id END) AS low_count,
-        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None' THEN IV.issuevariant_issue_id END) AS none_count
+        1,
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Critical' THEN IV.issuevariant_issue_id END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'High'     THEN IV.issuevariant_issue_id END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Medium'   THEN IV.issuevariant_issue_id END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'Low'      THEN IV.issuevariant_issue_id END),
+        COUNT(DISTINCT CASE WHEN IV.issuevariant_rating = 'None'     THEN IV.issuevariant_issue_id END),
+        1
     FROM Issue I
     LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id
-    WHERE I.issue_deleted_at IS NULL;
+    WHERE I.issue_deleted_at IS NULL
+    ON DUPLICATE KEY UPDATE
+        critical_count = VALUES(critical_count),
+        high_count     = VALUES(high_count),
+        medium_count   = VALUES(medium_count),
+        low_count      = VALUES(low_count),
+        none_count     = VALUES(none_count),
+        is_active      = 1;
 
-    RENAME TABLE
-        mvCountIssueRatingsOther TO mvCountIssueRatingsOther_old,
-        mvCountIssueRatingsOther_tmp TO mvCountIssueRatingsOther;
-    DROP TABLE mvCountIssueRatingsOther_old;
+    DELETE FROM mvCountIssueRatingsOther
+    WHERE is_active = 0;
 END;
