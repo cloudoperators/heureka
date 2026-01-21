@@ -350,7 +350,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 				ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
 			}
 
-			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{initialRelation})
+			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{initialRelation})
 
 			// Prepare the update event with the new component_instance id
 			imFake.ComponentInstanceId = newComponentInstanceId
@@ -457,7 +457,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 					},
 				}
 
-				openfga.AddRelations(handlerContext.Authz, relations)
+				handlerContext.Authz.AddRelationBulk(relations)
 
 				// get the number of relations before deletion
 				relationsBefore, err := handlerContext.Authz.ListRelations(relations)

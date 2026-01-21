@@ -497,7 +497,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 					},
 				}
 
-				openfga.AddRelations(handlerContext.Authz, relations)
+				handlerContext.Authz.AddRelationBulk(relations)
 
 				// get the number of relations before deletion
 				relationsBefore, err := handlerContext.Authz.ListRelations(relations)
@@ -638,7 +638,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 				Relation:   openfga.RelOwner,
 			}
 
-			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{rel})
+			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{rel})
 
 			var event event.Event = removeEvent
 			s.OnRemoveOwnerFromService(db, event, handlerContext.Authz)

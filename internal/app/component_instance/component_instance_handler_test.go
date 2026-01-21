@@ -364,7 +364,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 				ObjectId:   openfga.ObjectIdFromInt(oldComponentVersionId),
 			}
 
-			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{
+			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{
 				initialServiceRelation,
 				initialComponentVersionRelation,
 			})
@@ -435,7 +435,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 				ObjectId:   openfga.ObjectIdFromInt(oldComponentVersionId),
 			}
 
-			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{
+			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{
 				initialServiceRelation,
 				initialComponentVersionRelation,
 			})
@@ -566,7 +566,7 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 						},
 					}
 
-					openfga.AddRelations(handlerContext.Authz, relations)
+					handlerContext.Authz.AddRelationBulk(relations)
 
 					// get the number of relations before deletion
 					relationsBefore, err := handlerContext.Authz.ListRelations(relations)

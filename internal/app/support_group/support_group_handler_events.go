@@ -137,7 +137,7 @@ func OnSupportGroupCreateAuthz(db database.Database, e event.Event, authz openfg
 			},
 		}
 
-		err := openfga.AddRelations(authz, relations)
+		err := authz.AddRelationBulk(relations)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 			l.Error(wrappedErr)
@@ -206,7 +206,7 @@ func OnAddServiceToSupportGroup(db database.Database, e event.Event, authz openf
 				Relation:   openfga.RelSupportGroup,
 			},
 		}
-		err := openfga.AddRelations(authz, relations)
+		err := authz.AddRelationBulk(relations)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 			l.Error(wrappedErr)
@@ -268,7 +268,7 @@ func OnAddUserToSupportGroup(db database.Database, e event.Event, authz openfga.
 				Relation:   openfga.RelMember,
 			},
 		}
-		err := openfga.AddRelations(authz, relations)
+		err := authz.AddRelationBulk(relations)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 			l.Error(wrappedErr)

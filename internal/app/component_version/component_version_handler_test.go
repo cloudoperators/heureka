@@ -345,7 +345,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 				ObjectId:   openfga.ObjectIdFromInt(oldComponentId),
 			}
 			// Bulk add instead of single add
-			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{initialRelation})
+			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{initialRelation})
 
 			// Prepare the update event with the new component id
 			cvFake.ComponentId = newComponentId
@@ -458,7 +458,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 					},
 				}
 
-				openfga.AddRelations(handlerContext.Authz, relations)
+				handlerContext.Authz.AddRelationBulk(relations)
 
 				// get the number of relations before deletion
 				relationsBefore, err := handlerContext.Authz.ListRelations(relations)

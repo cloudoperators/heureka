@@ -315,7 +315,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 					},
 				}
 
-				openfga.AddRelations(handlerContext.Authz, relations)
+				handlerContext.Authz.AddRelationBulk(relations)
 
 				// get the number of relations before deletion
 				relationsBefore, err := handlerContext.Authz.ListRelations(relations)

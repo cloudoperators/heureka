@@ -80,6 +80,8 @@ type Authorization interface {
 	CheckPermission(p PermissionInput) (bool, error)
 	// Add relationship between userId and resourceId
 	AddRelation(r RelationInput) error
+	// Add multiple relationships between userId and resourceId
+	AddRelationBulk(r []RelationInput) error
 	// Remove a single relationship between userId and resourceId
 	RemoveRelation(r RelationInput) error
 	// Remove all relations that match any given RelationInput as filters
@@ -90,8 +92,6 @@ type Authorization interface {
 	ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
 	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
-	// Placeholder function that mimics getting user from User Context
-	GetCurrentUser() string
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {

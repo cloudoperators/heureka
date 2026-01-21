@@ -319,7 +319,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 					},
 				}
 
-				openfga.AddRelations(handlerContext.Authz, relations)
+				handlerContext.Authz.AddRelationBulk(relations)
 
 				// get the number of relations before deletion
 				relationsBefore, err := handlerContext.Authz.ListRelations(relations)

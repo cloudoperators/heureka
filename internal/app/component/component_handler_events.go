@@ -97,7 +97,7 @@ func OnComponentCreateAuthz(db database.Database, e event.Event, authz openfga.A
 			},
 		}
 
-		err := openfga.AddRelations(authz, relations)
+		err := authz.AddRelationBulk(relations)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Component", "", err)
 			l.Error(wrappedErr)

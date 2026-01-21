@@ -87,10 +87,6 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 	return &Authz{config: cfg, logger: l, client: fgaClient}
 }
 
-func (a *Authz) GetCurrentUser() string {
-	return a.config.CurrentUser
-}
-
 func (a *Authz) ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
 	req := client.ClientReadRequest{} // Empty request returns all tuples
 	resp, err := a.client.Read(context.Background()).Body(req).Execute()
@@ -290,6 +286,39 @@ func (a *Authz) AddRelation(r RelationInput) error {
 		a.logger.Infof("Relation %s for user %s on resource %s already exists", r.Relation, r.UserId, r.ObjectId)
 	}
 	return nil
+}
+
+// AddRelationBulk adds multiple relationships between userId and resourceId.
+func (a *Authz) AddRelationBulk(relations []RelationInput) error {
+	options := client.ClientWriteOptions{
+		Conflict: client.ClientWriteConflictOptions{
+			// gracefully ignore any tuples in the request that already exist
+			OnDuplicateWrites: client.CLIENT_WRITE_REQUEST_ON_DUPLICATE_WRITES_IGNORE,
+		},
+	}
+
+	tupleStrings := []client.ClientTupleKey{}
+
+	// Convert RelationInput to string format required by OpenFGA client
+	for _, rel := range relations {
+		tupleStrings = append(tupleStrings, client.ClientTupleKey{
+			User:     string(rel.UserType) + ":" + string(rel.UserId),
+			Relation: string(rel.Relation),
+			Object:   string(rel.ObjectType) + ":" + string(rel.ObjectId),
+		})
+	}
+
+	tuple := client.ClientWriteRequest{
+		Writes: tupleStrings,
+	}
+
+	resp, err := a.client.Write(context.Background()).Body(tuple).Options(options).Execute()
+	if err != nil {
+		a.logger.Errorf("OpenFGA Write (AddRelationBulk) error: %v", err)
+	} else {
+		a.logger.Infof("OpenFGA Write (AddRelationBulk): %v | Added %d relations", resp, len(relations))
+	}
+	return err
 }
 
 // RemoveRelation removes a relationship between userId and resourceId.

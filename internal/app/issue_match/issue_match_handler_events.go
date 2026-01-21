@@ -236,7 +236,7 @@ func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.
 			},
 		}
 
-		err := openfga.AddRelations(authz, relations)
+		err := authz.AddRelationBulk(relations)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
 			l.Error(wrappedErr)
@@ -285,7 +285,7 @@ func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.
 				ObjectId:   openfga.ObjectIdFromInt(updateEvent.IssueMatch.Id),
 			}
 
-			err = openfga.AddRelations(authz, []openfga.RelationInput{newRelation})
+			err = authz.AddRelationBulk([]openfga.RelationInput{newRelation})
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
 				l.Error(wrappedErr)

@@ -206,7 +206,7 @@ func OnServiceCreateAuthz(db database.Database, e event.Event, authz openfga.Aut
 			},
 		}
 
-		err := openfga.AddRelations(authz, relations)
+		err := authz.AddRelationBulk(relations)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
 			l.Error(wrappedErr)
@@ -276,7 +276,7 @@ func OnAddOwnerToService(db database.Database, e event.Event, authz openfga.Auth
 			},
 		}
 
-		err := openfga.AddRelations(authz, relations)
+		err := authz.AddRelationBulk(relations)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Service", "", err)
 			l.Error(wrappedErr)

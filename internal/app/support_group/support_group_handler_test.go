@@ -328,7 +328,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 					},
 				}
 
-				openfga.AddRelations(handlerContext.Authz, relations)
+				handlerContext.Authz.AddRelationBulk(relations)
 
 				// get the number of relations before deletion
 				relationsBefore, err := handlerContext.Authz.ListRelations(relations)
@@ -470,7 +470,7 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 				Relation:   openfga.TypeSupportGroup,
 			}
 
-			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{rel})
+			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{rel})
 
 			var event event.Event = removeEvent
 			sg.OnRemoveServiceFromSupportGroup(db, event, handlerContext.Authz)
@@ -577,7 +577,7 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 				Relation:   openfga.RelMember,
 			}
 			// Bulk add instead of single add
-			openfga.AddRelations(handlerContext.Authz, []openfga.RelationInput{rel})
+			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{rel})
 
 			var event event.Event = removeEvent
 			sg.OnRemoveUserFromSupportGroup(db, event, handlerContext.Authz)

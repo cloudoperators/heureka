@@ -18,10 +18,6 @@ func NewNoAuthz(cfg *util.Config) Authorization {
 	}
 }
 
-func (a *NoAuthz) GetCurrentUser() string {
-	return ""
-}
-
 // CheckPermission checks if userId has permission on resourceId.
 func (a *NoAuthz) CheckPermission(p PermissionInput) (bool, error) {
 	return true, nil
@@ -29,6 +25,11 @@ func (a *NoAuthz) CheckPermission(p PermissionInput) (bool, error) {
 
 // AddRelation adds a relationship between userId and resourceId.
 func (a *NoAuthz) AddRelation(r RelationInput) error {
+	return nil
+}
+
+// AddRelationBulk adds multiple relationships between userId and resourceId.
+func (a *NoAuthz) AddRelationBulk(r []RelationInput) error {
 	return nil
 }
 
