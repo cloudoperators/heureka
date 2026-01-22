@@ -261,6 +261,7 @@ func (a *Authz) RemoveRelation(r RelationInput) error {
 func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
 	tuples, err := a.ListRelations(r)
 	if err != nil {
+		a.logger.Errorf("OpenFGA Read (ListRelations) error: %v", err)
 		return err
 	}
 
@@ -281,30 +282,34 @@ func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
 }
 
 // UpdateRelation updates relations by removing relations that match the filter for the old relation and adding the new relation.
-func (a *Authz) UpdateRelation(r RelationInput, u RelationInput) error {
+func (a *Authz) UpdateRelation(add RelationInput, rem RelationInput) error {
 	l := logrus.WithFields(logrus.Fields{
-		"event":          "HandleCreateAuthzRelation",
-		"user":           r.UserId,
-		"objectId":       r.ObjectId,
-		"objectType":     r.ObjectType,
-		"objectRelation": r.Relation,
+		"event":            "HandleCreateAuthzRelation",
+		"user":             add.UserId,
+		"resourceId":       add.ObjectId,
+		"resourceType":     add.ObjectType,
+		"resourceRelation": add.Relation,
 	})
 
-	err := a.RemoveRelationBulk([]RelationInput{r})
-	if err != nil {
-		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while removing relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
-	} else {
-		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+	if err := a.RemoveRelationBulk([]RelationInput{rem}); err != nil {
+		l.WithField("event-step", "OpenFGA RemoveRelationBulk").
+			WithError(err).
+			Errorf("Error while removing relation tuple: (%s, %s, %s, %s)", rem.UserId, rem.ObjectId, rem.ObjectType, rem.Relation)
+		return err
 	}
+	l.WithField("event-step", "OpenFGA RemoveRelationBulk").
+		Infof("Removed relation tuple: (%s, %s, %s, %s)", rem.UserId, rem.ObjectId, rem.ObjectType, rem.Relation)
 
-	err = a.AddRelation(u)
-	if err != nil {
-		l.WithField("event-step", "OpenFGA AddRelation").WithError(err).Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
-	} else {
-		l.WithField("event-step", "OpenFGA AddRelation").Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+	if err := a.AddRelation(add); err != nil {
+		l.WithField("event-step", "OpenFGA AddRelation").
+			WithError(err).
+			Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", add.UserId, add.ObjectId, add.ObjectType, add.Relation)
+		return err
 	}
+	l.WithField("event-step", "OpenFGA AddRelation").
+		Infof("Added relation tuple: (%s, %s, %s, %s)", add.UserId, add.ObjectId, add.ObjectType, add.Relation)
 
-	return err
+	return nil
 }
 
 // ListRelations lists Relations based on multiple filters.
