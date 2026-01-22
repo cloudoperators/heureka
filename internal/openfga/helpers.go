@@ -12,17 +12,6 @@ func UserIdFromInt(id int64) UserId {
 	return UserId(strconv.FormatInt(id, 10))
 }
 
-// AddRelations accepts a slice of RelationInput and adds them
-func AddRelations(authz Authorization, relations []RelationInput) error {
-	for _, r := range relations {
-		err := authz.AddRelation(r)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // matchesFilter checks if the given userParts and objectParts match the filters specified in RelationInput.
 func matchesFilter(userParts, objectParts []string, r RelationInput, relation string) bool {
 	if r.UserType != "" && (len(userParts) < 1 || userParts[0] != string(r.UserType)) {

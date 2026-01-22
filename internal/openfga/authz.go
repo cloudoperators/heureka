@@ -327,29 +327,15 @@ func (a *Authz) ListRelations(filters []RelationInput) ([]client.ClientTupleKeyW
 		objectParts := strings.SplitN(tuple.Key.Object, ":", 2)
 
 		for _, r := range filters {
-			if r.UserType != "" && (len(userParts) < 1 || userParts[0] != string(r.UserType)) {
-				continue
+			// If any tuples match a filter, add them to the result and break to avoid duplicates
+			if matchesFilter(userParts, objectParts, r, tuple.Key.Relation) {
+				tuples = append(tuples, client.ClientTupleKeyWithoutCondition{
+					User:     tuple.Key.User,
+					Relation: tuple.Key.Relation,
+					Object:   tuple.Key.Object,
+				})
+				break
 			}
-			if r.UserId != "" && (len(userParts) < 2 || userParts[1] != string(r.UserId)) {
-				continue
-			}
-			if r.Relation != "" && tuple.Key.Relation != string(r.Relation) {
-				continue
-			}
-			if r.ObjectType != "" && (len(objectParts) < 1 || objectParts[0] != string(r.ObjectType)) {
-				continue
-			}
-			if r.ObjectId != "" && (len(objectParts) < 2 || objectParts[1] != string(r.ObjectId)) {
-				continue
-			}
-
-			// If all specified fields match for this filter, add the tuple and break to avoid duplicates
-			tuples = append(tuples, client.ClientTupleKeyWithoutCondition{
-				User:     tuple.Key.User,
-				Relation: tuple.Key.Relation,
-				Object:   tuple.Key.Object,
-			})
-			break
 		}
 	}
 	return tuples, nil
