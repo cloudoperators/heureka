@@ -17,7 +17,7 @@ create table if not exists User
     user_active_unique_user_id VARCHAR(64)
         GENERATED ALWAYS AS (
             IF(user_deleted_at IS NULL, user_unique_user_id, NULL)
-        ) STORED,
+        ) STORED INVISIBLE,
 
     constraint user_id_UNIQUE
         unique (user_id),
@@ -52,7 +52,7 @@ create table if not exists Component
     component_active_ccrn VARCHAR(255)
         GENERATED ALWAYS AS (
             IF(component_deleted_at IS NULL, component_ccrn, NULL)
-        ) STORED,
+        ) STORED INVISIBLE,
 
     constraint id_UNIQUE
         unique (component_id),
@@ -81,11 +81,11 @@ create table if not exists ComponentVersion
 
     componentversion_active_version VARCHAR(255) GENERATED ALWAYS AS (
             IF(componentversion_deleted_at IS NULL, componentversion_version, NULL)
-        ) STORED,
+        ) STORED INVISIBLE,
 
     componentversion_active_component_id INT UNSIGNED GENERATED ALWAYS AS (
             IF(componentversion_deleted_at IS NULL, componentversion_component_id, NULL)
-        ) VIRTUAL,
+        ) VIRTUAL INVISIBLE,
 
     constraint componentversion_id_UNIQUE
         unique (componentversion_id),
@@ -133,7 +133,7 @@ create table if not exists Service
     service_active_ccrn VARCHAR(255)
         GENERATED ALWAYS AS (
             IF(service_deleted_at IS NULL, service_ccrn, NULL)
-        ) STORED,
+        ) STORED INVISIBLE,
 
     constraint service_id_UNIQUE
         unique (service_id),
@@ -203,11 +203,11 @@ create table if not exists ComponentInstance
 
     componentinstance_active_ccrn VARCHAR(2048) GENERATED ALWAYS AS (
             IF(componentinstance_deleted_at IS NULL, componentinstance_ccrn, NULL)
-        ) STORED,
+        ) STORED INVISIBLE,
 
     componentinstance_active_service_id INT UNSIGNED GENERATED ALWAYS AS (
             IF(componentinstance_deleted_at IS NULL, componentinstance_service_id, NULL)
-        ) VIRTUAL,
+        ) VIRTUAL INVISIBLE,
 
     constraint componentinstance_id_UNIQUE
         unique (componentinstance_id),
@@ -306,7 +306,7 @@ create table if not exists IssueRepository
     issuerepository_active_name VARCHAR(2048)
         GENERATED ALWAYS AS (
             IF(issuerepository_deleted_at IS NULL, issuerepository_name, NULL)
-        ) STORED,
+        ) STORED INVISIBLE,
 
     constraint issuerepository_id_UNIQUE
         unique (issuerepository_id),
@@ -334,7 +334,7 @@ create table if not exists Issue
     issue_active_primary_name VARCHAR(255)
         GENERATED ALWAYS AS (
             IF(issue_deleted_at IS NULL, issue_primary_name, NULL)
-        ) STORED,
+        ) STORED INVISIBLE,
     constraint issue_id_UNIQUE
         unique (issue_id),
     constraint fk_issue_created_by
@@ -365,7 +365,7 @@ create table if not exists IssueVariant
     issuevariant_active_secondary_name VARCHAR(255)
         GENERATED ALWAYS AS (
             IF(issuevariant_deleted_at IS NULL, issuevariant_secondary_name, NULL)
-        ) STORED,
+        ) STORED INVISIBLE,
 
     constraint issuevariant_id_UNIQUE
         unique (issuevariant_id),
