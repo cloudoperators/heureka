@@ -517,6 +517,44 @@ func (s *DatabaseSeeder) FetchAllNamesOfDeletedIssueMatches() ([]string, error) 
 	return issueNames, nil
 }
 
+func (s *DatabaseSeeder) FetchAllNamesOfDeletedVersions() ([]string, error) {
+	query := `
+        SELECT
+            cv.componentversion_version
+        FROM ComponentVersion cv
+        WHERE cv.componentversion_deleted_at IS NOT NULL
+    `
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query versions: %w", err)
+	}
+	defer rows.Close()
+
+	var versions []string
+
+	for rows.Next() {
+		var in string
+		if err := rows.Scan(
+			&in,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan component version row: %w", err)
+		}
+		versions = append(versions, in)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	// Optional: return empty slice instead of nil
+	if versions == nil {
+		return []string{}, nil
+	}
+
+	return versions, nil
+}
+
 func (s *DatabaseSeeder) GetCountOfPatches() (int64, error) {
 	const query = `
 		SELECT COUNT(*)

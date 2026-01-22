@@ -29,6 +29,7 @@ type autoPatchTestInfo struct {
 	expectedPatchCount                   int
 	patchedComponents                    []string
 	expectDeletedIssueMatchesByIssueName []string
+	expectDeletedVersions                []string
 }
 
 type autoPatchTest struct {
@@ -90,6 +91,9 @@ func (apt *autoPatchTest) Run(tag string, info autoPatchTestInfo, fn func(db *ma
 	// Expect issueMatches to be deleted
 	apt.ExpectIssueMatchesToBeDeleted(info.expectDeletedIssueMatchesByIssueName, info.description)
 
+	// Expect versions to be deleted
+	apt.ExpectVersionsToBeDeleted(info.expectDeletedVersions, info.description)
+
 	err = apt.databaseSeeder.CleanupScannerRuns()
 	Expect(err).To(BeNil())
 }
@@ -118,6 +122,13 @@ func (apt *autoPatchTest) ExpectIssueMatchesToBeDeleted(expectDeletedIssueMatche
 	Expect(err).To(BeNil(), "%s THEN issue matches: '%s' should be deleted (%s)", when, strings.Join(expectDeletedIssueMatchesByIssueName, ", "), err)
 	Expect(len(deletedIssues)).To(BeEquivalentTo(len(expectDeletedIssueMatchesByIssueName)), "%s THEN issue matches: '%s' should be deleted", when, strings.Join(expectDeletedIssueMatchesByIssueName, ", "))
 	Expect(deletedIssues).To(ConsistOf(expectDeletedIssueMatchesByIssueName), "%s THEN issue matches: '%s' should be deleted", when, strings.Join(expectDeletedIssueMatchesByIssueName, ", "))
+}
+
+func (apt *autoPatchTest) ExpectVersionsToBeDeleted(expectDeletedVersions []string, when string) {
+	deletedVersions, err := apt.databaseSeeder.FetchAllNamesOfDeletedVersions()
+	Expect(err).To(BeNil(), "%s THEN versions: '%s' should be deleted (%s)", when, strings.Join(expectDeletedVersions, ", "), err)
+	Expect(len(deletedVersions)).To(BeEquivalentTo(len(expectDeletedVersions)), "%s THEN versions: '%s' should be deleted", when, strings.Join(expectDeletedVersions, ", "))
+	Expect(deletedVersions).To(ConsistOf(expectDeletedVersions), "%s THEN iversions: '%s' should be deleted", when, strings.Join(expectDeletedVersions, ", "))
 }
 
 var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
@@ -277,7 +288,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			patchedComponents:  []string{"C1"},
 		},
 		{
-			description: "WHEN 2 scans detect disappearance of 3 components with the same version and service id", // THEN only single patch should be created
+			description: "WHEN 2 scans detect disappearance of 3 components with the same version and service id", //T HEN only single patch should be created
 			scannerRuns: []scannerRun{
 				{
 					issues:     []string{"IC1", "IC2a", "IC2b", "IC3", "IX"},
@@ -306,14 +317,15 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectedPatchCount: 0,
 		},
 		{
-			description: "WHEN 1 component disappear from 2 components with different version and service", // THEN patch should be created
+			description: "WHEN 1 component disappear from 2 components with different version and service", // THEN patch should be created and not used version should be removed
 			scannerRuns: []scannerRun{
 				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}, {Name: "C2", Version: "V2", Service: "S2"}}},
 				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
 			},
-			expectedResults:    []bool{false, true},
-			expectedPatchCount: 1,
-			patchedComponents:  []string{"C1"},
+			expectedResults:       []bool{false, true},
+			expectedPatchCount:    1,
+			patchedComponents:     []string{"C1"},
+			expectDeletedVersions: []string{"V2"},
 		},
 		{
 			description: "WHEN 4 scans detect disappearance of 1 component and the component appear and disappear again", // THEN two patches should be created for the same service and version
