@@ -6,7 +6,7 @@ create table if not exists Remediation
     remediation_id         int unsigned auto_increment
         primary key,
     remediation_type                enum('false_positive')                  not null,
-    remediation_description         longtext                                null,
+    remediation_description         longtext                                not null,
     remediation_remediation_date    datetime                                null,
     remediation_expiration_date     datetime                                null,
     remediation_remediated_by       varchar(255)                            null,
