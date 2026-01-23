@@ -85,7 +85,7 @@ ADD COLUMN componentinstance_active_service_id INT UNSIGNED
 ALTER TABLE ComponentInstance
 DROP INDEX componentinstance_ccrn_service_id_unique;
 
-ALTER TABLE Componentinstance
+ALTER TABLE ComponentInstance
 ADD UNIQUE KEY componentinstance_unique_active_ccrn (componentinstance_active_ccrn, componentinstance_active_service_id);
 
 
