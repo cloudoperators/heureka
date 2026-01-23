@@ -23,6 +23,7 @@ func buildRemediationFilterParameters(filter *entity.RemediationFilter, withCurs
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Issue)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
+	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
 		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
@@ -101,6 +102,7 @@ func getRemediationFilterString(filter *entity.RemediationFilter) string {
 	fl = append(fl, buildFilterQuery(filter.IssueId, "R.remediation_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Component, "R.remediation_component = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "R.remediation_component_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Search, "R.remediation_issue LIKE Concat('%',?,'%')", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "R.remediation"))
 	return combineFilterQueries(fl, OP_AND)
 }

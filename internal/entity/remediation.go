@@ -58,6 +58,7 @@ type RemediationFilter struct {
 	IssueId     []*int64          `json:"issue_id"`
 	Type        []*string         `json:"type"`
 	State       []StateFilterType `json:"state"`
+	Search      []*string         `json:"search"`
 }
 
 type RemediationResult struct {
