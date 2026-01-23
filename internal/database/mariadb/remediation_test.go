@@ -254,6 +254,41 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						}
 					})
 				})
+				It("can filter by wildcard search", func() {
+					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+
+					const charactersToRemoveFromBeginning = 2
+					const charactersToRemoveFromEnd = 2
+					const minimalCharactersToKeep = 5
+
+					start := charactersToRemoveFromBeginning
+					end := len(row.Issue.String) - charactersToRemoveFromEnd
+
+					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
+
+					searchStr := row.Issue.String[start:end]
+					filter := &entity.RemediationFilter{Search: []*string{&searchStr}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					ids := []int64{}
+					for _, entry := range entries {
+						ids = append(ids, entry.Remediation.Id)
+					}
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("at least one element was discarded (filtered)", func() {
+						Expect(len(seedCollection.IssueRows) > len(ids)).To(BeTrue())
+					})
+
+					By("returning the expected elements", func() {
+						Expect(ids).To(ContainElement(row.Id.Int64))
+					})
+
+				})
 			})
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {

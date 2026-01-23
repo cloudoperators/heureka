@@ -49,6 +49,7 @@ func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		Type:       lo.Map(filter.Type, func(item *model.RemediationTypeValues, _ int) *string { return pointer.String(item.String()) }),
 		ServiceId:  serviceId,
 		State:      model.GetStateFilterType(filter.State),
+		Search:     filter.Search,
 	}
 
 	opt := GetListOptions(requestedFields)
