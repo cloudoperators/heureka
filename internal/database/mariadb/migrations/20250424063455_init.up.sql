@@ -13,20 +13,14 @@ create table if not exists User
     user_deleted_at     timestamp                             null,
     user_updated_at     timestamp default current_timestamp() not null on update current_timestamp(),
     user_updated_by     int unsigned                          null check (user_updated_by <> 0),
-
-    user_active_unique_user_id VARCHAR(64)
-        GENERATED ALWAYS AS (
-            IF(user_deleted_at IS NULL, user_unique_user_id, NULL)
-        ) STORED INVISIBLE,
-
     constraint user_id_UNIQUE
         unique (user_id),
+    constraint unique_user_id_UNIQUE
+        unique (user_unique_user_id),
     constraint fk_user_created_by
         foreign key (user_created_by) references User (user_id),
     constraint fk_user_updated_by
-        foreign key (user_updated_by) references User (user_id),
-
-    UNIQUE KEY user_unique_active_unique_user_id (user_active_unique_user_id)
+        foreign key (user_updated_by) references User (user_id)
 );
 
 set @TechnicalUserType = 2;
@@ -48,20 +42,14 @@ create table if not exists Component
     component_deleted_at timestamp                             null,
     component_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     component_updated_by int unsigned                          null,
-
-    component_active_ccrn VARCHAR(255)
-        GENERATED ALWAYS AS (
-            IF(component_deleted_at IS NULL, component_ccrn, NULL)
-        ) STORED INVISIBLE,
-
     constraint id_UNIQUE
         unique (component_id),
+    constraint component_ccrn_UNIQUE
+        unique (component_ccrn),
     constraint fk_component_created_by
         foreign key (component_created_by) references User (user_id),
     constraint fk_component_updated_by
-        foreign key (component_updated_by) references User (user_id),
-
-    UNIQUE KEY component_unique_active_ccrn (component_active_ccrn)
+        foreign key (component_updated_by) references User (user_id)
 );
 
 create table if not exists ComponentVersion
@@ -78,25 +66,17 @@ create table if not exists ComponentVersion
     componentversion_deleted_at   timestamp                             null,
     componentversion_updated_at   timestamp default current_timestamp() not null on update current_timestamp(),
     componentversion_updated_by   int unsigned                          null,
-
-    componentversion_active_version VARCHAR(255) GENERATED ALWAYS AS (
-            IF(componentversion_deleted_at IS NULL, componentversion_version, NULL)
-        ) STORED INVISIBLE,
-
-    componentversion_active_component_id INT UNSIGNED GENERATED ALWAYS AS (
-            IF(componentversion_deleted_at IS NULL, componentversion_component_id, NULL)
-        ) VIRTUAL INVISIBLE,
-
     constraint componentversion_id_UNIQUE
         unique (componentversion_id),
+    constraint version_component_UNIQUE
+        unique (componentversion_version, componentversion_component_id),
     constraint fk_component_version_component
         foreign key (componentversion_component_id) references Component (component_id)
             on update cascade,
     constraint fk_componentversion_created_by
         foreign key (componentversion_created_by) references User (user_id),
     constraint fk_componentversion_updated_by
-        foreign key (componentversion_updated_by) references User (user_id),
-    UNIQUE KEY componentversion_unique_active_version (componentversion_active_version, componentversion_active_component_id)
+        foreign key (componentversion_updated_by) references User (user_id)
 );
 
 create table if not exists SupportGroup
@@ -129,19 +109,14 @@ create table if not exists Service
     service_deleted_at timestamp                             null,
     service_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     service_updated_by int unsigned                          null,
-
-    service_active_ccrn VARCHAR(255)
-        GENERATED ALWAYS AS (
-            IF(service_deleted_at IS NULL, service_ccrn, NULL)
-        ) STORED INVISIBLE,
-
     constraint service_id_UNIQUE
         unique (service_id),
+    constraint service_ccrn_UNIQUE
+        unique (service_ccrn),
     constraint fk_service_created_by
         foreign key (service_created_by) references User (user_id),
     constraint fk_service_updated_by
-        foreign key (service_updated_by) references User (user_id),
-    UNIQUE KEY service_unique_active_ccrn (service_active_ccrn)
+        foreign key (service_updated_by) references User (user_id)
 );
 
 create table if not exists SupportGroupService
@@ -200,17 +175,10 @@ create table if not exists ComponentInstance
     componentinstance_deleted_at           timestamp                             null,
     componentinstance_updated_at           timestamp default current_timestamp() not null on update current_timestamp(),
     componentinstance_updated_by           int unsigned                          null,
-
-    componentinstance_active_ccrn VARCHAR(2048) GENERATED ALWAYS AS (
-            IF(componentinstance_deleted_at IS NULL, componentinstance_ccrn, NULL)
-        ) STORED INVISIBLE,
-
-    componentinstance_active_service_id INT UNSIGNED GENERATED ALWAYS AS (
-            IF(componentinstance_deleted_at IS NULL, componentinstance_service_id, NULL)
-        ) VIRTUAL INVISIBLE,
-
     constraint componentinstance_id_UNIQUE
         unique (componentinstance_id),
+    constraint componentinstance_ccrn_service_id_unique
+        unique (componentinstance_ccrn, componentinstance_service_id) using hash,
     constraint fk_component_instance_component_version
         foreign key (componentinstance_component_version_id) references ComponentVersion (componentversion_id)
             on update cascade,
@@ -220,9 +188,7 @@ create table if not exists ComponentInstance
     constraint fk_componentinstance_created_by
         foreign key (componentinstance_created_by) references User (user_id),
     constraint fk_componentinstance_updated_by
-        foreign key (componentinstance_updated_by) references User (user_id),
-
-    UNIQUE KEY componentinstance_unique_active_ccrn (componentinstance_active_ccrn, componentinstance_active_service_id)
+        foreign key (componentinstance_updated_by) references User (user_id)
 );
 
 
@@ -302,20 +268,14 @@ create table if not exists IssueRepository
     issuerepository_deleted_at timestamp                             null,
     issuerepository_updated_at timestamp default current_timestamp() not null on update current_timestamp(),
     issuerepository_updated_by int unsigned                          null,
-
-    issuerepository_active_name VARCHAR(2048)
-        GENERATED ALWAYS AS (
-            IF(issuerepository_deleted_at IS NULL, issuerepository_name, NULL)
-        ) STORED INVISIBLE,
-
     constraint issuerepository_id_UNIQUE
         unique (issuerepository_id),
+    constraint issuerepository_name_UNIQUE
+        unique (issuerepository_name),
     constraint fk_issuerepository_created_by
         foreign key (issuerepository_created_by) references User (user_id),
     constraint fk_issuerepository_updated_by
-        foreign key (issuerepository_updated_by) references User (user_id),
-
-    UNIQUE KEY issuerepository_unique_active_name (issuerepository_active_name)
+        foreign key (issuerepository_updated_by) references User (user_id)
 );
 
 create table if not exists Issue
@@ -330,19 +290,14 @@ create table if not exists Issue
     issue_deleted_at   timestamp                                                null,
     issue_updated_at   timestamp default current_timestamp()                    not null on update current_timestamp(),
     issue_updated_by   int unsigned                                             null,
-
-    issue_active_primary_name VARCHAR(255)
-        GENERATED ALWAYS AS (
-            IF(issue_deleted_at IS NULL, issue_primary_name, NULL)
-        ) STORED INVISIBLE,
     constraint issue_id_UNIQUE
         unique (issue_id),
+    constraint issue_primary_name_UNIQUE
+        unique (issue_primary_name),
     constraint fk_issue_created_by
         foreign key (issue_created_by) references User (user_id),
     constraint fk_issue_updated_by
-        foreign key (issue_updated_by) references User (user_id),
-
-    UNIQUE KEY issue_unique_active_primary_name (issue_active_primary_name)
+        foreign key (issue_updated_by) references User (user_id)
 );
 
 create table if not exists IssueVariant
@@ -361,14 +316,10 @@ create table if not exists IssueVariant
     issuevariant_deleted_at     timestamp                                        null,
     issuevariant_updated_at     timestamp default current_timestamp()            not null on update current_timestamp(),
     issuevariant_updated_by     int unsigned                                     null,
-
-    issuevariant_active_secondary_name VARCHAR(255)
-        GENERATED ALWAYS AS (
-            IF(issuevariant_deleted_at IS NULL, issuevariant_secondary_name, NULL)
-        ) STORED INVISIBLE,
-
     constraint issuevariant_id_UNIQUE
         unique (issuevariant_id),
+    constraint issuevariant_secondary_name_UNIQUE
+        unique (issuevariant_secondary_name),
     constraint fk_issuevariant_issue
         foreign key (issuevariant_issue_id) references Issue (issue_id),
     constraint fk_issuevariant_issuerepository
@@ -377,8 +328,7 @@ create table if not exists IssueVariant
     constraint fk_issuevariant_created_by
         foreign key (issuevariant_created_by) references User (user_id),
     constraint fk_issuevariant_updated_by
-        foreign key (issuevariant_updated_by) references User (user_id),
-    UNIQUE KEY issuevariant_unique_active_secondary_name (issuevariant_active_secondary_name)
+        foreign key (issuevariant_updated_by) references User (user_id)
 );
 
 create table if not exists ActivityHasIssue
