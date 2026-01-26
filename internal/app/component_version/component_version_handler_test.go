@@ -358,7 +358,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 			cv.OnComponentVersionUpdateAuthz(db, event, handlerContext.Authz)
 
 			// Check that the old relation is gone
-			remainingOld, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{initialRelation})
+			remainingOld, err := handlerContext.Authz.ListRelations(initialRelation)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(remainingOld).To(BeEmpty(), "old relation should be removed")
 
@@ -370,7 +370,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 				ObjectType: openfga.TypeComponent,
 				ObjectId:   openfga.ObjectIdFromInt(newComponentId),
 			}
-			remainingNew, err := handlerContext.Authz.ListRelations([]openfga.RelationInput{newRelation})
+			remainingNew, err := handlerContext.Authz.ListRelations(newRelation)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
 		})
@@ -461,9 +461,15 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 				handlerContext.Authz.AddRelationBulk(relations)
 
 				// get the number of relations before deletion
-				relationsBefore, err := handlerContext.Authz.ListRelations(relations)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(relationsBefore).To(HaveLen(len(relations)), "all relations should exist before deletion")
+				relCountBefore := 0
+				for _, r := range relations {
+					relations, err := handlerContext.Authz.ListRelations(r)
+					if err != nil {
+						Expect(err).To(BeNil(), "no error should be thrown")
+					}
+					relCountBefore += len(relations)
+				}
+				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
 
 				// check that relations were created
 				for _, r := range relations {
@@ -483,10 +489,16 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 				cv.OnComponentVersionDeleteAuthz(db, event, handlerContext.Authz)
 
 				// get the number of relations after deletion
-				relationsAfter, err := handlerContext.Authz.ListRelations(relations)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(len(relationsAfter) < len(relationsBefore)).To(BeTrue(), "less relations after deletion")
-				Expect(relationsAfter).To(BeEmpty(), "no relations should exist after deletion")
+				relCountAfter := 0
+				for _, r := range relations {
+					relations, err := handlerContext.Authz.ListRelations(r)
+					if err != nil {
+						Expect(err).To(BeNil(), "no error should be thrown")
+					}
+					relCountAfter += len(relations)
+				}
+				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
+				Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
 
 				// verify that relations were deleted
 				for _, r := range relations {

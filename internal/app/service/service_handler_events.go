@@ -239,8 +239,9 @@ func OnServiceDeleteAuthz(db database.Database, e event.Event, authz openfga.Aut
 
 		// Delete all tuples where user is the service
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: openfga.TypeService,
-			UserId:   openfga.UserIdFromInt(deleteEvent.ServiceID),
+			UserType:   openfga.TypeService,
+			UserId:     openfga.UserIdFromInt(deleteEvent.ServiceID),
+			ObjectType: openfga.TypeComponentInstance,
 		})
 
 		err := authz.RemoveRelationBulk(deleteInput)

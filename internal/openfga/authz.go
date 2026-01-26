@@ -6,6 +6,7 @@ package openfga
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 
@@ -246,7 +247,13 @@ func (a *Authz) RemoveRelation(r RelationInput) error {
 				},
 			},
 		}
-		_, err := a.client.Write(context.Background()).Body(tuple).Execute()
+		options := client.ClientWriteOptions{
+			Conflict: client.ClientWriteConflictOptions{
+				// gracefully ignore any tuples in the request that do not exist
+				OnMissingDeletes: client.CLIENT_WRITE_REQUEST_ON_MISSING_DELETES_IGNORE,
+			},
+		}
+		_, err := a.client.Write(context.Background()).Body(tuple).Options(options).Execute()
 		if err != nil {
 			a.logger.Errorf("OpenFGA Write (RemoveRelation) error: %v", err)
 		}
@@ -259,10 +266,13 @@ func (a *Authz) RemoveRelation(r RelationInput) error {
 
 // RemoveRelationBulk removes all relations that match the given RelationInput as filters.
 func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
-	tuples, err := a.ListRelations(r)
-	if err != nil {
-		a.logger.Errorf("OpenFGA Read (ListRelations) error: %v", err)
-		return err
+	tuples := []client.ClientTupleKeyWithoutCondition{}
+	for _, rel := range r {
+		newTuples, err := a.ListRelations(rel)
+		tuples = append(tuples, newTuples...)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(tuples) == 0 {
@@ -272,7 +282,13 @@ func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
 	writeReq := client.ClientWriteRequest{
 		Deletes: tuples,
 	}
-	_, err = a.client.Write(context.Background()).Body(writeReq).Execute()
+	options := client.ClientWriteOptions{
+		Conflict: client.ClientWriteConflictOptions{
+			// gracefully ignore any tuples in the request that do not exist
+			OnMissingDeletes: client.CLIENT_WRITE_REQUEST_ON_MISSING_DELETES_IGNORE,
+		},
+	}
+	_, err := a.client.Write(context.Background()).Body(writeReq).Options(options).Execute()
 	if err != nil {
 		a.logger.Errorf("OpenFGA Delete (DeleteRelations) error: %v", err)
 	} else {
@@ -312,31 +328,51 @@ func (a *Authz) UpdateRelation(add RelationInput, rem RelationInput) error {
 	return nil
 }
 
-// ListRelations lists Relations based on multiple filters.
-func (a *Authz) ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
-	req := client.ClientReadRequest{} // Empty request returns all tuples
+// ListRelations lists all relations that match any given RelationInput as filter(s)
+func (a *Authz) ListRelations(filter RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
+	// openfga POST read relation tuple requirements to be checked for:
+	// tuple_key (the filter object itself) is optional, if not provided, all tuples are returned
+	// object is mandatory if a tuple_key is provided, but objectId is not necessary, just a type can be specified
+	// user is mandatory only if object is specified in type only (if object type and id are both specified, user is optional)
+	// if user is specified, it must have both type and id, not just a type or id alone
+
+	// convert relationinput filters to a client read request
+	var userStr, relationStr, objectStr string
+
+	if filter.UserType != "" && filter.UserId != "" {
+		userStr = string(filter.UserType) + ":" + string(filter.UserId)
+	}
+	if filter.Relation != "" {
+		relationStr = string(filter.Relation)
+	}
+	if filter.ObjectType != "" {
+		objectStr = string(filter.ObjectType) + ":"
+		if filter.ObjectId != "" {
+			objectStr += string(filter.ObjectId)
+		}
+	} else {
+		return nil, errors.New("objectType must be specified in the filter")
+	}
+
+	req := client.ClientReadRequest{
+		User:     &userStr,
+		Relation: &relationStr,
+		Object:   &objectStr,
+	}
 	resp, err := a.client.Read(context.Background()).Body(req).Execute()
 	if err != nil {
 		a.logger.Errorf("OpenFGA Read (ListRelations) error: %v", err)
 		return nil, err
 	}
 
+	// convert response tuples to []client.ClientTupleKeyWithoutCondition
 	var tuples []client.ClientTupleKeyWithoutCondition
 	for _, tuple := range resp.Tuples {
-		userParts := strings.SplitN(tuple.Key.User, ":", 2)
-		objectParts := strings.SplitN(tuple.Key.Object, ":", 2)
-
-		for _, r := range filters {
-			// If any tuples match a filter, add them to the result and break to avoid duplicates
-			if matchesFilter(userParts, objectParts, r, tuple.Key.Relation) {
-				tuples = append(tuples, client.ClientTupleKeyWithoutCondition{
-					User:     tuple.Key.User,
-					Relation: tuple.Key.Relation,
-					Object:   tuple.Key.Object,
-				})
-				break
-			}
-		}
+		tuples = append(tuples, client.ClientTupleKeyWithoutCondition{
+			User:     tuple.Key.User,
+			Relation: tuple.Key.Relation,
+			Object:   tuple.Key.Object,
+		})
 	}
 	return tuples, nil
 }

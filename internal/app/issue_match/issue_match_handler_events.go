@@ -317,10 +317,11 @@ func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.
 		})
 
 		// Delete all tuples where user is the issue_match
-		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: openfga.TypeIssueMatch,
-			UserId:   openfga.UserIdFromInt(deleteEvent.IssueMatchID),
-		})
+		// deleteInput = append(deleteInput, openfga.RelationInput{
+		// 	UserType: openfga.TypeIssueMatch,
+		// 	UserId:   openfga.UserIdFromInt(deleteEvent.IssueMatchID),
+		// 	ObjectType: ,
+		// })
 
 		err := authz.RemoveRelationBulk(deleteInput)
 		if err != nil {

@@ -161,6 +161,19 @@ func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfg
 	})
 
 	if deleteEvent, ok := e.(*DeleteSupportGroupEvent); ok {
+		// remove its relation to itself first to prevent duplicate tuple api errors in the bulk deletes
+		selfRelation := openfga.RelationInput{
+			UserType:   openfga.TypeSupportGroup,
+			UserId:     openfga.UserIdFromInt(deleteEvent.SupportGroupID),
+			ObjectType: openfga.TypeSupportGroup,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.SupportGroupID),
+			Relation:   openfga.RelSupportGroup,
+		}
+		err := authz.RemoveRelation(selfRelation)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
+			l.Error(wrappedErr)
+		}
 
 		// Delete all tuples where object is the support_group
 		deleteInput = append(deleteInput, openfga.RelationInput{
@@ -170,11 +183,17 @@ func OnSupportGroupDeleteAuthz(db database.Database, e event.Event, authz openfg
 
 		// Delete all tuples where user is the support_group
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: openfga.TypeSupportGroup,
-			UserId:   openfga.UserIdFromInt(deleteEvent.SupportGroupID),
+			UserType:   openfga.TypeSupportGroup,
+			UserId:     openfga.UserIdFromInt(deleteEvent.SupportGroupID),
+			ObjectType: openfga.TypeService,
+		})
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType:   openfga.TypeSupportGroup,
+			UserId:     openfga.UserIdFromInt(deleteEvent.SupportGroupID),
+			ObjectType: openfga.TypeSupportGroup,
 		})
 
-		err := authz.RemoveRelationBulk(deleteInput)
+		err = authz.RemoveRelationBulk(deleteInput)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "SupportGroup", "", err)
 			l.Error(wrappedErr)

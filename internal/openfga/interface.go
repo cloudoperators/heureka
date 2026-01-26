@@ -89,7 +89,7 @@ type Authorization interface {
 	// Update relations based on filters provided
 	UpdateRelation(r RelationInput, u RelationInput) error
 	// List Relations based on multiple filters
-	ListRelations(filters []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
+	ListRelations(filters RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
 	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
 }

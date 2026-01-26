@@ -120,7 +120,7 @@ func OnComponentVersionUpdateAuthz(db database.Database, e event.Event, authz op
 				ObjectType: openfga.TypeComponent,
 				ObjectId:   openfga.ObjectIdFromInt(updateEvent.ComponentVersion.ComponentId),
 			}
-			err := authz.UpdateRelation(removeInput, newRelation)
+			err := authz.UpdateRelation(newRelation, removeInput)
 			if err != nil {
 				wrappedErr := appErrors.InternalError(string(op), "ComponentVersion", "", err)
 				l.Error(wrappedErr)
@@ -153,8 +153,9 @@ func OnComponentVersionDeleteAuthz(db database.Database, e event.Event, authz op
 
 		// Delete all tuples where user is the component_version
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: openfga.TypeComponentVersion,
-			UserId:   openfga.UserIdFromInt(deleteEvent.ComponentVersionID),
+			UserType:   openfga.TypeComponentVersion,
+			UserId:     openfga.UserIdFromInt(deleteEvent.ComponentVersionID),
+			ObjectType: openfga.TypeComponent,
 		})
 
 		err := authz.RemoveRelationBulk(deleteInput)

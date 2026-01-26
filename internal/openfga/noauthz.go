@@ -38,12 +38,6 @@ func (a *NoAuthz) RemoveRelation(r RelationInput) error {
 	return nil
 }
 
-// ListAccessibleResources returns a list of resource Ids that the user can access.
-func (a *NoAuthz) ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error) {
-	resources := []AccessibleResource{}
-	return resources, nil
-}
-
 // DeleteObjectRelations deletes all relations for a given object.
 func (a *NoAuthz) RemoveRelationBulk(input []RelationInput) error {
 	return nil
@@ -55,6 +49,12 @@ func (a *NoAuthz) UpdateRelation(r RelationInput, u RelationInput) error {
 }
 
 // ListRelations lists all relations for a given input.
-func (a *NoAuthz) ListRelations(input []RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
+func (a *NoAuthz) ListRelations(input RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
 	return []client.ClientTupleKeyWithoutCondition{}, nil
+}
+
+// ListAccessibleResources returns a list of resource Ids that the user can access.
+func (a *NoAuthz) ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error) {
+	resources := []AccessibleResource{}
+	return resources, nil
 }

@@ -176,6 +176,81 @@ var _ = Describe("Authz", func() {
 		})
 	})
 
+	Describe("ListResources", func() {
+		It("should return nothing for a non-existing relation input", func() {
+			input := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "non_existing_user",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "non_existing_document",
+			}
+			relations, err := authz.ListRelations(input)
+			Expect(err).To(BeNil())
+			Expect(relations).To(BeEmpty())
+		})
+
+		It("should return existing relation", func() {
+			newRelation := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "new_document",
+			}
+			r = newRelation
+			err := authz.AddRelation(r)
+			Expect(err).To(BeNil())
+
+			relations, err := authz.ListRelations(r)
+			Expect(err).To(BeNil())
+			Expect(len(relations)).To(Equal(1))
+			Expect(relations[0].User).To(Equal("user:new_user"))
+			Expect(relations[0].Relation).To(Equal(ownerRel))
+			Expect(relations[0].Object).To(Equal("document:new_document"))
+		})
+
+		It("should return multiple existing relations", func() {
+			newRelation1 := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user_1",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "new_document1",
+			}
+			err := authz.AddRelation(newRelation1)
+			Expect(err).To(BeNil())
+			newRelation2 := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user_1",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "new_document2",
+			}
+			err = authz.AddRelation(newRelation2)
+			Expect(err).To(BeNil())
+			newRelation3 := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user_1",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "new_document3",
+			}
+			err = authz.AddRelation(newRelation3)
+			Expect(err).To(BeNil())
+
+			listRelInput := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user_1",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+			}
+			relations, err := authz.ListRelations(listRelInput)
+			Expect(err).To(BeNil())
+			Expect(len(relations)).To(Equal(3))
+		})
+	})
+
 	Describe("ListAccessibleResources", func() {
 		It("should return an empty slice and no error", func() {
 			p.ObjectId = "read"

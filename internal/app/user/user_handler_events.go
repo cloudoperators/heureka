@@ -106,9 +106,41 @@ func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Author
 		})
 
 		// Delete all tuples where user is the user
+		// includes: service, component, component verison, component instance, issue match, support group, role
 		deleteInput = append(deleteInput, openfga.RelationInput{
-			UserType: openfga.TypeUser,
-			UserId:   openfga.UserIdFromInt(deleteEvent.UserID),
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(deleteEvent.UserID),
+			ObjectType: openfga.TypeService,
+		})
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(deleteEvent.UserID),
+			ObjectType: openfga.TypeComponent,
+		})
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(deleteEvent.UserID),
+			ObjectType: openfga.TypeComponentVersion,
+		})
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(deleteEvent.UserID),
+			ObjectType: openfga.TypeComponentInstance,
+		})
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(deleteEvent.UserID),
+			ObjectType: openfga.TypeIssueMatch,
+		})
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(deleteEvent.UserID),
+			ObjectType: openfga.TypeSupportGroup,
+		})
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			UserType:   openfga.TypeUser,
+			UserId:     openfga.UserIdFromInt(deleteEvent.UserID),
+			ObjectType: openfga.TypeRole,
 		})
 
 		err := authz.RemoveRelationBulk(deleteInput)
