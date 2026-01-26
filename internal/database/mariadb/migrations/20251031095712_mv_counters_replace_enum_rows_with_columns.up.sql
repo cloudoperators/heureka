@@ -408,6 +408,7 @@ BEGIN
         AND I.issue_id = R.remediation_issue_id
         AND R.remediation_deleted_at IS NULL
     WHERE I.issue_deleted_at IS NULL
+      AND IM.issuematch_id IS NOT NULL
       AND (R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE())
     GROUP BY CI.componentinstance_service_id
     ON DUPLICATE KEY UPDATE
