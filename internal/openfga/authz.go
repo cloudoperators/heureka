@@ -175,43 +175,59 @@ func (a *Authz) CheckPermission(p PermissionInput) (bool, error) {
 
 // AddRelation adds a specified relationship between userId and objectId.
 func (a *Authz) AddRelation(r RelationInput) error {
-	if ok, err := a.checkTuple(r); err != nil {
+	l := a.logRel("HandleAddAuthzRelation", r)
+
+	// Check to avoid duplicate writes
+	ok, err := a.checkTuple(r)
+	if err != nil {
+		l.WithField("event-step", "OpenFGA Read").
+			WithError(err).
+			Error("Failed to read relation before add")
 		return err
-	} else if !ok {
-		tuple := client.ClientWriteRequest{
-			Writes: []client.ClientTupleKey{
-				{
-					User:     string(r.UserType) + ":" + string(r.UserId),
-					Relation: string(r.Relation),
-					Object:   string(r.ObjectType) + ":" + string(r.ObjectId),
-				},
-			},
-		}
-		resp, err := a.client.Write(context.Background()).Body(tuple).Execute()
-		if err != nil {
-			a.logger.Errorf("OpenFGA Write (AddRelation) error: %v", err)
-		} else {
-			a.logger.Infof("OpenFGA Write (AddRelation): %v | Added relation %s for user %s on resource %s", resp, r.Relation, r.UserId, r.ObjectId)
-		}
-		return err
-	} else {
-		a.logger.Infof("Relation %s for user %s on resource %s already exists", r.Relation, r.UserId, r.ObjectId)
 	}
+	if ok {
+		l.WithField("event-step", "OpenFGA Read").
+			Info("Relation already exists; skipping add")
+		return nil
+	}
+
+	// Write relation
+	tuple := client.ClientWriteRequest{
+		Writes: []client.ClientTupleKey{
+			{
+				User:     string(r.UserType) + ":" + string(r.UserId),
+				Relation: string(r.Relation),
+				Object:   string(r.ObjectType) + ":" + string(r.ObjectId),
+			},
+		},
+	}
+	_, err = a.client.Write(context.Background()).Body(tuple).Execute()
+	if err != nil {
+		l.WithField("event-step", "OpenFGA AddRelation").
+			WithError(err).
+			Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+		return err
+	}
+
+	l.WithField("event-step", "OpenFGA AddRelation").
+		Infof("Added relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	return nil
 }
 
 // AddRelationBulk adds multiple specified relationships between userId(s) and objectId(s).
 func (a *Authz) AddRelationBulk(relations []RelationInput) error {
+	l := a.logger.WithFields(logrus.Fields{
+		"event":         "HandleAddAuthzRelationBulk",
+		"relationCount": len(relations),
+	})
+
 	options := client.ClientWriteOptions{
 		Conflict: client.ClientWriteConflictOptions{
-			// gracefully ignore any tuples in the request that already exist
 			OnDuplicateWrites: client.CLIENT_WRITE_REQUEST_ON_DUPLICATE_WRITES_IGNORE,
 		},
 	}
 
-	tupleStrings := []client.ClientTupleKey{}
-
-	// Convert RelationInput to string format required by OpenFGA client
+	tupleStrings := make([]client.ClientTupleKey, 0, len(relations))
 	for _, rel := range relations {
 		tupleStrings = append(tupleStrings, client.ClientTupleKey{
 			User:     string(rel.UserType) + ":" + string(rel.UserId),
@@ -224,58 +240,90 @@ func (a *Authz) AddRelationBulk(relations []RelationInput) error {
 		Writes: tupleStrings,
 	}
 
-	resp, err := a.client.Write(context.Background()).Body(tuple).Options(options).Execute()
+	_, err := a.client.Write(context.Background()).Body(tuple).Options(options).Execute()
 	if err != nil {
-		a.logger.Errorf("OpenFGA Write (AddRelationBulk) error: %v", err)
-	} else {
-		a.logger.Infof("OpenFGA Write (AddRelationBulk): %v | Added %d relations", resp, len(relations))
+		l.WithField("event-step", "OpenFGA AddRelationsBulk").
+			WithError(err).
+			Error("Failed to add relations")
+		return err
 	}
-	return err
+
+	l.WithField("event-step", "OpenFGA AddRelationsBulk").
+		WithField("added", len(tupleStrings)).
+		Info("Added relations")
+	return nil
 }
 
 // RemoveRelation removes a relationship between userId and objectId.
 func (a *Authz) RemoveRelation(r RelationInput) error {
-	if ok, err := a.checkTuple(r); err != nil {
+	l := a.logRel("HandleRemoveAuthzRelation", r)
+
+	// Check existence before delete
+	ok, err := a.checkTuple(r)
+	if err != nil {
+		l.WithField("event-step", "OpenFGA Read").
+			WithError(err).
+			Error("Failed to read relation for deletion")
 		return err
-	} else if ok {
-		tuple := client.ClientWriteRequest{
-			Deletes: []client.ClientTupleKeyWithoutCondition{
-				{
-					User:     string(r.UserType) + ":" + string(r.UserId),
-					Relation: string(r.Relation),
-					Object:   string(r.ObjectType) + ":" + string(r.ObjectId),
-				},
-			},
-		}
-		options := client.ClientWriteOptions{
-			Conflict: client.ClientWriteConflictOptions{
-				// gracefully ignore any tuples in the request that do not exist
-				OnMissingDeletes: client.CLIENT_WRITE_REQUEST_ON_MISSING_DELETES_IGNORE,
-			},
-		}
-		_, err := a.client.Write(context.Background()).Body(tuple).Options(options).Execute()
-		if err != nil {
-			a.logger.Errorf("OpenFGA Write (RemoveRelation) error: %v", err)
-		}
-		return err
-	} else {
-		a.logger.Infof("Relation %s for user %s on resource %s doesn't exist", r.Relation, r.UserId, r.ObjectId)
 	}
+	if !ok {
+		l.WithField("event-step", "OpenFGA Read").
+			Info("No matching relation to delete")
+		return nil
+	}
+
+	// Delete the relation
+	writeReq := client.ClientWriteRequest{
+		Deletes: []client.ClientTupleKeyWithoutCondition{
+			{
+				User:     string(r.UserType) + ":" + string(r.UserId),
+				Relation: string(r.Relation),
+				Object:   string(r.ObjectType) + ":" + string(r.ObjectId),
+			},
+		},
+	}
+	options := client.ClientWriteOptions{
+		Conflict: client.ClientWriteConflictOptions{
+			OnMissingDeletes: client.CLIENT_WRITE_REQUEST_ON_MISSING_DELETES_IGNORE,
+		},
+	}
+	_, err = a.client.Write(context.Background()).Body(writeReq).Options(options).Execute()
+	if err != nil {
+		l.WithField("event-step", "OpenFGA DeleteRelations").
+			WithError(err).
+			Errorf("Error while deleting relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
+		return err
+	}
+
+	l.WithField("event-step", "OpenFGA DeleteRelations").
+		WithField("deleted", 1).
+		Infof("Deleted relation tuple: (%s, %s, %s, %s)", r.UserId, r.ObjectId, r.ObjectType, r.Relation)
 	return nil
 }
 
 // RemoveRelationBulk removes all relations that match the given RelationInput as filters.
 func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
+	l := a.logger.WithFields(logrus.Fields{
+		"event":       "HandleRemoveAuthzRelationBulk",
+		"filterCount": len(r),
+	})
+
+	// Collect all matching tuples for given filters
 	tuples := []client.ClientTupleKeyWithoutCondition{}
 	for _, rel := range r {
-		newTuples, err := a.ListRelations(rel)
-		tuples = append(tuples, newTuples...)
+		found, err := a.ListRelations(rel)
 		if err != nil {
+			l.WithField("event-step", "OpenFGA ListRelations").
+				WithError(err).
+				Error("Failed to read relations for deletion")
 			return err
 		}
+		tuples = append(tuples, found...)
 	}
 
 	if len(tuples) == 0 {
+		l.WithField("event-step", "OpenFGA ListRelations").
+			Info("No matching relations to delete")
 		return nil
 	}
 
@@ -284,28 +332,27 @@ func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
 	}
 	options := client.ClientWriteOptions{
 		Conflict: client.ClientWriteConflictOptions{
-			// gracefully ignore any tuples in the request that do not exist
 			OnMissingDeletes: client.CLIENT_WRITE_REQUEST_ON_MISSING_DELETES_IGNORE,
 		},
 	}
 	_, err := a.client.Write(context.Background()).Body(writeReq).Options(options).Execute()
 	if err != nil {
-		a.logger.Errorf("OpenFGA Delete (DeleteRelations) error: %v", err)
-	} else {
-		a.logger.Infof("OpenFGA Delete (DeleteRelations): Deleted %d relations", len(tuples))
+		l.WithField("event-step", "OpenFGA DeleteRelations").
+			WithField("attemptedDeletes", len(tuples)).
+			WithError(err).
+			Error("Failed to delete relations")
+		return err
 	}
-	return err
+
+	l.WithField("event-step", "OpenFGA DeleteRelations").
+		WithField("deleted", len(tuples)).
+		Info("Deleted relations")
+	return nil
 }
 
 // UpdateRelation updates relations by removing relations that match the filter for the old relation and adding the new relation.
 func (a *Authz) UpdateRelation(add RelationInput, rem RelationInput) error {
-	l := logrus.WithFields(logrus.Fields{
-		"event":            "HandleCreateAuthzRelation",
-		"user":             add.UserId,
-		"resourceId":       add.ObjectId,
-		"resourceType":     add.ObjectType,
-		"resourceRelation": add.Relation,
-	})
+	l := a.logRel("HandleUpdateAuthzRelation", rem)
 
 	if err := a.RemoveRelationBulk([]RelationInput{rem}); err != nil {
 		l.WithField("event-step", "OpenFGA RemoveRelationBulk").
@@ -317,12 +364,15 @@ func (a *Authz) UpdateRelation(add RelationInput, rem RelationInput) error {
 		Infof("Removed relation tuple: (%s, %s, %s, %s)", rem.UserId, rem.ObjectId, rem.ObjectType, rem.Relation)
 
 	if err := a.AddRelation(add); err != nil {
-		l.WithField("event-step", "OpenFGA AddRelation").
+		// switch log context to the add relation
+		a.logRel("HandleUpdateAuthzRelation", add).
+			WithField("event-step", "OpenFGA AddRelation").
 			WithError(err).
 			Errorf("Error while adding relation tuple: (%s, %s, %s, %s)", add.UserId, add.ObjectId, add.ObjectType, add.Relation)
 		return err
 	}
-	l.WithField("event-step", "OpenFGA AddRelation").
+	a.logRel("HandleUpdateAuthzRelation", add).
+		WithField("event-step", "OpenFGA AddRelation").
 		Infof("Added relation tuple: (%s, %s, %s, %s)", add.UserId, add.ObjectId, add.ObjectType, add.Relation)
 
 	return nil

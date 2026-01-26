@@ -1,6 +1,10 @@
 package openfga
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/sirupsen/logrus"
+)
 
 // ObjectIdFromInt converts a numeric ID to an OpenFGA ObjectId.
 func ObjectIdFromInt(id int64) ObjectId {
@@ -30,4 +34,16 @@ func matchesFilter(userParts, objectParts []string, r RelationInput, relation st
 		return false
 	}
 	return true
+}
+
+// helper: build a consistent log entry for a relation input
+func (a *Authz) logRel(event string, r RelationInput) *logrus.Entry {
+	return a.logger.WithFields(logrus.Fields{
+		"event":      event,
+		"userType":   r.UserType,
+		"user":       r.UserId,
+		"relation":   r.Relation,
+		"objectType": r.ObjectType,
+		"objectId":   r.ObjectId,
+	})
 }
