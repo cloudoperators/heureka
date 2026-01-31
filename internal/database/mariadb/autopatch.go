@@ -97,7 +97,17 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		return false, err
 	}
 
+	versionOfDisappearedInstances, err := s.getVersionIdsOfDisappearedInstances(disappearedInstances)
+	if err != nil {
+		return false, err
+	}
+
 	err = s.deleteDisappearedInstances(disappearedInstances)
+	if err != nil {
+		return false, err
+	}
+
+	err = s.deleteVersionsOfDisappearedInstances(versionOfDisappearedInstances)
 	if err != nil {
 		return false, err
 	}
@@ -156,6 +166,42 @@ func (s *SqlDatabase) deleteIssueMatchesOfDisappearedInstances(disappearedInstan
 			}
 		}
 	}
+	return nil
+}
+
+func (s *SqlDatabase) getVersionIdsOfDisappearedInstances(disappearedInstances []int) (map[int64]struct{}, error) {
+	idsDisappeared := lo.Map(disappearedInstances, func(v int, _ int) *int64 {
+		vv := int64(v)
+		return &vv
+	})
+
+	cif := entity.ComponentInstanceFilter{Id: idsDisappeared}
+	res, err := s.GetComponentInstances(&cif, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	versionIdsOfDisappearedInstances := make(map[int64]struct{})
+	for _, ci := range res {
+		versionIdsOfDisappearedInstances[ci.ComponentVersionId] = struct{}{}
+	}
+	return versionIdsOfDisappearedInstances, nil
+}
+
+func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(versionIdsOfDisappearedInstances map[int64]struct{}) error {
+	for vIdDi, _ := range versionIdsOfDisappearedInstances {
+		cvf := entity.ComponentInstanceFilter{ComponentVersionId: []*int64{&vIdDi}}
+		res, err := s.GetComponentInstances(&cvf, nil)
+		if err != nil {
+			return err
+		}
+		if len(res) == 0 {
+			if err := s.DeleteComponentVersion(vIdDi, util.SystemUserId); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
