@@ -20,6 +20,9 @@ type Remediation implements Node {
 
 enum RemediationTypeValues {
     false_positive
+    risk_accepted
+    mitigation
+    rescore
 }
 
 type RemediationConnection implements Connection {

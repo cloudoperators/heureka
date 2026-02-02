@@ -254,6 +254,66 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						}
 					})
 				})
+				It("can filter by 'risk_accepted' type", func() {
+					remediationType := entity.RemediationTypeRiskAccepted.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeRiskAccepted.String()))
+						}
+					})
+				})
+				It("can filter by 'mitigation' type", func() {
+					remediationType := entity.RemediationTypeMitigation.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeMitigation.String()))
+						}
+					})
+				})
+				It("can filter by 'rescore' type", func() {
+					remediationType := entity.RemediationTypeRescore.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeRescore.String()))
+						}
+					})
+				})
 				It("can filter by wildcard search", func() {
 					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
 
