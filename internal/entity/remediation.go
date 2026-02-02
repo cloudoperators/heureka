@@ -9,6 +9,9 @@ type RemediationType string
 
 const (
 	RemediationTypeFalsePositive RemediationType = "false_positive"
+	RemediationTypeRiskAccepted  RemediationType = "risk_accepted"
+	RemediationTypeMitigation    RemediationType = "mitigation"
+	RemediationTypeRescore       RemediationType = "rescore"
 	RemediationTypeUnknown       RemediationType = "unknown"
 )
 
@@ -20,12 +23,22 @@ func NewRemediationType(s string) RemediationType {
 	switch s {
 	case RemediationTypeFalsePositive.String():
 		return RemediationTypeFalsePositive
+	case RemediationTypeRiskAccepted.String():
+		return RemediationTypeRiskAccepted
+	case RemediationTypeMitigation.String():
+		return RemediationTypeMitigation
+	case RemediationTypeRescore.String():
+		return RemediationTypeRescore
 	}
+
 	return RemediationTypeUnknown
 }
 
 var AllRemediationTypes = []string{
 	RemediationTypeFalsePositive.String(),
+	RemediationTypeRiskAccepted.String(),
+	RemediationTypeMitigation.String(),
+	RemediationTypeRescore.String(),
 }
 
 type Remediation struct {
