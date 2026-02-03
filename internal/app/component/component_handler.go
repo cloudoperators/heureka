@@ -18,9 +18,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetComponentCcrns = 12 * time.Hour
-var CacheTtlGetAllComponentCursors = 12 * time.Hour
-var CacheTtlCountComponents = 12 * time.Hour
+var (
+	CacheTtlGetComponentCcrns      = 12 * time.Hour
+	CacheTtlGetAllComponentCursors = 12 * time.Hour
+	CacheTtlCountComponents        = 12 * time.Hour
+)
 
 type componentHandler struct {
 	database      database.Database
@@ -130,7 +132,6 @@ func (cs *componentHandler) CreateComponent(ctx context.Context, component *enti
 
 	lo := entity.NewListOptions()
 	components, err := cs.ListComponents(f, lo)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating component.")
@@ -141,7 +142,6 @@ func (cs *componentHandler) CreateComponent(ctx context.Context, component *enti
 	}
 
 	newComponent, err := cs.database.CreateComponent(component)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating component.")
@@ -166,7 +166,6 @@ func (cs *componentHandler) UpdateComponent(ctx context.Context, component *enti
 	}
 
 	err = cs.database.UpdateComponent(component)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while updating component.")
@@ -174,7 +173,6 @@ func (cs *componentHandler) UpdateComponent(ctx context.Context, component *enti
 
 	lo := entity.NewListOptions()
 	componentResult, err := cs.ListComponents(&entity.ComponentFilter{Id: []*int64{&component.Id}}, lo)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving updated component.")
@@ -203,7 +201,6 @@ func (cs *componentHandler) DeleteComponent(ctx context.Context, id int64) error
 	}
 
 	err = cs.database.DeleteComponent(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewUserHandlerError("Internal error while deleting component.")
@@ -227,7 +224,6 @@ func (cs *componentHandler) ListComponentCcrns(filter *entity.ComponentFilter, o
 		cs.database.GetComponentCcrns,
 		filter,
 	)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving componentCcrns.")

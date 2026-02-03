@@ -25,8 +25,10 @@ func TestUserHandler(t *testing.T) {
 	RunSpecs(t, "User Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -66,7 +68,6 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetUsers", filter).Return([]entity.User{}, nil)
@@ -89,7 +90,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			filter.First = &pageSize
 			users := test.NNewFakeUserEntities(resElements)
 
-			var ids = lo.Map(users, func(u entity.User, _ int) int64 { return u.Id })
+			ids := lo.Map(users, func(u entity.User, _ int) int64 { return u.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++
@@ -241,6 +242,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		Expect(users.Elements).To(BeEmpty(), "no error should be thrown")
 	})
 })
+
 var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 	var (
 		db             *mocks.MockDatabase
@@ -264,7 +266,6 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetUserNames", filter).Return([]string{}, nil)
 		})
@@ -292,6 +293,7 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 		})
 	})
 })
+
 var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"), func() {
 	var (
 		db             *mocks.MockDatabase
@@ -315,7 +317,6 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetUniqueUserIDs", filter).Return([]string{}, nil)
 		})

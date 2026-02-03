@@ -46,7 +46,6 @@ func (r *issueMatchResolver) Evidences(ctx context.Context, obj *model.IssueMatc
 
 func (r *issueMatchResolver) Issue(ctx context.Context, obj *model.IssueMatch) (*model.Issue, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueID})
-
 	if err != nil {
 		logrus.WithField("obj", obj).Error("IssueMatchResolver: Error while parsing childIds'")
 		return nil, err
@@ -64,7 +63,6 @@ func (r *issueMatchResolver) Issue(ctx context.Context, obj *model.IssueMatch) (
 
 func (r *issueMatchResolver) ComponentInstance(ctx context.Context, obj *model.IssueMatch) (*model.ComponentInstance, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentInstanceID})
-
 	if err != nil {
 		logrus.WithField("obj", obj).Error("IssueMatchResolver: Error while parsing childIds'")
 		return nil, err

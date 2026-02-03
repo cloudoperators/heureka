@@ -13,7 +13,6 @@ import (
 )
 
 func SingleActivityBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.Activity, error) {
-
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -31,7 +30,6 @@ func SingleActivityBaseResolver(app app.Heureka, ctx context.Context, parent *mo
 	opt := &entity.ListOptions{}
 
 	activities, err := app.ListActivities(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleActivityBaseResolver", err.Error())
@@ -42,12 +40,12 @@ func SingleActivityBaseResolver(app app.Heureka, ctx context.Context, parent *mo
 		return nil, NewResolverError("SingleActivityBaseResolver", "Internal Error - found multiple activities")
 	}
 
-	//not found
+	// not found
 	if len(activities.Elements) < 1 {
 		return nil, nil
 	}
 
-	var activityResult = activities.Elements[0]
+	activityResult := activities.Elements[0]
 	activity := model.NewActivity(activityResult.Activity)
 
 	return &activity, nil
@@ -99,7 +97,6 @@ func ActivityBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ac
 	opt := GetListOptions(requestedFields)
 
 	activities, err := app.ListActivities(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("ActivityBaseResolver", err.Error())
 	}
@@ -126,5 +123,4 @@ func ActivityBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ac
 	}
 
 	return &connection, nil
-
 }

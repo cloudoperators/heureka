@@ -81,7 +81,6 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -115,10 +114,8 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(respData.ComponentInstances.TotalCount).To(Equal(len(seedCollection.ComponentInstanceRows)))
 				Expect(len(respData.ComponentInstances.Edges)).To(Equal(5))
 			})
-
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 			var respData struct {
 				ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
 			}
@@ -152,7 +149,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 			})
 
 			It("- returns the expected content", func() {
-				//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 				// a complete verification
 				// additional checks are added based on bugs discovered during usage
 
@@ -208,7 +205,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 			}
 			c := collate.New(language.English)
 
-			var sendOrderRequest = func(orderBy []map[string]string) (*model.ComponentInstanceConnection, error) {
+			sendOrderRequest := func(orderBy []map[string]string) (*model.ComponentInstanceConnection, error) {
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
@@ -225,13 +222,11 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				ctx := context.Background()
 
 				err = client.Run(ctx, req, &respData)
-
 				if err != nil {
 					return nil, err
 				}
 
 				return &respData.ComponentInstances, nil
-
 			}
 
 			It("can order by region", Label("withOrder.graphql"), func() {
@@ -360,7 +355,6 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 })
 
 var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentInstances"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -384,7 +378,6 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -445,7 +438,6 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 })
 
 var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentInstances"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -518,7 +510,6 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 })
 
 var _ = Describe("Deleting ComponentInstance via API", Label("e2e", "ComponentInstances"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

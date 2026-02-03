@@ -87,7 +87,6 @@ func (s *SeedCollection) GetIssueMatchesByServiceOwner(owner mariadb.OwnerRow) [
 
 	return lo.Filter(s.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) bool {
 		return lo.Contains(ciIds, im.ComponentInstanceId.Int64)
-
 	})
 }
 
@@ -221,7 +220,6 @@ type DatabaseSeeder struct {
 
 func NewDatabaseSeeder(cfg util.Config) (*DatabaseSeeder, error) {
 	db, err := mariadb.Connect(cfg)
-
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +227,6 @@ func NewDatabaseSeeder(cfg util.Config) (*DatabaseSeeder, error) {
 	return &DatabaseSeeder{
 		db: db,
 	}, nil
-
 }
 
 func (s *DatabaseSeeder) CloseDbConnection() {
@@ -267,7 +264,7 @@ func GenerateRandomCVSS31Vector() string {
 
 	var baseVector []string
 
-	//version
+	// version
 	baseVector = append(baseVector, "CVSS:3.1")
 
 	// Attack Vector (AV)
@@ -1632,7 +1629,7 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	}
 	region := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"})
 	cluster := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1", "a-test-de-1", "a-test-de-2", "a-test-us-1", "a-test-jp-2", "a-test-jp-1", "v-test-de-1", "v-test-de-2", "v-test-us-1", "v-test-jp-2", "v-test-jp-1", "s-test-de-1", "s-test-de-2", "s-test-us-1", "s-test-jp-2", "s-test-jp-1"})
-	//make lower case to avoid conflicts in different lexicographical ordering between sql and golang due to collation
+	// make lower case to avoid conflicts in different lexicographical ordering between sql and golang due to collation
 	namespace := strings.ToLower(gofakeit.ProductName())
 	domain := strings.ToLower(gofakeit.SongName())
 	project := strings.ToLower(gofakeit.BeerName())
@@ -2016,5 +2013,4 @@ func (s *DatabaseSeeder) RefreshComponentVulnerabilityCounts() error {
 		CALL refresh_mvAllComponentsByServiceVulnerabilityCounts_proc();
 	`)
 	return err
-
 }

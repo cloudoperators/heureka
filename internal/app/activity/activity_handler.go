@@ -64,7 +64,6 @@ func (a *activityHandler) GetActivity(activityId int64) (*entity.Activity, error
 	})
 	activityFilter := entity.ActivityFilter{Id: []*int64{&activityId}}
 	activities, err := a.ListActivities(&activityFilter, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while retrieving activities.")
@@ -93,7 +92,6 @@ func (a *activityHandler) ListActivities(filter *entity.ActivityFilter, options 
 	})
 
 	res, err := a.getActivityResults(filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Error while filtering for Activities")
@@ -147,7 +145,6 @@ func (a *activityHandler) CreateActivity(ctx context.Context, activity *entity.A
 	activity.UpdatedBy = activity.CreatedBy
 
 	newActivity, err := a.database.CreateActivity(activity)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while creating activity.")
@@ -174,7 +171,6 @@ func (a *activityHandler) UpdateActivity(ctx context.Context, activity *entity.A
 	}
 
 	err = a.database.UpdateActivity(activity)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while updating activity.")
@@ -200,7 +196,6 @@ func (a *activityHandler) DeleteActivity(ctx context.Context, id int64) error {
 	}
 
 	err = a.database.DeleteActivity(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewActivityHandlerError("Internal error while deleting activity.")
@@ -221,7 +216,6 @@ func (a *activityHandler) AddServiceToActivity(activityId, serviceId int64) (*en
 	})
 
 	err := a.database.AddServiceToActivity(activityId, serviceId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while adding service to activity.")
@@ -243,7 +237,6 @@ func (a *activityHandler) RemoveServiceFromActivity(activityId, serviceId int64)
 	})
 
 	err := a.database.RemoveServiceFromActivity(activityId, serviceId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while removing service from activity.")
@@ -265,7 +258,6 @@ func (a *activityHandler) AddIssueToActivity(activityId, issueId int64) (*entity
 	})
 
 	err := a.database.AddIssueToActivity(activityId, issueId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while adding issue to activity.")
@@ -287,7 +279,6 @@ func (a *activityHandler) RemoveIssueFromActivity(activityId, issueId int64) (*e
 	})
 
 	err := a.database.RemoveIssueFromActivity(activityId, issueId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewActivityHandlerError("Internal error while removing issue from activity.")

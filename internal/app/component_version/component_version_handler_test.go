@@ -26,8 +26,10 @@ func TestComponentVersionHandler(t *testing.T) {
 	RunSpecs(t, "Component Version Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -64,7 +66,6 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
@@ -91,7 +92,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 				componentVersions = append(componentVersions, entity.ComponentVersionResult{WithCursor: entity.WithCursor{Value: cursor}, ComponentVersion: lo.ToPtr(cv)})
 			}
 
-			var cursors = lo.Map(componentVersions, func(m entity.ComponentVersionResult, _ int) string {
+			cursors := lo.Map(componentVersions, func(m entity.ComponentVersionResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *m.ComponentVersion, entity.IssueSeverityCounts{}))
 				return cursor
 			})

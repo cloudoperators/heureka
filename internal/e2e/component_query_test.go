@@ -80,7 +80,6 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -114,10 +113,8 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				Expect(respData.Components.TotalCount).To(Equal(len(seedCollection.ComponentRows)))
 				Expect(len(respData.Components.Edges)).To(Equal(5))
 			})
-
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 			var respData struct {
 				Components model.ComponentConnection `json:"Components"`
 			}
@@ -151,7 +148,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 			})
 
 			It("- returns the expected content", func() {
-				//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 				// a complete verification
 				// additional checks are added based on bugs discovered during usage
 
@@ -183,13 +180,11 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				Expect(len(respData.Components.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
 				Expect(*respData.Components.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 			})
-
 		})
 	})
 })
 
 var _ = Describe("Creating Component via API", Label("e2e", "Components"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -213,7 +208,6 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			component = testentity.NewFakeComponentEntity()
@@ -258,7 +252,6 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 })
 
 var _ = Describe("Updating Component via API", Label("e2e", "Components"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -324,7 +317,6 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 })
 
 var _ = Describe("Deleting Component via API", Label("e2e", "Components"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

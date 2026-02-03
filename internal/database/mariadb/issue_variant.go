@@ -12,7 +12,7 @@ import (
 )
 
 func ensureIssueVariantFilter(f *entity.IssueVariantFilter) *entity.IssueVariantFilter {
-	var first = 1000
+	first := 1000
 	var after int64 = 0
 	if f == nil {
 		return &entity.IssueVariantFilter{
@@ -126,7 +126,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entit
 		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -139,7 +139,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entit
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.SecondaryName)
@@ -167,7 +167,6 @@ func (s *SqlDatabase) GetAllIssueVariantIds(filter *entity.IssueVariantFilter) (
     `
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +189,6 @@ func (s *SqlDatabase) GetIssueVariants(filter *entity.IssueVariantFilter) ([]ent
     `
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +216,6 @@ func (s *SqlDatabase) CountIssueVariants(filter *entity.IssueVariantFilter) (int
 		%s
     `
 	stmt, filterParameters, err := s.buildIssueVariantStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -266,7 +263,6 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 	issueVariantRow.FromIssueVariant(issueVariant)
 
 	id, err := performInsert(s, query, issueVariantRow, l)
-
 	if err != nil {
 		return nil, err
 	}

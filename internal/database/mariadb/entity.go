@@ -420,7 +420,8 @@ func (irr *IssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 			ServiceId:         GetInt64Value(irr.ServiceId),
 			IssueRepositoryId: GetInt64Value(irr.IssueRepositoryId),
 			Priority:          GetInt64Value(irr.Priority),
-		}}
+		},
+	}
 }
 
 type IssueVariantRow struct {
@@ -746,7 +747,8 @@ func (sr *ServiceRow) AsService() entity.Service {
 			ServiceId:         GetInt64Value(sr.ServiceId),
 			IssueRepositoryId: GetInt64Value(sr.IssueRepositoryId),
 			Priority:          GetInt64Value(sr.Priority),
-		}}
+		},
+	}
 }
 
 func (sr *ServiceRow) FromService(s *entity.Service) {
@@ -898,7 +900,6 @@ func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance 
 }
 
 func (cir *ComponentInstanceRow) FromComponentInstance(ci *entity.ComponentInstance) {
-
 	if ci.ParentId > 0 {
 		cir.ParentId = sql.NullInt64{Int64: ci.ParentId, Valid: true}
 	}

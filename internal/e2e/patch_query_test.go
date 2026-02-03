@@ -44,7 +44,6 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 
 	When("the database is empty", func() {
 		It("returns empty result set", func() {
-
 			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Patches model.PatchConnection `json:"Patches"`
 			}](
@@ -76,7 +75,8 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 					map[string]interface{}{
 						"filter": map[string]string{},
 						"first":  5,
-						"after":  ""})
+						"after":  "",
+					})
 				Expect(respData.Patches.TotalCount).To(Equal(len(seedCollection.PatchRows)))
 				Expect(len(respData.Patches.Edges)).To(Equal(5))
 				//- returns the expected PageInfo

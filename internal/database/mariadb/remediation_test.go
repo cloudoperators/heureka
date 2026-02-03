@@ -5,6 +5,7 @@ package mariadb_test
 
 import (
 	"database/sql"
+	"math/rand"
 	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
@@ -14,12 +15,9 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"math/rand"
 )
 
 var _ = Describe("Remediation", Label("database", "Remediation"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
@@ -347,7 +345,6 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					By("returning the expected elements", func() {
 						Expect(ids).To(ContainElement(row.Id.Int64))
 					})
-
 				})
 			})
 			Context("and using pagination", func() {

@@ -31,7 +31,6 @@ var er event.EventRegistry
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
 	er = event.NewEventRegistry(db)
-
 })
 
 func issueVariantFilter() *entity.IssueVariantFilter {
@@ -92,7 +91,6 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
@@ -115,7 +113,7 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 			filter.First = &pageSize
 			advisories := test.NNewFakeIssueVariants(resElements)
 
-			var ids = lo.Map(advisories, func(iv entity.IssueVariant, _ int) int64 { return iv.Id })
+			ids := lo.Map(advisories, func(iv entity.IssueVariant, _ int) int64 { return iv.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++

@@ -16,7 +16,7 @@ func ensureIssueMatchChangeFilter(f *entity.IssueMatchChangeFilter) *entity.Issu
 		return f
 	}
 
-	var first = 1000
+	first := 1000
 	var after int64 = 0
 	return &entity.IssueMatchChangeFilter{
 		Paginated: entity.Paginated{
@@ -72,7 +72,7 @@ func (s *SqlDatabase) buildIssueMatchChangeStatement(baseQuery string, filter *e
 		query = fmt.Sprintf(baseQuery, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -85,7 +85,7 @@ func (s *SqlDatabase) buildIssueMatchChangeStatement(baseQuery string, filter *e
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
@@ -110,7 +110,6 @@ func (s *SqlDatabase) GetAllIssueMatchChangeIds(filter *entity.IssueMatchChangeF
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchChangeStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +133,6 @@ func (s *SqlDatabase) GetIssueMatchChanges(filter *entity.IssueMatchChangeFilter
 	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s")
 
 	stmt, filterParameters, err := s.buildIssueMatchChangeStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +159,6 @@ func (s *SqlDatabase) CountIssueMatchChanges(filter *entity.IssueMatchChangeFilt
 		%s
 	`
 	stmt, filterParameters, err := s.buildIssueMatchChangeStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -197,7 +194,6 @@ func (s *SqlDatabase) CreateIssueMatchChange(imc *entity.IssueMatchChange) (*ent
 	imcRow.FromIssueMatchChange(imc)
 
 	id, err := performInsert(s, query, imcRow, l)
-
 	if err != nil {
 		return nil, err
 	}

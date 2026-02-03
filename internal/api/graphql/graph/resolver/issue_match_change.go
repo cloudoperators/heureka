@@ -20,7 +20,6 @@ import (
 
 func (r *issueMatchChangeResolver) IssueMatch(ctx context.Context, obj *model.IssueMatchChange) (*model.IssueMatch, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueMatchID})
-
 	if err != nil {
 		logrus.WithField("obj", obj).Error("IssueMatchChangeResolver: Error while parsing childIds'")
 		return nil, err
@@ -38,7 +37,6 @@ func (r *issueMatchChangeResolver) IssueMatch(ctx context.Context, obj *model.Is
 
 func (r *issueMatchChangeResolver) Activity(ctx context.Context, obj *model.IssueMatchChange) (*model.Activity, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ActivityID})
-
 	if err != nil {
 		logrus.WithField("obj", obj).Error("IssueMatchChangeResolver: Error while parsing childIds'")
 		return nil, err

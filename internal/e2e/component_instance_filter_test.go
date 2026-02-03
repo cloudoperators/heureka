@@ -115,7 +115,6 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)

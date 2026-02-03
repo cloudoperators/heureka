@@ -5,12 +5,11 @@ package remediation_test
 
 import (
 	"errors"
+	"math"
+	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/stretchr/testify/mock"
-
-	"math"
-	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/event"
 	rh "github.com/cloudoperators/heureka/internal/app/remediation"
@@ -30,8 +29,10 @@ func TestRemediationHandler(t *testing.T) {
 	RunSpecs(t, "Remediation Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -64,7 +65,6 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetRemediations", filter, []entity.Order{}).Return([]entity.RemediationResult{}, nil)
@@ -91,7 +91,7 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 				remediations = append(remediations, entity.RemediationResult{WithCursor: entity.WithCursor{Value: cursor}, Remediation: lo.ToPtr(remediation)})
 			}
 
-			var cursors = lo.Map(remediations, func(m entity.RemediationResult, _ int) string {
+			cursors := lo.Map(remediations, func(m entity.RemediationResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithRemediation([]entity.Order{}, *m.Remediation))
 				return cursor
 			})
@@ -175,7 +175,6 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 			Expect(appErr.Op).To(Equal("remediationHandler.ListRemediations"), "should include operation")
 		})
 	})
-
 })
 
 var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"), func() {

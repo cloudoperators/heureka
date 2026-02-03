@@ -27,7 +27,6 @@ import (
 )
 
 var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -80,7 +79,6 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -118,7 +116,6 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 				})
 			})
 			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 				var respData struct {
 					Issues model.IssueConnection `json:"Issues"`
 				}
@@ -151,7 +148,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 				})
 
 				It("- returns the expected content", func() {
-					//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
 
@@ -168,7 +165,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 							_, ivFound := lo.Find(seedCollection.IssueVariantRows, func(row mariadb.IssueVariantRow) bool {
 								return fmt.Sprintf("%d", row.Id.Int64) == iv.Node.ID && // correct issueVariant
 									fmt.Sprintf("%d", row.IssueId.Int64) == issue.Node.ID && // belongs actually to the issue
-									fmt.Sprintf("%d", row.IssueRepositoryId.Int64) == iv.Node.IssueRepository.ID //references correct repository
+									fmt.Sprintf("%d", row.IssueRepositoryId.Int64) == iv.Node.IssueRepository.ID // references correct repository
 							})
 							Expect(ivFound).To(BeTrue(), "attached issueVariant does exist and belongs to issue and repository belongs to issueVariant")
 
@@ -246,7 +243,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 					Issues model.IssueConnection `json:"Issues"`
 				}
 
-				var sendOrderRequest = func(orderBy []map[string]string) (*model.IssueConnection, error) {
+				sendOrderRequest := func(orderBy []map[string]string) (*model.IssueConnection, error) {
 					// create a queryCollection (safe to share across requests)
 					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
@@ -263,13 +260,11 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 					ctx := context.Background()
 
 					err = client.Run(ctx, req, &respData)
-
 					if err != nil {
 						return nil, err
 					}
 
 					return &respData.Issues, nil
-
 				}
 
 				It("can order by primaryName", Label("withOrder.graphql"), func() {
@@ -316,7 +311,6 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 })
 
 var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -340,7 +334,6 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			issue = testentity.NewFakeIssueEntity()
@@ -383,7 +376,6 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 })
 
 var _ = Describe("Updating issue via API", Label("e2e", "Issues"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -449,7 +441,6 @@ var _ = Describe("Updating issue via API", Label("e2e", "Issues"), func() {
 })
 
 var _ = Describe("Deleting Issue via API", Label("e2e", "Issues"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -511,7 +502,6 @@ var _ = Describe("Deleting Issue via API", Label("e2e", "Issues"), func() {
 })
 
 var _ = Describe("Modifying relationship of ComponentVersion of Issue via API", Label("e2e", "ComponentVersionIssueRelationship"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

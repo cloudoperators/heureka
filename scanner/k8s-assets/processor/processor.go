@@ -4,12 +4,11 @@
 package processor
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
 	"strings"
-
-	"bytes"
 	"text/template"
 
 	"github.com/Khan/genqlient/graphql"
@@ -68,7 +67,7 @@ type UniqueContainerInfo struct {
 }
 
 func (c CCRN) String() string {
-	//actual CCRN template as per the CCRN spec of k8s_regsitry
+	// actual CCRN template as per the CCRN spec of k8s_regsitry
 	// Reference: https://github.wdf.sap.corp/PlusOne/resource-name/blob/main/ccrn-chart/templates/crds/k8s_registry/container.yaml
 	ccrnTemplate := `ccrn: apiVersion=k8s-registry.ccrn.sap.cloud/v1, kind=container, cluster={{.Cluster}}, namespace={{.Namespace}}, pod={{.Pod}}, name={{.Container}}`
 
@@ -161,7 +160,6 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 	}
 
 	_, err = client.AddServiceToSupportGroup(ctx, *p.Client, supportGroupId, serviceId)
-
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"serviceCcrn":  serviceInfo.CCRN,
@@ -283,13 +281,11 @@ func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, 
 }
 
 func (p *Processor) getComponentInstance(ctx context.Context, ccrn string) (string, error) {
-
 	f := client.ComponentInstanceFilter{
 		Ccrn: []string{ccrn},
 	}
 
 	listComponentInstancesResp, err := client.ListComponentInstances(ctx, *p.Client, &f)
-
 	if err != nil {
 		return "", fmt.Errorf("Couldn't list ComponentInstances")
 	}
@@ -320,7 +316,7 @@ func (p *Processor) getComponentVersion(ctx context.Context, image string, versi
 
 // extractVersion returns the hash part ia container image
 func (p *Processor) extractImageVersion(versionHash string) (*ImageVersion, error) {
-	//separating image name and version hash
+	// separating image name and version hash
 	imageAndVersion := strings.SplitN(versionHash, "@", 2)
 	if len(imageAndVersion) < 2 {
 		return nil, fmt.Errorf("Couldn't split image and version")
@@ -348,7 +344,6 @@ func (p *Processor) ProcessContainer(
 	)
 
 	if p.advConfig != nil {
-
 		if podSideCar, ok := p.advConfig.GetSideCar(containerInfo.Name); ok {
 			// get the service id
 			sid, err := p.ProcessService(ctx, scanner.ServiceInfo{
@@ -358,7 +353,7 @@ func (p *Processor) ProcessContainer(
 			if err != nil {
 				log.WithError(err).Error("failed to process service")
 			} else {
-				//overwrite the ServiceID for the component instance
+				// overwrite the ServiceID for the component instance
 				serviceID = sid
 			}
 		}
@@ -393,7 +388,6 @@ func (p *Processor) ProcessContainer(
 	componentCcrn := fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository)
 
 	componentId, err := p.getComponent(ctx, componentCcrn)
-
 	if err != nil {
 		componentId, err = p.createComponent(ctx, &client.ComponentInput{
 			Ccrn:         componentCcrn,

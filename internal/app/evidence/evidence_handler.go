@@ -69,7 +69,6 @@ func (e *evidenceHandler) ListEvidences(filter *entity.EvidenceFilter, options *
 	})
 
 	res, err := e.getEvidenceResults(filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Error while filtering for Evidences")
@@ -119,7 +118,6 @@ func (e *evidenceHandler) CreateEvidence(ctx context.Context, evidence *entity.E
 	evidence.UpdatedBy = evidence.CreatedBy
 
 	newEvidence, err := e.database.CreateEvidence(evidence)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Internal error while creating evidence.")
@@ -144,14 +142,12 @@ func (e *evidenceHandler) UpdateEvidence(ctx context.Context, evidence *entity.E
 	}
 
 	err = e.database.UpdateEvidence(evidence)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Internal error while updating evidence.")
 	}
 
 	evidenceResult, err := e.ListEvidences(&entity.EvidenceFilter{Id: []*int64{&evidence.Id}}, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewEvidenceHandlerError("Internal error while retrieving updated evidence.")
@@ -180,7 +176,6 @@ func (e *evidenceHandler) DeleteEvidence(ctx context.Context, id int64) error {
 	}
 
 	err = e.database.DeleteEvidence(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewEvidenceHandlerError("Internal error while deleting evidence.")

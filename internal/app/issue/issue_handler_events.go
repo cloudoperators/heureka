@@ -121,7 +121,6 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 		componentInstances, err := db.GetComponentInstances(&entity.ComponentInstanceFilter{
 			ComponentVersionId: []*int64{&attachmentEvent.ComponentVersionID},
 		}, []entity.Order{})
-
 		if err != nil {
 			l.WithField("event-step", "GetComponentInstances").WithError(err).Error("Error while fetching ComponentInstances")
 			return
@@ -145,7 +144,6 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
 	} else {
 		l.Error("Invalid event type received")
 	}
-
 }
 
 // TODO: This function is very similar to the one used in issue_match_handler_events.go
@@ -171,7 +169,6 @@ func createIssueMatches(
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceId},
 		}, []entity.Order{})
-
 		if err != nil {
 			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
 		}
@@ -196,7 +193,7 @@ func createIssueMatches(
 			},
 			UserId:                user,
 			Status:                entity.IssueMatchStatusValuesNew,
-			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
+			Severity:              issueVariantMap[issueId].Severity, // we got two  simply take the first one
 			ComponentInstanceId:   componentInstanceId,
 			IssueId:               issueId,
 			TargetRemediationDate: shared.GetTargetRemediationTimeline(issueVariant.Severity, time.Now(), nil),

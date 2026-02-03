@@ -93,7 +93,6 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			Expect(*respData.Images.Counts).To(Equal(counts))
 		})
 	})
-
 })
 
 type imageTest struct {

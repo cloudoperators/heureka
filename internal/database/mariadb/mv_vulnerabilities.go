@@ -103,7 +103,6 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 			return append(l, e.AsIssueSeverityCounts())
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}

@@ -66,7 +66,7 @@ func (dbm *DatabaseManager) Setup() error {
 }
 
 func (dbm *DatabaseManager) ResetSchema(dbName string) error {
-	//load the client
+	// load the client
 	dbm.loadDBClientIfNeeded()
 
 	// Drop main heureka schema

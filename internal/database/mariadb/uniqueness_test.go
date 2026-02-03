@@ -153,7 +153,6 @@ var _ = Describe("Delete uniqueness", Ordered, Label("database", "Uniqueness"), 
 					})
 				})
 			})
-
 		})
 	}
 })
@@ -166,11 +165,11 @@ type uniquenessTestItemTemplateBase struct {
 
 func (utitb *uniquenessTestItemTemplateBase) setup(db *mariadb.SqlDatabase) {
 	utitb.db = db
-	//utitb.db = dbm.NewTestSchema()
+	// utitb.db = dbm.NewTestSchema()
 }
 
 func (utitb *uniquenessTestItemTemplateBase) teardown() {
-	//dbm.TestTearDown(utitb.db)
+	// dbm.TestTearDown(utitb.db)
 }
 
 func (utitb *uniquenessTestItemTemplateBase) expectNoError() {
@@ -324,7 +323,8 @@ func (ucvt *uniquenessComponentVersionTemplate) expectComponentVersionCountForVe
 	cvf := entity.ComponentVersionFilter{
 		Version:     []*string{&version},
 		ComponentId: []*int64{&componentId},
-		State:       []entity.StateFilterType{entity.Active, entity.Deleted}}
+		State:       []entity.StateFilterType{entity.Active, entity.Deleted},
+	}
 	ucvt.expectComponentVersionCount(&cvf, cnt)
 }
 
@@ -332,7 +332,8 @@ func (ucvt *uniquenessComponentVersionTemplate) expectDeletedComponentVersionCou
 	cvf := entity.ComponentVersionFilter{
 		Version:     []*string{&version},
 		ComponentId: []*int64{&componentId},
-		State:       []entity.StateFilterType{entity.Deleted}}
+		State:       []entity.StateFilterType{entity.Deleted},
+	}
 	ucvt.expectComponentVersionCount(&cvf, cnt)
 }
 
@@ -439,7 +440,8 @@ func (ucit *uniquenessComponentInstanceTemplate) expectComponentInstanceCountFor
 	cif := entity.ComponentInstanceFilter{
 		CCRN:      []*string{&ccrn},
 		ServiceId: []*int64{&serviceId},
-		State:     []entity.StateFilterType{entity.Active, entity.Deleted}}
+		State:     []entity.StateFilterType{entity.Active, entity.Deleted},
+	}
 	ucit.expectComponentInstanceCount(&cif, cnt)
 }
 
@@ -447,7 +449,8 @@ func (ucit *uniquenessComponentInstanceTemplate) expectDeletedComponentInstanceC
 	cif := entity.ComponentInstanceFilter{
 		CCRN:      []*string{&ccrn},
 		ServiceId: []*int64{&serviceId},
-		State:     []entity.StateFilterType{entity.Deleted}}
+		State:     []entity.StateFilterType{entity.Deleted},
+	}
 	ucit.expectComponentInstanceCount(&cif, cnt)
 }
 

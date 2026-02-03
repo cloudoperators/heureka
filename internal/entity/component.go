@@ -30,5 +30,4 @@ type ComponentFilter struct {
 	State              []StateFilterType `json:"state"`
 }
 
-type ComponentAggregations struct {
-}
+type ComponentAggregations struct{}

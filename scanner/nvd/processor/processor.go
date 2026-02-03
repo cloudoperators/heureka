@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
@@ -41,7 +40,6 @@ func (p *Processor) Setup() error {
 		Name: []string{p.IssueRepositoryName},
 	}
 	listRepositoriesResp, err := client.GetIssueRepositories(context.TODO(), p.GraphqlClient, &queryFilter)
-
 	if err != nil {
 		return err
 	}

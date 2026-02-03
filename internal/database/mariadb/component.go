@@ -26,7 +26,7 @@ func getComponentFilterString(filter *entity.ComponentFilter) string {
 }
 
 func ensureComponentFilter(f *entity.ComponentFilter) *entity.ComponentFilter {
-	var first = 1000
+	first := 1000
 	after := ""
 	if f == nil {
 		return &entity.ComponentFilter{
@@ -180,7 +180,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -193,7 +193,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Repository)
@@ -220,7 +220,6 @@ func (s *SqlDatabase) GetAllComponentIds(filter *entity.ComponentFilter) ([]int6
     `
 
 	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +245,6 @@ func (s *SqlDatabase) GetAllComponentCursors(filter *entity.ComponentFilter, ord
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +259,6 @@ func (s *SqlDatabase) GetAllComponentCursors(filter *entity.ComponentFilter, ord
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +294,6 @@ func (s *SqlDatabase) GetComponents(filter *entity.ComponentFilter, order []enti
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +336,6 @@ func (s *SqlDatabase) CountComponents(filter *entity.ComponentFilter) (int64, er
 		ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -452,7 +447,6 @@ func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Comp
 	componentRow.FromComponent(component)
 
 	id, err := performInsert(s, query, componentRow, l)
-
 	if err != nil {
 		return nil, err
 	}

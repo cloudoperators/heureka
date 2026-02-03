@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"math/rand"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -11,12 +13,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-
-	"math/rand"
 )
 
 var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
@@ -204,7 +203,6 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 							Expect(irIds).To(ContainElement(entry.Id))
 						}
 					})
-
 				})
 				It("can filter by a single id", func() {
 					// select a service
@@ -231,7 +229,6 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 							Expect(irIds).To(ContainElement(entry.Id))
 						}
 					})
-
 				})
 			})
 			Context("and using pagination", func() {
@@ -278,7 +275,6 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				irRows = seedCollection.IssueRepositoryRows
 				count = len(irRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -396,7 +392,6 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				By("no issueRepository returned", func() {
 					Expect(newIssueRepository).To(BeNil())
 				})
-
 			})
 		})
 	})

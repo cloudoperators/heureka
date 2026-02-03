@@ -19,8 +19,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var systemUserName = "systemuser"
-var systemUserUniqueUserId = "S0000000"
+var (
+	systemUserName         = "systemuser"
+	systemUserUniqueUserId = "S0000000"
+)
 
 type Number interface {
 	int | int64

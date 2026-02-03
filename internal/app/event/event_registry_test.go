@@ -5,16 +5,16 @@ package event
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"fmt"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"sync"
 )
 
 func TestEventRegistry(t *testing.T) {
@@ -87,7 +87,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		var eventHandled int64
 
 		handler := func(db database.Database, e Event) {
-			time.Sleep(2 * time.Millisecond) //important to ensure that the events are shortly blocking and force channel resizing
+			time.Sleep(2 * time.Millisecond) // important to ensure that the events are shortly blocking and force channel resizing
 			atomic.AddInt64(&eventHandled, 1)
 		}
 

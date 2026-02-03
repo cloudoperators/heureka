@@ -79,7 +79,6 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -113,10 +112,8 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 				Expect(respData.IssueVariants.TotalCount).To(Equal(len(seedCollection.IssueVariantRows)))
 				Expect(len(respData.IssueVariants.Edges)).To(Equal(5))
 			})
-
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 			var respData struct {
 				IssueVariants model.IssueVariantConnection `json:"IssueVariants"`
 			}
@@ -149,7 +146,7 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 			})
 
 			It("- returns the expected content", func() {
-				//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 				// a complete verification
 				// additional checks are added based on bugs discovered during usage
 
@@ -193,7 +190,6 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 })
 
 var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -307,7 +303,6 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 })
 
 var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -419,7 +414,6 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 })
 
 var _ = Describe("Deleting IssueVariant via API", Label("e2e", "IssueVariants"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

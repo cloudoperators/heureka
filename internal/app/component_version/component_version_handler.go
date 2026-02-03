@@ -16,9 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetComponentVersions = 12 * time.Hour
-var CacheTtlGetAllComponentVersionCursors = 12 * time.Hour
-var CacheTtlCountComponentVersions = 12 * time.Hour
+var (
+	CacheTtlGetComponentVersions          = 12 * time.Hour
+	CacheTtlGetAllComponentVersionCursors = 12 * time.Hour
+	CacheTtlCountComponentVersions        = 12 * time.Hour
+)
 
 type componentVersionHandler struct {
 	database      database.Database
@@ -65,7 +67,6 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 		filter,
 		options.Order,
 	)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Error while filtering for ComponentVersions")
@@ -132,7 +133,6 @@ func (cv *componentVersionHandler) CreateComponentVersion(ctx context.Context, c
 	componentVersion.UpdatedBy = componentVersion.CreatedBy
 
 	newComponent, err := cv.database.CreateComponentVersion(componentVersion)
-
 	if err != nil {
 		l.Error(err)
 		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
@@ -163,7 +163,6 @@ func (cv *componentVersionHandler) UpdateComponentVersion(ctx context.Context, c
 	}
 
 	err = cv.database.UpdateComponentVersion(componentVersion)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while updating componentVersion.")
@@ -171,7 +170,6 @@ func (cv *componentVersionHandler) UpdateComponentVersion(ctx context.Context, c
 
 	lo := entity.NewListOptions()
 	componentVersionResult, err := cv.ListComponentVersions(&entity.ComponentVersionFilter{Id: []*int64{&componentVersion.Id}}, lo)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while retrieving updated componentVersion.")
@@ -202,7 +200,6 @@ func (cv *componentVersionHandler) DeleteComponentVersion(ctx context.Context, i
 	}
 
 	err = cv.database.DeleteComponentVersion(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewComponentVersionHandlerError("Internal error while deleting componentVersion.")

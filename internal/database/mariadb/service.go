@@ -213,7 +213,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -226,7 +226,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	filterParameters := buildServiceFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
@@ -244,7 +244,6 @@ func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error)
         ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -266,7 +265,6 @@ func (s *SqlDatabase) GetAllServiceIds(filter *entity.ServiceFilter) ([]int64, e
     `
 
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +291,6 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.O
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -455,7 +452,6 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +466,6 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -517,7 +512,6 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 	serviceRow.FromService(service)
 
 	id, err := performInsert(s, query, serviceRow, l)
-
 	if err != nil {
 		return nil, err
 	}

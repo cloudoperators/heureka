@@ -13,7 +13,6 @@ import (
 )
 
 func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.IssueVariant, error) {
-
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -31,7 +30,6 @@ func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent
 	opt := &entity.ListOptions{}
 
 	variants, err := app.ListIssueVariants(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueVariantBaseResolver", err.Error())
@@ -42,7 +40,7 @@ func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent
 		return nil, NewResolverError("SingleIssueVariantBaseResolver", "Internal Error - found multiple variants")
 	}
 
-	//not found
+	// not found
 	if len(variants.Elements) < 1 {
 		return nil, nil
 	}
@@ -99,7 +97,6 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	opt := GetListOptions(requestedFields)
 
 	variants, err := app.ListIssueVariants(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("IssueVariantBaseResolver", err.Error())
 	}
@@ -126,7 +123,6 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	return &connection, nil
-
 }
 
 func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueVariantFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueVariantConnection, error) {
@@ -170,7 +166,6 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 	opt := GetListOptions(requestedFields)
 
 	variants, err := app.ListEffectiveIssueVariants(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("EffectiveIssueVariantBaseResolver", err.Error())
 	}
@@ -197,5 +192,4 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 	}
 
 	return &connection, nil
-
 }

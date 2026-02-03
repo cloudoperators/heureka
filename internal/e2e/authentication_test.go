@@ -133,7 +133,8 @@ func newAuthenticationTest() *authenticationTest {
 		oidcProvider:   oidcProvider,
 		seeder:         seeder,
 		seedCollection: seedCollection,
-		server:         server}
+		server:         server,
+	}
 }
 
 func (at *authenticationTest) getTestUser() entity.User {

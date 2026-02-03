@@ -162,7 +162,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -175,7 +175,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 		return nil, nil, fmt.Errorf("failed to prepare ComponentInstance statement: %w", err)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)

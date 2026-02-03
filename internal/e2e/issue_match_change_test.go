@@ -25,7 +25,6 @@ import (
 )
 
 var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchChanges"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -78,7 +77,6 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -116,7 +114,6 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 				})
 			})
 			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 				var respData struct {
 					IssueMatchChanges model.IssueMatchChangeConnection `json:"IssueMatchChanges"`
 				}
@@ -150,7 +147,7 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 				})
 
 				It("- returns the expected content", func() {
-					//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
 
@@ -186,7 +183,6 @@ var _ = Describe("Getting IssueMatchChanges via API", Label("e2e", "IssueMatchCh
 })
 
 var _ = Describe("Creating IssueMatchChange via API", Label("e2e", "IssueMatchChanges"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -256,7 +252,6 @@ var _ = Describe("Creating IssueMatchChange via API", Label("e2e", "IssueMatchCh
 })
 
 var _ = Describe("Updating issueMatchChange via API", Label("e2e", "IssueMatchChangees"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -328,7 +323,6 @@ var _ = Describe("Updating issueMatchChange via API", Label("e2e", "IssueMatchCh
 })
 
 var _ = Describe("Deleting IssueMatchChange via API", Label("e2e", "IssueMatchChanges"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

@@ -28,8 +28,10 @@ func TestServiceHandler(t *testing.T) {
 	RunSpecs(t, "Service Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -70,7 +72,6 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
@@ -97,7 +98,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				services = append(services, entity.ServiceResult{WithCursor: entity.WithCursor{Value: cursor}, Service: lo.ToPtr(s)})
 			}
 
-			var cursors = lo.Map(services, func(m entity.ServiceResult, _ int) string {
+			cursors := lo.Map(services, func(m entity.ServiceResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, *m.Service, entity.IssueSeverityCounts{}))
 				return cursor
 			})
@@ -128,7 +129,6 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			options.IncludeAggregations = true
 		})
 		Context("and the given filter does not have any matches in the database", func() {
-
 			BeforeEach(func() {
 				db.On("GetServicesWithAggregations", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
@@ -138,7 +138,6 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				res, err := serviceHandler.ListServices(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
-
 			})
 		})
 		Context("and the filter does have results in the database", func() {
@@ -170,23 +169,19 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 	})
 	When("the list options does NOT include aggregations", func() {
-
 		BeforeEach(func() {
 			options.IncludeAggregations = false
 		})
 
 		Context("and the given filter does not have any matches in the database", func() {
-
 			BeforeEach(func() {
 				db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
 			It("should return an empty result", func() {
-
 				serviceHandler = s.NewServiceHandler(handlerContext)
 				res, err := serviceHandler.ListServices(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
-
 			})
 		})
 		Context("and the filter does have results in the database", func() {
@@ -310,7 +305,6 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				db.AssertNotCalled(GinkgoT(), "GetIssueRepositories")
 				db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
 			})
-
 		})
 
 		Context("when no issue repository is found", func() {
@@ -545,7 +539,6 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetServiceCcrns", filter).Return([]string{}, nil)
 		})
@@ -597,7 +590,6 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetServiceDomains", filter).Return([]string{}, nil)
 		})
@@ -649,7 +641,6 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetServiceRegions", filter).Return([]string{}, nil)
 		})

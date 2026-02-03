@@ -15,9 +15,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var dbConfig util2.Config
-var dbm *test.DatabaseManager
-var db *mariadb.SqlDatabase
+var (
+	dbConfig util2.Config
+	dbm      *test.DatabaseManager
+	db       *mariadb.SqlDatabase
+)
 
 func TestE2E(t *testing.T) {
 	// Set the environment variables

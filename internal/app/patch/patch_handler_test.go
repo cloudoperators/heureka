@@ -22,8 +22,10 @@ import (
 	"github.com/samber/lo"
 )
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 func TestPatchHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -85,7 +87,7 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 				patches = append(patches, entity.PatchResult{WithCursor: entity.WithCursor{Value: cursor}, Patch: lo.ToPtr(patch)})
 			}
 
-			var cursors = lo.Map(patches, func(m entity.PatchResult, _ int) string {
+			cursors := lo.Map(patches, func(m entity.PatchResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, *m.Patch))
 				return cursor
 			})
@@ -167,5 +169,4 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 			Expect(appErr.Op).To(Equal("patchHandler.ListPatches"), "should include operation")
 		})
 	})
-
 })

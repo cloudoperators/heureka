@@ -14,9 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	mode string
-)
+var mode string
 
 func main() {
 	fmt.Println(util.HeurekaFiglet)

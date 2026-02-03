@@ -30,7 +30,6 @@ import (
 )
 
 var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -84,7 +83,6 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -129,7 +127,6 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 				})
 			})
 			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 				var respData struct {
 					SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
 				}
@@ -171,7 +168,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 				})
 
 				It("- returns the expected content", func() {
-					//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
 
@@ -185,7 +182,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 							_, serviceFound := lo.Find(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow) bool {
 								return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct support group
-									fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID //references correct service
+									fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // references correct service
 							})
 							Expect(serviceFound).To(BeTrue(), "attached service does exist and belongs to supportGroup")
 						}
@@ -198,7 +195,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 							_, userFound := lo.Find(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow) bool {
 								return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct support group
-									fmt.Sprintf("%d", row.UserId.Int64) == user.Node.ID //references correct user
+									fmt.Sprintf("%d", row.UserId.Int64) == user.Node.ID // references correct user
 							})
 							Expect(userFound).To(BeTrue(), "attached user does exist and belongs to supportGroup")
 
@@ -259,13 +256,11 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 					}
 				})
 			})
-
 		})
 	})
 })
 
 var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -289,7 +284,6 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			supportGroup = testentity.NewFakeSupportGroupEntity()
@@ -328,7 +322,6 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 })
 
 var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -394,7 +387,6 @@ var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"),
 })
 
 var _ = Describe("Deleting SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -456,7 +448,6 @@ var _ = Describe("Deleting SupportGroup via API", Label("e2e", "SupportGroups"),
 })
 
 var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -574,7 +565,6 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 })
 
 var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

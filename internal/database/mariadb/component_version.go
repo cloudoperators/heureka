@@ -159,7 +159,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -172,7 +172,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
@@ -204,7 +204,6 @@ func (s *SqlDatabase) GetAllComponentVersionIds(filter *entity.ComponentVersionF
     `
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +226,6 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(filter *entity.ComponentVers
     `
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +238,6 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(filter *entity.ComponentVers
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +269,6 @@ func (s *SqlDatabase) GetComponentVersions(filter *entity.ComponentVersionFilter
 	filter = ensureComponentVersionFilter(filter)
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +312,6 @@ func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilt
 		ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -356,7 +351,6 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 	componentVersionRow.FromComponentVersion(componentVersion)
 
 	id, err := performInsert(s, query, componentVersionRow, l)
-
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "Error 1062") {
 			return nil, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("for ComponentVersion: %s ", componentVersion.Version))

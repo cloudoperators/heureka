@@ -60,7 +60,6 @@ func IssueMatchChangeBaseResolver(app app.Heureka, ctx context.Context, filter *
 	opt := GetListOptions(requestedFields)
 
 	issueMatchChanges, err := app.ListIssueMatchChanges(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("IssueMatchChangeBaseResolver", err.Error())
 	}
@@ -87,5 +86,4 @@ func IssueMatchChangeBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	return &connection, nil
-
 }

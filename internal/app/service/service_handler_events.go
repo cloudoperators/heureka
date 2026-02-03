@@ -155,7 +155,6 @@ func OnServiceCreate(db database.Database, e event.Event) {
 		issueRepositories, err := db.GetIssueRepositories(&entity.IssueRepositoryFilter{
 			Name: []*string{&defaultRepoName},
 		})
-
 		if err != nil {
 			l.WithField("event-step", "GetIssueRepository").WithError(err).Error("Error while fetching issue repository by name")
 			return

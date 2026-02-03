@@ -89,7 +89,6 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	})
 
 	It("Retrieves list of scannerruns", func() {
-
 		db.On("GetScannerRuns", &entity.ScannerRunFilter{}).Return([]entity.ScannerRun{*sre}, nil)
 
 		scannerRunHandler = NewScannerRunHandler(handlerContext)

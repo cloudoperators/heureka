@@ -97,7 +97,7 @@ func combineFilterQueries(filterQueries []string, op string) string {
 		i += 1
 	}
 
-	//encapsulate in brackets
+	// encapsulate in brackets
 	if filterStr != "" {
 		filterStr = fmt.Sprintf("( %s )", filterStr)
 	}
@@ -114,7 +114,7 @@ func buildFilterQuery[T any](filter []T, expr string, op string) string {
 		filterStr = fmt.Sprintf(FILTER_FORMAT_STR, filterStr, expr)
 	}
 
-	//encapsulate in brackets
+	// encapsulate in brackets
 	if filterStr != "" {
 		filterStr = fmt.Sprintf("( %s )", filterStr)
 	}
@@ -137,7 +137,6 @@ func buildQueryParametersCount[T any](params []interface{}, filter []T, count in
 
 func performInsert[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (int64, error) {
 	res, err := performExec(s, query, item, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -162,7 +161,6 @@ func performInsert[T any](s *SqlDatabase, query string, item T, l *logrus.Entry)
 
 func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (sql.Result, error) {
 	stmt, err := s.db.PrepareNamed(query)
-
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -284,7 +282,6 @@ func performCountScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry
 	rows.Next()
 	var row int64
 	err = rows.Scan(&row)
-
 	if err != nil {
 		msg := "Error while scanning into in64"
 		cols, _ := rows.Columns()
