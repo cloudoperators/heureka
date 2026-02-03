@@ -123,7 +123,6 @@ var _ = Describe("IssueMatchChange", Label("database", "IssueMatchChange"), func
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetIssueMatchChanges(nil)
 
@@ -309,7 +308,6 @@ var _ = Describe("IssueMatchChange", Label("database", "IssueMatchChange"), func
 				By("returning the correct count", func() {
 					Expect(res).To(BeEquivalentTo(x))
 				})
-
 			},
 				Entry("when page size is 0", 0),
 				Entry("when page size is 1", 1),
@@ -323,7 +321,7 @@ var _ = Describe("IssueMatchChange", Label("database", "IssueMatchChange"), func
 					seedCollection = seeder.SeedDbWithNFakeData(20)
 				})
 				It("does not influence the count when pagination is applied", func() {
-					var first = 1
+					first := 1
 					var after int64 = 0
 					filter := &entity.IssueMatchChangeFilter{
 						Paginated: entity.Paginated{

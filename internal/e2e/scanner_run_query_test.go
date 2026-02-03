@@ -23,7 +23,6 @@ import (
 )
 
 var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func() {
-
 	var s *server.Server
 	var cfg util.Config
 	var db *mariadb.SqlDatabase
@@ -42,7 +41,6 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 	})
 
 	When("the database is empty", func() {
-
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new ScannerRun", func() {
 				sampleTag := gofakeit.Word()
@@ -188,13 +186,10 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				Expect(newRespData.Result).To(BeTrue())
 			})
 		})
-
 	})
-
 })
 
 var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func() {
-
 	var s *server.Server
 	var cfg util.Config
 	var client *graphql.Client
@@ -215,7 +210,6 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 	})
 
 	When("the database is empty", func() {
-
 		Context("and a query for scannerruns is performed", Label("create.graphql"), func() {
 			It("returns an empty list", func() {
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/scannerruns.graphql")
@@ -249,7 +243,5 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 				Expect(newRespData.Result).To(Equal(0))
 			})
 		})
-
 	})
-
 })

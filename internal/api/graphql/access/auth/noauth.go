@@ -26,5 +26,4 @@ func NewNoAuthMethod(l *logrus.Logger, authMethodName string, msg string) authMe
 
 func (nam NoAuthMethod) Verify(*gin.Context) error {
 	return verifyError(nam.authMethodName, fmt.Errorf("Auth failed: %s", nam.msg))
-
 }

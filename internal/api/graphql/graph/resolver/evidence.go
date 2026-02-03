@@ -20,7 +20,6 @@ import (
 
 func (r *evidenceResolver) Author(ctx context.Context, obj *model.Evidence) (*model.User, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.AuthorID})
-
 	if err != nil {
 		logrus.WithField("obj", obj).Error("EvidenceResolver: Error while parsing childIds'")
 		return nil, err
@@ -35,7 +34,6 @@ func (r *evidenceResolver) Author(ctx context.Context, obj *model.Evidence) (*mo
 
 func (r *evidenceResolver) Activity(ctx context.Context, obj *model.Evidence) (*model.Activity, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ActivityID})
-
 	if err != nil {
 		logrus.WithField("obj", obj).Error("EvidenceResolver: Error while parsing childIds'")
 		return nil, err

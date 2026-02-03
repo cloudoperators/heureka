@@ -5,11 +5,10 @@ package component_instance_test
 
 import (
 	"errors"
-
-	"github.com/cloudoperators/heureka/internal/app/common"
-
 	"math"
 	"testing"
+
+	"github.com/cloudoperators/heureka/internal/app/common"
 
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -31,8 +30,10 @@ func TestComponentInstanceHandler(t *testing.T) {
 	RunSpecs(t, "Component Instance Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -71,7 +72,6 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
@@ -98,7 +98,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 				componentInstances = append(componentInstances, entity.ComponentInstanceResult{WithCursor: entity.WithCursor{Value: cursor}, ComponentInstance: lo.ToPtr(ci)})
 			}
 
-			var cursors = lo.Map(componentInstances, func(m entity.ComponentInstanceResult, _ int) string {
+			cursors := lo.Map(componentInstances, func(m entity.ComponentInstanceResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, *m.ComponentInstance))
 				return cursor
 			})
@@ -182,7 +182,6 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 			Expect(appErr.Op).To(Equal("componentInstanceHandler.ListComponentInstances"), "should include operation")
 		})
 	})
-
 })
 
 var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponentInstance"), func() {

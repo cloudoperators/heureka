@@ -13,13 +13,14 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
-const systemUserUniqueUserId = "S0000000"
-const unknownUser = int64(0)
+const (
+	systemUserUniqueUserId = "S0000000"
+	unknownUser            = int64(0)
+)
 
 func GetCurrentUserId(ctx context.Context, db database.Database) (int64, error) {
 	if authentication_context.IsAuthenticationRequired(ctx) {
 		uniqueUserId, err := authentication_context.UserNameFromContext(ctx)
-
 		if err != nil {
 			return 0, fmt.Errorf("Could not get user name from context: %w", err)
 		}

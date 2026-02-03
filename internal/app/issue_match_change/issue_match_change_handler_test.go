@@ -25,8 +25,10 @@ func TestIssueHandler(t *testing.T) {
 	RunSpecs(t, "IssueMatchChange Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -67,7 +69,6 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssueMatchChanges", filter).Return([]entity.IssueMatchChange{}, nil)
@@ -90,7 +91,7 @@ var _ = Describe("When listing IssueMatchChanges", Label("app", "ListIssueMatchC
 			filter.First = &pageSize
 			imcs := test.NNewFakeIssueMatchChanges(resElements)
 
-			var ids = lo.Map(imcs, func(imc entity.IssueMatchChange, _ int) int64 { return imc.Id })
+			ids := lo.Map(imcs, func(imc entity.IssueMatchChange, _ int) int64 { return imc.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++

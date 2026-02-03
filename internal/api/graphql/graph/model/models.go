@@ -350,7 +350,6 @@ func NewIssueEntity(issue *IssueInput) entity.Issue {
 }
 
 func NewScannerRunEntity(sr *ScannerRunInput) entity.ScannerRun {
-
 	return entity.ScannerRun{
 		RunID:     -1,
 		UUID:      lo.FromPtr(sr.UUID),

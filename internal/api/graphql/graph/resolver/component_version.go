@@ -20,7 +20,6 @@ import (
 
 func (r *componentVersionResolver) Component(ctx context.Context, obj *model.ComponentVersion) (*model.Component, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentID})
-
 	if err != nil {
 		logrus.WithField("obj", obj).Error("ComponentVersionResolver: Error while parsing childIds'")
 		return nil, err

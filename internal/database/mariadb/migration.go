@@ -5,10 +5,9 @@ package mariadb
 
 import (
 	"embed"
-	"io/fs"
-
 	"fmt"
 	"io"
+	"io/fs"
 	"strings"
 	"sync"
 

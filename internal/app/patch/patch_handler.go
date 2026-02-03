@@ -16,9 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetPatches = 12 * time.Hour
-var CacheTtlGetAllPatchCursors = 12 * time.Hour
-var CacheTtlCountPatches = 12 * time.Hour
+var (
+	CacheTtlGetPatches         = 12 * time.Hour
+	CacheTtlGetAllPatchCursors = 12 * time.Hour
+	CacheTtlCountPatches       = 12 * time.Hour
+)
 
 type patchHandler struct {
 	database      database.Database
@@ -51,7 +53,6 @@ func (ph *patchHandler) ListPatches(filter *entity.PatchFilter, options *entity.
 		filter,
 		options.Order,
 	)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Patches", "", err)
 		applog.LogError(ph.logger, wrappedErr, logrus.Fields{

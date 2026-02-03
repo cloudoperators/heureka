@@ -62,8 +62,7 @@ type EvidenceFilter struct {
 	UserId       []*int64          `json:"user_id"`
 	State        []StateFilterType `json:"state"`
 }
-type EvidenceAggregations struct {
-}
+type EvidenceAggregations struct{}
 
 type EvidenceResult struct {
 	WithCursor

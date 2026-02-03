@@ -127,7 +127,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetSupportGroups(nil, nil)
 
@@ -257,7 +256,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			})
 			Context("and using ordering", func() {
 				c := collate.New(language.English)
-				var testOrder = func(
+				testOrder := func(
 					order []entity.Order,
 					verifyFunc func(res []entity.SupportGroupResult),
 				) {
@@ -291,9 +290,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 								prev = r.SupportGroup.CCRN
 							}
 						})
-
 					})
-
 				})
 				Context("and using desc order", func() {
 					It("can order by ccrn", func() {
@@ -336,7 +333,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				sgRows = seedCollection.SupportGroupRows
 				count = len(sgRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -371,7 +367,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				})
 			})
 		})
-
 	})
 	When("Insert SupportGroup", Label("InsertSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
@@ -645,7 +640,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				})
 			})
 			Context("and using a SupportGroupCcrns filter", func() {
-
 				var filter *entity.SupportGroupFilter
 				var expectedSupportGroupCcrns []string
 				BeforeEach(func() {
@@ -676,10 +670,8 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						})
 					})
 					It("and using another filter", func() {
-
 						var anotherFilter *entity.SupportGroupFilter
 						BeforeEach(func() {
-
 							nonExistentSupportGroupCcrn := "NonexistentService"
 
 							nonExistentSupportGroupCcrns := []*string{&nonExistentSupportGroupCcrn}

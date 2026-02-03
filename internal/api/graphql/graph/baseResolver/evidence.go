@@ -57,7 +57,6 @@ func EvidenceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ev
 	opt := GetListOptions(requestedFields)
 
 	evidences, err := app.ListEvidences(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("EvidenceBaseResolver", err.Error())
 	}
@@ -84,5 +83,4 @@ func EvidenceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ev
 	}
 
 	return &connection, nil
-
 }

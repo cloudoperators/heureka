@@ -113,7 +113,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -126,7 +126,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
@@ -152,7 +152,6 @@ func (s *SqlDatabase) GetAllSupportGroupIds(filter *entity.SupportGroupFilter) (
     `
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +175,6 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(filter *entity.SupportGroupFilte
 
 	filter = ensureSupportGroupFilter(filter)
 	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +187,6 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(filter *entity.SupportGroupFilte
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +214,6 @@ func (s *SqlDatabase) GetSupportGroups(filter *entity.SupportGroupFilter, order 
     `
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +251,6 @@ func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int
 		ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -287,7 +282,6 @@ func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*en
 	supportGroupRow.FromSupportGroup(supportGroup)
 
 	id, err := performInsert(s, query, supportGroupRow, l)
-
 	if err != nil {
 		return nil, err
 	}

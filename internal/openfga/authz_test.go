@@ -45,7 +45,6 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = Describe("Authz", func() {
-
 	BeforeEach(func() {
 		p = openfga.PermissionInput{
 			UserType:   userType,

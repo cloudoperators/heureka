@@ -26,7 +26,6 @@ import (
 )
 
 var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -78,7 +77,6 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -115,7 +113,6 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 				})
 			})
 			Context("and  we query to resolve direct relations", Label("directRelations.graphql"), func() {
-
 				var respData struct {
 					Activities model.ActivityConnection `json:"Activities"`
 				}
@@ -151,7 +148,7 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 				})
 
 				It("- returns the direct relations", func() {
-					//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
 					for _, activity := range respData.Activities.Edges {
@@ -187,7 +184,6 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 })
 
 var _ = Describe("Creating Activity via API", Label("e2e", "Activities"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -211,7 +207,6 @@ var _ = Describe("Creating Activity via API", Label("e2e", "Activities"), func()
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			activity = testentity.NewFakeActivityEntity()
@@ -251,7 +246,6 @@ var _ = Describe("Creating Activity via API", Label("e2e", "Activities"), func()
 })
 
 var _ = Describe("Updating activity via API", Label("e2e", "Activities"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -316,7 +310,6 @@ var _ = Describe("Updating activity via API", Label("e2e", "Activities"), func()
 })
 
 var _ = Describe("Deleting Activity via API", Label("e2e", "Activities"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -378,7 +371,6 @@ var _ = Describe("Deleting Activity via API", Label("e2e", "Activities"), func()
 })
 
 var _ = Describe("Modifying Services of Activity via API", Label("e2e", "ServiceActivity"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -496,7 +488,6 @@ var _ = Describe("Modifying Services of Activity via API", Label("e2e", "Service
 })
 
 var _ = Describe("Modifying Issues of Activity via API", Label("e2e", "ServiceIssue"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

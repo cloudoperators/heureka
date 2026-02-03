@@ -18,6 +18,6 @@ func main() {
 	if url == "" {
 		log.Fatal("Could not start OIDC provider. OIDC_PROVIDER_URL is not set.")
 	}
-    oidcProvider := oidc.NewProvider(url, enableLog)
-    oidcProvider.StartForeground()
+	oidcProvider := oidc.NewProvider(url, enableLog)
+	oidcProvider.StartForeground()
 }

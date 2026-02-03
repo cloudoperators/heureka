@@ -43,7 +43,7 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleComponentInstanceBaseResolver"), "ComponentInstance", appErrors.Internal, "found multiple component instances"))
 	}
 
-	//not found
+	// not found
 	if len(componentInstances.Elements) < 1 {
 		return nil, nil
 	}
@@ -241,8 +241,8 @@ func ComponentInstanceFilterBaseResolver(
 	appCall func(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error),
 	ctx context.Context,
 	filter *model.ComponentInstanceFilter,
-	filterDisplay *string) (*model.FilterItem, error) {
-
+	filterDisplay *string,
+) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,

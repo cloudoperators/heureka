@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"math/rand"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -11,8 +13,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-
-	"math/rand"
 )
 
 var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
@@ -124,7 +124,6 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetIssueVariants(nil)
 
@@ -383,7 +382,6 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				ivRows = seedCollection.IssueVariantRows
 				count = len(ivRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -419,7 +417,6 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 			Context("and using a filter", func() {
 				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
-
 					rnd := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
 					issueId := rnd.IssueId.Int64
 

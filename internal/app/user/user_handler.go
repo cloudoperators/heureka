@@ -69,7 +69,6 @@ func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListO
 	})
 
 	res, err := u.getUserResults(filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Error while filtering for Users")
@@ -122,7 +121,6 @@ func (u *userHandler) CreateUser(ctx context.Context, user *entity.User) (*entit
 	user.UpdatedBy = user.CreatedBy
 
 	users, err := u.ListUsers(f, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating user.")
@@ -133,7 +131,6 @@ func (u *userHandler) CreateUser(ctx context.Context, user *entity.User) (*entit
 	}
 
 	newUser, err := u.database.CreateUser(user)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating user.")
@@ -158,14 +155,12 @@ func (u *userHandler) UpdateUser(ctx context.Context, user *entity.User) (*entit
 	}
 
 	err = u.database.UpdateUser(user)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while updating user.")
 	}
 
 	userResult, err := u.ListUsers(&entity.UserFilter{Id: []*int64{&user.Id}}, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving updated user.")
@@ -194,7 +189,6 @@ func (u *userHandler) DeleteUser(ctx context.Context, id int64) error {
 	}
 
 	err = u.database.DeleteUser(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewUserHandlerError("Internal error while deleting user.")
@@ -212,7 +206,6 @@ func (u *userHandler) ListUserNames(filter *entity.UserFilter, options *entity.L
 	})
 
 	userNames, err := u.database.GetUserNames(filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving userNames.")
@@ -230,7 +223,6 @@ func (u *userHandler) ListUniqueUserIDs(filter *entity.UserFilter, options *enti
 	})
 
 	uniqueUserID, err := u.database.GetUniqueUserIDs(filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving uniqueUserID.")

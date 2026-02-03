@@ -5,6 +5,7 @@ package issue_test
 import (
 	"errors"
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -15,8 +16,6 @@ import (
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/samber/lo"
-
-	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -31,8 +30,10 @@ func TestIssueHandler(t *testing.T) {
 	RunSpecs(t, "Issue Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -216,7 +217,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				issues = append(issues, entity.IssueResult{WithCursor: entity.WithCursor{Value: cursor}, Issue: lo.ToPtr(i)})
 			}
 
-			var cursors = lo.Map(issues, func(ir entity.IssueResult, _ int) string {
+			cursors := lo.Map(issues, func(ir entity.IssueResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0))
 				return cursor
 			})
@@ -302,7 +303,6 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			})
 			It("should return an empty result", func() {
-
 				issueHandler = issue.NewIssueHandler(handlerContext)
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")

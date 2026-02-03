@@ -17,11 +17,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetServiceAttrs = 12 * time.Hour
-var CacheTtlGetServicesWithAggregations = 12 * time.Hour
-var CacheTtlGetServices = 12 * time.Hour
-var CacheTtlGetAllSericeCursors = 12 * time.Hour
-var CacheTtlCountServices = 12 * time.Hour
+var (
+	CacheTtlGetServiceAttrs             = 12 * time.Hour
+	CacheTtlGetServicesWithAggregations = 12 * time.Hour
+	CacheTtlGetServices                 = 12 * time.Hour
+	CacheTtlGetAllSericeCursors         = 12 * time.Hour
+	CacheTtlCountServices               = 12 * time.Hour
+)
 
 type serviceHandler struct {
 	database      database.Database
@@ -60,7 +62,6 @@ func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 	lo := entity.NewListOptions()
 
 	services, err := s.ListServices(&serviceFilter, lo)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while retrieving services.")
@@ -178,7 +179,6 @@ func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Serv
 	lo := entity.NewListOptions()
 
 	services, err := s.ListServices(f, lo)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while creating service.")
@@ -189,7 +189,6 @@ func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Serv
 	}
 
 	newService, err := s.database.CreateService(service)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while creating service.")
@@ -214,7 +213,6 @@ func (s *serviceHandler) UpdateService(ctx context.Context, service *entity.Serv
 	}
 
 	err = s.database.UpdateService(service)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while updating service.")
@@ -238,7 +236,6 @@ func (s *serviceHandler) DeleteService(ctx context.Context, id int64) error {
 	}
 
 	err = s.database.DeleteService(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewServiceHandlerError("Internal error while deleting service.")
@@ -257,7 +254,6 @@ func (s *serviceHandler) AddOwnerToService(serviceId, ownerId int64) (*entity.Se
 	})
 
 	err := s.database.AddOwnerToService(serviceId, ownerId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while adding owner to service.")
@@ -276,7 +272,6 @@ func (s *serviceHandler) RemoveOwnerFromService(serviceId, ownerId int64) (*enti
 	})
 
 	err := s.database.RemoveOwnerFromService(serviceId, ownerId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while removing owner from service.")
@@ -295,7 +290,6 @@ func (s *serviceHandler) AddIssueRepositoryToService(serviceId, issueRepositoryI
 	})
 
 	err := s.database.AddIssueRepositoryToService(serviceId, issueRepositoryId, priority)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while adding issue repository to service.")
@@ -314,7 +308,6 @@ func (s *serviceHandler) RemoveIssueRepositoryFromService(serviceId, issueReposi
 	})
 
 	err := s.database.RemoveIssueRepositoryFromService(serviceId, issueRepositoryId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while removing issue repository from service.")
@@ -331,7 +324,6 @@ func (s *serviceHandler) ListServiceCcrns(filter *entity.ServiceFilter, options 
 		"filter": filter,
 	})
 	serviceCcrns, err := cache.CallCached[[]string](s.cache, CacheTtlGetServiceAttrs, "GetServiceCcrns", s.database.GetServiceCcrns, filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while retrieving serviceCCRNs.")
@@ -348,7 +340,6 @@ func (s *serviceHandler) ListServiceDomains(filter *entity.ServiceFilter, option
 		"filter": filter,
 	})
 	serviceDomains, err := cache.CallCached[[]string](s.cache, CacheTtlGetServiceAttrs, "GetServiceDomains", s.database.GetServiceDomains, filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while retrieving serviceDomains.")
@@ -365,7 +356,6 @@ func (s *serviceHandler) ListServiceRegions(filter *entity.ServiceFilter, option
 		"filter": filter,
 	})
 	serviceRegions, err := cache.CallCached[[]string](s.cache, CacheTtlGetServiceAttrs, "GetServiceRegions", s.database.GetServiceRegions, filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while retrieving serviceRegions.")

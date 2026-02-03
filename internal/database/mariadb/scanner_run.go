@@ -38,7 +38,6 @@ func (s *SqlDatabase) CreateScannerRun(scannerRun *entity.ScannerRun) (bool, err
 	srr.FromScannerRun(scannerRun)
 
 	id, err := performInsert(s, query, srr, l)
-
 	if err != nil {
 		return false, err
 	}
@@ -58,7 +57,6 @@ func (s *SqlDatabase) CompleteScannerRun(uuid string) (bool, error) {
 						scannerrun_is_completed = FALSE`
 
 	_, err := s.db.Exec(updateQuery, uuid)
-
 	if err != nil {
 		return false, err
 	}
@@ -103,7 +101,6 @@ func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) 
 
 	srr := ScannerRunRow{}
 	err := s.db.Get(&srr, query, uuid)
-
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +117,6 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
     `
 	queryArgs, baseQuery := applyScannerRunFilter(baseQuery, filter)
 	rows, err := s.db.Query(baseQuery, queryArgs...)
-
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +127,6 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 	for rows.Next() {
 		srr := ScannerRunRow{}
 		err = rows.Scan(&srr.RunID, &srr.UUID, &srr.Tag, &srr.StartRun, &srr.EndRun, &srr.IsCompleted, &srr.CreatedAt, &srr.CreatedBy, &srr.DeletedAt, &srr.UpdatedAt, &srr.UpdatedBy)
-
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +199,6 @@ func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
 			  FROM ScannerRun`
 
 	rows, err := s.db.Query(query)
-
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +210,6 @@ func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
 
 		var tag string
 		err = rows.Scan(&tag)
-
 		if err != nil {
 			return nil, err
 		}

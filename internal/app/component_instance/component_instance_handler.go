@@ -5,11 +5,10 @@ package component_instance
 
 import (
 	"context"
-	"time"
-
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -21,9 +20,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetComponentInstances = 12 * time.Hour
-var CacheTtlGetAllComponentInstanceCursors = 12 * time.Hour
-var CacheTtlCountComponentInstances = 12 * time.Hour
+var (
+	CacheTtlGetComponentInstances          = 12 * time.Hour
+	CacheTtlGetAllComponentInstanceCursors = 12 * time.Hour
+	CacheTtlCountComponentInstances        = 12 * time.Hour
+)
 
 type componentInstanceHandler struct {
 	database      database.Database
@@ -56,7 +57,6 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 		filter,
 		options.Order,
 	)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{

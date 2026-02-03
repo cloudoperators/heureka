@@ -207,7 +207,6 @@ func NewSeverityFromRating(rating SeverityValues) Severity {
 
 func NewSeverity(url string) Severity {
 	ev, err := metric.NewEnvironmental().Decode(url)
-
 	if err != nil {
 		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
 	}

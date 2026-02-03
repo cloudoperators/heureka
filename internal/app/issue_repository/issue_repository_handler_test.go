@@ -25,8 +25,10 @@ func TestIssueRepositoryHandler(t *testing.T) {
 	RunSpecs(t, "Test IssueRepository Service")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -68,7 +70,6 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
@@ -91,7 +92,7 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 			filter.First = &pageSize
 			repositories := test.NNewFakeIssueRepositories(resElements)
 
-			var ids = lo.Map(repositories, func(ar entity.IssueRepository, _ int) int64 { return ar.Id })
+			ids := lo.Map(repositories, func(ar entity.IssueRepository, _ int) int64 { return ar.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++
@@ -174,7 +175,6 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 			db.On("AddIssueRepositoryToService", int64(1), int64(1), int64(100)).Return(nil)
 			db.On("AddIssueRepositoryToService", int64(2), int64(1), int64(100)).Return(nil)
 			db.On("GetDefaultIssuePriority").Return(int64(100))
-
 		})
 
 		It("adds the issue repository to all services", func() {

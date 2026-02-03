@@ -17,9 +17,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetIssueMatches = 12 * time.Hour
-var CacheTtlGetAllIssueMatchCursors = 12 * time.Hour
-var CacheTtlCountIssueMatches = 12 * time.Hour
+var (
+	CacheTtlGetIssueMatches         = 12 * time.Hour
+	CacheTtlGetAllIssueMatchCursors = 12 * time.Hour
+	CacheTtlCountIssueMatches       = 12 * time.Hour
+)
 
 type issueMatchHandler struct {
 	database        database.Database
@@ -57,7 +59,6 @@ func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMat
 	issueMatchFilter := entity.IssueMatchFilter{Id: []*int64{&issueMatchId}}
 	options := entity.ListOptions{Order: []entity.Order{}}
 	issueMatches, err := im.ListIssueMatches(&issueMatchFilter, &options)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while retrieving issueMatches.")
@@ -94,7 +95,6 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 		filter,
 		options.Order,
 	)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Error while filtering for Issue Matches")
@@ -166,7 +166,6 @@ func (im *issueMatchHandler) CreateIssueMatch(ctx context.Context, issueMatch *e
 
 	//@todo discuss: may be moved to somewhere else?
 	effectiveSeverity, err := im.severityHandler.GetSeverity(severityFilter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity.")
@@ -175,7 +174,6 @@ func (im *issueMatchHandler) CreateIssueMatch(ctx context.Context, issueMatch *e
 	issueMatch.Severity = *effectiveSeverity
 
 	newIssueMatch, err := im.database.CreateIssueMatch(issueMatch)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while creating issueMatch.")
@@ -202,7 +200,6 @@ func (im *issueMatchHandler) UpdateIssueMatch(ctx context.Context, issueMatch *e
 	}
 
 	err = im.database.UpdateIssueMatch(issueMatch)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while updating issueMatch.")
@@ -228,7 +225,6 @@ func (im *issueMatchHandler) DeleteIssueMatch(ctx context.Context, id int64) err
 	}
 
 	err = im.database.DeleteIssueMatch(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewIssueMatchHandlerError("Internal error while deleting issueMatch.")
@@ -249,7 +245,6 @@ func (im *issueMatchHandler) AddEvidenceToIssueMatch(issueMatchId, evidenceId in
 	})
 
 	err := im.database.AddEvidenceToIssueMatch(issueMatchId, evidenceId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while adding evidence to issueMatch.")
@@ -271,7 +266,6 @@ func (im *issueMatchHandler) RemoveEvidenceFromIssueMatch(issueMatchId, evidence
 	})
 
 	err := im.database.RemoveEvidenceFromIssueMatch(issueMatchId, evidenceId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while removing evidence from issueMatch.")

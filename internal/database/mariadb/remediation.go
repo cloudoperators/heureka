@@ -169,7 +169,6 @@ func (s *SqlDatabase) GetRemediations(filter *entity.RemediationFilter, order []
     `
 
 	stmt, filterParameters, err := s.buildRemediationStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Remediation query: %w", err)
 	}
@@ -212,7 +211,6 @@ func (s *SqlDatabase) CountRemediations(filter *entity.RemediationFilter) (int64
         ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildRemediationStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, fmt.Errorf("failed to build Remediation count query: %w", err)
 	}
@@ -240,7 +238,6 @@ func (s *SqlDatabase) GetAllRemediationCursors(filter *entity.RemediationFilter,
 
 	filter = ensureRemediationFilter(filter)
 	stmt, filterParameters, err := s.buildRemediationStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Remediation cursor query: %w", err)
 	}
@@ -255,7 +252,6 @@ func (s *SqlDatabase) GetAllRemediationCursors(filter *entity.RemediationFilter,
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Remediation cursors: %w", err)
 	}
@@ -315,7 +311,6 @@ func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entit
 	remediationRow.FromRemediation(remediation)
 
 	id, err := performInsert(s, query, remediationRow, l)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Remediation: %w", err)
 	}
@@ -345,7 +340,6 @@ func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
 	remediationRow.FromRemediation(remediation)
 
 	_, err := performExec(s, query, remediationRow, l)
-
 	if err != nil {
 		return fmt.Errorf("failed to update Remediation: %w", err)
 	}
@@ -372,7 +366,6 @@ func (s *SqlDatabase) DeleteRemediation(id int64, userId int64) error {
 	}
 
 	_, err := performExec(s, query, args, l)
-
 	if err != nil {
 		return fmt.Errorf("failed to delete Remediation: %w", err)
 	}

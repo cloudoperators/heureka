@@ -129,7 +129,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 		apt.TearDown()
 	})
 
-	var autopatchTests = []autoPatchTestInfo{
+	autopatchTests := []autoPatchTestInfo{
 		{
 			description: "WHEN there is one not-completed scan",
 			scannerRuns: []scannerRun{
@@ -277,7 +277,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			patchedComponents:  []string{"C1"},
 		},
 		{
-			description: "WHEN 2 scans detect disappearance of 3 components with the same version and service id", //THEN only single patch should be created
+			description: "WHEN 2 scans detect disappearance of 3 components with the same version and service id", // THEN only single patch should be created
 			scannerRuns: []scannerRun{
 				{
 					issues:     []string{"IC1", "IC2a", "IC2b", "IC3", "IX"},
@@ -287,7 +287,8 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 						{Issue: "IC2a", Component: "C2"},
 						{Issue: "IC2b", Component: "C2"},
 						{Issue: "IC3", Component: "C3"},
-					}},
+					},
+				},
 				{},
 			},
 			expectedResults:                      []bool{false, true},
@@ -296,7 +297,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectDeletedIssueMatchesByIssueName: []string{"IC1", "IC2a", "IC2b", "IC3"},
 		},
 		{
-			description: "WHEN 1 component disappear from 2 components with the same version and service", //THEN patch should not be created
+			description: "WHEN 1 component disappear from 2 components with the same version and service", // THEN patch should not be created
 			scannerRuns: []scannerRun{
 				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}, {Name: "C2", Version: "V1", Service: "S1"}}},
 				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
@@ -305,7 +306,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectedPatchCount: 0,
 		},
 		{
-			description: "WHEN 1 component disappear from 2 components with different version and service", //THEN patch should be created
+			description: "WHEN 1 component disappear from 2 components with different version and service", // THEN patch should be created
 			scannerRuns: []scannerRun{
 				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}, {Name: "C2", Version: "V2", Service: "S2"}}},
 				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
@@ -315,7 +316,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			patchedComponents:  []string{"C1"},
 		},
 		{
-			description: "WHEN 4 scans detect disappearance of 1 component and the component appear and disappear again", //THEN two patches should be created for the same service and version
+			description: "WHEN 4 scans detect disappearance of 1 component and the component appear and disappear again", // THEN two patches should be created for the same service and version
 			scannerRuns: []scannerRun{
 				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}}},
 				{},

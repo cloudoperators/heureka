@@ -34,8 +34,7 @@ func NewIssueRepositoryFilter() *IssueRepositoryFilter {
 	}
 }
 
-type IssueRepositoryAggregations struct {
-}
+type IssueRepositoryAggregations struct{}
 
 type IssueRepository struct {
 	BaseIssueRepository

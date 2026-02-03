@@ -103,7 +103,6 @@ func (s *Scanner) CreateAuthToken() (string, error) {
 }
 
 func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient, error) {
-
 	opts := &tokens.AuthOptions{
 		IdentityEndpoint: s.IdentityEndpoint,
 		Username:         s.Username,
@@ -228,7 +227,6 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 	}
 
 	return &trivyReport, nil
-
 }
 
 // extractImageInfo extracts image registry, image repository and the account name
@@ -333,7 +331,6 @@ func (s *Scanner) sendRequest(url string, token string) ([]byte, http.Header, er
 			responseHeaders = resp.Header
 			return nil
 		})
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("request failed after retries: %w", err)
 	}

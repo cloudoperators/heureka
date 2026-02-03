@@ -68,7 +68,6 @@ func (imc *issueMatchChangeHandler) ListIssueMatchChanges(filter *entity.IssueMa
 	})
 
 	res, err := imc.getIssueMatchChangeResults(filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Error while filtering for IssueMatchChanges")
@@ -122,7 +121,6 @@ func (imc *issueMatchChangeHandler) CreateIssueMatchChange(ctx context.Context, 
 	issueMatchChange.UpdatedBy = issueMatchChange.CreatedBy
 
 	newIssueMatchChange, err := imc.database.CreateIssueMatchChange(issueMatchChange)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Internal error while creating issueMatchChange.")
@@ -149,14 +147,12 @@ func (imc *issueMatchChangeHandler) UpdateIssueMatchChange(ctx context.Context, 
 	}
 
 	err = imc.database.UpdateIssueMatchChange(issueMatchChange)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Internal error while updating issueMatchChange.")
 	}
 
 	imcResult, err := imc.ListIssueMatchChanges(&entity.IssueMatchChangeFilter{Id: []*int64{&issueMatchChange.Id}}, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchChangeHandlerError("Internal error while retrieving updated issueMatchChange.")
@@ -187,7 +183,6 @@ func (imc *issueMatchChangeHandler) DeleteIssueMatchChange(ctx context.Context, 
 	}
 
 	err = imc.database.DeleteIssueMatchChange(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewIssueMatchChangeHandlerError("Internal error while deleting issueMatchChange.")

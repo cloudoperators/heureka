@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -22,12 +21,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetIssuesWithAggregations = 12 * time.Hour
-var CacheTtlGetIssues = 12 * time.Hour
-var CacheTtlGetAllIssueCursors = 12 * time.Hour
-var CacheTtlCountIssueTypes = 12 * time.Hour
-var CacheTtlGetIssueNames = 12 * time.Hour
-var CacheTtlCountIssueRatings = 12 * time.Hour
+var (
+	CacheTtlGetIssuesWithAggregations = 12 * time.Hour
+	CacheTtlGetIssues                 = 12 * time.Hour
+	CacheTtlGetAllIssueCursors        = 12 * time.Hour
+	CacheTtlCountIssueTypes           = 12 * time.Hour
+	CacheTtlGetIssueNames             = 12 * time.Hour
+	CacheTtlCountIssueRatings         = 12 * time.Hour
+)
 
 type issueHandler struct {
 	database      database.Database
@@ -224,7 +225,6 @@ func (is *issueHandler) CreateIssue(ctx context.Context, issue *entity.Issue) (*
 		ListOptions: *entity.NewListOptions(),
 	}
 	issues, err := is.ListIssues(f, &lo)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -244,7 +244,6 @@ func (is *issueHandler) CreateIssue(ctx context.Context, issue *entity.Issue) (*
 	}
 
 	newIssue, err := is.database.CreateIssue(issue)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -421,7 +420,6 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 		is.database.GetIssueNames,
 		filter,
 	)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueNames", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -448,7 +446,6 @@ func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*ent
 		is.database.CountIssueRatings,
 		filter,
 	)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueSeverityCounts", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{

@@ -136,7 +136,6 @@ var _ = Describe("Getting ServiceFilterValues via API", Label("e2e", "ServiceFil
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)

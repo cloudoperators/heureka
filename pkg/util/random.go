@@ -9,7 +9,7 @@ import (
 )
 
 func GenerateRandomString(length int, cs *string) string {
-	//charset for random string
+	// charset for random string
 	var charset string
 	if cs == nil {
 		charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

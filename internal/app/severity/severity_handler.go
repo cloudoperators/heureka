@@ -52,7 +52,6 @@ func (s *severityHandler) GetSeverity(filter *entity.SeverityFilter) (*entity.Se
 
 	opts := entity.ListOptions{}
 	issueVariants, err := s.issueVariantHandler.ListEffectiveIssueVariants(&issueVariantFilter, &opts)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSeverityHandlerError("Internal error while returning effective issueVariants.")

@@ -79,7 +79,6 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -113,10 +112,8 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 				Expect(respData.ComponentVersions.TotalCount).To(Equal(len(seedCollection.ComponentVersionRows)))
 				Expect(len(respData.ComponentVersions.Edges)).To(Equal(5))
 			})
-
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 			var respData struct {
 				ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
 			}
@@ -149,7 +146,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 			})
 
 			It("- returns the expected content", func() {
-				//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 				// a complete verification
 				// additional checks are added based on bugs discovered during usage
 
@@ -243,7 +240,7 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 		dbm.TestTearDown(db)
 	})
 
-	var loadTestData = func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, err
@@ -274,7 +271,7 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 			}
 		})
 
-		var runOrderTest = func(orderDirection string, expectedOrder []string) {
+		runOrderTest := func(orderDirection string, expectedOrder []string) {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/withOrder.graphql")
 			Expect(err).To(BeNil())
@@ -308,7 +305,6 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var seedCollection *test.SeedCollection
 	var s *server.Server
@@ -334,7 +330,6 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			componentVersion = testentity.NewFakeComponentVersionEntity()
@@ -380,7 +375,6 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -449,7 +443,6 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Deleting ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

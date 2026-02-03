@@ -27,8 +27,10 @@ func TestActivityHandler(t *testing.T) {
 	RunSpecs(t, "Activity Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -60,7 +62,6 @@ var _ = Describe("When listing Activities", Label("app", "ListActivities"), func
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetActivities", filter).Return([]entity.Activity{}, nil)
@@ -88,7 +89,7 @@ var _ = Describe("When listing Activities", Label("app", "ListActivities"), func
 			filter.First = &pageSize
 			activities := test.NNewFakeActivities(resElements)
 
-			var ids = lo.Map(activities, func(a entity.Activity, _ int) int64 { return a.Id })
+			ids := lo.Map(activities, func(a entity.Activity, _ int) int64 { return a.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++

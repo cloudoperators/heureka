@@ -25,8 +25,10 @@ func TestEvidenceHandler(t *testing.T) {
 	RunSpecs(t, "Evidence Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -71,7 +73,6 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetEvidences", filter).Return([]entity.Evidence{}, nil)
@@ -94,7 +95,7 @@ var _ = Describe("When listing Evidences", Label("app", "ListEvidences"), func()
 			filter.First = &pageSize
 			evidences := test.NNewFakeEvidences(resElements)
 
-			var ids = lo.Map(evidences, func(e entity.Evidence, _ int) int64 { return e.Id })
+			ids := lo.Map(evidences, func(e entity.Evidence, _ int) int64 { return e.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++

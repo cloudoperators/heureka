@@ -126,7 +126,6 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetEvidences(nil)
 
@@ -264,7 +263,6 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 							10,
 							pageSize,
 						)
-
 					},
 						Entry("When x is 1", 1),
 						Entry("When x is 3", 3),
@@ -295,7 +293,6 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 					seedCollection = seeder.SeedDbWithNFakeData(100)
 					evidenceRows = seedCollection.GetValidEvidenceRows()
 					count = len(evidenceRows)
-
 				})
 				It("works when providing no filter", func() {
 					c, err := db.CountEvidences(nil)
