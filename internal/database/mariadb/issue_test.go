@@ -7,10 +7,12 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	entity_test "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	pkg_util "github.com/cloudoperators/heureka/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
@@ -511,6 +513,55 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					By("returning the expected elements", func() {
 						Expect(issueIds).To(ContainElement(issueVariantRow.IssueId.Int64))
+					})
+				})
+				When("filtered by IssueStatus", func() {
+					var remediation entity.Remediation
+					BeforeEach(func() {
+						issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+						remediation = entity_test.NewFakeRemediationEntity()
+						remediation.ExpirationDate = time.Now().Add(10 * 24 * time.Hour)
+						remediation.IssueId = issueMatch.IssueId.Int64
+						remediation.CreatedBy = util.SystemUserId
+						remediation.UpdatedBy = util.SystemUserId
+
+						ci, _ := lo.Find(seedCollection.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow) bool {
+							return cir.Id.Int64 == issueMatch.ComponentInstanceId.Int64
+						})
+
+						remediation.ServiceId = ci.ServiceId.Int64
+
+						_, err := db.CreateRemediation(&remediation)
+
+						Expect(err).To(BeNil())
+					})
+					It("can filter issue by IssueStatusOpen", func() {
+						filter := &entity.IssueFilter{Status: entity.IssueStatusOpen}
+
+						entries, err := db.GetIssues(filter, nil)
+
+						By("throwing no error", func() {
+							Expect(err).To(BeNil())
+						})
+
+						for _, entry := range entries {
+							Expect(entry.Issue.Id).ToNot(BeEquivalentTo(remediation.IssueId))
+						}
+					})
+					It("can filter issue by IssueStatusRemediated", func() {
+						filter := &entity.IssueFilter{Status: entity.IssueStatusRemediated}
+
+						entries, err := db.GetIssues(filter, nil)
+
+						By("throwing no error", func() {
+							Expect(err).To(BeNil())
+						})
+
+						issueIds := lo.Map(entries, func(e entity.IssueResult, _ int) int64 {
+							return e.Issue.Id
+						})
+
+						Expect(lo.Contains(issueIds, remediation.IssueId)).To(BeTrue())
 					})
 				})
 			})

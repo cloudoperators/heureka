@@ -49,6 +49,14 @@ type IssueResult struct {
 	*IssueVariant      `json:"issue_variant"`
 }
 
+type IssueStatus int
+
+const (
+	IssueStatusAll IssueStatus = iota
+	IssueStatusOpen
+	IssueStatusRemediated
+)
+
 type IssueFilter struct {
 	PaginatedX
 	PrimaryName                     []*string         `json:"primary_name"`
@@ -71,6 +79,7 @@ type IssueFilter struct {
 	IssueMatchDiscoveryDate         *TimeFilter       `json:"issue_match_discovery_date"`
 	IssueMatchTargetRemediationDate *TimeFilter       `json:"issue_match_target_remediation_date"`
 	Unique                          bool              `json:"unique"`
+	Status                          IssueStatus       `json:"status"`
 	State                           []StateFilterType `json:"state"`
 }
 

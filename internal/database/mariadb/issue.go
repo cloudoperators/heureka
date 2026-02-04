@@ -63,6 +63,12 @@ func getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "I.issue"))
+	switch filter.Status {
+	case entity.IssueStatusOpen:
+		fl = append(fl, "( R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE() )")
+	case entity.IssueStatusRemediated:
+		fl = append(fl, "( R.remediation_id IS NOT NULL AND R.remediation_expiration_date > CURDATE() )")
+	}
 
 	return combineFilterQueries(fl, OP_AND)
 }
@@ -125,6 +131,17 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueVariant IV ON I.issue_id = IV.issuevariant_issue_id
 		`)
+	}
+
+	if filter.Status == entity.IssueStatusOpen || filter.Status == entity.IssueStatusRemediated {
+		remediationJoin := "LEFT JOIN Remediation R on R.remediation_issue_id = I.issue_id AND R.remediation_deleted_at IS NULL"
+		if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
+			remediationJoin = fmt.Sprintf("%s AND R.remediation_service_id = CI.componentinstance_service_id", remediationJoin)
+		}
+		if len(filter.ComponentId) > 0 {
+			remediationJoin = fmt.Sprintf("%s AND R.remediation_component_id = CV.componentversion_component_id", remediationJoin)
+		}
+		joins = fmt.Sprintf("%s\n%s", joins, remediationJoin)
 	}
 
 	return joins
