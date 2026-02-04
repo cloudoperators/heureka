@@ -7,7 +7,6 @@ type Activity implements Node {
     services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     issues(filter: IssueFilter, first: Int, after: String, orderBy: [IssueOrderBy]): IssueConnection
     evidences(filter: EvidenceFilter, first: Int, after: String): EvidenceConnection
-    issueMatchChanges(filter: IssueMatchChangeFilter, first: Int, after: String): IssueMatchChangeConnection
     metadata: Metadata
 }
 

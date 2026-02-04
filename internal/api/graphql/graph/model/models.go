@@ -471,30 +471,6 @@ func NewIssueMatchEntity(im *IssueMatchInput) entity.IssueMatch {
 	}
 }
 
-func NewIssueMatchChange(imc *entity.IssueMatchChange) IssueMatchChange {
-	action := IssueMatchChangeAction(imc.Action)
-	return IssueMatchChange{
-		ID:           fmt.Sprintf("%d", imc.Id),
-		Action:       &action,
-		IssueMatchID: util.Ptr(fmt.Sprintf("%d", imc.IssueMatchId)),
-		IssueMatch:   nil,
-		ActivityID:   util.Ptr(fmt.Sprintf("%d", imc.ActivityId)),
-		Activity:     nil,
-		Metadata:     getModelMetadata(imc.Metadata),
-	}
-}
-
-func NewIssueMatchChangeEntity(imc *IssueMatchChangeInput) entity.IssueMatchChange {
-	action := entity.IssueMatchChangeAction(lo.FromPtr(imc.Action))
-	issueMatchId, _ := strconv.ParseInt(lo.FromPtr(imc.IssueMatchID), 10, 64)
-	activityId, _ := strconv.ParseInt(lo.FromPtr(imc.ActivityID), 10, 64)
-	return entity.IssueMatchChange{
-		Action:       action.String(),
-		IssueMatchId: issueMatchId,
-		ActivityId:   activityId,
-	}
-}
-
 func NewIssueRepository(repo *entity.IssueRepository) IssueRepository {
 	return IssueRepository{
 		ID:            fmt.Sprintf("%d", repo.Id),
