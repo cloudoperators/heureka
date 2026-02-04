@@ -143,8 +143,8 @@ func (r *queryResolver) ImageVersions(ctx context.Context, filter *model.ImageVe
 	return baseResolver.ImageVersionBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) Remediations(ctx context.Context, filter *model.RemediationFilter, first *int, after *string) (*model.RemediationConnection, error) {
-	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, nil)
+func (r *queryResolver) Remediations(ctx context.Context, filter *model.RemediationFilter, first *int, after *string, orderBy []*model.RemediationOrderBy) (*model.RemediationConnection, error) {
+	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
 func (r *queryResolver) Patches(ctx context.Context, filter *model.PatchFilter, first *int, after *string) (*model.PatchConnection, error) {
