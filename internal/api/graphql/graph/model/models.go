@@ -307,6 +307,22 @@ func NewSeverityCounts(counts *entity.IssueSeverityCounts) SeverityCounts {
 	}
 }
 
+func NewIssueStatus(status *VulnerabilityStatus) entity.IssueStatus {
+	if status == nil {
+		return entity.IssueStatusAll
+	}
+	switch status.String() {
+	case VulnerabilityStatusOpen.String():
+		return entity.IssueStatusOpen
+	case VulnerabilityStatusRemediated.String():
+		return entity.IssueStatusRemediated
+	case VulnerabilityStatusAll.String():
+		return entity.IssueStatusAll
+	}
+
+	return entity.IssueStatusAll
+}
+
 func NewIssue(issue *entity.Issue) Issue {
 	lastModified := issue.UpdatedAt.String()
 	issueType := IssueTypes(issue.Type.String())
