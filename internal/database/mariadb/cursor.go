@@ -289,6 +289,10 @@ func WithRemediation(order []entity.Order, r entity.Remediation) NewCursor {
 			switch o.By {
 			case entity.RemediationId:
 				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationId, Value: r.Id, Order: o.Direction})
+			case entity.RemediationIssue:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationIssue, Value: r.Issue, Order: o.Direction})
+			case entity.RemediationSeverity:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationSeverity, Value: r.Severity, Order: o.Direction})
 			default:
 				continue
 			}

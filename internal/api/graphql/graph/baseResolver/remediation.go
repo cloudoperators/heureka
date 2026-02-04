@@ -15,7 +15,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model.RemediationFilter, first *int, after *string, parent *model.NodeParent) (*model.RemediationConnection, error) {
+func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model.RemediationFilter, first *int, after *string, orderBy []*model.RemediationOrderBy, parent *model.NodeParent) (*model.RemediationConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -53,6 +53,10 @@ func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	opt := GetListOptions(requestedFields)
+	for _, o := range orderBy {
+		opt.Order = append(opt.Order, o.ToOrderEntity())
+		opt.Order = append(opt.Order, entity.Order{By: entity.RemediationId, Direction: o.Direction.ToOrderDirectionEntity()})
+	}
 	remediations, err := app.ListRemediations(f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)

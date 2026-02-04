@@ -374,6 +374,47 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			})
 		})
 	})
+	When("Remediation Ordering", func() {
+		BeforeEach(func() {
+			var err error
+			db = dbm.NewTestSchema()
+			seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+			Expect(err).To(BeNil())
+			seeder.SeedDbWithNFakeData(10)
+		})
+		AfterEach(func() {
+			dbm.TestTearDown(db)
+		})
+		It("orders by vulnerability asc", func() {
+			order := []entity.Order{{By: entity.RemediationIssue, Direction: entity.OrderDirectionAsc}}
+			entries, err := db.GetRemediations(nil, order)
+			By("throwing no error", func() {
+				Expect(err).To(BeNil())
+			})
+			prev := ""
+			for _, e := range entries {
+				if prev != "" {
+					Expect(e.Issue >= prev).To(BeTrue())
+				}
+				prev = e.Issue
+			}
+		})
+		It("orders by severity desc", func() {
+			order := []entity.Order{{By: entity.RemediationSeverity, Direction: entity.OrderDirectionDesc}}
+			entries, err := db.GetRemediations(nil, order)
+			By("throwing no error", func() {
+				Expect(err).To(BeNil())
+			})
+			weight := map[string]int{"None":1, "Low":2, "Medium":3, "High":4, "Critical":5}
+			prevW := 100
+			for _, e := range entries {
+				w := weight[string(e.Severity)]
+				Expect(w).To(BeNumerically("<=", prevW))
+				prevW = w
+			}
+		})
+	})
+
 	When("Counting Remediations", Label("CountRemediations"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {

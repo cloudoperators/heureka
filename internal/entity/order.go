@@ -42,6 +42,9 @@ const (
 	RemediationId
 	PatchId
 
+	RemediationIssue
+	RemediationSeverity
+
 	SupportGroupId
 	SupportGroupCcrn
 

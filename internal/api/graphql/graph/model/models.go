@@ -162,6 +162,18 @@ func (so *ServiceOrderBy) ToOrderEntity() entity.Order {
 	return order
 }
 
+func (ro *RemediationOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *ro.By {
+	case RemediationOrderByFieldVulnerability:
+		order.By = entity.RemediationIssue
+	case RemediationOrderByFieldSeverity:
+		order.By = entity.RemediationSeverity
+	}
+	order.Direction = ro.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func NewPageInfo(p *entity.PageInfo) *PageInfo {
 	if p == nil {
 		return nil
@@ -293,6 +305,22 @@ func NewSeverityCounts(counts *entity.IssueSeverityCounts) SeverityCounts {
 		None:     int(counts.None),
 		Total:    int(counts.Total),
 	}
+}
+
+func NewIssueStatus(status *VulnerabilityStatus) entity.IssueStatus {
+	if status == nil {
+		return entity.IssueStatusAll
+	}
+	switch status.String() {
+	case VulnerabilityStatusOpen.String():
+		return entity.IssueStatusOpen
+	case VulnerabilityStatusRemediated.String():
+		return entity.IssueStatusRemediated
+	case VulnerabilityStatusAll.String():
+		return entity.IssueStatusAll
+	}
+
+	return entity.IssueStatusAll
 }
 
 func NewIssue(issue *entity.Issue) Issue {
