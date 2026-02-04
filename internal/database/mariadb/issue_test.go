@@ -515,6 +515,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						remediation = entity_test.NewFakeRemediationEntity()
 						remediation.ExpirationDate = time.Now().Add(10 * 24 * time.Hour)
 						remediation.IssueId = issueMatch.IssueId.Int64
+						remediation.ComponentId = 0 // component is optional
 						remediation.CreatedBy = util.SystemUserId
 						remediation.UpdatedBy = util.SystemUserId
 
