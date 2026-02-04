@@ -63,8 +63,8 @@ func (r *serviceResolver) IssueMatches(ctx context.Context, obj *model.Service, 
 	})
 }
 
-func (r *serviceResolver) Remediations(ctx context.Context, obj *model.Service, filter *model.RemediationFilter, first *int, after *string) (*model.RemediationConnection, error) {
-	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
+func (r *serviceResolver) Remediations(ctx context.Context, obj *model.Service, filter *model.RemediationFilter, first *int, after *string, orderBy []*model.RemediationOrderBy) (*model.RemediationConnection, error) {
+	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ServiceNodeName,
 	})

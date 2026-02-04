@@ -46,6 +46,16 @@ input RemediationFilter {
     search: [String]
 }
 
+input RemediationOrderBy {
+    by: RemediationOrderByField
+    direction: OrderDirection
+}
+
+enum RemediationOrderByField {
+    vulnerability
+    severity
+}
+
 input RemediationInput {
     type: RemediationTypeValues
     description: String

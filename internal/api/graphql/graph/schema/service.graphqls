@@ -12,7 +12,7 @@ type Service implements Node {
     issueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
     componentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
-    remediations(filter: RemediationFilter, first: Int, after: String): RemediationConnection
+    remediations(filter: RemediationFilter, first: Int, after: String, orderBy: [RemediationOrderBy]): RemediationConnection
     objectMetadata: ServiceMetadata
     issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata
