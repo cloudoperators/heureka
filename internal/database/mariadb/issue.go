@@ -742,6 +742,27 @@ func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVe
 	return err
 }
 
+func (s *SqlDatabase) RemoveAllIssuesFromComponentVersion(componentVersionId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"componentVersionId": componentVersionId,
+		"event":              "database.RemoveAllIssuesFromComponentVersion",
+	})
+
+	query := `
+		DELETE FROM ComponentVersionIssue
+		WHERE
+			componentversionissue_component_version_id = :component_version_id
+	`
+
+	args := map[string]interface{}{
+		"component_version_id": componentVersionId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
 func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,

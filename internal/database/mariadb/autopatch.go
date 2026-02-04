@@ -107,10 +107,17 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		return false, err
 	}
 
+	err = s.deleteVersionIssuesOfDisappearedInstances(versionOfDisappearedInstances)
+	if err != nil {
+		return false, err
+	}
+
 	err = s.deleteVersionsOfDisappearedInstances(versionOfDisappearedInstances)
 	if err != nil {
 		return false, err
 	}
+
+	//TODO: check component version for the component (not component instance) and if none is there delete the component
 
 	err = s.insertPatches(patches)
 	if err != nil {
@@ -186,6 +193,16 @@ func (s *SqlDatabase) getVersionIdsOfDisappearedInstances(disappearedInstances [
 		versionIdsOfDisappearedInstances[ci.ComponentVersionId] = struct{}{}
 	}
 	return versionIdsOfDisappearedInstances, nil
+}
+
+func (s *SqlDatabase) deleteVersionIssuesOfDisappearedInstances(versionIdsOfDisappearedInstances map[int64]struct{}) error {
+	for vIdDi, _ := range versionIdsOfDisappearedInstances {
+		if err := s.RemoveAllIssuesFromComponentVersion(vIdDi); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(versionIdsOfDisappearedInstances map[int64]struct{}) error {

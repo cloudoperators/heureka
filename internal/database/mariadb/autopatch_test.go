@@ -15,21 +15,16 @@ import (
 	"github.com/samber/lo"
 )
 
-type scannerRun struct {
-	isNotCompleted       bool
-	issues               []string
-	components           []test.Component
-	issueMatchComponents []test.IssueMatchComponent
-}
-
 type autoPatchTestInfo struct {
 	description                          string
-	scannerRuns                          []scannerRun
+	dbSeeds                              test.DbSeeds
+	scannerRuns                          [][]string
 	expectedResults                      []bool
 	expectedPatchCount                   int
 	patchedComponents                    []string
 	expectDeletedIssueMatchesByIssueName []string
 	expectDeletedVersions                *[]string
+	expectDeletedComponentVersionIssues  []test.ComponentVersionIssue
 }
 
 type autoPatchTest struct {
@@ -49,19 +44,23 @@ func (apt *autoPatchTest) TearDown() {
 }
 
 func (apt *autoPatchTest) Run(tag string, info autoPatchTestInfo, fn func(db *mariadb.SqlDatabase) (bool, error)) {
-	scannerRuns := lo.Map(info.scannerRuns, func(r scannerRun, i int) test.ScannerRunDef {
+	scannerRuns := lo.Map(info.scannerRuns, func(r []string, i int) test.ScannerRunDef {
 		return test.ScannerRunDef{
-			Tag:                  tag,
-			IsCompleted:          !r.isNotCompleted,
-			Timestamp:            time.Now().Add(time.Duration(i) * time.Minute),
-			Issues:               r.issues,
-			Components:           r.components,
-			IssueMatchComponents: r.issueMatchComponents,
+			Tag:                        tag,
+			IsCompleted:                true,
+			Timestamp:                  time.Now().Add(time.Duration(i) * time.Minute),
+			DetectedComponentInstances: r,
 		}
 	})
 
 	scannerRunsSeeder := test.NewScannerRunsSeeder(apt.databaseSeeder)
 	Expect(len(info.expectedResults)).To(BeEquivalentTo(len(scannerRuns)), "Number of expected results should be equal to number of scans (%s)", info.description)
+
+	err := scannerRunsSeeder.SeedDbSeeds(info.dbSeeds)
+	Expect(err).To(BeNil())
+
+	// Expect ComponentVersionIssues not to be deleted yet
+	apt.ExpectComponentVersionIssuesToBeStoredInDatabase(info.expectDeletedComponentVersionIssues, info.description)
 
 	// run empty db autopatch
 	res, err := fn(apt.db)
@@ -69,7 +68,7 @@ func (apt *autoPatchTest) Run(tag string, info autoPatchTestInfo, fn func(db *ma
 	Expect(res).To(BeEquivalentTo(false), "WHEN db has no scans THEN it should return false")
 
 	for i, sr := range scannerRuns {
-		err := scannerRunsSeeder.Seed(sr)
+		err := scannerRunsSeeder.SeedScannerRun(sr)
 		Expect(err).To(BeNil())
 		res, err := fn(apt.db)
 		// Expect no error in autopatch
@@ -95,6 +94,8 @@ func (apt *autoPatchTest) Run(tag string, info autoPatchTestInfo, fn func(db *ma
 	if info.expectDeletedVersions != nil {
 		apt.ExpectVersionsToBeDeleted(*info.expectDeletedVersions, info.description)
 	}
+
+	apt.ExpectComponentVersionIssuesToBeDeleted(info.expectDeletedComponentVersionIssues, info.description)
 
 	err = apt.databaseSeeder.CleanupScannerRuns()
 	Expect(err).To(BeNil())
@@ -130,7 +131,31 @@ func (apt *autoPatchTest) ExpectVersionsToBeDeleted(expectDeletedVersions []stri
 	deletedVersions, err := apt.databaseSeeder.FetchAllNamesOfDeletedVersions()
 	Expect(err).To(BeNil(), "%s THEN versions: '%s' should be deleted (%s)", when, strings.Join(expectDeletedVersions, ", "), err)
 	Expect(len(deletedVersions)).To(BeEquivalentTo(len(expectDeletedVersions)), "%s THEN versions: '%s' should be deleted", when, strings.Join(expectDeletedVersions, ", "))
-	Expect(deletedVersions).To(ConsistOf(expectDeletedVersions), "%s THEN iversions: '%s' should be deleted", when, strings.Join(expectDeletedVersions, ", "))
+	Expect(deletedVersions).To(ConsistOf(expectDeletedVersions), "%s THEN versions: '%s' should be deleted", when, strings.Join(expectDeletedVersions, ", "))
+}
+
+func (apt *autoPatchTest) ExpectComponentVersionIssuesToBeStoredInDatabase(expectComponentVersionIssues []test.ComponentVersionIssue, when string) {
+	componentVersionIssues, err := apt.databaseSeeder.FetchAllNamesOfComponentVersionIssues()
+	Expect(err).To(BeNil(), "%s THEN component version issues: '%s' should not be deleted yet (%s)", when, strings.Join(
+		lo.Map(expectComponentVersionIssues, func(cvi test.ComponentVersionIssue, _ int) string {
+			return fmt.Sprintf("i:%s cv:%s", cvi.Issue, cvi.ComponentVersion)
+		}), ", "), err)
+	Expect(componentVersionIssues).To(test.ContainAll(expectComponentVersionIssues), "%s THEN component version issues: '%s' should be deleted yet", when, strings.Join(
+		lo.Map(expectComponentVersionIssues, func(cvi test.ComponentVersionIssue, _ int) string {
+			return fmt.Sprintf("i:%s cv:%s", cvi.Issue, cvi.ComponentVersion)
+		}), ", "))
+}
+
+func (apt *autoPatchTest) ExpectComponentVersionIssuesToBeDeleted(expectDeletedComponentVersionIssues []test.ComponentVersionIssue, when string) {
+	componentVersionIssues, err := apt.databaseSeeder.FetchAllNamesOfComponentVersionIssues()
+	Expect(err).To(BeNil(), "%s THEN component version issues: '%s' should be deleted (%s)", when, strings.Join(
+		lo.Map(expectDeletedComponentVersionIssues, func(cvi test.ComponentVersionIssue, _ int) string {
+			return fmt.Sprintf("i:%s cv:%s", cvi.Issue, cvi.ComponentVersion)
+		}), ", "), err)
+	Expect(componentVersionIssues).To(test.ContainNone(expectDeletedComponentVersionIssues), "%s THEN component version issues: '%s' should be deleted", when, strings.Join(
+		lo.Map(expectDeletedComponentVersionIssues, func(cvi test.ComponentVersionIssue, _ int) string {
+			return fmt.Sprintf("i:%s cv:%s", cvi.Issue, cvi.ComponentVersion)
+		}), ", "))
 }
 
 var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
@@ -144,79 +169,46 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 
 	autopatchTests := []autoPatchTestInfo{
 		{
-			description: "WHEN there is one not-completed scan",
-			scannerRuns: []scannerRun{
-				{isNotCompleted: true},
-			},
+			description:     "WHEN single completed scan with no components",
+			scannerRuns:     [][]string{{}},
 			expectedResults: []bool{false},
 		},
 		{
-			description: "WHEN single completed scan with no components",
-			scannerRuns: []scannerRun{
-				{},
-			},
+			description:     "WHEN single completed scan with components",
+			scannerRuns:     [][]string{{"C1"}},
 			expectedResults: []bool{false},
 		},
 		{
-			description: "WHEN single completed scan with components",
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1"}}},
-			},
-			expectedResults: []bool{false},
-		},
-		{
-			description: "WHEN two completed empty scans",
-			scannerRuns: []scannerRun{
-				{},
-				{},
-			},
+			description:     "WHEN two completed empty scans",
+			scannerRuns:     [][]string{{}, {}},
 			expectedResults: []bool{false, false},
 		},
 		{
-			description: "WHEN first completed scan has components and second is not completed",
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1"}}},
-				{isNotCompleted: true},
-			},
-			expectedResults: []bool{false, false},
-		},
-		{
-			description: "WHEN two completed scans: first has component, second no longer has that component",
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1"}}},
-				{},
-			},
+			description:        "WHEN two completed scans: first has component, second no longer has that component",
+			scannerRuns:        [][]string{{"C1"}, {}},
 			expectedResults:    []bool{false, true},
 			expectedPatchCount: 1,
 			patchedComponents:  []string{"C1"},
 		},
 		{
-			description: "WHEN two completed scans: both have the same component",
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1"}}},
-				{components: []test.Component{{Name: "C1"}}},
-			},
+			description:     "WHEN two completed scans: both have the same component",
+			scannerRuns:     [][]string{{"C1"}, {"C1"}},
 			expectedResults: []bool{false, false},
 		},
 		{
-			description: "WHEN two completed scans: first has C1, second has C2",
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1"}}},
-				{components: []test.Component{{Name: "C2"}}},
-			},
+			description:        "WHEN two completed scans: first has C1, second has C2",
+			scannerRuns:        [][]string{{"C1"}, {"C2"}},
 			expectedResults:    []bool{false, true}, // C1 disappeared -> autopatch
 			expectedPatchCount: 1,
 			patchedComponents:  []string{"C1"},
 		},
 		{
 			description: "WHEN component instance is tied to IssueMatch and disappears",
-			scannerRuns: []scannerRun{
-				{
-					issues:               []string{"Issue1"},
-					components:           []test.Component{{Name: "C1"}},
-					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "C1"}},
-				},
-				{components: []test.Component{{Name: "C2"}}},
+			scannerRuns: [][]string{{"C1"}, {"C2"}},
+			dbSeeds: test.DbSeeds{
+				IssueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", ComponentInstance: "C1"}},
+				Issues:               []string{"Issue1"},
+				Components:           []test.ComponentData{{Name: "C1"}},
 			},
 			expectedResults:                      []bool{false, true},
 			expectedPatchCount:                   1,
@@ -225,104 +217,88 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 		},
 		{
 			description: "WHEN component instance is tied to IssueMatch and stays present in next run",
-			scannerRuns: []scannerRun{
-				{
-					issues:               []string{"Issue1"},
-					components:           []test.Component{{Name: "C1"}},
-					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "C1"}},
-				},
-				{
-					issues:               []string{"Issue1"},
-					components:           []test.Component{{Name: "C1"}},
-					issueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", Component: "C1"}},
-				},
+			scannerRuns: [][]string{{"C1"}, {"C1"}},
+			dbSeeds: test.DbSeeds{
+				IssueMatchComponents: []test.IssueMatchComponent{{Issue: "Issue1", ComponentInstance: "C1"}},
+				Issues:               []string{"Issue1"},
+				Components:           []test.ComponentData{{Name: "C1"}},
 			},
 			expectedResults: []bool{false, false},
 		},
 		{
-			description: "WHEN three completed empty scans",
-			scannerRuns: []scannerRun{
-				{},
-				{},
-				{},
-			},
+			description:     "WHEN three completed empty scans",
+			scannerRuns:     [][]string{{}, {}, {}},
 			expectedResults: []bool{false, false, false},
 		},
 		{
-			description: "WHEN 3 scans: <C1>, <no component>, <no component>",
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1"}}},
-				{},
-				{},
-			},
+			description:        "WHEN 3 scans: <C1>, <no component>, <no component>",
+			scannerRuns:        [][]string{{"C1"}, {}, {}},
 			expectedResults:    []bool{false, true, false},
 			expectedPatchCount: 1,
 		},
 		{
-			description: "WHEN 3 scans: <C1>, <C1>, <C1>",
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1"}}},
-				{components: []test.Component{{Name: "C1"}}},
-				{components: []test.Component{{Name: "C1"}}},
-			},
+			description:     "WHEN 3 scans: <C1>, <C1>, <C1>",
+			scannerRuns:     [][]string{{"C1"}, {"C1"}, {"C1"}},
 			expectedResults: []bool{false, false, false},
 		},
 		{
-			description: "WHEN 3 scans: <C1>, <no component>, <C1>",
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1"}}},
-				{},
-				{components: []test.Component{{Name: "C1"}}},
-			},
+			description:        "WHEN 3 scans: <C1>, <no component>, <C1>",
+			scannerRuns:        [][]string{{"C1"}, {}, {"C1"}},
 			expectedResults:    []bool{false, true, false},
 			expectedPatchCount: 1,
 			patchedComponents:  []string{"C1"},
 		},
 		{
-			description: "WHEN 3 scans: <no component>, <C1>, <no component>",
-			scannerRuns: []scannerRun{
-				{},
-				{components: []test.Component{{Name: "C1"}}},
-				{},
-			},
+			description:        "WHEN 3 scans: <no component>, <C1>, <no component>",
+			scannerRuns:        [][]string{{}, {"C1"}, {}},
 			expectedResults:    []bool{false, false, true},
 			expectedPatchCount: 1,
 			patchedComponents:  []string{"C1"},
 		},
 		{
-			description: "WHEN 2 scans detect disappearance of 3 components with the same version and service id", //T HEN only single patch should be created
-			scannerRuns: []scannerRun{
-				{
-					issues:     []string{"IC1", "IC2a", "IC2b", "IC3", "IX"},
-					components: []test.Component{{Name: "C1"}, {Name: "C2"}, {Name: "C3"}},
-					issueMatchComponents: []test.IssueMatchComponent{
-						{Issue: "IC1", Component: "C1"},
-						{Issue: "IC2a", Component: "C2"},
-						{Issue: "IC2b", Component: "C2"},
-						{Issue: "IC3", Component: "C3"},
-					},
+			description: "WHEN 2 scans detect disappearance of 3 components with the same version and service id", // THEN only single patch should be created
+			scannerRuns: [][]string{{"C1", "C2", "C3"}, {}},
+			dbSeeds: test.DbSeeds{
+				IssueMatchComponents: []test.IssueMatchComponent{
+					{Issue: "IC1", ComponentInstance: "C1"},
+					{Issue: "IC2a", ComponentInstance: "C2"},
+					{Issue: "IC2b", ComponentInstance: "C2"},
+					{Issue: "IC3", ComponentInstance: "C3"},
 				},
-				{},
+				Issues: []string{"IC1", "IC2a", "IC2b", "IC3", "IX"},
+				Components: []test.ComponentData{
+					{Name: "C1", Version: "V1", Service: "S1"},
+					{Name: "C2", Version: "V1", Service: "S1"},
+					{Name: "C3", Version: "V1", Service: "S1"},
+				},
 			},
 			expectedResults:                      []bool{false, true},
 			expectedPatchCount:                   1,
 			patchedComponents:                    []string{"C1", "C2", "C3"},
 			expectDeletedIssueMatchesByIssueName: []string{"IC1", "IC2a", "IC2b", "IC3"},
+			expectDeletedVersions:                lo.ToPtr([]string{"V1"}),
 		},
 		{
 			description: "WHEN 1 component disappear from 2 components with the same version and service", // THEN patch should not be created
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1", Version: "V1", Service: "S1"}, {Name: "C2", Version: "V1", Service: "S1"}}},
-				{components: []test.Component{{Name: "C2", Version: "V1", Service: "S1"}}},
+			scannerRuns: [][]string{{"C1", "C2"}, {"C2"}},
+			dbSeeds: test.DbSeeds{
+				Components: []test.ComponentData{
+					{Name: "C1", Version: "V1", Service: "S1"},
+					{Name: "C2", Version: "V1", Service: "S1"},
+				},
 			},
-			expectedResults:    []bool{false, true},
-			expectedPatchCount: 0,
+			expectedResults:       []bool{false, true},
+			expectedPatchCount:    0,
+			expectDeletedVersions: lo.ToPtr([]string{}),
 		},
 		{
 			description: "WHEN 1 component disappear from 2 components with different version and service", // THEN patch should be created and not used version should be removed
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1", Version: "V10", Service: "S1"}, {Name: "C2", Version: "V20", Service: "S2"}}},
-				{components: []test.Component{{Name: "C1", Version: "V10", Service: "S1"}}},
+			scannerRuns: [][]string{{"C1", "C2"}, {"C1"}},
+			dbSeeds: test.DbSeeds{
+				Components: []test.ComponentData{
+					{Name: "C1", Version: "V10", Service: "S1"},
+					{Name: "C2", Version: "V20", Service: "S2"},
+				},
 			},
 			expectedResults:       []bool{false, true},
 			expectedPatchCount:    1,
@@ -330,21 +306,36 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectDeletedVersions: lo.ToPtr([]string{"V20"}),
 		},
 		{
-			description: "WHEN 1 component disappear from 2 components with different version and service", //THEN patch should be created and not used version should be removed
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1", Version: "V10", Service: "S1"}, {Name: "C2", Version: "V20", Service: "S2"}}},
-				{components: []test.Component{{Name: "C1", Version: "V10", Service: "S1"}}},
+			description: "WHEN 1 component with component version issues disappear from 2 components with different version and service", //THEN patch should be created and not used version should be removed and component version issues should be removed
+			scannerRuns: [][]string{{"C1", "C2"}, {"C1"}},
+			dbSeeds: test.DbSeeds{
+				Issues: []string{"Issue1", "Issue2", "Issue3", "Issue4"},
+				Components: []test.ComponentData{
+					{Name: "C1", Version: "V10", Service: "S1"},
+					{Name: "C2", Version: "V20", Service: "S2"},
+				},
+				ComponentVersionIssues: []test.ComponentVersionIssue{
+					{Issue: "Issue1", ComponentVersion: "V10"},
+					{Issue: "Issue4", ComponentVersion: "V10"},
+					{Issue: "Issue1", ComponentVersion: "V20"},
+					{Issue: "Issue2", ComponentVersion: "V20"},
+					{Issue: "Issue3", ComponentVersion: "V20"},
+				},
 			},
-			expectedResults:       []bool{false, true},
-			expectedPatchCount:    1,
-			patchedComponents:     []string{"C2"},
-			expectDeletedVersions: lo.ToPtr([]string{"V20"}),
+			expectedResults:                     []bool{false, true},
+			expectedPatchCount:                  1,
+			patchedComponents:                   []string{"C2"},
+			expectDeletedVersions:               lo.ToPtr([]string{"V20"}),
+			expectDeletedComponentVersionIssues: []test.ComponentVersionIssue{{"Issue1", "V20"}, {"Issue2", "V20"}, {"Issue3", "V20"}},
 		},
 		{
 			description: "WHEN 1 component disappear from 2 components with the same version and service", //THEN patch should be created and version should not be removed
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C1", Version: "V10", Service: "S1"}, {Name: "C2", Version: "V10", Service: "S2"}}},
-				{components: []test.Component{{Name: "C1", Version: "V10", Service: "S1"}}},
+			scannerRuns: [][]string{{"C1", "C2"}, {"C1"}},
+			dbSeeds: test.DbSeeds{
+				Components: []test.ComponentData{
+					{Name: "C1", Version: "V10", Service: "S1"},
+					{Name: "C2", Version: "V10", Service: "S2"},
+				},
 			},
 			expectedResults:       []bool{false, true},
 			expectedPatchCount:    1,
@@ -352,16 +343,19 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectDeletedVersions: lo.ToPtr([]string{}),
 		},
 		{
-			description: "WHEN 4 scans detect disappearance of 1 component and the component appear and disappear again", // THEN two patches should be created for the same service and version
-			scannerRuns: []scannerRun{
-				{components: []test.Component{{Name: "C0", Version: "V1", Service: "S0"}, {Name: "C1", Version: "V1", Service: "S1"}}},
-				{components: []test.Component{{Name: "C0", Version: "V1", Service: "S0"}}},
-				{components: []test.Component{{Name: "C0", Version: "V1", Service: "S0"}, {Name: "C2", Version: "V1", Service: "S1"}}},
-				{components: []test.Component{{Name: "C0", Version: "V1", Service: "S0"}}},
+			description: "WHEN 4 scans detect disappearance of 1 component and the component appear and disappear again", //THEN two patches should be created for the same service and version
+			scannerRuns: [][]string{{"C0", "C1"}, {"C0"}, {"C0", "C2"}, {"C0"}},
+			dbSeeds: test.DbSeeds{
+				Components: []test.ComponentData{
+					{Name: "C0", Version: "V1", Service: "S0"},
+					{Name: "C1", Version: "V1", Service: "S1"},
+					{Name: "C2", Version: "V1", Service: "S1"},
+				},
 			},
-			expectedResults:    []bool{false, true, false, true},
-			expectedPatchCount: 2,
-			patchedComponents:  []string{"C1", "C2"},
+			expectedResults:       []bool{false, true, false, true},
+			expectedPatchCount:    2,
+			patchedComponents:     []string{"C1", "C2"},
+			expectDeletedVersions: lo.ToPtr([]string{}),
 		},
 	}
 
