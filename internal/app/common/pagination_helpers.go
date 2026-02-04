@@ -45,11 +45,11 @@ func EnsurePaginatedX(filter *entity.PaginatedX) {
 }
 
 func GetPages(firstCursor *string, ids []int64, pageSize int) ([]entity.Page, entity.Page) {
-	var currentCursor = util.Ptr("0")
+	currentCursor := util.Ptr("0")
 	var pages []entity.Page
 	var currentPage entity.Page
-	var i = 0
-	var pN = 0
+	i := 0
+	pN := 0
 	var page entity.Page
 	for _, id := range ids {
 		i++
@@ -87,8 +87,8 @@ func GetPages(firstCursor *string, ids []int64, pageSize int) ([]entity.Page, en
 func GetCursorPages(firstCursor *string, cursors []string, pageSize int) ([]entity.Page, entity.Page) {
 	var pages []entity.Page
 	var currentPage entity.Page
-	var i = 0
-	var pN = 0
+	i := 0
+	pN := 0
 	var isCurrent bool
 	// declare variable so it can be used outside the loop
 	var c string
@@ -151,7 +151,6 @@ func GetPageInfo[T entity.HasCursor](res []T, ids []int64, pageSize int, current
 }
 
 func GetPageInfoX[T entity.HasCursor](res []T, cursors []string, pageSize int, currentCursor *string) *entity.PageInfo {
-
 	var nextPageAfter *string
 	currentAfter := currentCursor
 	firstCursor := res[0].Cursor()

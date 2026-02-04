@@ -5,6 +5,7 @@ package mariadb_test
 
 import (
 	"database/sql"
+	"math/rand"
 	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
@@ -14,12 +15,9 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"math/rand"
 )
 
 var _ = Describe("Remediation", Label("database", "Remediation"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
@@ -254,6 +252,66 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						}
 					})
 				})
+				It("can filter by 'risk_accepted' type", func() {
+					remediationType := entity.RemediationTypeRiskAccepted.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeRiskAccepted.String()))
+						}
+					})
+				})
+				It("can filter by 'mitigation' type", func() {
+					remediationType := entity.RemediationTypeMitigation.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeMitigation.String()))
+						}
+					})
+				})
+				It("can filter by 'rescore' type", func() {
+					remediationType := entity.RemediationTypeRescore.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeRescore.String()))
+						}
+					})
+				})
 				It("can filter by wildcard search", func() {
 					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
 
@@ -287,7 +345,6 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					By("returning the expected elements", func() {
 						Expect(ids).To(ContainElement(row.Id.Int64))
 					})
-
 				})
 			})
 			Context("and using pagination", func() {
@@ -317,6 +374,47 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			})
 		})
 	})
+	When("Remediation Ordering", func() {
+		BeforeEach(func() {
+			var err error
+			db = dbm.NewTestSchema()
+			seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+			Expect(err).To(BeNil())
+			seeder.SeedDbWithNFakeData(10)
+		})
+		AfterEach(func() {
+			dbm.TestTearDown(db)
+		})
+		It("orders by vulnerability asc", func() {
+			order := []entity.Order{{By: entity.RemediationIssue, Direction: entity.OrderDirectionAsc}}
+			entries, err := db.GetRemediations(nil, order)
+			By("throwing no error", func() {
+				Expect(err).To(BeNil())
+			})
+			prev := ""
+			for _, e := range entries {
+				if prev != "" {
+					Expect(e.Issue >= prev).To(BeTrue())
+				}
+				prev = e.Issue
+			}
+		})
+		It("orders by severity desc", func() {
+			order := []entity.Order{{By: entity.RemediationSeverity, Direction: entity.OrderDirectionDesc}}
+			entries, err := db.GetRemediations(nil, order)
+			By("throwing no error", func() {
+				Expect(err).To(BeNil())
+			})
+			weight := map[string]int{"None":1, "Low":2, "Medium":3, "High":4, "Critical":5}
+			prevW := 100
+			for _, e := range entries {
+				w := weight[string(e.Severity)]
+				Expect(w).To(BeNumerically("<=", prevW))
+				prevW = w
+			}
+		})
+	})
+
 	When("Counting Remediations", Label("CountRemediations"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {

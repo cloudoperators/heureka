@@ -102,7 +102,7 @@ func (s *SqlDatabase) buildEvidenceStatement(baseQuery string, filter *entity.Ev
 		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -115,7 +115,7 @@ func (s *SqlDatabase) buildEvidenceStatement(baseQuery string, filter *entity.Ev
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
@@ -141,7 +141,6 @@ func (s *SqlDatabase) GetAllEvidenceIds(filter *entity.EvidenceFilter) ([]int64,
     `
 
 	stmt, filterParameters, err := s.buildEvidenceStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +166,6 @@ func (s *SqlDatabase) GetEvidences(filter *entity.EvidenceFilter) ([]entity.Evid
 	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildEvidenceStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +193,6 @@ func (s *SqlDatabase) CountEvidences(filter *entity.EvidenceFilter) (int64, erro
 		%s
 	`
 	stmt, filterParameters, err := s.buildEvidenceStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -239,7 +236,6 @@ func (s *SqlDatabase) CreateEvidence(evidence *entity.Evidence) (*entity.Evidenc
 	evidenceRow.FromEvidence(evidence)
 
 	id, err := performInsert(s, query, evidenceRow, l)
-
 	if err != nil {
 		return nil, err
 	}

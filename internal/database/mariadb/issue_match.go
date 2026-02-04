@@ -17,7 +17,7 @@ func ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity.IssueMatchFilter
 		return f
 	}
 
-	var first = 1000
+	first := 1000
 	var after string = ""
 	return &entity.IssueMatchFilter{
 		PaginatedX: entity.PaginatedX{
@@ -190,7 +190,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -203,7 +203,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
@@ -241,7 +241,6 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +261,6 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(filter *entity.IssueMatchFilter, o
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +273,6 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(filter *entity.IssueMatchFilter, o
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +305,6 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +351,6 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -399,7 +394,6 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 	issueMatchRow.FromIssueMatch(issueMatch)
 
 	id, err := performInsert(s, query, issueMatchRow, l)
-
 	if err != nil {
 		return nil, err
 	}

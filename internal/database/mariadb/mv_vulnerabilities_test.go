@@ -22,7 +22,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 	var seeder *test.DatabaseSeeder
 	var seedCollection *test.SeedCollection
 
-	var testIssueSeverityCount = func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
+	testIssueSeverityCount := func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
 		issueSeverityCounts, err := db.CountIssueRatings(filter)
 
 		By("throwing no error", func() {
@@ -39,7 +39,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		})
 	}
 
-	var testServices = func(counts map[string]entity.IssueSeverityCounts) {
+	testServices := func(counts map[string]entity.IssueSeverityCounts) {
 		for _, service := range seedCollection.ServiceRows {
 			serviceId := service.Id.Int64
 
@@ -53,7 +53,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		}
 	}
 
-	var testComponentVersions = func(counts map[string]entity.IssueSeverityCounts) {
+	testComponentVersions := func(counts map[string]entity.IssueSeverityCounts) {
 		for _, cvi := range seedCollection.ComponentVersionIssueRows {
 			cvId := cvi.ComponentVersionId.Int64
 			filter := &entity.IssueFilter{
@@ -66,7 +66,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		}
 	}
 
-	var testSupportGroups = func(counts map[string]entity.IssueSeverityCounts) {
+	testSupportGroups := func(counts map[string]entity.IssueSeverityCounts) {
 		for _, sg := range seedCollection.SupportGroupRows {
 			filter := &entity.IssueFilter{
 				SupportGroupCCRN: []*string{&sg.CCRN.String},
@@ -78,7 +78,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		}
 	}
 
-	var testServicesTotalCountWithSupportGroup = func(counts map[string]entity.IssueSeverityCounts) {
+	testServicesTotalCountWithSupportGroup := func(counts map[string]entity.IssueSeverityCounts) {
 		for _, sg := range seedCollection.SupportGroupRows {
 			filter := &entity.IssueFilter{
 				SupportGroupCCRN: []*string{&sg.CCRN.String},
@@ -91,7 +91,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		}
 	}
 
-	var testServicesTotalCountWithUnique = func(counts entity.IssueSeverityCounts) {
+	testServicesTotalCountWithUnique := func(counts entity.IssueSeverityCounts) {
 		filter := &entity.IssueFilter{
 			Unique:      true,
 			AllServices: true,
@@ -100,7 +100,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		testIssueSeverityCount(filter, counts)
 	}
 
-	var testServicesTotalCount = func(counts entity.IssueSeverityCounts) {
+	testServicesTotalCount := func(counts entity.IssueSeverityCounts) {
 		filter := &entity.IssueFilter{
 			AllServices: true,
 		}
@@ -108,7 +108,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		testIssueSeverityCount(filter, counts)
 	}
 
-	var insertRemediation = func(serviceRow *mariadb.BaseServiceRow, componentRow *mariadb.ComponentRow, expirationDate time.Time) *entity.Remediation {
+	insertRemediation := func(serviceRow *mariadb.BaseServiceRow, componentRow *mariadb.ComponentRow, expirationDate time.Time) *entity.Remediation {
 		remediation := test.NewFakeRemediation()
 		if serviceRow != nil {
 			remediation.ServiceId = serviceRow.Id
@@ -127,7 +127,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		return newRemediation
 	}
 
-	var testNoActiveRemediation = func() {
+	testNoActiveRemediation := func() {
 		It("returns the correct count for component version issues", func() {
 			severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
 			Expect(err).To(BeNil())
@@ -508,5 +508,4 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			testServicesTotalCountWithSupportGroup(severityCounts)
 		})
 	})
-
 })

@@ -54,8 +54,10 @@ type cacheConfig struct {
 	valkeyUrl string
 }
 
-var valkeyCacheTestConfig = cacheConfig{valkeyUrl: valkeyUrl}
-var inMemoryCacheTestConfig = cacheConfig{}
+var (
+	valkeyCacheTestConfig   = cacheConfig{valkeyUrl: valkeyUrl}
+	inMemoryCacheTestConfig = cacheConfig{}
+)
 
 func newCacheTest(valkeyUrl string, ttl time.Duration, maxDbConcurrentRefreshes int, throttleIntervalMSec int64, throttlePerInterval int, proxy bool) *cacheTest {
 	var ct cacheTest
@@ -240,7 +242,6 @@ func backgroundUpdateTest(config cacheConfig) {
 }
 
 func backgroundUpdateRateBasedLimitTest(config cacheConfig) {
-
 	// -- Skip background update above the limit
 
 	// GIVEN Cache is configured with background update limit set to 2 per 1 second
@@ -298,7 +299,6 @@ func backgroundUpdateRateBasedLimitTest(config cacheConfig) {
 }
 
 func backgroundUpdateConcurrentLimitTest(config cacheConfig) {
-
 	// -- Skip background update above the limit
 
 	// GIVEN Cache is configured with DB proxy and with background update concurrent limit set to 2
@@ -380,7 +380,6 @@ func backgroundUpdateConcurrentLimitTest(config cacheConfig) {
 }
 
 var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e", "Cache"), func() {
-
 	Describe("Check miss", func() {
 		It("Should increase miss counter when resource is queried for the first time", func() {
 			missTest(valkeyCacheTestConfig)
@@ -419,7 +418,6 @@ var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e",
 })
 
 var _ = Describe("Using In memory cache", Label("e2e", "InMemoryCache"), Label("e2e", "Cache"), func() {
-
 	Describe("Check miss", func() {
 		It("Should increase miss counter when resource is queried for the first time", func() {
 			missTest(inMemoryCacheTestConfig)

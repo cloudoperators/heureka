@@ -16,7 +16,7 @@ func ensureActivityFilter(f *entity.ActivityFilter) *entity.ActivityFilter {
 		return f
 	}
 
-	var first = 1000
+	first := 1000
 	var after int64 = 0
 	return &entity.ActivityFilter{
 		Paginated: entity.Paginated{
@@ -94,7 +94,7 @@ func (s *SqlDatabase) buildActivityStatement(baseQuery string, filter *entity.Ac
 		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -107,7 +107,7 @@ func (s *SqlDatabase) buildActivityStatement(baseQuery string, filter *entity.Ac
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.Status)
@@ -135,7 +135,6 @@ func (s *SqlDatabase) GetAllActivityIds(filter *entity.ActivityFilter) ([]int64,
     `
 
 	stmt, filterParameters, err := s.buildActivityStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +160,6 @@ func (s *SqlDatabase) GetActivities(filter *entity.ActivityFilter) ([]entity.Act
 	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildActivityStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +187,6 @@ func (s *SqlDatabase) CountActivities(filter *entity.ActivityFilter) (int64, err
 		%s
 	`
 	stmt, filterParameters, err := s.buildActivityStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -221,7 +218,6 @@ func (s *SqlDatabase) CreateActivity(activity *entity.Activity) (*entity.Activit
 	activityRow.FromActivity(activity)
 
 	id, err := performInsert(s, query, activityRow, l)
-
 	if err != nil {
 		return nil, err
 	}

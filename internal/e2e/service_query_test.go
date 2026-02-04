@@ -6,7 +6,6 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-
 	"os"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
@@ -83,7 +82,6 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -117,7 +115,6 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				Expect(respData.Services.TotalCount).To(Equal(len(seedCollection.ServiceRows)))
 				Expect(len(respData.Services.Edges)).To(Equal(5))
 			})
-
 		})
 		Context("and we request metadata", func() {
 			It("returns correct metadata counts", func() {
@@ -156,10 +153,8 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 					Expect(serviceEdge.Node.ObjectMetadata.ComponentInstanceCount).To(Equal(ciCount))
 				}
 			})
-
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 			var respData struct {
 				Services model.ServiceConnection `json:"Services"`
 			}
@@ -193,7 +188,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			})
 
 			It("- returns the expected content", func() {
-				//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 				// a complete verification
 				// additional checks are added based on bugs discovered during usage
 
@@ -330,10 +325,9 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 					}
 				})
 			})
-
 		})
 	})
-	var loadTestData = func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
+	loadTestData := func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, nil, nil, err
@@ -382,7 +376,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			Expect(err).To(BeNil())
 		})
 
-		var runOrderTest = func(orderDirection string, expectedOrder []string) {
+		runOrderTest := func(orderDirection string, expectedOrder []string) {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withOrder.graphql")
 			Expect(err).To(BeNil())
@@ -417,13 +411,11 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		})
 
 		It("can count issues", Label("issueCount"), func() {
-
 		})
 	})
 })
 
 var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -448,7 +440,6 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			service = testentity.NewFakeServiceEntity()
@@ -487,7 +478,6 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -554,7 +544,6 @@ var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -617,7 +606,6 @@ var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -733,7 +721,6 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 })
 
 var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

@@ -26,8 +26,10 @@ func TestSupportGroupHandler(t *testing.T) {
 	RunSpecs(t, "Support Group Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -66,7 +68,6 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
@@ -96,7 +97,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				})
 			}
 
-			var cursors = lo.Map(supportGroups, func(s entity.SupportGroupResult, _ int) string {
+			cursors := lo.Map(supportGroups, func(s entity.SupportGroupResult, _ int) string {
 				return s.Value
 			})
 
@@ -382,7 +383,6 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetSupportGroupCcrns", filter).Return([]string{}, nil)
 		})

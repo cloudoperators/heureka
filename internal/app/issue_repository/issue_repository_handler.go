@@ -67,7 +67,6 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 	})
 
 	res, err := ir.getIssueRepositoryResults(filter)
-
 	if err != nil {
 		return nil, NewIssueRepositoryHandlerError("Error while filtering for IssueRepositories")
 	}
@@ -121,7 +120,6 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(ctx context.Context, iss
 	issueRepository.BaseIssueRepository.UpdatedBy = issueRepository.BaseIssueRepository.CreatedBy
 
 	issueRepositories, err := ir.ListIssueRepositories(f, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository.")
@@ -133,7 +131,6 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(ctx context.Context, iss
 	}
 
 	newIssueRepository, err := ir.database.CreateIssueRepository(issueRepository)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository.")
@@ -158,14 +155,12 @@ func (ir *issueRepositoryHandler) UpdateIssueRepository(ctx context.Context, iss
 	}
 
 	err = ir.database.UpdateIssueRepository(issueRepository)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository.")
 	}
 
 	issueRepositoryResult, err := ir.ListIssueRepositories(&entity.IssueRepositoryFilter{Id: []*int64{&issueRepository.Id}}, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while retrieving updated issueRepository.")
@@ -194,7 +189,6 @@ func (ir *issueRepositoryHandler) DeleteIssueRepository(ctx context.Context, id 
 	}
 
 	err = ir.database.DeleteIssueRepository(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewIssueRepositoryHandlerError("Internal error while updating issueRepository.")

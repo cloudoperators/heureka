@@ -47,7 +47,6 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 
 	When("the database is empty", func() {
 		It("returns empty result set", func() {
-
 			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Remediations model.RemediationConnection `json:"Remediations"`
 			}](
@@ -79,7 +78,8 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 					map[string]interface{}{
 						"filter": map[string]string{},
 						"first":  5,
-						"after":  ""})
+						"after":  "",
+					})
 				Expect(respData.Remediations.TotalCount).To(Equal(len(seedCollection.RemediationRows)))
 				Expect(len(respData.Remediations.Edges)).To(Equal(5))
 				//- returns the expected PageInfo
@@ -110,7 +110,6 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 })
 
 var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -135,7 +134,6 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			remediation = testentity.NewFakeRemediationEntity()
@@ -162,7 +160,8 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
 							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
 							"remediatedBy":    remediation.RemediatedBy,
-						}})
+						},
+					})
 				Expect(*respData.Remediation.Description).To(Equal(remediation.Description))
 				Expect(respData.Remediation.Severity.String()).To(Equal(remediation.Severity.String()))
 				Expect(*respData.Remediation.Service).To(Equal(remediation.Service))
@@ -221,7 +220,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						"id": fmt.Sprintf("%d", remediation.Id),
 						"input": map[string]string{
 							"description": description,
-						}})
+						},
+					})
 
 				Expect(*respData.Remediation.Description).To(Equal(description))
 				Expect(respData.Remediation.Severity.String()).To(Equal(remediation.Severity.String()))
@@ -242,7 +242,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						"id": fmt.Sprintf("%d", remediation.Id),
 						"input": map[string]string{
 							"service": service.CCRN.String,
-						}})
+						},
+					})
 
 				Expect(*respData.Remediation.Service).To(Equal(service.CCRN.String))
 				Expect(*respData.Remediation.ServiceID).To(Equal(fmt.Sprintf("%d", service.Id.Int64)))
@@ -258,7 +259,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						"id": fmt.Sprintf("%d", remediation.Id),
 						"input": map[string]string{
 							"image": component.Repository.String,
-						}})
+						},
+					})
 
 				Expect(*respData.Remediation.Image).To(Equal(component.Repository.String))
 				Expect(*respData.Remediation.ImageID).To(Equal(fmt.Sprintf("%d", component.Id.Int64)))
@@ -274,7 +276,8 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						"id": fmt.Sprintf("%d", remediation.Id),
 						"input": map[string]string{
 							"vulnerability": issue.PrimaryName.String,
-						}})
+						},
+					})
 
 				Expect(*respData.Remediation.Vulnerability).To(Equal(issue.PrimaryName.String))
 				Expect(*respData.Remediation.VulnerabilityID).To(Equal(fmt.Sprintf("%d", issue.Id.Int64)))
@@ -284,7 +287,6 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 })
 
 var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config

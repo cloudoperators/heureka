@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"math/rand"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -11,8 +13,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-
-	"math/rand"
 )
 
 var _ = Describe("Activity", Label("database", "Activity"), func() {
@@ -123,7 +123,6 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 			})
 
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetActivities(nil)
 
@@ -343,7 +342,6 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				ActivityRows = seedCollection.ActivityRows
 				count = len(ActivityRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -406,7 +404,6 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 				)
 			})
 		})
-
 	})
 	When("Insert Activity", Label("InsertActivity"), func() {
 		Context("and we have 10 Activities in the database", func() {

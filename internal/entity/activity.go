@@ -52,8 +52,7 @@ type ActivityHasIssue struct {
 	IssueId    int64 `json:"issue_id"`
 }
 
-type ActivityAggregations struct {
-}
+type ActivityAggregations struct{}
 
 type ActivityFilter struct {
 	Paginated

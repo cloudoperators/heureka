@@ -109,7 +109,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -122,7 +122,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.Name)
@@ -151,7 +151,6 @@ func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) 
     `
 
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +176,6 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.User, error)
 	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +202,6 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 		%s
 	`
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -242,7 +239,6 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 	userRow.FromUser(user)
 
 	id, err := performInsert(s, query, userRow, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -298,6 +294,7 @@ func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {
 
 	return err
 }
+
 func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
@@ -347,6 +344,7 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 
 	return userNames, nil
 }
+
 func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,

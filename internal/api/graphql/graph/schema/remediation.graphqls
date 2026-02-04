@@ -20,6 +20,9 @@ type Remediation implements Node {
 
 enum RemediationTypeValues {
     false_positive
+    risk_accepted
+    mitigation
+    rescore
 }
 
 type RemediationConnection implements Connection {
@@ -41,6 +44,16 @@ input RemediationFilter {
     vulnerability: [String]
     state: [StateFilter!]
     search: [String]
+}
+
+input RemediationOrderBy {
+    by: RemediationOrderByField
+    direction: OrderDirection
+}
+
+enum RemediationOrderByField {
+    vulnerability
+    severity
 }
 
 input RemediationInput {

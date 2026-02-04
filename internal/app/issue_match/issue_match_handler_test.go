@@ -33,8 +33,10 @@ func TestIssueMatchHandler(t *testing.T) {
 	RunSpecs(t, "IssueMatch Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -78,7 +80,6 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
@@ -105,7 +106,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 				matches = append(matches, entity.IssueMatchResult{WithCursor: entity.WithCursor{Value: cursor}, IssueMatch: lo.ToPtr(im)})
 			}
 
-			var cursors = lo.Map(matches, func(m entity.IssueMatchResult, _ int) string {
+			cursors := lo.Map(matches, func(m entity.IssueMatchResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, *m.IssueMatch))
 				return cursor
 			})
@@ -133,23 +134,19 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 	})
 
 	When("the list options does NOT include aggregations", func() {
-
 		BeforeEach(func() {
 			options.IncludeAggregations = false
 		})
 
 		Context("and the given filter does not have any matches in the database", func() {
-
 			BeforeEach(func() {
 				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 			})
 			It("should return an empty result", func() {
-
 				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 				res, err := issueMatchHandler.ListIssueMatches(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
-
 			})
 		})
 		Context("and the filter does have results in the database", func() {
@@ -476,7 +473,6 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 		})
 
 		When("multiple issue repository with same priority", func() {
-
 			BeforeEach(func() {
 				variants := test.NNewFakeServiceIssueVariantEntity(2, 10, lo.ToPtr(int64(1)))
 				// Mocks
@@ -495,7 +491,6 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				iv, ok := result[1]
 				Expect(ok).To(BeTrue())
 				Expect(iv).To(BeAssignableToTypeOf(entity.ServiceIssueVariant{}))
-
 			})
 		})
 	})
@@ -529,7 +524,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					// Fake issues
 					issueMatch := test.NewFakeIssueMatchResult()
 					issueMatch.IssueId = 2 // issue2.Id
-					//when issueid is 2 return a fake issue match
+					// when issueid is 2 return a fake issue match
 					db.On("GetIssueMatches", mock.Anything, mock.Anything).Return([]entity.IssueMatchResult{issueMatch}, nil).Once()
 				})
 
@@ -541,7 +536,6 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					db.AssertNumberOfCalls(GinkgoT(), "CreateIssueMatch", 0)
 				})
 			})
-
 		})
 	})
 })

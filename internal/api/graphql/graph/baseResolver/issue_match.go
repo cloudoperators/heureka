@@ -33,7 +33,6 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 	opt := entity.NewListOptions()
 
 	issueMatches, err := app.ListIssueMatches(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueMatchBaseResolver", err.Error())
@@ -44,7 +43,7 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 		return nil, NewResolverError("SingleIssueMatchBaseResolver", "Internal Error - found multiple IssueMatches")
 	}
 
-	//not found
+	// not found
 	if len(issueMatches.Elements) < 1 {
 		return nil, nil
 	}
@@ -131,7 +130,6 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	}
 
 	issueMatches, err := app.ListIssueMatches(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("IssueMatchBaseResolver", err.Error())
 	}

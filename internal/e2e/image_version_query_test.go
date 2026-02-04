@@ -42,7 +42,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 		dbm.TestTearDown(db)
 	})
 
-	var loadTestData = func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, err
@@ -61,8 +61,8 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 			services := seeder.SeedServices(1)
 			components := seeder.SeedComponents(1)
 			componentVersions := seeder.SeedComponentVersions(10, components)
-			var versionInstanceIds = make(map[int64]int64)
-			var issueVariantByIssueId = make(map[int64]mariadb.IssueVariantRow)
+			versionInstanceIds := make(map[int64]int64)
+			issueVariantByIssueId := make(map[int64]mariadb.IssueVariantRow)
 			issueVariants, componentVersionIssues, err := loadTestData()
 			Expect(err).To(BeNil(), "Loading test data should work")
 			// Important: the order need to be preserved

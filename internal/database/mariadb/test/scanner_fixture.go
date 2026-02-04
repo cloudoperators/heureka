@@ -54,7 +54,8 @@ func NewScannerRunsSeeder(dbSeeder *DatabaseSeeder) *ScannerRunsSeeder {
 		knownIssues:             make(map[string]int),
 		knownServices:           make(map[string]int64),
 		knownVersions:           make(map[string]int64),
-		knownComponents:         make(map[string]int64)}
+		knownComponents:         make(map[string]int64),
+	}
 }
 
 func (srs *ScannerRunsSeeder) Seed(srd ScannerRunDef) error {
@@ -68,7 +69,6 @@ func (srs *ScannerRunsSeeder) processScannerRunInstance(srd ScannerRunDef) error
 	res, err := srs.dbSeeder.insertScannerRunInstance(gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
 	if err != nil {
 		return err
-
 	}
 	scannerRunId, err := res.LastInsertId()
 	if err != nil {
@@ -92,7 +92,6 @@ func (srs *ScannerRunsSeeder) processIssues(issues []string, scannerRunId int64)
 			issueId, err := srs.dbSeeder.insertIssue(issue)
 			if err != nil {
 				return err
-
 			}
 
 			srs.knownIssues[issue] = int(issueId)
@@ -428,7 +427,6 @@ func (s *DatabaseSeeder) CleanupScannerRuns() error {
 func (s *DatabaseSeeder) FetchPatchesByComponentInstanceCCRN(
 	ccrn string,
 ) ([]mariadb.PatchRow, error) {
-
 	query := `
         SELECT
             p.patch_id,
@@ -548,7 +546,6 @@ func (s *DatabaseSeeder) FetchComponentInstanceByCCRN(ccrn string) (*mariadb.Com
 		&ci.Id,
 		&ci.DeletedAt,
 	)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("component instance not found for component: '%s' %w", ccrn, err)

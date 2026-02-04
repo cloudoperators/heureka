@@ -18,7 +18,6 @@ import (
 
 func (r *serviceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
-
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +27,6 @@ func (r *serviceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model
 
 func (r *serviceFilterValueResolver) Domain(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceDomainBaseResolver(r.App, ctx, filter)
-
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +36,6 @@ func (r *serviceFilterValueResolver) Domain(ctx context.Context, obj *model.Serv
 
 func (r *serviceFilterValueResolver) Region(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceRegionBaseResolver(r.App, ctx, filter)
-
 	if err != nil {
 		return nil, err
 	}

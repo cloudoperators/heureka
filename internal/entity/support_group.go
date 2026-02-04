@@ -19,8 +19,7 @@ type SupportGroupFilter struct {
 	State     []StateFilterType `json:"state"`
 }
 
-type SupportGroupAggregations struct {
-}
+type SupportGroupAggregations struct{}
 
 type SupportGroupResult struct {
 	WithCursor

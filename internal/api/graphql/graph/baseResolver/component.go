@@ -31,7 +31,6 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 	opt := &entity.ListOptions{}
 
 	components, err := app.ListComponents(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleComponentBaseResolver", err.Error())
@@ -42,7 +41,7 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 		return nil, NewResolverError("SingleComponentBaseResolver", "Internal Error - found multiple components")
 	}
 
-	//not found
+	// not found
 	if len(components.Elements) < 1 {
 		return nil, nil
 	}
@@ -73,7 +72,6 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	opt := GetListOptions(requestedFields)
 
 	components, err := app.ListComponents(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("ComponentBaseResolver", err.Error())
 	}
@@ -100,7 +98,6 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	}
 
 	return &connection, nil
-
 }
 
 func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter) (*model.FilterItem, error) {
@@ -121,7 +118,6 @@ func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 	opt := GetListOptions(requestedFields)
 
 	names, err := app.ListComponentCcrns(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("ComponentCcrnBaseReolver", err.Error())
 	}

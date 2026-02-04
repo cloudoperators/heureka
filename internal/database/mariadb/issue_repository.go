@@ -104,7 +104,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -117,7 +117,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Name)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
@@ -143,7 +143,6 @@ func (s *SqlDatabase) GetAllIssueRepositoryIds(filter *entity.IssueRepositoryFil
     `
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +169,6 @@ func (s *SqlDatabase) GetIssueRepositories(filter *entity.IssueRepositoryFilter)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +196,6 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 		%s
 	`
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -232,7 +229,6 @@ func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueReposit
 	issueRepositoryRow.FromIssueRepository(issueRepository)
 
 	id, err := performInsert(s, query, issueRepositoryRow, l)
-
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"math/rand"
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -16,13 +17,10 @@ import (
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 
-	"math/rand"
-
 	pkg_util "github.com/cloudoperators/heureka/pkg/util"
 )
 
 var _ = Describe("Component", Label("database", "Component"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
@@ -36,8 +34,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 	})
 
 	When("Getting All Component IDs", Label("GetAllComponentIds"), func() {
-
-		var testGetComponentIds = func(filter *entity.ComponentFilter, expectedIds []int64, check func(entries []int64)) {
+		testGetComponentIds := func(filter *entity.ComponentFilter, expectedIds []int64, check func(entries []int64)) {
 			res, err := db.GetAllComponentIds(filter)
 			Expect(err).To(BeNil(), "GetAllComponentIds should not error")
 			Expect(len(res)).To(BeEquivalentTo(len(expectedIds)), "GetAllComponentIds should return expected number of ids")
@@ -90,7 +87,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 	})
 
 	When("Getting Components", Label("GetComponents"), func() {
-		var testGetComponents = func(filter *entity.ComponentFilter, order []entity.Order, expectedComponents []mariadb.ComponentRow, check func(entries []entity.ComponentResult)) {
+		testGetComponents := func(filter *entity.ComponentFilter, order []entity.Order, expectedComponents []mariadb.ComponentRow, check func(entries []entity.ComponentResult)) {
 			res, err := db.GetComponents(filter, order)
 			Expect(err).To(BeNil(), "GetComponents should not error")
 			Expect(len(res)).To(BeEquivalentTo(len(expectedComponents)), "GetComponents should return expected number of components")
@@ -235,7 +232,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		})
 	})
 	When("Counting Components", Label("CountComponents"), func() {
-		var testCountComponents = func(filter *entity.ComponentFilter, expectedCount int) {
+		testCountComponents := func(filter *entity.ComponentFilter, expectedCount int) {
 			c, err := db.CountComponents(filter)
 			Expect(err).To(BeNil(), "CountComponents should not error")
 			Expect(c).To(BeEquivalentTo(expectedCount), "CountComponents should return expected count")
@@ -256,7 +253,6 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				componentRows = seedCollection.ComponentRows
 				randomComponent = componentRows[rand.Intn(len(componentRows))]
 				count = len(componentRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -349,7 +345,6 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					By("no component returned", func() {
 						Expect(newComponent).To(BeNil())
 					})
-
 				})
 			})
 		})
@@ -471,7 +466,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	var testOrder = func(
+	testOrder := func(
 		order []entity.Order,
 		verifyFunc func(res []entity.ComponentResult),
 	) {
@@ -490,7 +485,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 		})
 	}
 
-	var loadTestData = func() ([]mariadb.ComponentVersionRow, []mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
+	loadTestData := func() ([]mariadb.ComponentVersionRow, []mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
@@ -592,7 +587,6 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 	})
 
 	When("with ASC order", Label("ComponentASCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -626,11 +620,9 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 				}
 			})
 		})
-
 	})
 
 	When("with DESC order", Label("ComponentDESCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -664,6 +656,5 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 				}
 			})
 		})
-
 	})
 })

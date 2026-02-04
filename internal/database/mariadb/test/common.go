@@ -46,7 +46,6 @@ func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntit
 				Expect(len(entries)).To(BeEquivalentTo(elementCount), "on a page with a higher pageSize then element count we expect")
 			} else {
 				Expect(len(entries)).To(BeEquivalentTo(pageSize), "on a normal page we expect the element count to be equal to the page size")
-
 			}
 		}
 		afterS = getAfterFunction(entries)
@@ -79,7 +78,6 @@ func TestPaginationOfList[F entity.HeurekaFilter, E entity.HeurekaEntity](
 				Expect(len(entries)).To(BeEquivalentTo(elementCount), "on a page with a higher pageSize then element count we expect")
 			} else {
 				Expect(len(entries)).To(BeEquivalentTo(pageSize), "on a normal page we expect the element count to be equal to the page size")
-
 			}
 		}
 		after = getAfterFunction(entries)

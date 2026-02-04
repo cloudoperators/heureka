@@ -93,7 +93,6 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
-
 	}
 
 	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
@@ -148,7 +147,7 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 }
 
 func ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilter {
-	var first = 1000
+	first := 1000
 	var after string = ""
 	if f == nil {
 		return &entity.IssueFilter{
@@ -254,7 +253,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 
 	query := getIssueQueryWithCursor(baseQuery, order, ifilter, cursorFields)
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -267,7 +266,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	filterParameters := buildIssueFilterParametersWithCursor(ifilter, cursorFields)
 
 	return stmt, filterParameters, nil
@@ -284,7 +283,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 
 	query := getIssueQuery(baseQuery, order, ifilter)
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -297,7 +296,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	filterParameters := buildIssueFilterParameters(ifilter, cursorFields)
 
 	return stmt, filterParameters, nil
@@ -409,7 +408,6 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 			var ivRating int64
 			if e.IssueVariantRow != nil {
 				ivRating = e.IssueVariantRow.RatingNumerical.Int64
-
 			}
 
 			cursor, _ := EncodeCursor(WithIssue(defaultOrder, issue.Issue, ivRating))
@@ -438,7 +436,6 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 		ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -461,7 +458,6 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 	`
 
 	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -476,7 +472,6 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 			return append(l, e.AsIssueCount())
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -508,7 +503,6 @@ func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error
     `
 
 	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -531,7 +525,6 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
     `
 
 	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -546,7 +539,6 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -556,7 +548,6 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 		var ivRating int64
 		if row.IssueVariantRow != nil {
 			ivRating = row.IssueVariantRow.RatingNumerical.Int64
-
 		}
 
 		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
@@ -580,7 +571,6 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 	filter = ensureIssueFilter(filter)
 
 	stmt, filterParameters, err := s.buildIssueStatementWithCursor(baseQuery, filter, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -638,7 +628,6 @@ func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
 	issueRow.FromIssue(issue)
 
 	id, err := performInsert(s, query, issueRow, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -718,7 +707,6 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 	}
 
 	_, err := performExec(s, query, args, l)
-
 	if err != nil {
 		// Replace string-based error detection with proper error type checking
 		if strings.Contains(err.Error(), "Error 1062") || strings.Contains(err.Error(), "Duplicate entry") {

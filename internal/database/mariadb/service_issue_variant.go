@@ -11,7 +11,7 @@ import (
 )
 
 func ensureServiceIssueVariantFilter(f *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
-	var first = 1000
+	first := 1000
 	var after int64 = 0
 	if f == nil {
 		return &entity.ServiceIssueVariantFilter{
@@ -61,7 +61,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 		query = fmt.Sprintf(baseQuery, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -74,7 +74,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
@@ -111,7 +111,6 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
     `
 
 	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}

@@ -13,9 +13,9 @@ import (
 
 type Config struct {
 	Port string `envconfig:"SERVER_PORT" default:"80" json:"-"`
-	//Regions            []string `envconfig:"REGIONS" required:"true" json:"regions"`
-	//CloudAdminUsername string   `envconfig:"OS_USERNAME" required:"true" json:"cloudAdminUser"`
-	//CloudAdminPassword string   `envconfig:"OS_PASSWORD" required:"true" json:"-"`
+	// Regions            []string `envconfig:"REGIONS" required:"true" json:"regions"`
+	// CloudAdminUsername string   `envconfig:"OS_USERNAME" required:"true" json:"cloudAdminUser"`
+	// CloudAdminPassword string   `envconfig:"OS_PASSWORD" required:"true" json:"-"`
 	DBAddress            string `envconfig:"DB_ADDRESS" required:"true" json:"dbAddress"`
 	DBUser               string `envconfig:"DB_USER" required:"true" json:"dbUser"`
 	DBPassword           string `envconfig:"DB_PASSWORD" required:"true" json:"-"`

@@ -60,7 +60,6 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	supportGroups, err := app.ListSupportGroups(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("SupportGroupBaseResolver", err.Error())
 	}
@@ -103,7 +102,6 @@ func SupportGroupCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *
 
 	if len(filter.UserIds) > 0 {
 		userIds, err = util.ConvertStrToIntSlice(filter.UserIds)
-
 		if err != nil {
 			logrus.WithField("Filter", filter).Error("SupportGroupCcrnBaseResolver: Error while parsing 'UserIds'")
 			return nil, NewResolverError("SupportGroupCcrnBaseResolver", "Bad Request - unable to parse 'UserIds'")
@@ -120,7 +118,6 @@ func SupportGroupCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *
 	opt := GetListOptions(requestedFields)
 
 	names, err := app.ListSupportGroupCcrns(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("SupportGroupCcrnBaseResolver", err.Error())
 	}

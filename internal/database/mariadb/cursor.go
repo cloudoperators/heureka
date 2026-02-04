@@ -102,7 +102,6 @@ func CreateCursorParameters(params []any, fields []Field) []any {
 }
 
 func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.IssueMatchId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -131,7 +130,6 @@ func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
 }
 
 func WithService(order []entity.Order, s entity.Service, isc entity.IssueSeverityCounts) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -193,7 +191,6 @@ func WithComponentInstance(order []entity.Order, ci entity.ComponentInstance) Ne
 }
 
 func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc entity.IssueSeverityCounts) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -221,7 +218,6 @@ func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc 
 }
 
 func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -293,6 +289,10 @@ func WithRemediation(order []entity.Order, r entity.Remediation) NewCursor {
 			switch o.By {
 			case entity.RemediationId:
 				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationId, Value: r.Id, Order: o.Direction})
+			case entity.RemediationIssue:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationIssue, Value: r.Issue, Order: o.Direction})
+			case entity.RemediationSeverity:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationSeverity, Value: r.Severity, Order: o.Direction})
 			default:
 				continue
 			}

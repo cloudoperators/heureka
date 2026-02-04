@@ -142,7 +142,6 @@ func (s *SqlDatabase) GetPatches(filter *entity.PatchFilter, order []entity.Orde
     `
 
 	stmt, filterParameters, err := s.buildPatchStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch query: %w", err)
 	}
@@ -185,7 +184,6 @@ func (s *SqlDatabase) CountPatches(filter *entity.PatchFilter) (int64, error) {
         ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildPatchStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, fmt.Errorf("failed to build Patch count query: %w", err)
 	}
@@ -213,7 +211,6 @@ func (s *SqlDatabase) GetAllPatchCursors(filter *entity.PatchFilter, order []ent
 
 	filter = ensurePatchFilter(filter)
 	stmt, filterParameters, err := s.buildPatchStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch cursor query: %w", err)
 	}
@@ -228,7 +225,6 @@ func (s *SqlDatabase) GetAllPatchCursors(filter *entity.PatchFilter, order []ent
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Patch cursors: %w", err)
 	}

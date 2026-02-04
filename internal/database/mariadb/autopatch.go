@@ -135,7 +135,7 @@ func (s *SqlDatabase) getPatches(disappearedInstances []int) (map[patchInfo]stru
 
 // Insert patches only for service/version which does not reflect any existing component instance (for removed instances)
 func (s *SqlDatabase) insertPatches(patches map[patchInfo]struct{}) error {
-	for patch, _ := range patches {
+	for patch := range patches {
 		if err := s.insertPatchIfNoInstanceExists(patch); err != nil {
 			return err
 		}
@@ -181,7 +181,6 @@ func (s *SqlDatabase) fetchComponentInstancesForRun(scannerRunId int) (map[int]s
         FROM ScannerRunComponentInstanceTracker
         WHERE scannerruncomponentinstancetracker_scannerrun_run_id = ?
     `, scannerRunId)
-
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +251,6 @@ func (s *SqlDatabase) insertPatchIfNoInstanceExists(patch patchInfo) error {
 		patch.serviceId,
 		patch.componentVersionId,
 	)
-
 	if err != nil {
 		return err
 	}

@@ -26,6 +26,6 @@ type Query {
     VulnerabilityFilterValues: VulnerabilityFilterValue
     Images(filter: ImageFilter, first: Int, after: String): ImageConnection
     ImageVersions(filter: ImageVersionFilter, first: Int, after: String): ImageVersionConnection
-    Remediations(filter: RemediationFilter, first: Int, after: String): RemediationConnection
+    Remediations(filter: RemediationFilter, first: Int, after: String, orderBy: [RemediationOrderBy]): RemediationConnection
     Patches(filter: PatchFilter, first: Int, after: String): PatchConnection
 }

@@ -17,7 +17,6 @@ import (
 )
 
 var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
@@ -396,7 +395,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						}
 					})
 				})
-
 			})
 
 			Context("and using pagination", func() {
@@ -447,7 +445,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				cvRows = seedCollection.ComponentVersionRows
 				count = len(cvRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -644,7 +641,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				})
 			})
 		})
-
 	})
 })
 
@@ -663,7 +659,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 		dbm.TestTearDown(db)
 	})
 
-	var testOrder = func(
+	testOrder := func(
 		order []entity.Order,
 		verifyFunc func(res []entity.ComponentVersionResult),
 	) {
@@ -682,7 +678,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 		})
 	}
 
-	var loadTestData = func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, err
@@ -757,7 +753,6 @@ var _ = Describe("Ordering ComponentVersions", func() {
 	})
 
 	When("with ASC order", Label("ComponentVersionASCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -796,7 +791,6 @@ var _ = Describe("Ordering ComponentVersions", func() {
 	})
 
 	When("with DESC order", Label("ComponentVersionDESCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})

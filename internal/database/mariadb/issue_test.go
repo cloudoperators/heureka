@@ -6,6 +6,7 @@ package mariadb_test
 import (
 	"database/sql"
 	"fmt"
+	"math/rand"
 	"sort"
 	"time"
 
@@ -18,16 +19,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-
-	"math/rand"
 )
 
 var _ = Describe("Issue", Label("database", "Issue"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
-
 		var err error
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -133,7 +130,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			})
 
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetIssues(nil, nil)
 
@@ -176,7 +172,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchingRow := true
 					var issueRows []mariadb.IssueRow
 
-					//get a service that should return at least 1 issue
+					// get a service that should return at least 1 issue
 					for searchingRow {
 						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 						issueRows = seedCollection.GetIssueByService(&row)
@@ -228,7 +224,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					By("returning expected number of results", func() {
 						Expect(len(entries)).To(BeEquivalentTo(len(expectedIssues)))
 					})
-
 				})
 				It("can filter by a single issue Id", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
@@ -431,7 +426,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						})
 						Expect(hasMatch).To(BeTrue(), "Entry should have at least one matching IssueMatchRow")
 					}
-
 				})
 				It("can filter by issueMatch severity", func() {
 					for _, severity := range entity.AllSeverityValues {
@@ -448,7 +442,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 							Expect(lo.Contains(issueIds, entry.Issue.Id)).To(BeTrue(), "Entry should have severity %s", severity.String())
 						}
 					}
-
 				})
 				It("can filter issue PrimaryName using wild card search", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
@@ -667,7 +660,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				By("returning the correct count", func() {
 					Expect(res).To(BeEquivalentTo(x))
 				})
-
 			},
 				Entry("when page size is 0", 0),
 				Entry("when page size is 1", 1),
@@ -706,7 +698,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(issueTypeCounts.PolicyViolationCount).To(BeEquivalentTo(policyViolationCount))
 						Expect(issueTypeCounts.SecurityEventCount).To(BeEquivalentTo(securityEventCount))
 					})
-
 				})
 			})
 		})
@@ -717,7 +708,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					seedCollection = seeder.SeedDbWithNFakeData(20)
 				})
 				It("does not influence the count when pagination is applied", func() {
-					var first = 1
+					first := 1
 					var after string = ""
 					filter := &entity.IssueFilter{
 						PaginatedX: entity.PaginatedX{
@@ -740,7 +731,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchingRow := true
 					var issueRows []mariadb.IssueRow
 
-					//get a service that should return at least 1 issue
+					// get a service that should return at least 1 issue
 					for searchingRow {
 						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 						issueRows = seedCollection.GetIssueByService(&row)
@@ -763,7 +754,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchingRow := true
 					var issueRows []mariadb.IssueRow
 
-					//get a service that should return at least 1 issue
+					// get a service that should return at least 1 issue
 					for searchingRow {
 						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 						issueRows = seedCollection.GetIssueByService(&row)
@@ -785,7 +776,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		})
 	})
 	When("IssueCounts by Severity", Label("IssueCounts"), func() {
-		var testIssueSeverityCount = func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
+		testIssueSeverityCount := func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
 			issueSeverityCounts, err := db.CountIssueRatings(filter)
 
 			By("throwing no error", func() {
@@ -948,7 +939,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				By("no issue returned", func() {
 					Expect(newIssue).To(BeNil())
 				})
-
 			})
 		})
 	})
@@ -1096,7 +1086,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	var testOrder = func(
+	testOrder := func(
 		order []entity.Order,
 		verifyFunc func(res []entity.IssueResult),
 	) {
@@ -1116,7 +1106,6 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 	}
 
 	When("with ASC order", Label("IssueASCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			seedCollection.GetValidIssueMatchRows()
@@ -1154,7 +1143,6 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		})
 
 		It("can order by rating", func() {
-
 			order := []entity.Order{
 				{By: entity.IssueVariantRating, Direction: entity.OrderDirectionAsc},
 			}
@@ -1171,11 +1159,9 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 				}
 			})
 		})
-
 	})
 
 	When("with DESC order", Label("IssueDESCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -1229,5 +1215,4 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 			})
 		})
 	})
-
 })

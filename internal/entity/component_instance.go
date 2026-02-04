@@ -123,8 +123,7 @@ type ComponentInstanceFilter struct {
 	State                   []StateFilterType `json:"state"`
 }
 
-type ComponentInstanceAggregations struct {
-}
+type ComponentInstanceAggregations struct{}
 
 type ComponentInstanceResult struct {
 	WithCursor

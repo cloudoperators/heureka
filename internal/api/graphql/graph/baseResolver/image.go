@@ -47,7 +47,6 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 	})
 
 	components, err := app.ListComponents(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("ImageBaseResolver", err.Error())
 	}

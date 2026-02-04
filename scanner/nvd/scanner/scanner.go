@@ -120,7 +120,6 @@ func (s *Scanner) performRequest(url string) ([]byte, error) {
 			responseBody = body
 			return nil
 		})
-
 	if err != nil {
 		return nil, fmt.Errorf("request failed after retries: %w", err)
 	}

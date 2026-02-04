@@ -26,8 +26,10 @@ func TestComponentHandler(t *testing.T) {
 	RunSpecs(t, "Component Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -67,7 +69,6 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
@@ -94,7 +95,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 				components = append(components, entity.ComponentResult{WithCursor: entity.WithCursor{Value: cursor}, Component: lo.ToPtr(c)})
 			}
 
-			var cursors = lo.Map(components, func(m entity.ComponentResult, _ int) string {
+			cursors := lo.Map(components, func(m entity.ComponentResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *m.Component, entity.IssueSeverityCounts{}))
 				return cursor
 			})

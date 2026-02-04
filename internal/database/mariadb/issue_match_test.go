@@ -162,7 +162,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				issueMatches = seedCollection.GetValidIssueMatchRows()
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetIssueMatches(nil, nil)
 
@@ -484,7 +483,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				By("returning the correct count", func() {
 					Expect(res).To(BeEquivalentTo(x))
 				})
-
 			},
 				Entry("when page size is 0", 0),
 				Entry("when page size is 1", 1),
@@ -498,7 +496,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					seedCollection = seeder.SeedDbWithNFakeData(20)
 				})
 				It("does not influence the count when pagination is applied", func() {
-					var first = 1
+					first := 1
 					var after string = ""
 					filter := &entity.IssueMatchFilter{
 						PaginatedX: entity.PaginatedX{
@@ -758,7 +756,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 		dbm.TestTearDown(db)
 	})
 
-	var testOrder = func(
+	testOrder := func(
 		order []entity.Order,
 		verifyFunc func(res []entity.IssueMatchResult),
 	) {
@@ -778,7 +776,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 	}
 
 	When("with ASC order", Label("IssueMatchASCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			seedCollection.GetValidIssueMatchRows()
@@ -883,7 +880,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 	})
 
 	When("with DESC order", Label("IssueMatchDESCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -987,7 +983,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 	})
 
 	When("multiple order by used", Label("IssueMatchMultipleOrderBy"), func() {
-
 		BeforeEach(func() {
 			users := seeder.SeedUsers(10)
 			services := seeder.SeedServices(10)
@@ -1011,7 +1006,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
-				var prevPn = ""
+				prevPn := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
 					if issue.PrimaryName.String == prevPn {
@@ -1034,7 +1029,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
-				var prevPn = ""
+				prevPn := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
 					if issue.PrimaryName.String == prevPn {
@@ -1057,8 +1052,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prevSeverity = 0
-				var prevCiCcrn = ""
+				prevSeverity := 0
+				prevCiCcrn := ""
 				var prevTrd time.Time = time.Time{}
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
@@ -1095,7 +1090,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 	AfterEach(func() {
 		dbm.TestTearDown(db)
 	})
-	var loadTestData = func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
+	loadTestData := func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
 		matches, err := test.LoadIssueMatches(test.GetTestDataPath("testdata/issue_match_cursor/issue_match.json"))
 		if err != nil {
 			return nil, nil, nil, err

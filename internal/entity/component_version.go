@@ -20,8 +20,7 @@ type ComponentVersionFilter struct {
 	Organization      []*string         `json:"organization"`
 }
 
-type ComponentVersionAggregations struct {
-}
+type ComponentVersionAggregations struct{}
 
 type ComponentVersionResult struct {
 	WithCursor

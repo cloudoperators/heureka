@@ -47,7 +47,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 			BeforeEach(func() {
 				seeder.SeedDbWithNFakeData(10)
 			})
-			//this should work and give me all combinations back
+			// this should work and give me all combinations back
 			Context("and using no filter", func() {
 				It("Should work", func() {
 					_, err := db.GetServiceIssueVariants(nil)
@@ -58,11 +58,11 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 			})
 		})
 
-		//This is a testcase with a custom complex setup:
+		// This is a testcase with a custom complex setup:
 		// We need to setup a whole bunch of data to test the filtering for service issue variants based by component instances
 		// The idea is to create
 		DescribeTable("and filtering for component instances", func(filterForInstances int, totalInstances int, totalIssues int) {
-			//Complex Setup
+			// Complex Setup
 			var allCI []mariadb.ComponentInstanceRow
 			var issueVariants []mariadb.IssueVariantRow
 			var issueRepositories []mariadb.BaseIssueRepositoryRow
@@ -88,7 +88,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 					services = seeder.SeedServices(1)
 				}
 
-				//create issues
+				// create issues
 				issues := seeder.SeedIssues(issue_count)
 
 				// create component version and adding each issue to the component version
@@ -146,14 +146,13 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 				}
 			}
 
-			//Setup end
+			// Setup end
 
-			//Except
+			// Except
 			By(fmt.Sprintf("having in total %d component instances with each %d issues across the repositories", filterForInstances, totalIssues), func() {
 				By("and filtering for this component instance", func() {
 					By("it can perform the query correctly", func() {
-
-						//get instance ids to filter for based on count of instances that we want to filter for
+						// get instance ids to filter for based on count of instances that we want to filter for
 						cids := lo.Map(allCI, func(item mariadb.ComponentInstanceRow, _ int) *int64 { return lo.ToPtr(item.Id.Int64) })
 						if len(cids) > filterForInstances {
 							cids = cids[:filterForInstances]
@@ -172,7 +171,6 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 							Expect(len(res)).To(BeIdenticalTo((len(issueVariants) / totalInstances) * filterForInstances))
 						})
 					})
-
 				})
 			})
 		},
@@ -280,6 +278,5 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 				})
 			})
 		})
-
 	})
 })

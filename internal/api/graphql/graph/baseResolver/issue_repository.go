@@ -31,7 +31,6 @@ func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, par
 	opt := &entity.ListOptions{}
 
 	issueRepositories, err := app.ListIssueRepositories(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueRepositoryBaseResolver", err.Error())
@@ -42,7 +41,7 @@ func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, par
 		return nil, NewResolverError("SingleIssueRepositoryBaseResolver", "Internal Error - found multiple issue repositories")
 	}
 
-	//not found
+	// not found
 	if len(issueRepositories.Elements) < 1 {
 		return nil, nil
 	}
@@ -96,7 +95,6 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 	opt := GetListOptions(requestedFields)
 
 	issueRepositories, err := app.ListIssueRepositories(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("IssueRepositoryBaseResolver", err.Error())
 	}
@@ -130,5 +128,4 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 	}
 
 	return &connection, nil
-
 }

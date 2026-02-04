@@ -19,9 +19,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetRemediations = 12 * time.Hour
-var CacheTtlGetAllRemediationCursors = 12 * time.Hour
-var CacheTtlCountRemediations = 12 * time.Hour
+var (
+	CacheTtlGetRemediations          = 12 * time.Hour
+	CacheTtlGetAllRemediationCursors = 12 * time.Hour
+	CacheTtlCountRemediations        = 12 * time.Hour
+)
 
 type remediationHandler struct {
 	database      database.Database
@@ -54,7 +56,6 @@ func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter,
 		filter,
 		options.Order,
 	)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Remediations", "", err)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
