@@ -54,14 +54,6 @@ const (
 	RelComponentVersion  = "component_version"
 )
 
-type PermissionInput struct {
-	UserType   UserType
-	UserId     UserId
-	Relation   RelationType
-	ObjectType ObjectType
-	ObjectId   ObjectId
-}
-
 type RelationInput struct {
 	UserType   UserType
 	UserId     UserId
@@ -77,7 +69,7 @@ type AccessibleResource struct {
 
 type Authorization interface {
 	// Check if userId has permission on resourceId
-	CheckPermission(p PermissionInput) (bool, error)
+	CheckPermission(r RelationInput) (bool, error)
 	// Add relationship between userId and resourceId
 	AddRelation(r RelationInput) error
 	// Add multiple relationships between userId and resourceId
@@ -86,12 +78,14 @@ type Authorization interface {
 	RemoveRelation(r RelationInput) error
 	// Remove all relations that match any given RelationInput as filters
 	RemoveRelationBulk(r []RelationInput) error
+	// Remove all relations in the authorization store
+	RemoveAllRelations() error
 	// Update relations based on filters provided
 	UpdateRelation(r RelationInput, u RelationInput) error
 	// List Relations based on multiple filters
 	ListRelations(filters RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
-	ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error)
+	ListAccessibleResources(r RelationInput) ([]AccessibleResource, error)
 }
 
 func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {

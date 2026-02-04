@@ -45,6 +45,7 @@ var _ = BeforeSuite(func() {
 		Cache:    cache.NewNoCache(),
 		Authz:    authz,
 	}
+	handlerContext.Authz.RemoveAllRelations()
 })
 
 func getServiceFilter() *entity.ServiceFilter {
@@ -235,13 +236,14 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		serviceHandler s.ServiceHandler
 		service        entity.Service
 		filter         *entity.ServiceFilter
-		p              openfga.PermissionInput
+		r              openfga.RelationInput
 		er             event.EventRegistry
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 		service = test.NewFakeServiceEntity()
 		first := 10
 		after := ""
@@ -250,14 +252,6 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				First: &first,
 				After: &after,
 			},
-		}
-
-		p = openfga.PermissionInput{
-			UserType:   openfga.TypeRole,
-			UserId:     "0",
-			ObjectId:   openfga.IDService,
-			ObjectType: openfga.TypeService,
-			Relation:   openfga.RelRole,
 		}
 
 		handlerContext.DB = db
@@ -361,13 +355,21 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 					Service: &srv,
 				}
 
+				r = openfga.RelationInput{
+					UserType:   openfga.TypeRole,
+					UserId:     "0",
+					ObjectId:   openfga.IDService,
+					ObjectType: openfga.TypeService,
+					Relation:   openfga.RelRole,
+				}
+
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				p.ObjectId = openfga.ObjectIdFromInt(createEvent.Service.Id)
+				r.ObjectId = openfga.ObjectIdFromInt(createEvent.Service.Id)
 				// Simulate event
 				s.OnServiceCreateAuthz(db, event, handlerContext.Authz)
 
-				ok, err := handlerContext.Authz.CheckPermission(p)
+				ok, err := handlerContext.Authz.CheckPermission(r)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
@@ -503,22 +505,14 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 				relCountBefore := 0
 				for _, r := range relations {
 					relations, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountBefore += len(relations)
 				}
 				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
 
 				// check that relations were created
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeTrue(), "permission should be granted")
 				}
@@ -531,9 +525,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 				relCountAfter := 0
 				for _, r := range relations {
 					relations, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountAfter += len(relations)
 				}
 				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
@@ -541,13 +533,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 
 				// verify that relations were deleted
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeFalse(), "permission should NOT be granted")
 				}
@@ -564,7 +550,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		service        entity.ServiceResult
 		owner          entity.User
 		filter         *entity.ServiceFilter
-		p              openfga.PermissionInput
+		r              openfga.RelationInput
 	)
 
 	BeforeEach(func() {
@@ -583,14 +569,6 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		}
 		handlerContext.DB = db
 		handlerContext.EventReg = er
-
-		p = openfga.PermissionInput{
-			UserType:   openfga.TypeUser,
-			UserId:     "",
-			ObjectType: openfga.TypeService,
-			ObjectId:   "",
-			Relation:   openfga.RelOwner,
-		}
 	})
 
 	It("adds owner to service", func() {
@@ -610,13 +588,20 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 				ServiceID: serviceFake.Id,
 				OwnerID:   ownerFake.Id,
 			}
+			r = openfga.RelationInput{
+				UserType:   openfga.TypeUser,
+				UserId:     "",
+				ObjectType: openfga.TypeService,
+				ObjectId:   "",
+				Relation:   openfga.RelOwner,
+			}
 
 			var event event.Event = addEvent
 			s.OnAddOwnerToService(db, event, handlerContext.Authz)
 
-			p.ObjectId = openfga.ObjectIdFromInt(addEvent.ServiceID)
-			p.UserId = openfga.UserIdFromInt(addEvent.OwnerID)
-			ok, err := handlerContext.Authz.CheckPermission(p)
+			r.ObjectId = openfga.ObjectIdFromInt(addEvent.ServiceID)
+			r.UserId = openfga.UserIdFromInt(addEvent.OwnerID)
+			ok, err := handlerContext.Authz.CheckPermission(r)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(ok).To(BeTrue(), "permission should be granted")
 		})

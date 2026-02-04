@@ -5,16 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug component_handler_test.go",
-            "type": "go",
-            "request": "launch",
-            "mode": "test",
-            "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/internal/app/component/component_handler_test.go",
-            "envFile": "${workspaceFolder}/.env",
-            "args": []
-        },
-        {
       "name": "Debug All Tests (ginkgo -r)",
       "type": "go",
       "request": "launch",

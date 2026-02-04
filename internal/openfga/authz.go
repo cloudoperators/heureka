@@ -159,11 +159,11 @@ func (a *Authz) checkTuple(r RelationInput) (bool, error) {
 }
 
 // CheckPermission checks if userId has permission on objectId.
-func (a *Authz) CheckPermission(p PermissionInput) (bool, error) {
+func (a *Authz) CheckPermission(r RelationInput) (bool, error) {
 	req := client.ClientCheckRequest{
-		User:     string(p.UserType) + ":" + string(p.UserId),
-		Relation: string(p.Relation),
-		Object:   string(p.ObjectType) + ":" + string(p.ObjectId),
+		User:     string(r.UserType) + ":" + string(r.UserId),
+		Relation: string(r.Relation),
+		Object:   string(r.ObjectType) + ":" + string(r.ObjectId),
 	}
 	resp, err := a.client.Check(context.Background()).Body(req).Execute()
 	if err != nil {
@@ -428,11 +428,11 @@ func (a *Authz) ListRelations(filter RelationInput) ([]client.ClientTupleKeyWith
 }
 
 // ListAccessibleResources returns a list of objectIds of a certain objectType that the user can access.
-func (a *Authz) ListAccessibleResources(p PermissionInput) ([]AccessibleResource, error) {
+func (a *Authz) ListAccessibleResources(r RelationInput) ([]AccessibleResource, error) {
 	body := client.ClientListObjectsRequest{
-		User:     string(p.UserType) + ":" + string(p.UserId),
-		Relation: string(p.Relation),
-		Type:     string(p.ObjectType),
+		User:     string(r.UserType) + ":" + string(r.UserId),
+		Relation: string(r.Relation),
+		Type:     string(r.ObjectType),
 	}
 
 	resp, err := a.client.ListObjects(context.Background()).Body(body).Execute()
@@ -454,4 +454,39 @@ func (a *Authz) ListAccessibleResources(p PermissionInput) ([]AccessibleResource
 	}
 
 	return resources, nil
+}
+
+// RemoveAllRelations removes all tuples for the store backing the provided Authorization.
+func (a *Authz) RemoveAllRelations() error {
+	if a == nil {
+		return nil
+	}
+
+	ctx := context.Background()
+	options := client.ClientWriteOptions{
+		Conflict: client.ClientWriteConflictOptions{
+			OnMissingDeletes: client.CLIENT_WRITE_REQUEST_ON_MISSING_DELETES_IGNORE,
+		},
+	}
+
+	resp, err := a.client.Read(ctx).Body(client.ClientReadRequest{}).Execute()
+	if err != nil {
+		return err
+	}
+	if len(resp.Tuples) == 0 {
+		return nil
+	}
+	deletes := make([]client.ClientTupleKeyWithoutCondition, 0, len(resp.Tuples))
+	for _, t := range resp.Tuples {
+		deletes = append(deletes, client.ClientTupleKeyWithoutCondition{
+			User:     t.Key.User,
+			Relation: t.Key.Relation,
+			Object:   t.Key.Object,
+		})
+	}
+	_, err = a.client.Write(ctx).Body(client.ClientWriteRequest{Deletes: deletes}).Options(options).Execute()
+	if err != nil {
+		return err
+	}
+	return nil
 }

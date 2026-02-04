@@ -45,6 +45,7 @@ var _ = BeforeSuite(func() {
 		Cache:    cache.NewNoCache(),
 		Authz:    authz,
 	}
+	handlerContext.Authz.RemoveAllRelations()
 })
 
 func getUserFilter() *entity.UserFilter {
@@ -236,6 +237,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 			EventReg: er,
 			Authz:    authz,
 		}
+		handlerContext.Authz.RemoveAllRelations()
 	})
 
 	It("deletes user", func() {
@@ -321,22 +323,14 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 				relCountBefore := 0
 				for _, r := range relations {
 					relations, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountBefore += len(relations)
 				}
 				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
 
 				// check that relations were created
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeTrue(), "permission should be granted")
 				}
@@ -349,9 +343,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 				relCountAfter := 0
 				for _, r := range relations {
 					relations, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountAfter += len(relations)
 				}
 				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
@@ -359,13 +351,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 
 				// verify that relations were deleted
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeFalse(), "permission should NOT be granted")
 				}

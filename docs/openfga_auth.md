@@ -28,6 +28,8 @@ The interface consists of four main functions
     - Remove all relations that match any given RelationInput as filters
 - RemoveRelation(r RelationInput)
     - Removes a single relation between a given user and a given resource (if such a relation exists)
+- RemoveAllRelations()
+    - Remove all relations in the authorization store, used mainly for tests
 - ListRelations(filters []RelationInput)
     - Returns a list of relations that match any given RelationInput as filters
 - ListAccessibleResources(p PermissionInput)
@@ -43,21 +45,21 @@ For more info on how OpenFGA handles users, objects, and relations: https://open
 
 Using the event handling system, openfga tuples are modified based on the event handled. Based on the [Auth Model](https://github.com/cloudoperators/heureka/blob/main/internal/openfga/model/model.fga) defined, the OpenFGA tuples are implemented as follows here. 
 
-| Event                | Event Handler                        | Tuples Implemented                                                                                   |
+| Event                | Event Handler                        | Tuples Implemented (user - object)                                                                                   |
 |-------------------------|-------------------------------|--------------------------------------------------------------------------------------------------|
 | AddOwnerToService       | OnAddOwnerToService           | add service - user                                                                               |
 | RemoveOwnerFromService  | OnRemoveOwnerFromService      | remove service - user                                                                            |
 | CreateService           | OnServiceCreateAuthz           | add role - service                                                                               |
-| DeleteService           | OnServiceDeleteAuthz           | remove user - service<br>remove role - service<br>remove support_group - service<br>remove service - component_instance |
+| DeleteService           | OnServiceDeleteAuthz           | remove user - service<br>remove role - service<br>remove support_group - service<br>remove component_instance - service |
 | UpdateComponentVersion  | OnComponentVersionUpdateAuthz  | update component_version - component                                                             |
 | CreateComponentVersion  | OnComponentVersionCreateAuthz  | add role - component_version                                                                     |
 | DeleteComponentVersion  | OnComponentVersionDeleteAuthz  | remove user - component_version<br>remove component_instance - component_version<br>remove role - component_version<br>remove component - component_version |
-| UpdateIssueMatch        | OnIssueMatchUpdateAuthz        | update issue_match - component_instance                                                                 |
+| UpdateIssueMatch        | OnIssueMatchUpdateAuthz        | update component_instance - issue_match                                                                 |
 | CreateIssueMatch        | OnIssueMatchCreateAuthz        | add role - issue_match                                                                           |
-| DeleteIssueMatch        | OnIssueMatchDeleteAuthz        | delete user - issue_match<br>delete issue_match - component_instance<br>delete role - issue_match |
+| DeleteIssueMatch        | OnIssueMatchDeleteAuthz        | delete user - issue_match<br>delete component_instance - issue_match<br>delete role - issue_match |
 | UpdateComponentInstance | OnComponentInstanceUpdateAuthz | update component_instance - component_version_id<br>update component_instance - service           |
-| CreateComponentInstance | OnComponentInstanceCreateAuthz | add service - component_instance<br>add role - component_instance<br>add component_instance - component_version |
-| DeleteComponentInstance | OnComponentInstanceDeleteAuthz | delete user - component_instance<br>delete service - component_instance<br>delete role - component_instance<br>delete component_instance - component_version<br>delete component_instance - issue_match |
+| CreateComponentInstance | OnComponentInstanceCreateAuthz | add component_instance - service<br>add role - component_instance<br>add component_instance - component_version |
+| DeleteComponentInstance | OnComponentInstanceDeleteAuthz | delete user - component_instance<br>delete component_instance - service<br>delete role - component_instance<br>delete component_instance - component_version<br>delete component_instance - issue_match |
 | DeleteSupportGroup      | OnSupportGroupDeleteAuthz      | delete user - support_group<br>delete support_group - support_group<br>delete role - support_group<br>delete support_group - service |
 | CreateSupportGroup      | OnSupportGroupCreateAuthz      | add role - support_group                                                                         |
 | AddServicetoSupportGroup| OnAddServiceToSupportGroup     | add support_group - service                                                                      |

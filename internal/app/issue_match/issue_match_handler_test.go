@@ -46,6 +46,7 @@ var _ = BeforeSuite(func() {
 		Cache: cache.NewNoCache(),
 		Authz: authz,
 	}
+	handlerContext.Authz.RemoveAllRelations()
 })
 
 func getIssueMatchFilter() *entity.IssueMatchFilter {
@@ -201,12 +202,13 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ss                severity.SeverityHandler
 		ivs               issue_variant.IssueVariantHandler
 		rs                issue_repository.IssueRepositoryHandler
-		p                 openfga.PermissionInput
+		r                 openfga.RelationInput
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 		issueMatch = test.NewFakeIssueMatch()
 		ivFilter = entity.NewIssueVariantFilter()
 		irFilter = entity.NewIssueRepositoryFilter()
@@ -216,14 +218,6 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ivFilter.After = &after
 		irFilter.First = &first
 		irFilter.After = &after
-
-		p = openfga.PermissionInput{
-			UserType:   openfga.TypeRole,
-			UserId:     "0",
-			ObjectId:   "test_issue_match",
-			ObjectType: openfga.TypeIssueMatch,
-			Relation:   openfga.TypeRole,
-		}
 
 		handlerContext.DB = db
 		handlerContext.EventReg = er
@@ -269,13 +263,21 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 					IssueMatch: &imFake,
 				}
 
+				r = openfga.RelationInput{
+					UserType:   openfga.TypeRole,
+					UserId:     "0",
+					ObjectId:   "test_issue_match",
+					ObjectType: openfga.TypeIssueMatch,
+					Relation:   openfga.TypeRole,
+				}
+
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				p.ObjectId = openfga.ObjectIdFromInt(createEvent.IssueMatch.Id)
+				r.ObjectId = openfga.ObjectIdFromInt(createEvent.IssueMatch.Id)
 				// Simulate event
 				im.OnIssueMatchCreateAuthz(db, event, handlerContext.Authz)
 
-				ok, err := handlerContext.Authz.CheckPermission(p)
+				ok, err := handlerContext.Authz.CheckPermission(r)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
@@ -295,7 +297,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
-
+		handlerContext.Authz.RemoveAllRelations()
 		issueMatch = test.NewFakeIssueMatchResult()
 		first := 10
 		after := ""
@@ -395,6 +397,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 
 		id = 1
 		first := 10
@@ -463,22 +466,14 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 				relCountBefore := 0
 				for _, r := range relations {
 					relations, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountBefore += len(relations)
 				}
 				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
 
 				// check that relations were created
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeTrue(), "permission should be granted")
 				}
@@ -491,9 +486,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 				relCountAfter := 0
 				for _, r := range relations {
 					relations, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountAfter += len(relations)
 				}
 				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
@@ -501,13 +494,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 
 				// verify that relations were deleted
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeFalse(), "permission should NOT be granted")
 				}

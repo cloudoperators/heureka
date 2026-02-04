@@ -39,6 +39,7 @@ var _ = BeforeSuite(func() {
 		Cache: cache.NewNoCache(),
 		Authz: authz,
 	}
+	handlerContext.Authz.RemoveAllRelations()
 })
 
 func getSupportGroupFilter() *entity.SupportGroupFilter {
@@ -136,12 +137,13 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		supportGroup        entity.SupportGroup
 		filter              *entity.SupportGroupFilter
 		order               []entity.Order
-		p                   openfga.PermissionInput
+		r                   openfga.RelationInput
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		supportGroup = test.NewFakeSupportGroupEntity()
+		handlerContext.Authz.RemoveAllRelations()
 		order = []entity.Order{}
 		first := 10
 		after := ""
@@ -152,13 +154,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 			},
 		}
 
-		p = openfga.PermissionInput{
-			UserType:   "role",
-			UserId:     "0",
-			ObjectId:   "",
-			ObjectType: "support_group",
-			Relation:   "role",
-		}
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		handlerContext.DB = db
 		handlerContext.EventReg = er
@@ -186,14 +181,22 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 					SupportGroup: &sgFake,
 				}
 
+				r = openfga.RelationInput{
+					UserType:   "role",
+					UserId:     "0",
+					ObjectId:   "",
+					ObjectType: "support_group",
+					Relation:   "role",
+				}
+
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				p.ObjectId = openfga.ObjectIdFromInt(createEvent.SupportGroup.Id)
+				r.ObjectId = openfga.ObjectIdFromInt(createEvent.SupportGroup.Id)
 
 				// Simulate event
 				sg.OnSupportGroupCreateAuthz(db, event, handlerContext.Authz)
 
-				ok, err := handlerContext.Authz.CheckPermission(p)
+				ok, err := handlerContext.Authz.CheckPermission(r)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
@@ -257,6 +260,8 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		listOptions = entity.NewListOptions()
+		handlerContext.Authz.RemoveAllRelations()
+
 		id = 1
 		first := 10
 		after := ""
@@ -334,22 +339,14 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 				relCountBefore := 0
 				for _, r := range relations {
 					relations, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountBefore += len(relations)
 				}
 				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
 
 				// check that relations were created
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeTrue(), "permission should be granted")
 				}
@@ -362,9 +359,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 				relCountAfter := 0
 				for _, r := range relations {
 					relations, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountAfter += len(relations)
 				}
 				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
@@ -372,13 +367,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 
 				// verify that relations were deleted
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeFalse(), "permission should NOT be granted")
 				}

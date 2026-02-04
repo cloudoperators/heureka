@@ -43,6 +43,7 @@ var _ = BeforeSuite(func() {
 		Cache:    cache.NewNoCache(),
 		Authz:    authz,
 	}
+	handlerContext.Authz.RemoveAllRelations()
 })
 
 func getComponentFilter() *entity.ComponentFilter {
@@ -138,13 +139,14 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
-		p                openfga.PermissionInput
+		r                openfga.RelationInput
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		component = test.NewFakeComponentEntity()
+		handlerContext.Authz.RemoveAllRelations()
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
@@ -152,14 +154,6 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 				First: &first,
 				After: &after,
 			},
-		}
-
-		p = openfga.PermissionInput{
-			UserType:   openfga.TypeRole,
-			UserId:     "0",
-			ObjectId:   "testcomponent",
-			ObjectType: openfga.TypeComponent,
-			Relation:   openfga.RelRole,
 		}
 
 		handlerContext.DB = db
@@ -189,13 +183,20 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 					Component: &compFake,
 				}
 
+				r = openfga.RelationInput{
+					UserType:   openfga.TypeRole,
+					UserId:     "0",
+					ObjectType: openfga.TypeComponent,
+					Relation:   openfga.RelRole,
+				}
+
 				// Use type assertion to convert a CreateServiceEvent into an Event
 				var event event.Event = createEvent
-				p.ObjectId = openfga.ObjectIdFromInt(createEvent.Component.Id)
+				r.ObjectId = openfga.ObjectIdFromInt(createEvent.Component.Id)
 				// Simulate event
 				c.OnComponentCreateAuthz(db, event, handlerContext.Authz)
 
-				ok, err := handlerContext.Authz.CheckPermission(p)
+				ok, err := handlerContext.Authz.CheckPermission(r)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
@@ -216,6 +217,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		component = test.NewFakeComponentResult()
+		handlerContext.Authz.RemoveAllRelations()
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
@@ -257,6 +259,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 		id = 1
 		first := 10
 		after := ""
@@ -325,9 +328,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 				relCountBefore := 0
 				for _, r := range relations {
 					relationsList, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountBefore += len(relationsList)
 				}
 				relationsCountBefore := relCountBefore
@@ -335,13 +336,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 
 				// check that relations were created
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeTrue(), "permission should be granted")
 				}
@@ -353,9 +348,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 				relCountAfter := 0
 				for _, r := range relations {
 					relationsList, err := handlerContext.Authz.ListRelations(r)
-					if err != nil {
-						Expect(err).To(BeNil(), "no error should be thrown")
-					}
+					Expect(err).To(BeNil(), "no error should be thrown")
 					relCountAfter += len(relationsList)
 				}
 				relationsCountAfter := relCountAfter
@@ -364,13 +357,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 
 				// verify that relations were deleted
 				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(openfga.PermissionInput{
-						UserType:   r.UserType,
-						UserId:     r.UserId,
-						ObjectType: r.ObjectType,
-						ObjectId:   r.ObjectId,
-						Relation:   r.Relation,
-					})
+					ok, err := handlerContext.Authz.CheckPermission(r)
 					Expect(err).To(BeNil(), "no error should be thrown")
 					Expect(ok).To(BeFalse(), "permission should NOT be granted")
 				}
