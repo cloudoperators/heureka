@@ -4,13 +4,14 @@
 package mariadb
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 )
 
@@ -708,9 +709,9 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 
 	_, err := performExec(s, query, args, l)
 	if err != nil {
-		// Replace string-based error detection with proper error type checking
-		if strings.Contains(err.Error(), "Error 1062") || strings.Contains(err.Error(), "Duplicate entry") {
-			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("ComponentVersion %d already associated with Issue %d", componentVersionId, issueId))
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return nil
 		}
 		return err
 	}

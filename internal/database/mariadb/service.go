@@ -4,10 +4,12 @@
 package mariadb
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/go-sql-driver/mysql"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -591,8 +593,14 @@ func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {
 	}
 
 	_, err := performExec(s, query, args, l)
-
-	return err
+	if err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *SqlDatabase) RemoveOwnerFromService(serviceId int64, userId int64) error {
@@ -644,8 +652,13 @@ func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueReposito
 	}
 
 	_, err := performExec(s, query, args, l)
-
-	return err
+	if err != nil {
+		if strings.Contains(err.Error(), "Error 1062") || strings.Contains(err.Error(), "Duplicate entry") {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRepositoryId int64) error {
