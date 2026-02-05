@@ -97,7 +97,7 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		return false, err
 	}
 
-	versionOfDisappearedInstances, err := s.getVersionIdsOfDisappearedInstances(disappearedInstances)
+	versionsOfDisappearedInstances, err := s.getVersionIdsOfDisappearedInstances(disappearedInstances)
 	if err != nil {
 		return false, err
 	}
@@ -107,17 +107,25 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		return false, err
 	}
 
-	err = s.deleteVersionIssuesOfDisappearedInstances(versionOfDisappearedInstances)
+	err = s.deleteVersionIssuesOfDisappearedInstances(versionsOfDisappearedInstances)
 	if err != nil {
 		return false, err
 	}
 
-	err = s.deleteVersionsOfDisappearedInstances(versionOfDisappearedInstances)
+	componentsOfDisappearedInstances, err := s.getComponentIdsOfDisappearedInstances(versionsOfDisappearedInstances)
 	if err != nil {
 		return false, err
 	}
 
-	//TODO: check component version for the component (not component instance) and if none is there delete the component
+	err = s.deleteVersionsOfDisappearedInstances(versionsOfDisappearedInstances)
+	if err != nil {
+		return false, err
+	}
+
+	err = s.deleteComponentsOfDisappearedInstances(componentsOfDisappearedInstances)
+	if err != nil {
+		return false, err
+	}
 
 	err = s.insertPatches(patches)
 	if err != nil {
@@ -195,6 +203,25 @@ func (s *SqlDatabase) getVersionIdsOfDisappearedInstances(disappearedInstances [
 	return versionIdsOfDisappearedInstances, nil
 }
 
+func (s *SqlDatabase) getComponentIdsOfDisappearedInstances(versions map[int64]struct{}) (map[int64]struct{}, error) {
+	var versionsToFilter []*int64
+	for v, _ := range versions {
+		versionsToFilter = append(versionsToFilter, &v)
+	}
+
+	cvf := entity.ComponentVersionFilter{Id: versionsToFilter}
+	res, err := s.GetComponentVersions(&cvf, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	componentIdsOfDisappearedInstances := make(map[int64]struct{})
+	for _, cv := range res {
+		componentIdsOfDisappearedInstances[cv.ComponentId] = struct{}{}
+	}
+	return componentIdsOfDisappearedInstances, nil
+}
+
 func (s *SqlDatabase) deleteVersionIssuesOfDisappearedInstances(versionIdsOfDisappearedInstances map[int64]struct{}) error {
 	for vIdDi, _ := range versionIdsOfDisappearedInstances {
 		if err := s.RemoveAllIssuesFromComponentVersion(vIdDi); err != nil {
@@ -207,8 +234,8 @@ func (s *SqlDatabase) deleteVersionIssuesOfDisappearedInstances(versionIdsOfDisa
 
 func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(versionIdsOfDisappearedInstances map[int64]struct{}) error {
 	for vIdDi, _ := range versionIdsOfDisappearedInstances {
-		cvf := entity.ComponentInstanceFilter{ComponentVersionId: []*int64{&vIdDi}}
-		res, err := s.GetComponentInstances(&cvf, nil)
+		cif := entity.ComponentInstanceFilter{ComponentVersionId: []*int64{&vIdDi}}
+		res, err := s.GetComponentInstances(&cif, nil)
 		if err != nil {
 			return err
 		}
@@ -219,6 +246,22 @@ func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(versionIdsOfDisappear
 		}
 	}
 
+	return nil
+}
+
+func (s *SqlDatabase) deleteComponentsOfDisappearedInstances(componentIdsOfDisappearedInstances map[int64]struct{}) error {
+	for cIdDi, _ := range componentIdsOfDisappearedInstances {
+		cvf := entity.ComponentVersionFilter{ComponentId: []*int64{&cIdDi}}
+		res, err := s.GetComponentVersions(&cvf, nil)
+		if err != nil {
+			return err
+		}
+		if len(res) == 0 {
+			if err := s.DeleteComponent(cIdDi, util.SystemUserId); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

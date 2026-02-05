@@ -27,9 +27,10 @@ type IssueMatchComponent struct {
 }
 
 type ComponentData struct {
-	Name    string
-	Version string
-	Service string
+	Name      string
+	Component string
+	Version   string
+	Service   string
 }
 
 type ComponentVersionIssue struct {
@@ -77,7 +78,7 @@ func NewScannerRunsSeeder(dbSeeder *DatabaseSeeder) *ScannerRunsSeeder {
 		knownComponents:             make(map[string]int64),
 		knownComponentInstancesData: make(map[string]componentInstanceData),
 		knownIssuesMatchComponents:  make(map[string][]int64),
-		knownComponentVersionIssues: make(map[ComponentVersionIssue]int64)
+		knownComponentVersionIssues: make(map[ComponentVersionIssue]int64),
 	}
 }
 
@@ -166,7 +167,10 @@ func (srs *ScannerRunsSeeder) seedComponentsData(components []ComponentData) err
 }
 
 func (srs *ScannerRunsSeeder) seedComponentData(component ComponentData) (componentInstanceData, error) {
-	componentId, err := srs.seedOrGetComponent(component.Name)
+	if component.Component == "" {
+		component.Component = component.Name
+	}
+	componentId, err := srs.seedOrGetComponent(component.Component)
 	if err != nil {
 		return componentInstanceData{}, err
 	}
@@ -662,6 +666,44 @@ func (s *DatabaseSeeder) FetchAllNamesOfDeletedVersions() ([]string, error) {
 	}
 
 	return versions, nil
+}
+
+func (s *DatabaseSeeder) FetchAllNamesOfDeletedComponents() ([]string, error) {
+	query := `
+        SELECT
+            c.component_ccrn
+        FROM Component c
+        WHERE c.component_deleted_at IS NOT NULL
+    `
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query components: %w", err)
+	}
+	defer rows.Close()
+
+	var components []string
+
+	for rows.Next() {
+		var in string
+		if err := rows.Scan(
+			&in,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan component components row: %w", err)
+		}
+		components = append(components, in)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	// Optional: return empty slice instead of nil
+	if components == nil {
+		return []string{}, nil
+	}
+
+	return components, nil
 }
 
 func (s *DatabaseSeeder) FetchAllNamesOfComponentVersionIssues() ([]ComponentVersionIssue, error) {
