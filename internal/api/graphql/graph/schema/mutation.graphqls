@@ -58,10 +58,6 @@ type Mutation {
     addEvidenceToIssueMatch(issueMatchId: ID!, evidenceId: ID!): IssueMatch!
     removeEvidenceFromIssueMatch(issueMatchId: ID!, evidenceId: ID!): IssueMatch!
 
-    createIssueMatchChange(input: IssueMatchChangeInput!): IssueMatchChange!
-    updateIssueMatchChange(id: ID!, input: IssueMatchChangeInput!): IssueMatchChange!
-    deleteIssueMatchChange(id: ID!): String!
-
     createActivity(input: ActivityInput!): Activity!
     updateActivity(id: ID!, input: ActivityInput!): Activity!
     deleteActivity(id: ID!): String!

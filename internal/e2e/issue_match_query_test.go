@@ -181,13 +181,6 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 							Expect(evidenceFound).To(BeTrue(), "attached evidence does exist and belongs to vm")
 						}
 
-						for _, imc := range im.Node.IssueMatchChanges.Edges {
-							Expect(imc.Node.ID).ToNot(BeNil(), "issueMatchChange has a ID set")
-							Expect(imc.Node.Action).ToNot(BeNil(), "issueMatchChange has an action set")
-							Expect(imc.Node.ActivityID).ToNot(BeNil(), "issueMatchChange has an activityId set")
-							Expect(imc.Node.IssueMatchID).ToNot(BeNil(), "issueMatchChange has a issueMatchId set")
-						}
-
 						issue := im.Node.Issue
 						Expect(issue.ID).ToNot(BeNil(), "issue has a ID set")
 						Expect(issue.LastModified).ToNot(BeNil(), "issue has a lastModified set")

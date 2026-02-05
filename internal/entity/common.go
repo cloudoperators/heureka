@@ -59,7 +59,6 @@ type HeurekaEntity interface {
 		IssueResult |
 		IssueMatch |
 		IssueMatchResult |
-		IssueMatchChange |
 		HeurekaFilter |
 		IssueCount |
 		IssueTypeCounts |
@@ -73,7 +72,6 @@ type HeurekaEntity interface {
 
 type HeurekaFilter interface {
 	IssueMatchFilter |
-		IssueMatchChangeFilter |
 		IssueFilter |
 		UserFilter |
 		SupportGroupFilter |

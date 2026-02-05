@@ -92,7 +92,6 @@ type RowComposite struct {
 	*ActivityHasIssueRow
 	*ActivityHasServiceRow
 	*IssueRepositoryServiceRow
-	*IssueMatchChangeRow
 	*ServiceIssueVariantRow
 	*RatingCount
 	*RemediationRow
@@ -125,7 +124,6 @@ type DatabaseRow interface {
 		ActivityHasIssueRow |
 		ActivityHasServiceRow |
 		IssueRepositoryServiceRow |
-		IssueMatchChangeRow |
 		ServiceIssueVariantRow |
 		RatingCount |
 		RowComposite |
@@ -1026,46 +1024,6 @@ func (er *EvidenceRow) FromEvidence(e *entity.Evidence) {
 	er.DeletedAt = sql.NullTime{Time: e.DeletedAt, Valid: true}
 	er.UpdatedAt = sql.NullTime{Time: e.UpdatedAt, Valid: true}
 	er.UpdatedBy = sql.NullInt64{Int64: e.UpdatedBy, Valid: true}
-}
-
-type IssueMatchChangeRow struct {
-	Id           sql.NullInt64  `db:"issuematchchange_id" json:"id"`
-	IssueMatchId sql.NullInt64  `db:"issuematchchange_issue_match_id" json:"issue_match_id"`
-	ActivityId   sql.NullInt64  `db:"issuematchchange_activity_id" json:"activity_id"`
-	Action       sql.NullString `db:"issuematchchange_action" json:"action"`
-	CreatedAt    sql.NullTime   `db:"issuematchchange_created_at" json:"created_at"`
-	CreatedBy    sql.NullInt64  `db:"issuematchchange_created_by" json:"created_by"`
-	DeletedAt    sql.NullTime   `db:"issuematchchange_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt    sql.NullTime   `db:"issuematchchange_updated_at" json:"updated_at"`
-	UpdatedBy    sql.NullInt64  `db:"issuematchchange_updated_by" json:"updated_by"`
-}
-
-func (imcr *IssueMatchChangeRow) AsIssueMatchChange() entity.IssueMatchChange {
-	return entity.IssueMatchChange{
-		Id:           GetInt64Value(imcr.Id),
-		IssueMatchId: GetInt64Value(imcr.IssueMatchId),
-		ActivityId:   GetInt64Value(imcr.ActivityId),
-		Action:       GetStringValue(imcr.Action),
-		Metadata: entity.Metadata{
-			CreatedAt: GetTimeValue(imcr.CreatedAt),
-			CreatedBy: GetInt64Value(imcr.CreatedBy),
-			DeletedAt: GetTimeValue(imcr.DeletedAt),
-			UpdatedAt: GetTimeValue(imcr.UpdatedAt),
-			UpdatedBy: GetInt64Value(imcr.UpdatedBy),
-		},
-	}
-}
-
-func (imcr *IssueMatchChangeRow) FromIssueMatchChange(imc *entity.IssueMatchChange) {
-	imcr.Id = sql.NullInt64{Int64: imc.Id, Valid: true}
-	imcr.IssueMatchId = sql.NullInt64{Int64: imc.IssueMatchId, Valid: true}
-	imcr.ActivityId = sql.NullInt64{Int64: imc.ActivityId, Valid: true}
-	imcr.Action = sql.NullString{String: imc.Action, Valid: true}
-	imcr.CreatedAt = sql.NullTime{Time: imc.CreatedAt, Valid: true}
-	imcr.CreatedBy = sql.NullInt64{Int64: imc.CreatedBy, Valid: true}
-	imcr.DeletedAt = sql.NullTime{Time: imc.DeletedAt, Valid: true}
-	imcr.UpdatedAt = sql.NullTime{Time: imc.UpdatedAt, Valid: true}
-	imcr.UpdatedBy = sql.NullInt64{Int64: imc.UpdatedBy, Valid: true}
 }
 
 type OwnerRow struct {

@@ -17,7 +17,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/evidence"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/app/issue_match"
-	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
 	"github.com/cloudoperators/heureka/internal/app/patch"
@@ -40,7 +39,6 @@ type HeurekaApp struct {
 	component_version.ComponentVersionHandler
 	component.ComponentHandler
 	evidence.EvidenceHandler
-	issue_match_change.IssueMatchChangeHandler
 	issue_match.IssueMatchHandler
 	issue_repository.IssueRepositoryHandler
 	issue_variant.IssueVariantHandler
@@ -97,7 +95,6 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		ComponentVersionHandler:  component_version.NewComponentVersionHandler(handlerContext),
 		EvidenceHandler:          evidence.NewEvidenceHandler(handlerContext),
 		IssueHandler:             issue.NewIssueHandler(handlerContext),
-		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(handlerContext),
 		IssueMatchHandler:        issue_match.NewIssueMatchHandler(handlerContext, sh),
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
