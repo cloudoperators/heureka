@@ -6,14 +6,19 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 )
 
-func GetTestConfig() *util.Config {
+func GetTestConfig(authEnabled bool) *util.Config {
 	var modelFilePath = "./../../openfga/model/model.fga"
 
-	return &util.Config{
-		AuthzOpenFgaApiUrl:    os.Getenv("AUTHZ_FGA_API_URL"),
-		AuthzOpenFgaApiToken:  os.Getenv("AUTHZ_FGA_API_TOKEN"),
-		AuthzOpenFgaStoreName: os.Getenv("AUTHZ_FGA_STORE_NAME"),
-		AuthzModelFilePath:    modelFilePath,
-		CurrentUser:           "testuser",
+	cfg := &util.Config{
+		CurrentUser: "testuser",
 	}
+
+	if authEnabled {
+		cfg.AuthzOpenFgaApiUrl = os.Getenv("AUTHZ_FGA_API_URL")
+		cfg.AuthzOpenFgaApiToken = os.Getenv("AUTHZ_FGA_API_TOKEN")
+		cfg.AuthzOpenFgaStoreName = os.Getenv("AUTHZ_FGA_STORE_NAME")
+		cfg.AuthzModelFilePath = modelFilePath
+	}
+
+	return cfg
 }

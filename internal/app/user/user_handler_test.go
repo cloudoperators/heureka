@@ -34,7 +34,8 @@ var cfg *util.Config
 var enableLogs bool
 
 var _ = BeforeSuite(func() {
-	cfg = common.GetTestConfig()
+	authEnabled := false
+	cfg = common.GetTestConfig(authEnabled)
 	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
 	authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
@@ -254,107 +255,125 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		Expect(users.Elements).To(BeEmpty(), "no error should be thrown")
 	})
 
-	Context("when handling a DeleteUserEvent", func() {
-		Context("when new user is deleted", func() {
-			It("should delete tuples related to that user in openfga", func() {
-				// Test OnUserDeleteAuthz against all possible relations
-				authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
-				userFake := test.NewFakeUserEntity()
-				deleteEvent := &u.DeleteUserEvent{
-					UserID: userFake.Id,
-				}
-				userId := openfga.UserIdFromInt(deleteEvent.UserID)
+	Context("when authz is enabled", func() {
 
-				relations := []openfga.RelationInput{
-					{ // user - role
-						UserType:   openfga.TypeUser,
-						UserId:     userId,
-						ObjectId:   openfga.IDRole,
-						ObjectType: openfga.TypeRole,
-						Relation:   openfga.RelAdmin,
-					},
-					{ // user - service
-						UserType:   openfga.TypeUser,
-						UserId:     userId,
-						ObjectId:   openfga.IDService,
-						ObjectType: openfga.TypeService,
-						Relation:   openfga.RelMember,
-					},
-					{ // user - component_instance
-						UserType:   openfga.TypeUser,
-						UserId:     userId,
-						ObjectId:   openfga.IDComponentInstance,
-						ObjectType: openfga.TypeComponentInstance,
-						Relation:   openfga.RelCanView,
-					},
-					{ // user - support_group
-						UserType:   openfga.TypeUser,
-						UserId:     userId,
-						ObjectId:   openfga.IDSupportGroup,
-						ObjectType: openfga.TypeSupportGroup,
-						Relation:   openfga.RelMember,
-					},
-					{ // user - issue_match
-						UserType:   openfga.TypeUser,
-						UserId:     userId,
-						ObjectId:   openfga.IDIssueMatch,
-						ObjectType: openfga.TypeIssueMatch,
-						Relation:   openfga.RelCanView,
-					},
-					{ // user - component_version
-						UserType:   openfga.TypeUser,
-						UserId:     userId,
-						ObjectId:   openfga.IDComponentVersion,
-						ObjectType: openfga.TypeComponentVersion,
-						Relation:   openfga.RelCanView,
-					},
-					{ // user - component
-						UserType:   openfga.TypeUser,
-						UserId:     userId,
-						ObjectId:   openfga.IDComponent,
-						ObjectType: openfga.TypeComponent,
-						Relation:   openfga.RelCanView,
-					},
-				}
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-				handlerContext.Authz.AddRelationBulk(relations)
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-				// get the number of relations before deletion
-				relCountBefore := 0
-				for _, r := range relations {
-					relations, err := handlerContext.Authz.ListRelations(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					relCountBefore += len(relations)
-				}
-				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
+		Context("when handling a DeleteUserEvent", func() {
+			Context("when new user is deleted", func() {
+				It("should delete tuples related to that user in openfga", func() {
+					// Test OnUserDeleteAuthz against all possible relations
+					authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+					userFake := test.NewFakeUserEntity()
+					deleteEvent := &u.DeleteUserEvent{
+						UserID: userFake.Id,
+					}
+					userId := openfga.UserIdFromInt(deleteEvent.UserID)
 
-				// check that relations were created
-				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					Expect(ok).To(BeTrue(), "permission should be granted")
-				}
+					relations := []openfga.RelationInput{
+						{ // user - role
+							UserType:   openfga.TypeUser,
+							UserId:     userId,
+							ObjectId:   openfga.IDRole,
+							ObjectType: openfga.TypeRole,
+							Relation:   openfga.RelAdmin,
+						},
+						{ // user - service
+							UserType:   openfga.TypeUser,
+							UserId:     userId,
+							ObjectId:   openfga.IDService,
+							ObjectType: openfga.TypeService,
+							Relation:   openfga.RelMember,
+						},
+						{ // user - component_instance
+							UserType:   openfga.TypeUser,
+							UserId:     userId,
+							ObjectId:   openfga.IDComponentInstance,
+							ObjectType: openfga.TypeComponentInstance,
+							Relation:   openfga.RelCanView,
+						},
+						{ // user - support_group
+							UserType:   openfga.TypeUser,
+							UserId:     userId,
+							ObjectId:   openfga.IDSupportGroup,
+							ObjectType: openfga.TypeSupportGroup,
+							Relation:   openfga.RelMember,
+						},
+						{ // user - issue_match
+							UserType:   openfga.TypeUser,
+							UserId:     userId,
+							ObjectId:   openfga.IDIssueMatch,
+							ObjectType: openfga.TypeIssueMatch,
+							Relation:   openfga.RelCanView,
+						},
+						{ // user - component_version
+							UserType:   openfga.TypeUser,
+							UserId:     userId,
+							ObjectId:   openfga.IDComponentVersion,
+							ObjectType: openfga.TypeComponentVersion,
+							Relation:   openfga.RelCanView,
+						},
+						{ // user - component
+							UserType:   openfga.TypeUser,
+							UserId:     userId,
+							ObjectId:   openfga.IDComponent,
+							ObjectType: openfga.TypeComponent,
+							Relation:   openfga.RelCanView,
+						},
+					}
 
-				var event event.Event = deleteEvent
-				// Simulate event
-				u.OnUserDeleteAuthz(db, event, authz)
+					handlerContext.Authz.AddRelationBulk(relations)
 
-				// get the number of relations after deletion
-				relCountAfter := 0
-				for _, r := range relations {
-					relations, err := handlerContext.Authz.ListRelations(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					relCountAfter += len(relations)
-				}
-				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
-				Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+					// get the number of relations before deletion
+					relCountBefore := 0
+					for _, r := range relations {
+						relations, err := handlerContext.Authz.ListRelations(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						relCountBefore += len(relations)
+					}
+					Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
 
-				// verify that relations were deleted
-				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					Expect(ok).To(BeFalse(), "permission should NOT be granted")
-				}
+					// check that relations were created
+					for _, r := range relations {
+						ok, err := handlerContext.Authz.CheckPermission(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						Expect(ok).To(BeTrue(), "permission should be granted")
+					}
+
+					var event event.Event = deleteEvent
+					// Simulate event
+					u.OnUserDeleteAuthz(db, event, authz)
+
+					// get the number of relations after deletion
+					relCountAfter := 0
+					for _, r := range relations {
+						relations, err := handlerContext.Authz.ListRelations(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						relCountAfter += len(relations)
+					}
+					Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
+					Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+
+					// verify that relations were deleted
+					for _, r := range relations {
+						ok, err := handlerContext.Authz.CheckPermission(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						Expect(ok).To(BeFalse(), "permission should NOT be granted")
+					}
+				})
 			})
 		})
 	})

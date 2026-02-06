@@ -55,6 +55,30 @@ func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 		"event": GetServiceEventName,
 		"id":    serviceId,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(s.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	hasPermission, err := s.authz.CheckPermission(openfga.RelationInput{
+		UserType:   openfga.TypeUser,
+		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
+		Relation:   openfga.RelCanView,
+		ObjectType: openfga.TypeService,
+		ObjectId:   openfga.ObjectId(fmt.Sprint(serviceId)),
+	})
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while checking permission for user")
+	}
+	if !hasPermission {
+		return nil, NewServiceHandlerError("User does not have permission to view this service")
+	}
+
 	serviceFilter := entity.ServiceFilter{Id: []*int64{&serviceId}}
 	lo := entity.NewListOptions()
 
@@ -86,6 +110,32 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 		"event":  ListServicesEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(s.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleSupportGroupIds, err := s.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while listing accessible services for user")
+	}
+
+	// Update the filter.Id based on accessibleSupportGroupIds
+	filter.SupportGroupId = common.CombineFilterWithAccesibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
+
+	// log the current user, accessible services, and filter after authz
+	l = logrus.WithFields(logrus.Fields{
+		"event":                 ListServicesEventName,
+		"current_user_id":       currentUserId,
+		"accessible_sg":         accessibleSupportGroupIds,
+		"filter.id_after_authz": filter.SupportGroupId,
+	})
+	l.Info("Listing services with authorization applied")
 
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.ServiceResult](

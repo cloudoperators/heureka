@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/util"
@@ -350,6 +351,41 @@ func (a *Authz) RemoveRelationBulk(r []RelationInput) error {
 	return nil
 }
 
+// RemoveAllRelations removes all tuples for the store backing the provided Authorization.
+func (a *Authz) RemoveAllRelations() error {
+	if a == nil {
+		return nil
+	}
+
+	ctx := context.Background()
+	options := client.ClientWriteOptions{
+		Conflict: client.ClientWriteConflictOptions{
+			OnMissingDeletes: client.CLIENT_WRITE_REQUEST_ON_MISSING_DELETES_IGNORE,
+		},
+	}
+
+	resp, err := a.client.Read(ctx).Body(client.ClientReadRequest{}).Execute()
+	if err != nil {
+		return err
+	}
+	if len(resp.Tuples) == 0 {
+		return nil
+	}
+	deletes := make([]client.ClientTupleKeyWithoutCondition, 0, len(resp.Tuples))
+	for _, t := range resp.Tuples {
+		deletes = append(deletes, client.ClientTupleKeyWithoutCondition{
+			User:     t.Key.User,
+			Relation: t.Key.Relation,
+			Object:   t.Key.Object,
+		})
+	}
+	_, err = a.client.Write(ctx).Body(client.ClientWriteRequest{Deletes: deletes}).Options(options).Execute()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // UpdateRelation updates relations by removing relations that match the filter for the old relation and adding the new relation.
 func (a *Authz) UpdateRelation(add RelationInput, rem RelationInput) error {
 	l := a.logRel("HandleUpdateAuthzRelation", rem)
@@ -453,40 +489,40 @@ func (a *Authz) ListAccessibleResources(r RelationInput) ([]AccessibleResource, 
 		}
 	}
 
+	// if resources is empty, add a -1 resource to indicate no access
+	if len(resources) == 0 {
+		resources = append(resources, AccessibleResource{
+			ObjectType: r.ObjectType,
+			ObjectId:   ObjectId("-1"),
+		})
+	}
+
 	return resources, nil
 }
 
-// RemoveAllRelations removes all tuples for the store backing the provided Authorization.
-func (a *Authz) RemoveAllRelations() error {
-	if a == nil {
-		return nil
+// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
+func (a *Authz) GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType) ([]*int64, error) {
+	permission := RelationInput{
+		UserType:   "user",
+		UserId:     userId,
+		Relation:   "can_view",
+		ObjectType: objectType,
+		ObjectId:   "*",
 	}
 
-	ctx := context.Background()
-	options := client.ClientWriteOptions{
-		Conflict: client.ClientWriteConflictOptions{
-			OnMissingDeletes: client.CLIENT_WRITE_REQUEST_ON_MISSING_DELETES_IGNORE,
-		},
+	// Get all services the user has access to
+	accessibleObjects, err := a.ListAccessibleResources(permission)
+	if err != nil {
+		return nil, err
 	}
 
-	resp, err := a.client.Read(ctx).Body(client.ClientReadRequest{}).Execute()
-	if err != nil {
-		return err
+	// Convert []openfga.ObjectId to []int64
+	var ids []*int64
+	for _, resource := range accessibleObjects {
+		if intId, err := strconv.ParseInt(string(resource.ObjectId), 10, 64); err == nil {
+			ids = append(ids, &intId)
+		}
 	}
-	if len(resp.Tuples) == 0 {
-		return nil
-	}
-	deletes := make([]client.ClientTupleKeyWithoutCondition, 0, len(resp.Tuples))
-	for _, t := range resp.Tuples {
-		deletes = append(deletes, client.ClientTupleKeyWithoutCondition{
-			User:     t.Key.User,
-			Relation: t.Key.Relation,
-			Object:   t.Key.Object,
-		})
-	}
-	_, err = a.client.Write(ctx).Body(client.ClientWriteRequest{Deletes: deletes}).Options(options).Execute()
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return ids, nil
 }

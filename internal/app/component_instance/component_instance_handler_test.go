@@ -37,7 +37,8 @@ var handlerContext common.HandlerContext
 var cfg *util.Config
 
 var _ = BeforeSuite(func() {
-	cfg = common.GetTestConfig()
+	authEnabled := false
+	cfg = common.GetTestConfig(authEnabled)
 	enableLogs := false
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
@@ -247,31 +248,49 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 		})
 	})
 
-	Context("when handling a CreateComponentInstanceEvent", func() {
-		Context("when new component instance is created", func() {
-			It("should add user resource relationship tuple in openfga", func() {
-				ciFake := test.NewFakeComponentInstanceEntity()
-				createEvent := &ci.CreateComponentInstanceEvent{
-					ComponentInstance: &ciFake,
-				}
+	Context("when authz is enabled", func() {
 
-				r = openfga.RelationInput{
-					UserType:   openfga.TypeRole,
-					UserId:     "0",
-					ObjectType: openfga.TypeComponentInstance,
-					Relation:   openfga.RelRole,
-				}
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-				// Use type assertion to convert a CreateServiceEvent into an Event
-				var event event.Event = createEvent
-				resourceId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
-				r.ObjectId = openfga.ObjectId(resourceId)
-				// Simulate event
-				ci.OnComponentInstanceCreateAuthz(db, event, handlerContext.Authz)
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-				ok, err := handlerContext.Authz.CheckPermission(r)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(ok).To(BeTrue(), "permission should be granted")
+		Context("when handling a CreateComponentInstanceEvent", func() {
+			Context("when new component instance is created", func() {
+				It("should add user resource relationship tuple in openfga", func() {
+					ciFake := test.NewFakeComponentInstanceEntity()
+					createEvent := &ci.CreateComponentInstanceEvent{
+						ComponentInstance: &ciFake,
+					}
+
+					r = openfga.RelationInput{
+						UserType:   openfga.TypeRole,
+						UserId:     "0",
+						ObjectType: openfga.TypeComponentInstance,
+						Relation:   openfga.RelRole,
+					}
+
+					// Use type assertion to convert a CreateServiceEvent into an Event
+					var event event.Event = createEvent
+					resourceId := strconv.FormatInt(createEvent.ComponentInstance.Id, 10)
+					r.ObjectId = openfga.ObjectId(resourceId)
+					// Simulate event
+					ci.OnComponentInstanceCreateAuthz(db, event, handlerContext.Authz)
+
+					ok, err := handlerContext.Authz.CheckPermission(r)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(ok).To(BeTrue(), "permission should be granted")
+				})
 			})
 		})
 	})
@@ -342,138 +361,156 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		})
 	})
 
-	Context("when handling an UpdateComponentInstanceEvent", func() {
-		It("should update service and component_version relations in openfga", func() {
-			ciFake := test.NewFakeComponentInstanceEntity()
-			oldServiceId := int64(111)
-			newServiceId := int64(222)
-			oldComponentVersionId := int64(333)
-			newComponentVersionId := int64(444)
+	Context("when authz is enabled", func() {
 
-			// Add initial relations
-			initialServiceRelation := openfga.RelationInput{
-				UserType:   openfga.TypeService,
-				UserId:     openfga.UserIdFromInt(oldServiceId),
-				Relation:   openfga.RelRelatedService,
-				ObjectType: openfga.TypeComponentInstance,
-				ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
-			}
-			initialComponentVersionRelation := openfga.RelationInput{
-				UserType:   openfga.TypeComponentInstance,
-				UserId:     openfga.UserIdFromInt(ciFake.Id),
-				Relation:   openfga.RelComponentInstance,
-				ObjectType: openfga.TypeComponentVersion,
-				ObjectId:   openfga.ObjectIdFromInt(oldComponentVersionId),
-			}
-
-			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{
-				initialServiceRelation,
-				initialComponentVersionRelation,
-			})
-
-			// Fake update event with new service and component_version ids
-			ciFake.ServiceId = newServiceId
-			ciFake.ComponentVersionId = newComponentVersionId
-			updateEvent := &ci.UpdateComponentInstanceEvent{
-				ComponentInstance: &ciFake,
-			}
-			var event event.Event = updateEvent
-
-			// Simulate event
-			ci.OnComponentInstanceUpdateAuthz(db, event, handlerContext.Authz)
-
-			// Check that the old relations are gone
-			remainingOldService, err := handlerContext.Authz.ListRelations(initialServiceRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingOldService).To(BeEmpty(), "old service relation should be removed")
-
-			remainingOldComponentVersion, err := handlerContext.Authz.ListRelations(initialComponentVersionRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingOldComponentVersion).To(BeEmpty(), "old component_version relation should be removed")
-
-			// Check that the new relations exist
-			newServiceRelation := openfga.RelationInput{
-				UserType:   openfga.TypeService,
-				UserId:     openfga.UserIdFromInt(newServiceId),
-				Relation:   openfga.RelRelatedService,
-				ObjectType: openfga.TypeComponentInstance,
-				ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
-			}
-			newComponentVersionRelation := openfga.RelationInput{
-				UserType:   openfga.TypeComponentInstance,
-				UserId:     openfga.UserIdFromInt(ciFake.Id),
-				Relation:   openfga.RelComponentInstance,
-				ObjectType: openfga.TypeComponentVersion,
-				ObjectId:   openfga.ObjectIdFromInt(newComponentVersionId),
-			}
-			remainingNewService, err := handlerContext.Authz.ListRelations(newServiceRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingNewService).NotTo(BeEmpty(), "new service relation should exist")
-
-			remainingNewComponentVersion, err := handlerContext.Authz.ListRelations(newComponentVersionRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingNewComponentVersion).NotTo(BeEmpty(), "new component_version relation should exist")
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 		})
 
-		It("should update only the service relation in openfga", func() {
-			ciFake := test.NewFakeComponentInstanceEntity()
-			oldServiceId := int64(111)
-			newServiceId := int64(222)
-			oldComponentVersionId := int64(333)
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-			// Add initial relations
-			initialServiceRelation := openfga.RelationInput{
-				UserType:   openfga.TypeService,
-				UserId:     openfga.UserIdFromInt(oldServiceId),
-				Relation:   openfga.RelRelatedService,
-				ObjectType: openfga.TypeComponentInstance,
-				ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
-			}
-			initialComponentVersionRelation := openfga.RelationInput{
-				UserType:   openfga.TypeComponentInstance,
-				UserId:     openfga.UserIdFromInt(ciFake.Id),
-				Relation:   openfga.RelComponentInstance,
-				ObjectType: openfga.TypeComponentVersion,
-				ObjectId:   openfga.ObjectIdFromInt(oldComponentVersionId),
-			}
+		Context("when handling an UpdateComponentInstanceEvent", func() {
+			It("should update service and component_version relations in openfga", func() {
+				ciFake := test.NewFakeComponentInstanceEntity()
+				oldServiceId := int64(111)
+				newServiceId := int64(222)
+				oldComponentVersionId := int64(333)
+				newComponentVersionId := int64(444)
 
-			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{
-				initialServiceRelation,
-				initialComponentVersionRelation,
+				// Add initial relations
+				initialServiceRelation := openfga.RelationInput{
+					UserType:   openfga.TypeService,
+					UserId:     openfga.UserIdFromInt(oldServiceId),
+					Relation:   openfga.RelRelatedService,
+					ObjectType: openfga.TypeComponentInstance,
+					ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
+				}
+				initialComponentVersionRelation := openfga.RelationInput{
+					UserType:   openfga.TypeComponentInstance,
+					UserId:     openfga.UserIdFromInt(ciFake.Id),
+					Relation:   openfga.RelComponentInstance,
+					ObjectType: openfga.TypeComponentVersion,
+					ObjectId:   openfga.ObjectIdFromInt(oldComponentVersionId),
+				}
+
+				handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{
+					initialServiceRelation,
+					initialComponentVersionRelation,
+				})
+
+				// Fake update event with new service and component_version ids
+				ciFake.ServiceId = newServiceId
+				ciFake.ComponentVersionId = newComponentVersionId
+				updateEvent := &ci.UpdateComponentInstanceEvent{
+					ComponentInstance: &ciFake,
+				}
+				var event event.Event = updateEvent
+
+				// Simulate event
+				ci.OnComponentInstanceUpdateAuthz(db, event, handlerContext.Authz)
+
+				// Check that the old relations are gone
+				remainingOldService, err := handlerContext.Authz.ListRelations(initialServiceRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingOldService).To(BeEmpty(), "old service relation should be removed")
+
+				remainingOldComponentVersion, err := handlerContext.Authz.ListRelations(initialComponentVersionRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingOldComponentVersion).To(BeEmpty(), "old component_version relation should be removed")
+
+				// Check that the new relations exist
+				newServiceRelation := openfga.RelationInput{
+					UserType:   openfga.TypeService,
+					UserId:     openfga.UserIdFromInt(newServiceId),
+					Relation:   openfga.RelRelatedService,
+					ObjectType: openfga.TypeComponentInstance,
+					ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
+				}
+				newComponentVersionRelation := openfga.RelationInput{
+					UserType:   openfga.TypeComponentInstance,
+					UserId:     openfga.UserIdFromInt(ciFake.Id),
+					Relation:   openfga.RelComponentInstance,
+					ObjectType: openfga.TypeComponentVersion,
+					ObjectId:   openfga.ObjectIdFromInt(newComponentVersionId),
+				}
+				remainingNewService, err := handlerContext.Authz.ListRelations(newServiceRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingNewService).NotTo(BeEmpty(), "new service relation should exist")
+
+				remainingNewComponentVersion, err := handlerContext.Authz.ListRelations(newComponentVersionRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingNewComponentVersion).NotTo(BeEmpty(), "new component_version relation should exist")
 			})
 
-			// Fake update event with new service and component_version ids
-			ciFake.ServiceId = newServiceId
-			ciFake.ComponentVersionId = oldComponentVersionId // need to pass old id otherwise fake ci will use a new random id
-			updateEvent := &ci.UpdateComponentInstanceEvent{
-				ComponentInstance: &ciFake,
-			}
-			var event event.Event = updateEvent
+			It("should update only the service relation in openfga", func() {
+				ciFake := test.NewFakeComponentInstanceEntity()
+				oldServiceId := int64(111)
+				newServiceId := int64(222)
+				oldComponentVersionId := int64(333)
 
-			// Simulate event
-			ci.OnComponentInstanceUpdateAuthz(db, event, handlerContext.Authz)
+				// Add initial relations
+				initialServiceRelation := openfga.RelationInput{
+					UserType:   openfga.TypeService,
+					UserId:     openfga.UserIdFromInt(oldServiceId),
+					Relation:   openfga.RelRelatedService,
+					ObjectType: openfga.TypeComponentInstance,
+					ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
+				}
+				initialComponentVersionRelation := openfga.RelationInput{
+					UserType:   openfga.TypeComponentInstance,
+					UserId:     openfga.UserIdFromInt(ciFake.Id),
+					Relation:   openfga.RelComponentInstance,
+					ObjectType: openfga.TypeComponentVersion,
+					ObjectId:   openfga.ObjectIdFromInt(oldComponentVersionId),
+				}
 
-			// Check that the old relations are gone
-			remainingOldService, err := handlerContext.Authz.ListRelations(initialServiceRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingOldService).To(BeEmpty(), "old service relation should be removed")
+				handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{
+					initialServiceRelation,
+					initialComponentVersionRelation,
+				})
 
-			// Check that the new relation exists
-			newServiceRelation := openfga.RelationInput{
-				UserType:   openfga.TypeService,
-				UserId:     openfga.UserIdFromInt(newServiceId),
-				Relation:   openfga.RelRelatedService,
-				ObjectType: openfga.TypeComponentInstance,
-				ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
-			}
-			remainingNewService, err := handlerContext.Authz.ListRelations(newServiceRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingNewService).NotTo(BeEmpty(), "new service relation should exist")
+				// Fake update event with new service and component_version ids
+				ciFake.ServiceId = newServiceId
+				ciFake.ComponentVersionId = oldComponentVersionId // need to pass old id otherwise fake ci will use a new random id
+				updateEvent := &ci.UpdateComponentInstanceEvent{
+					ComponentInstance: &ciFake,
+				}
+				var event event.Event = updateEvent
 
-			// Check that the old component_version relation still exists
-			remainingOldComponentVersion, err := handlerContext.Authz.ListRelations(initialComponentVersionRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingOldComponentVersion).ToNot(BeEmpty(), "old component_version relation should remain")
+				// Simulate event
+				ci.OnComponentInstanceUpdateAuthz(db, event, handlerContext.Authz)
+
+				// Check that the old relations are gone
+				remainingOldService, err := handlerContext.Authz.ListRelations(initialServiceRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingOldService).To(BeEmpty(), "old service relation should be removed")
+
+				// Check that the new relation exists
+				newServiceRelation := openfga.RelationInput{
+					UserType:   openfga.TypeService,
+					UserId:     openfga.UserIdFromInt(newServiceId),
+					Relation:   openfga.RelRelatedService,
+					ObjectType: openfga.TypeComponentInstance,
+					ObjectId:   openfga.ObjectIdFromInt(ciFake.Id),
+				}
+				remainingNewService, err := handlerContext.Authz.ListRelations(newServiceRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingNewService).NotTo(BeEmpty(), "new service relation should exist")
+
+				// Check that the old component_version relation still exists
+				remainingOldComponentVersion, err := handlerContext.Authz.ListRelations(initialComponentVersionRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingOldComponentVersion).ToNot(BeEmpty(), "old component_version relation should remain")
+			})
 		})
 	})
 })
@@ -521,94 +558,112 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 			Expect(componentInstances.Elements).To(BeEmpty(), "component instance should be deleted")
 		})
 
-		Context("when handling a DeleteComponentInstanceEvent", func() {
-			Context("when new component instance is deleted", func() {
-				It("should delete tuples related to that component instance in openfga", func() {
-					// Test OnComponentInstanceDeleteAuthz against all possible relations
-					ciFake := test.NewFakeComponentInstanceEntity()
-					deleteEvent := &ci.DeleteComponentInstanceEvent{
-						ComponentInstanceID: ciFake.Id,
-					}
-					objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentInstanceID)
-					userId := openfga.UserIdFromInt(deleteEvent.ComponentInstanceID)
-					relations := []openfga.RelationInput{
-						{ // role - component_instance: a role is assigned to the component instance
-							UserType:   openfga.TypeRole,
-							UserId:     openfga.IDRole,
-							ObjectId:   objectId,
-							ObjectType: openfga.TypeComponentInstance,
-							Relation:   openfga.RelRole,
-						},
-						{ // service - component_instance: a service is related to the component instance
-							UserType:   openfga.TypeService,
-							UserId:     openfga.IDService,
-							ObjectId:   objectId,
-							ObjectType: openfga.TypeComponentInstance,
-							Relation:   openfga.RelRelatedService,
-						},
-						{ // user - component_instance: a user can view the component instance
-							UserType:   openfga.TypeUser,
-							UserId:     openfga.IDUser,
-							ObjectId:   objectId,
-							ObjectType: openfga.TypeComponentInstance,
-							Relation:   openfga.RelCanView,
-						},
-						{ // component_instance - component_version: a component instance is related to a component version
-							UserType:   openfga.TypeComponentInstance,
-							UserId:     userId,
-							ObjectId:   openfga.IDComponentVersion,
-							ObjectType: openfga.TypeComponentVersion,
-							Relation:   openfga.RelComponentInstance,
-						},
-						{ // component_instance - issue_match: a component instance is related to an issue match
-							UserType:   openfga.TypeComponentInstance,
-							UserId:     userId,
-							ObjectId:   openfga.IDIssueMatch,
-							ObjectType: openfga.TypeIssueMatch,
-							Relation:   openfga.RelComponentInstance,
-						},
-					}
+		Context("when authz is enabled", func() {
 
-					handlerContext.Authz.AddRelationBulk(relations)
+			BeforeEach(func() {
+				authEnabled := true
+				cfg = common.GetTestConfig(authEnabled)
+				enableLogs := false
+				handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			})
 
-					// get the number of relations before deletion
-					relCountBefore := 0
-					for _, r := range relations {
-						relations, err := handlerContext.Authz.ListRelations(r)
-						Expect(err).To(BeNil(), "no error should be thrown")
+			AfterEach(func() {
+				// Reset authz to disabled after finishing tests
+				authEnabled := false
+				cfg = common.GetTestConfig(authEnabled)
+				enableLogs := false
+				handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			})
 
-						relCountBefore += len(relations)
-					}
-					Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
+			Context("when handling a DeleteComponentInstanceEvent", func() {
+				Context("when new component instance is deleted", func() {
+					It("should delete tuples related to that component instance in openfga", func() {
+						// Test OnComponentInstanceDeleteAuthz against all possible relations
+						ciFake := test.NewFakeComponentInstanceEntity()
+						deleteEvent := &ci.DeleteComponentInstanceEvent{
+							ComponentInstanceID: ciFake.Id,
+						}
+						objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentInstanceID)
+						userId := openfga.UserIdFromInt(deleteEvent.ComponentInstanceID)
+						relations := []openfga.RelationInput{
+							{ // role - component_instance: a role is assigned to the component instance
+								UserType:   openfga.TypeRole,
+								UserId:     openfga.IDRole,
+								ObjectId:   objectId,
+								ObjectType: openfga.TypeComponentInstance,
+								Relation:   openfga.RelRole,
+							},
+							{ // service - component_instance: a service is related to the component instance
+								UserType:   openfga.TypeService,
+								UserId:     openfga.IDService,
+								ObjectId:   objectId,
+								ObjectType: openfga.TypeComponentInstance,
+								Relation:   openfga.RelRelatedService,
+							},
+							{ // user - component_instance: a user can view the component instance
+								UserType:   openfga.TypeUser,
+								UserId:     openfga.IDUser,
+								ObjectId:   objectId,
+								ObjectType: openfga.TypeComponentInstance,
+								Relation:   openfga.RelCanView,
+							},
+							{ // component_instance - component_version: a component instance is related to a component version
+								UserType:   openfga.TypeComponentInstance,
+								UserId:     userId,
+								ObjectId:   openfga.IDComponentVersion,
+								ObjectType: openfga.TypeComponentVersion,
+								Relation:   openfga.RelComponentInstance,
+							},
+							{ // component_instance - issue_match: a component instance is related to an issue match
+								UserType:   openfga.TypeComponentInstance,
+								UserId:     userId,
+								ObjectId:   openfga.IDIssueMatch,
+								ObjectType: openfga.TypeIssueMatch,
+								Relation:   openfga.RelComponentInstance,
+							},
+						}
 
-					// check that relations were created
-					for _, r := range relations {
-						ok, err := handlerContext.Authz.CheckPermission(r)
-						Expect(err).To(BeNil(), "no error should be thrown")
-						Expect(ok).To(BeTrue(), "permission should be granted")
-					}
+						handlerContext.Authz.AddRelationBulk(relations)
 
-					var event event.Event = deleteEvent
-					// Simulate event
-					ci.OnComponentInstanceDeleteAuthz(db, event, handlerContext.Authz)
+						// get the number of relations before deletion
+						relCountBefore := 0
+						for _, r := range relations {
+							relations, err := handlerContext.Authz.ListRelations(r)
+							Expect(err).To(BeNil(), "no error should be thrown")
 
-					// get the number of relations after deletion
-					relCountAfter := 0
-					for _, r := range relations {
-						relations, err := handlerContext.Authz.ListRelations(r)
-						Expect(err).To(BeNil(), "no error should be thrown")
+							relCountBefore += len(relations)
+						}
+						Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
 
-						relCountAfter += len(relations)
-					}
-					// Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
-					Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+						// check that relations were created
+						for _, r := range relations {
+							ok, err := handlerContext.Authz.CheckPermission(r)
+							Expect(err).To(BeNil(), "no error should be thrown")
+							Expect(ok).To(BeTrue(), "permission should be granted")
+						}
 
-					// verify that relations were deleted
-					for _, r := range relations {
-						ok, err := handlerContext.Authz.CheckPermission(r)
-						Expect(err).To(BeNil(), "no error should be thrown")
-						Expect(ok).To(BeFalse(), "permission should NOT be granted")
-					}
+						var event event.Event = deleteEvent
+						// Simulate event
+						ci.OnComponentInstanceDeleteAuthz(db, event, handlerContext.Authz)
+
+						// get the number of relations after deletion
+						relCountAfter := 0
+						for _, r := range relations {
+							relations, err := handlerContext.Authz.ListRelations(r)
+							Expect(err).To(BeNil(), "no error should be thrown")
+
+							relCountAfter += len(relations)
+						}
+						// Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
+						Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+
+						// verify that relations were deleted
+						for _, r := range relations {
+							ok, err := handlerContext.Authz.CheckPermission(r)
+							Expect(err).To(BeNil(), "no error should be thrown")
+							Expect(ok).To(BeFalse(), "permission should NOT be granted")
+						}
+					})
 				})
 			})
 		})
