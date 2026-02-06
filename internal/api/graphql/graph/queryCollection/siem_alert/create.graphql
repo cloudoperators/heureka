@@ -1,0 +1,15 @@
+mutation CreateNewSIEMAlert($input: SIEMAlertInput){
+    createSIEMAlert(input: $input){
+        name
+        description
+        severity
+        url
+        service
+        supportGroup
+        region
+        cluster
+        namespace
+        pod
+        container
+    }
+}
