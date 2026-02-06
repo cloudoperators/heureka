@@ -9,28 +9,40 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/brianvoe/gofakeit/v7"
 )
 
-type IssueMatchComponent struct {
-	Issue     string
-	Component string
+type DbSeeds struct {
+	IssueMatchComponents   []IssueMatchComponent
+	Issues                 []string
+	Components             []ComponentData
+	ComponentVersionIssues []ComponentVersionIssue
 }
 
-type Component struct {
-	Name    string
-	Version string
-	Service string
+type IssueMatchComponent struct {
+	Issue             string
+	ComponentInstance string
+}
+
+type ComponentData struct {
+	Name      string
+	Component string
+	Version   string
+	Service   string
+}
+
+type ComponentVersionIssue struct {
+	Issue            string
+	ComponentVersion string
 }
 
 type ScannerRunDef struct {
-	Tag                  string
-	IsCompleted          bool
-	Timestamp            time.Time
-	Issues               []string
-	Components           []Component
-	IssueMatchComponents []IssueMatchComponent
+	Tag                        string
+	IsCompleted                bool
+	Timestamp                  time.Time
+	DetectedComponentInstances []string
 }
 
 type ScannerRunsSeeder struct {
@@ -40,129 +52,221 @@ type ScannerRunsSeeder struct {
 
 	dbSeeder *DatabaseSeeder
 
-	knownComponentInstances map[string]int
-	knownIssues             map[string]int
-	knownServices           map[string]int64
-	knownVersions           map[string]int64
-	knownComponents         map[string]int64
+	knownComponentInstances     map[string]int64
+	knownIssues                 map[string]int64
+	knownServices               map[string]int64
+	knownVersions               map[string]int64
+	knownComponents             map[string]int64
+	knownComponentInstancesData map[string]componentInstanceData
+	knownIssuesMatchComponents  map[string][]int64
+	knownComponentVersionIssues map[ComponentVersionIssue]int64
+}
+
+type componentInstanceData struct {
+	componentVersionId int64
+	serviceId          int64
+	issueMatches       []int64
 }
 
 func NewScannerRunsSeeder(dbSeeder *DatabaseSeeder) *ScannerRunsSeeder {
 	return &ScannerRunsSeeder{
-		dbSeeder:                dbSeeder,
-		knownComponentInstances: make(map[string]int),
-		knownIssues:             make(map[string]int),
-		knownServices:           make(map[string]int64),
-		knownVersions:           make(map[string]int64),
-		knownComponents:         make(map[string]int64),
+		dbSeeder:                    dbSeeder,
+		knownComponentInstances:     make(map[string]int64),
+		knownIssues:                 make(map[string]int64),
+		knownServices:               make(map[string]int64),
+		knownVersions:               make(map[string]int64),
+		knownComponents:             make(map[string]int64),
+		knownComponentInstancesData: make(map[string]componentInstanceData),
+		knownIssuesMatchComponents:  make(map[string][]int64),
+		knownComponentVersionIssues: make(map[ComponentVersionIssue]int64),
 	}
 }
 
-func (srs *ScannerRunsSeeder) Seed(srd ScannerRunDef) error {
+func (srs *ScannerRunsSeeder) SeedDbSeeds(dbs DbSeeds) error {
+	if err := srs.processDbSeeds(dbs); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (srs *ScannerRunsSeeder) SeedScannerRun(srd ScannerRunDef) error {
 	if err := srs.processScannerRunInstance(srd); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (srs *ScannerRunsSeeder) processScannerRunInstance(srd ScannerRunDef) error {
-	res, err := srs.dbSeeder.insertScannerRunInstance(gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
-	if err != nil {
+func (srs *ScannerRunsSeeder) processDbSeeds(dbs DbSeeds) error {
+	if err := srs.seedIssues(dbs.Issues); err != nil {
 		return err
 	}
-	scannerRunId, err := res.LastInsertId()
-	if err != nil {
+	if err := srs.seedComponentsData(dbs.Components); err != nil {
 		return err
 	}
-	if err := srs.processIssues(srd.Issues, scannerRunId); err != nil {
+	if err := srs.storeIssueMatchComponents(dbs.IssueMatchComponents); err != nil {
 		return err
 	}
-	if err := srs.processComponents(srd.Components, scannerRunId); err != nil {
-		return err
-	}
-	if err := srs.processIssueMatchComponents(srd.IssueMatchComponents); err != nil {
+	if err := srs.seedComponentVersionIssues(dbs.ComponentVersionIssues); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (srs *ScannerRunsSeeder) processIssues(issues []string, scannerRunId int64) error {
+func (srs *ScannerRunsSeeder) seedIssues(issues []string) error {
 	for _, issue := range issues {
-		if _, ok := srs.knownIssues[issue]; !ok {
-			issueId, err := srs.dbSeeder.insertIssue(issue)
-			if err != nil {
-				return err
-			}
+		if _, ok := srs.knownIssues[issue]; ok {
+			return fmt.Errorf("Trying to seed Issue that already exists: '%s'.", issue)
+		}
+		issueId, err := srs.dbSeeder.insertIssue(issue)
+		if err != nil {
+			return err
 
-			srs.knownIssues[issue] = int(issueId)
+		}
+
+		srs.knownIssues[issue] = issueId
+	}
+	return nil
+}
+
+func (srs *ScannerRunsSeeder) seedComponentVersionIssues(componentVersionIssues []ComponentVersionIssue) error {
+	for _, cvi := range componentVersionIssues {
+		if _, ok := srs.knownComponentVersionIssues[cvi]; ok {
+			return fmt.Errorf("Trying to seed ComponentVersionIssue that already exists: 'i: %s, cv: %s'.", cvi.Issue, cvi.ComponentVersion)
+		}
+		issueId, ok := srs.knownIssues[cvi.Issue]
+		if !ok {
+			return fmt.Errorf("Trying to seed ComponentVersionIssue but issue does not exist: 'i: %s, cv: %s'.", cvi.Issue, cvi.ComponentVersion)
+		}
+		componentVersionId, ok := srs.knownVersions[cvi.ComponentVersion]
+		if !ok {
+			return fmt.Errorf("Trying to seed ComponentVersionIssue but component version does not exist: 'i: %s, cv: %s'.", cvi.Issue, cvi.ComponentVersion)
+		}
+		cviId, err := srs.dbSeeder.insertComponentVersionIssue(componentVersionId, issueId)
+		if err != nil {
+			return err
+
+		}
+
+		srs.knownComponentVersionIssues[cvi] = cviId
+	}
+	return nil
+}
+
+func (srs *ScannerRunsSeeder) seedComponentsData(components []ComponentData) error {
+	for _, component := range components {
+		_, ok := srs.knownComponentInstances[component.Name]
+		if ok {
+			return fmt.Errorf("ComponentInstance: '%s' already exists.", component.Name)
+		}
+		_, err := srs.seedComponentData(component)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-type dataFeeds struct {
-	serviceId    int64
-	componentId  int64
-	versionId    int64
-	scannerRunId int64
+func (srs *ScannerRunsSeeder) seedComponentData(component ComponentData) (componentInstanceData, error) {
+	if component.Component == "" {
+		component.Component = component.Name
+	}
+	componentId, err := srs.seedOrGetComponent(component.Component)
+	if err != nil {
+		return componentInstanceData{}, err
+	}
+
+	componentVersionId, err := srs.seedOrGetComponentVersion(component.Version, componentId)
+	if err != nil {
+		return componentInstanceData{}, err
+	}
+
+	serviceId, err := srs.seedOrGetService(component.Service)
+	if err != nil {
+		return componentInstanceData{}, err
+	}
+
+	ciData := componentInstanceData{componentVersionId: componentVersionId, serviceId: serviceId}
+	srs.knownComponentInstancesData[component.Name] = ciData
+	return ciData, err
 }
 
-func (srs *ScannerRunsSeeder) processComponents(components []Component, scannerRunId int64) error {
-	if len(components) > 0 {
-		defaultFeeds, err := srs.createDefaultDataFeeds(scannerRunId)
+func (srs *ScannerRunsSeeder) seedComponentInstance(componentInstanceName string) (int64, error) {
+	ciData, ok := srs.knownComponentInstancesData[componentInstanceName]
+	if !ok {
+		var err error
+		ciData, err = srs.seedComponentData(ComponentData{Name: componentInstanceName})
 		if err != nil {
-			return err
-		}
-
-		srs.processComponentInstances(components, defaultFeeds)
-		if err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	res, err := srs.dbSeeder.insertComponentInstance(componentInstanceName, ciData.componentVersionId, ciData.serviceId)
+	if err != nil {
+		return 0, err
+	}
+	componentInstanceId, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	// Insert IssueMatchComponent for created ComponentInstance
+	for _, issueId := range srs.knownIssuesMatchComponents[componentInstanceName] {
+		if err := srs.dbSeeder.insertIssueMatchComponent(issueId, componentInstanceId); err != nil {
+			return 0, fmt.Errorf("InsertIntoIssueMatchComponent failed: %v", err)
+		}
+	}
+
+	srs.knownComponentInstances[componentInstanceName] = componentInstanceId
+	return componentInstanceId, nil
 }
 
-func (srs *ScannerRunsSeeder) createDefaultDataFeeds(scannerRunId int64) (*dataFeeds, error) {
-	serviceId, err := srs.insertNextService()
-	if err != nil {
-		return nil, err
+func (srs *ScannerRunsSeeder) seedOrGetComponent(componentCcrn string) (int64, error) {
+	if componentCcrn != "" {
+		if componentId, ok := srs.knownComponents[componentCcrn]; ok {
+			return componentId, nil
+		}
+		return srs.insertComponent(componentCcrn)
 	}
-
-	componentId, err := srs.insertNextComponent()
-	if err != nil {
-		return nil, err
-	}
-
-	versionId, err := srs.insertNextComponentVersion(componentId)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dataFeeds{serviceId: serviceId, componentId: componentId, versionId: versionId, scannerRunId: scannerRunId}, nil
-}
-
-func (srs *ScannerRunsSeeder) insertNextService() (int64, error) {
-	serviceCcrn := fmt.Sprintf("service-%d", srs.serviceCounter)
-	srs.serviceCounter++
-	return srs.insertService(serviceCcrn)
+	return srs.insertNextComponent()
 }
 
 func (srs *ScannerRunsSeeder) insertNextComponent() (int64, error) {
 	componentCcrn := fmt.Sprintf("component-%d", srs.componentCounter)
 	srs.componentCounter++
+	if _, ok := srs.knownComponents[componentCcrn]; ok {
+		return 0, fmt.Errorf("Trying to insert Component which already exists: '%s'", componentCcrn)
+	}
 	return srs.insertComponent(componentCcrn)
 }
 
-func (srs *ScannerRunsSeeder) insertNextComponentVersion(componentId int64) (int64, error) {
-	versionName := fmt.Sprintf("version-%d", srs.componentVersionCounter)
-	srs.componentVersionCounter++
-	return srs.insertComponentVersion(versionName, componentId)
+func (srs *ScannerRunsSeeder) insertComponent(componentCcrn string) (int64, error) {
+	componentId, err := srs.dbSeeder.insertComponent(componentCcrn)
+	if err != nil {
+		return 0, err
+	}
+	srs.knownComponents[componentCcrn] = componentId
+	return componentId, nil
+}
+
+func (srs *ScannerRunsSeeder) seedOrGetService(serviceCcrn string) (int64, error) {
+	if serviceCcrn != "" {
+		if serviceId, ok := srs.knownServices[serviceCcrn]; ok {
+			return serviceId, nil
+		}
+		return srs.insertService(serviceCcrn)
+	}
+	return srs.insertNextService()
+}
+
+func (srs *ScannerRunsSeeder) insertNextService() (int64, error) {
+	serviceCcrn := fmt.Sprintf("service-%d", srs.serviceCounter)
+	srs.serviceCounter++
+	if _, ok := srs.knownServices[serviceCcrn]; ok {
+		return 0, fmt.Errorf("Trying to insert Service which already exists: '%s'", serviceCcrn)
+	}
+	return srs.insertService(serviceCcrn)
 }
 
 func (srs *ScannerRunsSeeder) insertService(serviceCcrn string) (int64, error) {
-	if serviceId, ok := srs.knownServices[serviceCcrn]; ok {
-		return serviceId, nil
-	}
 	serviceId, err := srs.dbSeeder.insertService(serviceCcrn)
 	if err != nil {
 		return 0, err
@@ -171,22 +275,26 @@ func (srs *ScannerRunsSeeder) insertService(serviceCcrn string) (int64, error) {
 	return serviceId, nil
 }
 
-func (srs *ScannerRunsSeeder) insertComponent(componentCcrn string) (int64, error) {
-	componentId, err := srs.dbSeeder.getOrCreateComponent(componentCcrn)
-	if componentId, ok := srs.knownComponents[componentCcrn]; ok {
-		return componentId, nil
+func (srs *ScannerRunsSeeder) seedOrGetComponentVersion(versionName string, componentId int64) (int64, error) {
+	if versionName != "" {
+		if componentVersionId, ok := srs.knownVersions[versionName]; ok {
+			return componentVersionId, nil
+		}
+		return srs.insertComponentVersion(versionName, componentId)
 	}
-	if err != nil {
-		return 0, err
+	return srs.insertNextComponentVersion(componentId)
+}
+
+func (srs *ScannerRunsSeeder) insertNextComponentVersion(componentId int64) (int64, error) {
+	versionName := fmt.Sprintf("version-%d", srs.componentVersionCounter)
+	srs.componentVersionCounter++
+	if _, ok := srs.knownVersions[versionName]; ok {
+		return 0, fmt.Errorf("Trying to insert ComponentVersion which already exists: '%s'", versionName)
 	}
-	srs.knownComponents[componentCcrn] = componentId
-	return componentId, nil
+	return srs.insertComponentVersion(versionName, componentId)
 }
 
 func (srs *ScannerRunsSeeder) insertComponentVersion(versionName string, componentId int64) (int64, error) {
-	if versionId, ok := srs.knownVersions[versionName]; ok {
-		return versionId, nil
-	}
 	versionId, err := srs.dbSeeder.insertComponentVersion(versionName, componentId)
 	if err != nil {
 		return 0, err
@@ -195,82 +303,52 @@ func (srs *ScannerRunsSeeder) insertComponentVersion(versionName string, compone
 	return versionId, nil
 }
 
-func (srs *ScannerRunsSeeder) processComponentInstances(components []Component, defaultFeeds *dataFeeds) error {
-	for _, component := range components {
-		if err := srs.processComponentInstance(component, defaultFeeds); err != nil {
-			return err
+func (srs *ScannerRunsSeeder) storeIssueMatchComponents(issueMatchComponents []IssueMatchComponent) error {
+	for _, imc := range issueMatchComponents {
+		issue, ok := srs.knownIssues[imc.Issue]
+		if !ok {
+			return fmt.Errorf("Issue from IssueMatchComponent not found in known Issues: '%s'", imc.Issue)
 		}
+		srs.knownIssuesMatchComponents[imc.ComponentInstance] = append(srs.knownIssuesMatchComponents[imc.ComponentInstance], issue)
 	}
 	return nil
 }
 
-func (srs *ScannerRunsSeeder) processComponentInstance(component Component, defaultFeeds *dataFeeds) error {
-	if componentId, ok := srs.knownComponentInstances[component.Name]; ok {
-		return srs.dbSeeder.insertScannerRunComponentInstanceTracker(defaultFeeds.scannerRunId, componentId)
-	}
-	return srs.insertNewComponentInstance(component, defaultFeeds)
-}
+// -------------------------------------------
 
-func (srs *ScannerRunsSeeder) insertNewComponentInstance(component Component, defaultFeeds *dataFeeds) error {
-	var err error
-	versionId := defaultFeeds.versionId
-	serviceId := defaultFeeds.serviceId
-	if component.Version != "" {
-		versionId, err = srs.insertComponentVersion(component.Version, defaultFeeds.componentId)
-		if err != nil {
-			return err
-		}
-	}
-	if component.Service != "" {
-		serviceId, err = srs.insertService(component.Service)
-		if err != nil {
-			return err
-		}
-	}
-	res, err := srs.dbSeeder.insertComponentInstance(component.Name, versionId, serviceId)
+func (srs *ScannerRunsSeeder) processScannerRunInstance(srd ScannerRunDef) error {
+	res, err := srs.dbSeeder.insertScannerRunInstance(gofakeit.UUID(), srd.Tag, srd.Timestamp, srd.Timestamp, srd.IsCompleted)
 	if err != nil {
-		return fmt.Errorf("bad things insertintocomponentinstance: %v", err)
+		return err
+
 	}
-	resId, err := res.LastInsertId()
+	scannerRunId, err := res.LastInsertId()
 	if err != nil {
-		return fmt.Errorf("bad things insertintocomponentinstance get lastInsertId %v", err)
+		return err
 	}
-	componentId := int(resId)
-	srs.knownComponentInstances[component.Name] = componentId
-	if err := srs.dbSeeder.insertScannerRunComponentInstanceTracker(defaultFeeds.scannerRunId, componentId); err != nil {
+
+	if err := srs.processDetectedComponentInstances(srd.DetectedComponentInstances, scannerRunId); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (srs *ScannerRunsSeeder) processIssueMatchComponents(imc []IssueMatchComponent) error {
-	for _, issueMatch := range imc {
-		issue := srs.knownIssues[issueMatch.Issue]
-		componentId := srs.knownComponentInstances[issueMatch.Component]
-		if err := srs.dbSeeder.insertIssueMatchComponent(issue, componentId); err != nil {
-			return fmt.Errorf("InsertIntoIssueMatchComponent failed: %v", err)
+func (srs *ScannerRunsSeeder) processDetectedComponentInstances(detectedComponentInstances []string, scannerRunId int64) error {
+	for _, detectedCI := range detectedComponentInstances {
+		componentInstanceId, ok := srs.knownComponentInstances[detectedCI]
+		if !ok {
+			var err error
+			componentInstanceId, err = srs.seedComponentInstance(detectedCI)
+			if err != nil {
+				return err
+			}
+		}
+		err := srs.dbSeeder.insertScannerRunComponentInstanceTracker(scannerRunId, componentInstanceId)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
-}
-
-func (s *DatabaseSeeder) insertScannerRunInstance(uuid string, tag string, startRun time.Time, endRun time.Time, isCompleted bool) (sql.Result, error) {
-	insertScannerRun := `
-		INSERT INTO ScannerRun (
-			scannerrun_uuid,
-			scannerrun_tag,
-			scannerrun_start_run,
-			scannerrun_end_run,
-			scannerrun_is_completed
-		) VALUES (
-			?,
-			?,
-			?,
-			?,
-			?
-		)
-	`
-	return s.db.Exec(insertScannerRun, uuid, tag, startRun, endRun, isCompleted)
 }
 
 func (s *DatabaseSeeder) insertIssue(issue string) (int64, error) {
@@ -292,7 +370,26 @@ func (s *DatabaseSeeder) insertIssue(issue string) (int64, error) {
 	return res.LastInsertId()
 }
 
-func (s *DatabaseSeeder) insertScannerRunComponentInstanceTracker(scannerRunId int64, componentId int) error {
+func (s *DatabaseSeeder) insertScannerRunInstance(uuid string, tag string, startRun time.Time, endRun time.Time, isCompleted bool) (sql.Result, error) {
+	insertScannerRun := `
+		INSERT INTO ScannerRun (
+			scannerrun_uuid,
+			scannerrun_tag,
+			scannerrun_start_run,
+			scannerrun_end_run,
+			scannerrun_is_completed
+		) VALUES (
+			?,
+			?,
+			?,
+			?,
+			?
+		)
+	`
+	return s.db.Exec(insertScannerRun, uuid, tag, startRun, endRun, isCompleted)
+}
+
+func (s *DatabaseSeeder) insertScannerRunComponentInstanceTracker(scannerRunId int64, componentId int64) error {
 	insertScannerRunComponentInstanceTracker := `
 		INSERT INTO ScannerRunComponentInstanceTracker (
 			scannerruncomponentinstancetracker_scannerrun_run_id,
@@ -321,20 +418,17 @@ func (s *DatabaseSeeder) insertService(ccrn string) (int64, error) {
 	return res.LastInsertId()
 }
 
-func (s *DatabaseSeeder) getOrCreateComponent(ccrn string) (int64, error) {
+func (s *DatabaseSeeder) insertComponent(ccrn string) (int64, error) {
 	query := `
 		INSERT INTO Component (component_ccrn, component_type)
 		VALUES (?, 'floopy disk')
-		ON DUPLICATE KEY UPDATE component_id = LAST_INSERT_ID(component_id)
 	`
 
 	res, err := s.db.Exec(query, ccrn)
 	if err != nil {
 		return 0, err
 	}
-
-	id, err := res.LastInsertId()
-	return id, err
+	return res.LastInsertId()
 }
 
 func (s *DatabaseSeeder) insertComponentVersion(version string, componentId int64) (int64, error) {
@@ -346,10 +440,27 @@ func (s *DatabaseSeeder) insertComponentVersion(version string, componentId int6
 		) VALUES (
 			?,
 			?,
-			1
+			?
 		)
 	`
-	res, err := s.db.Exec(insertComponentVersion, version, componentId)
+	res, err := s.db.Exec(insertComponentVersion, version, componentId, util.SystemUserId)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+func (s *DatabaseSeeder) insertComponentVersionIssue(versionId int64, issueId int64) (int64, error) {
+	insertComponentVersionIssue := `
+		INSERT INTO ComponentVersionIssue (
+			componentversionissue_component_version_id,
+			componentversionissue_issue_id
+		) VALUES (
+			?,
+			?
+		)
+	`
+	res, err := s.db.Exec(insertComponentVersionIssue, versionId, issueId)
 	if err != nil {
 		return 0, err
 	}
@@ -369,14 +480,14 @@ func (s *DatabaseSeeder) insertComponentInstance(ccrn string, versionId int64, s
 			1,
 			?,
 			?,
-			1
+			?
 		)
 	`
 
-	return s.db.Exec(insertComponentInstance, ccrn, versionId, serviceId)
+	return s.db.Exec(insertComponentInstance, ccrn, versionId, serviceId, util.SystemUserId)
 }
 
-func (s *DatabaseSeeder) insertIssueMatchComponent(issueId int, componentInstanceId int) error {
+func (s *DatabaseSeeder) insertIssueMatchComponent(issueId int64, componentInstanceId int64) error {
 	insertIssueMatchComponent := `
 		INSERT INTO IssueMatch (
 			issuematch_status,
@@ -389,13 +500,13 @@ func (s *DatabaseSeeder) insertIssueMatchComponent(issueId int, componentInstanc
 			'new',
 			'CRITICAL',
 			current_timestamp(),
-			1,
+			?,
 			?,
 			?
 		)
 	`
 	var err error
-	_, err = s.db.Exec(insertIssueMatchComponent, issueId, componentInstanceId)
+	_, err = s.db.Exec(insertIssueMatchComponent, util.SystemUserId, issueId, componentInstanceId)
 	return err
 }
 
@@ -410,6 +521,8 @@ func (s *DatabaseSeeder) SeedScannerRunInstances(uuids ...string) error {
 
 func (s *DatabaseSeeder) CleanupScannerRuns() error {
 	cleanupQuery := `
+	DELETE FROM ComponentVersionIssue;
+	DELETE FROM Patch;
 	DELETE FROM ScannerRunComponentInstanceTracker;
 	DELETE FROM ScannerRun;
 	DELETE FROM IssueMatch;
@@ -515,6 +628,122 @@ func (s *DatabaseSeeder) FetchAllNamesOfDeletedIssueMatches() ([]string, error) 
 	}
 
 	return issueNames, nil
+}
+
+func (s *DatabaseSeeder) FetchAllNamesOfDeletedVersions() ([]string, error) {
+	query := `
+        SELECT
+            cv.componentversion_version
+        FROM ComponentVersion cv
+        WHERE cv.componentversion_deleted_at IS NOT NULL
+    `
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query versions: %w", err)
+	}
+	defer rows.Close()
+
+	var versions []string
+
+	for rows.Next() {
+		var in string
+		if err := rows.Scan(
+			&in,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan component version row: %w", err)
+		}
+		versions = append(versions, in)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	// Optional: return empty slice instead of nil
+	if versions == nil {
+		return []string{}, nil
+	}
+
+	return versions, nil
+}
+
+func (s *DatabaseSeeder) FetchAllNamesOfDeletedComponents() ([]string, error) {
+	query := `
+        SELECT
+            c.component_ccrn
+        FROM Component c
+        WHERE c.component_deleted_at IS NOT NULL
+    `
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query components: %w", err)
+	}
+	defer rows.Close()
+
+	var components []string
+
+	for rows.Next() {
+		var in string
+		if err := rows.Scan(
+			&in,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan component components row: %w", err)
+		}
+		components = append(components, in)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	// Optional: return empty slice instead of nil
+	if components == nil {
+		return []string{}, nil
+	}
+
+	return components, nil
+}
+
+func (s *DatabaseSeeder) FetchAllNamesOfComponentVersionIssues() ([]ComponentVersionIssue, error) {
+	query := `
+        SELECT
+			issue_primary_name,
+            componentversion_version
+        FROM ComponentVersionIssue cvi
+        INNER JOIN ComponentVersion cv ON cvi.componentversionissue_component_version_id = cv.componentversion_id
+        INNER JOIN Issue i ON cvi.componentversionissue_issue_id = i.issue_id
+    `
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query versions: %w", err)
+	}
+	defer rows.Close()
+
+	var result []ComponentVersionIssue
+
+	for rows.Next() {
+		var i, cv string
+		if err := rows.Scan(
+			&i, &cv,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan component version issue row: %w", err)
+		}
+		result = append(result, ComponentVersionIssue{Issue: i, ComponentVersion: cv})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	// Optional: return empty slice instead of nil
+	if result == nil {
+		return []ComponentVersionIssue{}, nil
+	}
+
+	return result, nil
 }
 
 func (s *DatabaseSeeder) GetCountOfPatches() (int64, error) {

@@ -78,19 +78,6 @@ func (r *issueMatchResolver) ComponentInstance(ctx context.Context, obj *model.I
 		})
 }
 
-func (r *issueMatchResolver) IssueMatchChanges(ctx context.Context, obj *model.IssueMatch, filter *model.IssueMatchChangeFilter, first *int, after *string) (*model.IssueMatchChangeConnection, error) {
-	return baseResolver.IssueMatchChangeBaseResolver(
-		r.App,
-		ctx,
-		filter,
-		first,
-		after,
-		&model.NodeParent{
-			Parent:     obj,
-			ParentName: model.IssueMatchNodeName,
-		})
-}
-
 func (r *Resolver) IssueMatch() graph.IssueMatchResolver { return &issueMatchResolver{r} }
 
 type issueMatchResolver struct{ *Resolver }

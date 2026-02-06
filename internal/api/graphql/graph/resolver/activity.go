@@ -50,19 +50,6 @@ func (r *activityResolver) Evidences(ctx context.Context, obj *model.Activity, f
 		})
 }
 
-func (r *activityResolver) IssueMatchChanges(ctx context.Context, obj *model.Activity, filter *model.IssueMatchChangeFilter, first *int, after *string) (*model.IssueMatchChangeConnection, error) {
-	return baseResolver.IssueMatchChangeBaseResolver(
-		r.App,
-		ctx,
-		filter,
-		first,
-		after,
-		&model.NodeParent{
-			Parent:     obj,
-			ParentName: model.ActivityNodeName,
-		})
-}
-
 func (r *Resolver) Activity() graph.ActivityResolver { return &activityResolver{r} }
 
 type activityResolver struct{ *Resolver }

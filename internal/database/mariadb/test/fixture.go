@@ -42,7 +42,6 @@ type SeedCollection struct {
 	ActivityHasIssueRows       []mariadb.ActivityHasIssueRow
 	ComponentVersionIssueRows  []mariadb.ComponentVersionIssueRow
 	IssueMatchEvidenceRows     []mariadb.IssueMatchEvidenceRow
-	IssueMatchChangeRows       []mariadb.IssueMatchChangeRow
 	IssueRepositoryServiceRows []mariadb.IssueRepositoryServiceRow
 	RemediationRows            []mariadb.RemediationRow
 	PatchRows                  []mariadb.PatchRow
@@ -348,7 +347,6 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 	issueMatches := s.SeedIssueMatches(n, issues, componentInstances, users)
 	issueMatchEvidences := s.SeedIssueMatchEvidence(n, issueMatches, evidences)
 	issueRepositoryServices := s.SeedIssueRepositoryServices(n, services, repos)
-	issueMatchChanges := s.SeedIssueMatchChanges(n, issueMatches, activities)
 	remediations := s.SeedRemediations(n, services, components, issues)
 	patches := s.SeedPatches(n, services, componentVersions)
 
@@ -373,7 +371,6 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 		ComponentVersionIssueRows:  componentVersionIssues,
 		IssueMatchEvidenceRows:     issueMatchEvidences,
 		IssueRepositoryServiceRows: issueRepositoryServices,
-		IssueMatchChangeRows:       issueMatchChanges,
 		RemediationRows:            remediations,
 		PatchRows:                  patches,
 	}
@@ -400,7 +397,6 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 	issueMatches := s.SeedIssueMatches(n, issues, componentInstances, users)
 	issueMatchEvidences := s.SeedIssueMatchEvidence(n/2, issueMatches, evidences)
 	issueRepositoryServices := s.SeedIssueRepositoryServices(n/2, services, repos)
-	issueMatchChanges := s.SeedIssueMatchChanges(n, issueMatches, activities)
 	remediations := s.SeedRemediations(n, services, components, issues)
 	patches := s.SeedPatches(n, services, componentVersions)
 
@@ -425,7 +421,6 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 		ComponentVersionIssueRows:  componentVersionIssues,
 		IssueMatchEvidenceRows:     issueMatchEvidences,
 		IssueRepositoryServiceRows: issueRepositoryServices,
-		IssueMatchChangeRows:       issueMatchChanges,
 		RemediationRows:            remediations,
 		PatchRows:                  patches,
 	}
@@ -550,7 +545,6 @@ func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
 		ComponentVersionIssueRows:  cvIssueRows,
 		IssueMatchEvidenceRows:     nil,
 		IssueRepositoryServiceRows: nil,
-		IssueMatchChangeRows:       nil,
 		RemediationRows:            nil,
 		PatchRows:                  nil,
 	}, nil
@@ -953,27 +947,6 @@ func (s *DatabaseSeeder) SeedIssueRepositoryServices(num int, services []mariadb
 			logrus.WithField("seed_type", "IssueRepositoryServices").Debug(err)
 		} else {
 			rows = append(rows, irs)
-		}
-	}
-	return rows
-}
-
-func (s *DatabaseSeeder) SeedIssueMatchChanges(num int, issueMatches []mariadb.IssueMatchRow, activities []mariadb.ActivityRow) []mariadb.IssueMatchChangeRow {
-	var rows []mariadb.IssueMatchChangeRow
-	for i := 0; i < num; i++ {
-		imc := NewFakeIssueMatchChange()
-		randomIMIndex := rand.Intn(len(issueMatches))
-		issueMatch := issueMatches[randomIMIndex]
-		imc.IssueMatchId = issueMatch.Id
-		randomAIndex := rand.Intn(len(activities))
-		activity := activities[randomAIndex]
-		imc.ActivityId = activity.Id
-		id, err := s.InsertFakeIssueMatchChange(imc)
-		imc.Id = sql.NullInt64{Int64: id, Valid: true}
-		if err != nil {
-			logrus.WithField("seed_type", "IssueMatchChanges").Debug(err)
-		} else {
-			rows = append(rows, imc)
 		}
 	}
 	return rows
@@ -1400,24 +1373,6 @@ func (s *DatabaseSeeder) InsertFakeIssueRepositoryService(sgs mariadb.IssueRepos
 	return s.ExecPreparedNamed(query, sgs)
 }
 
-func (s *DatabaseSeeder) InsertFakeIssueMatchChange(vmc mariadb.IssueMatchChangeRow) (int64, error) {
-	query := `
-		INSERT INTO IssueMatchChange (
-			issuematchchange_activity_id,
-			issuematchchange_issue_match_id,
-			issuematchchange_action,
-			issuematchchange_created_by,
-			issuematchchange_updated_by
-		) VALUES (
-			:issuematchchange_activity_id,
-			:issuematchchange_issue_match_id,
-			:issuematchchange_action,
-			:issuematchchange_created_by,
-			:issuematchchange_updated_by
-		)`
-	return s.ExecPreparedNamed(query, vmc)
-}
-
 func (s *DatabaseSeeder) InsertFakeRemediation(r mariadb.RemediationRow) (int64, error) {
 	query := `
 		INSERT INTO Remediation (
@@ -1740,17 +1695,6 @@ func NewFakeComponentVersionIssue() mariadb.ComponentVersionIssueRow {
 
 func NewFakeIssueRepositoryService() mariadb.IssueRepositoryServiceRow {
 	return mariadb.IssueRepositoryServiceRow{}
-}
-
-func NewFakeIssueMatchChange() mariadb.IssueMatchChangeRow {
-	return mariadb.IssueMatchChangeRow{
-		Action: sql.NullString{
-			String: gofakeit.RandomString(entity.AllIssueMatchChangeActions),
-			Valid:  true,
-		},
-		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-		UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-	}
 }
 
 func NewFakeRemediation() mariadb.RemediationRow {

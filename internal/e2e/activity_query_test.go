@@ -163,12 +163,6 @@ var _ = Describe("Getting Activities via API", Label("e2e", "Activity"), func() 
 						for _, e := range activity.Node.Evidences.Edges {
 							Expect(e.Node.ID).ToNot(BeEmpty())
 						}
-						for _, imc := range activity.Node.IssueMatchChanges.Edges {
-							Expect(imc.Node.ID).ToNot(BeNil(), "issueMatchChange has a ID set")
-							Expect(imc.Node.Action).ToNot(BeNil(), "issueMatchChange has an action set")
-							Expect(imc.Node.ActivityID).ToNot(BeNil(), "issueMatchChange has an activityId set")
-							Expect(imc.Node.IssueMatchID).ToNot(BeNil(), "issueMatchChange has a issueMatchId set")
-						}
 					}
 				})
 				It("- returns the expected PageInfo", func() {

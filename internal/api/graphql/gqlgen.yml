@@ -108,14 +108,6 @@ models:
         resolver: true
       effectiveIssueVariants:
         resolver: true
-      issueMatchChanges:
-        resolver: true
-  IssueMatchChange:
-    fields:
-      issueMatch:
-        resolver: true
-      activity:
-        resolver: true
   Component:
     fields:
       componentVersions:
@@ -173,8 +165,6 @@ models:
       issues:
         resolver: true
       evidences:
-        resolver: true
-      issueMatchChanges:
         resolver: true
   Evidence:
     fields:

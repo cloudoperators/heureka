@@ -709,46 +709,6 @@ func (r *mutationResolver) RemoveEvidenceFromIssueMatch(ctx context.Context, iss
 	return &im, nil
 }
 
-// CreateIssueMatchChange is the resolver for the createIssueMatchChange field.
-func (r *mutationResolver) CreateIssueMatchChange(ctx context.Context, input model.IssueMatchChangeInput) (*model.IssueMatchChange, error) {
-	issueMatchChange := model.NewIssueMatchChangeEntity(&input)
-	newIssueMatchChange, err := r.App.CreateIssueMatchChange(ctx, &issueMatchChange)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("CreateIssueMatchChangeMutationResolver", "Internal Error - when creating issueMatchChange")
-	}
-	imc := model.NewIssueMatchChange(newIssueMatchChange)
-	return &imc, nil
-}
-
-// UpdateIssueMatchChange is the resolver for the updateIssueMatchChange field.
-func (r *mutationResolver) UpdateIssueMatchChange(ctx context.Context, id string, input model.IssueMatchChangeInput) (*model.IssueMatchChange, error) {
-	idInt, err := baseResolver.ParseCursor(&id)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("UpdateIssueMatchChangeMutationResolver", "Internal Error - when updating issueMatchChange")
-	}
-	issueMatchChange := model.NewIssueMatchChangeEntity(&input)
-	issueMatchChange.Id = *idInt
-	updatedIssueMatchChange, err := r.App.UpdateIssueMatchChange(ctx, &issueMatchChange)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("UpdateIssueMatchChangeMutationResolver", "Internal Error - when updating issueMatchChange")
-	}
-	imc := model.NewIssueMatchChange(updatedIssueMatchChange)
-	return &imc, nil
-}
-
-// DeleteIssueMatchChange is the resolver for the deleteIssueMatchChange field.
-func (r *mutationResolver) DeleteIssueMatchChange(ctx context.Context, id string) (string, error) {
-	idInt, err := baseResolver.ParseCursor(&id)
-	if err != nil {
-		return "", baseResolver.NewResolverError("DeleteIssueMatchChangeMutationResolver", "Internal Error - when deleting issueMatchChange")
-	}
-	err = r.App.DeleteIssueMatchChange(ctx, *idInt)
-	if err != nil {
-		return "", baseResolver.NewResolverError("DeleteIssueMatchChangeMutationResolver", "Internal Error - when deleting issueMatchChange")
-	}
-	return id, nil
-}
-
 // CreateActivity is the resolver for the createActivity field.
 func (r *mutationResolver) CreateActivity(ctx context.Context, input model.ActivityInput) (*model.Activity, error) {
 	activity := model.NewActivityEntity(&input)

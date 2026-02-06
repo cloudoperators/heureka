@@ -45,12 +45,6 @@ type Database interface {
 	UpdateIssueMatch(*entity.IssueMatch) error
 	DeleteIssueMatch(int64, int64) error
 
-	GetIssueMatchChanges(*entity.IssueMatchChangeFilter) ([]entity.IssueMatchChange, error)
-	GetAllIssueMatchChangeIds(*entity.IssueMatchChangeFilter) ([]int64, error)
-	CountIssueMatchChanges(filter *entity.IssueMatchChangeFilter) (int64, error)
-	CreateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
-	UpdateIssueMatchChange(*entity.IssueMatchChange) error
-	DeleteIssueMatchChange(int64, int64) error
 	AddEvidenceToIssueMatch(int64, int64) error
 	RemoveEvidenceFromIssueMatch(int64, int64) error
 
