@@ -653,7 +653,8 @@ func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueReposito
 
 	_, err := performExec(s, query, args, l)
 	if err != nil {
-		if strings.Contains(err.Error(), "Error 1062") || strings.Contains(err.Error(), "Duplicate entry") {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
 			return nil
 		}
 		return err
