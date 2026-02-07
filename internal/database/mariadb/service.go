@@ -4,12 +4,11 @@
 package mariadb
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/go-sql-driver/mysql"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -594,9 +593,8 @@ func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {
 
 	_, err := performExec(s, query, args, l)
 	if err != nil {
-		var mysqlErr *mysql.MySQLError
-		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-			return nil
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("User %d already an owner of Service %d", userId, serviceId))
 		}
 		return err
 	}
@@ -653,9 +651,8 @@ func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueReposito
 
 	_, err := performExec(s, query, args, l)
 	if err != nil {
-		var mysqlErr *mysql.MySQLError
-		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-			return nil
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("IssueRepository %d already associated with Service %d", issueRepositoryId, serviceId))
 		}
 		return err
 	}
