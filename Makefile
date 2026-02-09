@@ -124,6 +124,16 @@ install-migrate:
 create-migration:
 	@(test -v MIGRATION_NAME && migrate create -ext sql -dir internal/database/mariadb/migrations ${MIGRATION_NAME}) || echo MIGRATION_NAME not specified >&2
 
+MARIADB_ROOT_CMD = mariadb -h 127.0.0.1 -P 3306 -u root -p'my_password'
+
+migration-test:
+	$(MARIADB_ROOT_CMD) -e "DROP SCHEMA IF EXISTS heurekaTestSchema;"
+	$(MARIADB_ROOT_CMD) -e "CREATE SCHEMA heurekaTestSchema;"
+	migrate -path internal/database/mariadb/migrations \
+	  -database "mysql://root:my_password@tcp(127.0.0.1:3306)/heurekaTestSchema" up
+	migrate -path internal/database/mariadb/migrations \
+	  -database "mysql://root:my_password@tcp(127.0.0.1:3306)/heurekaTestSchema" down -all
+
 check-call-cached:
 	go generate ./internal/cache
 
