@@ -3,7 +3,8 @@ on: [pull_request]
 
 jobs:
   tests:
-    runs-on: [ ubuntu-latest ]
+    runs-on: ubuntu-latest
+
     env:
       DB_USER: my_username
       DB_PASSWORD: my_password
@@ -17,6 +18,7 @@ jobs:
       AUTHZ_FGA_API_TOKEN: test_token
       AUTHZ_FGA_STORE_NAME: heureka_store
       AUTHZ_MODEL_FILE_PATH: ./../internal/openfga/model/model.fga
+
     services:
       mariadb:
         image: mariadb:latest
@@ -28,27 +30,71 @@ jobs:
           MARIADB_DATABASE: heureka
           MARIADB_ROOT_PASSWORD: my_password
         options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=3
+
       valkey:
         image: valkey/valkey:7.2
         ports:
           - "6379:6379"
+
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect migration changes
+        id: migration_check
+        run: |
+          if make BASE_REF=${{ github.base_ref }} migration-change-detected; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install MariaDB client
+        if: steps.migration_check.outputs.changed == 'true'
+        run: sudo apt-get update && sudo apt-get install -y mariadb-client
+
+      - name: Install migrate
+        if: steps.migration_check.outputs.changed == 'true'
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz \
+            | tar xvz
+          sudo mv migrate /usr/local/bin/
+
+      - name: Wait for DB ready
+        if: steps.migration_check.outputs.changed == 'true'
+        run: |
+          for i in {1..30}; do
+            mariadb -h 127.0.0.1 -P 3306 -u my_username -pmy_password -e "SELECT 1" && break
+            sleep 2
+          done
+
+      - name: Run migrations
+        if: steps.migration_check.outputs.changed == 'true'
+        run: make migration-test
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v2
+
       - name: Install Ginkgo
         run: go install github.com/onsi/ginkgo/v2/ginkgo
+
       - name: Install Mockery
         run: go install github.com/vektra/mockery/v2@v2.53.5
+
       - name: Generate Mockery code
         run: make mockery
+
       - name: Generate Gqlgen code
         run: make gqlgen
+
       - name: Start OpenFGA server
         run: docker compose -f docker-compose.yaml --profile openfga up -d
+
       - name: Run Tests
         run: ginkgo --trace -r -randomize-all -randomize-suites
