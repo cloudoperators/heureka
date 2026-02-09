@@ -59,7 +59,6 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		"parent":          parent,
 	}).Debug("Called ServiceBaseResolver")
 
-	var activityId []*int64
 	var irId []*int64
 	var sgId []*int64
 	var ownerId []*int64
@@ -73,8 +72,6 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		}
 
 		switch parent.ParentName {
-		case model.ActivityNodeName:
-			activityId = []*int64{pid}
 		case model.IssueRepositoryNodeName:
 			irId = []*int64{pid}
 		case model.SupportGroupNodeName:
@@ -98,7 +95,6 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		Region:            filter.Region,
 		OwnerName:         filter.UserName,
 		OwnerId:           ownerId,
-		ActivityId:        activityId,
 		IssueRepositoryId: irId,
 		SupportGroupId:    sgId,
 		IssueId:           issueId,

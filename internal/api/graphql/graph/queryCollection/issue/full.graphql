@@ -144,7 +144,6 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                 }
                 metadata {
                     serviceCount
-                    activityCount
                     issueMatchCount
                     componentInstanceCount
                     earliestDiscoveryDate

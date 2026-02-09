@@ -145,7 +145,6 @@ var _ = Describe("When creating Evidence", Label("app", "CreateEvidence"), func(
 		By("setting fields", func() {
 			Expect(newEvidence.Description).To(BeEquivalentTo(evidence.Description))
 			Expect(newEvidence.UserId).To(BeEquivalentTo(evidence.UserId))
-			Expect(newEvidence.ActivityId).To(BeEquivalentTo(evidence.ActivityId))
 			Expect(newEvidence.Type).To(BeEquivalentTo(evidence.Type))
 			Expect(newEvidence.Severity.Cvss.Vector).To(BeEquivalentTo(evidence.Severity.Cvss.Vector))
 			Expect(newEvidence.RaaEnd.Unix()).To(BeEquivalentTo(evidence.RaaEnd.Unix()))
@@ -193,7 +192,6 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 		By("setting fields", func() {
 			Expect(updatedEvidence.Description).To(BeEquivalentTo(evidence.Description))
 			Expect(updatedEvidence.UserId).To(BeEquivalentTo(evidence.UserId))
-			Expect(updatedEvidence.ActivityId).To(BeEquivalentTo(evidence.ActivityId))
 			Expect(updatedEvidence.Type).To(BeEquivalentTo(evidence.Type))
 			Expect(updatedEvidence.Severity.Cvss.Vector).To(BeEquivalentTo(evidence.Severity.Cvss.Vector))
 			Expect(updatedEvidence.RaaEnd.Unix()).To(BeEquivalentTo(evidence.RaaEnd.Unix()))

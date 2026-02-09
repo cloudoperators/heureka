@@ -18,7 +18,6 @@ func NewFakeServiceEntity() entity.Service {
 			Domain:       strings.ToLower(gofakeit.SongName()),
 			Region:       gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"}),
 			SupportGroup: nil,
-			Activities:   nil,
 			Owners:       nil,
 			Metadata: entity.Metadata{
 				CreatedAt: gofakeit.Date(),

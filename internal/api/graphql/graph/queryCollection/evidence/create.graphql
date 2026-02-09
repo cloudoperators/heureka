@@ -11,6 +11,5 @@ mutation ($input: EvidenceInput!) {
         type
         vector
         authorId
-        activityId
     }
 }

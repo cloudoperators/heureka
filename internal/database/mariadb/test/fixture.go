@@ -28,7 +28,6 @@ type SeedCollection struct {
 	UserRows                   []mariadb.UserRow
 	IssueRows                  []mariadb.IssueRow
 	IssueMatchRows             []mariadb.IssueMatchRow
-	ActivityRows               []mariadb.ActivityRow
 	EvidenceRows               []mariadb.EvidenceRow
 	ComponentInstanceRows      []mariadb.ComponentInstanceRow
 	ComponentVersionRows       []mariadb.ComponentVersionRow
@@ -38,8 +37,6 @@ type SeedCollection struct {
 	SupportGroupRows           []mariadb.SupportGroupRow
 	SupportGroupServiceRows    []mariadb.SupportGroupServiceRow
 	OwnerRows                  []mariadb.OwnerRow
-	ActivityHasServiceRows     []mariadb.ActivityHasServiceRow
-	ActivityHasIssueRows       []mariadb.ActivityHasIssueRow
 	ComponentVersionIssueRows  []mariadb.ComponentVersionIssueRow
 	IssueMatchEvidenceRows     []mariadb.IssueMatchEvidenceRow
 	IssueRepositoryServiceRows []mariadb.IssueRepositoryServiceRow
@@ -339,10 +336,7 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 	owners := s.SeedOwners(n, services, users)
 	supportGroupServices := s.SeedRealSupportGroupService(servicesMap, supportGroupsMap)
 	supportGroupUsers := s.SeedSupportGroupUsers(n, users, supportGroups)
-	activities := s.SeedActivities(n)
-	activityHasServices := s.SeedActivityHasServices(n, activities, services)
-	activityHasIssues := s.SeedActivityHasIssues(n, activities, issues)
-	evidences := s.SeedEvidences(n, activities, users)
+	evidences := s.SeedEvidences(n, users)
 	componentVersionIssues := s.SeedComponentVersionIssues(n, componentVersions, issues)
 	issueMatches := s.SeedIssueMatches(n, issues, componentInstances, users)
 	issueMatchEvidences := s.SeedIssueMatchEvidence(n, issueMatches, evidences)
@@ -356,7 +350,6 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 		UserRows:                   users,
 		IssueRows:                  issues,
 		IssueMatchRows:             issueMatches,
-		ActivityRows:               activities,
 		EvidenceRows:               evidences,
 		ComponentInstanceRows:      componentInstances,
 		ComponentVersionRows:       componentVersions,
@@ -366,8 +359,6 @@ func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 		SupportGroupRows:           supportGroups,
 		SupportGroupServiceRows:    supportGroupServices,
 		OwnerRows:                  owners,
-		ActivityHasServiceRows:     activityHasServices,
-		ActivityHasIssueRows:       activityHasIssues,
 		ComponentVersionIssueRows:  componentVersionIssues,
 		IssueMatchEvidenceRows:     issueMatchEvidences,
 		IssueRepositoryServiceRows: issueRepositoryServices,
@@ -389,10 +380,7 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 	owners := s.SeedOwners(n, services, users)
 	supportGroupServices := s.SeedSupportGroupServices(n/2, services, supportGroups)
 	supportGroupUsers := s.SeedSupportGroupUsers(n/2, users, supportGroups)
-	activities := s.SeedActivities(n)
-	activityHasServices := s.SeedActivityHasServices(n/2, activities, services)
-	activityHasIssues := s.SeedActivityHasIssues(n/2, activities, issues)
-	evidences := s.SeedEvidences(n, activities, users)
+	evidences := s.SeedEvidences(n, users)
 	componentVersionIssues := s.SeedComponentVersionIssues(n/2, componentVersions, issues)
 	issueMatches := s.SeedIssueMatches(n, issues, componentInstances, users)
 	issueMatchEvidences := s.SeedIssueMatchEvidence(n/2, issueMatches, evidences)
@@ -406,7 +394,6 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 		UserRows:                   users,
 		IssueRows:                  issues,
 		IssueMatchRows:             issueMatches,
-		ActivityRows:               activities,
 		EvidenceRows:               evidences,
 		ComponentInstanceRows:      componentInstances,
 		ComponentVersionRows:       componentVersions,
@@ -416,8 +403,6 @@ func (s *DatabaseSeeder) SeedDbWithNFakeData(n int) *SeedCollection {
 		SupportGroupRows:           supportGroups,
 		SupportGroupServiceRows:    supportGroupServices,
 		OwnerRows:                  owners,
-		ActivityHasServiceRows:     activityHasServices,
-		ActivityHasIssueRows:       activityHasIssues,
 		ComponentVersionIssueRows:  componentVersionIssues,
 		IssueMatchEvidenceRows:     issueMatchEvidences,
 		IssueRepositoryServiceRows: issueRepositoryServices,
@@ -447,7 +432,6 @@ func (s *DatabaseSeeder) SeedDbForNestedIssueVariantTest() *SeedCollection {
 		UserRows:                   users,
 		IssueRows:                  issues,
 		IssueMatchRows:             issueMatches,
-		ActivityRows:               nil,
 		EvidenceRows:               nil,
 		ComponentInstanceRows:      componentInstances,
 		ComponentVersionRows:       componentVersions,
@@ -457,8 +441,6 @@ func (s *DatabaseSeeder) SeedDbForNestedIssueVariantTest() *SeedCollection {
 		SupportGroupRows:           nil,
 		SupportGroupServiceRows:    nil,
 		OwnerRows:                  nil,
-		ActivityHasServiceRows:     nil,
-		ActivityHasIssueRows:       nil,
 		ComponentVersionIssueRows:  nil,
 		IssueMatchEvidenceRows:     nil,
 		IssueRepositoryServiceRows: issueRepositoryServices,
@@ -530,7 +512,6 @@ func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
 		UserRows:                   nil,
 		IssueRows:                  issues,
 		IssueMatchRows:             issueMatches,
-		ActivityRows:               nil,
 		EvidenceRows:               nil,
 		ComponentInstanceRows:      componentInstances,
 		ComponentVersionRows:       componentVersions,
@@ -540,8 +521,6 @@ func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
 		SupportGroupRows:           supportGroups,
 		SupportGroupServiceRows:    supportGroupServices,
 		OwnerRows:                  nil,
-		ActivityHasServiceRows:     nil,
-		ActivityHasIssueRows:       nil,
 		ComponentVersionIssueRows:  cvIssueRows,
 		IssueMatchEvidenceRows:     nil,
 		IssueRepositoryServiceRows: nil,
@@ -815,41 +794,6 @@ func (s *DatabaseSeeder) SeedOwners(num int, services []mariadb.BaseServiceRow, 
 	return owners
 }
 
-func (s *DatabaseSeeder) SeedActivities(num int) []mariadb.ActivityRow {
-	var activities []mariadb.ActivityRow
-	for i := 0; i < num; i++ {
-		activity := NewFakeActivity()
-		activityId, err := s.InsertFakeActivity(activity)
-		if err != nil {
-			logrus.WithField("seed_type", "Activities").Debug(err)
-		} else {
-			activity.Id = sql.NullInt64{Int64: activityId, Valid: true}
-			activities = append(activities, activity)
-		}
-	}
-	return activities
-}
-
-func (s *DatabaseSeeder) SeedActivityHasServices(num int, activities []mariadb.ActivityRow, services []mariadb.BaseServiceRow) []mariadb.ActivityHasServiceRow {
-	var ahsList []mariadb.ActivityHasServiceRow
-	for i := 0; i < num; i++ {
-		ahs := NewFakeActivityHasService()
-		randomSIndex := rand.Intn(len(services))
-		service := services[randomSIndex]
-		ahs.ServiceId = service.Id
-		randomAIndex := rand.Intn(len(activities))
-		activity := activities[randomAIndex]
-		ahs.ActivityId = activity.Id
-		_, err := s.InsertFakeActivityHasService(ahs)
-		if err != nil {
-			logrus.WithField("seed_type", "ActivityHasServices").Debug(err)
-		} else {
-			ahsList = append(ahsList, ahs)
-		}
-	}
-	return ahsList
-}
-
 func (s *DatabaseSeeder) SeedIssueMatchEvidence(num int, im []mariadb.IssueMatchRow, e []mariadb.EvidenceRow) []mariadb.IssueMatchEvidenceRow {
 	var imeList []mariadb.IssueMatchEvidenceRow
 	for i := 0; i < num; i++ {
@@ -871,32 +815,10 @@ func (s *DatabaseSeeder) SeedIssueMatchEvidence(num int, im []mariadb.IssueMatch
 	return imeList
 }
 
-func (s *DatabaseSeeder) SeedActivityHasIssues(num int, activities []mariadb.ActivityRow, issues []mariadb.IssueRow) []mariadb.ActivityHasIssueRow {
-	ahiList := make([]mariadb.ActivityHasIssueRow, num)
-	for i := 0; i < num; i++ {
-		ahi := NewFakeActivityHasIssue()
-		randomIIndex := rand.Intn(len(issues))
-		issue := issues[randomIIndex]
-		ahi.IssueId = issue.Id
-		randomAIndex := rand.Intn(len(activities))
-		activity := activities[randomAIndex]
-		ahi.ActivityId = activity.Id
-		_, err := s.InsertFakeActivityHasIssue(ahi)
-		if err != nil {
-			logrus.WithField("seed_type", "ActivityHasIssues").Debug(err)
-		}
-		ahiList[i] = ahi
-	}
-	return ahiList
-}
-
-func (s *DatabaseSeeder) SeedEvidences(num int, activities []mariadb.ActivityRow, users []mariadb.UserRow) []mariadb.EvidenceRow {
+func (s *DatabaseSeeder) SeedEvidences(num int, users []mariadb.UserRow) []mariadb.EvidenceRow {
 	var evidences []mariadb.EvidenceRow
 	for i := 0; i < num; i++ {
 		evidence := NewFakeEvidence()
-		randomAIndex := rand.Intn(len(activities))
-		activity := activities[randomAIndex]
-		evidence.ActivityId = activity.Id
 		randomUIndex := rand.Intn(len(users))
 		user := users[randomUIndex]
 		evidence.UserId = user.Id
@@ -1283,44 +1205,6 @@ func (s *DatabaseSeeder) InsertFakeSupportGroupService(sgs mariadb.SupportGroupS
 	return s.ExecPreparedNamed(query, sgs)
 }
 
-func (s *DatabaseSeeder) InsertFakeActivity(activity mariadb.ActivityRow) (int64, error) {
-	query := `
-		INSERT INTO Activity (
-			activity_status,
-			activity_created_by,
-			activity_updated_by
-		) VALUES (
-			:activity_status,
-			:activity_created_by,
-			:activity_updated_by
-		)`
-	return s.ExecPreparedNamed(query, activity)
-}
-
-func (s *DatabaseSeeder) InsertFakeActivityHasService(ahs mariadb.ActivityHasServiceRow) (int64, error) {
-	query := `
-		INSERT INTO ActivityHasService (
-			activityhasservice_activity_id,
-			activityhasservice_service_id
-		) VALUES (
-			:activityhasservice_activity_id,
-			:activityhasservice_service_id
-		)`
-	return s.ExecPreparedNamed(query, ahs)
-}
-
-func (s *DatabaseSeeder) InsertFakeActivityHasIssue(ahi mariadb.ActivityHasIssueRow) (int64, error) {
-	query := `
-		INSERT INTO ActivityHasIssue (
-			activityhasissue_activity_id,
-			activityhasissue_issue_id
-		) VALUES (
-			:activityhasissue_activity_id,
-			:activityhasissue_issue_id
-		)`
-	return s.ExecPreparedNamed(query, ahi)
-}
-
 func (s *DatabaseSeeder) InsertFakeEvidence(evidence mariadb.EvidenceRow) (int64, error) {
 	query := `
 		INSERT INTO Evidence (
@@ -1330,7 +1214,6 @@ func (s *DatabaseSeeder) InsertFakeEvidence(evidence mariadb.EvidenceRow) (int64
 			evidence_rating,
 			evidence_raa_end,
 			evidence_author_id,
-			evidence_activity_id,
 			evidence_created_by,
 			evidence_updated_by
 		) VALUES (
@@ -1340,7 +1223,6 @@ func (s *DatabaseSeeder) InsertFakeEvidence(evidence mariadb.EvidenceRow) (int64
 			:evidence_rating,
 			:evidence_raa_end,
 			:evidence_author_id,
-			:evidence_activity_id,
 			:evidence_created_by,
 			:evidence_updated_by
 		)`
@@ -1649,25 +1531,8 @@ func NewFakeSupportGroupUser() mariadb.SupportGroupUserRow {
 	return mariadb.SupportGroupUserRow{}
 }
 
-func NewFakeActivity() mariadb.ActivityRow {
-	status := []string{"open", "closed", "in_progress"}
-	return mariadb.ActivityRow{
-		Status:    sql.NullString{String: gofakeit.RandomString(status), Valid: true},
-		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-		UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-	}
-}
-
-func NewFakeActivityHasService() mariadb.ActivityHasServiceRow {
-	return mariadb.ActivityHasServiceRow{}
-}
-
 func NewFakeIssueMatchEvidence() mariadb.IssueMatchEvidenceRow {
 	return mariadb.IssueMatchEvidenceRow{}
-}
-
-func NewFakeActivityHasIssue() mariadb.ActivityHasIssueRow {
-	return mariadb.ActivityHasIssueRow{}
 }
 
 func NewFakeEvidence() mariadb.EvidenceRow {

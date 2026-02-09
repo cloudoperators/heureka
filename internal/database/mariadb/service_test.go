@@ -343,32 +343,6 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						}
 					})
 				})
-				It("can filter by a single activity id", func() {
-					// select a activity
-					activityRow := seedCollection.ActivityRows[rand.Intn(len(seedCollection.ActivityRows))]
-
-					// collect all service ids that belong to the activity
-					serviceIds := []int64{}
-					for _, ahsRow := range seedCollection.ActivityHasServiceRows {
-						if ahsRow.ActivityId.Int64 == activityRow.Id.Int64 {
-							serviceIds = append(serviceIds, ahsRow.ServiceId.Int64)
-						}
-					}
-
-					filter := &entity.ServiceFilter{ActivityId: []*int64{&activityRow.Id.Int64}}
-
-					entries, err := db.GetServices(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning the correct entries", func() {
-						for _, entry := range entries {
-							Expect(serviceIds).To(ContainElement(entry.Id), "Returns correct entry")
-						}
-					})
-				})
 				It("can filter by a single issue repository id", func() {
 					// select a issue repository
 					irRow := seedCollection.IssueRepositoryRows[rand.Intn(len(seedCollection.IssueRepositoryRows))]

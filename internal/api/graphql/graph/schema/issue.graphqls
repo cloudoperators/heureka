@@ -10,7 +10,6 @@ type Issue implements Node {
     description: String
     lastModified: DateTime
     issueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
-    activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
     componentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     objectMetadata: IssueMetadata
@@ -19,7 +18,6 @@ type Issue implements Node {
 
 type IssueMetadata {
     serviceCount: Int!
-    activityCount: Int!
     issueMatchCount: Int!
     componentInstanceCount: Int!
     componentVersionCount: Int!
