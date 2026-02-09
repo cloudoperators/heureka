@@ -7,6 +7,9 @@ package resolver
 
 import (
 	"context"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
@@ -742,6 +745,218 @@ func (r *mutationResolver) DeleteRemediation(ctx context.Context, id string) (st
 		return "", baseResolver.NewResolverError("DeleteRemediationMutationResolver", "Internal Error - when deleting remediation")
 	}
 	return id, nil
+}
+
+func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEMAlertInput) (*model.SIEMAlert, error) {
+	var svc *entity.Service
+	if input.Service != nil && *input.Service != "" {
+		svcFilter := entity.ServiceFilter{CCRN: []*string{input.Service}}
+		s, err := r.App.ListServices(&svcFilter, entity.NewListOptions())
+		if err != nil {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when listing services")
+		}
+		if len(s.Elements) > 0 {
+			svc = s.Elements[0].Service
+		} else {
+			svcInput := model.ServiceInput{Ccrn: input.Service}
+			svcEntity := model.NewServiceEntity(&svcInput)
+			newSvc, err := r.App.CreateService(ctx, &svcEntity)
+			if err != nil {
+				s2, err2 := r.App.ListServices(&svcFilter, entity.NewListOptions())
+				if err2 != nil || len(s2.Elements) == 0 {
+					return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating service")
+				}
+				svc = s2.Elements[0].Service
+			} else {
+				svc = newSvc
+			}
+		}
+	}
+
+	if input.SupportGroup != nil && *input.SupportGroup != "" {
+		sgFilter := entity.SupportGroupFilter{CCRN: []*string{input.SupportGroup}}
+		sgList, err := r.App.ListSupportGroups(&sgFilter, entity.NewListOptions())
+		if err != nil {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when listing support groups")
+		}
+		if len(sgList.Elements) == 0 {
+			sgEntity := model.NewSupportGroupEntity(&model.SupportGroupInput{Ccrn: input.SupportGroup})
+			_, err := r.App.CreateSupportGroup(ctx, &sgEntity)
+			if err != nil {
+				sg2, err2 := r.App.ListSupportGroups(&sgFilter, entity.NewListOptions())
+				if err2 != nil || len(sg2.Elements) == 0 {
+					return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating support group")
+				}
+			}
+		}
+	}
+
+	var parts []string
+	if input.Service != nil && *input.Service != "" {
+		parts = append(parts, *input.Service)
+	}
+	if input.Region != nil && *input.Region != "" {
+		parts = append(parts, *input.Region)
+	}
+	if input.Cluster != nil && *input.Cluster != "" {
+		parts = append(parts, *input.Cluster)
+	}
+	if input.Namespace != nil && *input.Namespace != "" {
+		parts = append(parts, *input.Namespace)
+	}
+	if input.Pod != nil && *input.Pod != "" {
+		parts = append(parts, *input.Pod)
+	}
+	if input.Container != nil && *input.Container != "" {
+		parts = append(parts, *input.Container)
+	}
+	ccrn := strings.Join(parts, "/")
+
+	var ci *entity.ComponentInstance
+	if ccrn != "" && svc != nil {
+		ciInput := model.ComponentInstanceInput{
+			Ccrn:      &ccrn,
+			ServiceID: func() *string { v := fmt.Sprintf("%d", svc.Id); return &v }(),
+			Region:    input.Region,
+			Cluster:   input.Cluster,
+			Namespace: input.Namespace,
+			Pod:       input.Pod,
+			Container: input.Container,
+		}
+		ciEntity := model.NewComponentInstanceEntity(&ciInput)
+		newCi, err := r.App.CreateComponentInstance(ctx, &ciEntity, nil)
+		if err != nil {
+			filter := entity.ComponentInstanceFilter{CCRN: []*string{&ccrn}}
+			cis, err2 := r.App.ListComponentInstances(&filter, &entity.ListOptions{})
+			if err2 != nil || len(cis.Elements) == 0 {
+				return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating componentInstance")
+			}
+			ci = cis.Elements[0].ComponentInstance
+		} else {
+			ci = newCi
+		}
+	}
+
+	var issue *entity.Issue
+	var issueVariant *entity.IssueVariant
+
+	if input.URL != nil && *input.URL != "" {
+		if input.Name != nil && *input.Name != "" {
+			ivs, err := r.App.ListIssueVariants(&entity.IssueVariantFilter{SecondaryName: []*string{input.Name}}, &entity.ListOptions{})
+			if err == nil {
+				for _, v := range ivs.Elements {
+					if v.IssueVariant.ExternalUrl == *input.URL {
+						issueVariant = v.IssueVariant
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if issueVariant == nil {
+		if input.Name == nil || *input.Name == "" {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Invalid Input - name or url required")
+		}
+		newIssue, err := r.App.CreateIssue(ctx, &entity.Issue{PrimaryName: *input.Name, Description: func() string {
+			if input.Description != nil {
+				return *input.Description
+			}
+			return ""
+		}(), Type: entity.IssueTypeSecurityEvent})
+		if err != nil {
+			f := &entity.IssueFilter{PrimaryName: []*string{input.Name}}
+			lo := entity.IssueListOptions{ListOptions: *entity.NewListOptions()}
+			issues, ierr := r.App.ListIssues(f, &lo)
+			if ierr != nil || len(issues.Elements) == 0 {
+				return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating issue")
+			}
+			issue = issues.Elements[0].Issue
+		} else {
+			issue = newIssue
+		}
+
+		var issueRepositoryId int64
+		repositories, err := r.App.ListIssueRepositories(&entity.IssueRepositoryFilter{}, &entity.ListOptions{})
+		if err == nil && len(repositories.Elements) > 0 {
+			issueRepositoryId = repositories.Elements[0].IssueRepository.Id
+		}
+
+		sev := entity.Severity{}
+		if input.Severity != nil {
+			sev = entity.NewSeverityFromRating(entity.SeverityValues(input.Severity.String()))
+		}
+		iv := entity.IssueVariant{
+			SecondaryName: func() string {
+				if input.Name != nil {
+					return *input.Name
+				}
+				return ""
+			}(),
+			IssueId:           issue.Id,
+			IssueRepositoryId: issueRepositoryId,
+			Severity:          sev,
+			Description: func() string {
+				if input.Description != nil {
+					return *input.Description
+				}
+				return ""
+			}(),
+			ExternalUrl: func() string {
+				if input.URL != nil {
+					return *input.URL
+				}
+				return ""
+			}(),
+		}
+		newIv, err := r.App.CreateIssueVariant(ctx, &iv)
+		if err != nil {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating issueVariant")
+		}
+		issueVariant = newIv
+	} else {
+		iss, err := r.App.GetIssue(issueVariant.IssueId)
+		if err != nil {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when resolving issue")
+		}
+		issue = iss
+	}
+
+	if ci != nil {
+		userId := int64(1)
+		users, err := r.App.ListUsers(&entity.UserFilter{}, &entity.ListOptions{})
+		if err == nil && len(users.Elements) > 0 {
+			userId = users.Elements[0].User.Id
+		}
+
+		im := entity.IssueMatch{
+			IssueId:               issue.Id,
+			ComponentInstanceId:   ci.Id,
+			UserId:                userId,
+			Status:                entity.IssueMatchStatusValuesNew,
+			RemediationDate:       time.Now(),
+			TargetRemediationDate: time.Now(),
+		}
+		_, err = r.App.CreateIssueMatch(ctx, &im)
+		if err != nil {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating issue match")
+		}
+	}
+
+	res := model.SIEMAlert{
+		Name:         input.Name,
+		Description:  input.Description,
+		Severity:     input.Severity,
+		URL:          input.URL,
+		Service:      input.Service,
+		SupportGroup: input.SupportGroup,
+		Region:       input.Region,
+		Cluster:      input.Cluster,
+		Namespace:    input.Namespace,
+		Pod:          input.Pod,
+		Container:    input.Container,
+	}
+	return &res, nil
 }
 
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
