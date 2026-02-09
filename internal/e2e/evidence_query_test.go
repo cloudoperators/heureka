@@ -175,9 +175,6 @@ var _ = Describe("Getting Evidences via API", Label("e2e", "Evidences"), func() 
 						Expect(author.UniqueUserID).ToNot(BeNil(), "author has a uniqueUserId set")
 						Expect(author.Type).ToNot(BeNil(), "author has a type set")
 						Expect(author.Name).ToNot(BeNil(), "author has a name set")
-
-						activity := evidence.Node.Activity
-						Expect(activity.ID).ToNot(BeNil(), "activity has a ID set")
 					}
 				})
 				It("- returns the expected PageInfo", func() {
@@ -221,7 +218,6 @@ var _ = Describe("Creating Evidence via API", Label("e2e", "Evidences"), func() 
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			evidence = testentity.NewFakeEvidenceEntity()
 			evidence.UserId = seedCollection.UserRows[0].Id.Int64
-			evidence.ActivityId = seedCollection.ActivityRows[0].Id.Int64
 		})
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
@@ -239,7 +235,6 @@ var _ = Describe("Creating Evidence via API", Label("e2e", "Evidences"), func() 
 				req.Var("input", map[string]interface{}{
 					"description": evidence.Description,
 					"authorId":    fmt.Sprintf("%d", evidence.UserId),
-					"activityId":  fmt.Sprintf("%d", evidence.ActivityId),
 					"type":        evidence.Type.String(),
 					"severity": map[string]string{
 						"vector": evidence.Severity.Cvss.Vector,
@@ -259,7 +254,6 @@ var _ = Describe("Creating Evidence via API", Label("e2e", "Evidences"), func() 
 
 				Expect(*respData.Evidence.Description).To(Equal(evidence.Description))
 				Expect(*respData.Evidence.AuthorID).To(Equal(fmt.Sprintf("%d", evidence.UserId)))
-				Expect(*respData.Evidence.ActivityID).To(Equal(fmt.Sprintf("%d", evidence.ActivityId)))
 				Expect(*respData.Evidence.Vector).To(Equal(evidence.Severity.Cvss.Vector))
 				Expect(*respData.Evidence.RaaEnd).To(Equal(evidence.RaaEnd.Format(time.RFC3339)))
 			})
@@ -329,7 +323,6 @@ var _ = Describe("Updating evidence via API", Label("e2e", "Evidences"), func() 
 
 				Expect(*respData.Evidence.Description).To(Equal(evidence.Description))
 				Expect(*respData.Evidence.AuthorID).To(Equal(fmt.Sprintf("%d", evidence.UserId)))
-				Expect(*respData.Evidence.ActivityID).To(Equal(fmt.Sprintf("%d", evidence.ActivityId)))
 				Expect(*respData.Evidence.Vector).To(Equal(evidence.Severity.Cvss.Vector))
 				Expect(*respData.Evidence.RaaEnd).To(Equal(evidence.RaaEnd.Format(time.RFC3339)))
 			})

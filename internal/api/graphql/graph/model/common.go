@@ -12,7 +12,6 @@ func (e NodeName) String() string {
 }
 
 const (
-	ActivityNodeName          NodeName = "Activity"
 	IssueVariantNodeName      NodeName = "IssueVariant"
 	IssueRepositoryNodeName   NodeName = "IssueRepository"
 	ComponentNodeName         NodeName = "Component"

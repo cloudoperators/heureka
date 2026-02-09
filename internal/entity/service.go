@@ -12,7 +12,6 @@ type BaseService struct {
 	SupportGroup   *SupportGroup `json:"support_group,omitempty"`
 	SupportGroupId int64         `db:"service_support_group_id"`
 	Owners         []User        `json:"owners,omitempty"`
-	Activities     []Activity    `json:"activities,omitempty"`
 	Priority       int64         `json:"priority"`
 }
 
@@ -36,7 +35,6 @@ type ServiceFilter struct {
 	OwnerName           []*string         `json:"owner_name"`
 	OwnerId             []*int64          `json:"owner_id"`
 	IssueId             []*int64          `json:"issue_id"`
-	ActivityId          []*int64          `json:"activity_id"`
 	ComponentInstanceId []*int64          `json:"component_instance_id"`
 	IssueRepositoryId   []*int64          `json:"issue_repository_id"`
 	SupportGroupId      []*int64          `json:"support_group_id"`

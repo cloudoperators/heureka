@@ -161,36 +161,6 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 				})
 			})
 			Context("and using a filter", func() {
-				It("can filter by a single activity id that does exist", func() {
-					evidence := seedCollection.EvidenceRows[rand.Intn(len(seedCollection.EvidenceRows))]
-					filter := &entity.EvidenceFilter{
-						Paginated:  entity.Paginated{},
-						ActivityId: []*int64{&evidence.ActivityId.Int64},
-					}
-
-					var evidences []mariadb.EvidenceRow
-					for _, e := range seedCollection.EvidenceRows {
-						if e.ActivityId.Int64 == evidence.ActivityId.Int64 {
-							evidences = append(evidences, e)
-						}
-					}
-
-					entries, err := db.GetEvidences(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(len(evidences)))
-					})
-
-					By("returning expected elements", func() {
-						for _, entry := range entries {
-							Expect(entry.ActivityId).To(BeEquivalentTo(evidence.ActivityId.Int64))
-						}
-					})
-				})
 				It("can filter by a single id that does exist", func() {
 					evidence := seedCollection.EvidenceRows[rand.Intn(len(seedCollection.EvidenceRows))]
 					filter := &entity.EvidenceFilter{
@@ -327,15 +297,12 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 			var seedCollection *test.SeedCollection
 			var newEvidenceRow mariadb.EvidenceRow
 			var newEvidence entity.Evidence
-			var activity entity.Activity
 			var user entity.User
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newEvidenceRow = test.NewFakeEvidence()
 				newEvidence = newEvidenceRow.AsEvidence()
-				activity = seedCollection.ActivityRows[0].AsActivity()
 				user = seedCollection.UserRows[0].AsUser()
-				newEvidence.ActivityId = activity.Id
 				newEvidence.UserId = user.Id
 			})
 			It("can insert correctly", func() {
@@ -361,7 +328,6 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 				})
 				By("setting fields", func() {
 					Expect(e[0].Description).To(BeEquivalentTo(evidence.Description))
-					Expect(e[0].ActivityId).To(BeEquivalentTo(evidence.ActivityId))
 					Expect(e[0].UserId).To(BeEquivalentTo(evidence.UserId))
 					Expect(e[0].Severity.Cvss.Vector).To(BeEquivalentTo(evidence.Severity.Cvss.Vector))
 					Expect(e[0].RaaEnd.Unix()).To(BeEquivalentTo(evidence.RaaEnd.Unix()))
@@ -400,7 +366,6 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 				})
 				By("setting fields", func() {
 					Expect(e[0].Description).To(BeEquivalentTo(evidence.Description))
-					Expect(e[0].ActivityId).To(BeEquivalentTo(evidence.ActivityId))
 					Expect(e[0].UserId).To(BeEquivalentTo(evidence.UserId))
 					Expect(e[0].Severity.Cvss.Vector).To(BeEquivalentTo(evidence.Severity.Cvss.Vector))
 					Expect(e[0].RaaEnd.Unix()).To(BeEquivalentTo(evidence.RaaEnd.Unix()))

@@ -25,7 +25,6 @@ func EvidenceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ev
 		return nil, NewResolverError("EvidenceBaseResolver", "Bad Request - unable to parse cursor 'after'")
 	}
 
-	var activityId []*int64
 	var imId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
@@ -36,8 +35,6 @@ func EvidenceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ev
 		}
 
 		switch parent.ParentName {
-		case model.ActivityNodeName:
-			activityId = []*int64{pid}
 		case model.IssueMatchNodeName:
 			imId = []*int64{pid}
 		}
@@ -49,7 +46,6 @@ func EvidenceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ev
 
 	f := &entity.EvidenceFilter{
 		Paginated:    entity.Paginated{First: first, After: afterId},
-		ActivityId:   activityId,
 		IssueMatchId: imId,
 		State:        model.GetStateFilterType(filter.State),
 	}
