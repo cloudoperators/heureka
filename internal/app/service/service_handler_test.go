@@ -237,6 +237,98 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			})
 		})
 	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any support groups", func() {
+			BeforeEach(func() {
+				sgIds := int64(-1)
+				filter.SupportGroupId = []*int64{&sgIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
+			})
+
+			It("should return no services", func() {
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				res, err := serviceHandler.ListServices(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes a support group CCRN that has services related to it", func() {
+			var (
+				service entity.Service
+			)
+
+			BeforeEach(func() {
+				sgId := int64(111)
+				userId := int64(123)
+				systemUserId := int64(1)
+				filter.SupportGroupId = []*int64{&sgId}
+				service = test.NewFakeServiceEntity()
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{{Service: &service}}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create support group
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // create service
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(service.Id),
+					},
+					{ // link user to support group
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelMember,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // link service to support group
+						UserType:   openfga.TypeSupportGroup,
+						UserId:     openfga.UserIdFromInt(sgId),
+						Relation:   openfga.RelSupportGroup,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(service.Id),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected services in the result", func() {
+				serviceHandler = s.NewServiceHandler(handlerContext)
+				res, err := serviceHandler.ListServices(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(service.CCRN)) // check that the returned service is the expected one
+			})
+		})
+
+	})
 })
 
 var _ = Describe("When creating Service", Label("app", "CreateService"), func() {
