@@ -25,7 +25,6 @@ func buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool,
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
@@ -46,7 +45,6 @@ func getServiceFilterString(filter *entity.ServiceFilter) string {
 	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerName, "U.user_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IRS.issuerepositoryservice_issue_repository_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGS.supportgroupservice_support_group_id = ?", OP_OR))
@@ -80,12 +78,6 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []enti
 	if len(filter.SupportGroupCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
-		`)
-	}
-	if len(filter.ActivityId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ActivityHasService AHS on S.service_id = AHS.activityhasservice_service_id
-         	LEFT JOIN Activity A on AHS.activityhasservice_activity_id = A.activity_id
 		`)
 	}
 	if len(filter.ComponentInstanceId) > 0 || len(filter.IssueId) > 0 {
@@ -150,7 +142,6 @@ func ensureServiceFilter(f *entity.ServiceFilter) *entity.ServiceFilter {
 			Id:                nil,
 			OwnerName:         nil,
 			SupportGroupId:    nil,
-			ActivityId:        nil,
 			IssueRepositoryId: nil,
 			OwnerId:           nil,
 		}

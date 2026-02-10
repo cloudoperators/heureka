@@ -21,7 +21,6 @@ func NewFakeIssueEntity() entity.Issue {
 		IssueVariants:     nil,
 		IssueMatches:      nil,
 		ComponentVersions: nil,
-		Activity:          nil,
 		Metadata: entity.Metadata{
 			CreatedAt: gofakeit.Date(),
 			DeletedAt: gofakeit.Date(),
@@ -33,7 +32,6 @@ func NewFakeIssueEntity() entity.Issue {
 func NewFakeIssueWithAggregationsEntity() entity.IssueWithAggregations {
 	return entity.IssueWithAggregations{
 		IssueAggregations: entity.IssueAggregations{
-			Activities:                    int64(gofakeit.Number(1, 10000000)),
 			IssueMatches:                  int64(gofakeit.Number(1, 10000000)),
 			AffectedServices:              int64(gofakeit.Number(1, 10000000)),
 			ComponentVersions:             int64(gofakeit.Number(1, 10000000)),
