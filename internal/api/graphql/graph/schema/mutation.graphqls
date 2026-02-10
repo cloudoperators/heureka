@@ -48,15 +48,9 @@ type Mutation {
     updateIssueVariant(id: ID!, input: IssueVariantInput!): IssueVariant!
     deleteIssueVariant(id: ID!): String!
 
-    createEvidence(input: EvidenceInput!): Evidence!
-    updateEvidence(id: ID!, input: EvidenceInput!): Evidence!
-    deleteEvidence(id: ID!): String!
-
     createIssueMatch(input: IssueMatchInput!): IssueMatch!
     updateIssueMatch(id: ID!, input: IssueMatchInput!): IssueMatch!
     deleteIssueMatch(id: ID!): String!
-    addEvidenceToIssueMatch(issueMatchId: ID!, evidenceId: ID!): IssueMatch!
-    removeEvidenceFromIssueMatch(issueMatchId: ID!, evidenceId: ID!): IssueMatch!
 
     createScannerRun(input: ScannerRunInput!): Boolean!
     completeScannerRun(uuid: String!): Boolean!

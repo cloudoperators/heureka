@@ -33,7 +33,6 @@ func getIssueMatchFilterString(filter *entity.IssueMatchFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Id, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "IM.issuematch_component_instance_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.EvidenceId, "IME.issuematchevidence_evidence_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SeverityValue, "IM.issuematch_rating = ?", OP_OR))
@@ -68,12 +67,6 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 			LEFT JOIN IssueVariant IV on IV.issuevariant_issue_id = I.issue_id
 			`)
 		}
-	}
-
-	if len(filter.EvidenceId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueMatchEvidence IME on IME.issuematchevidence_issue_match_id = IM.issuematch_id
-		`)
 	}
 
 	if orderByCiCcrn || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.ComponentCCRN) > 0 || len(filter.ServiceOwnerUsername) > 0 || len(filter.ServiceOwnerUniqueUserId) > 0 {
@@ -208,7 +201,6 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
@@ -443,57 +435,6 @@ func (s *SqlDatabase) DeleteIssueMatch(id int64, userId int64) error {
 	args := map[string]interface{}{
 		"userId": userId,
 		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
-}
-
-func (s *SqlDatabase) AddEvidenceToIssueMatch(issueMatchId int64, evidenceId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueMatchId": issueMatchId,
-		"evidenceId":   evidenceId,
-		"event":        "database.AddEvidenceToIssueMatch",
-	})
-
-	query := `
-		INSERT INTO IssueMatchEvidence (
-			issuematchevidence_issue_match_id,
-			issuematchevidence_evidence_id
-		) VALUES (
-			:issuematchevidence_issue_match_id,
-			:issuematchevidence_evidence_id
-		)
-	`
-
-	args := map[string]interface{}{
-		"issuematchevidence_issue_match_id": issueMatchId,
-		"issuematchevidence_evidence_id":    evidenceId,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
-}
-
-func (s *SqlDatabase) RemoveEvidenceFromIssueMatch(issueMatchId int64, evidenceId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueMatchId": issueMatchId,
-		"evidenceId":   evidenceId,
-		"event":        "database.RemoveEvidenceFromIssueMatch",
-	})
-
-	query := `
-		DELETE FROM IssueMatchEvidence
-		WHERE
-			issuematchevidence_issue_match_id = :issuematchevidence_issue_match_id
-			AND issuematchevidence_evidence_id = :issuematchevidence_evidence_id
-	`
-
-	args := map[string]interface{}{
-		"issuematchevidence_issue_match_id": issueMatchId,
-		"issuematchevidence_evidence_id":    evidenceId,
 	}
 
 	_, err := performExec(s, query, args, l)

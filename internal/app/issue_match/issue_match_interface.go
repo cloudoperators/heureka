@@ -15,6 +15,4 @@ type IssueMatchHandler interface {
 	CreateIssueMatch(context.Context, *entity.IssueMatch) (*entity.IssueMatch, error)
 	UpdateIssueMatch(context.Context, *entity.IssueMatch) (*entity.IssueMatch, error)
 	DeleteIssueMatch(context.Context, int64) error
-	AddEvidenceToIssueMatch(int64, int64) (*entity.IssueMatch, error)
-	RemoveEvidenceFromIssueMatch(int64, int64) (*entity.IssueMatch, error)
 }

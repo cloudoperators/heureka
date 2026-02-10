@@ -275,35 +275,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					})
 				})
-				It("can filter by a single evidence id that does exist", func() {
-					issueMatch := seedCollection.IssueMatchEvidenceRows[rand.Intn(len(seedCollection.IssueMatchEvidenceRows))]
-					filter := &entity.IssueMatchFilter{
-						EvidenceId: []*int64{&issueMatch.EvidenceId.Int64},
-					}
-
-					var imIds []int64
-					for _, e := range seedCollection.IssueMatchEvidenceRows {
-						if e.EvidenceId.Int64 == issueMatch.EvidenceId.Int64 {
-							imIds = append(imIds, e.IssueMatchId.Int64)
-						}
-					}
-
-					entries, err := db.GetIssueMatches(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
-					})
-
-					By("returning expected elements", func() {
-						for _, entry := range entries {
-							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
-						}
-					})
-				})
 				It("can filter by a single service id that does exist", func() {
 					service := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 
@@ -665,74 +636,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				By("returning no issueMatch", func() {
 					Expect(len(im)).To(BeEquivalentTo(0))
 				})
-			})
-		})
-	})
-	When("Add Evidence To IssueMatch", Label("AddEvidenceToIssueMatch"), func() {
-		Context("and we have 10 IssueMatches in the database", func() {
-			var seedCollection *test.SeedCollection
-			var newEvidenceRow mariadb.EvidenceRow
-			var newEvidence entity.Evidence
-			var evidence *entity.Evidence
-			var user entity.User
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-				newEvidenceRow = test.NewFakeEvidence()
-				newEvidence = newEvidenceRow.AsEvidence()
-				user = seedCollection.UserRows[0].AsUser()
-				newEvidence.UserId = user.Id
-				evidence, _ = db.CreateEvidence(&newEvidence)
-			})
-			It("can add evidence correctly", func() {
-				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
-
-				err := db.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				issueMatchFilter := &entity.IssueMatchFilter{
-					EvidenceId: []*int64{&evidence.Id},
-				}
-
-				im, err := db.GetIssueMatches(issueMatchFilter, nil)
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-				By("returning issueMatch", func() {
-					Expect(len(im)).To(BeEquivalentTo(1))
-				})
-			})
-		})
-	})
-	When("Remove Evidence From IssueMatch", Label("RemoveEvidenceFromIssueMatch"), func() {
-		Context("and we have 10 IssueMatches in the database", func() {
-			var seedCollection *test.SeedCollection
-			var issueMatchEvidenceRow mariadb.IssueMatchEvidenceRow
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-				issueMatchEvidenceRow = seedCollection.IssueMatchEvidenceRows[0]
-			})
-			It("can remove evidence correctly", func() {
-				err := db.RemoveEvidenceFromIssueMatch(issueMatchEvidenceRow.IssueMatchId.Int64, issueMatchEvidenceRow.EvidenceId.Int64)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				issueMatchFilter := &entity.IssueMatchFilter{
-					EvidenceId: []*int64{&issueMatchEvidenceRow.EvidenceId.Int64},
-				}
-
-				issueMatches, err := db.GetIssueMatches(issueMatchFilter, nil)
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				for _, im := range issueMatches {
-					Expect(im.Id).ToNot(BeEquivalentTo(issueMatchEvidenceRow.IssueMatchId.Int64))
-				}
 			})
 		})
 	})

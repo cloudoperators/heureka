@@ -84,7 +84,6 @@ type RowComposite struct {
 	*GetServicesByRow
 	*ServiceAggregationsRow
 	*UserRow
-	*EvidenceRow
 	*OwnerRow
 	*SupportGroupRow
 	*SupportGroupServiceRow
@@ -113,7 +112,6 @@ type DatabaseRow interface {
 		GetServicesByRow |
 		ServiceAggregationsRow |
 		UserRow |
-		EvidenceRow |
 		OwnerRow |
 		SupportGroupRow |
 		SupportGroupServiceRow |
@@ -921,56 +919,6 @@ func (ur *UserRow) FromUser(u *entity.User) {
 	ur.Email = sql.NullString{String: u.Email, Valid: true}
 }
 
-type EvidenceRow struct {
-	Id          sql.NullInt64  `db:"evidence_id" json:"id"`
-	Description sql.NullString `db:"evidence_description" json:"description"`
-	Type        sql.NullString `db:"evidence_type" json:"type"`
-	Vector      sql.NullString `db:"evidence_vector" json:"vector"`
-	Rating      sql.NullString `db:"evidence_rating" json:"rating"`
-	RAAEnd      sql.NullTime   `db:"evidence_raa_end" json:"raa_end"`
-	User        *UserRow       `json:"user,omitempty"`
-	UserId      sql.NullInt64  `db:"evidence_author_id"`
-	CreatedAt   sql.NullTime   `db:"evidence_created_at" json:"created_at"`
-	CreatedBy   sql.NullInt64  `db:"evidence_created_by" json:"created_by"`
-	DeletedAt   sql.NullTime   `db:"evidence_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt   sql.NullTime   `db:"evidence_updated_at" json:"updated_at"`
-	UpdatedBy   sql.NullInt64  `db:"evidence_updated_by" json:"updated_by"`
-}
-
-func (er *EvidenceRow) AsEvidence() entity.Evidence {
-	return entity.Evidence{
-		Id:          GetInt64Value(er.Id),
-		Description: GetStringValue(er.Description),
-		Type:        entity.NewEvidenceTypeValue(GetStringValue(er.Type)),
-		Severity:    entity.NewSeverity(GetStringValue(er.Vector)),
-		RaaEnd:      GetTimeValue(er.RAAEnd),
-		User:        nil,
-		UserId:      GetInt64Value(er.UserId),
-		Metadata: entity.Metadata{
-			CreatedAt: GetTimeValue(er.CreatedAt),
-			CreatedBy: GetInt64Value(er.CreatedBy),
-			DeletedAt: GetTimeValue(er.DeletedAt),
-			UpdatedAt: GetTimeValue(er.UpdatedAt),
-			UpdatedBy: GetInt64Value(er.UpdatedBy),
-		},
-	}
-}
-
-func (er *EvidenceRow) FromEvidence(e *entity.Evidence) {
-	er.Id = sql.NullInt64{Int64: e.Id, Valid: true}
-	er.Description = sql.NullString{String: e.Description, Valid: true}
-	er.Type = sql.NullString{String: e.Type.String(), Valid: true}
-	er.Vector = sql.NullString{String: e.Severity.Cvss.Vector, Valid: true}
-	er.Rating = sql.NullString{String: e.Severity.Value, Valid: true}
-	er.RAAEnd = sql.NullTime{Time: e.RaaEnd, Valid: true}
-	er.UserId = sql.NullInt64{Int64: e.UserId, Valid: true}
-	er.CreatedAt = sql.NullTime{Time: e.CreatedAt, Valid: true}
-	er.CreatedBy = sql.NullInt64{Int64: e.CreatedBy, Valid: true}
-	er.DeletedAt = sql.NullTime{Time: e.DeletedAt, Valid: true}
-	er.UpdatedAt = sql.NullTime{Time: e.UpdatedAt, Valid: true}
-	er.UpdatedBy = sql.NullInt64{Int64: e.UpdatedBy, Valid: true}
-}
-
 type OwnerRow struct {
 	ServiceId sql.NullInt64 `db:"owner_service_id" json:"service_id"`
 	UserId    sql.NullInt64 `db:"owner_user_id" json:"user_id"`
@@ -1001,14 +949,6 @@ type ComponentVersionIssueRow struct {
 	CreatedAt          sql.NullTime  `db:"componentversionissue_created_at" json:"created_at"`
 	DeletedAt          sql.NullTime  `db:"componentversionissue_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt          sql.NullTime  `db:"componentversionissue_updated_at" json:"updated_at"`
-}
-
-type IssueMatchEvidenceRow struct {
-	EvidenceId   sql.NullInt64 `db:"issuematchevidence_evidence_id" json:"evidence_id"`
-	IssueMatchId sql.NullInt64 `db:"issuematchevidence_issue_match_id" json:"issue_match_id"`
-	CreatedAt    sql.NullTime  `db:"issuematchevidence_created_at" json:"created_at"`
-	DeletedAt    sql.NullTime  `db:"issuematchevidence_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt    sql.NullTime  `db:"issuematchevidence_updated_at" json:"updated_at"`
 }
 
 type IssueRepositoryServiceRow struct {

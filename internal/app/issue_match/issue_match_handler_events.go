@@ -15,14 +15,12 @@ import (
 )
 
 const (
-	ListIssueMatchesEventName             event.EventName = "ListIssueMatches"
-	GetIssueMatchEventName                event.EventName = "GetIssueMatch"
-	CreateIssueMatchEventName             event.EventName = "CreateIssueMatch"
-	UpdateIssueMatchEventName             event.EventName = "UpdateIssueMatch"
-	DeleteIssueMatchEventName             event.EventName = "DeleteIssueMatch"
-	AddEvidenceToIssueMatchEventName      event.EventName = "AddEvidenceToIssueMatch"
-	RemoveEvidenceFromIssueMatchEventName event.EventName = "RemoveEvidenceFromIssueMatch"
-	ListIssueMatchIDsEventName            event.EventName = "ListIssueMatchIDs"
+	ListIssueMatchesEventName  event.EventName = "ListIssueMatches"
+	GetIssueMatchEventName     event.EventName = "GetIssueMatch"
+	CreateIssueMatchEventName  event.EventName = "CreateIssueMatch"
+	UpdateIssueMatchEventName  event.EventName = "UpdateIssueMatch"
+	DeleteIssueMatchEventName  event.EventName = "DeleteIssueMatch"
+	ListIssueMatchIDsEventName event.EventName = "ListIssueMatchIDs"
 )
 
 type ListIssueMatchesEvent struct {
@@ -66,24 +64,6 @@ type DeleteIssueMatchEvent struct {
 
 func (e *DeleteIssueMatchEvent) Name() event.EventName {
 	return DeleteIssueMatchEventName
-}
-
-type AddEvidenceToIssueMatchEvent struct {
-	IssueMatchID int64
-	EvidenceID   int64
-}
-
-func (e *AddEvidenceToIssueMatchEvent) Name() event.EventName {
-	return AddEvidenceToIssueMatchEventName
-}
-
-type RemoveEvidenceFromIssueMatchEvent struct {
-	IssueMatchID int64
-	EvidenceID   int64
-}
-
-func (e *RemoveEvidenceFromIssueMatchEvent) Name() event.EventName {
-	return RemoveEvidenceFromIssueMatchEventName
 }
 
 func OnComponentInstanceCreate(db database.Database, event event.Event) {

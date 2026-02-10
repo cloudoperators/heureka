@@ -587,46 +587,6 @@ func (r *mutationResolver) DeleteIssueVariant(ctx context.Context, id string) (s
 	return id, nil
 }
 
-// CreateEvidence is the resolver for the createEvidence field.
-func (r *mutationResolver) CreateEvidence(ctx context.Context, input model.EvidenceInput) (*model.Evidence, error) {
-	evidence := model.NewEvidenceEntity(&input)
-	newEvidence, err := r.App.CreateEvidence(ctx, &evidence)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("CreateEvidenceMutationResolver", "Internal Error - when creating evidence")
-	}
-	e := model.NewEvidence(newEvidence)
-	return &e, nil
-}
-
-// UpdateEvidence is the resolver for the updateEvidence field.
-func (r *mutationResolver) UpdateEvidence(ctx context.Context, id string, input model.EvidenceInput) (*model.Evidence, error) {
-	idInt, err := baseResolver.ParseCursor(&id)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("UpdateEvidenceMutationResolver", "Internal Error - when updating evidence")
-	}
-	evidence := model.NewEvidenceEntity(&input)
-	evidence.Id = *idInt
-	updatedEvidence, err := r.App.UpdateEvidence(ctx, &evidence)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("UpdateEvidenceMutationResolver", "Internal Error - when updating evidence")
-	}
-	e := model.NewEvidence(updatedEvidence)
-	return &e, nil
-}
-
-// DeleteEvidence is the resolver for the deleteEvidence field.
-func (r *mutationResolver) DeleteEvidence(ctx context.Context, id string) (string, error) {
-	idInt, err := baseResolver.ParseCursor(&id)
-	if err != nil {
-		return "", baseResolver.NewResolverError("DeleteEvidenceMutationResolver", "Internal Error - when deleting evidence")
-	}
-	err = r.App.DeleteEvidence(ctx, *idInt)
-	if err != nil {
-		return "", baseResolver.NewResolverError("DeleteEvidenceMutationResolver", "Internal Error - when deleting evidence")
-	}
-	return id, nil
-}
-
 // CreateIssueMatch is the resolver for the createIssueMatch field.
 func (r *mutationResolver) CreateIssueMatch(ctx context.Context, input model.IssueMatchInput) (*model.IssueMatch, error) {
 	issueMatch := model.NewIssueMatchEntity(&input)
@@ -665,48 +625,6 @@ func (r *mutationResolver) DeleteIssueMatch(ctx context.Context, id string) (str
 		return "", baseResolver.NewResolverError("DeleteIssueMatchMutationResolver", "Internal Error - when deleting issueMatch")
 	}
 	return id, nil
-}
-
-// AddEvidenceToIssueMatch is the resolver for the addEvidenceToIssueMatch field.
-func (r *mutationResolver) AddEvidenceToIssueMatch(ctx context.Context, issueMatchID string, evidenceID string) (*model.IssueMatch, error) {
-	issueMatchIdInt, err := baseResolver.ParseCursor(&issueMatchID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddEvidenceToIssueMatchMutationResolver", "Internal Error - when adding evidence to issueMatch")
-	}
-
-	evidenceIdInt, err := baseResolver.ParseCursor(&evidenceID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddEvidenceToIssueMatchMutationResolver", "Internal Error - when adding evidence to issueMatch")
-	}
-
-	issueMatch, err := r.App.AddEvidenceToIssueMatch(*issueMatchIdInt, *evidenceIdInt)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddEvidenceToIssueMatchMutationResolver", "Internal Error - when adding evidence to issueMatch")
-	}
-
-	im := model.NewIssueMatch(issueMatch)
-	return &im, nil
-}
-
-// RemoveEvidenceFromIssueMatch is the resolver for the removeEvidenceFromIssueMatch field.
-func (r *mutationResolver) RemoveEvidenceFromIssueMatch(ctx context.Context, issueMatchID string, evidenceID string) (*model.IssueMatch, error) {
-	issueMatchIdInt, err := baseResolver.ParseCursor(&issueMatchID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveEvidenceFromIssueMatchMutationResolver", "Internal Error - when removing evidence from issueMatch")
-	}
-
-	evidenceIdInt, err := baseResolver.ParseCursor(&evidenceID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveEvidenceFromIssueMatchMutationResolver", "Internal Error - when removing evidence from issueMatch")
-	}
-
-	issueMatch, err := r.App.RemoveEvidenceFromIssueMatch(*issueMatchIdInt, *evidenceIdInt)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveEvidenceFromIssueMatchMutationResolver", "Internal Error - when removing evidence from issueMatch")
-	}
-
-	im := model.NewIssueMatch(issueMatch)
-	return &im, nil
 }
 
 func (r *mutationResolver) CreateScannerRun(ctx context.Context, input model.ScannerRunInput) (bool, error) {

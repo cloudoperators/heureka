@@ -102,8 +102,6 @@ models:
         resolver: true
       issue:
         resolver: true
-      evidences:
-        resolver: true
       effectiveIssueVariants:
         resolver: true
   Component:
@@ -153,12 +151,6 @@ models:
       users:
         resolver: true
       services:
-        resolver: true
-  Evidence:
-    fields:
-      author:
-        resolver: true
-      issueMatches:
         resolver: true
   IssueVariant:
     fields:

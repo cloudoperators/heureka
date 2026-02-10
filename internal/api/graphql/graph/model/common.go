@@ -17,7 +17,6 @@ const (
 	ComponentNodeName         NodeName = "Component"
 	ComponentInstanceNodeName NodeName = "ComponentInstance"
 	ComponentVersionNodeName  NodeName = "ComponentVersion"
-	EvidenceNodeName          NodeName = "Evidence"
 	ServiceNodeName           NodeName = "Service"
 	SupportGroupNodeName      NodeName = "SupportGroup"
 	UserNodeName              NodeName = "User"

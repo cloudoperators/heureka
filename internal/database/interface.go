@@ -45,9 +45,6 @@ type Database interface {
 	UpdateIssueMatch(*entity.IssueMatch) error
 	DeleteIssueMatch(int64, int64) error
 
-	AddEvidenceToIssueMatch(int64, int64) error
-	RemoveEvidenceFromIssueMatch(int64, int64) error
-
 	GetServices(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
 	GetServicesWithAggregations(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
 	GetAllServiceCursors(*entity.ServiceFilter, []entity.Order) ([]string, error)
@@ -105,13 +102,6 @@ type Database interface {
 	GetType(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetContext(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error)
-
-	GetEvidences(*entity.EvidenceFilter) ([]entity.Evidence, error)
-	GetAllEvidenceIds(*entity.EvidenceFilter) ([]int64, error)
-	CountEvidences(*entity.EvidenceFilter) (int64, error)
-	CreateEvidence(*entity.Evidence) (*entity.Evidence, error)
-	UpdateEvidence(*entity.Evidence) error
-	DeleteEvidence(int64, int64) error
 
 	GetComponents(*entity.ComponentFilter, []entity.Order) ([]entity.ComponentResult, error)
 	GetAllComponentIds(*entity.ComponentFilter) ([]int64, error)
