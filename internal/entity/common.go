@@ -36,8 +36,6 @@ type HeurekaEntity interface {
 		ComponentVersion |
 		ComponentVersionResult |
 		ComponentVersionAggregations |
-		Evidence |
-		EvidenceAggregations |
 		BaseService |
 		Service |
 		ServiceAggregations |
@@ -76,7 +74,6 @@ type HeurekaFilter interface {
 		ComponentInstanceFilter |
 		TimeFilter |
 		IssueVariantFilter |
-		EvidenceFilter |
 		ComponentFilter |
 		ComponentVersionFilter |
 		IssueRepositoryFilter |

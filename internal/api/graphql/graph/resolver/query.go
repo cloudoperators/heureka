@@ -50,10 +50,6 @@ func (r *queryResolver) IssueRepositories(ctx context.Context, filter *model.Iss
 	return baseResolver.IssueRepositoryBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) Evidences(ctx context.Context, filter *model.EvidenceFilter, first *int, after *string) (*model.EvidenceConnection, error) {
-	return baseResolver.EvidenceBaseResolver(r.App, ctx, filter, first, after, nil)
-}
-
 func (r *queryResolver) SupportGroups(ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy) (*model.SupportGroupConnection, error) {
 	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
