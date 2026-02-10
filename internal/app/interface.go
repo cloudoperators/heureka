@@ -7,7 +7,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/component_version"
-	"github.com/cloudoperators/heureka/internal/app/evidence"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/app/issue_match"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
@@ -25,7 +24,6 @@ type Heureka interface {
 	component_instance.ComponentInstanceHandler
 	component_version.ComponentVersionHandler
 	component.ComponentHandler
-	evidence.EvidenceHandler
 	issue_match.IssueMatchHandler
 	issue_match.IssueMatchHandler
 	issue_repository.IssueRepositoryHandler
