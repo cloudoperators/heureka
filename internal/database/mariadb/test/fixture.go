@@ -965,7 +965,7 @@ func (s *DatabaseSeeder) SeedRemediations(num int, services []mariadb.BaseServic
 			Severity:        sql.NullString{String: severity, Valid: true},
 			RemediationDate: sql.NullTime{Time: time.Now().AddDate(0, 0, rand.Intn(30)), Valid: true},
 			ExpirationDate:  sql.NullTime{Time: time.Now().AddDate(0, 1, rand.Intn(30)), Valid: true},
-			Type:            sql.NullString{String: entity.AllRemediationTypes[rand.Intn(len(entity.AllRemediationTypes))], Valid: true},
+			Type:            sql.NullString{String: entity.AllRemediationTypes[i%len(entity.AllRemediationTypes)], Valid: true},
 			ServiceId:       service.Id,
 			Service:         service.CCRN,
 			ComponentId:     component.Id,

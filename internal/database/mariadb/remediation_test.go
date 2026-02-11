@@ -252,6 +252,26 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						}
 					})
 				})
+				It("can filter by 'false_positive' type", func() {
+					remediationType := entity.RemediationTypeFalsePositive.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeFalsePositive.String()))
+						}
+					})
+				})
 				It("can filter by 'risk_accepted' type", func() {
 					remediationType := entity.RemediationTypeRiskAccepted.String()
 					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
@@ -405,7 +425,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
-			weight := map[string]int{"None":1, "Low":2, "Medium":3, "High":4, "Critical":5}
+			weight := map[string]int{"None": 1, "Low": 2, "Medium": 3, "High": 4, "Critical": 5}
 			prevW := 100
 			for _, e := range entries {
 				w := weight[string(e.Severity)]
