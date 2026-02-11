@@ -44,8 +44,10 @@ func NewDb(cfg util.Config) (Db, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.DBTrace == true {
+
+	if cfg.DBTrace {
 		return &TraceDb{db: db}, nil
 	}
+
 	return &QuietDb{db: db}, nil
 }

@@ -7,19 +7,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
-	util2 "github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-var (
-	dbConfig util2.Config
-	dbm      *test.DatabaseManager
-	db       *mariadb.SqlDatabase
-)
+var dbm *test.DatabaseManager
 
 func TestE2E(t *testing.T) {
 	// Set the environment variables
@@ -27,7 +21,8 @@ func TestE2E(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	util.SetEnvVars(fmt.Sprintf("%s/%s", projectDir, ".test.env"))
+
+	_ = util.SetEnvVars(fmt.Sprintf("%s/%s", projectDir, ".test.env"))
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "e2e Suite")

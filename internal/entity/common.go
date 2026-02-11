@@ -128,8 +128,8 @@ type PageInfo struct {
 	IsValidPage     *bool   `json:"is_valid_page,omitempty"`
 	PageNumber      *int    `json:"page_number,omitempty"`
 	NextPageAfter   *string `json:"next_page_after,omitempty"`
-	StartCursor     *string `json:"deprecated,omitempty"` //@todo remove as deprecated
-	EndCursor       *string `json:"end_cursor,omitempty"` //@todo remove as deprecated
+	StartCursor     *string `json:"deprecated,omitempty"` // @todo remove as deprecated
+	EndCursor       *string `json:"end_cursor,omitempty"` // @todo remove as deprecated
 	Pages           []Page  `json:"pages,omitempty"`
 }
 

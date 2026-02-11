@@ -138,8 +138,11 @@ func (s *SqlDatabase) GetAllActivityIds(filter *entity.ActivityFilter) ([]int64,
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -163,8 +166,11 @@ func (s *SqlDatabase) GetActivities(filter *entity.ActivityFilter) ([]entity.Act
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -190,8 +196,11 @@ func (s *SqlDatabase) CountActivities(filter *entity.ActivityFilter) (int64, err
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }

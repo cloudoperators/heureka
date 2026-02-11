@@ -6,17 +6,24 @@ package util
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 func SetEnvVars(f string) error {
+	//nolint: gosec
 	file, err := os.Open(f)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("error during file closing: %s", err)
+		}
+	}()
+
 	// Create a map to store the environment variables
 	envVars := make(map[string]string)
 	// Read the file line by line
@@ -42,7 +49,7 @@ func SetEnvVars(f string) error {
 	}
 	// Set the environment variables
 	for key, value := range envVars {
-		os.Setenv(key, value)
+		_ = os.Setenv(key, value)
 	}
 	return err
 }
@@ -51,7 +58,7 @@ func GetProjectRoot() (string, error) {
 	// Get the current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("Error:", err)
+		return "", fmt.Errorf("error: %w", err)
 	}
 	// Find the project root directory by traversing up the directory tree
 	projectRoot := findProjectRoot(cwd)

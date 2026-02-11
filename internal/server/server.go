@@ -6,7 +6,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -84,7 +83,7 @@ func NewServer(cfg util.Config) *Server {
 	signal.Notify(s.sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-s.sigs
-		logrus.Warn("Received signal: '%s'. Starting server shutdown.", sig)
+		logrus.Warn(fmt.Sprintf("Received signal: '%s'. Starting server shutdown.", sig))
 		cancel()
 	}()
 
@@ -176,6 +175,8 @@ func (s *Server) Start() {
 }
 
 func (s *Server) NonBlockingStart() {
+	// nolint due to unset values for timeouts
+	//nolint:gosec
 	s.nonBlockingSrv = &http.Server{
 		Addr:    fmt.Sprintf(":%s", s.config.Port),
 		Handler: s.router.Handler(),
@@ -190,10 +191,10 @@ func (s *Server) BlockingStop() {
 	defer cancel()
 
 	if err := s.nonBlockingSrv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown: ", err)
+		panic(fmt.Errorf("server forced to shutdown: %w", err))
 	}
 	if err := s.graphQLAPI.App.Shutdown(); err != nil {
-		log.Fatalf("Error while shuting down Heureka App: %s", err)
+		panic(fmt.Errorf("error while shuting down Heureka App: %s", err))
 	}
 	done := make(chan struct{})
 	go func() {
@@ -205,7 +206,7 @@ func (s *Server) BlockingStop() {
 	case <-done:
 		logrus.Info("All goroutines exited cleanly.")
 	case <-ctx.Done():
-		log.Fatalf("Timeout: some goroutines did not exit in time.")
+		panic(fmt.Errorf("timeout: some goroutines did not exit in time"))
 	}
 }
 

@@ -16,7 +16,7 @@ func PreparePagination(filter *entity.Paginated, options *entity.ListOptions) {
 		if filter.First != nil {
 			first = *filter.First
 		}
-		//@†odo add debug log entry
+		//  @†odo add debug log entry
 		listSize := first + 1
 		filter.First = &listSize
 	}
@@ -39,7 +39,7 @@ func EnsurePaginatedX(filter *entity.PaginatedX) {
 		filter.First = &first
 	}
 	if filter.After == nil {
-		var after string = ""
+		after := ""
 		filter.After = &after
 	}
 }

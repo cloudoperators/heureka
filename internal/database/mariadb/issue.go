@@ -21,7 +21,7 @@ const (
 
 func buildIssueFilterParametersWithCursor(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
 	filterParameters := buildIssueFilterParameters(filter, cursorFields)
-	filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+	filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	return filterParameters
 }
 
@@ -119,10 +119,15 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 			LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
 		`)
 
-		if len(filter.ComponentId) > 0 && !(len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices) {
+		if len(filter.ComponentId) > 0 &&
+			len(filter.ServiceId) == 0 &&
+			len(filter.ServiceCCRN) == 0 &&
+			len(filter.SupportGroupCCRN) == 0 &&
+			!filter.AllServices {
+
 			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN ComponentVersion CV ON CVI.componentversionissue_component_version_id = CV.componentversion_id
-			`)
+			LEFT JOIN ComponentVersion CV ON CVI.componentversionissue_component_version_id = CV.componentversion_id
+		`)
 		}
 	}
 
@@ -148,7 +153,7 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 
 func ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilter {
 	first := 1000
-	var after string = ""
+	after := ""
 	if f == nil {
 		return &entity.IssueFilter{
 			PaginatedX: entity.PaginatedX{
@@ -198,8 +203,7 @@ func getIssueUpdateFields(issue *entity.Issue) string {
 func getIssueColumns(order []entity.Order) string {
 	columns := ""
 	for _, o := range order {
-		switch o.By {
-		case entity.IssueVariantRating:
+		if o.By == entity.IssueVariantRating {
 			columns = fmt.Sprintf("%s, MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num", columns)
 		}
 	}
@@ -246,7 +250,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
-	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(ifilter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -276,7 +280,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
-	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(ifilter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -355,7 +359,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	filter = ensureIssueFilter(filter)
 	filterStr := getIssueFilterString(filter)
 	joins := getIssueJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, err
 	}
@@ -391,8 +395,11 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	filterParameters := buildIssueFilterParametersWithCursor(filter, cursorFields)
 	// parameters for agg query
 	filterParameters = append(filterParameters, buildIssueFilterParametersWithCursor(filter, cursorFields)...)
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -407,7 +414,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 
 			var ivRating int64
 			if e.IssueVariantRow != nil {
-				ivRating = e.IssueVariantRow.RatingNumerical.Int64
+				ivRating = e.RatingNumerical.Int64
 			}
 
 			cursor, _ := EncodeCursor(WithIssue(defaultOrder, issue.Issue, ivRating))
@@ -439,8 +446,11 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
@@ -461,8 +471,11 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	counts, err := performListScan(
 		stmt,
@@ -506,8 +519,11 @@ func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -528,8 +544,11 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	rows, err := performListScan(
 		stmt,
@@ -547,7 +566,7 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 		issue := row.IssueRow.AsIssue()
 		var ivRating int64
 		if row.IssueVariantRow != nil {
-			ivRating = row.IssueVariantRow.RatingNumerical.Int64
+			ivRating = row.RatingNumerical.Int64
 		}
 
 		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
@@ -574,8 +593,11 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -586,7 +608,7 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 
 			var ivRating int64
 			if e.IssueVariantRow != nil {
-				ivRating = e.IssueVariantRow.RatingNumerical.Int64
+				ivRating = e.RatingNumerical.Int64
 			}
 
 			cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
@@ -789,7 +811,11 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -797,7 +823,11 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	issueNames := []string{}

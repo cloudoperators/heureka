@@ -19,6 +19,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -29,7 +32,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 	When("Getting All IssueMatch IDs", Label("GetAllIssueMatchIds"), func() {
 		Context("and the database is empty", func() {
@@ -106,6 +109,9 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("can filter by a single issue id that does exist", func() {
+					// nolint due to weak random number generator for test reason
+					//
+					//nolint:gosec
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
 						PaginatedX: entity.PaginatedX{},
@@ -497,7 +503,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				})
 				It("does not influence the count when pagination is applied", func() {
 					first := 1
-					var after string = ""
+					after := ""
 					filter := &entity.IssueMatchFilter{
 						PaginatedX: entity.PaginatedX{
 							First: &first,
@@ -548,6 +554,10 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			var user entity.User
 			var issue entity.Issue
 			var componentInstance entity.ComponentInstance
+
+			// nolint due to weak random number generator for test reason
+			//
+			//nolint:gosec
 			BeforeEach(func() {
 				seeder.SeedDbWithNFakeData(10)
 				seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -753,7 +763,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	testOrder := func(
@@ -809,7 +819,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
 					Expect(issue).ShouldNot(BeNil())
@@ -829,7 +839,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev time.Time = time.Time{}
+				prev := time.Time{}
 				for _, r := range res {
 					Expect(r.TargetRemediationDate.After(prev)).Should(BeTrue())
 					prev = r.TargetRemediationDate
@@ -868,7 +878,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
 					Expect(ci).ShouldNot(BeNil())
@@ -912,7 +922,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev string = "\U0010FFFF"
+				prev := prev
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
 					Expect(issue).ShouldNot(BeNil())
@@ -932,7 +942,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+				prev := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				for _, r := range res {
 					Expect(r.TargetRemediationDate.Before(prev)).Should(BeTrue())
 					prev = r.TargetRemediationDate
@@ -971,7 +981,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev string = "\U0010FFFF"
+				prev := prev
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
 					Expect(ci).ShouldNot(BeNil())
@@ -1005,7 +1015,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+				prevTrd := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				prevPn := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
@@ -1028,7 +1038,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+				prevTrd := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				prevPn := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
@@ -1054,7 +1064,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prevSeverity := 0
 				prevCiCcrn := ""
-				var prevTrd time.Time = time.Time{}
+				prevTrd := time.Time{}
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
 					if test.SeverityToNumerical(r.Severity.Value) == prevSeverity {
@@ -1088,7 +1098,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 	loadTestData := func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
 		matches, err := test.LoadIssueMatches(test.GetTestDataPath("testdata/issue_match_cursor/issue_match.json"))

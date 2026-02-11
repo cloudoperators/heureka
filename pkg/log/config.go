@@ -6,6 +6,7 @@ package log
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
@@ -31,10 +32,10 @@ func (l *LogConfig) SetFormatter(v string) {
 	case "json":
 		l.Formatter = &logrus.JSONFormatter{
 			PrettyPrint: l.PrettyPrint,
-			//CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			// CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 			//	_, filename := path.Split(f.File)
 			//	return f.Function, fmt.Sprintf("%s: %d", filename, f.Line)
-			//},
+			// },
 		}
 
 	case "text":
@@ -65,7 +66,12 @@ func (l *LogConfig) SetWriter(v string) {
 			logrus.Warn(fmt.Sprintf("Error while creating log io.Writer for file: %s, Using default: %s", v, "stdout"))
 			l.Writer = os.Stdout
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Printf("error during file closing: %s", err)
+			}
+		}()
+
 		l.Writer = f
 	}
 }

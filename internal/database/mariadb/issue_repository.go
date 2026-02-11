@@ -60,7 +60,7 @@ func (s *SqlDatabase) getIssueRepositoryColumns(filter *entity.IssueRepositoryFi
 }
 
 func ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
-	var first int = 1000
+	first := 1000
 	var after int64 = 0
 	if f == nil {
 		return &entity.IssueRepositoryFilter{
@@ -146,8 +146,11 @@ func (s *SqlDatabase) GetAllIssueRepositoryIds(filter *entity.IssueRepositoryFil
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -172,8 +175,11 @@ func (s *SqlDatabase) GetIssueRepositories(filter *entity.IssueRepositoryFilter)
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -199,8 +205,11 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }

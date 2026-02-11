@@ -20,6 +20,14 @@ import (
 	"golang.org/x/text/language"
 )
 
+const (
+	prev               = "\U0010FFFF"
+	notExistentProject = "NotexistentProject"
+)
+
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -30,7 +38,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All ComponentInstance IDs", Label("GetAllComponentInstanceIds"), func() {
@@ -100,6 +108,9 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 				})
 				It("can filter by a single service ccrn that does exist", func() {
+					// nolint due to weak random number generator for test reason
+					//
+					//nolint:gosec
 					ciRow := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
 					serviceRow, _ := lo.Find(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow) bool {
 						return s.Id.Int64 == ciRow.ServiceId.Int64
@@ -152,6 +163,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 				It("can filter by a single componentVersion id that does exist", func() {
 					// select a component version
+
 					cvRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
 
 					// collect all componentInstance ids that belong to the component version
@@ -299,6 +311,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 				It("can filter by a single issue match id that does exist", func() {
 					// get a service that should return at least one issue
+
 					rnd := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					ciId := rnd.ComponentInstanceId.Int64
 					filter := &entity.ComponentInstanceFilter{
@@ -599,7 +612,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			It("can update componentInstance count correctly", func() {
 				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
 				componentInstance.ParentId = 1
-				componentInstance.Count = componentInstance.Count + 1
+				componentInstance.Count++
 				err := db.UpdateComponentInstance(&componentInstance)
 
 				By("throwing no error", func() {
@@ -865,7 +878,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 				})
 				It("and using notexisting value returns an empty list when no Project match the filter", func() {
-					notexistentProject := "NotexistentProject"
+					notexistentProject := notExistentProject
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetCcrn,
 						&entity.ComponentInstanceFilter{Project: []*string{&notexistentProject}},
@@ -1016,7 +1029,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 				It("using one notexisting value of all CCRN attributes returns an empty list", func() {
 					cir := seedCollection.GetComponentInstance()
-					notexistentProject := "NotexistentProject"
+					notexistentProject := notExistentProject
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetCcrn,
 						&entity.ComponentInstanceFilter{
@@ -1057,10 +1070,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.CCRN, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.CCRN
+							prev = r.CCRN
 						}
 					})
 				})
@@ -1070,10 +1083,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Region, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Region
+							prev = r.Region
 						}
 					})
 				})
@@ -1083,10 +1096,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Namespace, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Namespace
+							prev = r.Namespace
 						}
 					})
 				})
@@ -1096,10 +1109,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Cluster, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Cluster
+							prev = r.Cluster
 						}
 					})
 				})
@@ -1109,10 +1122,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Domain, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Domain
+							prev = r.Domain
 						}
 					})
 				})
@@ -1122,10 +1135,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Project, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Project
+							prev = r.Project
 						}
 					})
 				})
@@ -1135,10 +1148,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Pod, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Pod
+							prev = r.Pod
 						}
 					})
 				})
@@ -1148,10 +1161,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Container, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Container
+							prev = r.Container
 						}
 					})
 				})
@@ -1161,10 +1174,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev int = -1
+						prev := -1
 						for _, r := range res {
 							Expect(r.ComponentInstance.Type.Index() >= prev).Should(BeTrue())
-							prev = r.ComponentInstance.Type.Index()
+							prev = r.Type.Index()
 						}
 					})
 				})
@@ -1192,10 +1205,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := prev
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.CCRN, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.CCRN
+							prev = r.CCRN
 						}
 					})
 				})
@@ -1205,10 +1218,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := prev
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Region, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Region
+							prev = r.Region
 						}
 					})
 				})
@@ -1218,10 +1231,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := prev
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Namespace, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Namespace
+							prev = r.Namespace
 						}
 					})
 				})
@@ -1231,10 +1244,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := prev
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Cluster, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Cluster
+							prev = r.Cluster
 						}
 					})
 				})
@@ -1244,10 +1257,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := prev
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Domain, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Domain
+							prev = r.Domain
 						}
 					})
 				})
@@ -1257,10 +1270,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := prev
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Project, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Project
+							prev = r.Project
 						}
 					})
 				})
@@ -1270,10 +1283,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := prev
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Pod, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Pod
+							prev = r.Pod
 						}
 					})
 				})
@@ -1283,10 +1296,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := prev
 						for _, r := range res {
 							Expect(c.CompareString(r.ComponentInstance.Container, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Container
+							prev = r.Container
 						}
 					})
 				})
@@ -1296,10 +1309,10 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev int = math.MaxInt
+						prev := math.MaxInt
 						for _, r := range res {
 							Expect(r.ComponentInstance.Type.Index() <= prev).Should(BeTrue())
-							prev = r.ComponentInstance.Type.Index()
+							prev = r.Type.Index()
 						}
 					})
 				})
@@ -1516,7 +1529,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 				})
 				It("and using notexisting value filter returns an empty list when no Project match the filter", func() {
-					notexistentProject := "NotexistentProject"
+					notexistentProject := notExistentProject
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetProject,
 						&entity.ComponentInstanceFilter{Project: []*string{&notexistentProject}},

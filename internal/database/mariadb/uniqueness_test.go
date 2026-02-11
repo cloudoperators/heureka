@@ -41,7 +41,7 @@ var _ = Describe("Delete uniqueness", Ordered, Label("database", "Uniqueness"), 
 	})
 
 	AfterAll(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	for label, uut := range testTemplates {

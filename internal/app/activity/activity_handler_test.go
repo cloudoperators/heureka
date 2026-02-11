@@ -7,7 +7,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/cloudoperators/heureka/internal/app/activity"
 	a "github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -50,7 +49,7 @@ func activityFilter() *entity.ActivityFilter {
 var _ = Describe("When listing Activities", Label("app", "ListActivities"), func() {
 	var (
 		db              *mocks.MockDatabase
-		activityHandler activity.ActivityHandler
+		activityHandler a.ActivityHandler
 		filter          *entity.ActivityFilter
 		options         *entity.ListOptions
 	)
@@ -159,7 +158,6 @@ var _ = Describe("When updating Activity", Label("app", "UpdateService"), func()
 		activity = test.NewFakeActivityEntity()
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.ActivityFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -205,7 +203,6 @@ var _ = Describe("When deleting Activity", Label("app", "DeleteActivity"), func(
 		id = 1
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.ActivityFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -249,7 +246,6 @@ var _ = Describe("When modifying relationship of Service and Activity", Label("a
 		activity = test.NewFakeActivityEntity()
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.ActivityFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -303,7 +299,6 @@ var _ = Describe("When modifying relationship of Issue and Activity", Label("app
 		activity = test.NewFakeActivityEntity()
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.ActivityFilter{
 			Paginated: entity.Paginated{
 				First: &first,

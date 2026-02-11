@@ -18,7 +18,7 @@ var _ = Describe("ScannerRun", Label("database", "ScannerRun"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Creating a new ScannerRun", Label("Create"), func() {

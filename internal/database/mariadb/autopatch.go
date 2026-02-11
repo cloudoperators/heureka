@@ -7,6 +7,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 )
 
 func (s *SqlDatabase) Autopatch() (bool, error) {
@@ -28,7 +29,11 @@ func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst() (map[string][]int, err
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	// tag -> list of runs (newest first)
 	runs := map[string][]int{}
@@ -205,7 +210,7 @@ func (s *SqlDatabase) getVersionIdsOfDisappearedInstances(disappearedInstances [
 
 func (s *SqlDatabase) getComponentIdsOfDisappearedInstances(versions map[int64]struct{}) (map[int64]struct{}, error) {
 	var versionsToFilter []*int64
-	for v, _ := range versions {
+	for v := range versions {
 		versionsToFilter = append(versionsToFilter, &v)
 	}
 
@@ -223,7 +228,7 @@ func (s *SqlDatabase) getComponentIdsOfDisappearedInstances(versions map[int64]s
 }
 
 func (s *SqlDatabase) deleteVersionIssuesOfDisappearedInstances(versionIdsOfDisappearedInstances map[int64]struct{}) error {
-	for vIdDi, _ := range versionIdsOfDisappearedInstances {
+	for vIdDi := range versionIdsOfDisappearedInstances {
 		if err := s.RemoveAllIssuesFromComponentVersion(vIdDi); err != nil {
 			return err
 		}
@@ -233,7 +238,7 @@ func (s *SqlDatabase) deleteVersionIssuesOfDisappearedInstances(versionIdsOfDisa
 }
 
 func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(versionIdsOfDisappearedInstances map[int64]struct{}) error {
-	for vIdDi, _ := range versionIdsOfDisappearedInstances {
+	for vIdDi := range versionIdsOfDisappearedInstances {
 		cif := entity.ComponentInstanceFilter{ComponentVersionId: []*int64{&vIdDi}}
 		res, err := s.GetComponentInstances(&cif, nil)
 		if err != nil {
@@ -250,7 +255,7 @@ func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(versionIdsOfDisappear
 }
 
 func (s *SqlDatabase) deleteComponentsOfDisappearedInstances(componentIdsOfDisappearedInstances map[int64]struct{}) error {
-	for cIdDi, _ := range componentIdsOfDisappearedInstances {
+	for cIdDi := range componentIdsOfDisappearedInstances {
 		cvf := entity.ComponentVersionFilter{ComponentId: []*int64{&cIdDi}}
 		res, err := s.GetComponentVersions(&cvf, nil)
 		if err != nil {
@@ -290,7 +295,11 @@ func (s *SqlDatabase) fetchComponentInstancesForRun(scannerRunId int) (map[int]s
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	instances := map[int]struct{}{}
 	for rows.Next() {
@@ -348,7 +357,7 @@ func (s *SqlDatabase) insertPatchIfNoInstanceExists(patch patchInfo) error {
 		)
 	`
 
-	res, err := s.db.Exec(
+	_, err := s.db.Exec(
 		query,
 		patch.serviceId,
 		patch.serviceName,
@@ -359,12 +368,6 @@ func (s *SqlDatabase) insertPatchIfNoInstanceExists(patch patchInfo) error {
 	)
 	if err != nil {
 		return err
-	}
-
-	// Detection of skipped patch:
-	affected, _ := res.RowsAffected()
-	if affected == 0 {
-		// Patch was NOT inserted
 	}
 
 	return nil

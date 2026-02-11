@@ -15,8 +15,8 @@ import (
 )
 
 func ensureComponentVersionFilter(f *entity.ComponentVersionFilter) *entity.ComponentVersionFilter {
-	var first int = 1000
-	var after string = ""
+	first := 1000
+	after := ""
 	if f == nil {
 		return &entity.ComponentVersionFilter{
 			PaginatedX: entity.PaginatedX{
@@ -132,7 +132,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 
 	filterStr := getComponentVersionFilterString(filter)
 	joins := s.getComponentVersionJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -186,7 +186,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -207,8 +207,11 @@ func (s *SqlDatabase) GetAllComponentVersionIds(filter *entity.ComponentVersionF
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -272,8 +275,11 @@ func (s *SqlDatabase) GetComponentVersions(filter *entity.ComponentVersionFilter
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -315,8 +321,11 @@ func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilt
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }

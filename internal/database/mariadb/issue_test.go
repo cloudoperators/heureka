@@ -21,6 +21,9 @@ import (
 	"github.com/samber/lo"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("Issue", Label("database", "Issue"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -31,7 +34,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All Issue IDs", Label("GetAllIssueIds"), func() {
@@ -87,6 +90,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 			})
 			Context("and using a filter", func() {
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single issue id that does exist", func() {
 					issueId := ids[rand.Intn(len(ids))]
 					filter := &entity.IssueFilter{
@@ -167,6 +173,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 			})
 			Context("and using a filter", func() {
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single service name", func() {
 					var row mariadb.BaseServiceRow
 					searchingRow := true
@@ -225,6 +234,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(len(entries)).To(BeEquivalentTo(len(expectedIssues)))
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single issue Id", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
 					filter := &entity.IssueFilter{Id: []*int64{&row.Id.Int64}}
@@ -243,6 +255,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(entries[0].Issue.Id).To(BeEquivalentTo(row.Id.Int64))
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single service Id", func() {
 					serviceRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 					ciIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
@@ -266,6 +281,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single support group ccrn", func() {
 					sgRow := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
 					serviceIds := lo.FilterMap(seedCollection.SupportGroupServiceRows, func(sgs mariadb.SupportGroupServiceRow, _ int) (int64, bool) {
@@ -292,6 +310,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single activity id", func() {
 					// select an activity
 					activityRow := seedCollection.ActivityRows[rand.Intn(len(seedCollection.ActivityRows))]
@@ -318,6 +339,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single component version id", func() {
 					// select a componentVersion
 					cvRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
@@ -344,6 +368,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single component id", func() {
 					// select a component
 					cRow := seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
@@ -378,6 +405,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a single issueVariant id", func() {
 					// select an issueVariant
 					issueVariantRow := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
@@ -399,6 +429,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(issueIds).To(ContainElement(issueVariantRow.IssueId.Int64))
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by a issueType", func() {
 					issueType := entity.AllIssueTypes[rand.Intn(len(entity.AllIssueTypes))]
 
@@ -427,6 +460,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(hasMatch).To(BeTrue(), "Entry should have at least one matching IssueMatchRow")
 					}
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter by issueMatch severity", func() {
 					for _, severity := range entity.AllSeverityValues {
 						issueIds := lo.FilterMap(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
@@ -443,6 +479,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					}
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter issue PrimaryName using wild card search", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
 
@@ -477,6 +516,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(issueIds).To(ContainElement(row.Id.Int64))
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				It("can filter issue variant SecondaryName using wild card search", func() {
 					// select an issueVariant
 					issueVariantRow := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
@@ -508,6 +550,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(issueIds).To(ContainElement(issueVariantRow.IssueId.Int64))
 					})
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				When("filtered by IssueStatus", func() {
 					var remediation entity.Remediation
 					BeforeEach(func() {
@@ -591,7 +636,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			BeforeEach(func() {
 				newIssueRow := test.NewFakeIssue()
 				newIssue := newIssueRow.AsIssue()
-				db.CreateIssue(&newIssue)
+				_, _ = db.CreateIssue(&newIssue)
 			})
 			It("returns the issues with aggregations", func() {
 				entriesWithAggregations, err := db.GetIssuesWithAggregations(nil, nil)
@@ -638,7 +683,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 			})
 			It("returns correct aggregation values", func() {
-				//Should be filled with a check for each aggregation value,
+				// Should be filled with a check for each aggregation value,
 				// this is currently skipped due to the complexity of the test implementation
 				// as we would need to implement for each of the aggregations a manual aggregation
 				// based on the seederCollection.
@@ -710,7 +755,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("does not influence the count when pagination is applied", func() {
 					first := 1
-					var after string = ""
+					after := ""
 					filter := &entity.IssueFilter{
 						PaginatedX: entity.PaginatedX{
 							First: &first,
@@ -1084,7 +1129,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	testOrder := func(
@@ -1134,7 +1179,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 			}
 
 			testOrder(order, func(res []entity.IssueResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					Expect(r).ShouldNot(BeNil())
 					Expect(r.PrimaryName >= prev).Should(BeTrue())
@@ -1189,7 +1234,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 			}
 
 			testOrder(order, func(res []entity.IssueResult) {
-				var prev string = "\U0010FFFF"
+				prev := prev
 				for _, r := range res {
 					Expect(r).ShouldNot(BeNil())
 					Expect(r.PrimaryName <= prev).Should(BeTrue())

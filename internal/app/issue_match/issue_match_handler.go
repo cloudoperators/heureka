@@ -164,7 +164,7 @@ func (im *issueMatchHandler) CreateIssueMatch(ctx context.Context, issueMatch *e
 		IssueId: []*int64{&issueMatch.IssueId},
 	}
 
-	//@todo discuss: may be moved to somewhere else?
+	// @todo discuss: may be moved to somewhere else?
 	effectiveSeverity, err := im.severityHandler.GetSeverity(severityFilter)
 	if err != nil {
 		l.Error(err)

@@ -6,7 +6,7 @@ package test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -36,7 +36,7 @@ func NewTestServer(auth *middleware.Auth, enableLog bool) *TestServer {
 	port := util2.GetRandomFreePort()
 	log := logrus.New()
 	if !enableLog {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 	}
 	return &TestServer{
 		port: port,
@@ -57,6 +57,8 @@ func (ts *TestServer) StartInBackground() {
 
 	ts.ctx, ts.cancel = context.WithCancel(context.Background())
 
+	// nolint due to unset values for timeouts
+	//nolint:gosec
 	ts.srv = &http.Server{Addr: fmt.Sprintf(":%s", ts.port), Handler: r}
 	util2.FirstListenThenServe(ts.srv, ts.log)
 }

@@ -36,6 +36,9 @@ func NewIssueRepositoryFilter() *IssueRepositoryFilter {
 
 type IssueRepositoryAggregations struct{}
 
+// nolint due to embedding structures with the same fields
+//
+//nolint:govet
 type IssueRepository struct {
 	BaseIssueRepository
 	IssueRepositoryService

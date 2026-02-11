@@ -6,6 +6,7 @@ package test
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -229,10 +230,13 @@ func NewDatabaseSeeder(cfg util.Config) (*DatabaseSeeder, error) {
 }
 
 func (s *DatabaseSeeder) CloseDbConnection() {
-	s.db.Close()
+	_ = s.db.Close()
 }
 
 // Generate a random CVSS 3.1 vector
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func GenerateRandomCVSS31Vector() string {
 	avValues := []string{"N", "A", "L", "P"}
 	acValues := []string{"L", "H"}
@@ -327,9 +331,9 @@ func GenerateRandomCVSS31Vector() string {
 func (s *DatabaseSeeder) SeedDbForServer(n int) *SeedCollection {
 	users := s.SeedUsers(n)
 	supportGroupsMap := s.SeedRealSupportGroups()
-	supportGroups := lo.Values[string, mariadb.SupportGroupRow](supportGroupsMap)
+	supportGroups := lo.Values(supportGroupsMap)
 	servicesMap := s.SeedRealServices()
-	services := lo.Values[string, mariadb.BaseServiceRow](servicesMap)
+	services := lo.Values(servicesMap)
 	components := s.SeedComponents(n)
 	componentVersions := s.SeedComponentVersions(n, components)
 	componentInstances := s.SeedComponentInstances(n, componentVersions, services)
@@ -574,11 +578,15 @@ func (s *DatabaseSeeder) SeedIssueRepositories() []mariadb.BaseIssueRepositoryRo
 		}
 		row.Id = sql.NullInt64{Int64: id, Valid: true}
 		repos[i] = row
-		i = i + 1
+		i++
 	}
+
 	return repos
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedIssueMatches(num int, issues []mariadb.IssueRow, componentInstances []mariadb.ComponentInstanceRow, users []mariadb.UserRow) []mariadb.IssueMatchRow {
 	var issueMatches []mariadb.IssueMatchRow
 	for i := 0; i < num; i++ {
@@ -668,6 +676,9 @@ func (s *DatabaseSeeder) SeedSupportGroups(num int) []mariadb.SupportGroupRow {
 	return supportGroups
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedSupportGroupServices(num int, services []mariadb.BaseServiceRow, supportGroups []mariadb.SupportGroupRow) []mariadb.SupportGroupServiceRow {
 	var rows []mariadb.SupportGroupServiceRow
 	for i := 0; i < num; i++ {
@@ -688,6 +699,9 @@ func (s *DatabaseSeeder) SeedSupportGroupServices(num int, services []mariadb.Ba
 	return rows
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedSupportGroupUsers(num int, users []mariadb.UserRow, supportGroups []mariadb.SupportGroupRow) []mariadb.SupportGroupUserRow {
 	var rows []mariadb.SupportGroupUserRow
 	for i := 0; i < num; i++ {
@@ -740,6 +754,9 @@ func (s *DatabaseSeeder) SeedComponents(num int) []mariadb.ComponentRow {
 	return components
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedComponentVersions(num int, components []mariadb.ComponentRow) []mariadb.ComponentVersionRow {
 	var componentVersions []mariadb.ComponentVersionRow
 	for i := 0; i < num; i++ {
@@ -759,6 +776,9 @@ func (s *DatabaseSeeder) SeedComponentVersions(num int, components []mariadb.Com
 	return componentVersions
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedComponentInstances(num int, componentVersions []mariadb.ComponentVersionRow, services []mariadb.BaseServiceRow) []mariadb.ComponentInstanceRow {
 	var componentInstances []mariadb.ComponentInstanceRow
 	for i := 0; i < num; i++ {
@@ -795,6 +815,9 @@ func (s *DatabaseSeeder) SeedUsers(num int) []mariadb.UserRow {
 	return users
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedOwners(num int, services []mariadb.BaseServiceRow, users []mariadb.UserRow) []mariadb.OwnerRow {
 	var owners []mariadb.OwnerRow
 	for i := 0; i < num; i++ {
@@ -830,6 +853,9 @@ func (s *DatabaseSeeder) SeedActivities(num int) []mariadb.ActivityRow {
 	return activities
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedActivityHasServices(num int, activities []mariadb.ActivityRow, services []mariadb.BaseServiceRow) []mariadb.ActivityHasServiceRow {
 	var ahsList []mariadb.ActivityHasServiceRow
 	for i := 0; i < num; i++ {
@@ -850,6 +876,9 @@ func (s *DatabaseSeeder) SeedActivityHasServices(num int, activities []mariadb.A
 	return ahsList
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedIssueMatchEvidence(num int, im []mariadb.IssueMatchRow, e []mariadb.EvidenceRow) []mariadb.IssueMatchEvidenceRow {
 	var imeList []mariadb.IssueMatchEvidenceRow
 	for i := 0; i < num; i++ {
@@ -871,6 +900,9 @@ func (s *DatabaseSeeder) SeedIssueMatchEvidence(num int, im []mariadb.IssueMatch
 	return imeList
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedActivityHasIssues(num int, activities []mariadb.ActivityRow, issues []mariadb.IssueRow) []mariadb.ActivityHasIssueRow {
 	ahiList := make([]mariadb.ActivityHasIssueRow, num)
 	for i := 0; i < num; i++ {
@@ -890,6 +922,9 @@ func (s *DatabaseSeeder) SeedActivityHasIssues(num int, activities []mariadb.Act
 	return ahiList
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedEvidences(num int, activities []mariadb.ActivityRow, users []mariadb.UserRow) []mariadb.EvidenceRow {
 	var evidences []mariadb.EvidenceRow
 	for i := 0; i < num; i++ {
@@ -911,6 +946,9 @@ func (s *DatabaseSeeder) SeedEvidences(num int, activities []mariadb.ActivityRow
 	return evidences
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedComponentVersionIssues(num int, componentVersions []mariadb.ComponentVersionRow, issues []mariadb.IssueRow) []mariadb.ComponentVersionIssueRow {
 	cviList := make([]mariadb.ComponentVersionIssueRow, num)
 	for i := 0; i < num; i++ {
@@ -931,6 +969,9 @@ func (s *DatabaseSeeder) SeedComponentVersionIssues(num int, componentVersions [
 	return cviList
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedIssueRepositoryServices(num int, services []mariadb.BaseServiceRow, issueRepositories []mariadb.BaseIssueRepositoryRow) []mariadb.IssueRepositoryServiceRow {
 	var rows []mariadb.IssueRepositoryServiceRow
 	for i := 0; i < num; i++ {
@@ -952,6 +993,9 @@ func (s *DatabaseSeeder) SeedIssueRepositoryServices(num int, services []mariadb
 	return rows
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func (s *DatabaseSeeder) SeedRemediations(num int, services []mariadb.BaseServiceRow, components []mariadb.ComponentRow, issues []mariadb.IssueRow) []mariadb.RemediationRow {
 	var rows []mariadb.RemediationRow
 	for i := 0; i < num; i++ {
@@ -1440,7 +1484,11 @@ func (s *DatabaseSeeder) ExecPreparedNamed(query string, obj any) (int64, error)
 	if err != nil {
 		return 0, err
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			log.Printf("error during closing statement: %s", err)
+		}
+	}()
 
 	res, err := stmt.Exec(obj)
 	if err != nil {
@@ -1479,6 +1527,9 @@ func NewFakeIssue() mariadb.IssueRow {
 	}
 }
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.IssueRow) mariadb.IssueVariantRow {
 	variants := []string{"GHSA", "RHSA", "VMSA"}
 	v := GenerateRandomCVSS31Vector()
@@ -1580,7 +1631,7 @@ func GenerateFakeCcrn(cluster string, namespace string) string {
 func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	n := gofakeit.Int16()
 	if n < 0 {
-		n = n * -1
+		n *= -1
 	}
 	region := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"})
 	cluster := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1", "a-test-de-1", "a-test-de-2", "a-test-us-1", "a-test-jp-2", "a-test-jp-1", "v-test-de-1", "v-test-de-2", "v-test-us-1", "v-test-jp-2", "v-test-jp-1", "s-test-de-1", "s-test-de-2", "s-test-us-1", "s-test-jp-2", "s-test-jp-1"})
@@ -1901,7 +1952,7 @@ func (s *DatabaseSeeder) SeedRealSupportGroupService(services map[string]mariadb
 			SupportGroupId: sql.NullInt64{Int64: supportGroups[sg].Id.Int64, Valid: true},
 			ServiceId:      sql.NullInt64{Int64: services[service].Id.Int64, Valid: true},
 		}
-		s.InsertFakeSupportGroupService(sgsr)
+		_, _ = s.InsertFakeSupportGroupService(sgsr)
 		sgs = append(sgs, sgsr)
 	}
 	return sgs
@@ -1916,7 +1967,11 @@ func (s *DatabaseSeeder) Clear() error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("error during closing rows: %s", err)
+		}
+	}()
 
 	var table string
 	for rows.Next() {

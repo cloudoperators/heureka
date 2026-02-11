@@ -46,7 +46,7 @@ func SingleComponentVersionBaseResolver(app app.Heureka, ctx context.Context, pa
 		return nil, nil
 	}
 
-	var cvr entity.ComponentVersionResult = componentVersions.Elements[0]
+	cvr := componentVersions.Elements[0]
 	componentVersion := model.NewComponentVersion(cvr.ComponentVersion)
 
 	return &componentVersion, nil
@@ -126,7 +126,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	componentVersions, err := app.ListComponentVersions(f, opt)
-	//@todo propper error handling
+	// @todo propper error handling
 	if err != nil {
 		return nil, NewResolverError("ComponentVersionBaseResolver", err.Error())
 	}

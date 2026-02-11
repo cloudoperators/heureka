@@ -44,7 +44,7 @@ func (p *PausableProxy) Start() error {
 
 func (p *PausableProxy) Stop() {
 	close(p.stopChan)
-	p.listener.Close()
+	_ = p.listener.Close()
 	p.wg.Wait()
 }
 
@@ -107,19 +107,25 @@ func (p *PausableProxy) handleConnection(src net.Conn) {
 	dst, err := net.Dial("tcp", p.targetAddr)
 	if err != nil {
 		log.Println("Failed to connect to target:", err)
-		src.Close()
+		_ = src.Close()
 		return
 	}
 
 	go func() {
-		defer src.Close()
-		defer dst.Close()
-		io.Copy(dst, src)
+		defer func() {
+			_ = dst.Close()
+			_ = src.Close()
+		}()
+
+		_, _ = io.Copy(dst, src)
 	}()
 
 	go func() {
-		defer src.Close()
-		defer dst.Close()
-		io.Copy(src, dst)
+		defer func() {
+			_ = dst.Close()
+			_ = src.Close()
+		}()
+
+		_, _ = io.Copy(src, dst)
 	}()
 }

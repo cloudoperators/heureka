@@ -38,7 +38,11 @@ func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.Exec(fmt.Sprintf("USE %s", cfg.DBName))
+
+	if _, err := db.Exec(fmt.Sprintf("USE %s", cfg.DBName)); err != nil {
+		return nil, fmt.Errorf("failed to use specified db name: %w", err)
+	}
+
 	return &SqlDatabase{
 		db:                    db,
 		defaultIssuePriority:  cfg.DefaultIssuePriority,
@@ -60,7 +64,7 @@ func (s *SqlDatabase) ConnectDB(dbName string) error {
 func (s *SqlDatabase) connectDB() error {
 	_, err := s.db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s ; USE %s", s.dbName, s.dbName))
 	if err != nil {
-		return fmt.Errorf("Could not use database '%s'. %w", s.dbName, err)
+		return fmt.Errorf("could not use database '%s'. %w", s.dbName, err)
 	}
 	return nil
 }
@@ -170,8 +174,12 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 			}).Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
-	defer stmt.Close()
 	res, err := stmt.Exec(item)
 	if err != nil {
 		msg := err.Error()
@@ -195,8 +203,12 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt S
 			}).Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
-	defer rows.Close()
 	var listEntries []E
 	for rows.Next() {
 		var row T
@@ -214,8 +226,12 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt S
 
 		listEntries = listBuilder(listEntries, row)
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
-	rows.Close()
 	l.WithFields(
 		logrus.Fields{
 			"count": len(listEntries),
@@ -237,7 +253,11 @@ func performIdScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry) (
 
 		return make([]int64, 0), fmt.Errorf("%s", msg)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	var listEntries []int64
 	for rows.Next() {
@@ -277,7 +297,11 @@ func performCountScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry
 
 		return -1, fmt.Errorf("%s", msg)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	rows.Next()
 	var row int64
@@ -339,9 +363,10 @@ func buildStateFilterQuery(state []entity.StateFilterType, prefix string) string
 		stateQueries = append(stateQueries, fmt.Sprintf("%s_deleted_at IS NULL", prefix))
 	} else {
 		for i := range state {
-			if state[i] == entity.Active {
+			switch state[i] {
+			case entity.Active:
 				stateQueries = append(stateQueries, fmt.Sprintf("%s_deleted_at IS NULL", prefix))
-			} else if state[i] == entity.Deleted {
+			case entity.Deleted:
 				stateQueries = append(stateQueries, fmt.Sprintf("%s_deleted_at IS NOT NULL", prefix))
 			}
 		}

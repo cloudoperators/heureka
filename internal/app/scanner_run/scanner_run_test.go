@@ -60,9 +60,10 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("Autopatch").Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(handlerContext)
-		scannerRunHandler.CreateScannerRun(sre)
-		_, err := scannerRunHandler.CompleteScannerRun(sre.UUID)
+		_, err := scannerRunHandler.CreateScannerRun(sre)
+		Expect(err).To(BeNil())
 
+		_, err = scannerRunHandler.CompleteScannerRun(sre.UUID)
 		Expect(err).To(BeNil())
 	})
 
@@ -71,9 +72,10 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 		db.On("FailScannerRun", sre.UUID, "Booom!").Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(handlerContext)
-		scannerRunHandler.CreateScannerRun(sre)
-		_, err := scannerRunHandler.FailScannerRun(sre.UUID, "Booom!")
+		_, err := scannerRunHandler.CreateScannerRun(sre)
+		Expect(err).To(BeNil())
 
+		_, err = scannerRunHandler.FailScannerRun(sre.UUID, "Booom!")
 		Expect(err).To(BeNil())
 	})
 

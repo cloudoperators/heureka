@@ -170,8 +170,11 @@ func (s *SqlDatabase) GetAllIssueVariantIds(filter *entity.IssueVariantFilter) (
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -192,8 +195,11 @@ func (s *SqlDatabase) GetIssueVariants(filter *entity.IssueVariantFilter) ([]ent
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -219,8 +225,11 @@ func (s *SqlDatabase) CountIssueVariants(filter *entity.IssueVariantFilter) (int
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(
 		stmt,

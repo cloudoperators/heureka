@@ -15,6 +15,9 @@ import (
 	"github.com/samber/lo"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -25,7 +28,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All IssueVariant IDs", Label("GetAllIssueVariantIds"), func() {
@@ -80,6 +83,9 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					})
 				})
 			})
+			// nolint due to weak random number generator for test reason
+			//
+			//nolint:gosec
 			Context("and using a filter", func() {
 				It("can filter by a single issue variant id that does exist", func() {
 					ivId := ids[rand.Intn(len(ids))]

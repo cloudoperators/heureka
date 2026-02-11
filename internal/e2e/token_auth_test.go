@@ -36,7 +36,7 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("trying to access query resource with valid token", func() {

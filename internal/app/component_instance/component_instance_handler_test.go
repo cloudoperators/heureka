@@ -30,6 +30,10 @@ func TestComponentInstanceHandler(t *testing.T) {
 	RunSpecs(t, "Component Instance Service Test Suite")
 }
 
+const (
+	recordSetType = "RecordSet"
+)
+
 var (
 	er    event.EventRegistry
 	authz openfga.Authorization
@@ -209,7 +213,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			// Ensure type is allowed if ParentId is set
-			componentInstance.Type = "RecordSet"
+			componentInstance.Type = recordSetType
 			componentInstance.ParentId = 1234
 			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(common.NewAdminContext(), &componentInstance, nil)
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -240,7 +244,7 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			// Ensure type is allowed if ParentId is set
-			componentInstance.Type = "RecordSet"
+			componentInstance.Type = recordSetType
 			componentInstance.ParentId = 1234
 			// Set ComponentVersionId to 0 to test creation without it
 			componentInstance.ComponentVersionId = 0
@@ -305,7 +309,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			componentInstance.Project = "NewProject"
 			componentInstance.Pod = "NewPod"
 			componentInstance.Container = "NewContainer"
-			componentInstance.Type = "RecordSet"
+			componentInstance.Type = recordSetType
 			componentInstance.Context = &entity.Json{"my_ip": "192.168.0.0"}
 			componentInstance.ParentId = 1234
 			componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)

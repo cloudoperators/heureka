@@ -12,7 +12,7 @@ import (
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model.RemediationFilter, first *int, after *string, orderBy []*model.RemediationOrderBy, parent *model.NodeParent) (*model.RemediationConnection, error) {
@@ -31,8 +31,7 @@ func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model
 			return nil, ToGraphQLError(appErrors.E(appErrors.Op("RemediationBaseResolver"), "Remediation", appErrors.InvalidArgument, "Error while parsing propagated ID"))
 		}
 
-		switch parent.ParentName {
-		case model.ServiceNodeName:
+		if parent.ParentName == model.ServiceNodeName {
 			serviceId = []*int64{pid}
 		}
 	}
@@ -46,7 +45,7 @@ func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		Service:    filter.Service,
 		Component:  filter.Image,
 		Issue:      filter.Vulnerability,
-		Type:       lo.Map(filter.Type, func(item *model.RemediationTypeValues, _ int) *string { return pointer.String(item.String()) }),
+		Type:       lo.Map(filter.Type, func(item *model.RemediationTypeValues, _ int) *string { return ptr.To(item.String()) }),
 		ServiceId:  serviceId,
 		State:      model.GetStateFilterType(filter.State),
 		Search:     filter.Search,

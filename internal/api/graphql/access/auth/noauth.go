@@ -10,10 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	noAuthMethodName string = "NoAuthMethod"
-)
-
 type NoAuthMethod struct {
 	logger         *logrus.Logger
 	authMethodName string
@@ -25,5 +21,5 @@ func NewNoAuthMethod(l *logrus.Logger, authMethodName string, msg string) authMe
 }
 
 func (nam NoAuthMethod) Verify(*gin.Context) error {
-	return verifyError(nam.authMethodName, fmt.Errorf("Auth failed: %s", nam.msg))
+	return verifyError(nam.authMethodName, fmt.Errorf("auth failed: %s", nam.msg))
 }

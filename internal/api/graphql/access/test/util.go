@@ -16,6 +16,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
+	// nolint due to importing all functions from gomega package
+	//nolint: staticcheck
 	. "github.com/onsi/gomega"
 )
 
@@ -44,7 +46,7 @@ func unmarshalResponseData(resp *http.Response, respData interface{}) {
 
 func ExpectErrorMessage(resp *http.Response, expectedMsg string) {
 	var respData struct {
-		Error string `json:"error" required:true`
+		Error string `json:"error"`
 	}
 	unmarshalResponseData(resp, &respData)
 	Expect(respData.Error).To(Equal(expectedMsg))
@@ -52,7 +54,7 @@ func ExpectErrorMessage(resp *http.Response, expectedMsg string) {
 
 func ExpectRegexErrorMessage(resp *http.Response, expectedRegexMsg string, args ...interface{}) {
 	var respData struct {
-		Error string `json:"error" required:true`
+		Error string `json:"error"`
 	}
 	unmarshalResponseData(resp, &respData)
 	Expect(respData.Error).Should(MatchRegexp(expectedRegexMsg, args...))

@@ -46,7 +46,7 @@ func SingleUserBaseResolver(app app.Heureka, ctx context.Context, parent *model.
 		return nil, nil
 	}
 
-	var ur entity.UserResult = users.Elements[0]
+	ur := users.Elements[0]
 	user := model.NewUser(ur.User)
 
 	return &user, nil

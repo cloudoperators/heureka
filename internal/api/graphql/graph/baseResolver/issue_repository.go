@@ -46,7 +46,7 @@ func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, par
 		return nil, nil
 	}
 
-	var irr entity.IssueRepositoryResult = issueRepositories.Elements[0]
+	irr := issueRepositories.Elements[0]
 	issueRepository := model.NewIssueRepository(irr.IssueRepository)
 
 	return &issueRepository, nil
@@ -74,8 +74,7 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 			return nil, NewResolverError("IssueRepositoryBaseResolver", "Bad Request - Error while parsing propagated ID")
 		}
 
-		switch parent.ParentName {
-		case model.ServiceNodeName:
+		if parent.ParentName == model.ServiceNodeName {
 			serviceId = []*int64{pid}
 		}
 	}
@@ -109,7 +108,7 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 		}
 
 		if lo.Contains(requestedFields, "edges.priority") {
-			p := int(result.IssueRepositoryService.Priority)
+			p := int(result.Priority)
 			edge.Priority = &p
 		}
 

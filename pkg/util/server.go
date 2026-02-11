@@ -11,7 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// FirstListenThenServe is a utility function that ensures that first a listener is spin up then the http server is setup for serving asynchronously
+// FirstListenThenServe is a utility function that ensures that first a listener is spin up
+// then the http server is setup for serving asynchronously
 // this is requried to ensure in tests that the server is spinned up before jumping to tests.
 func FirstListenThenServe(srv *http.Server, log *logrus.Logger) {
 	var waitGroup sync.WaitGroup

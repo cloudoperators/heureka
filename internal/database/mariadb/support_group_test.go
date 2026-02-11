@@ -18,6 +18,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -28,7 +31,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All SupportGroup IDs", Label("GetAllSupportGroupIds"), func() {
@@ -284,10 +287,10 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 							},
 						}
 						testOrder(order, func(res []entity.SupportGroupResult) {
-							var prev string = ""
+							prev := ""
 							for _, r := range res {
 								Expect(c.CompareString(r.SupportGroup.CCRN, prev)).Should(BeNumerically(">=", 0))
-								prev = r.SupportGroup.CCRN
+								prev = r.CCRN
 							}
 						})
 					})
@@ -301,10 +304,10 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 							},
 						}
 						testOrder(order, func(res []entity.SupportGroupResult) {
-							var prev string = "\U0010FFFF"
+							prev := prev
 							for _, r := range res {
 								Expect(c.CompareString(r.SupportGroup.CCRN, prev)).Should(BeNumerically("<=", 0))
-								prev = r.SupportGroup.CCRN
+								prev = r.CCRN
 							}
 						})
 					})

@@ -17,6 +17,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -27,7 +30,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting Remediations", Label("GetRemediations"), func() {
@@ -331,7 +334,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 
 					ids := []int64{}
 					for _, entry := range entries {
-						ids = append(ids, entry.Remediation.Id)
+						ids = append(ids, entry.Id)
 					}
 
 					By("throwing no error", func() {
@@ -383,7 +386,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			seeder.SeedDbWithNFakeData(10)
 		})
 		AfterEach(func() {
-			dbm.TestTearDown(db)
+			_ = dbm.TestTearDown(db)
 		})
 		It("orders by vulnerability asc", func() {
 			order := []entity.Order{{By: entity.RemediationIssue, Direction: entity.OrderDirectionAsc}}
@@ -405,7 +408,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
-			weight := map[string]int{"None":1, "Low":2, "Medium":3, "High":4, "Critical":5}
+			weight := map[string]int{"None": 1, "Low": 2, "Medium": 3, "High": 4, "Critical": 5}
 			prevW := 100
 			for _, e := range entries {
 				w := weight[string(e.Severity)]

@@ -55,7 +55,9 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 		storeId = store.Id
 	}
 	// update the storeId of the current instance
-	fgaClient.SetStoreId(storeId)
+	if err := fgaClient.SetStoreId(storeId); err != nil {
+		l.Error("failed to update current storeID: ", err)
+	}
 
 	// Check if the model already exists, otherwise create it
 	modelId, err := CheckModel(fgaClient, storeId)
@@ -81,7 +83,9 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 		modelId = modelResponse.AuthorizationModelId
 	}
 	// update the modelId of the current instance
-	fgaClient.SetAuthorizationModelId(modelId)
+	if err := fgaClient.SetAuthorizationModelId(modelId); err != nil {
+		l.Error("failed to update modelId for current instance: ", err)
+	}
 
 	l.Info("Initializing authorization with OpenFGA")
 	return &Authz{config: cfg, logger: l, client: fgaClient}
@@ -89,6 +93,7 @@ func NewAuthz(l *logrus.Logger, cfg *util.Config) Authorization {
 
 // Reads the authorization model from a file, before creating the model in OpenFGA
 func getAuthModelRequestFromFile(filePath string) (*client.ClientWriteAuthorizationModelRequest, error) {
+	//nolint:gosec
 	modelBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
@@ -141,7 +146,7 @@ func CheckModel(fgaClient *client.OpenFgaClient, storeId string) (string, error)
 func (a *Authz) CheckTuple(r RelationInput) (bool, error) {
 	userString := string(r.UserType) + ":" + string(r.UserId)
 	relationString := string(r.Relation)
-	objectString := string(r.ObjectType) + ":" + string(r.ObjectId)
+	objectString := string(r.ObjectType) + ":" + r.ObjectId
 
 	req := client.ClientReadRequest{
 		User:     &userString,
@@ -162,7 +167,7 @@ func (a *Authz) CheckPermission(p PermissionInput) (bool, error) {
 	req := client.ClientCheckRequest{
 		User:     string(p.UserType) + ":" + string(p.UserId),
 		Relation: string(p.Relation),
-		Object:   string(p.ObjectType) + ":" + string(p.ObjectId),
+		Object:   string(p.ObjectType) + ":" + p.ObjectId,
 	}
 	resp, err := a.client.Check(context.Background()).Body(req).Execute()
 	if err != nil {
@@ -182,7 +187,7 @@ func (a *Authz) AddRelation(r RelationInput) error {
 				{
 					User:     string(r.UserType) + ":" + string(r.UserId),
 					Relation: string(r.Relation),
-					Object:   string(r.ObjectType) + ":" + string(r.ObjectId),
+					Object:   string(r.ObjectType) + ":" + r.ObjectId,
 				},
 			},
 		}
@@ -209,7 +214,7 @@ func (a *Authz) RemoveRelation(r RelationInput) error {
 				{
 					User:     string(r.UserType) + ":" + string(r.UserId),
 					Relation: string(r.Relation),
-					Object:   string(r.ObjectType) + ":" + string(r.ObjectId),
+					Object:   string(r.ObjectType) + ":" + r.ObjectId,
 				},
 			},
 		}

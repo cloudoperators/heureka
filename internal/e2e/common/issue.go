@@ -12,6 +12,8 @@ import (
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/machinebox/graphql"
+	// nolint due to importing all functions from gomega package
+	//nolint: staticcheck
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -25,7 +27,7 @@ type Issue struct {
 func QueryCreateIssue(port string, issue Issue) *model.Issue {
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
-	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 	b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/create.graphql")
 	Expect(err).To(BeNil())
 	str := string(b)
@@ -53,7 +55,7 @@ func QueryUpdateIssue(port string, issue Issue, iid string) *model.Issue {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
-	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 	b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/update.graphql")
 	Expect(err).To(BeNil())
 	str := string(b)
@@ -81,7 +83,7 @@ func QueryDeleteIssue(port string, iid string) string {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
-	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 	b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/delete.graphql")
 	Expect(err).To(BeNil())
 	str := string(b)
@@ -105,7 +107,7 @@ func QueryGetIssueWithReqVars(port string, vars map[string]interface{}) *model.I
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
-	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 	b, err := os.ReadFile("../api/graphql/graph/queryCollection/issue/listIssues.graphql")
 	Expect(err).To(BeNil())
 	str := string(b)

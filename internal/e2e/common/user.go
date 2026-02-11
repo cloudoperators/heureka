@@ -14,6 +14,8 @@ import (
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/machinebox/graphql"
+	// nolint due to importing all functions from gomega package
+	//nolint: staticcheck
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -96,7 +98,7 @@ type User struct {
 func QueryCreateUser(port string, user User) *model.User {
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
-	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 	b, err := os.ReadFile("../api/graphql/graph/queryCollection/user/create.graphql")
 	Expect(err).To(BeNil())
 	str := string(b)
@@ -125,7 +127,7 @@ func QueryUpdateUser(port string, user User, uid string) *model.User {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
-	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 	b, err := os.ReadFile("../api/graphql/graph/queryCollection/user/update.graphql")
 	Expect(err).To(BeNil())
 	str := string(b)
@@ -153,7 +155,7 @@ func QueryGetUser(port string, uniqueUserId string) *model.UserConnection {
 	// create a queryCollection (safe to share across requests)
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
 
-	//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+	// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 	b, err := os.ReadFile("../api/graphql/graph/queryCollection/user/listUsers.graphql")
 	Expect(err).To(BeNil())
 	str := string(b)

@@ -32,7 +32,7 @@ func buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool,
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	}
 	return filterParameters
 }
@@ -135,8 +135,8 @@ func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []en
 }
 
 func ensureServiceFilter(f *entity.ServiceFilter) *entity.ServiceFilter {
-	var first int = 1000
-	var after string = ""
+	first := 1000
+	after := ""
 	if f == nil {
 		return &entity.ServiceFilter{
 			PaginatedX: entity.PaginatedX{
@@ -187,7 +187,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getServiceFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -247,8 +247,11 @@ func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error)
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
@@ -268,8 +271,11 @@ func (s *SqlDatabase) GetAllServiceIds(filter *entity.ServiceFilter) ([]int64, e
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -294,8 +300,11 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.O
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -370,7 +379,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	orderStr := CreateOrderString(order)
 	joins := s.getServiceJoins(filter, order)
 	columns := s.getServiceColumns(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, err
 	}
@@ -405,8 +414,11 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	filterParameters := buildServiceFilterParameters(filter, true, cursorFields)
 	// parameters for component instance query
 	filterParameters = append(filterParameters, buildServiceFilterParameters(filter, true, cursorFields)...)
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -455,8 +467,11 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	rows, err := performListScan(
 		stmt,
@@ -698,7 +713,11 @@ func (s *SqlDatabase) getServiceAttr(attrName string, filter *entity.ServiceFilt
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -706,7 +725,11 @@ func (s *SqlDatabase) getServiceAttr(attrName string, filter *entity.ServiceFilt
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	serviceAttrs := []string{}

@@ -18,7 +18,7 @@ func ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity.IssueMatchFilter
 	}
 
 	first := 1000
-	var after string = ""
+	after := ""
 	return &entity.IssueMatchFilter{
 		PaginatedX: entity.PaginatedX{
 			First: &first,
@@ -163,7 +163,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getIssueMatchFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -222,7 +222,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -283,7 +283,7 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(filter *entity.IssueMatchFilter, o
 			im.Issue = lo.ToPtr(row.IssueRow.AsIssue())
 		}
 		if row.ComponentInstanceRow != nil {
-			im.ComponentInstance = lo.ToPtr(row.ComponentInstanceRow.AsComponentInstance())
+			im.ComponentInstance = lo.ToPtr(row.AsComponentInstance())
 		}
 
 		cursor, _ := EncodeCursor(WithIssueMatch(order, im))
@@ -308,8 +308,11 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -321,7 +324,7 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
 				im.Issue = lo.ToPtr(e.IssueRow.AsIssue())
 			}
 			if e.ComponentInstanceRow != nil {
-				im.ComponentInstance = lo.ToPtr(e.ComponentInstanceRow.AsComponentInstance())
+				im.ComponentInstance = lo.ToPtr(e.AsComponentInstance())
 			}
 
 			cursor, _ := EncodeCursor(WithIssueMatch(order, im))

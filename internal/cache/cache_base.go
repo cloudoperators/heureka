@@ -91,38 +91,39 @@ func (cb *CacheBase) startMonitorIfNeeded(interval time.Duration) {
 func (cb *CacheBase) IncHit() {
 	cb.statMu.Lock()
 	defer cb.statMu.Unlock()
-	cb.stat.Hit = cb.stat.Hit + 1
+	cb.stat.Hit++
 }
 
 func (cb *CacheBase) IncMiss() {
 	cb.statMu.Lock()
 	defer cb.statMu.Unlock()
-	cb.stat.Miss = cb.stat.Miss + 1
+	cb.stat.Miss++
 }
 
-func (cb CacheBase) GetStat() Stat {
+func (cb *CacheBase) GetStat() Stat {
 	cb.statMu.RLock()
 	defer cb.statMu.RUnlock()
 	return cb.stat
 }
 
-func (cb CacheBase) EncodeKey(key string) string {
-	if cb.keyHash == KEY_HASH_SHA256 {
+func (cb *CacheBase) EncodeKey(key string) string {
+	switch cb.keyHash {
+	case KEY_HASH_SHA256:
 		return encodeSHA256(key)
-	} else if cb.keyHash == KEY_HASH_SHA512 {
+	case KEY_HASH_SHA512:
 		return encodeSHA512(key)
-	} else if cb.keyHash == KEY_HASH_HEX {
+	case KEY_HASH_HEX:
 		return encodeHex(key)
-	} else if cb.keyHash == KEY_HASH_NONE {
+	case KEY_HASH_NONE:
 		return key
 	}
 	return encodeBase64(key)
 }
 
-func (cb CacheBase) CacheKey(fnname string, fn interface{}, args ...interface{}) (string, error) {
+func (cb *CacheBase) CacheKey(fnname string, fn interface{}, args ...interface{}) (string, error) {
 	key, err := cacheKeyJson(fnname, fn, args...)
 	if err != nil {
-		return "", fmt.Errorf("Cache: could not create json cache key.")
+		return "", fmt.Errorf("cache: could not create json cache key")
 	}
 	return cb.EncodeKey(key), nil
 }

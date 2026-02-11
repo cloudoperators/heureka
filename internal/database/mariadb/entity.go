@@ -199,28 +199,28 @@ type IssueAggregationsRow struct {
 func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregations {
 	return entity.IssueWithAggregations{
 		IssueAggregations: entity.IssueAggregations{
-			Activities:                    lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.Activities)}),
-			IssueMatches:                  lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.IssueMatches)}),
-			AffectedServices:              lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.AffectedServices)}),
-			ComponentVersions:             lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.ComponentVersions)}),
-			AffectedComponentInstances:    lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.AffectedComponentInstances)}),
-			EarliestTargetRemediationDate: GetTimeValue(ibr.IssueAggregationsRow.EarliestTargetRemediationDate),
-			EarliestDiscoveryDate:         GetTimeValue(ibr.IssueAggregationsRow.EarliestDiscoveryDate),
+			Activities:                    lo.Max([]int64{0, GetInt64Value(ibr.Activities)}),
+			IssueMatches:                  lo.Max([]int64{0, GetInt64Value(ibr.IssueMatches)}),
+			AffectedServices:              lo.Max([]int64{0, GetInt64Value(ibr.AffectedServices)}),
+			ComponentVersions:             lo.Max([]int64{0, GetInt64Value(ibr.ComponentVersions)}),
+			AffectedComponentInstances:    lo.Max([]int64{0, GetInt64Value(ibr.AffectedComponentInstances)}),
+			EarliestTargetRemediationDate: GetTimeValue(ibr.EarliestTargetRemediationDate),
+			EarliestDiscoveryDate:         GetTimeValue(ibr.EarliestDiscoveryDate),
 		},
 		Issue: entity.Issue{
-			Id:            GetInt64Value(ibr.IssueRow.Id),
-			PrimaryName:   GetStringValue(ibr.IssueRow.PrimaryName),
+			Id:            GetInt64Value(ibr.Id),
+			PrimaryName:   GetStringValue(ibr.PrimaryName),
 			Type:          entity.NewIssueType(GetStringValue(ibr.Type)),
-			Description:   GetStringValue(ibr.IssueRow.Description),
+			Description:   GetStringValue(ibr.Description),
 			IssueVariants: []entity.IssueVariant{},
 			IssueMatches:  []entity.IssueMatch{},
 			Activity:      []entity.Activity{},
 			Metadata: entity.Metadata{
-				CreatedAt: GetTimeValue(ibr.IssueRow.CreatedAt),
-				CreatedBy: GetInt64Value(ibr.IssueRow.CreatedBy),
-				DeletedAt: GetTimeValue(ibr.IssueRow.DeletedAt),
-				UpdatedAt: GetTimeValue(ibr.IssueRow.UpdatedAt),
-				UpdatedBy: GetInt64Value(ibr.IssueRow.UpdatedBy),
+				CreatedAt: GetTimeValue(ibr.CreatedAt),
+				CreatedBy: GetInt64Value(ibr.CreatedBy),
+				DeletedAt: GetTimeValue(ibr.DeletedAt),
+				UpdatedAt: GetTimeValue(ibr.UpdatedAt),
+				UpdatedBy: GetInt64Value(ibr.UpdatedBy),
 			},
 		},
 	}
@@ -228,19 +228,19 @@ func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregation
 
 func (ibr *GetIssuesByRow) AsIssue() entity.Issue {
 	return entity.Issue{
-		Id:            GetInt64Value(ibr.IssueRow.Id),
-		PrimaryName:   GetStringValue(ibr.IssueRow.PrimaryName),
+		Id:            GetInt64Value(ibr.Id),
+		PrimaryName:   GetStringValue(ibr.PrimaryName),
 		Type:          entity.NewIssueType(GetStringValue(ibr.Type)),
-		Description:   GetStringValue(ibr.IssueRow.Description),
+		Description:   GetStringValue(ibr.Description),
 		IssueVariants: []entity.IssueVariant{},
 		IssueMatches:  []entity.IssueMatch{},
 		Activity:      []entity.Activity{},
 		Metadata: entity.Metadata{
-			CreatedAt: GetTimeValue(ibr.IssueRow.CreatedAt),
-			CreatedBy: GetInt64Value(ibr.IssueRow.CreatedBy),
-			DeletedAt: GetTimeValue(ibr.IssueRow.DeletedAt),
-			UpdatedAt: GetTimeValue(ibr.IssueRow.UpdatedAt),
-			UpdatedBy: GetInt64Value(ibr.IssueRow.UpdatedBy),
+			CreatedAt: GetTimeValue(ibr.CreatedAt),
+			CreatedBy: GetInt64Value(ibr.CreatedBy),
+			DeletedAt: GetTimeValue(ibr.DeletedAt),
+			UpdatedAt: GetTimeValue(ibr.UpdatedAt),
+			UpdatedBy: GetInt64Value(ibr.UpdatedBy),
 		},
 	}
 }
@@ -332,6 +332,9 @@ func (imr *IssueMatchRow) FromIssueMatch(im *entity.IssueMatch) {
 	imr.UpdatedBy = sql.NullInt64{Int64: im.UpdatedBy, Valid: true}
 }
 
+// nolint due to embedding structures with the same fields
+//
+//nolint:govet
 type IssueRepositoryRow struct {
 	BaseIssueRepositoryRow
 	IssueRepositoryServiceRow
@@ -356,10 +359,10 @@ func (irr *IssueRepositoryRow) FromIssueRepository(ir *entity.IssueRepository) {
 	irr.ServiceId = sql.NullInt64{Int64: ir.ServiceId, Valid: true}
 	irr.IssueRepositoryId = sql.NullInt64{Int64: ir.IssueRepositoryId, Valid: true}
 	irr.BaseIssueRepositoryRow.CreatedAt = sql.NullTime{Time: ir.BaseIssueRepository.CreatedAt, Valid: true}
-	irr.BaseIssueRepositoryRow.CreatedBy = sql.NullInt64{Int64: ir.BaseIssueRepository.CreatedBy, Valid: true}
+	irr.CreatedBy = sql.NullInt64{Int64: ir.BaseIssueRepository.CreatedBy, Valid: true}
 	irr.BaseIssueRepositoryRow.DeletedAt = sql.NullTime{Time: ir.BaseIssueRepository.DeletedAt, Valid: true}
 	irr.BaseIssueRepositoryRow.UpdatedAt = sql.NullTime{Time: ir.BaseIssueRepository.UpdatedAt, Valid: true}
-	irr.BaseIssueRepositoryRow.UpdatedBy = sql.NullInt64{Int64: ir.BaseIssueRepository.UpdatedBy, Valid: true}
+	irr.UpdatedBy = sql.NullInt64{Int64: ir.BaseIssueRepository.UpdatedBy, Valid: true}
 }
 
 func (birr *BaseIssueRepositoryRow) AsBaseIssueRepository() entity.BaseIssueRepository {
@@ -408,10 +411,10 @@ func (irr *IssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 			Services:      nil,
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(irr.BaseIssueRepositoryRow.CreatedAt),
-				CreatedBy: GetInt64Value(irr.BaseIssueRepositoryRow.CreatedBy),
+				CreatedBy: GetInt64Value(irr.CreatedBy),
 				DeletedAt: GetTimeValue(irr.BaseIssueRepositoryRow.DeletedAt),
 				UpdatedAt: GetTimeValue(irr.BaseIssueRepositoryRow.UpdatedAt),
-				UpdatedBy: GetInt64Value(irr.BaseIssueRepositoryRow.UpdatedBy),
+				UpdatedBy: GetInt64Value(irr.UpdatedBy),
 			},
 		},
 		IssueRepositoryService: entity.IssueRepositoryService{
@@ -483,13 +486,16 @@ func (ivr *IssueVariantRow) FromIssueVariant(iv *entity.IssueVariant) {
 	ivr.UpdatedBy = sql.NullInt64{Int64: iv.UpdatedBy, Valid: true}
 }
 
+// nolint due to embedding structures with the same fields
+//
+//nolint:govet
 type IssueVariantWithRepository struct {
 	IssueRepositoryRow
 	IssueVariantRow
 }
 
 func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVariant {
-	rep := ivwr.IssueRepositoryRow.AsIssueRepository()
+	rep := ivwr.AsIssueRepository()
 
 	var severity entity.Severity
 	if ivwr.Vector.String == "" {
@@ -499,32 +505,35 @@ func (ivwr *IssueVariantWithRepository) AsIssueVariantEntry() entity.IssueVarian
 	}
 
 	return entity.IssueVariant{
-		Id:                GetInt64Value(ivwr.IssueVariantRow.Id),
+		Id:                GetInt64Value(ivwr.Id),
 		IssueRepositoryId: GetInt64Value(ivwr.IssueRepositoryId),
 		IssueRepository:   &rep,
-		SecondaryName:     GetStringValue(ivwr.IssueVariantRow.SecondaryName),
+		SecondaryName:     GetStringValue(ivwr.SecondaryName),
 		IssueId:           GetInt64Value(ivwr.IssueId),
 		Issue:             nil,
 		Severity:          severity,
 		Description:       GetStringValue(ivwr.Description),
 		ExternalUrl:       GetStringValue(ivwr.ExternalUrl),
 		Metadata: entity.Metadata{
-			CreatedAt: GetTimeValue(ivwr.IssueVariantRow.CreatedAt),
+			CreatedAt: GetTimeValue(ivwr.CreatedAt),
 			CreatedBy: GetInt64Value(ivwr.CreatedBy),
-			DeletedAt: GetTimeValue(ivwr.IssueVariantRow.DeletedAt),
-			UpdatedAt: GetTimeValue(ivwr.IssueVariantRow.UpdatedAt),
+			DeletedAt: GetTimeValue(ivwr.DeletedAt),
+			UpdatedAt: GetTimeValue(ivwr.UpdatedAt),
 			UpdatedBy: GetInt64Value(ivwr.UpdatedBy),
 		},
 	}
 }
 
+// nolint due to embedding structures with the same fields
+//
+//nolint:govet
 type ServiceIssueVariantRow struct {
 	IssueRepositoryRow
 	IssueVariantRow
 }
 
 func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIssueVariant {
-	rep := siv.IssueRepositoryRow.AsIssueRepository()
+	rep := siv.AsIssueRepository()
 
 	var severity entity.Severity
 	if siv.Vector.String == "" {
@@ -535,23 +544,23 @@ func (siv *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIs
 
 	return entity.ServiceIssueVariant{
 		IssueVariant: entity.IssueVariant{
-			Id:                GetInt64Value(siv.IssueVariantRow.Id),
+			Id:                GetInt64Value(siv.Id),
 			IssueRepositoryId: GetInt64Value(siv.IssueRepositoryRow.IssueRepositoryId),
 			IssueRepository:   &rep,
-			SecondaryName:     GetStringValue(siv.IssueVariantRow.SecondaryName),
+			SecondaryName:     GetStringValue(siv.SecondaryName),
 			IssueId:           GetInt64Value(siv.IssueId),
 			Issue:             nil,
 			Severity:          severity,
 			Description:       GetStringValue(siv.Description),
 			Metadata: entity.Metadata{
-				CreatedAt: GetTimeValue(siv.IssueVariantRow.CreatedAt),
+				CreatedAt: GetTimeValue(siv.CreatedAt),
 				CreatedBy: GetInt64Value(siv.CreatedBy),
-				DeletedAt: GetTimeValue(siv.IssueVariantRow.DeletedAt),
-				UpdatedAt: GetTimeValue(siv.IssueVariantRow.UpdatedAt),
+				DeletedAt: GetTimeValue(siv.DeletedAt),
+				UpdatedAt: GetTimeValue(siv.UpdatedAt),
 				UpdatedBy: GetInt64Value(siv.UpdatedBy),
 			},
 		},
-		ServiceId: GetInt64Value(siv.IssueRepositoryServiceRow.ServiceId),
+		ServiceId: GetInt64Value(siv.ServiceId),
 		Priority:  GetInt64Value(siv.Priority),
 	}
 }
@@ -682,6 +691,9 @@ func (sgr *SupportGroupRow) FromSupportGroup(sg *entity.SupportGroup) {
 	sgr.UpdatedBy = sql.NullInt64{Int64: sg.UpdatedBy, Valid: true}
 }
 
+// nolint due to embedding structures with the same fields
+//
+//nolint:govet
 type ServiceRow struct {
 	BaseServiceRow
 	IssueRepositoryServiceRow
@@ -735,10 +747,10 @@ func (sr *ServiceRow) AsService() entity.Service {
 			Activities: []entity.Activity{},
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(sr.BaseServiceRow.CreatedAt),
-				CreatedBy: GetInt64Value(sr.BaseServiceRow.CreatedBy),
+				CreatedBy: GetInt64Value(sr.CreatedBy),
 				DeletedAt: GetTimeValue(sr.BaseServiceRow.DeletedAt),
 				UpdatedAt: GetTimeValue(sr.BaseServiceRow.UpdatedAt),
-				UpdatedBy: GetInt64Value(sr.BaseServiceRow.UpdatedBy),
+				UpdatedBy: GetInt64Value(sr.UpdatedBy),
 			},
 		},
 		IssueRepositoryService: entity.IssueRepositoryService{
@@ -755,12 +767,15 @@ func (sr *ServiceRow) FromService(s *entity.Service) {
 	sr.Domain = sql.NullString{String: s.Domain, Valid: true}
 	sr.Region = sql.NullString{String: s.Region, Valid: true}
 	sr.BaseServiceRow.CreatedAt = sql.NullTime{Time: s.BaseService.CreatedAt, Valid: true}
-	sr.BaseServiceRow.CreatedBy = sql.NullInt64{Int64: s.BaseService.CreatedBy, Valid: true}
+	sr.CreatedBy = sql.NullInt64{Int64: s.BaseService.CreatedBy, Valid: true}
 	sr.BaseServiceRow.DeletedAt = sql.NullTime{Time: s.BaseService.DeletedAt, Valid: true}
 	sr.BaseServiceRow.UpdatedAt = sql.NullTime{Time: s.BaseService.UpdatedAt, Valid: true}
-	sr.BaseServiceRow.UpdatedBy = sql.NullInt64{Int64: s.BaseService.UpdatedBy, Valid: true}
+	sr.UpdatedBy = sql.NullInt64{Int64: s.BaseService.UpdatedBy, Valid: true}
 }
 
+// nolint due to embedding structures with the same fields
+//
+//nolint:govet
 type GetServicesByRow struct {
 	ServiceAggregationsRow
 	ServiceRow
@@ -774,29 +789,29 @@ type ServiceAggregationsRow struct {
 func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggregations {
 	return entity.ServiceWithAggregations{
 		ServiceAggregations: entity.ServiceAggregations{
-			ComponentInstances: lo.Max([]int64{0, GetInt64Value(sbr.ServiceAggregationsRow.ComponentInstances)}),
-			IssueMatches:       lo.Max([]int64{0, GetInt64Value(sbr.ServiceAggregationsRow.IssueMatches)}),
+			ComponentInstances: lo.Max([]int64{0, GetInt64Value(sbr.ComponentInstances)}),
+			IssueMatches:       lo.Max([]int64{0, GetInt64Value(sbr.IssueMatches)}),
 		},
 		Service: entity.Service{
 			BaseService: entity.BaseService{
-				Id:         GetInt64Value(sbr.BaseServiceRow.Id),
-				CCRN:       GetStringValue(sbr.BaseServiceRow.CCRN),
-				Domain:     GetStringValue(sbr.BaseServiceRow.Domain),
-				Region:     GetStringValue(sbr.BaseServiceRow.Region),
+				Id:         GetInt64Value(sbr.Id),
+				CCRN:       GetStringValue(sbr.CCRN),
+				Domain:     GetStringValue(sbr.Domain),
+				Region:     GetStringValue(sbr.Region),
 				Owners:     []entity.User{},
 				Activities: []entity.Activity{},
 				Metadata: entity.Metadata{
 					CreatedAt: GetTimeValue(sbr.BaseServiceRow.CreatedAt),
-					CreatedBy: GetInt64Value(sbr.BaseServiceRow.CreatedBy),
+					CreatedBy: GetInt64Value(sbr.CreatedBy),
 					DeletedAt: GetTimeValue(sbr.BaseServiceRow.DeletedAt),
 					UpdatedAt: GetTimeValue(sbr.BaseServiceRow.UpdatedAt),
-					UpdatedBy: GetInt64Value(sbr.BaseServiceRow.UpdatedBy),
+					UpdatedBy: GetInt64Value(sbr.UpdatedBy),
 				},
 			},
 			IssueRepositoryService: entity.IssueRepositoryService{
-				ServiceId:         GetInt64Value(sbr.IssueRepositoryServiceRow.ServiceId),
-				IssueRepositoryId: GetInt64Value(sbr.IssueRepositoryServiceRow.IssueRepositoryId),
-				Priority:          GetInt64Value(sbr.IssueRepositoryServiceRow.Priority),
+				ServiceId:         GetInt64Value(sbr.ServiceId),
+				IssueRepositoryId: GetInt64Value(sbr.IssueRepositoryId),
+				Priority:          GetInt64Value(sbr.Priority),
 			},
 		},
 	}

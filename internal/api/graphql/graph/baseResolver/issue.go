@@ -13,7 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func GetIssueListOptions(requestedFields []string) *entity.IssueListOptions {
@@ -56,7 +56,7 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 		return nil, nil
 	}
 
-	var ir entity.IssueResult = issues.Elements[0]
+	ir := issues.Elements[0]
 	issue := model.NewIssueWithAggregations(&ir)
 
 	return &issue, nil
@@ -107,14 +107,14 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		ActivityId:         activityId,
 		ComponentVersionId: cvId,
 		PrimaryName:        filter.PrimaryName,
-		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return ptr.To(item.String()) }),
 		IssueRepositoryId:  irId,
 
 		Search: filter.Search,
 
-		IssueMatchStatus:                nil, //@todo Implement
-		IssueMatchDiscoveryDate:         nil, //@todo Implement
-		IssueMatchTargetRemediationDate: nil, //@todo Implement
+		IssueMatchStatus:                nil, // @todo Implement
+		IssueMatchDiscoveryDate:         nil, // @todo Implement
+		IssueMatchTargetRemediationDate: nil, // @todo Implement
 		State:                           model.GetStateFilterType(filter.State),
 	}
 
@@ -195,12 +195,12 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 		ServiceCCRN:                     filter.ServiceCcrn,
 		PrimaryName:                     filter.PrimaryName,
 		SupportGroupCCRN:                filter.SupportGroupCcrn,
-		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return ptr.To(item.String()) }),
 		IssueRepositoryId:               irId,
 		Search:                          filter.Search,
-		IssueMatchStatus:                nil, //@todo Implement
-		IssueMatchDiscoveryDate:         nil, //@todo Implement
-		IssueMatchTargetRemediationDate: nil, //@todo Implement
+		IssueMatchStatus:                nil, // @todo Implement
+		IssueMatchDiscoveryDate:         nil, // @todo Implement
+		IssueMatchTargetRemediationDate: nil, // @todo Implement
 		State:                           model.GetStateFilterType(filter.State),
 	}
 
@@ -276,7 +276,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		PrimaryName:        filter.PrimaryName,
-		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return ptr.To(item.String()) }),
 		Search:             filter.Search,
 		IssueRepositoryId:  irIds,
 		ComponentVersionId: cvIds,

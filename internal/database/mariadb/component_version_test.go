@@ -16,6 +16,9 @@ import (
 	"github.com/samber/lo"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -26,7 +29,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All ComponentVersion IDs", Label("GetAllComponentVersionIds"), func() {
@@ -206,6 +209,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				})
 				It("can filter by a component id", func() {
 					// select a component
+
 					componentRow := seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
 
 					// collect all activity ids that belong to the component
@@ -327,6 +331,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 				It("can filter by tag", func() {
 					// Get an existing component version from the fixtures
+
 					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
 
 					// Get the tag value directly from the fixture
@@ -599,6 +604,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					originalComponentId := componentVersion.ComponentId
 
 					// Set a unique updated tag value
+
 					updatedTag := "updated-tag-" + fmt.Sprintf("%d", rand.Int())
 					componentVersion.Tag = updatedTag
 
@@ -656,7 +662,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	testOrder := func(

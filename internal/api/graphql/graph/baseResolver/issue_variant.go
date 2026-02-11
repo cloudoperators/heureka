@@ -45,7 +45,7 @@ func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent
 		return nil, nil
 	}
 
-	var ivr entity.IssueVariantResult = variants.Elements[0]
+	ivr := variants.Elements[0]
 	variant := model.NewIssueVariant(ivr.IssueVariant)
 
 	return &variant, nil
@@ -147,8 +147,7 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 			return nil, NewResolverError("EffectiveIssueVariantBaseResolver", "Bad Request - Error while parsing propagated ID")
 		}
 
-		switch parent.ParentName {
-		case model.IssueMatchNodeName:
+		if parent.ParentName == model.IssueMatchNodeName {
 			imId = []*int64{pid}
 		}
 	}

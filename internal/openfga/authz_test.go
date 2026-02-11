@@ -22,6 +22,12 @@ const (
 	readerRel    = "reader"
 	writerRel    = "writer"
 	ownerRel     = "owner"
+
+	document1 = "document1"
+	document2 = "document2"
+	document3 = "document3"
+
+	read = "read"
 )
 
 var (
@@ -177,7 +183,7 @@ var _ = Describe("Authz", func() {
 
 	Describe("ListAccessibleResources", func() {
 		It("should return an empty slice and no error", func() {
-			p.ObjectId = "read"
+			p.ObjectId = read
 			resources, err := authz.ListAccessibleResources(p)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
@@ -189,7 +195,7 @@ var _ = Describe("Authz", func() {
 			Expect(err).To(BeNil())
 
 			p.ObjectType = "invalid_type"
-			p.ObjectId = "read"
+			p.ObjectId = read
 			p.Relation = ownerRel
 			resources, err := authz.ListAccessibleResources(p)
 			Expect(err).NotTo(BeNil())
@@ -202,11 +208,11 @@ var _ = Describe("Authz", func() {
 			Expect(err).To(BeNil())
 
 			expectedResult := []openfga.AccessibleResource{
-				{ObjectType: documentType, ObjectId: "document1"},
+				{ObjectType: documentType, ObjectId: document1},
 			}
 
 			p.Relation = ownerRel
-			p.ObjectId = "read"
+			p.ObjectId = read
 			resources, err := authz.ListAccessibleResources(p)
 			Expect(err).To(BeNil())
 			Expect(resources).To(Equal(expectedResult))
@@ -214,24 +220,24 @@ var _ = Describe("Authz", func() {
 
 		It("should return a list with multiple resources after adding relations", func() {
 			r.Relation = ownerRel
-			r.ObjectId = "document1"
+			r.ObjectId = document1
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
-			r.ObjectId = "document2"
+			r.ObjectId = document2
 			err = authz.AddRelation(r)
 			Expect(err).To(BeNil())
-			r.ObjectId = "document3"
+			r.ObjectId = document3
 			err = authz.AddRelation(r)
 			Expect(err).To(BeNil())
 
 			expectedResult := []openfga.AccessibleResource{
-				{ObjectType: documentType, ObjectId: "document1"},
-				{ObjectType: documentType, ObjectId: "document2"},
-				{ObjectType: documentType, ObjectId: "document3"},
+				{ObjectType: documentType, ObjectId: document1},
+				{ObjectType: documentType, ObjectId: document2},
+				{ObjectType: documentType, ObjectId: document3},
 			}
 
 			p.Relation = ownerRel
-			p.ObjectId = "read"
+			p.ObjectId = read
 			resources, err := authz.ListAccessibleResources(p)
 			Expect(err).To(BeNil())
 			Expect(resources).To(ConsistOf(expectedResult))
@@ -241,25 +247,25 @@ var _ = Describe("Authz", func() {
 			r.Relation = ownerRel
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
-			r.ObjectId = "document2"
+			r.ObjectId = document2
 			err = authz.AddRelation(r)
 			Expect(err).To(BeNil())
-			r.ObjectId = "document3"
+			r.ObjectId = document3
 			err = authz.AddRelation(r)
 			Expect(err).To(BeNil())
 
-			r.ObjectId = "document1"
+			r.ObjectId = document1
 			err = authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
-			r.ObjectId = "document2"
+			r.ObjectId = document2
 			err = authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
-			r.ObjectId = "document3"
+			r.ObjectId = document3
 			err = authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
 
 			p.Relation = ownerRel
-			p.ObjectId = "read"
+			p.ObjectId = read
 			resources, err := authz.ListAccessibleResources(p)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())

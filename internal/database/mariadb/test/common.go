@@ -14,6 +14,9 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
+
+	// nolint due to importing all functions from gomega package
+	//nolint: staticcheck
 	. "github.com/onsi/gomega"
 )
 
@@ -29,7 +32,7 @@ func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntit
 	quotient, remainder := elementCount/pageSize, elementCount%pageSize
 	expectedPages := quotient
 	if remainder > 0 {
-		expectedPages = expectedPages + 1
+		expectedPages++
 	}
 
 	var after *int64
@@ -62,7 +65,7 @@ func TestPaginationOfList[F entity.HeurekaFilter, E entity.HeurekaEntity](
 	quotient, remainder := elementCount/pageSize, elementCount%pageSize
 	expectedPages := quotient
 	if remainder > 0 {
-		expectedPages = expectedPages + 1
+		expectedPages++
 	}
 
 	var after *int64
@@ -118,6 +121,7 @@ func GetTestDataPath(path string) string {
 // LoadIssueMatches loads issue matches from JSON file
 func LoadIssueMatches(filename string) ([]mariadb.IssueMatchRow, error) {
 	// Read JSON file
+	//nolint: gosec
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -154,6 +158,7 @@ func LoadIssueMatches(filename string) ([]mariadb.IssueMatchRow, error) {
 
 // LoadIssues loads issues from JSON file
 func LoadIssues(filename string) ([]mariadb.IssueRow, error) {
+	//nolint:gosec
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -180,6 +185,7 @@ func LoadIssues(filename string) ([]mariadb.IssueRow, error) {
 
 // LoadComponentInstances loads component instances from JSON file
 func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, error) {
+	//nolint:gosec
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -209,6 +215,7 @@ func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, er
 }
 
 func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, error) {
+	//nolint:gosec
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -238,6 +245,7 @@ func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, erro
 }
 
 func LoadIssueVariants(filename string) ([]mariadb.IssueVariantRow, error) {
+	//nolint:gosec
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -267,6 +275,7 @@ func LoadIssueVariants(filename string) ([]mariadb.IssueVariantRow, error) {
 }
 
 func LoadComponentVersionIssues(filename string) ([]mariadb.ComponentVersionIssueRow, error) {
+	//nolint:gosec
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -290,6 +299,7 @@ func LoadComponentVersionIssues(filename string) ([]mariadb.ComponentVersionIssu
 }
 
 func LoadSupportGroupServices(filename string) ([]mariadb.SupportGroupServiceRow, error) {
+	//nolint:gosec
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -313,6 +323,7 @@ func LoadSupportGroupServices(filename string) ([]mariadb.SupportGroupServiceRow
 }
 
 func loadIssueCountsFromFile(filename string, idKey string) (map[string]entity.IssueSeverityCounts, error) {
+	//nolint:gosec
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -352,6 +363,7 @@ func LoadSupportGroupIssueCounts(filename string) (map[string]entity.IssueSeveri
 }
 
 func LoadIssueCounts(filename string) (entity.IssueSeverityCounts, error) {
+	//nolint:gosec
 	data, err := os.ReadFile(filename)
 	var issueCounts entity.IssueSeverityCounts
 	if err != nil {

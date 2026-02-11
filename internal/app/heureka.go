@@ -120,7 +120,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 
 func NewAppCache(ctx context.Context, wg *sync.WaitGroup, cfg util.Config) cache.Cache {
 	var cacheConfig interface{}
-	if cfg.CacheEnable == true {
+	if cfg.CacheEnable {
 		cacheBaseConfig := cache.CacheConfig{
 			MonitorInterval:          time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
 			MaxDbConcurrentRefreshes: cfg.CacheMaxDbConcurrentRefreshes,

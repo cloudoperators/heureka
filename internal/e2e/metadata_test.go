@@ -100,7 +100,7 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("New issue is created via API", func() {

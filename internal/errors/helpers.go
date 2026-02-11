@@ -25,13 +25,14 @@ func E(args ...interface{}) *Error {
 		case Op:
 			e.Op = string(a)
 		case string:
+			switch {
 			// If no entity is set, treat string as entity
-			if e.Entity == "" {
+			case e.Entity == "":
 				e.Entity = a
-			} else if e.ID == "" {
+			case e.ID == "":
 				// If entity is set but ID is not, treat string as ID
 				e.ID = a
-			} else if e.Message == "" {
+			case e.Message == "":
 				// If both entity and ID are set, treat as message
 				e.Message = a
 			}

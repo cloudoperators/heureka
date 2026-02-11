@@ -6,6 +6,9 @@ package e2e_common
 import (
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
+
+	// nolint due to importing all functions from gomega package
+	//nolint: staticcheck
 	. "github.com/onsi/gomega"
 )
 

@@ -58,8 +58,8 @@ func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) st
 }
 
 func ensureSupportGroupFilter(f *entity.SupportGroupFilter) *entity.SupportGroupFilter {
-	var first int = 1000
-	var after string = ""
+	first := 1000
+	after := ""
 	if f == nil {
 		return &entity.SupportGroupFilter{
 			PaginatedX: entity.PaginatedX{
@@ -88,7 +88,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getSupportGroupFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,7 +134,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	filterParameters = buildQueryParameters(filterParameters, filter.UserId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -155,8 +155,11 @@ func (s *SqlDatabase) GetAllSupportGroupIds(filter *entity.SupportGroupFilter) (
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -217,8 +220,11 @@ func (s *SqlDatabase) GetSupportGroups(filter *entity.SupportGroupFilter, order 
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -254,8 +260,11 @@ func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
@@ -467,7 +476,11 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -475,7 +488,11 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	supportGroupCcrns := []string{}

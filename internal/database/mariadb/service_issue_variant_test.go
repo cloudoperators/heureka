@@ -27,7 +27,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting ServiceIssueVariants", Label("GetServiceIssueVariants"), func() {
@@ -248,7 +248,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 						}
 
 						// Create issue variants
-						_, err := seeder.InsertFakeIssueVariant(iv)
+						_, _ = seeder.InsertFakeIssueVariant(iv)
 
 						// Link repository to service with priority
 						irs := mariadb.IssueRepositoryServiceRow{

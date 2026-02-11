@@ -43,7 +43,7 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
@@ -51,7 +51,7 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 			// create a queryCollection (safe to share across requests)
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+			// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstanceFilter/ccrn.graphqls")
 
 			Expect(err).To(BeNil())
@@ -275,7 +275,7 @@ var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "
 
 func queryComponentInstanceFilter(port string, gqlQueryFilePath string) model.ComponentInstanceFilterValue {
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
-
+	//nolint:gosec
 	b, err := os.ReadFile(gqlQueryFilePath)
 
 	Expect(err).To(BeNil())

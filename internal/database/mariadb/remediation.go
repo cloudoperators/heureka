@@ -25,14 +25,14 @@ func buildRemediationFilterParameters(filter *entity.RemediationFilter, withCurs
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	}
 	return filterParameters
 }
 
 func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.RemediationFilter {
-	var first int = 1000
-	var after string = ""
+	first := 1000
+	after := ""
 	if filter == nil {
 		filter = &entity.RemediationFilter{
 			PaginatedX: entity.PaginatedX{
@@ -98,10 +98,10 @@ func getRemediationFilterString(filter *entity.RemediationFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Type, "R.remediation_type = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Service, "R.remediation_service = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "R.remediation_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Issue, "R.remediation_issue = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "R.remediation_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Component, "R.remediation_component = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentId, "R.remediation_component_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.Issue, "R.remediation_issue = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.IssueId, "R.remediation_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Search, "R.remediation_issue LIKE Concat('%',?,'%')", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "R.remediation"))
 	return combineFilterQueries(fl, OP_AND)
@@ -112,7 +112,7 @@ func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getRemediationFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}
@@ -172,8 +172,11 @@ func (s *SqlDatabase) GetRemediations(filter *entity.RemediationFilter, order []
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Remediation query: %w", err)
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	results, err := performListScan(
 		stmt,
@@ -214,8 +217,11 @@ func (s *SqlDatabase) CountRemediations(filter *entity.RemediationFilter) (int64
 	if err != nil {
 		return -1, fmt.Errorf("failed to build Remediation count query: %w", err)
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	count, err := performCountScan(stmt, filterParameters, l)
 	if err != nil {
@@ -241,8 +247,11 @@ func (s *SqlDatabase) GetAllRemediationCursors(filter *entity.RemediationFilter,
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Remediation cursor query: %w", err)
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	rows, err := performListScan(
 		stmt,

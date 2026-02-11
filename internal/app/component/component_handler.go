@@ -13,7 +13,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +27,6 @@ type componentHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
-	openfga       openfga.Authorization
 }
 
 func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler {
