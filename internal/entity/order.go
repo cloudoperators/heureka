@@ -44,6 +44,7 @@ const (
 
 	RemediationIssue
 	RemediationSeverity
+	RemediationExpirationDate
 
 	SupportGroupId
 	SupportGroupCcrn
