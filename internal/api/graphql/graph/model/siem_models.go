@@ -6,17 +6,17 @@ package model
 // SIEM models (kept separate to avoid touching generated models.go)
 
 type SIEMAlertInput struct {
-	Name        *string         `json:"name,omitempty"`
-	Description *string         `json:"description,omitempty"`
-	Severity    *SeverityValues `json:"severity,omitempty"`
-	URL         *string         `json:"url,omitempty"`
-	Service     *string         `json:"service,omitempty"`
-	SupportGroup *string        `json:"supportGroup,omitempty"`
-	Region      *string         `json:"region,omitempty"`
-	Cluster     *string         `json:"cluster,omitempty"`
-	Namespace   *string         `json:"namespace,omitempty"`
-	Pod         *string         `json:"pod,omitempty"`
-	Container   *string         `json:"container,omitempty"`
+	Name         *string         `json:"name,omitempty"`
+	Description  *string         `json:"description,omitempty"`
+	Severity     *SeverityValues `json:"severity,omitempty"`
+	URL          *string         `json:"url,omitempty"`
+	Service      *string         `json:"service,omitempty"`
+	SupportGroup *string         `json:"supportGroup,omitempty"`
+	Region       *string         `json:"region,omitempty"`
+	Cluster      *string         `json:"cluster,omitempty"`
+	Namespace    *string         `json:"namespace,omitempty"`
+	Pod          *string         `json:"pod,omitempty"`
+	Container    *string         `json:"container,omitempty"`
 }
 
 type SIEMAlert struct {
@@ -24,11 +24,12 @@ type SIEMAlert struct {
 	Description *string         `json:"description,omitempty"`
 	Severity    *SeverityValues `json:"severity,omitempty"`
 	URL         *string         `json:"url,omitempty"`
-	Service     *string         `json:"service,omitempty"`
-	SupportGroup *string        `json:"supportGroup,omitempty"`
-	Region      *string         `json:"region,omitempty"`
-	Cluster     *string         `json:"cluster,omitempty"`
-	Namespace   *string         `json:"namespace,omitempty"`
-	Pod         *string         `json:"pod,omitempty"`
-	Container   *string         `json:"container,omitempty"`
+	// Optional fields — returned to clients for convenience
+	Service      *string `json:"service,omitempty"`
+	SupportGroup *string `json:"supportGroup,omitempty"`
+	Region       *string `json:"region,omitempty"`
+	Cluster      *string `json:"cluster,omitempty"`
+	Namespace    *string `json:"namespace,omitempty"`
+	Pod          *string `json:"pod,omitempty"`
+	Container    *string `json:"container,omitempty"`
 }

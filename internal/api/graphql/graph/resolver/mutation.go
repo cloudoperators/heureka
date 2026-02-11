@@ -749,6 +749,7 @@ func (r *mutationResolver) DeleteRemediation(ctx context.Context, id string) (st
 
 func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEMAlertInput) (*model.SIEMAlert, error) {
 	var svc *entity.Service
+	var sg *entity.SupportGroup
 	if input.Service != nil && *input.Service != "" {
 		svcFilter := entity.ServiceFilter{CCRN: []*string{input.Service}}
 		s, err := r.App.ListServices(&svcFilter, entity.NewListOptions())
@@ -773,20 +774,28 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 		}
 	}
 
+	// Note: SupportGroup creation is currently not fully implemented
+	// as there's no clear association path to link it with the alert data
+	// TODO: Define relationship between SupportGroup and SIEM alerts
 	if input.SupportGroup != nil && *input.SupportGroup != "" {
 		sgFilter := entity.SupportGroupFilter{CCRN: []*string{input.SupportGroup}}
 		sgList, err := r.App.ListSupportGroups(&sgFilter, entity.NewListOptions())
 		if err != nil {
 			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when listing support groups")
 		}
-		if len(sgList.Elements) == 0 {
+		if len(sgList.Elements) > 0 {
+			sg = sgList.Elements[0].SupportGroup
+		} else {
 			sgEntity := model.NewSupportGroupEntity(&model.SupportGroupInput{Ccrn: input.SupportGroup})
-			_, err := r.App.CreateSupportGroup(ctx, &sgEntity)
+			newSg, err := r.App.CreateSupportGroup(ctx, &sgEntity)
 			if err != nil {
 				sg2, err2 := r.App.ListSupportGroups(&sgFilter, entity.NewListOptions())
 				if err2 != nil || len(sg2.Elements) == 0 {
 					return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating support group")
 				}
+				sg = sg2.Elements[0].SupportGroup
+			} else {
+				sg = newSg
 			}
 		}
 	}
@@ -943,18 +952,102 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 		}
 	}
 
+	// populate response from authoritative created/found entities where possible
+	var name *string
+	if issue != nil {
+		name = &issue.PrimaryName
+	}
+
+	var description *string
+	if issueVariant != nil && issueVariant.Description != "" {
+		description = &issueVariant.Description
+	} else if input.Description != nil {
+		description = input.Description
+	}
+
+	var severity *model.SeverityValues
+	if issueVariant != nil && issueVariant.Severity.Value != "" {
+		sv := model.SeverityValues(issueVariant.Severity.Value)
+		severity = &sv
+	} else if input.Severity != nil {
+		severity = input.Severity
+	}
+
+	var url *string
+	if issueVariant != nil && issueVariant.ExternalUrl != "" {
+		url = &issueVariant.ExternalUrl
+	} else if input.URL != nil {
+		url = input.URL
+	}
+
+	var servicePtr *string
+	if svc != nil {
+		v := svc.CCRN
+		servicePtr = &v
+	} else if input.Service != nil {
+		servicePtr = input.Service
+	}
+
+	var supportGroupPtr *string
+	if sg != nil {
+		v := sg.CCRN
+		supportGroupPtr = &v
+	} else if input.SupportGroup != nil {
+		supportGroupPtr = input.SupportGroup
+	}
+
+	// component instance fields prefer actual CI values
+	var regionPtr, clusterPtr, namespacePtr, podPtr, containerPtr *string
+	if ci != nil {
+		if ci.Region != "" {
+			v := ci.Region
+			regionPtr = &v
+		}
+		if ci.Cluster != "" {
+			v := ci.Cluster
+			clusterPtr = &v
+		}
+		if ci.Namespace != "" {
+			v := ci.Namespace
+			namespacePtr = &v
+		}
+		if ci.Pod != "" {
+			v := ci.Pod
+			podPtr = &v
+		}
+		if ci.Container != "" {
+			v := ci.Container
+			containerPtr = &v
+		}
+	}
+	if regionPtr == nil {
+		regionPtr = input.Region
+	}
+	if clusterPtr == nil {
+		clusterPtr = input.Cluster
+	}
+	if namespacePtr == nil {
+		namespacePtr = input.Namespace
+	}
+	if podPtr == nil {
+		podPtr = input.Pod
+	}
+	if containerPtr == nil {
+		containerPtr = input.Container
+	}
+
 	res := model.SIEMAlert{
-		Name:         input.Name,
-		Description:  input.Description,
-		Severity:     input.Severity,
-		URL:          input.URL,
-		Service:      input.Service,
-		SupportGroup: input.SupportGroup,
-		Region:       input.Region,
-		Cluster:      input.Cluster,
-		Namespace:    input.Namespace,
-		Pod:          input.Pod,
-		Container:    input.Container,
+		Name:         name,
+		Description:  description,
+		Severity:     severity,
+		URL:          url,
+		Service:      servicePtr,
+		SupportGroup: supportGroupPtr,
+		Region:       regionPtr,
+		Cluster:      clusterPtr,
+		Namespace:    namespacePtr,
+		Pod:          podPtr,
+		Container:    containerPtr,
 	}
 	return &res, nil
 }
