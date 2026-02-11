@@ -5,6 +5,7 @@ package component_version
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -12,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,6 +25,7 @@ type componentVersionHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
+	authz         openfga.Authorization
 }
 
 func NewComponentVersionHandler(handlerContext common.HandlerContext) ComponentVersionHandler {
@@ -30,6 +33,7 @@ func NewComponentVersionHandler(handlerContext common.HandlerContext) ComponentV
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
 	}
 }
 
@@ -55,6 +59,23 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 		"event":  ListComponentVersionsEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(cv.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentVersionHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleComponentIds, err := cv.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeComponent)
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentVersionHandlerError("Error while listing accessible component versions for user")
+	}
+
+	// Update the filter.Id based on accessibleComponentIds
+	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleComponentIds)
 
 	res, err := cache.CallCached[[]entity.ComponentVersionResult](
 		cv.cache,

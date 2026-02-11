@@ -17,6 +17,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,6 +29,7 @@ type componentInstanceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
+	authz         openfga.Authorization
 	logger        *logrus.Logger
 }
 
@@ -48,6 +50,7 @@ func NewComponentInstanceHandler(handlerContext common.HandlerContext) Component
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
 		logger:        logrus.New(),
 	}
 }
@@ -58,6 +61,23 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 	var pageInfo *entity.PageInfo
 
 	common.EnsurePaginatedX(&filter.PaginatedX)
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ci.database)
+	if err != nil {
+		ci.logger.Error(err)
+		return nil, NewComponentInstanceHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleServiceIds, err := ci.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeService)
+	if err != nil {
+		ci.logger.Error(err)
+		return nil, NewComponentInstanceHandlerError("Error while listing accessible component instances for user")
+	}
+
+	// Update the filter.ServiceId based on accessibleServiceIds
+	filter.ServiceId = common.CombineFilterWithAccesibleIds(filter.ServiceId, accessibleServiceIds)
 
 	res, err := cache.CallCached[[]entity.ComponentInstanceResult](
 		ci.cache,

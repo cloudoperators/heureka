@@ -128,15 +128,6 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 	// Update the filter.Id based on accessibleSupportGroupIds
 	filter.SupportGroupId = common.CombineFilterWithAccesibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
 
-	// log the current user, accessible services, and filter after authz
-	l = logrus.WithFields(logrus.Fields{
-		"event":                 ListServicesEventName,
-		"current_user_id":       currentUserId,
-		"accessible_sg":         accessibleSupportGroupIds,
-		"filter.id_after_authz": filter.SupportGroupId,
-	})
-	l.Info("Listing services with authorization applied")
-
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.ServiceResult](
 			s.cache,

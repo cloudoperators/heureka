@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -17,12 +18,14 @@ import (
 type userHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	authz         openfga.Authorization
 }
 
 func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
 	return &userHandler{
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
+		authz:         handlerContext.Authz,
 	}
 }
 
@@ -66,6 +69,23 @@ func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListO
 		"event":  ListUsersEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(u.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleSupportGroupIds, err := u.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Error while listing accessible users for user")
+	}
+
+	// Update the filter.Id based on accessibleSupportGroupIds
+	filter.SupportGroupId = common.CombineFilterWithAccesibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
 
 	res, err := u.getUserResults(filter)
 

@@ -25,7 +25,7 @@ type componentHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
-	openfga       openfga.Authorization
+	authz         openfga.Authorization
 }
 
 func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler {
@@ -33,6 +33,7 @@ func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler 
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
 	}
 }
 
@@ -58,6 +59,23 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 		"event":  ListComponentsEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(cs.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleComponentIds, err := cs.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeComponent)
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentHandlerError("Error while listing accessible components for user")
+	}
+
+	// Update the filter.Id based on accessibleComponentIds
+	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleComponentIds)
 
 	res, err := cs.database.GetComponents(filter, options.Order)
 

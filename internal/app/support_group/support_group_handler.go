@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -17,12 +18,14 @@ import (
 type supportGroupHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	authz         openfga.Authorization
 }
 
 func NewSupportGroupHandler(handlerContext common.HandlerContext) SupportGroupHandler {
 	return &supportGroupHandler{
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
+		authz:         handlerContext.Authz,
 	}
 }
 
@@ -43,6 +46,30 @@ func (sg *supportGroupHandler) GetSupportGroup(supportGroupId int64) (*entity.Su
 		"event": GetSupportGroupEventName,
 		"id":    supportGroupId,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(sg.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	hasPermission, err := sg.authz.CheckPermission(openfga.RelationInput{
+		UserType:   openfga.TypeUser,
+		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
+		Relation:   openfga.RelCanView,
+		ObjectType: openfga.TypeSupportGroup,
+		ObjectId:   openfga.ObjectId(fmt.Sprint(supportGroupId)),
+	})
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while checking permission for user")
+	}
+	if !hasPermission {
+		return nil, NewSupportGroupHandlerError("User does not have permission to view this support group")
+	}
+
 	lo := entity.NewListOptions()
 	supportGroupFilter := entity.SupportGroupFilter{Id: []*int64{&supportGroupId}}
 	supportGroups, err := sg.ListSupportGroups(&supportGroupFilter, lo)
@@ -74,6 +101,23 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 		"event":  ListSupportGroupsEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(sg.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleSupportGroupIds, err := sg.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while listing accessible support groups for user")
+	}
+
+	// Update the filter.Id based on accessibleSupportGroupIds
+	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleSupportGroupIds)
 
 	res, err := sg.database.GetSupportGroups(filter, options.Order)
 
