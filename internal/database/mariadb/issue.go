@@ -32,7 +32,6 @@ func buildIssueFilterParameters(filter *entity.IssueFilter, cursorFields []Field
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchSeverity)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
@@ -52,7 +51,6 @@ func getIssueFilterString(filter *entity.IssueFilter) string {
 	fl = append(fl, buildFilterQuery(filter.Id, "I.issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchStatus, "IM.issuematch_status = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchSeverity, "IM.issuematch_rating = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CVI.componentversionissue_component_version_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueVariantId, "IV.issuevariant_id = ?", OP_OR))
@@ -78,12 +76,6 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 	orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
 		return o.By == entity.IssueVariantRating
 	})
-	if len(filter.ActivityId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
-         	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
-		`)
-	}
 	if filter.AllServices || filter.HasIssueMatches {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
@@ -157,7 +149,6 @@ func ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilter {
 			},
 			ServiceCCRN:                     nil,
 			Id:                              nil,
-			ActivityId:                      nil,
 			IssueMatchStatus:                nil,
 			IssueMatchDiscoveryDate:         nil,
 			IssueMatchTargetRemediationDate: nil,
@@ -318,18 +309,19 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
         GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
     `
 
+	// count(distinct activity_id) as agg_activities,
+	// LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
+	// LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id~
+
 	baseAggQuery := `
 		SELECT I.*,
 		count(distinct issuematch_id) as agg_issue_matches,
-		count(distinct activity_id) as agg_activities,
 		count(distinct service_ccrn) as agg_affected_services,
 		count(distinct componentversionissue_component_version_id) as agg_component_versions,
 		min(issuematch_target_remediation_date) as agg_earliest_target_remediation_date,
 		min(issuematch_created_at) agg_earliest_discovery_date
 		%s
         FROM Issue I
-        LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
-        LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
         LEFT JOIN IssueMatch IM on I.issue_id = IM.issuematch_issue_id
         LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
         LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id

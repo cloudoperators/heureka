@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -34,7 +33,6 @@ import (
 )
 
 type HeurekaApp struct {
-	activity.ActivityHandler
 	component_instance.ComponentInstanceHandler
 	component_version.ComponentVersionHandler
 	component.ComponentHandler
@@ -89,7 +87,6 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
-		ActivityHandler:          activity.NewActivityHandler(handlerContext),
 		ComponentHandler:         component.NewComponentHandler(handlerContext),
 		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(handlerContext),
 		ComponentVersionHandler:  component_version.NewComponentVersionHandler(handlerContext),

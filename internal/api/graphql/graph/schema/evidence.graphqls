@@ -10,8 +10,6 @@ type Evidence implements Node {
     #TODO Severity
     authorId: String
     author: User
-    activityId: String
-    activity: Activity
     issueMatches(filter: IssueMatchFilter, first: Int, after: String): IssueMatchConnection
     metadata: Metadata
 }
@@ -21,7 +19,6 @@ input EvidenceInput {
     type: String
     raaEnd: DateTime
     authorId: String
-    activityId: String
     severity: SeverityInput
 }
 

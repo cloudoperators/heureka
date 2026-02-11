@@ -42,10 +42,6 @@ func (r *queryResolver) ComponentInstances(ctx context.Context, filter *model.Co
 	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
-func (r *queryResolver) Activities(ctx context.Context, filter *model.ActivityFilter, first *int, after *string) (*model.ActivityConnection, error) {
-	return baseResolver.ActivityBaseResolver(r.App, ctx, filter, first, after, nil)
-}
-
 func (r *queryResolver) IssueVariants(ctx context.Context, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error) {
 	return baseResolver.IssueVariantBaseResolver(r.App, ctx, filter, first, after, nil)
 }

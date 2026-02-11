@@ -45,19 +45,6 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
                         nextPageAfter
                     }
                 }
-                activities { 
-                    totalCount
-                    edges { 
-                        node { 
-                            id
-                        }
-                        cursor
-                    }
-                    pageInfo { 
-                        hasNextPage
-                        nextPageAfter
-                    }
-                }
                 issueRepositories { 
                     totalCount
                     edges { 

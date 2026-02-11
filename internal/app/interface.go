@@ -4,7 +4,6 @@
 package app
 
 import (
-	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/component_version"
@@ -23,7 +22,6 @@ import (
 )
 
 type Heureka interface {
-	activity.ActivityHandler
 	component_instance.ComponentInstanceHandler
 	component_version.ComponentVersionHandler
 	component.ComponentHandler

@@ -50,14 +50,11 @@ type Evidence struct {
 	Severity    Severity     `json:"severity"`
 	User        *User        `json:"user,omitempty"`
 	UserId      int64        `db:"evidence_author_id"`
-	Activity    *Activity    `json:"activity,omitempty"`
-	ActivityId  int64        `db:"evidence_activity_id"`
 }
 
 type EvidenceFilter struct {
 	Paginated
 	Id           []*int64          `json:"id"`
-	ActivityId   []*int64          `json:"activity_id"`
 	IssueMatchId []*int64          `json:"issue_match_id"`
 	UserId       []*int64          `json:"user_id"`
 	State        []StateFilterType `json:"state"`

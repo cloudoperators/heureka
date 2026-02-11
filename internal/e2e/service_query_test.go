@@ -217,16 +217,6 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 						Expect(sgFound).To(BeTrue(), "attached supportGroup does exist and belongs to service")
 					}
 
-					for _, activity := range service.Node.Activities.Edges {
-						Expect(activity.Node.ID).ToNot(BeNil(), "activity has a ID set")
-
-						_, activityFound := lo.Find(seedCollection.ActivityHasServiceRows, func(row mariadb.ActivityHasServiceRow) bool {
-							return fmt.Sprintf("%d", row.ActivityId.Int64) == activity.Node.ID && // correct activity
-								fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // belongs actually to the service
-						})
-						Expect(activityFound).To(BeTrue(), "attached activity does exist and belongs to service")
-					}
-
 					for _, ir := range service.Node.IssueRepositories.Edges {
 						Expect(ir.Node.ID).ToNot(BeNil(), "issueRepository has a ID set")
 						Expect(ir.Node.Name).ToNot(BeNil(), "issueRepository has a name set")

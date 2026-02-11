@@ -70,7 +70,6 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}).Debug("Called IssueBaseResolver")
 
 	var irId []*int64
-	var activityId []*int64
 	var cvId []*int64
 	var err error
 	if parent != nil {
@@ -82,8 +81,6 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		}
 
 		switch parent.ParentName {
-		case model.ActivityNodeName:
-			activityId = []*int64{pid}
 		case model.ComponentVersionNodeName:
 			cvId = []*int64{pid}
 		}
@@ -104,7 +101,6 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		PaginatedX:         entity.PaginatedX{First: first, After: after},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
-		ActivityId:         activityId,
 		ComponentVersionId: cvId,
 		PrimaryName:        filter.PrimaryName,
 		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),

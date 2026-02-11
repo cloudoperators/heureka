@@ -233,7 +233,6 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 						}
 						Expect(issueEdge.Node.ObjectMetadata.IssueMatchCount).To(Equal(issueEdge.Node.IssueMatches.TotalCount), "IssueMatchCount is correct")
 						Expect(issueEdge.Node.ObjectMetadata.ComponentInstanceCount).To(Equal(ciCount), "ComponentInstanceCount is correct")
-						Expect(issueEdge.Node.ObjectMetadata.ActivityCount).To(Equal(issueEdge.Node.Activities.TotalCount), "ActivityCount is correct")
 						Expect(issueEdge.Node.ObjectMetadata.ServiceCount).To(Equal(len(serviceIdSet)), "ServiceCount is correct")
 					}
 				})

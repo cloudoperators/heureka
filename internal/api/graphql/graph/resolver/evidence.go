@@ -32,20 +32,6 @@ func (r *evidenceResolver) Author(ctx context.Context, obj *model.Evidence) (*mo
 	})
 }
 
-func (r *evidenceResolver) Activity(ctx context.Context, obj *model.Evidence) (*model.Activity, error) {
-	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ActivityID})
-	if err != nil {
-		logrus.WithField("obj", obj).Error("EvidenceResolver: Error while parsing childIds'")
-		return nil, err
-	}
-
-	return baseResolver.SingleActivityBaseResolver(r.App, ctx, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.EvidenceNodeName,
-		ChildIds:   childIds,
-	})
-}
-
 func (r *evidenceResolver) IssueMatches(ctx context.Context, obj *model.Evidence, filter *model.IssueMatchFilter, first *int, after *string) (*model.IssueMatchConnection, error) {
 	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil, &model.NodeParent{
 		Parent:     obj,

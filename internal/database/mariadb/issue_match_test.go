@@ -674,15 +674,12 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			var newEvidenceRow mariadb.EvidenceRow
 			var newEvidence entity.Evidence
 			var evidence *entity.Evidence
-			var activity entity.Activity
 			var user entity.User
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newEvidenceRow = test.NewFakeEvidence()
 				newEvidence = newEvidenceRow.AsEvidence()
-				activity = seedCollection.ActivityRows[0].AsActivity()
 				user = seedCollection.UserRows[0].AsUser()
-				newEvidence.ActivityId = activity.Id
 				newEvidence.UserId = user.Id
 				evidence, _ = db.CreateEvidence(&newEvidence)
 			})

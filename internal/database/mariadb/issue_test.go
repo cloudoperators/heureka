@@ -292,32 +292,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					})
 				})
-				It("can filter by a single activity id", func() {
-					// select an activity
-					activityRow := seedCollection.ActivityRows[rand.Intn(len(seedCollection.ActivityRows))]
-
-					// collect all issue ids that belong to the activity
-					issueIds := []int64{}
-					for _, ahiRow := range seedCollection.ActivityHasIssueRows {
-						if ahiRow.ActivityId.Int64 == activityRow.Id.Int64 {
-							issueIds = append(issueIds, ahiRow.IssueId.Int64)
-						}
-					}
-
-					filter := &entity.IssueFilter{ActivityId: []*int64{&activityRow.Id.Int64}}
-
-					entries, err := db.GetIssues(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning the expected elements", func() {
-						for _, entry := range entries {
-							Expect(issueIds).To(ContainElement(entry.Issue.Id))
-						}
-					})
-				})
 				It("can filter by a single component version id", func() {
 					// select a componentVersion
 					cvRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
@@ -604,7 +578,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					for _, entryWithAggregations := range entriesWithAggregations {
 						Expect(entryWithAggregations).NotTo(
 							BeEquivalentTo(entity.IssueAggregations{}))
-						Expect(entryWithAggregations.IssueAggregations.Activities).To(BeEquivalentTo(0))
 						Expect(entryWithAggregations.IssueAggregations.IssueMatches).To(BeEquivalentTo(0))
 						Expect(entryWithAggregations.IssueAggregations.AffectedServices).To(BeEquivalentTo(0))
 						Expect(entryWithAggregations.IssueAggregations.AffectedComponentInstances).To(BeEquivalentTo(0))
