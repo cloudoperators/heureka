@@ -39,9 +39,7 @@ func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
 		return nil, err
 	}
 
-	if _, err := db.Exec(fmt.Sprintf("USE %s", cfg.DBName)); err != nil {
-		return nil, fmt.Errorf("failed to use specified db name: %w", err)
-	}
+	_, _ = db.Exec(fmt.Sprintf("USE %s", cfg.DBName))
 
 	return &SqlDatabase{
 		db:                    db,

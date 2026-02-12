@@ -14,6 +14,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//nolint:unused
+var mode string
+
 func main() {
 	fmt.Print(util.HeurekaFiglet)
 	var cfg util.Config

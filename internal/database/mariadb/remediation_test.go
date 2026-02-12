@@ -255,6 +255,26 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						}
 					})
 				})
+				It("can filter by 'false_positive' type", func() {
+					remediationType := entity.RemediationTypeFalsePositive.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeFalsePositive.String()))
+						}
+					})
+				})
 				It("can filter by 'risk_accepted' type", func() {
 					remediationType := entity.RemediationTypeRiskAccepted.String()
 					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
