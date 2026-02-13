@@ -42,22 +42,24 @@ type UserResult struct {
 }
 
 func GetUserTypeFromString(uts string) UserType {
-	if uts == "user" {
+	switch uts {
+	case "user":
 		return HumanUserType
-	} else if uts == "technical" {
+	case "technical":
 		return TechnicalUserType
-	} else if uts == "mail_list" {
+	case "mail_list":
 		return MailingListUserType
 	}
 	return InvalidUserType
 }
 
 func GetUserTypeString(ut UserType) string {
-	if ut == HumanUserType {
+	switch ut {
+	case HumanUserType:
 		return "user"
-	} else if ut == TechnicalUserType {
+	case TechnicalUserType:
 		return "technical"
-	} else if ut == MailingListUserType { // Handle the new user type
+	case MailingListUserType: // Handle the new user type
 		return "mail_list"
 	}
 	return ""

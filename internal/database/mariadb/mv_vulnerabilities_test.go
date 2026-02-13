@@ -196,7 +196,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			}
 
 			iv := test.NewFakeIssueVariant(seedCollection.IssueRepositoryRows, seedCollection.IssueRows)
-			seeder.InsertFakeIssueVariant(iv)
+			_, _ = seeder.InsertFakeIssueVariant(iv)
 
 			testServicesTotalCountWithUnique(totalCounts)
 		})
@@ -262,7 +262,7 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("there are no remediations", Label("NoRemediations"), func() {

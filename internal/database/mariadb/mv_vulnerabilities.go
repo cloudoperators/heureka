@@ -11,29 +11,36 @@ import (
 )
 
 func getCountTable(filter *entity.IssueFilter) string {
-	if filter.AllServices && filter.Unique {
+	switch {
+	case filter.AllServices && filter.Unique:
 		// Total count of unique issues
 		return "mvCountIssueRatingsUniqueService"
-	} else if filter.AllServices {
-		if len(filter.SupportGroupCCRN) > 0 {
-			// total count of issues in support group across all services
-			// service list view total count with support group filter
-			return "mvCountIssueRatingsService"
-		} else {
-			// total count of issues in all services (across all support groups)
-			// service list view total count without support group filter
-			return "mvCountIssueRatingsServiceWithoutSupportGroup"
-		}
-	} else if len(filter.SupportGroupCCRN) > 0 && len(filter.ServiceCCRN) == 0 && len(filter.ServiceId) == 0 {
+
+	case filter.AllServices && len(filter.SupportGroupCCRN) > 0:
+		// total count of issues in support group across all services
+		// service list view total count with support group filter
+		return "mvCountIssueRatingsService"
+
+	case filter.AllServices:
+		// total count of issues in all services (across all support groups)
+		// service list view total count without support group filter
+		return "mvCountIssueRatingsServiceWithoutSupportGroup"
+
+	case len(filter.SupportGroupCCRN) > 0 &&
+		len(filter.ServiceCCRN) == 0 &&
+		len(filter.ServiceId) == 0:
 		// Count issues in a support group
 		return "mvCountIssueRatingsSupportGroup"
-	} else if len(filter.ComponentVersionId) > 0 {
+
+	case len(filter.ComponentVersionId) > 0:
 		// Count issues in a component version of a *service*
 		return "mvCountIssueRatingsComponentVersion"
-	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
+
+	case len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0:
 		// Count issues that appear in single service
 		return "mvCountIssueRatingsServiceId"
-	} else {
+
+	default:
 		// Total count of issues
 		return "mvCountIssueRatingsOther"
 	}
@@ -92,8 +99,11 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 			}).Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	counts, err := performListScan(
 		stmt,

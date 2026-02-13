@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+version: "2"
+run:
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - staticcheck
+    - gocritic
+    - gosec
+    - errcheck
+    - unused
+    - unconvert
+    - goconst

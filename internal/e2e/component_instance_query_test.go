@@ -47,7 +47,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
@@ -55,7 +55,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 			// create a queryCollection (safe to share across requests)
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+			// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstance/minimal.graphql")
 
 			Expect(err).To(BeNil())
@@ -90,7 +90,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstance/minimal.graphql")
 
 				Expect(err).To(BeNil())
@@ -123,7 +123,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstance/directRelations.graphql")
 
 				Expect(err).To(BeNil())
@@ -209,7 +209,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstance/withOrder.graphql")
 
 				Expect(err).To(BeNil())
@@ -237,7 +237,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
 						Expect(c.CompareString(*ci.Node.Region, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Region
@@ -252,7 +252,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
 						Expect(c.CompareString(*ci.Node.Namespace, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Namespace
@@ -267,7 +267,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
 						Expect(c.CompareString(*ci.Node.Cluster, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Cluster
@@ -282,7 +282,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
 						Expect(c.CompareString(*ci.Node.Domain, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Domain
@@ -297,7 +297,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
 						Expect(c.CompareString(*ci.Node.Project, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Project
@@ -312,7 +312,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
 						Expect(c.CompareString(*ci.Node.Pod, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Pod
@@ -327,7 +327,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
 						Expect(c.CompareString(*ci.Node.Container, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Container
@@ -342,7 +342,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev int = -1
+					prev := -1
 					for _, ci := range componentInstances.Edges {
 						citEntity := entity.NewComponentInstanceType(ci.Node.Type.String())
 						Expect(citEntity.Index() >= prev).Should(BeTrue())
@@ -374,7 +374,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -384,7 +384,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 			componentInstance = testentity.NewFakeComponentInstanceEntity()
 			componentInstance.ComponentVersionId = seedCollection.ComponentVersionRows[0].Id.Int64
 			componentInstance.ServiceId = seedCollection.ServiceRows[0].Id.Int64
-			seeder.SeedScannerRunInstances("4b6d3167-473a-4150-87b3-01da70096727")
+			_ = seeder.SeedScannerRunInstances("4b6d3167-473a-4150-87b3-01da70096727")
 		})
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
@@ -392,7 +392,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstance/create.graphql")
 
 				Expect(err).To(BeNil())
@@ -456,7 +456,7 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -471,7 +471,7 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstance/update.graphql")
 
 				Expect(err).To(BeNil())
@@ -528,7 +528,7 @@ var _ = Describe("Deleting ComponentInstance via API", Label("e2e", "ComponentIn
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -543,7 +543,7 @@ var _ = Describe("Deleting ComponentInstance via API", Label("e2e", "ComponentIn
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentInstance/delete.graphql")
 
 				Expect(err).To(BeNil())

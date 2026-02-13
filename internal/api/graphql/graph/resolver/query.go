@@ -12,7 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/samber/lo"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
@@ -75,17 +75,17 @@ func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.Issu
 		Status: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueMatchStatus,
 			FilterName:  &baseResolver.IssueMatchFilterStatus,
-			Values:      lo.Map(model.AllIssueMatchStatusValuesOrdered, func(s model.IssueMatchStatusValues, _ int) *string { return pointer.String(s.String()) }),
+			Values:      lo.Map(model.AllIssueMatchStatusValuesOrdered, func(s model.IssueMatchStatusValues, _ int) *string { return ptr.To(s.String()) }),
 		},
 		IssueType: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueType,
 			FilterName:  &baseResolver.IssueMatchFilterIssueType,
-			Values:      lo.Map(model.AllIssueTypesOrdered, func(s model.IssueTypes, _ int) *string { return pointer.String(s.String()) }),
+			Values:      lo.Map(model.AllIssueTypesOrdered, func(s model.IssueTypes, _ int) *string { return ptr.To(s.String()) }),
 		},
 		Severity: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueSeverity,
 			FilterName:  &baseResolver.IssueMatchFilterSeverity,
-			Values:      lo.Map(model.AllSeverityValuesOrdered, func(s model.SeverityValues, _ int) *string { return pointer.String(s.String()) }),
+			Values:      lo.Map(model.AllSeverityValuesOrdered, func(s model.SeverityValues, _ int) *string { return ptr.To(s.String()) }),
 		},
 	}, nil
 }
@@ -95,7 +95,7 @@ func (r *queryResolver) ComponentInstanceFilterValues(ctx context.Context) (*mod
 		Type: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayComponentInstanceType,
 			FilterName:  &baseResolver.ComponentInstanceFilterType,
-			Values:      lo.Map(model.AllComponentInstanceTypesOrdered, func(s model.ComponentInstanceTypes, _ int) *string { return pointer.String(s.String()) }),
+			Values:      lo.Map(model.AllComponentInstanceTypesOrdered, func(s model.ComponentInstanceTypes, _ int) *string { return ptr.To(s.String()) }),
 		},
 	}, nil
 }
@@ -125,12 +125,13 @@ func (r *queryResolver) VulnerabilityFilterValues(ctx context.Context) (*model.V
 		Severity: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueSeverity,
 			FilterName:  &baseResolver.IssueMatchFilterSeverity,
-			Values:      lo.Map(model.AllSeverityValuesOrdered, func(s model.SeverityValues, _ int) *string { return pointer.String(s.String()) }),
+			Values:      lo.Map(model.AllSeverityValuesOrdered, func(s model.SeverityValues, _ int) *string { return ptr.To(s.String()) }),
 		},
 	}, nil
 }
 
 func (r *queryResolver) Images(ctx context.Context, filter *model.ImageFilter, first *int, after *string) (*model.ImageConnection, error) {
+	//nolint:staticcheck
 	ctx = context.WithValue(ctx, "serviceFilter", filter.Service)
 	return baseResolver.ImageBaseResolver(r.App, ctx, filter, first, after)
 }

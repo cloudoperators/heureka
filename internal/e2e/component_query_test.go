@@ -46,7 +46,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
@@ -54,7 +54,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 			// create a queryCollection (safe to share across requests)
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+			// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/component/minimal.graphql")
 
 			Expect(err).To(BeNil())
@@ -89,7 +89,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/component/minimal.graphql")
 
 				Expect(err).To(BeNil())
@@ -122,7 +122,7 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/component/directRelations.graphql")
 
 				Expect(err).To(BeNil())
@@ -204,7 +204,7 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -219,7 +219,7 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/component/create.graphql")
 
 				Expect(err).To(BeNil())
@@ -270,7 +270,7 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -285,7 +285,7 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/component/update.graphql")
 
 				Expect(err).To(BeNil())
@@ -335,7 +335,7 @@ var _ = Describe("Deleting Component via API", Label("e2e", "Components"), func(
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -350,7 +350,7 @@ var _ = Describe("Deleting Component via API", Label("e2e", "Components"), func(
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/component/delete.graphql")
 
 				Expect(err).To(BeNil())

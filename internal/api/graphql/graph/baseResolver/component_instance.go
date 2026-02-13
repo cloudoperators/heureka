@@ -5,6 +5,7 @@ package baseResolver
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
@@ -13,7 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.ComponentInstance, error) {
@@ -48,7 +49,7 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 		return nil, nil
 	}
 
-	var cir entity.ComponentInstanceResult = componentInstances.Elements[0]
+	cir := componentInstances.Elements[0]
 	componentInstance := model.NewComponentInstance(cir.ComponentInstance)
 
 	return &componentInstance, nil
@@ -101,7 +102,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		Project:                 filter.Project,
 		Pod:                     filter.Pod,
 		Container:               filter.Container,
-		Type:                    lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
+		Type:                    lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return ptr.To(item.String()) }),
 		IssueMatchId:            imId,
 		ServiceId:               serviceId,
 		ServiceCcrn:             filter.ServiceCcrn,
@@ -190,7 +191,7 @@ func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.Com
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called ComponentInstanceFilterBaseResolver (%s)", filter)
+	}).Debug(fmt.Sprintf("Called ComponentInstanceFilterBaseResolver (%v)", filter))
 
 	if filter == nil {
 		filter = &model.ComponentInstanceFilter{}
@@ -210,7 +211,7 @@ func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.Com
 		Project:   filter.Project,
 		Pod:       filter.Pod,
 		Container: filter.Container,
-		Type:      lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
+		Type:      lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return ptr.To(item.String()) }),
 		Context:   contextFilters,
 		Search:    filter.Search,
 		State:     model.GetStateFilterType(filter.State),
@@ -246,7 +247,7 @@ func ComponentInstanceFilterBaseResolver(
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called ComponentInstanceFilterBaseResolver (%s)", filterDisplay)
+	}).Debug(fmt.Sprintf("Called ComponentInstanceFilterBaseResolver (%v)", filterDisplay))
 
 	if filter == nil {
 		filter = &model.ComponentInstanceFilter{}
@@ -261,7 +262,7 @@ func ComponentInstanceFilterBaseResolver(
 		Project:   filter.Project,
 		Pod:       filter.Pod,
 		Container: filter.Container,
-		Type:      lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
+		Type:      lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return ptr.To(item.String()) }),
 		Search:    filter.Search,
 		State:     model.GetStateFilterType(filter.State),
 	}

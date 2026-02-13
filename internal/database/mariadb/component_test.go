@@ -30,7 +30,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All Component IDs", Label("GetAllComponentIds"), func() {
@@ -56,6 +56,9 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				ids = lo.Map(seedCollection.ComponentRows, func(c mariadb.ComponentRow, _ int) int64 {
 					return c.Id.Int64
 				})
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				randomId = ids[rand.Intn(len(ids))]
 			})
 			Context("and using no filter", func() {
@@ -103,6 +106,9 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 			var randomComponent mariadb.ComponentRow
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				randomComponent = seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
 			})
 
@@ -172,6 +178,9 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					testGetComponents(filter, []entity.Order{}, seedCollection.ComponentRows, func(entries []entity.ComponentResult) {})
 				})
 				It("can filter by a single service ccrn", func() {
+					// nolint due to weak random number generator for test reason
+					//
+					//nolint:gosec
 					serviceRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 
 					cvIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow, _ int) (int64, bool) {
@@ -251,6 +260,9 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				componentRows = seedCollection.ComponentRows
+				// nolint due to weak random number generator for test reason
+				//
+				//nolint:gosec
 				randomComponent = componentRows[rand.Intn(len(componentRows))]
 				count = len(componentRows)
 			})
@@ -463,7 +475,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 	})
 	AfterEach(func() {
 		seeder.CloseDbConnection()
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	testOrder := func(
@@ -516,7 +528,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 			for i := 0; i < 10; i++ {
 				issue := test.NewFakeIssue()
 				issue.Type.String = entity.IssueTypeVulnerability.String()
-				seeder.InsertFakeIssue(issue)
+				_, _ = seeder.InsertFakeIssue(issue)
 			}
 			seeder.SeedComponents(5)
 			var serviceCcrns []*string
@@ -613,7 +625,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 			}
 
 			testOrder(order, func(res []entity.ComponentResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					Expect(c.CompareString(r.Repository, prev)).Should(BeNumerically(">=", 0))
 					prev = r.Repository
@@ -649,7 +661,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 			}
 
 			testOrder(order, func(res []entity.ComponentResult) {
-				var prev string = "\U0010FFFF"
+				prev := prev
 				for _, r := range res {
 					Expect(c.CompareString(r.Repository, prev)).Should(BeNumerically("<=", 0))
 					prev = r.Repository

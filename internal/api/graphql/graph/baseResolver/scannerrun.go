@@ -10,7 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func ScannerRunTagFilterValues(app app.Heureka, ctx context.Context) ([]*string, error) {
@@ -21,7 +21,7 @@ func ScannerRunTagFilterValues(app app.Heureka, ctx context.Context) ([]*string,
 
 	res := make([]*string, len(tags))
 	for _, tag := range tags {
-		res = append(res, pointer.String(tag))
+		res = append(res, ptr.To(tag))
 	}
 
 	return res, nil
@@ -70,7 +70,7 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 
 	hasNext := false
 	if first == nil {
-		first = pointer.Int(0)
+		first = ptr.To(0)
 	}
 
 	if totalCount > *first+int(*value) {
@@ -78,7 +78,7 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 	}
 
 	if after == nil {
-		after = pointer.String("")
+		after = ptr.To("")
 	}
 	hasPrevious := len(*after) > 0
 

@@ -21,6 +21,9 @@ type ServiceAggregations struct {
 	IssueMatches       int64
 }
 
+// nolint due to embedding structures with the same fields
+//
+//nolint:govet
 type ServiceWithAggregations struct {
 	Service
 	ServiceAggregations
@@ -44,6 +47,9 @@ type ServiceFilter struct {
 	State               []StateFilterType `json:"state"`
 }
 
+// nolint due to embedding structures with the same fields
+//
+//nolint:govet
 type Service struct {
 	BaseService
 	IssueRepositoryService

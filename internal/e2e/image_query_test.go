@@ -130,7 +130,7 @@ func newImageTest() *imageTest {
 
 func (it *imageTest) teardown() {
 	e2e_common.ServerTeardown(it.server)
-	dbm.TestTearDown(it.db)
+	_ = dbm.TestTearDown(it.db)
 }
 
 func (it *imageTest) seed10Entries() {
@@ -138,7 +138,7 @@ func (it *imageTest) seed10Entries() {
 	for i := 0; i < 10; i++ {
 		issue := test.NewFakeIssue()
 		issue.Type.String = entity.IssueTypeVulnerability.String()
-		it.seeder.InsertFakeIssue(issue)
+		_, _ = it.seeder.InsertFakeIssue(issue)
 	}
 	it.components = it.seeder.SeedComponents(5)
 	it.services = it.seeder.SeedServices(5)

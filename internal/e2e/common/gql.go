@@ -10,6 +10,9 @@ import (
 
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"github.com/machinebox/graphql"
+
+	// nolint due to importing all functions from gomega package
+	//nolint: staticcheck
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -34,6 +37,7 @@ func ExecuteGqlQueryFromFileWithHeaders[T any](port string, queryFilePath string
 
 func newClientAndRequestForGqlFileQuery(port string, queryFilePath string, vars map[string]interface{}, headers map[string]string) (*graphql.Client, *graphql.Request) {
 	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
+	//nolint:gosec
 	b, err := os.ReadFile(queryFilePath)
 	Expect(err).To(BeNil())
 	str := string(b)

@@ -46,6 +46,9 @@ func (p *Profiler) Stop() {
 }
 
 func (p *Profiler) cleanup() {
-	p.file.Close()
+	if err := p.file.Close(); err != nil {
+		log.Printf("[Profiler]: error during closing file: %s", err)
+	}
+
 	p.file = nil
 }

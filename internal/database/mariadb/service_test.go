@@ -20,6 +20,9 @@ import (
 	pkg_util "github.com/cloudoperators/heureka/pkg/util"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("Service", Label("database", "Service"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -30,7 +33,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All Service IDs", Label("GetAllServiceIds"), func() {
@@ -523,7 +526,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			BeforeEach(func() {
 				newServiceRow := test.NewFakeService()
 				newService := newServiceRow.AsService()
-				db.CreateService(&newService)
+				_, _ = db.CreateService(&newService)
 			})
 			It("returns the services with aggregations", func() {
 				entriesWithAggregations, err := db.GetServicesWithAggregations(nil, nil)
@@ -567,7 +570,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 			})
 			It("returns correct aggregation values", func() {
-				//Should be filled with a check for each aggregation value,
+				// Should be filled with a check for each aggregation value,
 				// this is currently skipped due to the complexity of the test implementation
 				// as we would need to implement for each of the aggregations a manual aggregation
 				// based on the seederCollection.
@@ -1119,7 +1122,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 	})
 	AfterEach(func() {
 		seeder.CloseDbConnection()
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	testOrder := func(
@@ -1244,10 +1247,10 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 			}
 
 			testOrder(order, func(res []entity.ServiceResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					Expect(c.CompareString(r.Service.CCRN, prev)).Should(BeNumerically(">=", 0))
-					prev = r.Service.CCRN
+					prev = r.CCRN
 				}
 			})
 		})
@@ -1280,10 +1283,10 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 			}
 
 			testOrder(order, func(res []entity.ServiceResult) {
-				var prev string = "\U0010FFFF"
+				prev := prev
 				for _, r := range res {
 					Expect(c.CompareString(r.Service.CCRN, prev)).Should(BeNumerically("<=", 0))
-					prev = r.Service.CCRN
+					prev = r.CCRN
 				}
 			})
 		})

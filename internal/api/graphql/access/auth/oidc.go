@@ -82,7 +82,7 @@ func (oam OidcAuthMethod) Verify(c *gin.Context) error {
 	var claims IDTokenClaims
 	err = token.Claims(&claims)
 	if err != nil {
-		return verifyError(oidcAuthMethodName, fmt.Errorf("Failed to parse token claims: %w", err))
+		return verifyError(oidcAuthMethodName, fmt.Errorf("failed to parse token claims: %w", err))
 	}
 
 	authctx.UserNameToContext(c, claims.Sub)

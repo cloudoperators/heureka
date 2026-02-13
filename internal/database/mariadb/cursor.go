@@ -39,7 +39,10 @@ func EncodeCursor(opts ...NewCursor) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	encoder.Close()
+	if err := encoder.Close(); err != nil {
+		return "", fmt.Errorf("failed to close encoder: %w", err)
+	}
+
 	return buf.String(), nil
 }
 

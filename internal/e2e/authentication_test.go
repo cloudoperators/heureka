@@ -153,7 +153,7 @@ func (at *authenticationTest) getTestIssueCreatedByAndUpdatedBySystemUser() enti
 func (at *authenticationTest) teardown() {
 	e2e_common.ServerTeardown(at.server)
 	at.oidcProvider.Stop()
-	dbm.TestTearDown(at.db)
+	_ = dbm.TestTearDown(at.db)
 }
 
 func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.User) model.Issue {

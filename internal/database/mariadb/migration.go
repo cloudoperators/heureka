@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"strings"
 	"sync"
 
@@ -26,12 +27,12 @@ var MigrationFs fs.FS = &migrationFiles
 func GetVersion(cfg util.Config) (string, error) {
 	db, err := NewSqlDatabase(cfg)
 	if err != nil {
-		return "", fmt.Errorf("Error while Creating Db")
+		return "", fmt.Errorf("error while Creating Db")
 	}
 
 	v, err := db.getVersion()
 	if err != nil {
-		return "", fmt.Errorf("Error while checking Db migration: %w", err)
+		return "", fmt.Errorf("error while checking Db migration: %w", err)
 	}
 	return v, nil
 }
@@ -39,13 +40,17 @@ func GetVersion(cfg util.Config) (string, error) {
 func (s *SqlDatabase) getVersion() (string, error) {
 	m, err := s.openMigration()
 	if err != nil {
-		return "", fmt.Errorf("Could not open migration without source: %w", err)
+		return "", fmt.Errorf("could not open migration without source: %w", err)
 	}
-	defer m.Close()
+	defer func() {
+		if serr, derr := m.Close(); serr != nil || derr != nil {
+			log.Printf("error during closing migration: source - %s, database - %s", serr, derr)
+		}
+	}()
 
 	v, d, err := getMigrationVersion(m)
 	if err != nil {
-		return "", fmt.Errorf("Could not get migration version: %w", err)
+		return "", fmt.Errorf("could not get migration version: %w", err)
 	}
 
 	return versionToString(v, d), nil
@@ -54,7 +59,7 @@ func (s *SqlDatabase) getVersion() (string, error) {
 func (s *SqlDatabase) openMigration() (*migrate.Migrate, error) {
 	err := s.connectDB()
 	if err != nil {
-		return nil, fmt.Errorf("Could not connect DB: %w", err)
+		return nil, fmt.Errorf("could not connect DB: %w", err)
 	}
 
 	d, err := iofs.New(MigrationFs, "migrations")
@@ -103,7 +108,7 @@ func RunMigrations(cfg util.Config) error {
 	}
 	err = enableScheduler(cfg)
 	if err != nil {
-		return fmt.Errorf("Error while Enabling Scheduler Db: %w", err)
+		return fmt.Errorf("error while Enabling Scheduler Db: %w", err)
 	}
 	return nil
 }
@@ -114,7 +119,11 @@ func enableScheduler(cfg util.Config) error {
 		logrus.WithError(err).Error(err)
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logrus.WithError(err).Error(err)
+		}
+	}()
 
 	_, err = db.Exec("SET GLOBAL event_scheduler = ON;")
 	if err != nil {
@@ -151,7 +160,7 @@ func runNewPostMigrationsSync(cfg util.Config) error {
 	}
 	err = db.WaitPostMigrations()
 	if err != nil {
-		return fmt.Errorf("Error while waiting for post migration procedures: %w", err)
+		return fmt.Errorf("error while waiting for post migration procedures: %w", err)
 	}
 	return nil
 }
@@ -161,9 +170,12 @@ func (s *SqlDatabase) runUpMigrations() error {
 	if err != nil {
 		return err
 	}
-	defer m.Close()
+	defer func() {
+		if serr, derr := m.Close(); serr != nil || derr != nil {
+			log.Printf("error during closing migration: source - %s, database - %s", serr, derr)
+		}
+	}()
 
-	err = m.Up()
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange && err != io.EOF {
 		return err
 	}
@@ -174,11 +186,11 @@ func (s *SqlDatabase) runUpMigrations() error {
 func runNewPostMigrations(cfg util.Config) (*SqlDatabase, error) {
 	db, err := NewSqlDatabase(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("Error while Creating Db: %w", err)
+		return nil, fmt.Errorf("error while Creating Db: %w", err)
 	}
 	err = db.runPostMigrations()
 	if err != nil {
-		return nil, fmt.Errorf("Error while starting Post Migration procedures: %w", err)
+		return nil, fmt.Errorf("error while starting Post Migration procedures: %w", err)
 	}
 	return db, nil
 }
@@ -186,11 +198,11 @@ func runNewPostMigrations(cfg util.Config) (*SqlDatabase, error) {
 func runNewUpMigrations(cfg util.Config) error {
 	db, err := NewSqlDatabase(cfg)
 	if err != nil {
-		return fmt.Errorf("Error while Creating Db: %w", err)
+		return fmt.Errorf("error while Creating Db: %w", err)
 	}
 	err = db.runUpMigrations()
 	if err != nil {
-		return fmt.Errorf("Error while Migrating Db: %w", err)
+		return fmt.Errorf("error while Migrating Db: %w", err)
 	}
 	return nil
 }
@@ -216,7 +228,7 @@ func (s *SqlDatabase) getPostMigrationProcedures() ([]string, error) {
 
 	exists, err := s.tableExists(PostMigrationProcedureRegistryTable)
 	if err != nil {
-		return procs, fmt.Errorf("Could not check if table exists: %w", err)
+		return procs, fmt.Errorf("could not check if table exists: %w", err)
 	} else if !exists {
 		return procs, nil
 	}
@@ -239,18 +251,18 @@ func (pmc *postMigrationContext) appendErrorMessage(msg string) {
 	pmc.mu.Unlock()
 }
 
-func (pmc postMigrationContext) hasError() bool {
+func (pmc *postMigrationContext) hasError() bool {
 	return len(pmc.errs) > 0
 }
 
-func (pmc postMigrationContext) getError() error {
-	return fmt.Errorf("Error when exeute joined callers: [%s]", strings.Join(pmc.errs, "; "))
+func (pmc *postMigrationContext) getError() error {
+	return fmt.Errorf("error when exeute joined callers: [%s]", strings.Join(pmc.errs, "; "))
 }
 
 func (s *SqlDatabase) runPostMigrations() error {
 	procs, err := s.getPostMigrationProcedures()
 	if err != nil {
-		return fmt.Errorf("Failed to get post migration procedures: %w", err)
+		return fmt.Errorf("failed to get post migration procedures: %w", err)
 	}
 
 	if err := s.checkProceduresExist(procs); err != nil {
@@ -263,9 +275,9 @@ func (s *SqlDatabase) runPostMigrations() error {
 func (s *SqlDatabase) checkProceduresExist(procs []string) error {
 	exists, err := s.proceduresExist(procs)
 	if err != nil {
-		return fmt.Errorf("Could not check procedures exist: %w", err)
+		return fmt.Errorf("could not check procedures exist: %w", err)
 	} else if !exists {
-		return fmt.Errorf("Some procedures [%s] do not exist", strings.Join(procs, ", "))
+		return fmt.Errorf("some procedures [%s] do not exist", strings.Join(procs, ", "))
 	}
 	return nil
 }
@@ -324,7 +336,10 @@ func (s *SqlDatabase) runPostMigrationCleanupRoutineInBackground(procs []string)
 		if err := s.WaitPostMigrations(); err != nil {
 			logrus.WithError(err).Error(err)
 		}
-		s.CloseConnection()
+
+		if err := s.CloseConnection(); err != nil {
+			logrus.Warnf("error during closing connection: %s", err)
+		}
 	}()
 }
 

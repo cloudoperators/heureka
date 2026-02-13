@@ -25,14 +25,14 @@ type Config struct {
 	DBMaxIdleConnections int    `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"10" json:"dBMaxIdleConnections"`
 	DBMaxOpenConnections int    `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"100" json:"dbMaxOpenConnections"`
 	DBTrace              bool   `envconfig:"DB_TRACE" default:"false" json:"-"`
-	//VasApiAddress              string   `envconfig:"VAS_API_ADDRESS" required:"true" json:"vasApiAddress"`
-	//VasApiToken                string   `envconfig:"VAS_API_TOKEN" required:"true" json:"-"`
-	//NvdApiToken                string   `envconfig:"NVD_API_TOKEN" required:"true" json:"-"`
-	//OidcClientId               string   `envconfig:"OIDC_CLIENT_ID" required:"true" json:"-"`
-	//OidcUrl                    string   `envconfig:"OIDC_URL" required:"true" json:"-"`
-	//Environment                string   `envconfig:"ENVIRONMENT" required:"true" json:"environment"`
-	//// https://pkg.go.dev/github.com/robfig/cron#hdr-Predefined_schedules
-	//DiscoverySchedule string `envconfig:"DISOVERY_SCHEDULE" default:"0 0 0 * * *" json:"discoverySchedule"`
+	// VasApiAddress              string   `envconfig:"VAS_API_ADDRESS" required:"true" json:"vasApiAddress"`
+	// VasApiToken                string   `envconfig:"VAS_API_TOKEN" required:"true" json:"-"`
+	// NvdApiToken                string   `envconfig:"NVD_API_TOKEN" required:"true" json:"-"`
+	// OidcClientId               string   `envconfig:"OIDC_CLIENT_ID" required:"true" json:"-"`
+	// OidcUrl                    string   `envconfig:"OIDC_URL" required:"true" json:"-"`
+	// Environment                string   `envconfig:"ENVIRONMENT" required:"true" json:"environment"`
+	// https://pkg.go.dev/github.com/robfig/cron#hdr-Predefined_schedules
+	// DiscoverySchedule string `envconfig:"DISOVERY_SCHEDULE" default:"0 0 0 * * *" json:"discoverySchedule"`
 	SeedMode                      bool   `envconfig:"SEED_MODE" required:"false" default:"false" json:"seedMode"`
 	AuthTokenSecret               string `envconfig:"AUTH_TOKEN_SECRET" required:"false" json:"-"`
 	AuthOidcClientId              string `envconfig:"AUTH_OIDC_CLIENT_ID" required:"false" json:"-"`
@@ -58,30 +58,30 @@ type Config struct {
 func (c *Config) ConfigToConsole() {
 	data := [][]string{
 		{"Port:", c.Port},
-		//{"Regions", fmt.Sprintf("%v", c.Regions)},
-		//{"CloudAdmin Username", c.CloudAdminUsername},
-		//{"CloudAdmin Password", strings.Repeat("*", 10)},
+		// {"Regions", fmt.Sprintf("%v", c.Regions)},
+		// {"CloudAdmin Username", c.CloudAdminUsername},
+		// {"CloudAdmin Password", strings.Repeat("*", 10)},
 		{"Database Address", c.DBAddress},
 		{"Database Port", c.DBPort},
 		{"Database Name", c.DBName},
 		{"Database Username", c.DBUser},
 		{"Database Password", strings.Repeat("*", 10)},
-		//{"VAS API Address", c.VasApiAddress},
-		//{"Environment", c.Environment},
-		//{"Postgres Password", strings.Repeat("*", 10)},
-		//{"VAS API Token", strings.Repeat("*", 10)},
-		//{"NVD API Token", strings.Repeat("*", 10)},
-		//{"OIDC Client Id", strings.Repeat("*", 10)},
-		//{"OIDC URL", c.OidcUrl},
-		//{"Discovery Schedule", c.DiscoverySchedule},
+		// {"VAS API Address", c.VasApiAddress},
+		// {"Environment", c.Environment},
+		// {"Postgres Password", strings.Repeat("*", 10)},
+		// {"VAS API Token", strings.Repeat("*", 10)},
+		// {"NVD API Token", strings.Repeat("*", 10)},
+		// {"OIDC Client Id", strings.Repeat("*", 10)},
+		// {"OIDC URL", c.OidcUrl},
+		// {"Discovery Schedule", c.DiscoverySchedule},
 	}
 	table := tablewriter.NewWriter(os.Stdout)
 	table.Header([]string{"Variable", "Value"})
 	table.Configure(func(config *tablewriter.Config) {
-		config.Row.Formatting.Alignment = tw.AlignLeft
+		config.Row.Alignment.Global = tw.AlignLeft
 	})
-	table.Bulk(data)
-	table.Render()
+	_ = table.Bulk(data)
+	_ = table.Render()
 }
 
 const HeurekaFiglet = `

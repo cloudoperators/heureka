@@ -155,7 +155,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 
 	filterStr := getComponentFilterString(filter)
 	joins := s.getComponentJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -202,7 +202,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -223,8 +223,11 @@ func (s *SqlDatabase) GetAllComponentIds(filter *entity.ComponentFilter) ([]int6
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -248,8 +251,11 @@ func (s *SqlDatabase) GetAllComponentCursors(filter *entity.ComponentFilter, ord
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	rows, err := performListScan(
 		stmt,
@@ -268,7 +274,7 @@ func (s *SqlDatabase) GetAllComponentCursors(filter *entity.ComponentFilter, ord
 
 		var isc entity.IssueSeverityCounts
 		if row.RatingCount != nil {
-			isc = row.RatingCount.AsIssueSeverityCounts()
+			isc = row.AsIssueSeverityCounts()
 		}
 
 		cursor, _ := EncodeCursor(WithComponent(order, c, isc))
@@ -297,8 +303,11 @@ func (s *SqlDatabase) GetComponents(filter *entity.ComponentFilter, order []enti
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -309,7 +318,7 @@ func (s *SqlDatabase) GetComponents(filter *entity.ComponentFilter, order []enti
 
 			var isc entity.IssueSeverityCounts
 			if e.RatingCount != nil {
-				isc = e.RatingCount.AsIssueSeverityCounts()
+				isc = e.AsIssueSeverityCounts()
 			}
 
 			cursor, _ := EncodeCursor(WithComponent(order, c, isc))
@@ -339,8 +348,11 @@ func (s *SqlDatabase) CountComponents(filter *entity.ComponentFilter) (int64, er
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
@@ -404,8 +416,11 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 			}).Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -531,7 +546,11 @@ func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]strin
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -539,7 +558,11 @@ func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]strin
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	componentCcrns := []string{}

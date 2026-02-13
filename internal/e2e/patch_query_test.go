@@ -39,7 +39,7 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {

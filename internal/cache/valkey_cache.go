@@ -13,7 +13,7 @@ import (
 )
 
 type ValkeyCache struct {
-	CacheBase
+	*CacheBase
 	client valkey.Client
 }
 
@@ -43,7 +43,7 @@ func NewValkeyCache(ctx context.Context, wg *sync.WaitGroup, config ValkeyCacheC
 		return nil
 	}
 	valkeyCache := &ValkeyCache{
-		CacheBase: *cacheBase,
+		CacheBase: cacheBase,
 		client:    valkeyClient,
 	}
 

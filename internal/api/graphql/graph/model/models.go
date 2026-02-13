@@ -80,20 +80,20 @@ func (od *OrderDirection) ToOrderDirectionEntity() entity.OrderDirection {
 
 func (sg *SupportGroupOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
-	switch *sg.By {
-	case SupportGroupOrderByFieldCcrn:
+	if *sg.By == SupportGroupOrderByFieldCcrn {
 		order.By = entity.SupportGroupCcrn
 	}
+
 	order.Direction = sg.Direction.ToOrderDirectionEntity()
 	return order
 }
 
 func (cv *ComponentVersionOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
-	switch *cv.By {
-	case ComponentVersionOrderByFieldRepository:
+	if *cv.By == ComponentVersionOrderByFieldRepository {
 		order.By = entity.ComponentVersionRepository
 	}
+
 	order.Direction = cv.Direction.ToOrderDirectionEntity()
 	return order
 }
@@ -154,10 +154,10 @@ func (imo *IssueMatchOrderBy) ToOrderEntity() entity.Order {
 
 func (so *ServiceOrderBy) ToOrderEntity() entity.Order {
 	var order entity.Order
-	switch *so.By {
-	case ServiceOrderByFieldCcrn:
+	if *so.By == ServiceOrderByFieldCcrn {
 		order.By = entity.ServiceCcrn
 	}
+
 	order.Direction = so.Direction.ToOrderDirectionEntity()
 	return order
 }
@@ -344,19 +344,19 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 
 	if issue.IssueAggregations != nil {
 		objectMetadata = IssueMetadata{
-			ServiceCount:                  int(issue.IssueAggregations.AffectedServices),
-			ActivityCount:                 int(issue.IssueAggregations.Activities),
+			ServiceCount:                  int(issue.AffectedServices),
+			ActivityCount:                 int(issue.Activities),
 			IssueMatchCount:               int(issue.IssueAggregations.IssueMatches),
-			ComponentInstanceCount:        int(issue.IssueAggregations.AffectedComponentInstances),
+			ComponentInstanceCount:        int(issue.AffectedComponentInstances),
 			ComponentVersionCount:         int(issue.IssueAggregations.ComponentVersions),
-			EarliestDiscoveryDate:         issue.IssueAggregations.EarliestDiscoveryDate.String(),
-			EarliestTargetRemediationDate: issue.IssueAggregations.EarliestTargetRemediationDate.String(),
+			EarliestDiscoveryDate:         issue.EarliestDiscoveryDate.String(),
+			EarliestTargetRemediationDate: issue.EarliestTargetRemediationDate.String(),
 		}
 	}
 
 	return Issue{
 		ID:             fmt.Sprintf("%d", issue.Issue.Id),
-		PrimaryName:    &issue.Issue.PrimaryName,
+		PrimaryName:    &issue.PrimaryName,
 		Type:           &issueType,
 		Description:    &issue.Issue.Description,
 		LastModified:   &lastModified,
@@ -567,8 +567,8 @@ func NewServiceWithAggregations(service *entity.ServiceResult) Service {
 
 	if service.ServiceAggregations != nil {
 		objectMetadata = ServiceMetadata{
-			IssueMatchCount:        int(service.ServiceAggregations.IssueMatches),
-			ComponentInstanceCount: int(service.ServiceAggregations.ComponentInstances),
+			IssueMatchCount:        int(service.IssueMatches),
+			ComponentInstanceCount: int(service.ComponentInstances),
 		}
 	}
 
@@ -785,17 +785,18 @@ func NewComponentInstanceEntity(componentInstance *ComponentInstanceInput) entit
 		ciType = componentInstance.Type.String()
 	}
 	return entity.ComponentInstance{
-		CCRN:               rawCcrn,
-		Region:             lo.FromPtr(componentInstance.Region),
-		Cluster:            lo.FromPtr(componentInstance.Cluster),
-		Namespace:          lo.FromPtr(componentInstance.Namespace),
-		Domain:             lo.FromPtr(componentInstance.Domain),
-		Project:            lo.FromPtr(componentInstance.Project),
-		Pod:                lo.FromPtr(componentInstance.Pod),
-		Container:          lo.FromPtr(componentInstance.Container),
-		Type:               entity.NewComponentInstanceType(ciType),
-		Context:            (*entity.Json)(&componentInstance.Context),
-		Count:              int16(lo.FromPtr(componentInstance.Count)),
+		CCRN:      rawCcrn,
+		Region:    lo.FromPtr(componentInstance.Region),
+		Cluster:   lo.FromPtr(componentInstance.Cluster),
+		Namespace: lo.FromPtr(componentInstance.Namespace),
+		Domain:    lo.FromPtr(componentInstance.Domain),
+		Project:   lo.FromPtr(componentInstance.Project),
+		Pod:       lo.FromPtr(componentInstance.Pod),
+		Container: lo.FromPtr(componentInstance.Container),
+		Type:      entity.NewComponentInstanceType(ciType),
+		Context:   (*entity.Json)(&componentInstance.Context),
+		// nolint due to int16 won't overflow
+		Count:              int16(lo.FromPtr(componentInstance.Count)), //nolint: gosec
 		ComponentVersionId: componentVersionId,
 		ServiceId:          serviceId,
 		ParentId:           parentId,
@@ -806,9 +807,10 @@ func GetStateFilterType(sf []StateFilter) []entity.StateFilterType {
 	if len(sf) > 0 {
 		s := make([]entity.StateFilterType, len(sf))
 		for i := range sf {
-			if sf[i] == StateFilterDeleted {
+			switch sf[i] {
+			case StateFilterDeleted:
 				s[i] = entity.Deleted
-			} else if sf[i] == StateFilterActive {
+			case StateFilterActive:
 				s[i] = entity.Active
 			}
 		}

@@ -30,13 +30,13 @@ func BuildIssueVariantMap(db database.Database, filter *entity.ServiceIssueVaria
 	issueVariants, err := db.GetServiceIssueVariants(filter)
 	if err != nil {
 		l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants")
-		return nil, fmt.Errorf("Error while fetching issue variants: %w", err)
+		return nil, fmt.Errorf("error while fetching issue variants: %w", err)
 	}
 
 	// No issue variants found,
 	if len(issueVariants) < 1 {
 		l.WithField("event-step", "FetchIssueVariants").Error("No issue variants found that are related to the issue repository")
-		return nil, fmt.Errorf("No issue variants found that are related to the issue repository")
+		return nil, fmt.Errorf("no issue variants found that are related to the issue repository")
 	}
 
 	// create a map of issue id to variants for easy access

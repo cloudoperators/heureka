@@ -4,7 +4,7 @@
 package openfga
 
 import (
-	"io/ioutil"
+	"io"
 
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/sirupsen/logrus"
@@ -63,7 +63,7 @@ func NewAuthorizationHandler(cfg *util.Config, enablelog bool) Authorization {
 func newLogger(enableLog bool) *logrus.Logger {
 	l := logrus.New()
 	if !enableLog {
-		l.SetOutput(ioutil.Discard)
+		l.SetOutput(io.Discard)
 	}
 	return l
 }

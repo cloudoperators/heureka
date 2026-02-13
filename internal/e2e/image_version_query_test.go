@@ -39,7 +39,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
@@ -95,7 +95,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 				_, err = seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 			}
-			seeder.RefreshCountIssueRatings()
+			_ = seeder.RefreshCountIssueRatings()
 		})
 
 		It("can query image versions", func() {

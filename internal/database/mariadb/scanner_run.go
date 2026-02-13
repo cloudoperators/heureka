@@ -4,6 +4,8 @@
 package mariadb
 
 import (
+	"log"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
@@ -120,8 +122,12 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("error during closing rows: %s", err)
+		}
+	}()
 
-	defer rows.Close()
 	result := []entity.ScannerRun{}
 
 	for rows.Next() {
@@ -174,7 +180,7 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 }
 
 func ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity.ScannerRunFilter {
-	var first int = 100
+	first := 100
 	var after int64 = 0
 	if f == nil {
 		return &entity.ScannerRunFilter{
@@ -202,8 +208,12 @@ func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("error during closing rows: %s", err)
+		}
+	}()
 
-	defer rows.Close()
 	res := []string{}
 
 	for rows.Next() {
@@ -233,7 +243,9 @@ func (s *SqlDatabase) CountScannerRuns(filter *entity.ScannerRunFilter) (int, er
 
 	var res int
 
-	row.Scan(&res)
+	if err := row.Scan(&res); err != nil {
+		return 0, err
+	}
 
 	return res, nil
 }

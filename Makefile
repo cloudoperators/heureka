@@ -6,7 +6,7 @@ ARCH := $(shell go env GOARCH)
 SHELL=/bin/bash
 MIGRATIONS_DIR=internal/database/mariadb/migrations/
 
-.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db fmt compose-prepare compose-up compose-down compose-restart compose-build check-call-cached check-migration-files
+.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db fmt lint compose-prepare compose-up compose-down compose-restart compose-build check-call-cached check-migration-files
 
 # Source the .env file to use the env vars with make
 -include .env
@@ -101,6 +101,12 @@ install-gofumpt:
 
 fmt:
 	gofumpt -l -w .
+
+install-golangci-lint:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
+
+lint:
+	golangci-lint run
 
 DOCKER_COMPOSE := docker-compose -f docker-compose.yaml
 DOCKER_COMPOSE_SERVICES := heureka-app heureka-db valkey

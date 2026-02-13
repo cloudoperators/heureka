@@ -42,7 +42,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
@@ -130,7 +130,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -194,7 +194,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
@@ -305,7 +305,7 @@ var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), f
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {

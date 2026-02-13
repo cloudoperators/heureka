@@ -35,8 +35,7 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 			return nil, NewResolverError("ImageVersionBaseResolver", "Bad Request - Error while parsing propagated ID")
 		}
 
-		switch parent.ParentName {
-		case model.ImageNodeName:
+		if parent.ParentName == model.ImageNodeName {
 			componentId = []*int64{pid}
 		}
 	}
@@ -87,7 +86,7 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 
 	if lo.Contains(requestedFields, "counts") {
 		cvIds := lo.Map(componentVersions.Elements, func(e entity.ComponentVersionResult, _ int) *int64 {
-			return &e.ComponentVersion.Id
+			return &e.Id
 		})
 
 		icFilter := &entity.IssueFilter{

@@ -15,6 +15,9 @@ import (
 	"github.com/samber/lo"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("Activity", Label("database", "Activity"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -25,7 +28,7 @@ var _ = Describe("Activity", Label("database", "Activity"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All Activity IDs", Label("GetAllActivityIds"), func() {

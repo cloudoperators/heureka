@@ -41,7 +41,7 @@ func newAutoPatchTest() *autoPatchTest {
 }
 
 func (apt *autoPatchTest) TearDown() {
-	dbm.TestTearDown(apt.db)
+	_ = dbm.TestTearDown(apt.db)
 }
 
 func (apt *autoPatchTest) Run(tag string, info autoPatchTestInfo, fn func(db *mariadb.SqlDatabase) (bool, error)) {
@@ -318,7 +318,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectDeletedVersions:     lo.ToPtr([]string{"V20"}),
 		},
 		{
-			description: "WHEN 1 component with component version issues disappear from 2 components with different version and service", //THEN patch should be created and not used version should be removed and component version issues for not used version should be removed
+			description: "WHEN 1 component with component version issues disappear from 2 components with different version and service", // THEN patch should be created and not used version should be removed and component version issues for not used version should be removed
 			scannerRuns: [][]string{{"CI1", "CI2"}, {"CI1"}},
 			dbSeeds: test.DbSeeds{
 				Issues: []string{"Issue1", "Issue2", "Issue3", "Issue4"},
@@ -334,14 +334,27 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 					{Issue: "Issue3", ComponentVersion: "V20"},
 				},
 			},
-			expectedResults:                     []bool{false, true},
-			expectedPatchCount:                  1,
-			patchedComponentInstances:           []string{"CI2"},
-			expectDeletedVersions:               lo.ToPtr([]string{"V20"}),
-			expectDeletedComponentVersionIssues: []test.ComponentVersionIssue{{"Issue1", "V20"}, {"Issue2", "V20"}, {"Issue3", "V20"}},
+			expectedResults:           []bool{false, true},
+			expectedPatchCount:        1,
+			patchedComponentInstances: []string{"CI2"},
+			expectDeletedVersions:     lo.ToPtr([]string{"V20"}),
+			expectDeletedComponentVersionIssues: []test.ComponentVersionIssue{
+				{
+					Issue:            "Issue1",
+					ComponentVersion: "V20",
+				},
+				{
+					Issue:            "Issue2",
+					ComponentVersion: "V20",
+				},
+				{
+					Issue:            "Issue3",
+					ComponentVersion: "V20",
+				},
+			},
 		},
 		{
-			description: "WHEN 1 component disappear from 2 components with the same component and different version and service", //THEN patch should be created and not used version should be removed and component should not be removed
+			description: "WHEN 1 component disappear from 2 components with the same component and different version and service", // THEN patch should be created and not used version should be removed and component should not be removed
 			scannerRuns: [][]string{{"CI1", "CI2"}, {"CI1"}},
 			dbSeeds: test.DbSeeds{
 				Components: []test.ComponentData{
@@ -356,7 +369,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectDeletedComponents:   lo.ToPtr([]string{}),
 		},
 		{
-			description: "WHEN 1 component disappear from 2 components with different component, version and service", //THEN patch should be created and not used version should be removed and not used component should be removed
+			description: "WHEN 1 component disappear from 2 components with different component, version and service", // THEN patch should be created and not used version should be removed and not used component should be removed
 			scannerRuns: [][]string{{"CI1", "CI2"}, {"CI1"}},
 			dbSeeds: test.DbSeeds{
 				Components: []test.ComponentData{
@@ -371,7 +384,7 @@ var _ = Describe("Autopatch", Label("database", "Autopatch"), func() {
 			expectDeletedComponents:   lo.ToPtr([]string{"C2"}),
 		},
 		{
-			description: "WHEN 4 scans detect disappearance of 1 component and the component appear and disappear again", //THEN two patches should be created for the same service and version
+			description: "WHEN 4 scans detect disappearance of 1 component and the component appear and disappear again", // THEN two patches should be created for the same service and version
 			scannerRuns: [][]string{{"CI0", "CI1"}, {"CI0"}, {"CI0", "CI2"}, {"CI0"}},
 			dbSeeds: test.DbSeeds{
 				Components: []test.ComponentData{

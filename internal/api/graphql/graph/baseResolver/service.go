@@ -46,7 +46,7 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 		return nil, nil
 	}
 
-	var sr entity.ServiceResult = services.Elements[0]
+	sr := services.Elements[0]
 	service := model.NewService(sr.Service)
 
 	return &service, nil

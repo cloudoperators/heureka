@@ -17,6 +17,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// nolint due to weak random number generator for test reason
+//
+//nolint:gosec
 var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
@@ -27,7 +30,7 @@ var _ = Describe("Evidence", Label("database", "Evidence"), func() {
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 	})
 	AfterEach(func() {
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("Getting All Evidence IDs", Label("GetAllEvidenceIds"), func() {

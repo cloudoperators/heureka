@@ -26,7 +26,7 @@ func getUserFilterString(filter *entity.UserFilter) string {
 }
 
 func ensureUserFilter(f *entity.UserFilter) *entity.UserFilter {
-	var first int = 1000
+	first := 1000
 	var after int64 = 0
 	if f == nil {
 		return &entity.UserFilter{
@@ -154,8 +154,11 @@ func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
@@ -179,8 +182,12 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.User, error)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
-	defer stmt.Close()
 	return performListScan(
 		stmt,
 		filterParameters,
@@ -205,8 +212,11 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
@@ -317,7 +327,11 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -325,7 +339,11 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	userNames := []string{}
@@ -367,7 +385,11 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -375,7 +397,11 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	uniqueUserID := []string{}

@@ -167,7 +167,6 @@ var _ = Describe("When updating Evidence", Label("app", "UpdateEvidence"), func(
 		evidence = test.NewFakeEvidenceEntity()
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.EvidenceFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -215,7 +214,6 @@ var _ = Describe("When deleting Evidence", Label("app", "DeleteEvidence"), func(
 		id = 1
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.EvidenceFilter{
 			Paginated: entity.Paginated{
 				First: &first,

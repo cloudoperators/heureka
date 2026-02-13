@@ -114,8 +114,11 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,

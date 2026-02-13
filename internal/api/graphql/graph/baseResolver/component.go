@@ -46,7 +46,7 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 		return nil, nil
 	}
 
-	var cr entity.ComponentResult = components.Elements[0]
+	cr := components.Elements[0]
 	component := model.NewComponent(cr.Component)
 
 	return &component, nil
@@ -158,8 +158,7 @@ func ComponentIssueCountsBaseResolver(app app.Heureka, ctx context.Context, filt
 			}
 		}
 
-		switch parent.ParentName {
-		case model.ImageNodeName:
+		if parent.ParentName == model.ImageNodeName {
 			componentId = []*int64{pid}
 		}
 	}

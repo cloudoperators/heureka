@@ -42,7 +42,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("the database has entries", func() {
@@ -61,7 +61,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueCounts/query.graphql")
 
 				Expect(err).To(BeNil())
@@ -99,7 +99,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 				// create a queryCollection (safe to share across requests)
 				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+				// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withIssueCounts.graphql")
 
 				Expect(err).To(BeNil())
@@ -133,7 +133,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 			// create a queryCollection (safe to share across requests)
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 
-			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
+			// @todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueCounts/query.graphql")
 
 			Expect(err).To(BeNil())

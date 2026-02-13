@@ -23,12 +23,12 @@ func FindMaxBy[E any, T constraints.Ordered](s []E, fn func(val E) (T, error)) (
 
 		v, err := fn(s[i])
 		if err != nil {
-			return nil, errors.New("Error in FindMaxBy Callback function")
+			return nil, errors.New("error in FindMaxBy Callback function")
 		}
 
 		m, err := fn(max)
 		if err != nil {
-			return nil, errors.New("Error in FindMaxBy Callback function")
+			return nil, errors.New("error in FindMaxBy Callback function")
 		}
 		if v > m {
 			max = s[i]

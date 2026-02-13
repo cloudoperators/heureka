@@ -13,8 +13,8 @@ import (
 )
 
 func ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
-	var first int = 1000
-	var after string = ""
+	first := 1000
+	after := ""
 	if f == nil {
 		return &entity.ComponentInstanceFilter{
 			PaginatedX: entity.PaginatedX{
@@ -130,13 +130,15 @@ func getComponentInstanceUpdateFields(componentInstance *entity.ComponentInstanc
 	return strings.Join(fl, ", ")
 }
 
-func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *entity.ComponentInstanceFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string,
+	filter *entity.ComponentInstanceFilter, withCursor bool, order []entity.Order, l *logrus.Entry,
+) (Stmt, []interface{}, error) {
 	var query string
 	filter = ensureComponentInstanceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getComponentInstanceFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
 	}
@@ -196,7 +198,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionVersion)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -217,7 +219,11 @@ func (s *SqlDatabase) GetAllComponentInstanceIds(filter *entity.ComponentInstanc
 	if err != nil {
 		return nil, fmt.Errorf("failed to build ComponentInstance IDs query: %w", err)
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	ids, err := performIdScan(stmt, filterParameters, l)
 	if err != nil {
@@ -227,7 +233,9 @@ func (s *SqlDatabase) GetAllComponentInstanceIds(filter *entity.ComponentInstanc
 	return ids, nil
 }
 
-func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilter, order []entity.Order) ([]entity.ComponentInstanceResult, error) {
+func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilter,
+	order []entity.Order,
+) ([]entity.ComponentInstanceResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetComponentInstances",
 	})
@@ -242,7 +250,11 @@ func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilt
 	if err != nil {
 		return nil, fmt.Errorf("failed to build ComponentInstances query: %w", err)
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	results, err := performListScan(
 		stmt,
@@ -270,7 +282,9 @@ func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilt
 	return results, nil
 }
 
-func (s *SqlDatabase) GetAllComponentInstanceCursors(filter *entity.ComponentInstanceFilter, order []entity.Order) ([]string, error) {
+func (s *SqlDatabase) GetAllComponentInstanceCursors(filter *entity.ComponentInstanceFilter,
+	order []entity.Order,
+) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetAllComponentInstanceCursors",
@@ -325,7 +339,11 @@ func (s *SqlDatabase) CountComponentInstances(filter *entity.ComponentInstanceFi
 	if err != nil {
 		return -1, fmt.Errorf("failed to build ComponentInstance count query: %w", err)
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	count, err := performCountScan(stmt, filterParameters, l)
 	if err != nil {
@@ -473,14 +491,22 @@ func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.C
 	if err != nil {
 		return nil, fmt.Errorf("failed to build ComponentInstance attribute query for %s: %w", attrName, err)
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute ComponentInstance attribute query for %s: %w", attrName, err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("error during closing rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	attrVal := []string{}

@@ -126,7 +126,6 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		user = test.NewFakeUserEntity()
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -170,7 +169,6 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		user = test.NewFakeUserEntity()
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -214,7 +212,6 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		id = 1
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,

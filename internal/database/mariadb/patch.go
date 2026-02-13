@@ -5,7 +5,6 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
@@ -20,15 +19,15 @@ func buildPatchFilterParameters(filter *entity.PatchFilter, withCursor bool, cur
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionName)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.First, cursorFields)...)
 	}
 
 	return filterParameters
 }
 
 func ensurePatchFilter(filter *entity.PatchFilter) *entity.PatchFilter {
-	var first int = 1000
-	var after string = ""
+	first := 1000
+	after := ""
 	if filter == nil {
 		filter = &entity.PatchFilter{
 			PaginatedX: entity.PaginatedX{
@@ -44,29 +43,6 @@ func ensurePatchFilter(filter *entity.PatchFilter) *entity.PatchFilter {
 		filter.After = &after
 	}
 	return filter
-}
-
-func getPatchUpdateFields(patch *entity.Patch) string {
-	fl := []string{}
-	if patch.Id != 0 {
-		fl = append(fl, "patch_id = :patch_id")
-	}
-	if patch.ServiceId != 0 {
-		fl = append(fl, "patch_service_id = :patch_service_id")
-	}
-	if patch.ServiceName != "" {
-		fl = append(fl, "patch_service_name = :patch_service_name")
-	}
-	if patch.ComponentVersionId != 0 {
-		fl = append(fl, "patch_component_version_id = :patch_component_version_id")
-	}
-	if patch.ComponentVersionName != "" {
-		fl = append(fl, "patch_component_version_name = :patch_component_version_name")
-	}
-	if patch.UpdatedBy != 0 {
-		fl = append(fl, "patch_updated_by = :patch_updated_by")
-	}
-	return strings.Join(fl, ", ")
 }
 
 func getPatchFilterString(filter *entity.PatchFilter) string {
@@ -85,7 +61,7 @@ func (s *SqlDatabase) buildPatchStatement(baseQuery string, filter *entity.Patch
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getPatchFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Patch cursor: %w", err)
 	}
@@ -145,8 +121,11 @@ func (s *SqlDatabase) GetPatches(filter *entity.PatchFilter, order []entity.Orde
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch query: %w", err)
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	results, err := performListScan(
 		stmt,
@@ -187,8 +166,11 @@ func (s *SqlDatabase) CountPatches(filter *entity.PatchFilter) (int64, error) {
 	if err != nil {
 		return -1, fmt.Errorf("failed to build Patch count query: %w", err)
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	count, err := performCountScan(stmt, filterParameters, l)
 	if err != nil {
@@ -214,8 +196,11 @@ func (s *SqlDatabase) GetAllPatchCursors(filter *entity.PatchFilter, order []ent
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch cursor query: %w", err)
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	rows, err := performListScan(
 		stmt,

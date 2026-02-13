@@ -47,7 +47,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 	AfterEach(func() {
 		e2e_common.ServerTeardown(s)
 		oidcProvider.Stop()
-		dbm.TestTearDown(db)
+		_ = dbm.TestTearDown(db)
 	})
 
 	When("trying to access query resource with valid oidc token", func() {
@@ -61,14 +61,14 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 		It("respond with 401", func() {
 			resp := test.SendGetRequest(queryUrl, nil)
 			Expect(resp.StatusCode).To(Equal(401))
-			test.ExpectErrorMessage(resp, "OidcAuthMethod(No authorization header)")
+			test.ExpectErrorMessage(resp, "OidcAuthMethod(no authorization header)")
 		})
 	})
 	When("trying to access query resource with invalid 'Authorization' header", func() {
 		It("respond with 401", func() {
 			resp := test.SendGetRequest(queryUrl, map[string]string{"Authorization": "invalidHeader"})
 			Expect(resp.StatusCode).To(Equal(401))
-			test.ExpectErrorMessage(resp, "OidcAuthMethod(Invalid authorization header)")
+			test.ExpectErrorMessage(resp, "OidcAuthMethod(invalid authorization header)")
 		})
 	})
 	When("trying to access query resource with expired oidc token", func() {

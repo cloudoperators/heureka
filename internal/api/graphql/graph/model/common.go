@@ -5,6 +5,10 @@ package model
 
 import "fmt"
 
+const (
+	unknownType = "unknown"
+)
+
 type NodeName string
 
 func (e NodeName) String() string {
@@ -60,7 +64,7 @@ func SeverityValue(s string) (SeverityValues, error) {
 	case SeverityValuesCritical.String():
 		return SeverityValuesCritical, nil
 	}
-	return SeverityValuesNone, fmt.Errorf("Invalid SeverityValues provided: %s", s)
+	return SeverityValuesNone, fmt.Errorf("invalid SeverityValues provided: %s", s)
 }
 
 func ComponentTypeValue(s string) (ComponentTypeValues, error) {
@@ -72,7 +76,7 @@ func ComponentTypeValue(s string) (ComponentTypeValues, error) {
 	case ComponentTypeValuesVirtualMachineImage.String():
 		return ComponentTypeValuesVirtualMachineImage, nil
 	}
-	return "unknown", fmt.Errorf("Invalid ComponentTypeValues provided: %s", s)
+	return unknownType, fmt.Errorf("invalid ComponentTypeValues provided: %s", s)
 }
 
 func ComponentInstanceType(s string) (ComponentInstanceTypes, error) {
@@ -102,5 +106,6 @@ func ComponentInstanceType(s string) (ComponentInstanceTypes, error) {
 	case ComponentInstanceTypesProjectConfiguration.String():
 		return ComponentInstanceTypesProjectConfiguration, nil
 	}
-	return "unknown", fmt.Errorf("Invalid ComponentInstanceType provided: %s", s)
+
+	return unknownType, fmt.Errorf("invalid ComponentInstanceType provided: %s", s)
 }

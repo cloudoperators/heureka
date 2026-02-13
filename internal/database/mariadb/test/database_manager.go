@@ -111,9 +111,15 @@ func (dbm *DatabaseManager) cleanupSchemas() error {
 
 func (dbm *DatabaseManager) TestTearDown(dbClient *mariadb.SqlDatabase) error {
 	err := dbm.cleanupSchemas()
-	dbClient.CloseConnection()
+	if err := dbClient.CloseConnection(); err != nil {
+		return err
+	}
+
 	if dbm.dbClient != nil {
-		dbm.dbClient.CloseConnection()
+		if err := dbm.dbClient.CloseConnection(); err != nil {
+			return err
+		}
+
 		dbm.dbClient = nil
 	}
 	return err
@@ -136,11 +142,11 @@ func (dbm *DatabaseManager) prepareDb(dbName string) error {
 
 	err := dbm.dbClient.ConnectDB(dbm.Config.DBName)
 	if err != nil {
-		return fmt.Errorf("Failure while connecting to DB")
+		return fmt.Errorf("failure while connecting to DB")
 	}
 	err = dbm.dbClient.GrantAccess(dbm.Config.DBUser, dbm.Config.DBName, "%")
 	if err != nil {
-		return fmt.Errorf("Failure while granting privileges for new Schema")
+		return fmt.Errorf("failure while granting privileges for new Schema")
 	}
 	return nil
 }
@@ -148,7 +154,7 @@ func (dbm *DatabaseManager) prepareDb(dbName string) error {
 func (dbm *DatabaseManager) createNewConnection() (*mariadb.SqlDatabase, error) {
 	dbClient, err := mariadb.NewSqlDatabase(dbm.Config)
 	if err != nil {
-		return nil, fmt.Errorf("Failure while loading DB Client for new Schema")
+		return nil, fmt.Errorf("failure while loading DB Client for new Schema")
 	}
 
 	return dbClient, nil

@@ -154,11 +154,12 @@ func sanitizeErrorMessage(appErr *appErrors.Error) string {
 		}
 
 	case appErrors.InvalidArgument:
-		if appErr.Message != "" {
+		switch {
+		case appErr.Message != "":
 			message = appErr.Message
-		} else if appErr.Entity != "" {
+		case appErr.Entity != "":
 			message = "Invalid " + strings.ToLower(appErr.Entity)
-		} else {
+		default:
 			message = "Invalid input"
 		}
 

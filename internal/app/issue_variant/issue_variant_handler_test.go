@@ -235,7 +235,6 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		issueVariant = test.NewFakeIssueVariantEntity(nil)
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -287,7 +286,6 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		issueVariant = test.NewFakeIssueVariantEntity(nil)
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -339,7 +337,6 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		id = 1
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
 				First: &first,

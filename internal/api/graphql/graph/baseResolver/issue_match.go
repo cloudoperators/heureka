@@ -12,7 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.IssueMatch, error) {
@@ -48,7 +48,7 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 		return nil, nil
 	}
 
-	var imr entity.IssueMatchResult = issueMatches.Elements[0]
+	imr := issueMatches.Elements[0]
 	issueMatch := model.NewIssueMatch(imr.IssueMatch)
 
 	return &issueMatch, nil
@@ -108,8 +108,8 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		Id:                       imIds,
 		PaginatedX:               entity.PaginatedX{First: first, After: after},
 		ServiceCCRN:              filter.ServiceCcrn,
-		Status:                   lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
-		SeverityValue:            lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
+		Status:                   lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return ptr.To(item.String()) }),
+		SeverityValue:            lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return ptr.To(item.String()) }),
 		SupportGroupCCRN:         filter.SupportGroupCcrn,
 		IssueId:                  issueId,
 		EvidenceId:               eId,
@@ -118,7 +118,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		Search:                   filter.Search,
 		ComponentCCRN:            filter.ComponentCcrn,
 		PrimaryName:              filter.PrimaryName,
-		IssueType:                lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		IssueType:                lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return ptr.To(item.String()) }),
 		ServiceOwnerUsername:     filter.ServiceOwnerUsername,
 		ServiceOwnerUniqueUserId: filter.ServiceOwnerUniqueUserID,
 		State:                    model.GetStateFilterType(filter.State),

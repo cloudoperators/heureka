@@ -14,16 +14,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//nolint:unused
 var mode string
 
 func main() {
-	fmt.Println(util.HeurekaFiglet)
+	fmt.Print(util.HeurekaFiglet)
 	var cfg util.Config
 	log.InitLog()
 
 	err := envconfig.Process("heureka", &cfg)
 	if err != nil {
-		logrus.WithField("error", err).Fatal("Error while reading env config %s", "test")
+		logrus.WithField("error", err).Fatal(fmt.Sprintf("Error while reading env config %s", "test"))
 		return
 	}
 	cfg.ConfigToConsole()

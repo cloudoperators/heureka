@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/server"
@@ -120,7 +121,11 @@ func getMvTestTableMigrationVersion() string {
 
 func (dbmt *DbMigrationTest) tableExists(tableName string) bool {
 	db := dbmt.dbConnect()
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logrus.Warnf("error during closing statement: %s", err)
+		}
+	}()
 
 	var exists bool
 	query := `
@@ -136,13 +141,17 @@ func (dbmt *DbMigrationTest) tableExists(tableName string) bool {
 		var name string
 		_ = rows.Scan(&name)
 	}
+	Expect(err).To(BeNil())
 
 	return exists
 }
 
 func (dbmt *DbMigrationTest) countRows(tableName string) int {
 	db := dbmt.dbConnect()
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		Expect(err).To(BeNil())
+	}()
 
 	query := fmt.Sprintf("SELECT COUNT(*) FROM `%s`", tableName)
 	var count int
@@ -165,7 +174,7 @@ func (dbmt *DbMigrationTest) setup() {
 }
 
 func (dbmt *DbMigrationTest) teardown() {
-	dbm.TestTearDown(dbmt.db)
+	_ = dbm.TestTearDown(dbmt.db)
 	mariadb.MigrationFs = dbmt.heurekaMigration
 }
 

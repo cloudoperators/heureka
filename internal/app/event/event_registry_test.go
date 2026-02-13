@@ -147,6 +147,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		timeout := time.After(10 * time.Second)
 		for {
 			// Check for what's expected (all go routines have incremented the counter)
+			//nolint:staticcheck
 			if atomic.LoadInt64(&eventHandled) == int64(numEvents) {
 				break
 			}

@@ -11,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue"
-	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
@@ -232,7 +231,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
 			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
 			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
-			issueHandler = appIssue.NewIssueHandler(handlerContext)
+			issueHandler = issue.NewIssueHandler(handlerContext)
 			res, err := issueHandler.ListIssues(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
@@ -744,9 +743,9 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 		updatedIssue, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
-			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issueResult.Issue.PrimaryName))
+			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issueResult.PrimaryName))
 			Expect(updatedIssue.Description).To(BeEquivalentTo(issueResult.Issue.Description))
-			Expect(updatedIssue.Type.String()).To(BeEquivalentTo(issueResult.Issue.Type.String()))
+			Expect(updatedIssue.Type.String()).To(BeEquivalentTo(issueResult.Type.String()))
 		})
 	})
 })

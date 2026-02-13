@@ -129,7 +129,6 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		issueRepository = test.NewFakeIssueRepositoryEntity()
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -200,7 +199,6 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 		issueRepository = test.NewFakeIssueRepositoryEntity()
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -243,7 +241,6 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 		id = 1
 		first := 10
 		var after int64
-		after = 0
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,

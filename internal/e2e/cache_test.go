@@ -100,7 +100,7 @@ func (ct *cacheTest) startDbProxy() {
 
 func (ct *cacheTest) teardown() {
 	e2e_common.ServerTeardown(ct.server)
-	dbm.TestTearDown(ct.db)
+	_ = dbm.TestTearDown(ct.db)
 	if ct.dbProxy != nil {
 		ct.dbProxy.Stop()
 	}

@@ -5,7 +5,7 @@ package middleware
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"reflect"
 
@@ -14,6 +14,8 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/util"
 
+	// nolint due to importing all functions from auth package
+	//nolint: staticcheck
 	. "github.com/cloudoperators/heureka/internal/api/graphql/access/auth"
 	authctx "github.com/cloudoperators/heureka/internal/api/graphql/access/context"
 )
@@ -57,20 +59,22 @@ func (a *Auth) Middleware() gin.HandlerFunc {
 			return
 		}
 		authCtx.Next()
-		return
 	}
 }
 
 func (a *Auth) appendInstance(am authMethod) {
-	if am != nil && !(reflect.ValueOf(am).Kind() == reflect.Ptr && reflect.ValueOf(am).IsNil()) {
-		a.chain = append(a.chain, am)
+	if am != nil {
+		v := reflect.ValueOf(am)
+		if v.Kind() != reflect.Ptr || !v.IsNil() {
+			a.chain = append(a.chain, am)
+		}
 	}
 }
 
 func newLogger(enableLog bool) *logrus.Logger {
 	l := logrus.New()
 	if !enableLog {
-		l.SetOutput(ioutil.Discard)
+		l.SetOutput(io.Discard)
 	}
 	return l
 }

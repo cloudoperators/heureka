@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"regexp"
 	"time"
@@ -37,7 +36,7 @@ type Provider struct {
 func NewProvider(url string, enableLog bool) *Provider {
 	l := logrus.New()
 	if !enableLog {
-		l.SetOutput(ioutil.Discard)
+		l.SetOutput(io.Discard)
 	}
 	gin.DefaultWriter = l.Writer()
 	oidcProvider := Provider{
@@ -55,6 +54,8 @@ func NewProvider(url string, enableLog bool) *Provider {
 func (p *Provider) Start() {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
+	// nolint due to unset values for timeouts
+	//nolint:gosec
 	p.server = &http.Server{Handler: p.router.Handler()}
 
 	serverAddr := "'default'"
@@ -74,6 +75,8 @@ func (p *Provider) Start() {
 }
 
 func (p *Provider) StartForeground() {
+	// nolint due to unset values for timeouts
+	//nolint:gosec
 	p.server = &http.Server{Handler: p.router.Handler()}
 
 	serverAddr := "'default'"
