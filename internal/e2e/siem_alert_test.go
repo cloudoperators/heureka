@@ -48,35 +48,47 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 
 		Context("and a mutation query is performed", func() {
 			It("creates issue/service/support group/component instance/issuevariant/issuematch", func() {
+				alertName := "Root or admin action - VAULT"
+				alertDescription := "some description"
+				alertSeverity := "High"
+				alertURL := "https://example.test/alert/123"
+				region := "eu-de-1"
+				clusterName := "eu-de-1"
+				namespace := "vault"
+				pod := "vault-1"
+				container := "audit"
+				service := "vault"
+				supportGroup := "src"
+				graphqlPath := "../api/graphql/graph/queryCollection/siem_alert/create.graphql"
+
 				input := map[string]interface{}{
-					"name":        "Root or admin action - VAULT",
-					"description": "some description",
-					"severity":    "High",
-					"url":         "https://example.test/alert/123",
-					"region":      "eu-de-1",
-					"cluster":     "eu-de-1",
-					"namespace":   "vault",
-					"pod":         "vault-1",
-					"container":   "audit",
-					"service":     "vault",
-					"supportGroup": "src",
+					"name":        alertName,
+					"description": alertDescription,
+					"severity":    alertSeverity,
+					"url":         alertURL,
+					"region":      region,
+					"cluster":     clusterName,
+					"namespace":   namespace,
+					"pod":         pod,
+					"container":   container,
+					"service":     service,
+					"supportGroup": supportGroup,
 				}
 
 				respData := e2e_common.ExecuteGqlQueryFromFile[struct {
 					SIEM model.SIEMAlert `json:"createSIEMAlert"`
 				}](
 					cfg.Port,
-					"../api/graphql/graph/queryCollection/siem_alert/create.graphql",
+					graphqlPath,
 					map[string]interface{}{
 						"input": input,
 					})
 
-				Expect(*respData.SIEM.Name).To(Equal("Root or admin action - VAULT"))
-				Expect(*respData.SIEM.Severity).To(Equal(model.SeverityValues("High")))
-				Expect(*respData.SIEM.URL).To(Equal("https://example.test/alert/123"))
+				Expect(*respData.SIEM.Name).To(Equal(alertName))
+				Expect(*respData.SIEM.Severity).To(Equal(model.SeverityValues(alertSeverity)))
+				Expect(*respData.SIEM.URL).To(Equal(alertURL))
 
-				name := input["name"].(string)
-				issues, err := db.GetIssues(&entity.IssueFilter{PrimaryName: []*string{&name}}, nil)
+				issues, err := db.GetIssues(&entity.IssueFilter{PrimaryName: []*string{&alertName}}, nil)
 				Expect(err).To(BeNil())
 				Expect(len(issues)).To(Equal(1))
 				issueId := issues[0].Issue.Id
@@ -85,31 +97,30 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 				Expect(err).To(BeNil())
 				Expect(len(ivs)).To(BeNumerically(">=", 1))
 
-				foundVariant := false
+				Expect(ivs).To(ContainElement(
+					HaveField("ExternalUrl", Equal(alertURL)),
+				))
+
+				issueVariantWithSeverity := false
 				for _, v := range ivs {
-					if v.ExternalUrl == input["url"].(string) {
-						Expect(v.Severity.Value).To(Equal("High"))
-						foundVariant = true
+					if v.ExternalUrl == alertURL && v.Severity.Value == alertSeverity {
+						issueVariantWithSeverity = true
 						break
 					}
 				}
-				Expect(foundVariant).To(BeTrue())
+				Expect(issueVariantWithSeverity).To(BeTrue())
 
-				serviceFilter := &entity.ServiceFilter{CCRN: []*string{func() *string { s := input["service"].(string); return &s }()}}
+				serviceFilter := &entity.ServiceFilter{CCRN: []*string{&service}}
 				services, err := db.GetServices(serviceFilter, nil)
 				Expect(err).To(BeNil())
 				Expect(len(services)).To(BeNumerically(">=", 1))
 
-				sg := input["supportGroup"].(string)
-				sgFilter := &entity.SupportGroupFilter{CCRN: []*string{&sg}}
+				sgFilter := &entity.SupportGroupFilter{CCRN: []*string{&supportGroup}}
 				sgs, err := db.GetSupportGroups(sgFilter, nil)
 				Expect(err).To(BeNil())
 				Expect(len(sgs)).To(BeNumerically(">=", 1))
 
-				region := input["region"].(string)
-				namespace := input["namespace"].(string)
-				pod := input["pod"].(string)
-				ccrn := fmt.Sprintf("%s/%s/%s/%s/%s/%s", input["service"].(string), region, input["cluster"].(string), namespace, pod, input["container"].(string))
+				ccrn := fmt.Sprintf("%s/%s/%s/%s/%s/%s", service, region, clusterName, namespace, pod, container)
 
 				cis, err := db.GetComponentInstances(&entity.ComponentInstanceFilter{CCRN: []*string{&ccrn}}, nil)
 				Expect(err).To(BeNil())
@@ -120,14 +131,9 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 				Expect(err).To(BeNil())
 				Expect(len(ims)).To(BeNumerically(">=", 1))
 
-				matchFound := false
-				for _, m := range ims {
-					if m.IssueMatch.ComponentInstanceId == ciId {
-						matchFound = true
-						break
-					}
-				}
-				Expect(matchFound).To(BeTrue())
+				Expect(ims).To(ContainElement(
+					HaveField("IssueMatch.ComponentInstanceId", Equal(ciId)),
+				))
 			})
 		})
 	})
