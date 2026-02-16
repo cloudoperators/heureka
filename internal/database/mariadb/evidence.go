@@ -44,7 +44,6 @@ func (s *SqlDatabase) getEvidenceJoins(filter *entity.EvidenceFilter) string {
 func getEvidenceFilterString(filter *entity.EvidenceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "E.evidence_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ActivityId, "E.evidence_activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.UserId, "E.author_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IME.issuematchevidence_issue_match_id = ?", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "E.evidence"))
@@ -56,9 +55,6 @@ func getEvidenceUpdateFields(evidence *entity.Evidence) string {
 	fl := []string{}
 	if evidence.UserId != 0 {
 		fl = append(fl, "evidence_author_id = :evidence_author_id")
-	}
-	if evidence.ActivityId != 0 {
-		fl = append(fl, "evidence_activity_id = :evidence_activity_id")
 	}
 	if evidence.Type != "" {
 		fl = append(fl, "evidence_type = :evidence_type")
@@ -118,7 +114,6 @@ func (s *SqlDatabase) buildEvidenceStatement(baseQuery string, filter *entity.Ev
 	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
 	filterParameters = buildQueryParameters(filterParameters, filter.UserId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
 	if withCursor {
@@ -211,7 +206,6 @@ func (s *SqlDatabase) CreateEvidence(evidence *entity.Evidence) (*entity.Evidenc
 	query := `
 		INSERT INTO Evidence (
 			evidence_author_id,
-			evidence_activity_id,
 			evidence_type,
 			evidence_description,
 			evidence_vector,
@@ -221,7 +215,6 @@ func (s *SqlDatabase) CreateEvidence(evidence *entity.Evidence) (*entity.Evidenc
 			evidence_updated_by
 		) VALUES (
 			:evidence_author_id,
-			:evidence_activity_id,
 			:evidence_type,
 			:evidence_description,
 			:evidence_vector,
