@@ -25,6 +25,7 @@ type Config struct {
 	DBMaxIdleConnections int    `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"10" json:"dBMaxIdleConnections"`
 	DBMaxOpenConnections int    `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"100" json:"dbMaxOpenConnections"`
 	DBTrace              bool   `envconfig:"DB_TRACE" default:"false" json:"-"`
+	GQLDepthLimit        int    `envconfig:"GQL_DEPTH_LIMIT" default:"100" json:"-"`
 	//VasApiAddress              string   `envconfig:"VAS_API_ADDRESS" required:"true" json:"vasApiAddress"`
 	//VasApiToken                string   `envconfig:"VAS_API_TOKEN" required:"true" json:"-"`
 	//NvdApiToken                string   `envconfig:"NVD_API_TOKEN" required:"true" json:"-"`

@@ -39,7 +39,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			imgTest.seed10Entries()
 		})
 		It("returns the expected content and the expected PageInfo when filtered using service", func() {
-			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
 			}](
 				imgTest.port,
@@ -55,6 +55,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			expectRespDataCounts(respData.Images, 5, 3)
 			expectRespImagesFilledAndInOrder(&respData.Images)
 			expectPageInfoTwoPagesBeingOnFirst(respData.Images.PageInfo)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
 		})
 		It("returns the expected content and the expected PageInfo when filtered using repository", func() {
@@ -74,7 +75,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			// belong to first service and first component
 			counts := model.SeverityCounts{Critical: 2, Total: 2}
 
-			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
 			}](
 				imgTest.port,
@@ -91,6 +92,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			expectRespDataCounts(respData.Images, 1, 1)
 			expectRespImagesFilledAndInOrder(&respData.Images)
 			Expect(*respData.Images.Counts).To(Equal(counts))
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

@@ -44,7 +44,7 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 
 	When("the database is empty", func() {
 		It("returns empty result set", func() {
-			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Patches model.PatchConnection `json:"Patches"`
 			}](
 				cfg.Port,
@@ -54,6 +54,7 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 					"first":  10,
 					"after":  "",
 				})
+			Expect(err).NotTo(HaveOccurred())
 			Expect(respData.Patches.TotalCount).To(Equal(0))
 		})
 	})
@@ -63,13 +64,13 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 		type patchRespDataType struct {
 			Patches model.PatchConnection `json:"Patches"`
 		}
-		var respData patchRespDataType
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
 		Context("and no additional filters are present", func() {
 			It("returns correct result count", func() {
-				respData = e2e_common.ExecuteGqlQueryFromFile[patchRespDataType](
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[patchRespDataType](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/patch/query.graphql",
 					map[string]interface{}{
@@ -77,6 +78,8 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 						"first":  5,
 						"after":  "",
 					})
+
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Patches.TotalCount).To(Equal(len(seedCollection.PatchRows)))
 				Expect(len(respData.Patches.Edges)).To(Equal(5))
 				//- returns the expected PageInfo
