@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/gin-gonic/gin"
+	"github.com/oyyblin/gqlgen-depth-limit-extension/depth"
 )
 
 type GraphQLAPI struct {
@@ -22,11 +23,15 @@ type GraphQLAPI struct {
 }
 
 func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
+	server := handler.NewDefaultServer(graph.NewExecutableSchema(resolver.NewResolver(a)))
+	server.Use(depth.FixedDepthLimit(cfg.GQLDepthLimit))
+
 	graphQLAPI := GraphQLAPI{
-		Server: handler.NewDefaultServer(graph.NewExecutableSchema(resolver.NewResolver(a))),
+		Server: server,
 		App:    a,
 		auth:   middleware.NewAuth(&cfg, true),
 	}
+
 	return &graphQLAPI
 }
 

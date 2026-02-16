@@ -157,7 +157,7 @@ func (at *authenticationTest) teardown() {
 }
 
 func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.User) model.Issue {
-	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+	respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issue model.Issue `json:"createIssue"`
 	}](
 		at.cfg.Port,
@@ -171,6 +171,7 @@ func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.
 		},
 		at.getHeaders(user))
 
+	Expect(err).ToNot(HaveOccurred())
 	Expect(*respData.Issue.PrimaryName).To(Equal(issue.PrimaryName))
 	Expect(*respData.Issue.Description).To(Equal(issue.Description))
 	Expect(respData.Issue.Type.String()).To(Equal(issue.Type.String()))
@@ -179,7 +180,7 @@ func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.
 
 func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.User) model.Issue {
 	issue.Description = "New Description"
-	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+	respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issue model.Issue `json:"updateIssue"`
 	}](
 		at.cfg.Port,
@@ -190,13 +191,14 @@ func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.
 		},
 		at.getHeaders(user))
 
+	Expect(err).ToNot(HaveOccurred())
 	Expect(*respData.Issue.Description).To(Equal(issue.Description))
 	Expect(*respData.Issue.Metadata.CreatedBy).To(Equal(strconv.FormatInt(util.SystemUserId, 10)))
 	return respData.Issue
 }
 
 func (at *authenticationTest) deleteIssueByUser(issue entity.Issue, user entity.User) string {
-	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+	respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Id string `json:"deleteIssue"`
 	}](
 		at.cfg.Port,
@@ -206,12 +208,13 @@ func (at *authenticationTest) deleteIssueByUser(issue entity.Issue, user entity.
 		},
 		at.getHeaders(user))
 
+	Expect(err).ToNot(HaveOccurred())
 	Expect(respData.Id).To(Equal(strconv.FormatInt(issue.Id, 10)))
 	return respData.Id
 }
 
 func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) model.Issue {
-	respData := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+	respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		Issues model.IssueConnection `json:"Issues"`
 	}](
 		at.cfg.Port,
@@ -225,6 +228,7 @@ func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) 
 
 	item, ok := lo.Find(respData.Issues.Edges, func(e *model.IssueEdge) bool { return e.Node.ID == issueId })
 	Expect(ok).To(BeTrue(), "issue id '%s' not found in deleted items")
+	Expect(err).ToNot(HaveOccurred())
 	return *item.Node
 }
 

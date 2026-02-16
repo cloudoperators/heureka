@@ -20,6 +20,7 @@ require (
 	github.com/onsi/gomega v1.39.1
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/openfga/go-sdk v0.7.4
+	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.23.2
 	github.com/samber/lo v1.52.0

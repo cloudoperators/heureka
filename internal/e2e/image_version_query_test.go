@@ -101,13 +101,14 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 		It("can query image versions", func() {
 			idsBySeverity := []string{"3", "8", "2", "7", "1", "6", "5", "4", "10", "9"}
 
-			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				ImageVersions model.ImageVersionConnection `json:"ImageVersions"`
 			}](
 				cfg.Port,
 				"../api/graphql/graph/queryCollection/imageVersion/query.graphql",
 				map[string]interface{}{"first": 10, "after": ""},
 			)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.ImageVersions.TotalCount).To(Equal(10))
 			Expect(len(respData.ImageVersions.Edges)).To(Equal(10))
 
