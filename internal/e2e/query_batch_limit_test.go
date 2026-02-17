@@ -19,72 +19,48 @@ import (
 )
 
 const (
-	queryWithDepthExceeded = `{
+	queryWithBatchLimitExceeded = `{
   Services {
     edges {
       node {
-        supportGroups {
-          edges {
-            node {
-              services {
-                edges {
-                  node {
-                    id
-                  }
-                }
-              }
-              users {
-                edges {
-                  node {
-                    id
-                    supportGroups {
-                      edges {
-                        node {
-                          id
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        ccrn
+      }
+    }
+  }
+  Components {
+    edges {
+      node {
+        ccrn
+      }
+    }
+  }
+  ComponentInstances {
+    edges {
+      node {
+        ccrn
       }
     }
   }
 }`
-	queryWithAllowedDepth = `{
+	queryWithAllowedBatchLimit = `{
   Services {
     edges {
       node {
-        supportGroups {
-          edges {
-            node {
-              services {
-                edges {
-                  node {
-                    id
-                  }
-                }
-              }
-              users {
-                edges {
-                  node {
-                    id
-                  }
-                }
-              }
-            }
-          }
-        }
+        ccrn
+      }
+    }
+  }
+  Components {
+    edges {
+      node {
+        ccrn
       }
     }
   }
 }`
 )
 
-var _ = Describe("Getting data via API", Label("e2e", "Depth Limiting"), func() {
+var _ = Describe("Getting data via API", Label("e2e", "Batch Limiting"), func() {
 	var s *server.Server
 	var cfg util.Config
 	var db *mariadb.SqlDatabase
@@ -96,8 +72,8 @@ var _ = Describe("Getting data via API", Label("e2e", "Depth Limiting"), func() 
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		// Set depth limit as 10 for testing pourpose
-		cfg.GQLDepthLimit = 10
+		// Set batch limit as 2 for testing pourpose
+		cfg.GQLBatchLimit = 2
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -106,29 +82,32 @@ var _ = Describe("Getting data via API", Label("e2e", "Depth Limiting"), func() 
 		dbm.TestTearDown(db)
 	})
 
-	When("Request with depth exceeding limit", func() {
+	When("Request with batch exceeding limit", func() {
 		It("returns an error", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-			req := graphql.NewRequest(queryWithDepthExceeded)
+			req := graphql.NewRequest(queryWithBatchLimitExceeded)
 			req.Header.Set("Cache-Control", "no-cache")
 			_, err := e2e_common.ExecuteGqlQuery[struct {
-				Services model.ServiceConnection `json:"Services"`
+				Services           model.ServiceConnection           `json:"Services"`
+				Components         model.ComponentConnection         `json:"Components"`
+				ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
 			}](client, req)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("operation exceeds the depth limit"))
+			Expect(err.Error()).To(ContainSubstring("the limit for sending batches has been exceeded"))
 		})
 	})
 
-	When("Request with allowed depth", func() {
+	When("Request with allowed batch limit", func() {
 		It("doesn't return an error", func() {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-			req := graphql.NewRequest(queryWithAllowedDepth)
+			req := graphql.NewRequest(queryWithAllowedBatchLimit)
 
 			req.Header.Set("Cache-Control", "no-cache")
 
 			_, err := e2e_common.ExecuteGqlQuery[struct {
-				Services model.ServiceConnection `json:"Services"`
+				Services   model.ServiceConnection   `json:"Services"`
+				Components model.ComponentConnection `json:"Components"`
 			}](client, req)
 
 			Expect(err).ToNot(HaveOccurred())
