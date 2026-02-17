@@ -32,7 +32,7 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 		Server:       server,
 		App:          a,
 		auth:         middleware.NewAuth(&cfg, true),
-		batchLimiter: gqlmiddleware.NewBatchLimiterMiddleware(cfg.GQLBatchLimit),
+		batchLimiter: gqlmiddleware.NewBatchLimiter(cfg.GQLBatchLimit),
 	}
 
 	return &graphQLAPI

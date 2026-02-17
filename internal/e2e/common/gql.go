@@ -10,14 +10,41 @@ import (
 
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"github.com/machinebox/graphql"
-	. "github.com/onsi/gomega"
 )
 
 var GqlStandardHeaders map[string]string = map[string]string{
 	"Cache-Control": "no-cache",
 }
 
-func ExecuteGqlQuery[T any](client *graphql.Client, req *graphql.Request) (T, error) {
+func ExecuteGqlQuery[T any](port string, query string, vars map[string]any) (T, error) {
+	return ExecuteGqlQueryWithHeaders[T](port, query, vars, nil)
+}
+
+func ExecuteGqlQueryWithHeaders[T any](
+	port string,
+	query string,
+	vars map[string]any,
+	headers map[string]string,
+) (T, error) {
+	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
+	req := graphql.NewRequest(query)
+
+	for k, v := range vars {
+		req.Var(k, v)
+	}
+
+	for k, v := range GqlStandardHeaders {
+		req.Header.Set(k, v)
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	return executeGql[T](client, req)
+}
+
+func executeGql[T any](client *graphql.Client, req *graphql.Request) (T, error) {
 	var result T
 
 	err := util2.RequestWithBackoff(func() error {
@@ -34,29 +61,16 @@ func ExecuteGqlQueryFromFile[T any](port string, queryFilePath string, vars map[
 func ExecuteGqlQueryFromFileWithHeaders[T any](port string, queryFilePath string, vars map[string]any,
 	headers map[string]string,
 ) (T, error) {
-	client, req := newClientAndRequestForGqlFileQuery(port, queryFilePath, vars, headers)
-
-	return ExecuteGqlQuery[T](client, req)
-}
-
-func newClientAndRequestForGqlFileQuery(port string, queryFilePath string, vars map[string]any,
-	headers map[string]string,
-) (*graphql.Client, *graphql.Request) {
-	client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", port))
-
 	b, err := os.ReadFile(queryFilePath)
-	Expect(err).To(BeNil())
-
-	str := string(b)
-	req := graphql.NewRequest(str)
-
-	for k, v := range vars {
-		req.Var(k, v)
+	if err != nil {
+		var zero T
+		return zero, err
 	}
 
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-
-	return client, req
+	return ExecuteGqlQueryWithHeaders[T](
+		port,
+		string(b),
+		vars,
+		headers,
+	)
 }

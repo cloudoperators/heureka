@@ -4,8 +4,6 @@
 package e2e_test
 
 import (
-	"fmt"
-
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
@@ -13,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/server"
-	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -108,12 +105,9 @@ var _ = Describe("Getting data via API", Label("e2e", "Depth Limiting"), func() 
 
 	When("Request with depth exceeding limit", func() {
 		It("returns an error", func() {
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-			req := graphql.NewRequest(queryWithDepthExceeded)
-			req.Header.Set("Cache-Control", "no-cache")
 			_, err := e2e_common.ExecuteGqlQuery[struct {
 				Services model.ServiceConnection `json:"Services"`
-			}](client, req)
+			}](cfg.Port, queryWithDepthExceeded, nil)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("operation exceeds the depth limit"))
@@ -122,14 +116,9 @@ var _ = Describe("Getting data via API", Label("e2e", "Depth Limiting"), func() 
 
 	When("Request with allowed depth", func() {
 		It("doesn't return an error", func() {
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-			req := graphql.NewRequest(queryWithAllowedDepth)
-
-			req.Header.Set("Cache-Control", "no-cache")
-
 			_, err := e2e_common.ExecuteGqlQuery[struct {
 				Services model.ServiceConnection `json:"Services"`
-			}](client, req)
+			}](cfg.Port, queryWithAllowedDepth, nil)
 
 			Expect(err).ToNot(HaveOccurred())
 		})

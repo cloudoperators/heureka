@@ -13,7 +13,7 @@ type BatchLimiter struct {
 	batchLimit int
 }
 
-func NewBatchLimiterMiddleware(batchLimit int) BatchLimiter {
+func NewBatchLimiter(batchLimit int) BatchLimiter {
 	return BatchLimiter{
 		batchLimit: batchLimit,
 	}

@@ -605,36 +605,6 @@ func NewSupportGroupEntity(supportGroup *SupportGroupInput) entity.SupportGroup 
 	}
 }
 
-func NewEvidence(evidence *entity.Evidence) Evidence {
-	authorId := fmt.Sprintf("%d", evidence.UserId)
-	severity := NewSeverity(evidence.Severity)
-	t := evidence.Type.String()
-	raaEnd := evidence.RaaEnd.Format(time.RFC3339)
-	return Evidence{
-		ID:          fmt.Sprintf("%d", evidence.Id),
-		Description: &evidence.Description,
-		AuthorID:    &authorId,
-		Vector:      severity.Cvss.Vector,
-		Type:        &t,
-		RaaEnd:      &raaEnd,
-		Metadata:    getModelMetadata(evidence.Metadata),
-	}
-}
-
-func NewEvidenceEntity(evidence *EvidenceInput) entity.Evidence {
-	authorId, _ := strconv.ParseInt(lo.FromPtr(evidence.AuthorID), 10, 64)
-	t := entity.NewEvidenceTypeValue(lo.FromPtr(evidence.Type))
-	raaEnd, _ := time.Parse(time.RFC3339, lo.FromPtr(evidence.RaaEnd))
-	// raaEnd, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", lo.FromPtr(evidence.RaaEnd))
-	return entity.Evidence{
-		Description: lo.FromPtr(evidence.Description),
-		UserId:      authorId,
-		Severity:    NewSeverityEntity(evidence.Severity),
-		Type:        t,
-		RaaEnd:      raaEnd,
-	}
-}
-
 func NewComponent(component *entity.Component) Component {
 	componentType, _ := ComponentTypeValue(component.Type)
 	return Component{

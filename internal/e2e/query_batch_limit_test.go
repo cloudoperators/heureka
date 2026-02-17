@@ -4,8 +4,6 @@
 package e2e_test
 
 import (
-	"fmt"
-
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
@@ -13,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/server"
-	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -84,14 +81,11 @@ var _ = Describe("Getting data via API", Label("e2e", "Batch Limiting"), func() 
 
 	When("Request with batch exceeding limit", func() {
 		It("returns an error", func() {
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-			req := graphql.NewRequest(queryWithBatchLimitExceeded)
-			req.Header.Set("Cache-Control", "no-cache")
 			_, err := e2e_common.ExecuteGqlQuery[struct {
 				Services           model.ServiceConnection           `json:"Services"`
 				Components         model.ComponentConnection         `json:"Components"`
 				ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
-			}](client, req)
+			}](cfg.Port, queryWithBatchLimitExceeded, nil)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("the limit for sending batches has been exceeded"))
@@ -100,15 +94,10 @@ var _ = Describe("Getting data via API", Label("e2e", "Batch Limiting"), func() 
 
 	When("Request with allowed batch limit", func() {
 		It("doesn't return an error", func() {
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-			req := graphql.NewRequest(queryWithAllowedBatchLimit)
-
-			req.Header.Set("Cache-Control", "no-cache")
-
 			_, err := e2e_common.ExecuteGqlQuery[struct {
 				Services   model.ServiceConnection   `json:"Services"`
 				Components model.ComponentConnection `json:"Components"`
-			}](client, req)
+			}](cfg.Port, queryWithAllowedBatchLimit, nil)
 
 			Expect(err).ToNot(HaveOccurred())
 		})

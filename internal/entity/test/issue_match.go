@@ -18,7 +18,6 @@ func NewFakeIssueMatch() entity.IssueMatch {
 		Severity:              s,
 		UserId:                0,
 		User:                  nil,
-		Evidences:             nil,
 		ComponentInstanceId:   0,
 		ComponentInstance:     nil,
 		IssueId:               0,
