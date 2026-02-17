@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
+	gqlmiddleware "github.com/cloudoperators/heureka/internal/api/graphql/middleware"
 	"github.com/cloudoperators/heureka/internal/app"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,8 @@ type GraphQLAPI struct {
 	Server *handler.Server
 	App    app.Heureka
 
-	auth *middleware.Auth
+	auth         *middleware.Auth
+	batchLimiter gqlmiddleware.BatchLimiter
 }
 
 func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
@@ -27,9 +29,10 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 	server.Use(depth.FixedDepthLimit(cfg.GQLDepthLimit))
 
 	graphQLAPI := GraphQLAPI{
-		Server: server,
-		App:    a,
-		auth:   middleware.NewAuth(&cfg, true),
+		Server:       server,
+		App:          a,
+		auth:         middleware.NewAuth(&cfg, true),
+		batchLimiter: gqlmiddleware.NewBatchLimiter(cfg.GQLBatchLimit),
 	}
 
 	return &graphQLAPI
@@ -42,6 +45,8 @@ func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
 }
 
 func (g *GraphQLAPI) graphqlHandler() gin.HandlerFunc {
+	g.Server.AroundOperations(g.batchLimiter.Middleware())
+
 	return func(c *gin.Context) {
 		g.Server.ServeHTTP(c.Writer, c.Request)
 	}
