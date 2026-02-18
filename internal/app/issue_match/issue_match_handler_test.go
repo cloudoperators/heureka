@@ -88,6 +88,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 			db.On("CountIssueMatches", filter).Return(int64(1337), nil)
 		})
@@ -124,6 +125,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 				c, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, im))
 				cursors = append(cursors, c)
 			}
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetIssueMatches", filter, []entity.Order{}).Return(matches, nil)
 			db.On("GetAllIssueMatchCursors", filter, []entity.Order{}).Return(cursors, nil)
 			issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
@@ -148,6 +150,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		Context("and the given filter does not have any matches in the database", func() {
 
 			BeforeEach(func() {
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 			})
 			It("should return an empty result", func() {
@@ -161,6 +164,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 				issueMatches := []entity.IssueMatchResult{}
 				for _, im := range test.NNewFakeIssueMatches(15) {
 					issueMatches = append(issueMatches, entity.IssueMatchResult{IssueMatch: lo.ToPtr(im)})
@@ -177,6 +181,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, errors.New("some error"))
 			})
 
@@ -187,6 +192,128 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
 			})
 		})
+	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any issue matches", func() {
+			BeforeEach(func() {
+				componentInstanceIds := int64(-1)
+				filter.ComponentInstanceId = []*int64{&componentInstanceIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
+			})
+
+			It("should return no issue matches", func() {
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+				res, err := issueMatchHandler.ListIssueMatches(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes a component instance Id that has issue matches related to it", func() {
+			var (
+				issueMatch entity.IssueMatch
+			)
+
+			BeforeEach(func() {
+				sgId := int64(111)
+				serviceId := int64(123)
+				ciId := int64(321)
+				userId := int64(234)
+				systemUserId := int64(1)
+				filter.ServiceId = []*int64{&serviceId}
+				issueMatch = test.NewFakeIssueMatch()
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{{IssueMatch: &issueMatch}}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create support group
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // create service
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(serviceId),
+					},
+					{ // create component instance
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeComponentInstance,
+						ObjectId:   openfga.ObjectIdFromInt(ciId),
+					},
+					{ // create issue match
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeIssueMatch,
+						ObjectId:   openfga.ObjectIdFromInt(issueMatch.Id),
+					},
+					{ // link user to support group
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelMember,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // link service to support group
+						UserType:   openfga.TypeSupportGroup,
+						UserId:     openfga.UserIdFromInt(sgId),
+						Relation:   openfga.RelSupportGroup,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(serviceId),
+					},
+					{ // Link component instance to service
+						UserType:   openfga.TypeService,
+						UserId:     openfga.UserIdFromInt(serviceId),
+						Relation:   openfga.RelRelatedService,
+						ObjectType: openfga.TypeComponentInstance,
+						ObjectId:   openfga.ObjectIdFromInt(ciId),
+					},
+					{ // Link issue match to component instance
+						UserType:   openfga.TypeComponentInstance,
+						UserId:     openfga.UserIdFromInt(ciId),
+						Relation:   openfga.RelComponentInstance,
+						ObjectType: openfga.TypeIssueMatch,
+						ObjectId:   openfga.ObjectIdFromInt(issueMatch.Id),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected issue match in the result", func() {
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+				res, err := issueMatchHandler.ListIssueMatches(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].Id).To(BeEquivalentTo(issueMatch.Id)) // check that the returned issue match is the expected one
+			})
+		})
+
 	})
 })
 
@@ -588,6 +715,7 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 	})
 
 	It("adds evidence to issueMatch", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
 		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
@@ -597,6 +725,7 @@ var _ = Describe("When modifying relationship of evidence and issueMatch", Label
 	})
 
 	It("removes evidence from issueMatch", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
 		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)

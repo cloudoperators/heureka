@@ -82,6 +82,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
 			db.On("CountComponentInstances", filter).Return(int64(1337), nil)
 		})
@@ -119,6 +120,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 				c, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, componentInstance))
 				cursors = append(cursors, c)
 			}
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return(componentInstances, nil)
 			db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).Return(cursors, nil)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
@@ -139,6 +141,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		It("should return Internal error", func() {
 			// Mock database error
 			dbError := errors.New("database connection failed")
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, dbError)
 
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
@@ -175,6 +178,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 				})
 			}
 
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return(componentInstances, nil)
 			cursorsError := errors.New("cursor database error")
 			db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).Return([]string{}, cursorsError)
@@ -195,6 +199,112 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		})
 	})
 
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any services", func() {
+			BeforeEach(func() {
+				serviceIds := int64(-1)
+				filter.ServiceId = []*int64{&serviceIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
+			})
+
+			It("should return no component instances", func() {
+				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+				res, err := componentInstanceHandler.ListComponentInstances(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes a service Id that has component instances related to it", func() {
+			var (
+				componentInstance entity.ComponentInstance
+			)
+
+			BeforeEach(func() {
+				sgId := int64(111)
+				serviceId := int64(123)
+				userId := int64(234)
+				systemUserId := int64(1)
+				filter.ServiceId = []*int64{&serviceId}
+				componentInstance = test.NewFakeComponentInstanceEntity()
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{{ComponentInstance: &componentInstance}}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create support group
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // create service
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(serviceId),
+					},
+					{ // create component instance
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeComponentInstance,
+						ObjectId:   openfga.ObjectIdFromInt(componentInstance.Id),
+					},
+					{ // link user to support group
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelMember,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // link service to support group
+						UserType:   openfga.TypeSupportGroup,
+						UserId:     openfga.UserIdFromInt(sgId),
+						Relation:   openfga.RelSupportGroup,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(serviceId),
+					},
+					{ // Link component instance to service
+						UserType:   openfga.TypeService,
+						UserId:     openfga.UserIdFromInt(serviceId),
+						Relation:   openfga.RelRelatedService,
+						ObjectType: openfga.TypeComponentInstance,
+						ObjectId:   openfga.ObjectIdFromInt(componentInstance.Id),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected component instance in the result", func() {
+				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
+				res, err := componentInstanceHandler.ListComponentInstances(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(componentInstance.CCRN)) // check that the returned component instance is the expected one
+			})
+		})
+
+	})
 })
 
 var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponentInstance"), func() {

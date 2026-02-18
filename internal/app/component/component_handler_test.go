@@ -81,6 +81,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
 			db.On("CountComponents", filter).Return(int64(1337), nil)
 		})
@@ -117,6 +118,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 				c, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, component, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
 				cursors = append(cursors, c)
 			}
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponents", filter, []entity.Order{}).Return(components, nil)
 			db.On("GetAllComponentCursors", filter, []entity.Order{}).Return(cursors, nil)
 			componentHandler = c.NewComponentHandler(handlerContext)
@@ -130,6 +132,83 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
+	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any components", func() {
+			BeforeEach(func() {
+				compIds := int64(-1)
+				filter.Id = []*int64{&compIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
+			})
+
+			It("should return no components", func() {
+				componentHandler = c.NewComponentHandler(handlerContext)
+				res, err := componentHandler.ListComponents(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes component IDs the user has access to", func() {
+			var (
+				component entity.Component
+			)
+
+			BeforeEach(func() {
+				userId := int64(123)
+				systemUserId := int64(1)
+				component = test.NewFakeComponentEntity()
+				filter.Id = []*int64{&component.Id}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{{Component: &component}}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create component
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeComponent,
+						ObjectId:   openfga.ObjectIdFromInt(component.Id),
+					},
+					{ // give user read permission to component
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanView,
+						ObjectType: openfga.TypeComponent,
+						ObjectId:   openfga.ObjectIdFromInt(component.Id),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected components in the result", func() {
+				componentHandler = c.NewComponentHandler(handlerContext)
+				res, err := componentHandler.ListComponents(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(component.CCRN)) // check that the returned component is the expected one
+			})
+		})
+
 	})
 })
 

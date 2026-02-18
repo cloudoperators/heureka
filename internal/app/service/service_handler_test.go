@@ -254,7 +254,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
 		})
 
-		Context("and the user has no access to any support groups", func() {
+		Context("and the user has no access to any services", func() {
 			BeforeEach(func() {
 				sgIds := int64(-1)
 				filter.SupportGroupId = []*int64{&sgIds}
@@ -270,7 +270,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			})
 		})
 
-		Context("and the filter includes a support group CCRN that has services related to it", func() {
+		Context("and the filter includes a support group Id that has services related to it", func() {
 			var (
 				service entity.Service
 			)

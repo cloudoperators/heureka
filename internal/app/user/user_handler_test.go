@@ -63,11 +63,12 @@ func getUserFilter() *entity.UserFilter {
 
 var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 	var (
-		db             *mocks.MockDatabase
-		userHandler    u.UserHandler
-		filter         *entity.UserFilter
-		options        *entity.ListOptions
-		handlerContext common.HandlerContext
+		db                     *mocks.MockDatabase
+		userHandler            u.UserHandler
+		filter                 *entity.UserFilter
+		options                *entity.ListOptions
+		handlerContext         common.HandlerContext
+		systemUserUniqueUserId string
 	)
 
 	BeforeEach(func() {
@@ -79,12 +80,14 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			EventReg: er,
 			Authz:    authz,
 		}
+		systemUserUniqueUserId = "S0000000"
 	})
 
 	When("the list option does include the totalCount", func() {
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetUsers", filter).Return([]entity.User{}, nil)
 			db.On("CountUsers", filter).Return(int64(1337), nil)
 		})
@@ -102,6 +105,8 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			options.ShowPageInfo = true
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+			authFilter := &entity.UserFilter{UniqueUserID: []*string{&systemUserUniqueUserId}}
+
 			filter.First = &pageSize
 			users := test.NNewFakeUserEntities(resElements)
 
@@ -111,7 +116,9 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 				i++
 				ids = append(ids, i)
 			}
+
 			db.On("GetUsers", filter).Return(users, nil)
+			db.On("GetAllUserIds", authFilter).Return([]int64{}, nil)
 			db.On("GetAllUserIds", filter).Return(ids, nil)
 			userHandler = u.NewUserHandler(handlerContext)
 			res, err := userHandler.ListUsers(filter, options)
@@ -124,6 +131,83 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
+	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any users", func() {
+			BeforeEach(func() {
+				sgIds := int64(-1)
+				filter.SupportGroupId = []*int64{&sgIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetUsers", filter).Return([]entity.User{}, nil)
+			})
+
+			It("should return no users", func() {
+				userHandler = u.NewUserHandler(handlerContext)
+				res, err := userHandler.ListUsers(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes a support group Id that has users related to it", func() {
+			var (
+				user entity.User
+			)
+
+			BeforeEach(func() {
+				sgId := int64(111)
+				systemUserId := int64(1)
+				filter.SupportGroupId = []*int64{&sgId}
+				user = test.NewFakeUserEntity()
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetUsers", filter).Return([]entity.User{user}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create support group
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // link user to support group
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(user.Id),
+						Relation:   openfga.RelMember,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected users in the result", func() {
+				userHandler = u.NewUserHandler(handlerContext)
+				res, err := userHandler.ListUsers(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].UniqueUserID).To(BeEquivalentTo(user.UniqueUserID)) // check that the returned user is the expected one
+			})
+		})
+
 	})
 })
 

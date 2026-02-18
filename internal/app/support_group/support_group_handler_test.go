@@ -76,6 +76,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
 			db.On("CountSupportGroups", filter).Return(int64(1337), nil)
 		})
@@ -107,6 +108,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				return s.Value
 			})
 
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			var i int64 = 0
 			for len(cursors) < dbElements {
 				i++
@@ -127,6 +129,83 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
+	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any support groups", func() {
+			BeforeEach(func() {
+				sgIds := int64(-1)
+				filter.Id = []*int64{&sgIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetSupportGroups", filter, []entity.Order{}).Return([]entity.SupportGroupResult{}, nil)
+			})
+
+			It("should return no support groups", func() {
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				res, err := supportGroupHandler.ListSupportGroups(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes a support group Id that the user has access to", func() {
+			var (
+				supportGroup entity.SupportGroup
+			)
+
+			BeforeEach(func() {
+				userId := int64(123)
+				systemUserId := int64(1)
+				supportGroup = test.NewFakeSupportGroupEntity()
+				filter.Id = []*int64{&supportGroup.Id}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetSupportGroups", filter, []entity.Order{}).Return([]entity.SupportGroupResult{{SupportGroup: &supportGroup}}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create support group
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(supportGroup.Id),
+					},
+					{ // link user to support group
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelMember,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(supportGroup.Id),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected support groups in the result", func() {
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				res, err := supportGroupHandler.ListSupportGroups(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(supportGroup.CCRN)) // check that the returned support group is the expected one
+			})
+		})
+
 	})
 })
 
@@ -444,6 +523,7 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 	})
 
 	It("adds service to supportGroup", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
@@ -453,6 +533,7 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 	})
 
 	It("removes service from supportGroup", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
@@ -569,6 +650,7 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 	})
 
 	It("adds user to supportGroup", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
@@ -578,6 +660,7 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 	})
 
 	It("removes user from supportGroup", func() {
+		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
