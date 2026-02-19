@@ -394,8 +394,6 @@ func (s *SqlDatabase) UpdateComponentVersion(componentVersion *entity.ComponentV
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
-	l.Warnf("\n\n\nQEURY IS %s\n\n\n", query)
-
 	componentVersionRow := ComponentVersionRow{}
 	componentVersionRow.FromComponentVersion(componentVersion)
 
