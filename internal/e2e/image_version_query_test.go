@@ -168,5 +168,41 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 			Expect(respData.ImageVersions.Counts.None).To(BeEquivalentTo(totalVc.None), "Total None count matches")
 			Expect(respData.ImageVersions.Counts.Total).To(BeEquivalentTo(totalVc.Total), "Total count matches")
 		})
+		Context("and end of life filter presents as true", func() {
+			It("returns correct result", func() {
+				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					ImageVersions model.ImageVersionConnection `json:"ImageVersions"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/imageVersion/query.graphql",
+					map[string]any{
+						"filter": map[string]bool{
+							"endOfLife": true,
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(resp.ImageVersions.Edges)).To(Equal(5))
+			})
+		})
+		Context("and end of life filter presents as false", func() {
+			It("returns correct result", func() {
+				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					ImageVersions model.ImageVersionConnection `json:"ImageVersions"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/imageVersion/query.graphql",
+					map[string]any{
+						"filter": map[string]bool{
+							"endOfLife": false,
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(resp.ImageVersions.Edges)).To(Equal(5))
+			})
+		})
 	})
 })

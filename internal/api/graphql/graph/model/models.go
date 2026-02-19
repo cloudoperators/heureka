@@ -416,6 +416,7 @@ func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
 		Version:    &componentVersion.Version,
 		Repository: &componentVersion.Repository,
 		Metadata:   getModelMetadata(componentVersion.Metadata),
+		EndOfLife:  &componentVersion.EndOfLife,
 	}
 }
 
@@ -641,6 +642,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		Organization: &componentVersion.Organization,
 		Tag:          &componentVersion.Tag,
 		Metadata:     getModelMetadata(componentVersion.Metadata),
+		EndOfLife:    &componentVersion.EndOfLife,
 	}
 }
 
@@ -649,12 +651,14 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 	if err != nil {
 		componentId = 0
 	}
+
 	return entity.ComponentVersion{
 		Version:      lo.FromPtr(componentVersion.Version),
 		ComponentId:  componentId,
 		Repository:   lo.FromPtr(componentVersion.Repository),
 		Organization: lo.FromPtr(componentVersion.Organization),
 		Tag:          lo.FromPtr(componentVersion.Tag),
+		EndOfLife:    lo.FromPtr(componentVersion.EndOfLife),
 	}
 }
 

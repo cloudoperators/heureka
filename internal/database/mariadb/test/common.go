@@ -219,6 +219,7 @@ func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, erro
 		Tag          string `json:"tag"`
 		Repository   string `json:"repository"`
 		Organization string `json:"organization"`
+		EndOfLife    bool   `json:"end_of_life"`
 	}
 	var tempComponents []tempComponentVersion
 	if err := json.Unmarshal(data, &tempComponents); err != nil {
@@ -232,6 +233,7 @@ func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, erro
 			ComponentId:  sql.NullInt64{Int64: tc.ComponentID, Valid: true},
 			Repository:   sql.NullString{String: tc.Repository, Valid: true},
 			Organization: sql.NullString{String: tc.Organization, Valid: true},
+			EndOfLife:    sql.NullBool{Bool: tc.EndOfLife, Valid: true},
 		}
 	}
 	return components, nil

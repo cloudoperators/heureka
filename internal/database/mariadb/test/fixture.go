@@ -700,6 +700,7 @@ func (s *DatabaseSeeder) SeedComponentVersions(num int, components []mariadb.Com
 		randomIndex := rand.Intn(len(components))
 		component := components[randomIndex]
 		componentVersion.ComponentId = component.Id
+		componentVersion.EndOfLife = sql.NullBool{Bool: []bool{true, false}[i%2], Valid: true}
 		componentVersionId, err := s.InsertFakeComponentVersion(componentVersion)
 		if err != nil {
 			logrus.WithField("seed_type", "ComponentVersions").Debug(err)
@@ -1059,7 +1060,8 @@ func (s *DatabaseSeeder) InsertFakeComponentVersion(cv mariadb.ComponentVersionR
             componentversion_repository,
             componentversion_organization,
 			componentversion_created_by,
-			componentversion_updated_by
+			componentversion_updated_by,
+			componentversion_end_of_life
 		) VALUES (
 			:componentversion_version,
 			:componentversion_component_id,
@@ -1067,7 +1069,8 @@ func (s *DatabaseSeeder) InsertFakeComponentVersion(cv mariadb.ComponentVersionR
             :componentversion_repository,
             :componentversion_organization,
 			:componentversion_created_by,
-			:componentversion_updated_by
+			:componentversion_updated_by,
+			:componentversion_end_of_life
 		)`
 	return s.ExecPreparedNamed(query, cv)
 }
@@ -1351,6 +1354,7 @@ func NewFakeComponentVersion() mariadb.ComponentVersionRow {
 		Organization: sql.NullString{String: gofakeit.Username(), Valid: true},
 		CreatedBy:    sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 		UpdatedBy:    sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		EndOfLife:    sql.NullBool{Bool: gofakeit.Bool(), Valid: true},
 	}
 }
 

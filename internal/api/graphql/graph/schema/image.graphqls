@@ -26,4 +26,5 @@ type ImageEdge implements Edge {
 input ImageFilter {
     service: [String]
     repository: [String]
+    endOfLife: [Boolean]
 }

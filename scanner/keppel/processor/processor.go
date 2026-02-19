@@ -193,6 +193,17 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 			}
 		}
 	}
+
+	if report.Metadata.OS.Eosl {
+		_, err := client.UpdateComponentVersion(context.Background(), *p.Client, componentVersionId, &client.ComponentVersionInput{
+			EndOfLife: true,
+		})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"componentVersionId": componentVersionId,
+			}).WithError(err).Error("Could not update ComponentVersion")
+		}
+	}
 }
 
 // GetAllComponents will fetch all available Components using pagination.

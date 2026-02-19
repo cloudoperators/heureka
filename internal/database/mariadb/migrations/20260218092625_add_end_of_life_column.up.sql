@@ -1,0 +1,2 @@
+ALTER TABLE ComponentVersion
+ADD COLUMN IF NOT EXISTS componentversion_end_of_life BOOLEAN NOT NULL DEFAULT FALSE;

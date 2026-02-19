@@ -1,0 +1,2 @@
+ALTER TABLE ComponentVersion
+DROP COLUMN IF EXISTS componentversion_end_of_life;

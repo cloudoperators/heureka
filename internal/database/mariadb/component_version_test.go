@@ -100,6 +100,40 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						Expect(entries[0]).To(BeEquivalentTo(cvId))
 					})
 				})
+				It("can filter by end of life as true value", func() {
+					endOfLifeAsTrue := true
+
+					filter := &entity.ComponentVersionFilter{
+						EndOfLife: []*bool{&endOfLifeAsTrue},
+					}
+
+					entries, err := db.GetAllComponentVersionIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning versions with end of life", func() {
+						Expect(entries).ToNot(BeEmpty())
+					})
+				})
+				It("can filter by end of life as false value", func() {
+					endOfLifeAsFalse := false
+
+					filter := &entity.ComponentVersionFilter{
+						EndOfLife: []*bool{&endOfLifeAsFalse},
+					}
+
+					entries, err := db.GetAllComponentVersionIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning versions without end of life", func() {
+						Expect(entries).ToNot(BeEmpty())
+					})
+				})
 			})
 		})
 	})

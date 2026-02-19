@@ -113,6 +113,40 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 				Expect(len(respData.ComponentVersions.Edges)).To(Equal(5))
 			})
 		})
+		Context("and end of life filter presents as true", func() {
+			It("returns correct result", func() {
+				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+				}](cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/minimal.graphql",
+					map[string]any{
+						"filter": map[string]bool{
+							"endOfLife": true,
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(resp.ComponentVersions.Edges)).To(Equal(5))
+			})
+		})
+		Context("and end of life filter presents as false", func() {
+			It("returns correct result", func() {
+				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+				}](cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/minimal.graphql",
+					map[string]any{
+						"filter": map[string]bool{
+							"endOfLife": false,
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(resp.ComponentVersions.Edges)).To(Equal(5))
+			})
+		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
 			var respData struct {
 				ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`

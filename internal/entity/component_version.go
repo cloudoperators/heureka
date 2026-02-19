@@ -18,6 +18,7 @@ type ComponentVersionFilter struct {
 	Tag               []*string         `json:"tag"`
 	Repository        []*string         `json:"repository"`
 	Organization      []*string         `json:"organization"`
+	EndOfLife         []*bool           `json:"end_of_life"`
 }
 
 type ComponentVersionAggregations struct{}
@@ -39,4 +40,5 @@ type ComponentVersion struct {
 	Organization       string              `json:"organization"`
 	ComponentInstances []ComponentInstance `json:"component_instances,omitempty"`
 	Issues             []Issue             `json:"issues,omitempty"`
+	EndOfLife          bool                `json:"end_of_life"`
 }

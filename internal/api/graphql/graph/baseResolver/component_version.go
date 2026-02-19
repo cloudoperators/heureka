@@ -109,6 +109,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		IssueRepositoryId: repositoryIds,
 		Version:           filter.Version,
 		State:             model.GetStateFilterType(filter.State),
+		EndOfLife:         filter.EndOfLife,
 	}
 
 	opt := GetListOptions(requestedFields)

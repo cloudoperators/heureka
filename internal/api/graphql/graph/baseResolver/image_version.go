@@ -49,6 +49,7 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		ServiceCCRN:   filter.Service,
 		Version:       filter.Version,
 		State:         model.GetStateFilterType(filter.State),
+		EndOfLife:     filter.EndOfLife,
 	}
 
 	opt := GetListOptions(requestedFields)
