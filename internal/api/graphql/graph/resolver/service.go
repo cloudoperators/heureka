@@ -32,14 +32,6 @@ func (r *serviceResolver) SupportGroups(ctx context.Context, obj *model.Service,
 		})
 }
 
-func (r *serviceResolver) Activities(ctx context.Context, obj *model.Service, filter *model.ActivityFilter, first *int, after *string) (*model.ActivityConnection, error) {
-	return baseResolver.ActivityBaseResolver(r.App, ctx, filter, first, after,
-		&model.NodeParent{
-			Parent:     obj,
-			ParentName: model.ServiceNodeName,
-		})
-}
-
 func (r *serviceResolver) IssueRepositories(ctx context.Context, obj *model.Service, filter *model.IssueRepositoryFilter, first *int, after *string) (*model.IssueRepositoryConnection, error) {
 	return baseResolver.IssueRepositoryBaseResolver(r.App, ctx, filter, first, after,
 		&model.NodeParent{

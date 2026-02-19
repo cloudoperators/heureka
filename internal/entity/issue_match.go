@@ -45,7 +45,6 @@ type IssueMatch struct {
 	User                  *User                 `json:"user,omitempty"`
 	UserId                int64                 `json:"user_id"`
 	Severity              Severity              `json:"severity,omitempty"`
-	Evidences             []Evidence            `json:"evidence,omitempty"`
 	ComponentInstance     *ComponentInstance    `json:"component_instance,omitempty"`
 	ComponentInstanceId   int64                 `json:"component_instance_id"`
 	Issue                 *Issue                `json:"issue,omitempty"`
@@ -61,7 +60,6 @@ type IssueMatchFilter struct {
 	SeverityValue            []*string         `json:"severity_value"`
 	Status                   []*string         `json:"status"`
 	IssueId                  []*int64          `json:"issue_id"`
-	EvidenceId               []*int64          `json:"evidence_id"`
 	ComponentInstanceId      []*int64          `json:"component_instance_id"`
 	ServiceId                []*int64          `json:"service_id"`
 	SupportGroupCCRN         []*string         `json:"support_group_ccrn"`

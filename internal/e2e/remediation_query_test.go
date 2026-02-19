@@ -47,7 +47,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 
 	When("the database is empty", func() {
 		It("returns empty result set", func() {
-			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Remediations model.RemediationConnection `json:"Remediations"`
 			}](
 				cfg.Port,
@@ -57,6 +57,8 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 					"first":  10,
 					"after":  "",
 				})
+
+			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.Remediations.TotalCount).To(Equal(0))
 		})
 	})
@@ -66,13 +68,14 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 		type remediationRespDataType struct {
 			Remediations model.RemediationConnection `json:"Remediations"`
 		}
-		var respData remediationRespDataType
+
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
+
 		Context("and no additional filters are present", func() {
 			It("returns correct result count", func() {
-				respData = e2e_common.ExecuteGqlQueryFromFile[remediationRespDataType](
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[remediationRespDataType](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/remediation/query.graphql",
 					map[string]interface{}{
@@ -80,6 +83,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 						"first":  5,
 						"after":  "",
 					})
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Remediations.TotalCount).To(Equal(len(seedCollection.RemediationRows)))
 				Expect(len(respData.Remediations.Edges)).To(Equal(5))
 				//- returns the expected PageInfo
@@ -144,7 +148,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new remediation", func() {
-				respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 					Remediation model.Remediation `json:"createRemediation"`
 				}](
 					cfg.Port,
@@ -162,6 +166,8 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"remediatedBy":    remediation.RemediatedBy,
 						},
 					})
+
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Description).To(Equal(remediation.Description))
 				Expect(respData.Remediation.Severity.String()).To(Equal(remediation.Severity.String()))
 				Expect(*respData.Remediation.Service).To(Equal(remediation.Service))
@@ -202,7 +208,6 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 		type remediationUpdateRespDataType struct {
 			Remediation model.Remediation `json:"updateRemediation"`
 		}
-		var respData remediationUpdateRespDataType
 
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -213,7 +218,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 				remediation := seedCollection.RemediationRows[0].AsRemediation()
 				description := "NewDescription"
 
-				respData = e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/remediation/update.graphql",
 					map[string]interface{}{
@@ -223,6 +228,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						},
 					})
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Description).To(Equal(description))
 				Expect(respData.Remediation.Severity.String()).To(Equal(remediation.Severity.String()))
 				Expect(*respData.Remediation.Service).To(Equal(remediation.Service))
@@ -235,7 +241,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 			It("updates service id", func() {
 				remediation := seedCollection.RemediationRows[0].AsRemediation()
 				service := seedCollection.ServiceRows[1]
-				respData = e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/remediation/update.graphql",
 					map[string]interface{}{
@@ -245,6 +251,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						},
 					})
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Service).To(Equal(service.CCRN.String))
 				Expect(*respData.Remediation.ServiceID).To(Equal(fmt.Sprintf("%d", service.Id.Int64)))
 			})
@@ -252,7 +259,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 				remediation := seedCollection.RemediationRows[0].AsRemediation()
 				component := seedCollection.ComponentRows[1]
 
-				respData = e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/remediation/update.graphql",
 					map[string]interface{}{
@@ -262,6 +269,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						},
 					})
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Image).To(Equal(component.Repository.String))
 				Expect(*respData.Remediation.ImageID).To(Equal(fmt.Sprintf("%d", component.Id.Int64)))
 			})
@@ -269,7 +277,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 				remediation := seedCollection.RemediationRows[0].AsRemediation()
 				issue := seedCollection.IssueRows[1]
 
-				respData = e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/remediation/update.graphql",
 					map[string]interface{}{
@@ -279,6 +287,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 						},
 					})
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Remediation.Vulnerability).To(Equal(issue.PrimaryName.String))
 				Expect(*respData.Remediation.VulnerabilityID).To(Equal(fmt.Sprintf("%d", issue.Id.Int64)))
 			})
@@ -318,7 +327,7 @@ var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), f
 		Context("and a mutation query is performed", Label("delete.graphql"), func() {
 			It("deletes remediation", func() {
 				id := fmt.Sprintf("%d", seedCollection.RemediationRows[0].Id.Int64)
-				respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 					Id string `json:"deleteRemediation"`
 				}](
 					cfg.Port,
@@ -326,6 +335,8 @@ var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), f
 					map[string]interface{}{
 						"id": id,
 					})
+
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Id).To(Equal(id))
 			})
 		})

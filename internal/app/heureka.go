@@ -8,13 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/component_version"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/app/evidence"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/app/issue_match"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
@@ -34,11 +32,9 @@ import (
 )
 
 type HeurekaApp struct {
-	activity.ActivityHandler
 	component_instance.ComponentInstanceHandler
 	component_version.ComponentVersionHandler
 	component.ComponentHandler
-	evidence.EvidenceHandler
 	issue_match.IssueMatchHandler
 	issue_repository.IssueRepositoryHandler
 	issue_variant.IssueVariantHandler
@@ -89,11 +85,9 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
-		ActivityHandler:          activity.NewActivityHandler(handlerContext),
 		ComponentHandler:         component.NewComponentHandler(handlerContext),
 		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(handlerContext),
 		ComponentVersionHandler:  component_version.NewComponentVersionHandler(handlerContext),
-		EvidenceHandler:          evidence.NewEvidenceHandler(handlerContext),
 		IssueHandler:             issue.NewIssueHandler(handlerContext),
 		IssueMatchHandler:        issue_match.NewIssueMatchHandler(handlerContext, sh),
 		IssueRepositoryHandler:   rh,

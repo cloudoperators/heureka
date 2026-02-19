@@ -16,10 +16,7 @@ import (
 )
 
 type HeurekaEntity interface {
-	Activity |
-		ActivityAggregations |
-		ActivityHasIssue |
-		IssueVariant |
+	IssueVariant |
 		IssueVariantAggregations |
 		BaseIssueRepository |
 		IssueRepository |
@@ -39,8 +36,6 @@ type HeurekaEntity interface {
 		ComponentVersion |
 		ComponentVersionResult |
 		ComponentVersionAggregations |
-		Evidence |
-		EvidenceAggregations |
 		BaseService |
 		Service |
 		ServiceAggregations |
@@ -79,8 +74,6 @@ type HeurekaFilter interface {
 		ComponentInstanceFilter |
 		TimeFilter |
 		IssueVariantFilter |
-		ActivityFilter |
-		EvidenceFilter |
 		ComponentFilter |
 		ComponentVersionFilter |
 		IssueRepositoryFilter |

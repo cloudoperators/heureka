@@ -94,8 +94,6 @@ models:
         resolver: true
       issueMatches:
         resolver: true
-      activities:
-        resolver: true
       componentVersions:
         resolver: true
   IssueMatch:
@@ -103,8 +101,6 @@ models:
       componentInstance:
         resolver: true
       issue:
-        resolver: true
-      evidences:
         resolver: true
       effectiveIssueVariants:
         resolver: true
@@ -140,8 +136,6 @@ models:
         resolver: true
       issues:
         resolver: true
-      activities:
-        resolver: true
       issueRepositories:
         resolver: true
       componentInstances:
@@ -157,22 +151,6 @@ models:
       users:
         resolver: true
       services:
-        resolver: true
-  Activity:
-    fields:
-      services:
-        resolver: true
-      issues:
-        resolver: true
-      evidences:
-        resolver: true
-  Evidence:
-    fields:
-      activity:
-        resolver: true
-      author:
-        resolver: true
-      issueMatches:
         resolver: true
   IssueVariant:
     fields:

@@ -54,7 +54,6 @@ func getIssueMatchFilter() *entity.IssueMatchFilter {
 		SeverityValue:       nil,
 		Status:              nil,
 		IssueId:             nil,
-		EvidenceId:          nil,
 		ComponentInstanceId: nil,
 	}
 }
@@ -340,55 +339,6 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, options)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatches.Elements).To(BeEmpty(), "no error should be thrown")
-	})
-})
-
-var _ = Describe("When modifying relationship of evidence and issueMatch", Label("app", "EvidenceIssueMatchRelationship"), func() {
-	var (
-		db                *mocks.MockDatabase
-		issueMatchHandler im.IssueMatchHandler
-		evidence          entity.Evidence
-		issueMatch        entity.IssueMatchResult
-		filter            *entity.IssueMatchFilter
-		handlerContext    common.HandlerContext
-	)
-
-	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
-		issueMatch = test.NewFakeIssueMatchResult()
-		evidence = test.NewFakeEvidenceEntity()
-		first := 10
-		after := ""
-		filter = &entity.IssueMatchFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-			Id: []*int64{&issueMatch.Id},
-		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
-	})
-
-	It("adds evidence to issueMatch", func() {
-		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-		issueMatch, err := issueMatchHandler.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
-	})
-
-	It("removes evidence from issueMatch", func() {
-		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-		issueMatch, err := issueMatchHandler.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
 	})
 })
 

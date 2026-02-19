@@ -20,6 +20,7 @@ require (
 	github.com/onsi/gomega v1.39.1
 	github.com/onuryilmaz/ginprom v0.0.2
 	github.com/openfga/go-sdk v0.7.4
+	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.23.2
 	github.com/samber/lo v1.52.0
@@ -27,8 +28,9 @@ require (
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.11.1
 	github.com/valkey-io/valkey-go v1.0.71
+	github.com/vektah/gqlparser/v2 v2.5.31
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	golang.org/x/text v0.33.0
+	golang.org/x/text v0.34.0
 	golang.org/x/time v0.14.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 )
@@ -46,7 +48,6 @@ require (
 	github.com/openfga/api/proto v0.0.0-20240905181937-3583905f61a6 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/urfave/cli/v3 v3.6.1 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.31 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect

@@ -48,23 +48,9 @@ type Mutation {
     updateIssueVariant(id: ID!, input: IssueVariantInput!): IssueVariant!
     deleteIssueVariant(id: ID!): String!
 
-    createEvidence(input: EvidenceInput!): Evidence!
-    updateEvidence(id: ID!, input: EvidenceInput!): Evidence!
-    deleteEvidence(id: ID!): String!
-
     createIssueMatch(input: IssueMatchInput!): IssueMatch!
     updateIssueMatch(id: ID!, input: IssueMatchInput!): IssueMatch!
     deleteIssueMatch(id: ID!): String!
-    addEvidenceToIssueMatch(issueMatchId: ID!, evidenceId: ID!): IssueMatch!
-    removeEvidenceFromIssueMatch(issueMatchId: ID!, evidenceId: ID!): IssueMatch!
-
-    createActivity(input: ActivityInput!): Activity!
-    updateActivity(id: ID!, input: ActivityInput!): Activity!
-    deleteActivity(id: ID!): String!
-    addServiceToActivity(activityId: ID!, serviceId: ID!): Activity!
-    removeServiceFromActivity(activityId: ID!, serviceId: ID!): Activity!
-    addIssueToActivity(activityId: ID!, issueId: ID!): Activity!
-    removeIssueFromActivity(activityId: ID!, issueId: ID!): Activity!
 
     createScannerRun(input: ScannerRunInput!): Boolean!
     completeScannerRun(uuid: String!): Boolean!
