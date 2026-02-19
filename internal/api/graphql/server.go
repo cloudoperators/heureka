@@ -7,7 +7,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/middleware"
-	gqlmiddleware "github.com/cloudoperators/heureka/internal/api/graphql/middleware"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/resolver"
 	gqlmiddleware "github.com/cloudoperators/heureka/internal/api/graphql/middleware"
@@ -15,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/gin-gonic/gin"
 	"github.com/oyyblin/gqlgen-depth-limit-extension/depth"
+	"golang.org/x/time/rate"
 )
 
 type GraphQLAPI struct {
@@ -23,6 +23,7 @@ type GraphQLAPI struct {
 
 	auth         *middleware.Auth
 	batchLimiter gqlmiddleware.BatchLimiter
+	rateLimiter  *gqlmiddleware.IPRateLimiter
 }
 
 func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
@@ -34,11 +35,11 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 		App:          a,
 		auth:         middleware.NewAuth(&cfg, true),
 		batchLimiter: gqlmiddleware.NewBatchLimiter(cfg.GQLBatchLimit),
+		rateLimiter:  gqlmiddleware.NewIPRateLimiter(rate.Limit(cfg.GQLHttpRateLimit), cfg.GQLHttpRateBurst),
 	}
 
 	return &graphQLAPI
 }
-
 func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
 	router.Use(g.auth.Middleware())
 	router.Use(g.rateLimiter.Middleware())

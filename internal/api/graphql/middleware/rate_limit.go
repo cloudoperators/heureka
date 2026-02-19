@@ -12,29 +12,32 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// IPRateLimiter manages rate limiters for each client IP address.
-type IPRateLimiter struct {
-	ips    map[string]*rate.Limiter
-	mu     *sync.RWMutex
-	rate   rate.Limit
-	burst  int
-	stopCh chan struct{}
-	wg     sync.WaitGroup
+type clientLimiter struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
 }
 
-// NewIPRateLimiter creates and initializes a new rate limiter.
-// Parameters:
-//   - r: rate.Limit - requests per second (e.g., rate.Limit(50) for 50 RPS)
-//   - b: int - burst size allowing short spikes (e.g., 100)
-//
-// Returns a *IPRateLimiter that automatically cleans up stale entries every minute.
+type IPRateLimiter struct {
+	ips        map[string]*clientLimiter
+	mu         *sync.RWMutex
+	rate       rate.Limit
+	burst      int
+	stopCh     chan struct{}
+	wg         sync.WaitGroup
+	staleAfter time.Duration
+}
+
+const cleanupInterval = 1 * time.Minute
+const staleAfter = 5 * time.Minute
+
 func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	i := &IPRateLimiter{
-		ips:    make(map[string]*rate.Limiter),
-		mu:     &sync.RWMutex{},
-		rate:   r,
-		burst:  b,
-		stopCh: make(chan struct{}),
+		ips:        make(map[string]*clientLimiter),
+		mu:         &sync.RWMutex{},
+		rate:       r,
+		burst:      b,
+		stopCh:     make(chan struct{}),
+		staleAfter: staleAfter,
 	}
 
 	i.wg.Add(1)
@@ -47,13 +50,18 @@ func (i *IPRateLimiter) getLimiter(ip string) *rate.Limiter {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	limiter, exists := i.ips[ip]
+	client, exists := i.ips[ip]
 	if !exists {
-		limiter = rate.NewLimiter(i.rate, i.burst)
-		i.ips[ip] = limiter
+		client = &clientLimiter{
+			limiter:  rate.NewLimiter(i.rate, i.burst),
+			lastSeen: time.Now(),
+		}
+		i.ips[ip] = client
+	} else {
+		client.lastSeen = time.Now()
 	}
 
-	return limiter
+	return client.limiter
 }
 
 func (i *IPRateLimiter) Middleware() gin.HandlerFunc {
@@ -78,7 +86,7 @@ func (i *IPRateLimiter) Middleware() gin.HandlerFunc {
 func (i *IPRateLimiter) cleanupRoutine() {
 	defer i.wg.Done()
 
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
 
 	for {
@@ -95,10 +103,34 @@ func (i *IPRateLimiter) cleanup() {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	i.ips = make(map[string]*rate.Limiter)
+	for ip, client := range i.ips {
+		if time.Since(client.lastSeen) > i.staleAfter {
+			delete(i.ips, ip)
+		}
+	}
 }
 
 func (i *IPRateLimiter) Stop() {
 	close(i.stopCh)
 	i.wg.Wait()
+}
+
+func (i *IPRateLimiter) SetRate(r rate.Limit) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	i.rate = r
+	for _, client := range i.ips {
+		client.limiter.SetLimit(r)
+	}
+}
+
+func (i *IPRateLimiter) SetBurst(b int) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	i.burst = b
+	for _, client := range i.ips {
+		client.limiter.SetBurst(b)
+	}
 }
