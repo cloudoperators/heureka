@@ -21,6 +21,29 @@ jobs:
           - "6379:6379"
     steps:
       - uses: actions/checkout@v6
+
+      # MAYBE IT WOULD BE GOOD IDEA TO TEST MIGRATION ON DETECTED SCHEMA CHANGE
+      # install mariadb client (NOT server — just CLI)
+      - name: Install MariaDB client
+        run: sudo apt-get update && sudo apt-get install -y mariadb-client
+
+      # install migrate tool if needed
+      - name: Install migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz \
+            | tar xvz
+          sudo mv migrate /usr/local/bin/
+
+      - name: Wait for DB ready (extra safety)
+        run: |
+          for i in {1..30}; do
+            mariadb -h 127.0.0.1 -P 3306 -u my_username -pmy_password -e "SELECT 1" && break
+            sleep 2
+          done
+
+      - name: Run migrations
+        run: make migration-test
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
