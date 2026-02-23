@@ -150,6 +150,10 @@ type Paginated struct {
 	After *string `json:"from"`
 }
 
+type HasPagination interface {
+	GetPaginated() *Paginated
+}
+
 type Severity struct {
 	Value string
 	Score float64
