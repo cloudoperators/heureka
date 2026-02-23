@@ -154,6 +154,10 @@ type PaginatedX struct {
 	After *string `json:"from"`
 }
 
+type HasPagination interface {
+	GetPaginatedX() *PaginatedX
+}
+
 func MaxPaginated() Paginated {
 	return Paginated{
 		First: util.Ptr(math.MaxInt),
