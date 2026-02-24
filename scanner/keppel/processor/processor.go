@@ -17,6 +17,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	RottenVulnerabilityStatus = "Rotten"
+)
+
 type Processor struct {
 	uuid                string
 	tag                 string
@@ -121,6 +125,7 @@ func (p *Processor) ProcessManifest(manifest models.Manifest, componentId string
 	r, err := client.CreateComponentVersion(context.Background(), *p.Client, &client.ComponentVersionInput{
 		Version:     manifest.Digest,
 		ComponentId: componentId,
+		EndOfLife:   manifest.VulnerabilityStatus == RottenVulnerabilityStatus,
 	})
 	if err != nil {
 		log.WithError(err).Error("Error while creating component")
@@ -191,6 +196,17 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 					"componentVersionId": componentVersionId,
 				}).Info("Added issue to componentVersion")
 			}
+		}
+	}
+
+	if report.Metadata.OS.Eosl {
+		_, err := client.UpdateComponentVersion(context.Background(), *p.Client, componentVersionId, &client.ComponentVersionInput{
+			EndOfLife: true,
+		})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"componentVersionId": componentVersionId,
+			}).WithError(err).Error("Could not update ComponentVersion")
 		}
 	}
 }

@@ -10,6 +10,7 @@ type ImageVersion implements Node {
     vulnerabilities(first: Int, after: String, filter: VulnerabilityFilter): VulnerabilityConnection
     vulnerabilityCounts: SeverityCounts
     metadata: Metadata
+    endOfLife: Boolean
 }
 
 type ImageVersionConnection implements Connection {
@@ -31,4 +32,5 @@ input ImageVersionFilter {
     tag: [String]
     repository: [String]
     state: [StateFilter!]
+    endOfLife: [Boolean]
 }

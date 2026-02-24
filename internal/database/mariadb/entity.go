@@ -601,9 +601,12 @@ type ComponentVersionRow struct {
 	DeletedAt    sql.NullTime   `db:"componentversion_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt    sql.NullTime   `db:"componentversion_updated_at" json:"updated_at"`
 	UpdatedBy    sql.NullInt64  `db:"componentversion_updated_by" json:"updated_by"`
+	EndOfLife    sql.NullBool   `db:"componentversion_end_of_life" json:"end_of_life"`
 }
 
 func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
+	endOfLife := GetBoolValue(cvr.EndOfLife)
+
 	return entity.ComponentVersion{
 		Id:           GetInt64Value(cvr.Id),
 		Version:      GetStringValue(cvr.Version),
@@ -618,10 +621,17 @@ func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 			UpdatedAt: GetTimeValue(cvr.UpdatedAt),
 			UpdatedBy: GetInt64Value(cvr.UpdatedBy),
 		},
+		EndOfLife: &endOfLife,
 	}
 }
 
 func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion) {
+	cvr.EndOfLife = sql.NullBool{Bool: false, Valid: true}
+
+	if cv.EndOfLife != nil {
+		cvr.EndOfLife = sql.NullBool{Bool: *cv.EndOfLife, Valid: true}
+	}
+
 	cvr.Id = sql.NullInt64{Int64: cv.Id, Valid: true}
 	cvr.Version = sql.NullString{String: cv.Version, Valid: true}
 	cvr.Tag = sql.NullString{String: cv.Tag, Valid: true}

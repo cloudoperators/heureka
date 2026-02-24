@@ -67,24 +67,35 @@ func (s *SqlDatabase) getComponentVersionJoins(filter *entity.ComponentVersionFi
 
 func getComponentVersionUpdateFields(componentVersion *entity.ComponentVersion) string {
 	fl := []string{}
+
 	if componentVersion.Version != "" {
 		fl = append(fl, "componentversion_version = :componentversion_version")
 	}
+
 	if componentVersion.ComponentId != 0 {
 		fl = append(fl, "componentversion_component_id = :componentversion_component_id")
 	}
+
 	if componentVersion.Tag != "" {
 		fl = append(fl, "componentversion_tag = :componentversion_tag")
 	}
+
 	if componentVersion.Repository != "" {
 		fl = append(fl, "componentversion_repository = :componentversion_repository")
 	}
+
 	if componentVersion.Organization != "" {
 		fl = append(fl, "componentversion_organization = :componentversion_organization")
 	}
+
 	if componentVersion.UpdatedBy != 0 {
 		fl = append(fl, "componentversion_updated_by = :componentversion_updated_by")
 	}
+
+	if componentVersion.EndOfLife != nil {
+		fl = append(fl, fmt.Sprintf("componentversion_end_of_life = %t", *componentVersion.EndOfLife))
+	}
+
 	return strings.Join(fl, ", ")
 }
 
@@ -101,6 +112,7 @@ func getComponentVersionFilterString(filter *entity.ComponentVersionFilter) stri
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id = ?", OP_OR))
+	fl = append(fl, buildFilterQuery(filter.EndOfLife, "CV.componentversion_end_of_life = ?", OP_OR))
 	fl = append(fl, buildStateFilterQuery(filter.State, "CV.componentversion"))
 
 	return combineFilterQueries(fl, OP_AND)
@@ -185,6 +197,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
+	filterParameters = buildQueryParameters(filterParameters, filter.EndOfLife)
 	if withCursor {
 		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
@@ -335,7 +348,8 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 			componentversion_repository,
 			componentversion_organization,
 			componentversion_created_by,
-			componentversion_updated_by
+			componentversion_updated_by,
+			componentversion_end_of_life
 		) VALUES (
 			:componentversion_component_id,
 			:componentversion_version,
@@ -343,7 +357,8 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 			:componentversion_repository,
 			:componentversion_organization,
 			:componentversion_created_by,
-			:componentversion_updated_by
+			:componentversion_updated_by,
+			:componentversion_end_of_life
 		)
 	`
 
