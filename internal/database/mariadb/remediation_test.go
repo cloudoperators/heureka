@@ -433,6 +433,21 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				prevW = w
 			}
 		})
+		It("orders by expiration asc", func() {
+			order := []entity.Order{{By: entity.RemediationExpirationDate, Direction: entity.OrderDirectionAsc}}
+			entries, err := db.GetRemediations(nil, order)
+			By("throwing no error", func() {
+				Expect(err).To(BeNil())
+			})
+
+			var prev time.Time
+			for _, e := range entries {
+				if !prev.IsZero() {
+					Expect(e.ExpirationDate.Before(prev)).To(BeFalse())
+				}
+				prev = e.ExpirationDate
+			}
+		})
 	})
 
 	When("Counting Remediations", Label("CountRemediations"), func() {

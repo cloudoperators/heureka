@@ -169,6 +169,8 @@ func (ro *RemediationOrderBy) ToOrderEntity() entity.Order {
 		order.By = entity.RemediationIssue
 	case RemediationOrderByFieldSeverity:
 		order.By = entity.RemediationSeverity
+	case RemediationOrderByFieldExpirationDate:
+		order.By = entity.RemediationExpirationDate
 	}
 	order.Direction = ro.Direction.ToOrderDirectionEntity()
 	return order
