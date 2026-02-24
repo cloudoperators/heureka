@@ -184,6 +184,10 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(resp.ImageVersions.Edges)).To(Equal(5))
+
+				for _, edge := range resp.ImageVersions.Edges {
+					Expect(*edge.Node.EndOfLife).To(BeTrue())
+				}
 			})
 		})
 		Context("and end of life filter presents as false", func() {
@@ -202,6 +206,10 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(resp.ImageVersions.Edges)).To(Equal(5))
+
+				for _, edge := range resp.ImageVersions.Edges {
+					Expect(*edge.Node.EndOfLife).To(BeFalse())
+				}
 			})
 		})
 	})

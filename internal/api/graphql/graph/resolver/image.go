@@ -24,7 +24,6 @@ func (r *imageResolver) Versions(ctx context.Context, obj *model.Image, first *i
 	filter := &model.ComponentVersionFilter{
 		ServiceCcrn: imageFilter.Service,
 		Repository:  imageFilter.Repository,
-		EndOfLife:   imageFilter.EndOfLife,
 	}
 	orderBy := []*model.ComponentVersionOrderBy{
 		{

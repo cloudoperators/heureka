@@ -92,9 +92,7 @@ func getComponentVersionUpdateFields(componentVersion *entity.ComponentVersion) 
 		fl = append(fl, "componentversion_updated_by = :componentversion_updated_by")
 	}
 
-	if componentVersion.EndOfLife {
-		fl = append(fl, "componentversion_end_of_life = TRUE")
-	}
+	fl = append(fl, fmt.Sprintf("componentversion_end_of_life = %t", componentVersion.EndOfLife))
 
 	return strings.Join(fl, ", ")
 }

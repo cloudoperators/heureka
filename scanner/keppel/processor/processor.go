@@ -17,6 +17,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	RottenVulnerabilityStatus = "Rotten"
+)
+
 type Processor struct {
 	uuid                string
 	tag                 string
@@ -121,6 +125,7 @@ func (p *Processor) ProcessManifest(manifest models.Manifest, componentId string
 	r, err := client.CreateComponentVersion(context.Background(), *p.Client, &client.ComponentVersionInput{
 		Version:     manifest.Digest,
 		ComponentId: componentId,
+		EndOfLife:   manifest.VulnerabilityStatus == RottenVulnerabilityStatus,
 	})
 	if err != nil {
 		log.WithError(err).Error("Error while creating component")

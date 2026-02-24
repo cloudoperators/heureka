@@ -4,7 +4,6 @@
 package mariadb_test
 
 import (
-	"log"
 	"math/rand"
 	"sort"
 
@@ -535,7 +534,6 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 				Expect(err).To(BeNil())
 			}
 			for _, cv := range componentVersions {
-				log.Printf("\n\n\n%#v\n\n\n", cv)
 				_, err := seeder.InsertFakeComponentVersion(cv)
 				Expect(err).To(BeNil())
 			}

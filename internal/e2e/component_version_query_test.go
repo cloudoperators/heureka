@@ -128,6 +128,10 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(resp.ComponentVersions.Edges)).To(Equal(5))
+
+				for _, edge := range resp.ComponentVersions.Edges {
+					Expect(*edge.Node.EndOfLife).To(BeTrue())
+				}
 			})
 		})
 		Context("and end of life filter presents as false", func() {
@@ -145,6 +149,10 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(resp.ComponentVersions.Edges)).To(Equal(5))
+
+				for _, edge := range resp.ComponentVersions.Edges {
+					Expect(*edge.Node.EndOfLife).To(BeFalse())
+				}
 			})
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
