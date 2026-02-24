@@ -62,20 +62,20 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 				graphqlPath := "../api/graphql/graph/queryCollection/siem_alert/create.graphql"
 
 				input := map[string]interface{}{
-					"name":        alertName,
-					"description": alertDescription,
-					"severity":    alertSeverity,
-					"url":         alertURL,
-					"region":      region,
-					"cluster":     clusterName,
-					"namespace":   namespace,
-					"pod":         pod,
-					"container":   container,
-					"service":     service,
+					"name":         alertName,
+					"description":  alertDescription,
+					"severity":     alertSeverity,
+					"url":          alertURL,
+					"region":       region,
+					"cluster":      clusterName,
+					"namespace":    namespace,
+					"pod":          pod,
+					"container":    container,
+					"service":      service,
 					"supportGroup": supportGroup,
 				}
 
-				respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 					SIEM model.SIEMAlert `json:"createSIEMAlert"`
 				}](
 					cfg.Port,
@@ -83,6 +83,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					map[string]interface{}{
 						"input": input,
 					})
+				Expect(err).To(BeNil())
 
 				Expect(*respData.SIEM.Name).To(Equal(alertName))
 				Expect(*respData.SIEM.Severity).To(Equal(model.SeverityValues(alertSeverity)))
