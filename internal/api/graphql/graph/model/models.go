@@ -169,6 +169,8 @@ func (ro *RemediationOrderBy) ToOrderEntity() entity.Order {
 		order.By = entity.RemediationIssue
 	case RemediationOrderByFieldSeverity:
 		order.By = entity.RemediationSeverity
+	case RemediationOrderByFieldExpirationDate:
+		order.By = entity.RemediationExpirationDate
 	}
 	order.Direction = ro.Direction.ToOrderDirectionEntity()
 	return order
@@ -416,7 +418,7 @@ func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
 		Version:    &componentVersion.Version,
 		Repository: &componentVersion.Repository,
 		Metadata:   getModelMetadata(componentVersion.Metadata),
-		EndOfLife:  &componentVersion.EndOfLife,
+		EndOfLife:  componentVersion.EndOfLife,
 	}
 }
 
@@ -642,7 +644,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		Organization: &componentVersion.Organization,
 		Tag:          &componentVersion.Tag,
 		Metadata:     getModelMetadata(componentVersion.Metadata),
-		EndOfLife:    &componentVersion.EndOfLife,
+		EndOfLife:    componentVersion.EndOfLife,
 	}
 }
 
@@ -658,7 +660,7 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 		Repository:   lo.FromPtr(componentVersion.Repository),
 		Organization: lo.FromPtr(componentVersion.Organization),
 		Tag:          lo.FromPtr(componentVersion.Tag),
-		EndOfLife:    lo.FromPtr(componentVersion.EndOfLife),
+		EndOfLife:    componentVersion.EndOfLife,
 	}
 }
 

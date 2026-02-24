@@ -77,6 +77,8 @@ func ColumnName(f entity.OrderByField) string {
 		return "remediation_issue"
 	case entity.RemediationSeverity:
 		return "remediation_severity"
+	case entity.RemediationExpirationDate:
+		return "remediation_expiration_date"
 	case entity.PatchId:
 		return "patch_id"
 	default:

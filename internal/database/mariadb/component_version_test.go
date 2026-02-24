@@ -131,7 +131,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 
 					for _, r := range res {
-						Expect(r.EndOfLife).To(BeTrue())
+						Expect(*r.EndOfLife).To(BeTrue())
 					}
 				})
 				It("can filter by end of life as false value", func() {
@@ -165,7 +165,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 
 					for _, r := range res {
-						Expect(r.EndOfLife).To(BeFalse())
+						Expect(*r.EndOfLife).To(BeFalse())
 					}
 				})
 			})
@@ -479,7 +479,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					By("returning expected values for EndOfLife", func() {
 						for _, entry := range entries {
-							Expect(entry.EndOfLife).To(BeFalse())
+							Expect(*entry.EndOfLife).To(BeFalse())
 						}
 					})
 				})
@@ -499,7 +499,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 					By("returning expected values for EndOfLife", func() {
 						for _, entry := range entries {
-							Expect(entry.EndOfLife).To(BeTrue())
+							Expect(*entry.EndOfLife).To(BeTrue())
 						}
 					})
 				})

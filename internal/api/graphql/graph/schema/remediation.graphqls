@@ -54,6 +54,7 @@ input RemediationOrderBy {
 enum RemediationOrderByField {
     vulnerability
     severity
+    expirationDate
 }
 
 input RemediationInput {

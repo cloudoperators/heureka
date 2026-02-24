@@ -40,5 +40,5 @@ type ComponentVersion struct {
 	Organization       string              `json:"organization"`
 	ComponentInstances []ComponentInstance `json:"component_instances,omitempty"`
 	Issues             []Issue             `json:"issues,omitempty"`
-	EndOfLife          bool                `json:"end_of_life"`
+	EndOfLife          *bool               `json:"end_of_life,omitempty"`
 }
