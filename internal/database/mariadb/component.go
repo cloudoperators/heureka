@@ -5,51 +5,41 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func getComponentFilterString(filter *entity.ComponentFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.CCRN, "C.component_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Repository, "C.component_repository = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Organization, "C.component_organization = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Id, "C.component_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CV.componentversion_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "C.component"))
-
-	return combineFilterQueries(fl, OP_AND)
+var componentObject = DbObject{
+	Properties: []PropertySpec{
+		Property{Name: "component_ccrn", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.CCRN != "" })},
+		Property{Name: "component_repository", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.Repository != "" })},
+		Property{Name: "component_organization", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.Organization != "" })},
+		Property{Name: "component_url", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.Url != "" })},
+		Property{Name: "component_type", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.Type != "" })},
+		Property{Name: "component_created_by"},
+		Property{Name: "component_updated_by", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.UpdatedBy != 0 })},
+	},
+	FilterProperties: []FilterPropertySpec{
+		FilterProperty{Query: "C.component_ccrn = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.CCRN })},
+		FilterProperty{Query: "C.component_repository = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.Repository })},
+		FilterProperty{Query: "C.component_organization = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.Organization })},
+		FilterProperty{Query: "C.component_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.Id })},
+		FilterProperty{Query: "CV.componentversion_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.ComponentVersionId })},
+		FilterProperty{Query: "S.service_ccrn = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.ServiceCCRN })},
+		StateFilterProperty{Prefix: "C.component", Param: WrapRetState(func(filter *entity.ComponentFilter) []entity.StateFilterType { return filter.State })},
+	},
 }
 
-func ensureComponentFilter(f *entity.ComponentFilter) *entity.ComponentFilter {
-	first := 1000
-	after := ""
-	if f == nil {
-		return &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-			CCRN:               nil,
-			Id:                 nil,
-			ComponentVersionId: nil,
-		}
+func ensureComponentFilter(filter *entity.ComponentFilter) *entity.ComponentFilter {
+	if filter == nil {
+		filter = &entity.ComponentFilter{}
 	}
-
-	if f.After == nil {
-		f.After = &after
-	}
-	if f.First == nil {
-		f.First = &first
-	}
-	return f
+	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) getComponentJoins(filter *entity.ComponentFilter, order []entity.Order) string {
+func (s *SqlDatabase) getComponentJoins(filter *entity.ComponentFilter, order []entity.Order) string { //TODO: add joins to DbObject
 	joins := ""
 	if s.needComponentVersion(filter, order) {
 		joins = fmt.Sprintf("%s\n%s", joins, `
@@ -125,45 +115,20 @@ func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
 	return columns
 }
 
-func getComponentUpdateFields(component *entity.Component) string {
-	fl := []string{}
-	if component.CCRN != "" {
-		fl = append(fl, "component_ccrn = :component_ccrn")
-	}
-	if component.Repository != "" {
-		fl = append(fl, "component_repository = :component_repository")
-	}
-	if component.Organization != "" {
-		fl = append(fl, "component_organization = :component_organization")
-	}
-	if component.Url != "" {
-		fl = append(fl, "component_url = :component_url")
-	}
-	if component.Type != "" {
-		fl = append(fl, "component_type = :component_type")
-	}
-	if component.UpdatedBy != 0 {
-		fl = append(fl, "component_updated_by = :component_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
 func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.ComponentFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
-	var query string
 	filter = ensureComponentFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getComponentFilterString(filter)
-	joins := s.getComponentJoins(filter, order)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	order = GetDefaultOrder(order, entity.ComponentId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
+	filterStr := componentObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -173,7 +138,8 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
 
-	// construct final query
+	joins := s.getComponentJoins(filter, order)
+	var query string
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
 	} else {
@@ -193,17 +159,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.Repository)
-	filterParameters = buildQueryParameters(filterParameters, filter.Organization)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
-	}
+	filterParameters := componentObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -423,29 +379,10 @@ func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Comp
 		"event":     "database.CreateComponent",
 	})
 
-	query := `
-		INSERT INTO Component (
-			component_ccrn,
-			component_repository,
-			component_organization,
-			component_url,
-			component_type,
-			component_created_by,
-			component_updated_by
-		) VALUES (
-			:component_ccrn,
-			:component_repository,
-			:component_organization,
-			:component_url,
-			:component_type,
-			:component_created_by,
-			:component_updated_by
-		)
-	`
-
 	componentRow := ComponentRow{}
 	componentRow.FromComponent(component)
 
+	query := componentObject.InsertQuery("Component")
 	id, err := performInsert(s, query, componentRow, l)
 	if err != nil {
 		return nil, err
@@ -468,8 +405,7 @@ func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
 		WHERE component_id = :component_id
 	`
 
-	updateFields := getComponentUpdateFields(component)
-
+	updateFields := componentObject.GetUpdateFields(component)
 	query := fmt.Sprintf(baseQuery, updateFields)
 
 	componentRow := ComponentRow{}
