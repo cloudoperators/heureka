@@ -30,4 +30,8 @@ type ComponentFilter struct {
 	State              []StateFilterType `json:"state"`
 }
 
+func (cf *ComponentFilter) GetPaginatedX() *PaginatedX {
+	return &cf.PaginatedX
+}
+
 type ComponentAggregations struct{}
