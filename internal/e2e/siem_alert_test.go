@@ -136,6 +136,114 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					HaveField("IssueMatch.ComponentInstanceId", Equal(ciId)),
 				))
 			})
+
+			It("creates SIEM alert with a specific source", func() {
+				alertName := "Custom Source Alert"
+				alertDescription := "description for custom source"
+				alertSeverity := "Medium"
+				alertURL := "https://example.test/alert/789"
+				region := "eu-de-1"
+				clusterName := "eu-de-1"
+				namespace := "vault"
+				pod := "vault-2"
+				container := "audit"
+				service := "vault"
+				supportGroup := "src"
+				source := "custom-siem-source"
+				graphqlPath := "../api/graphql/graph/queryCollection/siem_alert/create.graphql"
+
+				input := map[string]interface{}{
+					"name":         alertName,
+					"description":  alertDescription,
+					"severity":     alertSeverity,
+					"url":          alertURL,
+					"region":       region,
+					"cluster":      clusterName,
+					"namespace":    namespace,
+					"pod":          pod,
+					"container":    container,
+					"service":      service,
+					"supportGroup": supportGroup,
+					"source":       source,
+				}
+
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					SIEM model.SIEMAlert `json:"createSIEMAlert"`
+				}](
+					cfg.Port,
+					graphqlPath,
+					map[string]interface{}{
+						"input": input,
+					})
+				Expect(err).To(BeNil())
+
+				Expect(*respData.SIEM.Name).To(Equal(alertName))
+				Expect(*respData.SIEM.Source).To(Equal(source))
+
+				// Verify the IssueRepository in the database
+				repoFilter := &entity.IssueRepositoryFilter{Name: []*string{&source}}
+				repos, err := db.GetIssueRepositories(repoFilter)
+				Expect(err).To(BeNil())
+				Expect(len(repos)).To(Equal(1))
+				Expect(repos[0].Name).To(Equal(source))
+
+				// Verify IssueVariant is linked to this repository
+				issues, err := db.GetIssues(&entity.IssueFilter{PrimaryName: []*string{&alertName}}, nil)
+				Expect(err).To(BeNil())
+				issueId := issues[0].Issue.Id
+
+				ivs, err := db.GetIssueVariants(&entity.IssueVariantFilter{
+					IssueId:           []*int64{&issueId},
+					IssueRepositoryId: []*int64{&repos[0].Id},
+				})
+				Expect(err).To(BeNil())
+				Expect(len(ivs)).To(Equal(1))
+			})
+		})
+
+		Context("and a mutation query is performed without ComponentInstance data", func() {
+			It("should not create the SIEM alert", func() {
+				alertName := "Missing Container Alert"
+				alertDescription := "alert without container"
+				alertSeverity := "High"
+				alertURL := "https://example.test/alert/456"
+				region := "eu-de-1"
+				clusterName := "eu-de-1"
+				namespace := "vault"
+				pod := "vault-1"
+				service := "vault"
+				supportGroup := "src"
+				graphqlPath := "../api/graphql/graph/queryCollection/siem_alert/create.graphql"
+
+				input := map[string]interface{}{
+					"name":         alertName,
+					"description":  alertDescription,
+					"severity":     alertSeverity,
+					"url":          alertURL,
+					"region":       region,
+					"cluster":      clusterName,
+					"namespace":    namespace,
+					"pod":          pod,
+					"container":    "", // Empty container
+					"service":      service,
+					"supportGroup": supportGroup,
+				}
+
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					SIEM model.SIEMAlert `json:"createSIEMAlert"`
+				}](
+					cfg.Port,
+					graphqlPath,
+					map[string]interface{}{
+						"input": input,
+					})
+				Expect(err).NotTo(BeNil(), "Expected mutation to fail with missing ComponentInstance data")
+
+				// Verify the alert was not created in the database
+				issues, err := db.GetIssues(&entity.IssueFilter{PrimaryName: []*string{&alertName}}, nil)
+				Expect(err).To(BeNil())
+				Expect(len(issues)).To(Equal(0), "Alert should not be created when ComponentInstance data is missing")
+			})
 		})
 	})
 })

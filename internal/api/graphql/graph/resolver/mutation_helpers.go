@@ -153,8 +153,10 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(ctx context.Context, input
 			issue = newIssue
 		}
 
-		// Temporary
 		siemRepoName := "heureka-siem"
+		if input.Source != nil && *input.Source != "" {
+			siemRepoName = *input.Source
+		}
 
 		repoFilter := entity.IssueRepositoryFilter{
 			Name: []*string{&siemRepoName},

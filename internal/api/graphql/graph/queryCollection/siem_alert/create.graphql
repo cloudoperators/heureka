@@ -14,5 +14,6 @@ mutation CreateNewSIEMAlert($input: SIEMAlertInput!){
         namespace
         pod
         container
+        source
     }
 }

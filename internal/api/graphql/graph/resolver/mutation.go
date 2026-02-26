@@ -746,6 +746,19 @@ func (r *mutationResolver) DeleteRemediation(ctx context.Context, id string) (st
 }
 
 func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEMAlertInput) (*model.SIEMAlert, error) {
+	isComponentInstanceDataPresent := func(s *string) bool {
+		return s != nil && *s != ""
+	}
+
+	if !isComponentInstanceDataPresent(input.Service) ||
+		!isComponentInstanceDataPresent(input.Region) ||
+		!isComponentInstanceDataPresent(input.Cluster) ||
+		!isComponentInstanceDataPresent(input.Namespace) ||
+		!isComponentInstanceDataPresent(input.Pod) ||
+		!isComponentInstanceDataPresent(input.Container) {
+		return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Invalid Input - service, region, cluster, namespace, pod, and container are all required")
+	}
+
 	svc, err := r.getOrCreateService(ctx, input.Service)
 	if err != nil {
 		return nil, err
@@ -753,6 +766,12 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 	sg, err := r.getOrCreateSupportGroup(ctx, input.SupportGroup)
 	if err != nil {
 		return nil, err
+	}
+
+	if svc != nil && sg != nil {
+		if _, err := r.App.AddServiceToSupportGroup(svc.Id, sg.Id); err != nil {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when adding service to supportGroup")
+		}
 	}
 	ccrn := buildCCRN(input)
 	ci, err := r.getOrCreateComponentInstance(ctx, ccrn, svc, input)
@@ -853,6 +872,7 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 		Namespace:    namespacePtr,
 		Pod:          podPtr,
 		Container:    containerPtr,
+		Source:       input.Source,
 	}
 	return &res, nil
 }

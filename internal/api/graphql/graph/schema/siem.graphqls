@@ -13,6 +13,7 @@ input SIEMAlertInput {
     namespace: String
     pod: String
     container: String
+    source: String
 }
 
 type SIEMAlert {
@@ -27,4 +28,5 @@ type SIEMAlert {
     namespace: String
     pod: String
     container: String
+    source: String
 }
