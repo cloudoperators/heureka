@@ -45,7 +45,7 @@ func (do *DbObject) GetFilterQuery(filter any) string {
 func (do *DbObject) GetFilterParameters(filter entity.HasPagination, withCursor bool, cursorFields []Field) []any {
 	var filterParameters []interface{}
 	for _, v := range do.FilterProperties {
-		filterParameters = buildQueryParameters(filterParameters, v.GetParam(filter))
+		filterParameters = v.AppendParameters(filterParameters, filter)
 	}
 	if withCursor {
 		paginatedX := filter.GetPaginatedX()
@@ -76,7 +76,7 @@ func (p Property) GetUpdateExpression(f any) string {
 }
 
 type FilterPropertySpec interface {
-	GetParam(any) []any
+	AppendParameters([]any, any) []any
 	GetQuery(any) string
 }
 
@@ -85,8 +85,8 @@ type FilterProperty struct {
 	Param func(any) []any
 }
 
-func (fp FilterProperty) GetParam(item any) []any {
-	return fp.Param(item)
+func (fp FilterProperty) AppendParameters(params []any, filter any) []any {
+	return buildQueryParameters(params, fp.Param(filter))
 }
 
 func (fp FilterProperty) GetQuery(item any) string {
@@ -98,13 +98,26 @@ type StateFilterProperty struct {
 	Param  func(any) []entity.StateFilterType
 }
 
-func (sfp StateFilterProperty) GetParam(item any) []any {
-	return nil // There is no parameter needed for State
+func (sfp StateFilterProperty) AppendParameters(params []any, filter any) []any {
+	return params // There is no parameter needed for State so let's not append any
 }
 
 func (sfp StateFilterProperty) GetQuery(item any) string {
 	// State query has to be modified according to parameter
 	return buildStateFilterQuery(sfp.Param(item), sfp.Prefix)
+}
+
+type JsonFilterProperty struct {
+	Query string
+	Param func(any) []*entity.Json
+}
+
+func (jfp JsonFilterProperty) AppendParameters(params []any, filter any) []any {
+	return buildJsonQueryParameters(params, jfp.Param(filter))
+}
+
+func (jfp JsonFilterProperty) GetQuery(item any) string {
+	return buildJsonFilterQuery(jfp.Param(item), jfp.Query, OP_OR)
 }
 
 // DB helpers
@@ -170,4 +183,30 @@ func WrapRetState[T any](fn func(T) []entity.StateFilterType) func(any) []entity
 		}
 		return out
 	}
+}
+
+// WrapRetJson turns a type-specific accessor into a generic one for Json slice
+func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
+	return func(input any) []*entity.Json {
+		val, ok := input.(T)
+		if !ok {
+			return nil
+		}
+
+		res := fn(val)
+
+		out := make([]*entity.Json, len(res))
+		for i := range res {
+			out[i] = res[i]
+		}
+		return out
+	}
+}
+
+func ToAnySlice[T any](in []T) []any {
+	out := make([]any, len(in))
+	for i := range in {
+		out[i] = in[i]
+	}
+	return out
 }
