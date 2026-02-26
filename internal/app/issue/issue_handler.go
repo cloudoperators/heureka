@@ -4,10 +4,10 @@
 package issue
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
-
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -21,12 +21,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetIssuesWithAggregations = 12 * time.Hour
-var CacheTtlGetIssues = 12 * time.Hour
-var CacheTtlGetAllIssueCursors = 12 * time.Hour
-var CacheTtlCountIssueTypes = 12 * time.Hour
-var CacheTtlGetIssueNames = 12 * time.Hour
-var CacheTtlCountIssueRatings = 12 * time.Hour
+var (
+	CacheTtlGetIssuesWithAggregations = 12 * time.Hour
+	CacheTtlGetIssues                 = 12 * time.Hour
+	CacheTtlGetAllIssueCursors        = 12 * time.Hour
+	CacheTtlCountIssueTypes           = 12 * time.Hour
+	CacheTtlGetIssueNames             = 12 * time.Hour
+	CacheTtlCountIssueRatings         = 12 * time.Hour
+)
 
 type issueHandler struct {
 	database      database.Database
@@ -42,6 +44,15 @@ func NewIssueHandler(handlerContext common.HandlerContext) IssueHandler {
 		cache:         handlerContext.Cache,
 		logger:        logrus.New(),
 	}
+}
+
+func ensureIssueListOptions(options *entity.IssueListOptions) *entity.IssueListOptions {
+	if options == nil {
+		return &entity.IssueListOptions{
+			ListOptions: *common.EnsureListOptions(nil),
+		}
+	}
+	return options
 }
 
 func (is *issueHandler) GetIssue(id int64) (*entity.Issue, error) {
@@ -98,6 +109,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 	}
 
 	common.EnsurePaginatedX(&filter.PaginatedX)
+	options = ensureIssueListOptions(options)
 
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.IssueResult](
@@ -190,7 +202,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 	return &issueList, nil
 }
 
-func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
+func (is *issueHandler) CreateIssue(ctx context.Context, issue *entity.Issue) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.CreateIssue")
 
 	f := &entity.IssueFilter{
@@ -198,7 +210,7 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	}
 
 	var err error
-	issue.CreatedBy, err = common.GetCurrentUserId(is.database)
+	issue.CreatedBy, err = common.GetCurrentUserId(ctx, is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -213,7 +225,6 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 		ListOptions: *entity.NewListOptions(),
 	}
 	issues, err := is.ListIssues(f, &lo)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -233,7 +244,6 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	}
 
 	newIssue, err := is.database.CreateIssue(issue)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -247,11 +257,11 @@ func (is *issueHandler) CreateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	return newIssue, nil
 }
 
-func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) {
+func (is *issueHandler) UpdateIssue(ctx context.Context, issue *entity.Issue) (*entity.Issue, error) {
 	op := appErrors.Op("issueHandler.UpdateIssue")
 
 	var err error
-	issue.UpdatedBy, err = common.GetCurrentUserId(is.database)
+	issue.UpdatedBy, err = common.GetCurrentUserId(ctx, is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(issue.Id, 10), err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -299,10 +309,10 @@ func (is *issueHandler) UpdateIssue(issue *entity.Issue) (*entity.Issue, error) 
 	return updatedIssue, nil
 }
 
-func (is *issueHandler) DeleteIssue(id int64) error {
+func (is *issueHandler) DeleteIssue(ctx context.Context, id int64) error {
 	op := appErrors.Op("issueHandler.DeleteIssue")
 
-	userId, err := common.GetCurrentUserId(is.database)
+	userId, err := common.GetCurrentUserId(ctx, is.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Issue", strconv.FormatInt(id, 10), err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -410,7 +420,6 @@ func (is *issueHandler) ListIssueNames(filter *entity.IssueFilter, options *enti
 		is.database.GetIssueNames,
 		filter,
 	)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueNames", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{
@@ -437,7 +446,6 @@ func (is *issueHandler) GetIssueSeverityCounts(filter *entity.IssueFilter) (*ent
 		is.database.CountIssueRatings,
 		filter,
 	)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueSeverityCounts", "", err)
 		applog.LogError(is.logger, wrappedErr, logrus.Fields{

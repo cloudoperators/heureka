@@ -18,14 +18,12 @@ import (
 )
 
 const (
-	ListIssueMatchesEventName             event.EventName = "ListIssueMatches"
-	GetIssueMatchEventName                event.EventName = "GetIssueMatch"
-	CreateIssueMatchEventName             event.EventName = "CreateIssueMatch"
-	UpdateIssueMatchEventName             event.EventName = "UpdateIssueMatch"
-	DeleteIssueMatchEventName             event.EventName = "DeleteIssueMatch"
-	AddEvidenceToIssueMatchEventName      event.EventName = "AddEvidenceToIssueMatch"
-	RemoveEvidenceFromIssueMatchEventName event.EventName = "RemoveEvidenceFromIssueMatch"
-	ListIssueMatchIDsEventName            event.EventName = "ListIssueMatchIDs"
+	ListIssueMatchesEventName  event.EventName = "ListIssueMatches"
+	GetIssueMatchEventName     event.EventName = "GetIssueMatch"
+	CreateIssueMatchEventName  event.EventName = "CreateIssueMatch"
+	UpdateIssueMatchEventName  event.EventName = "UpdateIssueMatch"
+	DeleteIssueMatchEventName  event.EventName = "DeleteIssueMatch"
+	ListIssueMatchIDsEventName event.EventName = "ListIssueMatchIDs"
 )
 
 type ListIssueMatchesEvent struct {
@@ -71,24 +69,6 @@ func (e *DeleteIssueMatchEvent) Name() event.EventName {
 	return DeleteIssueMatchEventName
 }
 
-type AddEvidenceToIssueMatchEvent struct {
-	IssueMatchID int64
-	EvidenceID   int64
-}
-
-func (e *AddEvidenceToIssueMatchEvent) Name() event.EventName {
-	return AddEvidenceToIssueMatchEventName
-}
-
-type RemoveEvidenceFromIssueMatchEvent struct {
-	IssueMatchID int64
-	EvidenceID   int64
-}
-
-func (e *RemoveEvidenceFromIssueMatchEvent) Name() event.EventName {
-	return RemoveEvidenceFromIssueMatchEventName
-}
-
 func OnComponentInstanceCreate(db database.Database, event event.Event, authz openfga.Authorization) {
 	if createEvent, ok := event.(*component_instance.CreateComponentInstanceEvent); ok {
 		OnComponentVersionAssignmentToComponentInstance(db, createEvent.ComponentInstance.Id, createEvent.ComponentInstance.ComponentVersionId)
@@ -116,17 +96,16 @@ func BuildIssueVariantMap(db database.Database, componentInstanceID int64, compo
 		return nil, NewIssueMatchHandlerError("Error while fetching issue variants")
 	}
 
-	//No issue variants found,
+	// No issue variants found,
 	if len(issueVariants) < 1 {
 		l.WithField("event-step", "FetchIssueVariants").Error("No issue variants found that are related to the issue repository")
 		return nil, NewIssueMatchHandlerError("No issue variants found that are related to the issue repository")
 	}
 
 	// create a map of issue id to variants for easy access
-	var issueVariantMap = make(map[int64]entity.ServiceIssueVariant)
+	issueVariantMap := make(map[int64]entity.ServiceIssueVariant)
 
 	for _, variant := range issueVariants {
-
 		if _, ok := issueVariantMap[variant.IssueId]; ok {
 			// if there are multiple variants with the same priority on their repositories we take the highest severity one
 			// if serverity and score are the same the first occuring issue variant is taken
@@ -175,7 +154,6 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceID},
 		}, nil)
-
 		if err != nil {
 			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
 			return
@@ -198,7 +176,7 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			},
 			UserId:                1, //@todo discuss whatever we use a static system user or infer the user from the ComponentVersionIssue
 			Status:                entity.IssueMatchStatusValuesNew,
-			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
+			Severity:              issueVariantMap[issueId].Severity, // we got two  simply take the first one
 			ComponentInstanceId:   componentInstanceID,
 			IssueId:               issueId,
 			TargetRemediationDate: shared.GetTargetRemediationTimeline(issueVariant.Severity, time.Now(), nil),

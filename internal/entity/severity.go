@@ -11,7 +11,25 @@ const (
 	SeverityValuesMedium   SeverityValues = "Medium"
 	SeverityValuesHigh     SeverityValues = "High"
 	SeverityValuesCritical SeverityValues = "Critical"
+	SeverityValuesUnknown  SeverityValues = "Unknown"
 )
+
+func NewSeverityValues(s string) SeverityValues {
+	switch s {
+	case SeverityValuesNone.String():
+		return SeverityValuesNone
+	case SeverityValuesCritical.String():
+		return SeverityValuesCritical
+	case SeverityValuesHigh.String():
+		return SeverityValuesHigh
+	case SeverityValuesMedium.String():
+		return SeverityValuesMedium
+	case SeverityValuesLow.String():
+		return SeverityValuesLow
+	}
+
+	return SeverityValuesUnknown
+}
 
 func (s SeverityValues) String() string {
 	return string(s)
@@ -28,4 +46,12 @@ var AllSeverityValues = []SeverityValues{
 	SeverityValuesMedium,
 	SeverityValuesHigh,
 	SeverityValuesCritical,
+}
+
+var AllSeverityValuesString = []string{
+	SeverityValuesNone.String(),
+	SeverityValuesLow.String(),
+	SeverityValuesMedium.String(),
+	SeverityValuesHigh.String(),
+	SeverityValuesCritical.String(),
 }

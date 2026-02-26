@@ -10,7 +10,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	u "github.com/cloudoperators/heureka/internal/app/user"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -27,11 +26,13 @@ func TestUserHandler(t *testing.T) {
 	RunSpecs(t, "User Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
-var handlerContext common.HandlerContext
-var cfg *util.Config
-var enableLogs bool
+var (
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
+	enableLogs     bool
+)
 
 var _ = BeforeSuite(func() {
 	cfg = common.GetTestConfig()
@@ -42,7 +43,7 @@ var _ = BeforeSuite(func() {
 	handlerContext = common.HandlerContext{
 		DB:       db,
 		EventReg: er,
-		Cache:    cache.NewNoCache(),
+		Cache:    nil,
 		Authz:    authz,
 	}
 	handlerContext.Authz.RemoveAllRelations()
@@ -81,7 +82,6 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetUsers", filter).Return([]entity.User{}, nil)
@@ -104,7 +104,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			filter.First = &pageSize
 			users := test.NNewFakeUserEntities(resElements)
 
-			var ids = lo.Map(users, func(u entity.User, _ int) int64 { return u.Id })
+			ids := lo.Map(users, func(u entity.User, _ int) int64 { return u.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++
@@ -159,7 +159,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		db.On("CreateUser", &user).Return(&user, nil)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
 		userHandler = u.NewUserHandler(handlerContext)
-		newUser, err := userHandler.CreateUser(&user)
+		newUser, err := userHandler.CreateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newUser.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -203,7 +203,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		user.Name = "Sauron"
 		filter.Id = []*int64{&user.Id}
 		db.On("GetUsers", filter).Return([]entity.User{user}, nil)
-		updatedUser, err := userHandler.UpdateUser(&user)
+		updatedUser, err := userHandler.UpdateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedUser.Name).To(BeEquivalentTo(user.Name))
@@ -245,7 +245,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		db.On("DeleteUser", id, mock.Anything).Return(nil)
 		userHandler = u.NewUserHandler(handlerContext)
 		db.On("GetUsers", filter).Return([]entity.User{}, nil)
-		err := userHandler.DeleteUser(id)
+		err := userHandler.DeleteUser(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
@@ -383,7 +383,6 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetUserNames", filter).Return([]string{}, nil)
 		})
@@ -411,6 +410,7 @@ var _ = Describe("When listing User", Label("app", "ListUserNames"), func() {
 		})
 	})
 })
+
 var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"), func() {
 	var (
 		db             *mocks.MockDatabase
@@ -434,7 +434,6 @@ var _ = Describe("When listing UniqueUserID", Label("app", "ListUniqueUserIDs"),
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetUniqueUserIDs", filter).Return([]string{}, nil)
 		})

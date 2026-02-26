@@ -149,7 +149,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						Expect(entries[0].Type.String()).To(BeEquivalentTo(ciRow.Type.String))
 						Expect((*map[string]interface{})(entries[0].Context)).To(BeEquivalentTo(util.ConvertStrToJsonNoError(&ciRow.Context.String)))
 					})
-
 				})
 				It("can filter by a single componentVersion id that does exist", func() {
 					// select a component version
@@ -233,7 +232,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetComponentInstances(nil, nil)
 
@@ -300,7 +298,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 				})
 				It("can filter by a single issue match id that does exist", func() {
-					//get a service that should return at least one issue
+					// get a service that should return at least one issue
 					rnd := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					ciId := rnd.ComponentInstanceId.Int64
 					filter := &entity.ComponentInstanceFilter{
@@ -321,7 +319,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					By("returning expected elements", func() {
 						Expect(entries[0].Id).To(BeEquivalentTo(ciId))
 					})
-
 				})
 				It("can filter by a single service id that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
@@ -345,7 +342,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Expect(entries[i].ServiceId).To(BeEquivalentTo(cir.ServiceId.Int64))
 						}
 					})
-
 				})
 				It("can filter by a single component version id that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
@@ -369,7 +365,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Expect(entries[i].ComponentVersionId).To(BeEquivalentTo(cir.ComponentVersionId.Int64))
 						}
 					})
-
 				})
 				It("can filter by a single component version version that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
@@ -397,7 +392,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							Expect(entries[i].ComponentVersionId).To(BeEquivalentTo(cir.ComponentVersionId.Int64))
 						}
 					})
-
 				})
 				It("can filter by all existing issue match ids ", func() {
 					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(seedCollection.IssueMatchRows)
@@ -462,7 +456,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				componentInstanceRows = seedCollection.GetValidComponentInstanceRows()
 				count = len(componentInstanceRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -499,7 +492,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using a filter", func() {
 				DescribeTable("does return totalCount of applied filter", func(pageSize int, filterMatches int) {
-
 					imCol := seedCollection.IssueMatchRows[:filterMatches]
 					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(imCol)
 
@@ -525,7 +517,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				)
 			})
 		})
-
 	})
 	When("Insert ComponentInstance", Label("InsertComponentInstance"), func() {
 		Context("and we have 10 ComponentInstances in the database", func() {
@@ -604,7 +595,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			var seedCollection *test.SeedCollection
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
-
 			})
 			It("can update componentInstance count correctly", func() {
 				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
@@ -697,7 +687,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			It("can delete componentInstance correctly", func() {
 				componentInstance := seedCollection.ComponentInstanceRows[0].AsComponentInstance()
 
-				err := db.DeleteComponentInstance(componentInstance.Id, systemUserId)
+				err := db.DeleteComponentInstance(componentInstance.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -728,7 +718,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
-			var testOrder = func(
+			testOrder := func(
 				order []entity.Order,
 				verifyFunc func(res []entity.ComponentInstanceResult),
 			) {
@@ -1727,7 +1717,8 @@ func canPerformComponentInstanceQuery[T any](getFunc func(filter *entity.Compone
 
 func canFetchComponentInstanceQueryItems(
 	getFunc func(filter *entity.ComponentInstanceFilter) ([]string, error),
-	expectedItems []string) {
+	expectedItems []string,
+) {
 	res, err := getFunc(nil)
 
 	By("throwing no error", func() {
@@ -1748,7 +1739,8 @@ func canFetchComponentInstanceQueryItems(
 func issueComponentInstanceAttrFilterWithExpect(
 	getAttrFunc func(filter *entity.ComponentInstanceFilter) ([]string, error),
 	cifilter *entity.ComponentInstanceFilter,
-	expectedAttrVal []string) {
+	expectedAttrVal []string,
+) {
 	res, err := getAttrFunc(cifilter)
 	By("throwing no error", func() {
 		Expect(err).Should(BeNil())

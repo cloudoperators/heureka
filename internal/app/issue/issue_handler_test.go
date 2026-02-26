@@ -5,19 +5,17 @@ package issue_test
 import (
 	"errors"
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/samber/lo"
-
-	"strconv"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -32,8 +30,10 @@ func TestIssueHandler(t *testing.T) {
 	RunSpecs(t, "Issue Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -53,7 +53,6 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		issueHandler = issue.NewIssueHandler(handlerContext)
@@ -187,7 +186,6 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -219,7 +217,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				issues = append(issues, entity.IssueResult{WithCursor: entity.WithCursor{Value: cursor}, Issue: lo.ToPtr(i)})
 			}
 
-			var cursors = lo.Map(issues, func(ir entity.IssueResult, _ int) string {
+			cursors := lo.Map(issues, func(ir entity.IssueResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0))
 				return cursor
 			})
@@ -305,7 +303,6 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			})
 			It("should return an empty result", func() {
-
 				issueHandler = issue.NewIssueHandler(handlerContext)
 				res, err := issueHandler.ListIssues(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -413,7 +410,6 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -491,7 +487,6 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -507,7 +502,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).Return(&issueEntity, nil)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			newIssue, err := issueHandler.CreateIssue(&issueEntity)
+			newIssue, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(newIssue).ToNot(BeNil(), "issue should be returned")
@@ -529,7 +524,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.CreateIssue(&issueEntity)
+			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -555,7 +550,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, listError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.CreateIssue(&issueEntity)
+			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -582,7 +577,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			}}, nil)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.CreateIssue(&issueEntity)
+			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -608,7 +603,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).Return((*entity.Issue)(nil), dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.CreateIssue(&issueEntity)
+			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -647,7 +642,6 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -662,7 +656,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			issueResult.Issue.Description = "New Description"
 
-			updatedIssue, err := issueHandler.UpdateIssue(issueResult.Issue)
+			updatedIssue, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(updatedIssue).ToNot(BeNil(), "updated issue should be returned")
@@ -677,7 +671,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.UpdateIssue(issueResult.Issue)
+			result, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -701,7 +695,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			db.On("UpdateIssue", issueResult.Issue).Return(dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.UpdateIssue(issueResult.Issue)
+			result, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -726,7 +720,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, listError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.UpdateIssue(issueResult.Issue)
+			result, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -747,7 +741,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 		issueResult.Issue.Description = "New Description"
 		filter.Id = []*int64{&issueResult.Issue.Id}
 		db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{issueResult}, nil)
-		updatedIssue, err := issueHandler.UpdateIssue(issueResult.Issue)
+		updatedIssue, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issueResult.Issue.PrimaryName))
@@ -780,7 +774,6 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -791,7 +784,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			err := issueHandler.DeleteIssue(id)
+			err := issueHandler.DeleteIssue(common.NewAdminContext(), id)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -812,7 +805,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			err := issueHandler.DeleteIssue(id)
+			err := issueHandler.DeleteIssue(common.NewAdminContext(), id)
 
 			Expect(err).ToNot(BeNil(), "error should be returned")
 
@@ -835,7 +828,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 			db.On("DeleteIssue", id, int64(123)).Return(dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			err := issueHandler.DeleteIssue(id)
+			err := issueHandler.DeleteIssue(common.NewAdminContext(), id)
 
 			Expect(err).ToNot(BeNil(), "error should be returned")
 
@@ -866,7 +859,6 @@ var _ = Describe("When modifying relationship of ComponentVersion and Issue", La
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})
@@ -904,7 +896,6 @@ var _ = Describe("When getting Issue Severity Counts", Label("app", "GetIssueSev
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 	})

@@ -6,9 +6,9 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-
 	"os"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -36,19 +36,17 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
@@ -84,7 +82,6 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -118,7 +115,6 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				Expect(respData.Services.TotalCount).To(Equal(len(seedCollection.ServiceRows)))
 				Expect(len(respData.Services.Edges)).To(Equal(5))
 			})
-
 		})
 		Context("and we request metadata", func() {
 			It("returns correct metadata counts", func() {
@@ -157,10 +153,8 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 					Expect(serviceEdge.Node.ObjectMetadata.ComponentInstanceCount).To(Equal(ciCount))
 				}
 			})
-
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 			var respData struct {
 				Services model.ServiceConnection `json:"Services"`
 			}
@@ -194,7 +188,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			})
 
 			It("- returns the expected content", func() {
-				//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 				// a complete verification
 				// additional checks are added based on bugs discovered during usage
 
@@ -221,16 +215,6 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 								fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // belongs actually to the service
 						})
 						Expect(sgFound).To(BeTrue(), "attached supportGroup does exist and belongs to service")
-					}
-
-					for _, activity := range service.Node.Activities.Edges {
-						Expect(activity.Node.ID).ToNot(BeNil(), "activity has a ID set")
-
-						_, activityFound := lo.Find(seedCollection.ActivityHasServiceRows, func(row mariadb.ActivityHasServiceRow) bool {
-							return fmt.Sprintf("%d", row.ActivityId.Int64) == activity.Node.ID && // correct activity
-								fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // belongs actually to the service
-						})
-						Expect(activityFound).To(BeTrue(), "attached activity does exist and belongs to service")
 					}
 
 					for _, ir := range service.Node.IssueRepositories.Edges {
@@ -265,6 +249,16 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 						Expect(im.Node.RemediationDate).ToNot(BeNil(), "issueMatch has a remediationDate set")
 						Expect(im.Node.DiscoveryDate).ToNot(BeNil(), "issueMatch has a discoveryDate set")
 						Expect(im.Node.TargetRemediationDate).ToNot(BeNil(), "issueMatch has a targetRemediationDate set")
+					}
+
+					for _, remediation := range service.Node.Remediations.Edges {
+						Expect(remediation.Node.ID).ToNot(BeNil(), "remediation has a ID set")
+						Expect(remediation.Node.Description).ToNot(BeNil(), "remediation has a description set")
+						Expect(remediation.Node.Service).ToNot(BeNil(), "remediation has a service set")
+						Expect(remediation.Node.Vulnerability).ToNot(BeNil(), "remediation has a vulnerability set")
+						Expect(remediation.Node.RemediationDate).ToNot(BeNil(), "remediation has a remediation date set")
+						Expect(remediation.Node.ExpirationDate).ToNot(BeNil(), "remediation has a expiration date set")
+						Expect(remediation.Node.RemediatedBy).ToNot(BeNil(), "remediation has a remediated bby set")
 					}
 				}
 			})
@@ -321,10 +315,9 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 					}
 				})
 			})
-
 		})
 	})
-	var loadTestData = func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
+	loadTestData := func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, nil, nil, err
@@ -373,7 +366,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 			Expect(err).To(BeNil())
 		})
 
-		var runOrderTest = func(orderDirection string, expectedOrder []string) {
+		runOrderTest := func(orderDirection string, expectedOrder []string) {
 			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 			b, err := os.ReadFile("../api/graphql/graph/queryCollection/service/withOrder.graphql")
 			Expect(err).To(BeNil())
@@ -408,13 +401,11 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		})
 
 		It("can count issues", Label("issueCount"), func() {
-
 		})
 	})
 })
 
 var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -423,25 +414,22 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			service = testentity.NewFakeServiceEntity()
@@ -480,7 +468,6 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -488,19 +475,17 @@ var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
@@ -549,7 +534,6 @@ var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -557,19 +541,17 @@ var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
@@ -614,7 +596,6 @@ var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
 })
 
 var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -622,19 +603,17 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})
@@ -732,7 +711,6 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 })
 
 var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "Services"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -741,19 +719,17 @@ var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "S
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		seeder.CloseDbConnection()
 		dbm.TestTearDown(db)
 	})

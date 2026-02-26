@@ -102,7 +102,6 @@ func CreateCursorParameters(params []any, fields []Field) []any {
 }
 
 func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.IssueMatchId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -131,7 +130,6 @@ func WithIssueMatch(order []entity.Order, im entity.IssueMatch) NewCursor {
 }
 
 func WithService(order []entity.Order, s entity.Service, isc entity.IssueSeverityCounts) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -193,7 +191,6 @@ func WithComponentInstance(order []entity.Order, ci entity.ComponentInstance) Ne
 }
 
 func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc entity.IssueSeverityCounts) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -221,7 +218,6 @@ func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc 
 }
 
 func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCursor {
-
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -257,7 +253,7 @@ func WithSupportGroup(order []entity.Order, sg entity.SupportGroup) NewCursor {
 	}
 }
 
-func WithComponent(order []entity.Order, c entity.Component, cv entity.ComponentVersion, isc entity.IssueSeverityCounts) NewCursor {
+func WithComponent(order []entity.Order, c entity.Component, isc entity.IssueSeverityCounts) NewCursor {
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.ComponentId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -266,8 +262,8 @@ func WithComponent(order []entity.Order, c entity.Component, cv entity.Component
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentId, Value: c.Id, Order: o.Direction})
 			case entity.ComponentCcrn:
 				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentCcrn, Value: c.CCRN, Order: o.Direction})
-			case entity.ComponentVersionRepository:
-				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentVersionRepository, Value: cv.Repository, Order: o.Direction})
+			case entity.ComponentRepository:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ComponentRepository, Value: c.Repository, Order: o.Direction})
 			case entity.CriticalCount:
 				cursors.fields = append(cursors.fields, Field{Name: entity.CriticalCount, Value: isc.Critical, Order: o.Direction})
 			case entity.HighCount:
@@ -284,4 +280,52 @@ func WithComponent(order []entity.Order, c entity.Component, cv entity.Component
 		}
 		return nil
 	}
+}
+
+func WithRemediation(order []entity.Order, r entity.Remediation) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.RemediationId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.RemediationId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationId, Value: r.Id, Order: o.Direction})
+			case entity.RemediationIssue:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationIssue, Value: r.Issue, Order: o.Direction})
+			case entity.RemediationSeverity:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationSeverity, Value: r.Severity, Order: o.Direction})
+			case entity.RemediationExpirationDate:
+				cursors.fields = append(cursors.fields, Field{Name: entity.RemediationExpirationDate, Value: r.ExpirationDate, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}
+
+func WithPatch(order []entity.Order, p entity.Patch) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.PatchId, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.PatchId:
+				cursors.fields = append(cursors.fields, Field{Name: entity.PatchId, Value: p.Id, Order: o.Direction})
+			default:
+				continue
+			}
+		}
+		return nil
+	}
+}
+
+func GetCursorQueryParameters(pagFirst *int, cursorFields []Field) []interface{} {
+	var cursorParameters []interface{}
+	p := CreateCursorParameters([]any{}, cursorFields)
+	cursorParameters = append(cursorParameters, p...)
+	if pagFirst == nil {
+		cursorParameters = append(cursorParameters, 1000)
+	} else {
+		cursorParameters = append(cursorParameters, pagFirst)
+	}
+	return cursorParameters
 }

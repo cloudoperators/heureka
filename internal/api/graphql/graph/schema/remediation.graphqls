@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+type Remediation implements Node {
+    id: ID!
+    type: RemediationTypeValues
+    description: String
+    severity: SeverityValues
+    expirationDate: DateTime
+    remediationDate: DateTime
+    remediatedBy: String
+    service: String
+    serviceId: ID
+    image: String
+    imageId: ID
+    vulnerability: String
+    vulnerabilityId: ID
+    metadata: Metadata
+}
+
+enum RemediationTypeValues {
+    false_positive
+    risk_accepted
+    mitigation
+    rescore
+}
+
+type RemediationConnection implements Connection {
+    totalCount: Int!
+    edges: [RemediationEdge]
+    pageInfo: PageInfo
+}
+
+type RemediationEdge implements Edge {
+    node: Remediation!
+    cursor: String
+}
+
+input RemediationFilter {
+    type: [RemediationTypeValues]
+    severity: [SeverityValues]
+    service: [String]
+    image: [String]
+    vulnerability: [String]
+    state: [StateFilter!]
+    search: [String]
+}
+
+input RemediationOrderBy {
+    by: RemediationOrderByField
+    direction: OrderDirection
+}
+
+enum RemediationOrderByField {
+    vulnerability
+    severity
+    expirationDate
+}
+
+input RemediationInput {
+    type: RemediationTypeValues
+    description: String
+    severity: SeverityValues
+    remediationDate: DateTime
+    remediatedBy: String
+    service: String
+    image: String
+    vulnerability: String
+    expirationDate: DateTime
+}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -21,12 +22,10 @@ import (
 	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -34,17 +33,17 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -79,7 +78,6 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -117,7 +115,6 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 				})
 			})
 			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 				var respData struct {
 					IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
 				}
@@ -151,7 +148,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 				})
 
 				It("- returns the expected content", func() {
-					//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
 
@@ -170,24 +167,6 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 							Expect(eiv.Node.ID).ToNot(BeNil(), "effectiveIssueVariant has a ID set")
 							Expect(eiv.Node.Description).ToNot(BeNil(), "effectiveIssueVariant has a description set")
 							Expect(eiv.Node.SecondaryName).ToNot(BeNil(), "effectiveIssueVariant has a name set")
-						}
-
-						for _, evidence := range im.Node.Evidences.Edges {
-							Expect(evidence.Node.ID).ToNot(BeNil(), "evidence has a ID set")
-							Expect(evidence.Node.Description).ToNot(BeNil(), "evidence has a description set")
-
-							_, evidenceFound := lo.Find(seedCollection.IssueMatchEvidenceRows, func(row mariadb.IssueMatchEvidenceRow) bool {
-								return fmt.Sprintf("%d", row.EvidenceId.Int64) == evidence.Node.ID && // correct evidence
-									fmt.Sprintf("%d", row.IssueMatchId.Int64) == im.Node.ID // belongs actually to the im
-							})
-							Expect(evidenceFound).To(BeTrue(), "attached evidence does exist and belongs to vm")
-						}
-
-						for _, imc := range im.Node.IssueMatchChanges.Edges {
-							Expect(imc.Node.ID).ToNot(BeNil(), "issueMatchChange has a ID set")
-							Expect(imc.Node.Action).ToNot(BeNil(), "issueMatchChange has an action set")
-							Expect(imc.Node.ActivityID).ToNot(BeNil(), "issueMatchChange has an activityId set")
-							Expect(imc.Node.IssueMatchID).ToNot(BeNil(), "issueMatchChange has a issueMatchId set")
 						}
 
 						issue := im.Node.Issue
@@ -297,14 +276,12 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 						}
 					})
 				})
-
 			})
 		})
 	})
 })
 
 var _ = Describe("Creating IssueMatch via API", Label("e2e", "IssueMatches"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -313,19 +290,17 @@ var _ = Describe("Creating IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -384,7 +359,6 @@ var _ = Describe("Creating IssueMatch via API", Label("e2e", "IssueMatches"), fu
 })
 
 var _ = Describe("Updating issueMatch via API", Label("e2e", "IssueMatches"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -392,19 +366,17 @@ var _ = Describe("Updating issueMatch via API", Label("e2e", "IssueMatches"), fu
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -453,7 +425,6 @@ var _ = Describe("Updating issueMatch via API", Label("e2e", "IssueMatches"), fu
 })
 
 var _ = Describe("Deleting IssueMatch via API", Label("e2e", "IssueMatches"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -461,19 +432,17 @@ var _ = Describe("Deleting IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -511,126 +480,6 @@ var _ = Describe("Deleting IssueMatch via API", Label("e2e", "IssueMatches"), fu
 				}
 
 				Expect(respData.Id).To(Equal(id))
-			})
-		})
-	})
-})
-
-var _ = Describe("Modifying Evidence of IssueMatch via API", Label("e2e", "IssueMatches"), func() {
-
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
-
-	BeforeEach(func() {
-		var err error
-		db = dbm.NewTestSchema()
-		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
-		Expect(err).To(BeNil(), "Database Seeder Setup should work")
-
-		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
-	})
-
-	AfterEach(func() {
-		s.BlockingStop()
-		dbm.TestTearDown(db)
-	})
-
-	When("the database has 10 entries", func() {
-		var seedCollection *test.SeedCollection
-
-		BeforeEach(func() {
-			seedCollection = seeder.SeedDbWithNFakeData(10)
-		})
-
-		Context("and a mutation query is performed", func() {
-			It("adds evidence to issueMatch", Label("addEvidence.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/addEvidence.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
-				// find all evidenceIds that are attached to the issueMatch
-				evidenceIds := lo.FilterMap(seedCollection.IssueMatchEvidenceRows, func(row mariadb.IssueMatchEvidenceRow, _ int) (int64, bool) {
-					if row.IssueMatchId.Int64 == issueMatch.Id {
-						return row.EvidenceId.Int64, true
-					}
-					return 0, false
-				})
-
-				// find evidence that is not attached to the issueMatch
-				evidenceRow, _ := lo.Find(seedCollection.EvidenceRows, func(row mariadb.EvidenceRow) bool {
-					return !lo.Contains(evidenceIds, row.Id.Int64)
-				})
-
-				req.Var("issueMatchId", fmt.Sprintf("%d", issueMatch.Id))
-				req.Var("evidenceId", fmt.Sprintf("%d", evidenceRow.Id.Int64))
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
-					IssueMatch model.IssueMatch `json:"addEvidenceToIssueMatch"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
-
-				_, found := lo.Find(respData.IssueMatch.Evidences.Edges, func(edge *model.EvidenceEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", evidenceRow.Id.Int64)
-				})
-
-				Expect(respData.IssueMatch.ID).To(Equal(fmt.Sprintf("%d", issueMatch.Id)))
-				Expect(found).To(BeTrue())
-			})
-			It("removes evidence from issueMatch", Label("removeEvidence.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/removeEvidence.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
-
-				// find evidence that is attached to the issueMatch
-				evidenceRow, _ := lo.Find(seedCollection.IssueMatchEvidenceRows, func(row mariadb.IssueMatchEvidenceRow) bool {
-					return row.IssueMatchId.Int64 == issueMatch.Id
-				})
-
-				req.Var("issueMatchId", fmt.Sprintf("%d", issueMatch.Id))
-				req.Var("evidenceId", fmt.Sprintf("%d", evidenceRow.EvidenceId.Int64))
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
-					IssueMatch model.IssueMatch `json:"removeEvidenceFromIssueMatch"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
-
-				_, found := lo.Find(respData.IssueMatch.Evidences.Edges, func(edge *model.EvidenceEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", evidenceRow.EvidenceId.Int64)
-				})
-
-				Expect(respData.IssueMatch.ID).To(Equal(fmt.Sprintf("%d", issueMatch.Id)))
-				Expect(found).To(BeFalse())
 			})
 		})
 	})

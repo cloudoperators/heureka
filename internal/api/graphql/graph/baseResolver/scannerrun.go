@@ -15,7 +15,6 @@ import (
 
 func ScannerRunTagFilterValues(app app.Heureka, ctx context.Context) ([]*string, error) {
 	tags, err := app.GetScannerRunTags()
-
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +32,6 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 	listOptions := GetListOptions(requestedFields)
 
 	value, err := ParseCursor(after)
-
 	if err != nil {
 		return nil, err
 	}

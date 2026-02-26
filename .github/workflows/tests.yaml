@@ -3,7 +3,7 @@ on: [pull_request]
 
 jobs:
   tests:
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     services:
       mariadb:
         image: mariadb:latest
@@ -46,7 +46,7 @@ jobs:
           - "8080:8080"
           - "8081:8081"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -54,7 +54,7 @@ jobs:
       - name: Install Ginkgo
         run: go install github.com/onsi/ginkgo/v2/ginkgo
       - name: Install Mockery
-        run: go install github.com/vektra/mockery/v2@v2.46.3
+        run: go install github.com/vektra/mockery/v2@v2.53.5
       - name: Generate Mockery code
         run: make mockery
       - name: Generate Gqlgen code
@@ -73,4 +73,4 @@ jobs:
           AUTHZ_FGA_API_TOKEN: test_token
           AUTHZ_FGA_STORE_NAME: heureka_store
           AUTHZ_MODEL_FILE_PATH: ./internal/openfga/model/model.fga
-        run: ginkgo -r -randomize-all -randomize-suites
+        run: ginkgo --trace -r -randomize-all -randomize-suites

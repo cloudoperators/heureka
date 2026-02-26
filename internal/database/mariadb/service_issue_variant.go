@@ -5,12 +5,13 @@ package mariadb
 
 import (
 	"fmt"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureServiceIssueVariantFilter(f *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
-	var first = 1000
+func ensureServiceIssueVariantFilter(f *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
+	first := 1000
 	var after int64 = 0
 	if f == nil {
 		return &entity.ServiceIssueVariantFilter{
@@ -31,7 +32,7 @@ func (s *SqlDatabase) ensureServiceIssueVariantFilter(f *entity.ServiceIssueVari
 	return f
 }
 
-func (s *SqlDatabase) getServiceIssueVariantFilterString(filter *entity.ServiceIssueVariantFilter) string {
+func getServiceIssueVariantFilterString(filter *entity.ServiceIssueVariantFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "I.issue_id = ?", OP_OR))
@@ -42,10 +43,10 @@ func (s *SqlDatabase) getServiceIssueVariantFilterString(filter *entity.ServiceI
 
 func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter *entity.ServiceIssueVariantFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureServiceIssueVariantFilter(filter)
+	filter = ensureServiceIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getServiceIssueVariantFilterString(filter)
+	filterStr := getServiceIssueVariantFilterString(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "IV.issuevariant_id > ?")
 
 	whereClause := ""
@@ -60,7 +61,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 		query = fmt.Sprintf(baseQuery, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -73,7 +74,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
@@ -110,7 +111,6 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
     `
 
 	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}

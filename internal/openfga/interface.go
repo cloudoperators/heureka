@@ -11,11 +11,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type UserType string
-type UserId string
-type ObjectType string
-type RelationType string
-type ObjectId string
+type (
+	UserType     string
+	UserId       string
+	ObjectType   string
+	RelationType string
+	ObjectId     string
+)
 
 // IDs (shared across userId/objectId tuple definitions)
 const (

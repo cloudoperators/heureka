@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) getIssueRepositoryFilterString(filter *entity.IssueRepositoryFilter) string {
+func getIssueRepositoryFilterString(filter *entity.IssueRepositoryFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Name, "IR.issuerepository_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Id, "IR.issuerepository_id = ?", OP_OR))
@@ -37,7 +37,7 @@ func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilt
 	return joins
 }
 
-func (s *SqlDatabase) getIssueRepositoryUpdateFields(issueRepository *entity.IssueRepository) string {
+func getIssueRepositoryUpdateFields(issueRepository *entity.IssueRepository) string {
 	fl := []string{}
 	if issueRepository.Name != "" {
 		fl = append(fl, "issuerepository_name = :issuerepository_name")
@@ -59,7 +59,7 @@ func (s *SqlDatabase) getIssueRepositoryColumns(filter *entity.IssueRepositoryFi
 	return columns
 }
 
-func (s *SqlDatabase) ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
+func ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
 	var first int = 1000
 	var after int64 = 0
 	if f == nil {
@@ -85,10 +85,10 @@ func (s *SqlDatabase) ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilte
 
 func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *entity.IssueRepositoryFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureIssueRepositoryFilter(filter)
+	filter = ensureIssueRepositoryFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getIssueRepositoryFilterString(filter)
+	filterStr := getIssueRepositoryFilterString(filter)
 	joins := s.getIssueRepositoryJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "IR.issuerepository_id > ?")
 
@@ -104,7 +104,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -117,7 +117,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Name)
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
@@ -143,7 +143,6 @@ func (s *SqlDatabase) GetAllIssueRepositoryIds(filter *entity.IssueRepositoryFil
     `
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -165,12 +164,11 @@ func (s *SqlDatabase) GetIssueRepositories(filter *entity.IssueRepositoryFilter)
 		%s GROUP BY IR.issuerepository_id ORDER BY IR.issuerepository_id LIMIT ?
     `
 
-	filter = s.ensureIssueRepositoryFilter(filter)
+	filter = ensureIssueRepositoryFilter(filter)
 	columns := s.getIssueRepositoryColumns(filter)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +196,6 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 		%s
 	`
 	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -232,7 +229,6 @@ func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueReposit
 	issueRepositoryRow.FromIssueRepository(issueRepository)
 
 	id, err := performInsert(s, query, issueRepositoryRow, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +250,7 @@ func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueReposit
 		WHERE issuerepository_id = :issuerepository_id
 	`
 
-	updateFields := s.getIssueRepositoryUpdateFields(issueRepository)
+	updateFields := getIssueRepositoryUpdateFields(issueRepository)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

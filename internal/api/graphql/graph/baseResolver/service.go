@@ -31,7 +31,6 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 	opt := entity.NewListOptions()
 
 	services, err := app.ListServices(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleServiceBaseResolver", err.Error())
@@ -42,7 +41,7 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 		return nil, NewResolverError("SingleServiceBaseResolver", "Internal Error - found multiple services")
 	}
 
-	//not found
+	// not found
 	if len(services.Elements) < 1 {
 		return nil, nil
 	}
@@ -60,7 +59,6 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		"parent":          parent,
 	}).Debug("Called ServiceBaseResolver")
 
-	var activityId []*int64
 	var irId []*int64
 	var sgId []*int64
 	var ownerId []*int64
@@ -74,8 +72,6 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		}
 
 		switch parent.ParentName {
-		case model.ActivityNodeName:
-			activityId = []*int64{pid}
 		case model.IssueRepositoryNodeName:
 			irId = []*int64{pid}
 		case model.SupportGroupNodeName:
@@ -99,7 +95,6 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		Region:            filter.Region,
 		OwnerName:         filter.UserName,
 		OwnerId:           ownerId,
-		ActivityId:        activityId,
 		IssueRepositoryId: irId,
 		SupportGroupId:    sgId,
 		IssueId:           issueId,
@@ -122,7 +117,6 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	}
 
 	services, err := app.ListServices(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("ServiceBaseResolver", err.Error())
 	}
@@ -171,7 +165,6 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	}
 
 	return &connection, nil
-
 }
 
 func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
@@ -214,7 +207,6 @@ func ServiceFilterBaseResolver(
 	opt := GetListOptions(requestedFields)
 
 	names, err := appCall(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("ServiceFilterBaseResolver", err.Error())
 	}

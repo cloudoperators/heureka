@@ -10,6 +10,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
@@ -22,28 +23,24 @@ import (
 )
 
 var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func() {
-
 	var s *server.Server
 	var cfg util.Config
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
-
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new ScannerRun", func() {
 				sampleTag := gofakeit.Word()
@@ -189,36 +186,30 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				Expect(newRespData.Result).To(BeTrue())
 			})
 		})
-
 	})
-
 })
 
 var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func() {
-
 	var s *server.Server
 	var cfg util.Config
 	var client *graphql.Client
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 		client = graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
-
 		Context("and a query for scannerruns is performed", Label("create.graphql"), func() {
 			It("returns an empty list", func() {
 				b, err := os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/scannerruns.graphql")
@@ -252,7 +243,5 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 				Expect(newRespData.Result).To(Equal(0))
 			})
 		})
-
 	})
-
 })

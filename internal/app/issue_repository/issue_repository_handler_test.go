@@ -25,8 +25,10 @@ func TestIssueRepositoryHandler(t *testing.T) {
 	RunSpecs(t, "Test IssueRepository Service")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -68,7 +70,6 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
@@ -91,7 +92,7 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 			filter.First = &pageSize
 			repositories := test.NNewFakeIssueRepositories(resElements)
 
-			var ids = lo.Map(repositories, func(ar entity.IssueRepository, _ int) int64 { return ar.Id })
+			ids := lo.Map(repositories, func(ar entity.IssueRepository, _ int) int64 { return ar.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++
@@ -152,7 +153,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
-		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(&issueRepository)
+		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(common.NewAdminContext(), &issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueRepository.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -174,7 +175,6 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 			db.On("AddIssueRepositoryToService", int64(1), int64(1), int64(100)).Return(nil)
 			db.On("AddIssueRepositoryToService", int64(2), int64(1), int64(100)).Return(nil)
 			db.On("GetDefaultIssuePriority").Return(int64(100))
-
 		})
 
 		It("adds the issue repository to all services", func() {
@@ -221,7 +221,7 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 		issueRepository.Name = "SecretRepository"
 		filter.Id = []*int64{&issueRepository.Id}
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{issueRepository}, nil)
-		updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(&issueRepository)
+		updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(common.NewAdminContext(), &issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueRepository.Name).To(BeEquivalentTo(issueRepository.Name))
@@ -262,7 +262,7 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 		db.On("DeleteIssueRepository", id, mock.Anything).Return(nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
-		err := issueRepositoryHandler.DeleteIssueRepository(id)
+		err := issueRepositoryHandler.DeleteIssueRepository(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

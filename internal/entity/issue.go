@@ -49,6 +49,14 @@ type IssueResult struct {
 	*IssueVariant      `json:"issue_variant"`
 }
 
+type IssueStatus int
+
+const (
+	IssueStatusAll IssueStatus = iota
+	IssueStatusOpen
+	IssueStatusRemediated
+)
+
 type IssueFilter struct {
 	PaginatedX
 	PrimaryName                     []*string         `json:"primary_name"`
@@ -58,7 +66,6 @@ type IssueFilter struct {
 	SupportGroupCCRN                []*string         `json:"support_group_ccrn"`
 	Type                            []*string         `json:"type"`
 	Id                              []*int64          `json:"id"`
-	ActivityId                      []*int64          `json:"activity_id"`
 	IssueMatchId                    []*int64          `json:"issue_match_id"`
 	ComponentId                     []*int64          `json:"component_id"`
 	ComponentVersionId              []*int64          `json:"component_version_id"`
@@ -71,11 +78,11 @@ type IssueFilter struct {
 	IssueMatchDiscoveryDate         *TimeFilter       `json:"issue_match_discovery_date"`
 	IssueMatchTargetRemediationDate *TimeFilter       `json:"issue_match_target_remediation_date"`
 	Unique                          bool              `json:"unique"`
+	Status                          IssueStatus       `json:"status"`
 	State                           []StateFilterType `json:"state"`
 }
 
 type IssueAggregations struct {
-	Activities                    int64
 	IssueMatches                  int64
 	AffectedServices              int64
 	AffectedComponentInstances    int64
@@ -93,7 +100,6 @@ type Issue struct {
 	IssueVariants     []IssueVariant     `json:"issue_variants,omitempty"`
 	IssueMatches      []IssueMatch       `json:"issue_matches,omitempty"`
 	ComponentVersions []ComponentVersion `json:"component_versions,omitempty"`
-	Activity          []Activity         `json:"activity,omitempty"`
 }
 
 type IssueCount struct {

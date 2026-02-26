@@ -59,7 +59,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	It("creates a scannerrun and completes it", func() {
 		db.On("CreateScannerRun", sre).Return(true, nil)
 		db.On("CompleteScannerRun", sre.UUID).Return(true, nil)
-		db.On("Autoclose").Return(true, nil)
+		db.On("Autopatch").Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(handlerContext)
 		scannerRunHandler.CreateScannerRun(sre)
@@ -91,7 +91,6 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	})
 
 	It("Retrieves list of scannerruns", func() {
-
 		db.On("GetScannerRuns", &entity.ScannerRunFilter{}).Return([]entity.ScannerRun{*sre}, nil)
 
 		scannerRunHandler = NewScannerRunHandler(handlerContext)

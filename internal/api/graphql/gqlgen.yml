@@ -66,7 +66,7 @@ omit_gqlgen_version_in_file_notice: true
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
- - "github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
+  - "github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 
 # This section declares type mapping between the GraphQL and go type systems
 #
@@ -89,32 +89,20 @@ models:
     model:
       - github.com/cloudoperators/heureka/internal/api/graphql/graph/scalar.Json
   Issue:
-     fields:
-       issueVariants:
-         resolver: true
-       issueMatches:
-         resolver: true
-       activities:
-         resolver: true
-       componentVersions:
-         resolver: true
+    fields:
+      issueVariants:
+        resolver: true
+      issueMatches:
+        resolver: true
+      componentVersions:
+        resolver: true
   IssueMatch:
     fields:
       componentInstance:
         resolver: true
       issue:
         resolver: true
-      evidences:
-        resolver: true
       effectiveIssueVariants:
-        resolver: true
-      issueMatchChanges:
-        resolver: true
-  IssueMatchChange:
-    fields:
-      issueMatch:
-        resolver: true
-      activity:
         resolver: true
   Component:
     fields:
@@ -127,6 +115,8 @@ models:
       service:
         resolver: true
       issueMatches:
+        resolver: true
+      parent:
         resolver: true
   ComponentVersion:
     fields:
@@ -146,13 +136,13 @@ models:
         resolver: true
       issues:
         resolver: true
-      activities:
-        resolver: true
       issueRepositories:
         resolver: true
       componentInstances:
         resolver: true
       issueMatches:
+        resolver: true
+      remediations:
         resolver: true
       issueCounts:
         resolver: true
@@ -161,24 +151,6 @@ models:
       users:
         resolver: true
       services:
-        resolver: true
-  Activity:
-    fields:
-      services:
-        resolver: true
-      issues:
-        resolver: true
-      evidences:
-        resolver: true
-      issueMatchChanges:
-        resolver: true
-  Evidence:
-    fields:
-      activity:
-        resolver: true
-      author:
-        resolver: true
-      issueMatches:
         resolver: true
   IssueVariant:
     fields:
@@ -218,6 +190,14 @@ models:
         resolver: true
       vulnerabilities:
         resolver: true
+  ImageVersion:
+    fields:
+      occurences:
+        resolver: true
+      vulnerabilities:
+        resolver: true
+      vulnerabilityCounts:
+        resolver: true
   VulnerabilityFilterValue:
     fields:
       supportGroup:
@@ -244,7 +224,7 @@ models:
         resolver: true
   ServiceFilterValue:
     fields:
-      service:
+      serviceCcrn:
         resolver: true
       domain:
         resolver: true
@@ -254,7 +234,7 @@ models:
         resolver: true
       userName:
         resolver: true
-      supportGroup:
+      supportGroupCcrn:
         resolver: true
       user:
         resolver: true

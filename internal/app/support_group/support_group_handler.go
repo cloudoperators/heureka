@@ -4,6 +4,7 @@
 package support_group
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -46,7 +47,6 @@ func (sg *supportGroupHandler) GetSupportGroup(supportGroupId int64) (*entity.Su
 	lo := entity.NewListOptions()
 	supportGroupFilter := entity.SupportGroupFilter{Id: []*int64{&supportGroupId}}
 	supportGroups, err := sg.ListSupportGroups(&supportGroupFilter, lo)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while retrieving supportGroup.")
@@ -76,7 +76,6 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 	})
 
 	res, err := sg.database.GetSupportGroups(filter, options.Order)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Error while filtering for SupportGroups")
@@ -115,7 +114,7 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 	return ret, nil
 }
 
-func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) CreateSupportGroup(ctx context.Context, supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateSupportGroupEventName,
 		"object": supportGroup,
@@ -126,7 +125,7 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	}
 
 	var err error
-	supportGroup.CreatedBy, err = common.GetCurrentUserId(sg.database)
+	supportGroup.CreatedBy, err = common.GetCurrentUserId(ctx, sg.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while creating supportGroup (GetUserId).")
@@ -135,7 +134,6 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 
 	lo := entity.NewListOptions()
 	supportGroups, err := sg.ListSupportGroups(f, lo)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while creating supportGroup.")
@@ -146,7 +144,6 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	}
 
 	newSupportGroup, err := sg.database.CreateSupportGroup(supportGroup)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while creating supportGroup.")
@@ -159,21 +156,20 @@ func (sg *supportGroupHandler) CreateSupportGroup(supportGroup *entity.SupportGr
 	return newSupportGroup, nil
 }
 
-func (sg *supportGroupHandler) UpdateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) UpdateSupportGroup(ctx context.Context, supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateSupportGroupEventName,
 		"object": supportGroup,
 	})
 
 	var err error
-	supportGroup.UpdatedBy, err = common.GetCurrentUserId(sg.database)
+	supportGroup.UpdatedBy, err = common.GetCurrentUserId(ctx, sg.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while updating supportGroup (GetUserId).")
 	}
 
 	err = sg.database.UpdateSupportGroup(supportGroup)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while updating supportGroup.")
@@ -184,20 +180,19 @@ func (sg *supportGroupHandler) UpdateSupportGroup(supportGroup *entity.SupportGr
 	return sg.GetSupportGroup(supportGroup.Id)
 }
 
-func (sg *supportGroupHandler) DeleteSupportGroup(id int64) error {
+func (sg *supportGroupHandler) DeleteSupportGroup(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteSupportGroupEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(sg.database)
+	userId, err := common.GetCurrentUserId(ctx, sg.database)
 	if err != nil {
 		l.Error(err)
 		return NewSupportGroupHandlerError("Internal error while deleting supportGroup (GetUserId).")
 	}
 
 	err = sg.database.DeleteSupportGroup(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewSupportGroupHandlerError("Internal error while deleting supportGroup.")
@@ -216,7 +211,6 @@ func (sg *supportGroupHandler) AddServiceToSupportGroup(supportGroupId int64, se
 	})
 
 	err := sg.database.AddServiceToSupportGroup(supportGroupId, serviceId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while adding service to supportGroup.")
@@ -235,7 +229,6 @@ func (sg *supportGroupHandler) RemoveServiceFromSupportGroup(supportGroupId int6
 	})
 
 	err := sg.database.RemoveServiceFromSupportGroup(supportGroupId, serviceId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while removing service from supportGroup.")
@@ -254,7 +247,6 @@ func (sg *supportGroupHandler) AddUserToSupportGroup(supportGroupId int64, userI
 	})
 
 	err := sg.database.AddUserToSupportGroup(supportGroupId, userId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while adding user to supportGroup.")
@@ -273,7 +265,6 @@ func (sg *supportGroupHandler) RemoveUserFromSupportGroup(supportGroupId int64, 
 	})
 
 	err := sg.database.RemoveUserFromSupportGroup(supportGroupId, userId)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while removing user from supportGroup.")
@@ -291,7 +282,6 @@ func (sg *supportGroupHandler) ListSupportGroupCcrns(filter *entity.SupportGroup
 	})
 
 	supportGroupCcrns, err := sg.database.GetSupportGroupCcrns(filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while retrieving supportGroupCcrns.")

@@ -4,6 +4,7 @@
 package issue_variant
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -17,9 +18,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetIssueVariants = 12 * time.Hour
-var CacheTtlGetAllIssueVariantIds = 12 * time.Hour
-var CacheTtlCountIssueVariants = 12 * time.Hour
+var (
+	CacheTtlGetIssueVariants      = 12 * time.Hour
+	CacheTtlGetAllIssueVariantIds = 12 * time.Hour
+	CacheTtlCountIssueVariants    = 12 * time.Hour
+)
 
 type issueVariantHandler struct {
 	database          database.Database
@@ -58,7 +61,6 @@ func (iv *issueVariantHandler) getIssueVariantResults(filter *entity.IssueVarian
 		iv.database.GetIssueVariants,
 		filter,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +87,6 @@ func (iv *issueVariantHandler) ListIssueVariants(filter *entity.IssueVariantFilt
 	})
 
 	res, err := iv.getIssueVariantResults(filter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Error while filtering for IssueVariants")
@@ -143,7 +144,6 @@ func (iv *issueVariantHandler) ListEffectiveIssueVariants(filter *entity.IssueVa
 	})
 
 	issueVariants, err := iv.ListIssueVariants(filter, options)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while returning issueVariants.")
@@ -159,7 +159,6 @@ func (iv *issueVariantHandler) ListEffectiveIssueVariants(filter *entity.IssueVa
 
 	opts := entity.ListOptions{}
 	repositories, err := iv.repositoryService.ListIssueRepositories(&repositoryFilter, &opts)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while returning issue repositories.")
@@ -193,7 +192,7 @@ func (iv *issueVariantHandler) ListEffectiveIssueVariants(filter *entity.IssueVa
 	return ret, nil
 }
 
-func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
+func (iv *issueVariantHandler) CreateIssueVariant(ctx context.Context, issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
 	f := &entity.IssueVariantFilter{
 		SecondaryName: []*string{&issueVariant.SecondaryName},
 	}
@@ -205,7 +204,7 @@ func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVari
 	})
 
 	var err error
-	issueVariant.CreatedBy, err = common.GetCurrentUserId(iv.database)
+	issueVariant.CreatedBy, err = common.GetCurrentUserId(ctx, iv.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while creating issueVariant (GetUserId).")
@@ -213,7 +212,6 @@ func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVari
 	issueVariant.UpdatedBy = issueVariant.CreatedBy
 
 	issueVariants, err := iv.ListIssueVariants(f, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while creating issueVariant.")
@@ -225,7 +223,6 @@ func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVari
 	}
 
 	newIv, err := iv.database.CreateIssueVariant(issueVariant)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while creating issueVariant.")
@@ -236,28 +233,26 @@ func (iv *issueVariantHandler) CreateIssueVariant(issueVariant *entity.IssueVari
 	return newIv, nil
 }
 
-func (iv *issueVariantHandler) UpdateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
+func (iv *issueVariantHandler) UpdateIssueVariant(ctx context.Context, issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueVariantEventName,
 		"object": issueVariant,
 	})
 
 	var err error
-	issueVariant.UpdatedBy, err = common.GetCurrentUserId(iv.database)
+	issueVariant.UpdatedBy, err = common.GetCurrentUserId(ctx, iv.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while updating issueVariant (GetUserId).")
 	}
 
 	err = iv.database.UpdateIssueVariant(issueVariant)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while updating issueVariant.")
 	}
 
 	ivResult, err := iv.ListIssueVariants(&entity.IssueVariantFilter{Id: []*int64{&issueVariant.Id}}, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueVariantHandlerError("Internal error while retrieving updated issueVariant.")
@@ -273,20 +268,19 @@ func (iv *issueVariantHandler) UpdateIssueVariant(issueVariant *entity.IssueVari
 	return ivResult.Elements[0].IssueVariant, nil
 }
 
-func (iv *issueVariantHandler) DeleteIssueVariant(id int64) error {
+func (iv *issueVariantHandler) DeleteIssueVariant(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteIssueVariantEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(iv.database)
+	userId, err := common.GetCurrentUserId(ctx, iv.database)
 	if err != nil {
 		l.Error(err)
 		return NewIssueVariantHandlerError("Internal error while deleting issueVariant (GetUserId).")
 	}
 
 	err = iv.database.DeleteIssueVariant(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewIssueVariantHandlerError("Internal error while deleting issueVariant.")

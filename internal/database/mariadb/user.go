@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) getUserFilterString(filter *entity.UserFilter) string {
+func getUserFilterString(filter *entity.UserFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "U.user_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Name, "U.user_name = ?", OP_OR))
@@ -25,7 +25,7 @@ func (s *SqlDatabase) getUserFilterString(filter *entity.UserFilter) string {
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) ensureUserFilter(f *entity.UserFilter) *entity.UserFilter {
+func ensureUserFilter(f *entity.UserFilter) *entity.UserFilter {
 	var first int = 1000
 	var after int64 = 0
 	if f == nil {
@@ -52,7 +52,7 @@ func (s *SqlDatabase) ensureUserFilter(f *entity.UserFilter) *entity.UserFilter 
 	return f
 }
 
-func (s *SqlDatabase) getUserUpdateFields(user *entity.User) string {
+func getUserUpdateFields(user *entity.User) string {
 	fl := []string{}
 	if user.Name != "" {
 		fl = append(fl, "user_name = :user_name")
@@ -90,10 +90,10 @@ func (s *SqlDatabase) getUserJoins(filter *entity.UserFilter) string {
 
 func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureUserFilter(filter)
+	filter = ensureUserFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getUserFilterString(filter)
+	filterStr := getUserFilterString(filter)
 	joins := s.getUserJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "U.user_id > ?")
 
@@ -109,7 +109,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -122,7 +122,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.Name)
@@ -151,7 +151,6 @@ func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) 
     `
 
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -173,11 +172,10 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.User, error)
 		%s GROUP BY U.user_id ORDER BY U.user_id LIMIT ?
     `
 
-	filter = s.ensureUserFilter(filter)
+	filter = ensureUserFilter(filter)
 	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +202,6 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 		%s
 	`
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -242,7 +239,6 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 	userRow.FromUser(user)
 
 	id, err := performInsert(s, query, userRow, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +260,7 @@ func (s *SqlDatabase) UpdateUser(user *entity.User) error {
 		WHERE user_id = :user_id
 	`
 
-	updateFields := s.getUserUpdateFields(user)
+	updateFields := getUserUpdateFields(user)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
@@ -298,6 +294,7 @@ func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {
 
 	return err
 }
+
 func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
@@ -312,7 +309,7 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
     `
 
 	// Ensure the filter is initialized
-	filter = s.ensureUserFilter(filter)
+	filter = ensureUserFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
@@ -347,6 +344,7 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 
 	return userNames, nil
 }
+
 func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
@@ -361,7 +359,7 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
     `
 
 	// Ensure the filter is initialized
-	filter = s.ensureUserFilter(filter)
+	filter = ensureUserFilter(filter)
 
 	// Builds full statement with possible joins and filters
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)

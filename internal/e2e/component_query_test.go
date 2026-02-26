@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 
@@ -34,19 +35,17 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -81,7 +80,6 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -115,10 +113,8 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				Expect(respData.Components.TotalCount).To(Equal(len(seedCollection.ComponentRows)))
 				Expect(len(respData.Components.Edges)).To(Equal(5))
 			})
-
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 			var respData struct {
 				Components model.ComponentConnection `json:"Components"`
 			}
@@ -152,11 +148,18 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 			})
 
 			It("- returns the expected content", func() {
-				//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 				// a complete verification
 				// additional checks are added based on bugs discovered during usage
 
 				for _, component := range respData.Components.Edges {
+					Expect(component.Node.ID).ToNot(BeNil(), "component has a ID set")
+					Expect(component.Node.Ccrn).ToNot(BeNil(), "component has a CCRN set")
+					Expect(component.Node.Repository).ToNot(BeNil(), "component has a Repository set")
+					Expect(component.Node.Organization).ToNot(BeNil(), "component has an Organization set")
+					Expect(component.Node.URL).ToNot(BeNil(), "component has a URL set")
+					Expect(component.Node.Type).ToNot(BeNil(), "component has a Type set")
+
 					for _, cv := range component.Node.ComponentVersions.Edges {
 						Expect(cv.Node.ID).ToNot(BeNil(), "componentVersion has a ID set")
 						Expect(cv.Node.Version).ToNot(BeNil(), "componentVersion has a version set")
@@ -177,13 +180,11 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				Expect(len(respData.Components.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
 				Expect(*respData.Components.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 			})
-
 		})
 	})
 })
 
 var _ = Describe("Creating Component via API", Label("e2e", "Components"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -192,24 +193,21 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			component = testentity.NewFakeComponentEntity()
@@ -229,8 +227,11 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 				req := graphql.NewRequest(str)
 
 				req.Var("input", map[string]string{
-					"type": component.Type,
-					"ccrn": component.CCRN,
+					"type":         component.Type,
+					"ccrn":         component.CCRN,
+					"repository":   component.Repository,
+					"organization": component.Organization,
+					"url":          component.Url,
 				})
 
 				req.Header.Set("Cache-Control", "no-cache")
@@ -251,7 +252,6 @@ var _ = Describe("Creating Component via API", Label("e2e", "Components"), func(
 })
 
 var _ = Describe("Updating Component via API", Label("e2e", "Components"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -259,19 +259,17 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -319,7 +317,6 @@ var _ = Describe("Updating Component via API", Label("e2e", "Components"), func(
 })
 
 var _ = Describe("Deleting Component via API", Label("e2e", "Components"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -327,19 +324,17 @@ var _ = Describe("Deleting Component via API", Label("e2e", "Components"), func(
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 

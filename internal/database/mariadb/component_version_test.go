@@ -17,7 +17,6 @@ import (
 )
 
 var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
@@ -100,6 +99,74 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					By("returning expected elements", func() {
 						Expect(entries[0]).To(BeEquivalentTo(cvId))
 					})
+				})
+				It("can filter by end of life as true value", func() {
+					endOfLifeAsTrue := true
+
+					filter := &entity.ComponentVersionFilter{
+						EndOfLife: []*bool{&endOfLifeAsTrue},
+					}
+
+					ids, err := db.GetAllComponentVersionIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning versions without end of life", func() {
+						Expect(ids).ToNot(BeEmpty())
+					})
+
+					cvFilterIDs := make([]*int64, 0, len(ids))
+					for _, id := range ids {
+						cvFilterIDs = append(cvFilterIDs, &id)
+					}
+
+					res, err := db.GetComponentVersions(&entity.ComponentVersionFilter{
+						Id: cvFilterIDs,
+					}, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					for _, r := range res {
+						Expect(*r.EndOfLife).To(BeTrue())
+					}
+				})
+				It("can filter by end of life as false value", func() {
+					endOfLifeAsFalse := false
+
+					filter := &entity.ComponentVersionFilter{
+						EndOfLife: []*bool{&endOfLifeAsFalse},
+					}
+
+					ids, err := db.GetAllComponentVersionIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning versions without end of life", func() {
+						Expect(ids).ToNot(BeEmpty())
+					})
+
+					cvFilterIDs := make([]*int64, 0, len(ids))
+					for _, id := range ids {
+						cvFilterIDs = append(cvFilterIDs, &id)
+					}
+
+					res, err := db.GetComponentVersions(&entity.ComponentVersionFilter{
+						Id: cvFilterIDs,
+					}, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					for _, r := range res {
+						Expect(*r.EndOfLife).To(BeFalse())
+					}
 				})
 			})
 		})
@@ -397,6 +464,45 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 				})
 
+				It("can filter by end of life as false value", func() {
+					endOfLifeAsFalse := false
+
+					filter := &entity.ComponentVersionFilter{
+						EndOfLife: []*bool{&endOfLifeAsFalse},
+					}
+
+					entries, err := db.GetComponentVersions(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected values for EndOfLife", func() {
+						for _, entry := range entries {
+							Expect(*entry.EndOfLife).To(BeFalse())
+						}
+					})
+				})
+
+				It("can filter by end of life as true value", func() {
+					endOfLifeAsTrue := true
+
+					filter := &entity.ComponentVersionFilter{
+						EndOfLife: []*bool{&endOfLifeAsTrue},
+					}
+
+					entries, err := db.GetComponentVersions(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected values for EndOfLife", func() {
+						for _, entry := range entries {
+							Expect(*entry.EndOfLife).To(BeTrue())
+						}
+					})
+				})
 			})
 
 			Context("and using pagination", func() {
@@ -447,7 +553,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				cvRows = seedCollection.ComponentVersionRows
 				count = len(cvRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -644,7 +749,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				})
 			})
 		})
-
 	})
 })
 
@@ -663,7 +767,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 		dbm.TestTearDown(db)
 	})
 
-	var testOrder = func(
+	testOrder := func(
 		order []entity.Order,
 		verifyFunc func(res []entity.ComponentVersionResult),
 	) {
@@ -682,7 +786,7 @@ var _ = Describe("Ordering ComponentVersions", func() {
 		})
 	}
 
-	var loadTestData = func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, err
@@ -757,7 +861,6 @@ var _ = Describe("Ordering ComponentVersions", func() {
 	})
 
 	When("with ASC order", Label("ComponentVersionASCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -796,7 +899,6 @@ var _ = Describe("Ordering ComponentVersions", func() {
 	})
 
 	When("with DESC order", Label("ComponentVersionDESCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})

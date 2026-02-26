@@ -29,6 +29,7 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 	f := &entity.ComponentFilter{
 		PaginatedX:  entity.PaginatedX{First: first, After: after},
 		ServiceCCRN: filter.Service,
+		Repository:  filter.Repository,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -41,12 +42,11 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 		opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: entity.OrderDirectionDesc})
 	}
 	opt.Order = append(opt.Order, entity.Order{
-		By:        entity.ComponentVersionRepository,
+		By:        entity.ComponentRepository,
 		Direction: entity.OrderDirectionAsc,
 	})
 
 	components, err := app.ListComponents(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("ImageBaseResolver", err.Error())
 	}
@@ -75,6 +75,7 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 	if lo.Contains(requestedFields, "counts") {
 		icFilter := &entity.ComponentFilter{
 			ServiceCCRN: filter.Service,
+			Repository:  filter.Repository,
 		}
 		counts, err := app.GetComponentVulnerabilityCounts(icFilter)
 		if err != nil {

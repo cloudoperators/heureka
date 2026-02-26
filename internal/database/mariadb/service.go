@@ -16,7 +16,7 @@ const (
 	serviceWildCardFilterQuery = "S.service_ccrn LIKE Concat('%',?,'%')"
 )
 
-func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool, cursorFields []Field) []interface{} {
+func buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool, cursorFields []Field) []interface{} {
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.Domain)
@@ -25,25 +25,18 @@ func (s *SqlDatabase) buildServiceFilterParameters(filter *entity.ServiceFilter,
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerName)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
 	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
 	return filterParameters
 }
 
-func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) string {
+func getServiceFilterString(filter *entity.ServiceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.CCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.Domain, "S.service_domain = ?", OP_OR))
@@ -52,7 +45,6 @@ func (s *SqlDatabase) getServiceFilterString(filter *entity.ServiceFilter) strin
 	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.OwnerName, "U.user_name = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IRS.issuerepositoryservice_issue_repository_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGS.supportgroupservice_support_group_id = ?", OP_OR))
@@ -86,12 +78,6 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []enti
 	if len(filter.SupportGroupCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
-		`)
-	}
-	if len(filter.ActivityId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ActivityHasService AHS on S.service_id = AHS.activityhasservice_service_id
-         	LEFT JOIN Activity A on AHS.activityhasservice_activity_id = A.activity_id
 		`)
 	}
 	if len(filter.ComponentInstanceId) > 0 || len(filter.IssueId) > 0 {
@@ -140,7 +126,7 @@ func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []en
 	return columns
 }
 
-func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.ServiceFilter {
+func ensureServiceFilter(f *entity.ServiceFilter) *entity.ServiceFilter {
 	var first int = 1000
 	var after string = ""
 	if f == nil {
@@ -156,7 +142,6 @@ func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.Servi
 			Id:                nil,
 			OwnerName:         nil,
 			SupportGroupId:    nil,
-			ActivityId:        nil,
 			IssueRepositoryId: nil,
 			OwnerId:           nil,
 		}
@@ -170,7 +155,7 @@ func (s *SqlDatabase) ensureServiceFilter(f *entity.ServiceFilter) *entity.Servi
 	return f
 }
 
-func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
+func getServiceUpdateFields(service *entity.Service) string {
 	fl := []string{}
 	if service.CCRN != "" {
 		fl = append(fl, "service_ccrn = :service_ccrn")
@@ -179,7 +164,7 @@ func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 		fl = append(fl, "service_domain = :service_domain")
 	}
 	if service.Region != "" {
-		fl = append(fl, "service_domain = :service_region")
+		fl = append(fl, "service_region = :service_region")
 	}
 	if service.BaseService.UpdatedBy != 0 {
 		fl = append(fl, "service_updated_by = :service_updated_by")
@@ -189,10 +174,10 @@ func (s *SqlDatabase) getServiceUpdateFields(service *entity.Service) string {
 
 func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.ServiceFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureServiceFilter(filter)
+	filter = ensureServiceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getServiceFilterString(filter)
+	filterStr := getServiceFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, err
@@ -219,7 +204,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -232,8 +217,8 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
-	filterParameters := s.buildServiceFilterParameters(filter, withCursor, cursorFields)
+	// adding parameters
+	filterParameters := buildServiceFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -250,7 +235,6 @@ func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error)
         ORDER BY %s
 	`
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -272,7 +256,6 @@ func (s *SqlDatabase) GetAllServiceIds(filter *entity.ServiceFilter) ([]int64, e
     `
 
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -294,12 +277,11 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.O
 		GROUP BY S.service_id %s ORDER BY %s LIMIT ?
     `
 
-	filter = s.ensureServiceFilter(filter)
+	filter = ensureServiceFilter(filter)
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -373,8 +355,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
         FROM ComponentInstanceCounts CIC
         JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id;
     `
-	filter = s.ensureServiceFilter(filter)
-	filterStr := s.getServiceFilterString(filter)
+	filter = ensureServiceFilter(filter)
+	filterStr := getServiceFilterString(filter)
 	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 	joins := s.getServiceJoins(filter, order)
@@ -411,9 +393,9 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	}
 
 	// parameters for issue match query
-	filterParameters := s.buildServiceFilterParameters(filter, true, cursorFields)
+	filterParameters := buildServiceFilterParameters(filter, true, cursorFields)
 	// parameters for component instance query
-	filterParameters = append(filterParameters, s.buildServiceFilterParameters(filter, true, cursorFields)...)
+	filterParameters = append(filterParameters, buildServiceFilterParameters(filter, true, cursorFields)...)
 
 	defer stmt.Close()
 
@@ -457,11 +439,10 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 	    %s GROUP BY S.service_id ORDER BY %s
     `
 
-	filter = s.ensureServiceFilter(filter)
+	filter = ensureServiceFilter(filter)
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -476,7 +457,6 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -523,7 +503,6 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 	serviceRow.FromService(service)
 
 	id, err := performInsert(s, query, serviceRow, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +524,7 @@ func (s *SqlDatabase) UpdateService(service *entity.Service) error {
 		WHERE service_id = :service_id
 	`
 
-	updateFields := s.getServiceUpdateFields(service)
+	updateFields := getServiceUpdateFields(service)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
@@ -699,7 +678,7 @@ func (s *SqlDatabase) getServiceAttr(attrName string, filter *entity.ServiceFilt
 	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
-	filter = s.ensureServiceFilter(filter)
+	filter = ensureServiceFilter(filter)
 	order := []entity.Order{
 		{By: entity.ServiceCcrn, Direction: entity.OrderDirectionAsc},
 	}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
 	util2 "github.com/cloudoperators/heureka/pkg/util"
 
@@ -30,24 +31,21 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database has entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			var err error
@@ -127,7 +125,6 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 					Expect(int64(sEdge.Node.IssueCounts.None)).To(Equal(sc.None), "None count is correct")
 					Expect(int64(sEdge.Node.IssueCounts.Total)).To(Equal(sc.Total), "Total count is correct")
 				}
-
 			})
 		})
 		It("correct filters by component version id", func() {

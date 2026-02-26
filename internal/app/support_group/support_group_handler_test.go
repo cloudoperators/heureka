@@ -10,7 +10,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	sg "github.com/cloudoperators/heureka/internal/app/support_group"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -28,15 +27,19 @@ func TestSupportGroupHandler(t *testing.T) {
 	RunSpecs(t, "Support Group Service Test Suite")
 }
 
-var handlerContext common.HandlerContext
-var cfg *util.Config
+var (
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
+)
 
 var _ = BeforeSuite(func() {
 	cfg = common.GetTestConfig()
 	enableLogs := false
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
-		Cache: cache.NewNoCache(),
+		Cache: nil,
 		Authz: authz,
 	}
 	handlerContext.Authz.RemoveAllRelations()
@@ -72,7 +75,6 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
@@ -102,7 +104,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				})
 			}
 
-			var cursors = lo.Map(supportGroups, func(s entity.SupportGroupResult, _ int) string {
+			cursors := lo.Map(supportGroups, func(s entity.SupportGroupResult, _ int) string {
 				return s.Value
 			})
 
@@ -165,7 +167,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(&supportGroup)
+		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(common.NewAdminContext(), &supportGroup)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newSupportGroup.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -238,7 +240,7 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 		supportGroup.CCRN = "Team Alone"
 		filter.Id = []*int64{&supportGroup.Id}
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(supportGroup.SupportGroup)
+		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(common.NewAdminContext(), supportGroup.SupportGroup)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedSupportGroup.CCRN).To(BeEquivalentTo(supportGroup.CCRN))
@@ -282,7 +284,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		db.On("DeleteSupportGroup", id, mock.Anything).Return(nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
-		err := supportGroupHandler.DeleteSupportGroup(id)
+		err := supportGroupHandler.DeleteSupportGroup(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
@@ -611,7 +613,6 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetSupportGroupCcrns", filter).Return([]string{}, nil)
 		})

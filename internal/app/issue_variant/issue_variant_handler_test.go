@@ -11,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	iv "github.com/cloudoperators/heureka/internal/app/issue_variant"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -88,14 +87,12 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
@@ -118,7 +115,7 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 			filter.First = &pageSize
 			advisories := test.NNewFakeIssueVariants(resElements)
 
-			var ids = lo.Map(advisories, func(iv entity.IssueVariant, _ int) int64 { return iv.Id })
+			ids := lo.Map(advisories, func(iv entity.IssueVariant, _ int) int64 { return iv.Id })
 			var i int64 = 0
 			for len(ids) < dbElements {
 				i++
@@ -167,7 +164,6 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -251,7 +247,6 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -263,7 +258,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(&issueVariant)
+		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(common.NewAdminContext(), &issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueVariant.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -304,7 +299,6 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -317,7 +311,7 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		issueVariant.SecondaryName = "SecretAdvisory"
 		filter.Id = []*int64{&issueVariant.Id}
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{issueVariant}, nil)
-		updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(&issueVariant)
+		updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(common.NewAdminContext(), &issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueVariant.SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
@@ -357,7 +351,6 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		handlerContext = common.HandlerContext{
 			DB:       db,
 			EventReg: er,
-			Cache:    cache.NewNoCache(),
 			Authz:    authz,
 		}
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
@@ -368,7 +361,7 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		db.On("DeleteIssueVariant", id, mock.Anything).Return(nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
 		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
-		err := issueVariantHandler.DeleteIssueVariant(id)
+		err := issueVariantHandler.DeleteIssueVariant(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

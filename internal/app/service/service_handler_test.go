@@ -15,7 +15,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/cloudoperators/heureka/internal/util"
 
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -30,8 +29,12 @@ func TestServiceHandler(t *testing.T) {
 	RunSpecs(t, "Service Service Test Suite")
 }
 
-var handlerContext common.HandlerContext
-var cfg *util.Config
+var (
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
+)
 
 var _ = BeforeSuite(func() {
 	cfg = common.GetTestConfig()
@@ -42,7 +45,7 @@ var _ = BeforeSuite(func() {
 	handlerContext = common.HandlerContext{
 		DB:       db,
 		EventReg: er,
-		Cache:    cache.NewNoCache(),
+		Cache:    nil,
 		Authz:    authz,
 	}
 	handlerContext.Authz.RemoveAllRelations()
@@ -80,7 +83,6 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
@@ -107,7 +109,7 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				services = append(services, entity.ServiceResult{WithCursor: entity.WithCursor{Value: cursor}, Service: lo.ToPtr(s)})
 			}
 
-			var cursors = lo.Map(services, func(m entity.ServiceResult, _ int) string {
+			cursors := lo.Map(services, func(m entity.ServiceResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, *m.Service, entity.IssueSeverityCounts{}))
 				return cursor
 			})
@@ -138,7 +140,6 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			options.IncludeAggregations = true
 		})
 		Context("and the given filter does not have any matches in the database", func() {
-
 			BeforeEach(func() {
 				db.On("GetServicesWithAggregations", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
@@ -148,7 +149,6 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				res, err := serviceHandler.ListServices(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
-
 			})
 		})
 		Context("and the filter does have results in the database", func() {
@@ -180,23 +180,19 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 	})
 	When("the list options does NOT include aggregations", func() {
-
 		BeforeEach(func() {
 			options.IncludeAggregations = false
 		})
 
 		Context("and the given filter does not have any matches in the database", func() {
-
 			BeforeEach(func() {
 				db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
 			It("should return an empty result", func() {
-
 				serviceHandler = s.NewServiceHandler(handlerContext)
 				res, err := serviceHandler.ListServices(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
-
 			})
 		})
 		Context("and the filter does have results in the database", func() {
@@ -265,7 +261,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 
 		serviceHandler = s.NewServiceHandler(handlerContext)
-		newService, err := serviceHandler.CreateService(&service)
+		newService, err := serviceHandler.CreateService(common.NewAdminContext(), &service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newService.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -321,7 +317,6 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				db.AssertNotCalled(GinkgoT(), "GetIssueRepositories")
 				db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
 			})
-
 		})
 
 		Context("when no issue repository is found", func() {
@@ -409,7 +404,7 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 		service.CCRN = "SecretService"
 		filter.Id = []*int64{&service.Id}
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
-		updatedService, err := serviceHandler.UpdateService(service.Service)
+		updatedService, err := serviceHandler.UpdateService(common.NewAdminContext(), service.Service)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedService.CCRN).To(BeEquivalentTo(service.CCRN))
@@ -447,7 +442,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		db.On("DeleteService", id, mock.Anything).Return(nil)
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
-		err := serviceHandler.DeleteService(id)
+		err := serviceHandler.DeleteService(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
@@ -717,7 +712,6 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetServiceCcrns", filter).Return([]string{}, nil)
 		})
@@ -767,7 +761,6 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetServiceDomains", filter).Return([]string{}, nil)
 		})
@@ -817,7 +810,6 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 	})
 
 	When("no filters are used", func() {
-
 		BeforeEach(func() {
 			db.On("GetServiceRegions", filter).Return([]string{}, nil)
 		})

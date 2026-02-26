@@ -33,7 +33,6 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 	opt := entity.NewListOptions()
 
 	issueMatches, err := app.ListIssueMatches(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueMatchBaseResolver", err.Error())
@@ -44,7 +43,7 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 		return nil, NewResolverError("SingleIssueMatchBaseResolver", "Internal Error - found multiple IssueMatches")
 	}
 
-	//not found
+	// not found
 	if len(issueMatches.Elements) < 1 {
 		return nil, nil
 	}
@@ -62,7 +61,6 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		"parent":          parent,
 	}).Debug("Called IssueMatchBaseResolver")
 
-	var eId []*int64
 	var ciId []*int64
 	var issueId []*int64
 	var serviceId []*int64
@@ -76,8 +74,6 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		}
 
 		switch parent.ParentName {
-		case model.EvidenceNodeName:
-			eId = []*int64{pid}
 		case model.ComponentInstanceNodeName:
 			ciId = []*int64{pid}
 		case model.IssueNodeName, model.VulnerabilityNodeName:
@@ -113,7 +109,6 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		SeverityValue:            lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
 		SupportGroupCCRN:         filter.SupportGroupCcrn,
 		IssueId:                  issueId,
-		EvidenceId:               eId,
 		ServiceId:                serviceId,
 		ComponentInstanceId:      ciId,
 		Search:                   filter.Search,
@@ -131,7 +126,6 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	}
 
 	issueMatches, err := app.ListIssueMatches(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("IssueMatchBaseResolver", err.Error())
 	}

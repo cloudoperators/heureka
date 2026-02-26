@@ -45,19 +45,6 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
                         nextPageAfter
                     }
                 }
-                activities { 
-                    totalCount
-                    edges { 
-                        node { 
-                            id
-                        }
-                        cursor
-                    }
-                    pageInfo { 
-                        hasNextPage
-                        nextPageAfter
-                    }
-                }
                 issueRepositories { 
                     totalCount
                     edges { 
@@ -101,6 +88,21 @@ query ($filter: ServiceFilter, $first: Int, $after: String) {
                             remediationDate
                             discoveryDate
                             targetRemediationDate
+                        }
+                    }
+                }
+                remediations {
+                    totalCount
+                    edges {
+                        node {
+                            id
+                            description
+                            service
+                            image
+                            vulnerability
+                            remediationDate
+                            expirationDate
+                            remediatedBy
                         }
                     }
                 }

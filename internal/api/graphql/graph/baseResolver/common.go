@@ -86,7 +86,6 @@ func NewResolverError(resolver string, msg string) *ResolverError {
 }
 
 func ParseCursor(cursor *string) (*int64, error) {
-
 	if cursor == nil {
 		var tmp int64 = 0
 		return &tmp, nil

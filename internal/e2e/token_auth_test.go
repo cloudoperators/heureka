@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
 
@@ -25,19 +26,16 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
 		cfg.AuthTokenSecret = "xxx"
-		s = server.NewServer(cfg)
-
+		s = e2e_common.NewRunningServer(cfg)
 		queryUrl = fmt.Sprintf("http://localhost:%s/query", cfg.Port)
-
-		s.NonBlockingStart()
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 

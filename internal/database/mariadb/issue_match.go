@@ -12,12 +12,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity.IssueMatchFilter {
+func ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity.IssueMatchFilter {
 	if f != nil {
 		return f
 	}
 
-	var first = 1000
+	first := 1000
 	var after string = ""
 	return &entity.IssueMatchFilter{
 		PaginatedX: entity.PaginatedX{
@@ -28,12 +28,11 @@ func (s *SqlDatabase) ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity
 	}
 }
 
-func (s *SqlDatabase) getIssueMatchFilterString(filter *entity.IssueMatchFilter) string {
+func getIssueMatchFilterString(filter *entity.IssueMatchFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "IM.issuematch_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "IM.issuematch_component_instance_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.EvidenceId, "IME.issuematchevidence_evidence_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SeverityValue, "IM.issuematch_rating = ?", OP_OR))
@@ -68,12 +67,6 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 			LEFT JOIN IssueVariant IV on IV.issuevariant_issue_id = I.issue_id
 			`)
 		}
-	}
-
-	if len(filter.EvidenceId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueMatchEvidence IME on IME.issuematchevidence_issue_match_id = IM.issuematch_id
-		`)
 	}
 
 	if orderByCiCcrn || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.ComponentCCRN) > 0 || len(filter.ServiceOwnerUsername) > 0 || len(filter.ServiceOwnerUniqueUserId) > 0 {
@@ -112,7 +105,7 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 	return joins
 }
 
-func (s *SqlDatabase) getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) string {
+func getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) string {
 	fl := []string{}
 	if issueMatch.Status != "" && issueMatch.Status != entity.IssueMatchStatusValuesNone {
 		fl = append(fl, "issuematch_status = :issuematch_status")
@@ -159,10 +152,10 @@ func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
 
 func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureIssueMatchFilter(filter)
+	filter = ensureIssueMatchFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getIssueMatchFilterString(filter)
+	filterStr := getIssueMatchFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, err
@@ -190,7 +183,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -203,12 +196,11 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.EvidenceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
 	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
@@ -222,13 +214,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
 
 	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
@@ -247,7 +233,6 @@ func (s *SqlDatabase) GetAllIssueMatchIds(filter *entity.IssueMatchFilter) ([]in
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +253,6 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(filter *entity.IssueMatchFilter, o
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +265,6 @@ func (s *SqlDatabase) GetAllIssueMatchCursors(filter *entity.IssueMatchFilter, o
 			return append(l, e)
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +297,6 @@ func (s *SqlDatabase) GetIssueMatches(filter *entity.IssueMatchFilter, order []e
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, true, order, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +343,6 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
     `
 
 	stmt, filterParameters, err := s.buildIssueMatchStatement(baseQuery, filter, false, []entity.Order{}, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -405,7 +386,6 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 	issueMatchRow.FromIssueMatch(issueMatch)
 
 	id, err := performInsert(s, query, issueMatchRow, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +407,7 @@ func (s *SqlDatabase) UpdateIssueMatch(issueMatch *entity.IssueMatch) error {
 		WHERE issuematch_id = :issuematch_id
 	`
 
-	updateFields := s.getIssueMatchUpdateFields(issueMatch)
+	updateFields := getIssueMatchUpdateFields(issueMatch)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
@@ -455,57 +435,6 @@ func (s *SqlDatabase) DeleteIssueMatch(id int64, userId int64) error {
 	args := map[string]interface{}{
 		"userId": userId,
 		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
-}
-
-func (s *SqlDatabase) AddEvidenceToIssueMatch(issueMatchId int64, evidenceId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueMatchId": issueMatchId,
-		"evidenceId":   evidenceId,
-		"event":        "database.AddEvidenceToIssueMatch",
-	})
-
-	query := `
-		INSERT INTO IssueMatchEvidence (
-			issuematchevidence_issue_match_id,
-			issuematchevidence_evidence_id
-		) VALUES (
-			:issuematchevidence_issue_match_id,
-			:issuematchevidence_evidence_id
-		)
-	`
-
-	args := map[string]interface{}{
-		"issuematchevidence_issue_match_id": issueMatchId,
-		"issuematchevidence_evidence_id":    evidenceId,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
-}
-
-func (s *SqlDatabase) RemoveEvidenceFromIssueMatch(issueMatchId int64, evidenceId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueMatchId": issueMatchId,
-		"evidenceId":   evidenceId,
-		"event":        "database.RemoveEvidenceFromIssueMatch",
-	})
-
-	query := `
-		DELETE FROM IssueMatchEvidence
-		WHERE
-			issuematchevidence_issue_match_id = :issuematchevidence_issue_match_id
-			AND issuematchevidence_evidence_id = :issuematchevidence_evidence_id
-	`
-
-	args := map[string]interface{}{
-		"issuematchevidence_issue_match_id": issueMatchId,
-		"issuematchevidence_evidence_id":    evidenceId,
 	}
 
 	_, err := performExec(s, query, args, l)

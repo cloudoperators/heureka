@@ -27,7 +27,6 @@ import (
 )
 
 var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -35,19 +34,17 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -81,7 +78,6 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -119,7 +115,6 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 				})
 			})
 			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 				var respData struct {
 					Users model.UserConnection `json:"Users"`
 				}
@@ -152,7 +147,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 				})
 
 				It("- returns the expected content", func() {
-					//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
 
@@ -169,7 +164,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 
 							_, serviceFound := lo.Find(seedCollection.OwnerRows, func(row mariadb.OwnerRow) bool {
 								return fmt.Sprintf("%d", row.UserId.Int64) == user.Node.ID && // correct user
-									fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID //references correct service
+									fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // references correct service
 							})
 							Expect(serviceFound).To(BeTrue(), "attached service does exist and belongs to user")
 						}
@@ -180,7 +175,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 
 							_, sgFound := lo.Find(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow) bool {
 								return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct support group
-									fmt.Sprintf("%d", row.UserId.Int64) == user.Node.ID //references correct user
+									fmt.Sprintf("%d", row.UserId.Int64) == user.Node.ID // references correct user
 							})
 							Expect(sgFound).To(BeTrue(), "attached supportGroup does exist and belongs to user")
 
@@ -200,7 +195,6 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 })
 
 var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -209,24 +203,21 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			user = testentity.NewFakeUserEntity()
@@ -245,7 +236,6 @@ var _ = Describe("Creating User via API", Label("e2e", "Users"), func() {
 })
 
 var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -253,19 +243,17 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -291,7 +279,6 @@ var _ = Describe("Updating User via API", Label("e2e", "Users"), func() {
 })
 
 var _ = Describe("Deleting User via API", Label("e2e", "Users"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -299,19 +286,17 @@ var _ = Describe("Deleting User via API", Label("e2e", "Users"), func() {
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 

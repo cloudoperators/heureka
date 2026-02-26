@@ -8,19 +8,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudoperators/heureka/internal/app/activity"
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/component_version"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/app/evidence"
 	"github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/app/issue_match"
-	"github.com/cloudoperators/heureka/internal/app/issue_match_change"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/app/patch"
 	"github.com/cloudoperators/heureka/internal/app/profiler"
+	"github.com/cloudoperators/heureka/internal/app/remediation"
 	"github.com/cloudoperators/heureka/internal/app/scanner_run"
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/app/severity"
@@ -33,12 +32,9 @@ import (
 )
 
 type HeurekaApp struct {
-	activity.ActivityHandler
 	component_instance.ComponentInstanceHandler
 	component_version.ComponentVersionHandler
 	component.ComponentHandler
-	evidence.EvidenceHandler
-	issue_match_change.IssueMatchChangeHandler
 	issue_match.IssueMatchHandler
 	issue_repository.IssueRepositoryHandler
 	issue_variant.IssueVariantHandler
@@ -48,6 +44,8 @@ type HeurekaApp struct {
 	severity.SeverityHandler
 	support_group.SupportGroupHandler
 	user.UserHandler
+	remediation.RemediationHandler
+	patch.PatchHandler
 
 	authz openfga.Authorization
 
@@ -87,13 +85,10 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	er.Run(ctx)
 
 	heureka := &HeurekaApp{
-		ActivityHandler:          activity.NewActivityHandler(handlerContext),
 		ComponentHandler:         component.NewComponentHandler(handlerContext),
 		ComponentInstanceHandler: component_instance.NewComponentInstanceHandler(handlerContext),
 		ComponentVersionHandler:  component_version.NewComponentVersionHandler(handlerContext),
-		EvidenceHandler:          evidence.NewEvidenceHandler(handlerContext),
 		IssueHandler:             issue.NewIssueHandler(handlerContext),
-		IssueMatchChangeHandler:  issue_match_change.NewIssueMatchChangeHandler(handlerContext),
 		IssueMatchHandler:        issue_match.NewIssueMatchHandler(handlerContext, sh),
 		IssueRepositoryHandler:   rh,
 		IssueVariantHandler:      ivh,
@@ -102,6 +97,8 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		SeverityHandler:          sh,
 		SupportGroupHandler:      support_group.NewSupportGroupHandler(handlerContext),
 		UserHandler:              user.NewUserHandler(handlerContext),
+		RemediationHandler:       remediation.NewRemediationHandler(handlerContext),
+		PatchHandler:             patch.NewPatchHandler(handlerContext),
 		eventRegistry:            handlerContext.EventReg,
 		database:                 handlerContext.DB,
 		cache:                    handlerContext.Cache,
@@ -202,4 +199,8 @@ func (h *HeurekaApp) Shutdown() error {
 
 func (h HeurekaApp) GetCache() cache.Cache {
 	return h.cache
+}
+
+func (h HeurekaApp) WaitPostMigrations() error {
+	return h.database.WaitPostMigrations()
 }

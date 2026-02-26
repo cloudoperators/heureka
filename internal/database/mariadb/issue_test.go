@@ -6,25 +6,25 @@ package mariadb_test
 import (
 	"database/sql"
 	"fmt"
+	"math/rand"
 	"sort"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
-	"github.com/cloudoperators/heureka/pkg/util"
+	entity_test "github.com/cloudoperators/heureka/internal/entity/test"
+	"github.com/cloudoperators/heureka/internal/util"
+	pkg_util "github.com/cloudoperators/heureka/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-
-	"math/rand"
 )
 
 var _ = Describe("Issue", Label("database", "Issue"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
-
 		var err error
 		db = dbm.NewTestSchema()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
@@ -130,7 +130,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			})
 
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetIssues(nil, nil)
 
@@ -173,7 +172,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchingRow := true
 					var issueRows []mariadb.IssueRow
 
-					//get a service that should return at least 1 issue
+					// get a service that should return at least 1 issue
 					for searchingRow {
 						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 						issueRows = seedCollection.GetIssueByService(&row)
@@ -194,7 +193,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter a non existing service name", func() {
-					nonExistingName := util.GenerateRandomString(40, nil)
+					nonExistingName := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&nonExistingName}}
 
 					entries, err := db.GetIssues(filter, nil)
@@ -225,7 +224,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					By("returning expected number of results", func() {
 						Expect(len(entries)).To(BeEquivalentTo(len(expectedIssues)))
 					})
-
 				})
 				It("can filter by a single issue Id", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
@@ -291,32 +289,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					By("returning the expected element", func() {
 						for _, entry := range entries {
 							Expect(lo.Contains(issueIds, entry.Issue.Id)).To(BeTrue())
-						}
-					})
-				})
-				It("can filter by a single activity id", func() {
-					// select an activity
-					activityRow := seedCollection.ActivityRows[rand.Intn(len(seedCollection.ActivityRows))]
-
-					// collect all issue ids that belong to the activity
-					issueIds := []int64{}
-					for _, ahiRow := range seedCollection.ActivityHasIssueRows {
-						if ahiRow.ActivityId.Int64 == activityRow.Id.Int64 {
-							issueIds = append(issueIds, ahiRow.IssueId.Int64)
-						}
-					}
-
-					filter := &entity.IssueFilter{ActivityId: []*int64{&activityRow.Id.Int64}}
-
-					entries, err := db.GetIssues(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning the expected elements", func() {
-						for _, entry := range entries {
-							Expect(issueIds).To(ContainElement(entry.Issue.Id))
 						}
 					})
 				})
@@ -428,7 +400,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						})
 						Expect(hasMatch).To(BeTrue(), "Entry should have at least one matching IssueMatchRow")
 					}
-
 				})
 				It("can filter by issueMatch severity", func() {
 					for _, severity := range entity.AllSeverityValues {
@@ -445,7 +416,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 							Expect(lo.Contains(issueIds, entry.Issue.Id)).To(BeTrue(), "Entry should have severity %s", severity.String())
 						}
 					}
-
 				})
 				It("can filter issue PrimaryName using wild card search", func() {
 					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
@@ -512,6 +482,56 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(issueIds).To(ContainElement(issueVariantRow.IssueId.Int64))
 					})
 				})
+				When("filtered by IssueStatus", func() {
+					var remediation entity.Remediation
+					BeforeEach(func() {
+						issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+						remediation = entity_test.NewFakeRemediationEntity()
+						remediation.ExpirationDate = time.Now().Add(10 * 24 * time.Hour)
+						remediation.IssueId = issueMatch.IssueId.Int64
+						remediation.ComponentId = 0 // component is optional
+						remediation.CreatedBy = util.SystemUserId
+						remediation.UpdatedBy = util.SystemUserId
+
+						ci, _ := lo.Find(seedCollection.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow) bool {
+							return cir.Id.Int64 == issueMatch.ComponentInstanceId.Int64
+						})
+
+						remediation.ServiceId = ci.ServiceId.Int64
+
+						_, err := db.CreateRemediation(&remediation)
+
+						Expect(err).To(BeNil())
+					})
+					It("can filter issue by IssueStatusOpen", func() {
+						filter := &entity.IssueFilter{Status: entity.IssueStatusOpen}
+
+						entries, err := db.GetIssues(filter, nil)
+
+						By("throwing no error", func() {
+							Expect(err).To(BeNil())
+						})
+
+						for _, entry := range entries {
+							Expect(entry.Issue.Id).ToNot(BeEquivalentTo(remediation.IssueId))
+						}
+					})
+					It("can filter issue by IssueStatusRemediated", func() {
+						filter := &entity.IssueFilter{Status: entity.IssueStatusRemediated}
+
+						entries, err := db.GetIssues(filter, nil)
+
+						By("throwing no error", func() {
+							Expect(err).To(BeNil())
+						})
+
+						issueIds := lo.Map(entries, func(e entity.IssueResult, _ int) int64 {
+							return e.Issue.Id
+						})
+
+						Expect(lo.Contains(issueIds, remediation.IssueId)).To(BeTrue())
+					})
+				})
 			})
 			Context("and using pagination", func() {
 				DescribeTable("can correctly paginate", func(pageSize int) {
@@ -558,7 +578,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					for _, entryWithAggregations := range entriesWithAggregations {
 						Expect(entryWithAggregations).NotTo(
 							BeEquivalentTo(entity.IssueAggregations{}))
-						Expect(entryWithAggregations.IssueAggregations.Activities).To(BeEquivalentTo(0))
 						Expect(entryWithAggregations.IssueAggregations.IssueMatches).To(BeEquivalentTo(0))
 						Expect(entryWithAggregations.IssueAggregations.AffectedServices).To(BeEquivalentTo(0))
 						Expect(entryWithAggregations.IssueAggregations.AffectedComponentInstances).To(BeEquivalentTo(0))
@@ -615,7 +634,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				By("returning the correct count", func() {
 					Expect(res).To(BeEquivalentTo(x))
 				})
-
 			},
 				Entry("when page size is 0", 0),
 				Entry("when page size is 1", 1),
@@ -654,7 +672,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(issueTypeCounts.PolicyViolationCount).To(BeEquivalentTo(policyViolationCount))
 						Expect(issueTypeCounts.SecurityEventCount).To(BeEquivalentTo(securityEventCount))
 					})
-
 				})
 			})
 		})
@@ -665,7 +682,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					seedCollection = seeder.SeedDbWithNFakeData(20)
 				})
 				It("does not influence the count when pagination is applied", func() {
-					var first = 1
+					first := 1
 					var after string = ""
 					filter := &entity.IssueFilter{
 						PaginatedX: entity.PaginatedX{
@@ -688,7 +705,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchingRow := true
 					var issueRows []mariadb.IssueRow
 
-					//get a service that should return at least 1 issue
+					// get a service that should return at least 1 issue
 					for searchingRow {
 						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 						issueRows = seedCollection.GetIssueByService(&row)
@@ -711,7 +728,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchingRow := true
 					var issueRows []mariadb.IssueRow
 
-					//get a service that should return at least 1 issue
+					// get a service that should return at least 1 issue
 					for searchingRow {
 						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 						issueRows = seedCollection.GetIssueByService(&row)
@@ -733,7 +750,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		})
 	})
 	When("IssueCounts by Severity", Label("IssueCounts"), func() {
-		var testIssueSeverityCount = func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
+		testIssueSeverityCount := func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
 			issueSeverityCounts, err := db.CountIssueRatings(filter)
 
 			By("throwing no error", func() {
@@ -835,7 +852,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				im := test.NewFakeIssueMatch()
 				im.ComponentInstanceId = sql.NullInt64{Int64: 1, Valid: true}
 				im.IssueId = sql.NullInt64{Int64: 3, Valid: true}
-				im.UserId = sql.NullInt64{Int64: systemUserId, Valid: true}
+				im.UserId = sql.NullInt64{Int64: util.SystemUserId, Valid: true}
 				_, err = seeder.InsertFakeIssueMatch(im)
 				Expect(err).To(BeNil())
 
@@ -896,7 +913,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				By("no issue returned", func() {
 					Expect(newIssue).To(BeNil())
 				})
-
 			})
 		})
 	})
@@ -942,7 +958,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			It("can delete issue correctly", func() {
 				issue := seedCollection.IssueRows[0].AsIssue()
 
-				err := db.DeleteIssue(issue.Id, systemUserId)
+				err := db.DeleteIssue(issue.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -1044,7 +1060,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	var testOrder = func(
+	testOrder := func(
 		order []entity.Order,
 		verifyFunc func(res []entity.IssueResult),
 	) {
@@ -1064,7 +1080,6 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 	}
 
 	When("with ASC order", Label("IssueASCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			seedCollection.GetValidIssueMatchRows()
@@ -1102,7 +1117,6 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		})
 
 		It("can order by rating", func() {
-
 			order := []entity.Order{
 				{By: entity.IssueVariantRating, Direction: entity.OrderDirectionAsc},
 			}
@@ -1119,11 +1133,9 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 				}
 			})
 		})
-
 	})
 
 	When("with DESC order", Label("IssueDESCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -1177,95 +1189,4 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 			})
 		})
 	})
-
-})
-
-var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
-	var db *mariadb.SqlDatabase
-	var seeder *test.DatabaseSeeder
-	var seedCollection *test.SeedCollection
-
-	var testIssueSeverityCount = func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
-		issueSeverityCounts, err := db.CountIssueRatings(filter)
-
-		By("throwing no error", func() {
-			Expect(err).To(BeNil())
-		})
-
-		By("returning the correct counts", func() {
-			Expect(issueSeverityCounts.Critical).To(BeEquivalentTo(counts.Critical))
-			Expect(issueSeverityCounts.High).To(BeEquivalentTo(counts.High))
-			Expect(issueSeverityCounts.Medium).To(BeEquivalentTo(counts.Medium))
-			Expect(issueSeverityCounts.Low).To(BeEquivalentTo(counts.Low))
-			Expect(issueSeverityCounts.None).To(BeEquivalentTo(counts.None))
-			Expect(issueSeverityCounts.Total).To(BeEquivalentTo(counts.Total))
-		})
-	}
-
-	BeforeEach(func() {
-		var err error
-		db = dbm.NewTestSchema()
-		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
-		Expect(err).To(BeNil(), "Database Seeder Setup should work")
-		seedCollection, err = seeder.SeedForIssueCounts()
-		Expect(err).To(BeNil())
-		err = seeder.RefreshCountIssueRatings()
-		Expect(err).To(BeNil())
-	})
-	AfterEach(func() {
-		dbm.TestTearDown(db)
-	})
-
-	It("returns the correct count for all issues", func() {
-		severityCounts, err := test.LoadIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_severity.json"))
-		Expect(err).To(BeNil())
-		testIssueSeverityCount(nil, severityCounts)
-	})
-	It("returns the correct count for component version issues", func() {
-		severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
-		Expect(err).To(BeNil())
-
-		for _, cvi := range seedCollection.ComponentVersionIssueRows {
-			cvId := cvi.ComponentVersionId.Int64
-			filter := &entity.IssueFilter{
-				ComponentVersionId: []*int64{&cvId},
-			}
-
-			strId := fmt.Sprintf("%d", cvId)
-
-			testIssueSeverityCount(filter, severityCounts[strId])
-		}
-
-	})
-	It("returns the correct count for services", func() {
-		severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
-		Expect(err).To(BeNil())
-
-		for _, service := range seedCollection.ServiceRows {
-			serviceId := service.Id.Int64
-
-			filter := &entity.IssueFilter{
-				ServiceId: []*int64{&serviceId},
-			}
-
-			strId := fmt.Sprintf("%d", serviceId)
-
-			testIssueSeverityCount(filter, severityCounts[strId])
-		}
-	})
-	It("returns the correct count for supportgroup", func() {
-		severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
-		Expect(err).To(BeNil())
-
-		for _, sg := range seedCollection.SupportGroupRows {
-			filter := &entity.IssueFilter{
-				SupportGroupCCRN: []*string{&sg.CCRN.String},
-			}
-
-			strId := fmt.Sprintf("%d", sg.Id.Int64)
-
-			testIssueSeverityCount(filter, severityCounts[strId])
-		}
-	})
-
 })

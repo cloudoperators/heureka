@@ -3,11 +3,15 @@
 
 package component_version
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type ComponentVersionHandler interface {
 	ListComponentVersions(*entity.ComponentVersionFilter, *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error)
-	CreateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)
-	UpdateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)
-	DeleteComponentVersion(int64) error
+	CreateComponentVersion(context.Context, *entity.ComponentVersion) (*entity.ComponentVersion, error)
+	UpdateComponentVersion(context.Context, *entity.ComponentVersion) (*entity.ComponentVersion, error)
+	DeleteComponentVersion(context.Context, int64) error
 }

@@ -21,7 +21,7 @@ import (
 
 const (
 	clientId                = "mock-client-id"
-	testUserName            = "dummyUserName"
+	testOidcUserName        = "dummyOidcUserName"
 	enableOidcProviderLog   = false
 	enableOidcMiddlewareLog = false
 	enableOidcServerLog     = false
@@ -41,7 +41,7 @@ var _ = Describe("Pass OIDC token data via context when using OIDC auth middlewa
 		testServer = test.NewTestServer(a, enableOidcServerLog)
 		testServer.StartInBackground()
 
-		oidcTokenStringHandler = test.CreateOidcTokenStringHandler(oidcProviderUrl, clientId, testUserName)
+		oidcTokenStringHandler = test.CreateOidcTokenStringHandler(oidcProviderUrl, clientId, testOidcUserName)
 	})
 
 	AfterEach(func() {
@@ -58,7 +58,7 @@ var _ = Describe("Pass OIDC token data via context when using OIDC auth middlewa
 		It("Should be able to access user name from request context", func() {
 			name, err := context.UserNameFromContext(testServer.Context())
 			Expect(err).To(BeNil())
-			Expect(name).To(BeEquivalentTo(testUserName))
+			Expect(name).To(BeEquivalentTo(testOidcUserName))
 		})
 	})
 

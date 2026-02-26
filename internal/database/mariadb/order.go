@@ -15,6 +15,8 @@ func ColumnName(f entity.OrderByField) string {
 		return "component_id"
 	case entity.ComponentCcrn:
 		return "component_ccrn"
+	case entity.ComponentRepository:
+		return "component_repository"
 	case entity.ComponentInstanceCcrn:
 		return "componentinstance_ccrn"
 	case entity.ComponentInstanceId:
@@ -69,6 +71,16 @@ func ColumnName(f entity.OrderByField) string {
 		return "low_count"
 	case entity.NoneCount:
 		return "none_count"
+	case entity.RemediationId:
+		return "remediation_id"
+	case entity.RemediationIssue:
+		return "remediation_issue"
+	case entity.RemediationSeverity:
+		return "remediation_severity"
+	case entity.RemediationExpirationDate:
+		return "remediation_expiration_date"
+	case entity.PatchId:
+		return "patch_id"
 	default:
 		return ""
 	}

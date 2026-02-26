@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var dbm test.TestDatabaseManager
+var dbm *test.DatabaseManager
 
 func TestMariadb(t *testing.T) {
 	// Set the environment variables
@@ -28,9 +28,7 @@ func TestMariadb(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	var err error
-	dbm, err = test.NewDatabaseManager()
-	Expect(err).To(BeNil(), "Expecting Database initialization to be completed")
+	dbm = test.NewDatabaseManager()
 })
 
 var _ = AfterSuite(func() {

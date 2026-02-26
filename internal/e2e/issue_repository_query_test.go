@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
@@ -25,7 +26,6 @@ import (
 )
 
 var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueRepositories"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -33,19 +33,17 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -80,7 +78,6 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -118,7 +115,6 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 				})
 			})
 			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
 				var respData struct {
 					IssueRepositories model.IssueRepositoryConnection `json:"IssueRepositories"`
 				}
@@ -151,7 +147,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 				})
 
 				It("- returns the expected content", func() {
-					//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
 
@@ -167,7 +163,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 							_, ivFound := lo.Find(seedCollection.IssueVariantRows, func(row mariadb.IssueVariantRow) bool {
 								return fmt.Sprintf("%d", row.Id.Int64) == iv.Node.ID && // correct issueVariant
-									fmt.Sprintf("%d", row.IssueRepositoryId.Int64) == *iv.Node.IssueRepositoryID //references correct repository
+									fmt.Sprintf("%d", row.IssueRepositoryId.Int64) == *iv.Node.IssueRepositoryID // references correct repository
 							})
 							Expect(ivFound).To(BeTrue(), "attached issueVariant does exist and belongs to repository")
 						}
@@ -179,7 +175,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 							_, serviceFound := lo.Find(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow) bool {
 								return fmt.Sprintf("%d", row.IssueRepositoryId.Int64) == ir.Node.ID && // correct issue repository
-									fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID //references correct service
+									fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // references correct service
 							})
 							Expect(serviceFound).To(BeTrue(), "attached service does exist and belongs to repository")
 						}
@@ -198,7 +194,6 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 })
 
 var _ = Describe("Creating IssueRepository via API", Label("e2e", "IssueRepositories"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -207,24 +202,21 @@ var _ = Describe("Creating IssueRepository via API", Label("e2e", "IssueReposito
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seeder.SeedDbWithNFakeData(10)
 			issueRepository = testentity.NewFakeIssueRepositoryEntity()
@@ -265,7 +257,6 @@ var _ = Describe("Creating IssueRepository via API", Label("e2e", "IssueReposito
 })
 
 var _ = Describe("Updating issueRepository via API", Label("e2e", "IssueRepositories"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -273,19 +264,17 @@ var _ = Describe("Updating issueRepository via API", Label("e2e", "IssueReposito
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -336,7 +325,6 @@ var _ = Describe("Updating issueRepository via API", Label("e2e", "IssueReposito
 })
 
 var _ = Describe("Deleting IssueRepository via API", Label("e2e", "IssueRepositories"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -344,19 +332,17 @@ var _ = Describe("Deleting IssueRepository via API", Label("e2e", "IssueReposito
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
 		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 

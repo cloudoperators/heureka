@@ -123,8 +123,7 @@ type ComponentInstanceFilter struct {
 	State                   []StateFilterType `json:"state"`
 }
 
-type ComponentInstanceAggregations struct {
-}
+type ComponentInstanceAggregations struct{}
 
 type ComponentInstanceResult struct {
 	WithCursor
@@ -145,6 +144,7 @@ type ComponentInstance struct {
 	Container          string                `json:"container"`
 	Type               ComponentInstanceType `json:"type"`
 	ParentId           int64                 `json:"parent_id,omitempty"`
+	Parent             *ComponentInstance    `json:"parent,omitempty"`
 	Context            *Json                 `json:"context"`
 	Count              int16                 `json:"count"`
 	ComponentVersion   *ComponentVersion     `json:"component_version,omitempty"`

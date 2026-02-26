@@ -45,15 +45,6 @@ type Database interface {
 	UpdateIssueMatch(*entity.IssueMatch) error
 	DeleteIssueMatch(int64, int64) error
 
-	GetIssueMatchChanges(*entity.IssueMatchChangeFilter) ([]entity.IssueMatchChange, error)
-	GetAllIssueMatchChangeIds(*entity.IssueMatchChangeFilter) ([]int64, error)
-	CountIssueMatchChanges(filter *entity.IssueMatchChangeFilter) (int64, error)
-	CreateIssueMatchChange(*entity.IssueMatchChange) (*entity.IssueMatchChange, error)
-	UpdateIssueMatchChange(*entity.IssueMatchChange) error
-	DeleteIssueMatchChange(int64, int64) error
-	AddEvidenceToIssueMatch(int64, int64) error
-	RemoveEvidenceFromIssueMatch(int64, int64) error
-
 	GetServices(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
 	GetServicesWithAggregations(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
 	GetAllServiceCursors(*entity.ServiceFilter, []entity.Order) ([]string, error)
@@ -112,24 +103,6 @@ type Database interface {
 	GetContext(filter *entity.ComponentInstanceFilter) ([]string, error)
 	GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error)
 
-	GetActivities(*entity.ActivityFilter) ([]entity.Activity, error)
-	GetAllActivityIds(*entity.ActivityFilter) ([]int64, error)
-	CountActivities(*entity.ActivityFilter) (int64, error)
-	CreateActivity(*entity.Activity) (*entity.Activity, error)
-	UpdateActivity(*entity.Activity) error
-	DeleteActivity(int64, int64) error
-	AddServiceToActivity(int64, int64) error
-	RemoveServiceFromActivity(int64, int64) error
-	AddIssueToActivity(int64, int64) error
-	RemoveIssueFromActivity(int64, int64) error
-
-	GetEvidences(*entity.EvidenceFilter) ([]entity.Evidence, error)
-	GetAllEvidenceIds(*entity.EvidenceFilter) ([]int64, error)
-	CountEvidences(*entity.EvidenceFilter) (int64, error)
-	CreateEvidence(*entity.Evidence) (*entity.Evidence, error)
-	UpdateEvidence(*entity.Evidence) error
-	DeleteEvidence(int64, int64) error
-
 	GetComponents(*entity.ComponentFilter, []entity.Order) ([]entity.ComponentResult, error)
 	GetAllComponentIds(*entity.ComponentFilter) ([]int64, error)
 	GetAllComponentCursors(*entity.ComponentFilter, []entity.Order) ([]string, error)
@@ -155,9 +128,22 @@ type Database interface {
 	GetScannerRunTags() ([]string, error)
 	CountScannerRuns(*entity.ScannerRunFilter) (int, error)
 
+	GetRemediations(*entity.RemediationFilter, []entity.Order) ([]entity.RemediationResult, error)
+	GetAllRemediationCursors(*entity.RemediationFilter, []entity.Order) ([]string, error)
+	CountRemediations(*entity.RemediationFilter) (int64, error)
+	CreateRemediation(*entity.Remediation) (*entity.Remediation, error)
+	UpdateRemediation(*entity.Remediation) error
+	DeleteRemediation(int64, int64) error
+
+	GetPatches(*entity.PatchFilter, []entity.Order) ([]entity.PatchResult, error)
+	GetAllPatchCursors(*entity.PatchFilter, []entity.Order) ([]string, error)
+	CountPatches(*entity.PatchFilter) (int64, error)
+
 	CloseConnection() error
 
 	CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error
 
-	Autoclose() (bool, error)
+	Autopatch() (bool, error)
+
+	WaitPostMigrations() error
 }

@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"database/sql"
 	"math/rand"
 	"sort"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -160,7 +162,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				issueMatches = seedCollection.GetValidIssueMatchRows()
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetIssueMatches(nil, nil)
 
@@ -255,35 +256,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					for _, e := range seedCollection.IssueMatchRows {
 						if e.ComponentInstanceId.Int64 == issueMatch.ComponentInstanceId.Int64 {
 							imIds = append(imIds, e.Id.Int64)
-						}
-					}
-
-					entries, err := db.GetIssueMatches(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
-					})
-
-					By("returning expected elements", func() {
-						for _, entry := range entries {
-							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
-						}
-					})
-				})
-				It("can filter by a single evidence id that does exist", func() {
-					issueMatch := seedCollection.IssueMatchEvidenceRows[rand.Intn(len(seedCollection.IssueMatchEvidenceRows))]
-					filter := &entity.IssueMatchFilter{
-						EvidenceId: []*int64{&issueMatch.EvidenceId.Int64},
-					}
-
-					var imIds []int64
-					for _, e := range seedCollection.IssueMatchEvidenceRows {
-						if e.EvidenceId.Int64 == issueMatch.EvidenceId.Int64 {
-							imIds = append(imIds, e.IssueMatchId.Int64)
 						}
 					}
 
@@ -482,7 +454,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				By("returning the correct count", func() {
 					Expect(res).To(BeEquivalentTo(x))
 				})
-
 			},
 				Entry("when page size is 0", 0),
 				Entry("when page size is 1", 1),
@@ -496,7 +467,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					seedCollection = seeder.SeedDbWithNFakeData(20)
 				})
 				It("does not influence the count when pagination is applied", func() {
-					var first = 1
+					first := 1
 					var after string = ""
 					filter := &entity.IssueMatchFilter{
 						PaginatedX: entity.PaginatedX{
@@ -648,7 +619,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			It("can delete issueMatch correctly", func() {
 				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
 
-				err := db.DeleteIssueMatch(issueMatch.Id, systemUserId)
+				err := db.DeleteIssueMatch(issueMatch.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -665,77 +636,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				By("returning no issueMatch", func() {
 					Expect(len(im)).To(BeEquivalentTo(0))
 				})
-			})
-		})
-	})
-	When("Add Evidence To IssueMatch", Label("AddEvidenceToIssueMatch"), func() {
-		Context("and we have 10 IssueMatches in the database", func() {
-			var seedCollection *test.SeedCollection
-			var newEvidenceRow mariadb.EvidenceRow
-			var newEvidence entity.Evidence
-			var evidence *entity.Evidence
-			var activity entity.Activity
-			var user entity.User
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-				newEvidenceRow = test.NewFakeEvidence()
-				newEvidence = newEvidenceRow.AsEvidence()
-				activity = seedCollection.ActivityRows[0].AsActivity()
-				user = seedCollection.UserRows[0].AsUser()
-				newEvidence.ActivityId = activity.Id
-				newEvidence.UserId = user.Id
-				evidence, _ = db.CreateEvidence(&newEvidence)
-			})
-			It("can add evidence correctly", func() {
-				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
-
-				err := db.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				issueMatchFilter := &entity.IssueMatchFilter{
-					EvidenceId: []*int64{&evidence.Id},
-				}
-
-				im, err := db.GetIssueMatches(issueMatchFilter, nil)
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-				By("returning issueMatch", func() {
-					Expect(len(im)).To(BeEquivalentTo(1))
-				})
-			})
-		})
-	})
-	When("Remove Evidence From IssueMatch", Label("RemoveEvidenceFromIssueMatch"), func() {
-		Context("and we have 10 IssueMatches in the database", func() {
-			var seedCollection *test.SeedCollection
-			var issueMatchEvidenceRow mariadb.IssueMatchEvidenceRow
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-				issueMatchEvidenceRow = seedCollection.IssueMatchEvidenceRows[0]
-			})
-			It("can remove evidence correctly", func() {
-				err := db.RemoveEvidenceFromIssueMatch(issueMatchEvidenceRow.IssueMatchId.Int64, issueMatchEvidenceRow.EvidenceId.Int64)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				issueMatchFilter := &entity.IssueMatchFilter{
-					EvidenceId: []*int64{&issueMatchEvidenceRow.EvidenceId.Int64},
-				}
-
-				issueMatches, err := db.GetIssueMatches(issueMatchFilter, nil)
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				for _, im := range issueMatches {
-					Expect(im.Id).ToNot(BeEquivalentTo(issueMatchEvidenceRow.IssueMatchId.Int64))
-				}
 			})
 		})
 	})
@@ -756,7 +656,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 		dbm.TestTearDown(db)
 	})
 
-	var testOrder = func(
+	testOrder := func(
 		order []entity.Order,
 		verifyFunc func(res []entity.IssueMatchResult),
 	) {
@@ -776,7 +676,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 	}
 
 	When("with ASC order", Label("IssueMatchASCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			seedCollection.GetValidIssueMatchRows()
@@ -881,7 +780,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 	})
 
 	When("with DESC order", Label("IssueMatchDESCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -985,7 +883,6 @@ var _ = Describe("Ordering IssueMatches", func() {
 	})
 
 	When("multiple order by used", Label("IssueMatchMultipleOrderBy"), func() {
-
 		BeforeEach(func() {
 			users := seeder.SeedUsers(10)
 			services := seeder.SeedServices(10)
@@ -1009,7 +906,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
-				var prevPn = ""
+				prevPn := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
 					if issue.PrimaryName.String == prevPn {
@@ -1032,7 +929,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
-				var prevPn = ""
+				prevPn := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
 					if issue.PrimaryName.String == prevPn {
@@ -1055,8 +952,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prevSeverity = 0
-				var prevCiCcrn = ""
+				prevSeverity := 0
+				prevCiCcrn := ""
 				var prevTrd time.Time = time.Time{}
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
@@ -1093,7 +990,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 	AfterEach(func() {
 		dbm.TestTearDown(db)
 	})
-	var loadTestData = func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
+	loadTestData := func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
 		matches, err := test.LoadIssueMatches(test.GetTestDataPath("testdata/issue_match_cursor/issue_match.json"))
 		if err != nil {
 			return nil, nil, nil, err
@@ -1154,5 +1051,17 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 			Expect(res[3].Id).To(BeEquivalentTo(30))
 			Expect(res[4].Id).To(BeEquivalentTo(5))
 		})
+	})
+})
+
+var _ = Describe("Converting IssueMatchRow to IssueMatch", func() {
+	It("Sets Severity Value when vector is empty", func() {
+		row := mariadb.IssueMatchRow{
+			Rating: sql.NullString{String: "Critical", Valid: true},
+		}
+
+		im := row.AsIssueMatch()
+
+		Expect(im.Severity.Value).To(BeEquivalentTo("Critical"))
 	})
 })

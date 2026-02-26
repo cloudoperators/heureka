@@ -4,23 +4,23 @@
 package mariadb_test
 
 import (
+	"math/rand"
+	"sort"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 
-	"math/rand"
-	"sort"
-
-	"github.com/cloudoperators/heureka/pkg/util"
+	pkg_util "github.com/cloudoperators/heureka/pkg/util"
 )
 
 var _ = Describe("Service", Label("database", "Service"), func() {
-
 	var db *mariadb.SqlDatabase
 	var seeder *test.DatabaseSeeder
 	BeforeEach(func() {
@@ -185,7 +185,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter by a random non existing service name", func() {
-					nonExistingName := util.GenerateRandomString(40, nil)
+					nonExistingName := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.ServiceFilter{CCRN: []*string{&nonExistingName}}
 
 					entries, err := db.GetServices(filter, nil)
@@ -290,7 +290,6 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 							Expect(serviceIds).To(ContainElement(entry.Id))
 						}
 					})
-
 				})
 				It("can filter by a single owner name", func() {
 					// select a user
@@ -331,32 +330,6 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					}
 
 					filter := &entity.ServiceFilter{OwnerId: []*int64{&ownerRow.UserId.Int64}}
-
-					entries, err := db.GetServices(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning the correct entries", func() {
-						for _, entry := range entries {
-							Expect(serviceIds).To(ContainElement(entry.Id), "Returns correct entry")
-						}
-					})
-				})
-				It("can filter by a single activity id", func() {
-					// select a activity
-					activityRow := seedCollection.ActivityRows[rand.Intn(len(seedCollection.ActivityRows))]
-
-					// collect all service ids that belong to the activity
-					serviceIds := []int64{}
-					for _, ahsRow := range seedCollection.ActivityHasServiceRows {
-						if ahsRow.ActivityId.Int64 == activityRow.Id.Int64 {
-							serviceIds = append(serviceIds, ahsRow.ServiceId.Int64)
-						}
-					}
-
-					filter := &entity.ServiceFilter{ActivityId: []*int64{&activityRow.Id.Int64}}
 
 					entries, err := db.GetServices(filter, nil)
 
@@ -599,7 +572,6 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				serviceRows = seedCollection.ServiceRows
 				count = len(serviceRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -670,7 +642,6 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				)
 			})
 		})
-
 	})
 	When("Insert Service", Label("InsertService"), func() {
 		Context("and we have 10 Services in the database", func() {
@@ -718,7 +689,6 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				By("no service returned", func() {
 					Expect(newService).To(BeNil())
 				})
-
 			})
 		})
 	})
@@ -766,7 +736,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			It("can delete service correctly", func() {
 				service := seedCollection.ServiceRows[0].AsService()
 
-				err := db.DeleteService(service.Id, systemUserId)
+				err := db.DeleteService(service.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -961,7 +931,6 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 			})
 			Context("and using a ServiceCcrn filter", func() {
-
 				var filter *entity.ServiceFilter
 				var expectedServiceCcrns []string
 				BeforeEach(func() {
@@ -992,10 +961,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						})
 					})
 					It("and using another filter", func() {
-
 						var anotherFilter *entity.ServiceFilter
 						BeforeEach(func() {
-
 							nonExistentServiceCcrn := "NonexistentService"
 
 							nonExistentServiceCcrns := []*string{&nonExistentServiceCcrn}
@@ -1129,7 +1096,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	var testOrder = func(
+	testOrder := func(
 		order []entity.Order,
 		verifyFunc func(res []entity.ServiceResult),
 	) {
@@ -1148,7 +1115,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 		})
 	}
 
-	var loadTestData = func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+	loadTestData := func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, nil, err
@@ -1225,7 +1192,6 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 	})
 
 	When("with ASC order", Label("ServiceASCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -1259,11 +1225,9 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 				}
 			})
 		})
-
 	})
 
 	When("with DESC order", Label("ServiceDESCOrder"), func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
@@ -1297,7 +1261,6 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 				}
 			})
 		})
-
 	})
 
 	// ccrn and id are both unique, we don't test therefore for multiple orders

@@ -51,7 +51,7 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleIssueBaseResolver"), "Issue", appErrors.Internal, "found multiple issues"))
 	}
 
-	//not found
+	// not found
 	if len(issues.Elements) < 1 {
 		return nil, nil
 	}
@@ -69,8 +69,9 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		"parent":          parent,
 	}).Debug("Called IssueBaseResolver")
 
-	var activityId []*int64
+	var irId []*int64
 	var cvId []*int64
+	var err error
 	if parent != nil {
 		parentId := parent.Parent.GetID()
 		pid, err := ParseCursor(&parentId)
@@ -80,8 +81,6 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		}
 
 		switch parent.ParentName {
-		case model.ActivityNodeName:
-			activityId = []*int64{pid}
 		case model.ComponentVersionNodeName:
 			cvId = []*int64{pid}
 		}
@@ -91,14 +90,21 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		filter = &model.IssueFilter{}
 	}
 
+	if filter.IssueRepositoryID != nil {
+		irId, err = util.ConvertStrToIntSlice(filter.IssueRepositoryID)
+		if err != nil {
+			return nil, NewResolverError("IssueBaseResolver", "Bad Request - unable to parse filter, the value of the filter IssueRepositoryId is invalid")
+		}
+	}
+
 	f := &entity.IssueFilter{
 		PaginatedX:         entity.PaginatedX{First: first, After: after},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
-		ActivityId:         activityId,
 		ComponentVersionId: cvId,
 		PrimaryName:        filter.PrimaryName,
 		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		IssueRepositoryId:  irId,
 
 		Search: filter.Search,
 
@@ -166,8 +172,18 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 		"requestedFields": requestedFields,
 	}).Debug("Called IssueNameBaseResolver")
 
+	var irId []*int64
+	var err error
+
 	if filter == nil {
 		filter = &model.IssueFilter{}
+	}
+
+	if filter.IssueRepositoryID != nil {
+		irId, err = util.ConvertStrToIntSlice(filter.IssueRepositoryID)
+		if err != nil {
+			return nil, NewResolverError("IssueBaseResolver", "Bad Request - unable to parse filter, the value of the filter IssueRepositoryId is invalid")
+		}
 	}
 
 	f := &entity.IssueFilter{
@@ -176,6 +192,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 		PrimaryName:                     filter.PrimaryName,
 		SupportGroupCCRN:                filter.SupportGroupCcrn,
 		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		IssueRepositoryId:               irId,
 		Search:                          filter.Search,
 		IssueMatchStatus:                nil, //@todo Implement
 		IssueMatchDiscoveryDate:         nil, //@todo Implement
@@ -227,7 +244,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 
 	var serviceId []*int64
 	var componentId []*int64
-	var unique = false
+	unique := false
 	if parent != nil {
 		var pid *int64
 		if parent.Parent != nil {
@@ -239,12 +256,14 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		}
 
 		switch parent.ParentName {
-		case model.ComponentVersionNodeName:
+		case model.ComponentVersionNodeName, model.ImageVersionNodeName:
 			cvIds = []*int64{pid}
 		case model.ServiceNodeName:
 			serviceId = []*int64{pid}
 		case model.VulnerabilityNodeName:
-			unique = true
+			if len(filter.SupportGroupCcrn) == 0 {
+				unique = true
+			}
 		}
 	}
 

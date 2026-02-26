@@ -40,10 +40,9 @@ func BuildIssueVariantMap(db database.Database, filter *entity.ServiceIssueVaria
 	}
 
 	// create a map of issue id to variants for easy access
-	var issueVariantMap = make(map[int64]entity.ServiceIssueVariant)
+	issueVariantMap := make(map[int64]entity.ServiceIssueVariant)
 
 	for _, variant := range issueVariants {
-
 		if _, ok := issueVariantMap[variant.IssueId]; ok {
 			// if there are multiple variants with the same priority on their repositories we take the highest severity one
 			// if serverity and score are the same the first occuring issue variant is taken

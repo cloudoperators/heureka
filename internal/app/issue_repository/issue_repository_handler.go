@@ -4,6 +4,7 @@
 package issue_repository
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -66,7 +67,6 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 	})
 
 	res, err := ir.getIssueRepositoryResults(filter)
-
 	if err != nil {
 		return nil, NewIssueRepositoryHandlerError("Error while filtering for IssueRepositories")
 	}
@@ -100,7 +100,7 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 	return ret, nil
 }
 
-func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+func (ir *issueRepositoryHandler) CreateIssueRepository(ctx context.Context, issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
 	f := &entity.IssueRepositoryFilter{
 		Name: []*string{&issueRepository.Name},
 	}
@@ -112,7 +112,7 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 	})
 
 	var err error
-	issueRepository.BaseIssueRepository.CreatedBy, err = common.GetCurrentUserId(ir.database)
+	issueRepository.BaseIssueRepository.CreatedBy, err = common.GetCurrentUserId(ctx, ir.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository (GetUserId).")
@@ -120,7 +120,6 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 	issueRepository.BaseIssueRepository.UpdatedBy = issueRepository.BaseIssueRepository.CreatedBy
 
 	issueRepositories, err := ir.ListIssueRepositories(f, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository.")
@@ -132,7 +131,6 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 	}
 
 	newIssueRepository, err := ir.database.CreateIssueRepository(issueRepository)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository.")
@@ -143,28 +141,26 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(issueRepository *entity.
 	return newIssueRepository, nil
 }
 
-func (ir *issueRepositoryHandler) UpdateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+func (ir *issueRepositoryHandler) UpdateIssueRepository(ctx context.Context, issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueRepositoryEventName,
 		"object": issueRepository,
 	})
 
 	var err error
-	issueRepository.BaseIssueRepository.UpdatedBy, err = common.GetCurrentUserId(ir.database)
+	issueRepository.BaseIssueRepository.UpdatedBy, err = common.GetCurrentUserId(ctx, ir.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository (GetUserId).")
 	}
 
 	err = ir.database.UpdateIssueRepository(issueRepository)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository.")
 	}
 
 	issueRepositoryResult, err := ir.ListIssueRepositories(&entity.IssueRepositoryFilter{Id: []*int64{&issueRepository.Id}}, &entity.ListOptions{})
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueRepositoryHandlerError("Internal error while retrieving updated issueRepository.")
@@ -180,20 +176,19 @@ func (ir *issueRepositoryHandler) UpdateIssueRepository(issueRepository *entity.
 	return issueRepositoryResult.Elements[0].IssueRepository, nil
 }
 
-func (ir *issueRepositoryHandler) DeleteIssueRepository(id int64) error {
+func (ir *issueRepositoryHandler) DeleteIssueRepository(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteIssueRepositoryEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(ir.database)
+	userId, err := common.GetCurrentUserId(ctx, ir.database)
 	if err != nil {
 		l.Error(err)
 		return NewIssueRepositoryHandlerError("Internal error while deleting issueRepository (GetUserId).")
 	}
 
 	err = ir.database.DeleteIssueRepository(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewIssueRepositoryHandlerError("Internal error while updating issueRepository.")

@@ -11,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	cv "github.com/cloudoperators/heureka/internal/app/component_version"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -29,15 +28,19 @@ func TestComponentVersionHandler(t *testing.T) {
 	RunSpecs(t, "Component Version Service Test Suite")
 }
 
-var handlerContext common.HandlerContext
-var cfg *util.Config
+var (
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
+)
 
 var _ = BeforeSuite(func() {
 	cfg = common.GetTestConfig()
 	enableLogs := false
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
-		Cache: cache.NewNoCache(),
+		Cache: nil,
 		Authz: authz,
 	}
 	handlerContext.Authz.RemoveAllRelations()
@@ -72,7 +75,6 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
@@ -99,7 +101,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 				componentVersions = append(componentVersions, entity.ComponentVersionResult{WithCursor: entity.WithCursor{Value: cursor}, ComponentVersion: lo.ToPtr(cv)})
 			}
 
-			var cursors = lo.Map(componentVersions, func(m entity.ComponentVersionResult, _ int) string {
+			cursors := lo.Map(componentVersions, func(m entity.ComponentVersionResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *m.ComponentVersion, entity.IssueSeverityCounts{}))
 				return cursor
 			})
@@ -249,7 +251,7 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
-		newComponentVersion, err := componenVersionService.CreateComponentVersion(&componentVersion)
+		newComponentVersion, err := componenVersionService.CreateComponentVersion(common.NewAdminContext(), &componentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentVersion.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -324,7 +326,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		componentVersion.Tag = "updated-tag"
 		filter.Id = []*int64{&componentVersion.Id}
 		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{componentVersion}, nil)
-		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(componentVersion.ComponentVersion)
+		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(common.NewAdminContext(), componentVersion.ComponentVersion)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
@@ -412,7 +414,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
 		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
-		err := componenVersionService.DeleteComponentVersion(id)
+		err := componenVersionService.DeleteComponentVersion(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

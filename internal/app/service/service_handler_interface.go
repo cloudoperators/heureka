@@ -3,14 +3,18 @@
 
 package service
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type ServiceHandler interface {
 	GetService(serviceId int64) (*entity.Service, error)
 	ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error)
-	CreateService(service *entity.Service) (*entity.Service, error)
-	UpdateService(service *entity.Service) (*entity.Service, error)
-	DeleteService(id int64) error
+	CreateService(ctx context.Context, service *entity.Service) (*entity.Service, error)
+	UpdateService(ctx context.Context, service *entity.Service) (*entity.Service, error)
+	DeleteService(ctx context.Context, id int64) error
 	AddOwnerToService(serviceId, ownerId int64) (*entity.Service, error)
 	RemoveOwnerFromService(serviceId, ownerId int64) (*entity.Service, error)
 	ListServiceCcrns(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)

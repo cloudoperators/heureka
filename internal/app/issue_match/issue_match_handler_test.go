@@ -21,7 +21,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -35,15 +34,19 @@ func TestIssueMatchHandler(t *testing.T) {
 	RunSpecs(t, "IssueMatch Service Test Suite")
 }
 
-var handlerContext common.HandlerContext
-var cfg *util.Config
+var (
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
+)
 
 var _ = BeforeSuite(func() {
 	cfg = common.GetTestConfig()
 	enableLogs := false
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
-		Cache: cache.NewNoCache(),
+		Cache: nil,
 		Authz: authz,
 	}
 	handlerContext.Authz.RemoveAllRelations()
@@ -60,7 +63,6 @@ func getIssueMatchFilter() *entity.IssueMatchFilter {
 		SeverityValue:       nil,
 		Status:              nil,
 		IssueId:             nil,
-		EvidenceId:          nil,
 		ComponentInstanceId: nil,
 	}
 }
@@ -84,7 +86,6 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
@@ -111,7 +112,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 				matches = append(matches, entity.IssueMatchResult{WithCursor: entity.WithCursor{Value: cursor}, IssueMatch: lo.ToPtr(im)})
 			}
 
-			var cursors = lo.Map(matches, func(m entity.IssueMatchResult, _ int) string {
+			cursors := lo.Map(matches, func(m entity.IssueMatchResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, *m.IssueMatch))
 				return cursor
 			})
@@ -139,23 +140,19 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 	})
 
 	When("the list options does NOT include aggregations", func() {
-
 		BeforeEach(func() {
 			options.IncludeAggregations = false
 		})
 
 		Context("and the given filter does not have any matches in the database", func() {
-
 			BeforeEach(func() {
 				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 			})
 			It("should return an empty result", func() {
-
 				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 				res, err := issueMatchHandler.ListIssueMatches(filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
-
 			})
 		})
 		Context("and the filter does have results in the database", func() {
@@ -239,7 +236,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
 		db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, ss)
-		newIssueMatch, err := issueMatchHandler.CreateIssueMatch(&issueMatch)
+		newIssueMatch, err := issueMatchHandler.CreateIssueMatch(common.NewAdminContext(), &issueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueMatch.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -322,7 +319,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 		}
 		filter.Id = []*int64{&issueMatch.Id}
 		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		updatedIssueMatch, err := issueMatchHandler.UpdateIssueMatch(issueMatch.IssueMatch)
+		updatedIssueMatch, err := issueMatchHandler.UpdateIssueMatch(common.NewAdminContext(), issueMatch.IssueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueMatch.TargetRemediationDate).To(BeEquivalentTo(issueMatch.TargetRemediationDate))
@@ -418,7 +415,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		db.On("DeleteIssueMatch", id, mock.Anything).Return(nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
 		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
-		err := issueMatchHandler.DeleteIssueMatch(id)
+		err := issueMatchHandler.DeleteIssueMatch(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
@@ -503,54 +500,6 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 	})
 })
 
-var _ = Describe("When modifying relationship of evidence and issueMatch", Label("app", "EvidenceIssueMatchRelationship"), func() {
-	var (
-		er                event.EventRegistry
-		db                *mocks.MockDatabase
-		issueMatchHandler im.IssueMatchHandler
-		evidence          entity.Evidence
-		issueMatch        entity.IssueMatchResult
-		filter            *entity.IssueMatchFilter
-	)
-
-	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
-
-		issueMatch = test.NewFakeIssueMatchResult()
-		evidence = test.NewFakeEvidenceEntity()
-		first := 10
-		after := ""
-		filter = &entity.IssueMatchFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-			Id: []*int64{&issueMatch.Id},
-		}
-		handlerContext.DB = db
-		handlerContext.EventReg = er
-	})
-
-	It("adds evidence to issueMatch", func() {
-		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-		issueMatch, err := issueMatchHandler.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
-	})
-
-	It("removes evidence from issueMatch", func() {
-		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-		issueMatch, err := issueMatchHandler.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
-	})
-})
-
 var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceCreate"), func() {
 	var (
 		db                  *mocks.MockDatabase
@@ -632,7 +581,6 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 		})
 
 		When("multiple issue repository with same priority", func() {
-
 			BeforeEach(func() {
 				variants := test.NNewFakeServiceIssueVariantEntity(2, 10, lo.ToPtr(int64(1)))
 				// Mocks
@@ -651,7 +599,6 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				iv, ok := result[1]
 				Expect(ok).To(BeTrue())
 				Expect(iv).To(BeAssignableToTypeOf(entity.ServiceIssueVariant{}))
-
 			})
 		})
 	})
@@ -685,7 +632,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					// Fake issues
 					issueMatch := test.NewFakeIssueMatchResult()
 					issueMatch.IssueId = 2 // issue2.Id
-					//when issueid is 2 return a fake issue match
+					// when issueid is 2 return a fake issue match
 					db.On("GetIssueMatches", mock.Anything, mock.Anything).Return([]entity.IssueMatchResult{issueMatch}, nil).Once()
 				})
 
@@ -697,7 +644,6 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 					db.AssertNumberOfCalls(GinkgoT(), "CreateIssueMatch", 0)
 				})
 			})
-
 		})
 	})
 })

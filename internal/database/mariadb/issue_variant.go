@@ -11,8 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) ensureIssueVariantFilter(f *entity.IssueVariantFilter) *entity.IssueVariantFilter {
-	var first = 1000
+func ensureIssueVariantFilter(f *entity.IssueVariantFilter) *entity.IssueVariantFilter {
+	first := 1000
 	var after int64 = 0
 	if f == nil {
 		return &entity.IssueVariantFilter{
@@ -62,7 +62,7 @@ func (s *SqlDatabase) getIssueVariantJoins(filter *entity.IssueVariantFilter) st
 	return joins
 }
 
-func (s *SqlDatabase) getIssueVariantFilterString(filter *entity.IssueVariantFilter) string {
+func getIssueVariantFilterString(filter *entity.IssueVariantFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "IV.issuevariant_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.SecondaryName, "IV.issuevariant_secondary_name = ?", OP_OR))
@@ -75,7 +75,7 @@ func (s *SqlDatabase) getIssueVariantFilterString(filter *entity.IssueVariantFil
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVariant) string {
+func getIssueVariantUpdateFields(issueVariant *entity.IssueVariant) string {
 	fl := []string{}
 	if issueVariant.SecondaryName != "" {
 		fl = append(fl, "issuevariant_secondary_name = :issuevariant_secondary_name")
@@ -107,10 +107,10 @@ func (s *SqlDatabase) getIssueVariantUpdateFields(issueVariant *entity.IssueVari
 
 func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entity.IssueVariantFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureIssueVariantFilter(filter)
+	filter = ensureIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getIssueVariantFilterString(filter)
+	filterStr := getIssueVariantFilterString(filter)
 	joins := s.getIssueVariantJoins(filter)
 	cursor := getCursor(filter.Paginated, filterStr, "IV.issuevariant_id > ?")
 
@@ -126,7 +126,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entit
 		query = fmt.Sprintf(baseQuery, joins, whereClause)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -139,7 +139,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entit
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.SecondaryName)
@@ -167,7 +167,6 @@ func (s *SqlDatabase) GetAllIssueVariantIds(filter *entity.IssueVariantFilter) (
     `
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +189,6 @@ func (s *SqlDatabase) GetIssueVariants(filter *entity.IssueVariantFilter) ([]ent
     `
 
 	stmt, filterParameters, err := s.buildIssueVariantStatement(baseQuery, filter, true, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +216,6 @@ func (s *SqlDatabase) CountIssueVariants(filter *entity.IssueVariantFilter) (int
 		%s
     `
 	stmt, filterParameters, err := s.buildIssueVariantStatement(baseQuery, filter, false, l)
-
 	if err != nil {
 		return -1, err
 	}
@@ -266,7 +263,6 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 	issueVariantRow.FromIssueVariant(issueVariant)
 
 	id, err := performInsert(s, query, issueVariantRow, l)
-
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +284,7 @@ func (s *SqlDatabase) UpdateIssueVariant(issueVariant *entity.IssueVariant) erro
 		WHERE issuevariant_id = :issuevariant_id
 	`
 
-	updateFields := s.getIssueVariantUpdateFields(issueVariant)
+	updateFields := getIssueVariantUpdateFields(issueVariant)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
