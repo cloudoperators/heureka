@@ -59,4 +59,7 @@ type Mutation {
     createRemediation(input: RemediationInput!): Remediation!
     updateRemediation(id: ID!, input: RemediationInput!): Remediation!
     deleteRemediation(id: ID!): String!
+
+    # Create SIEM alert received from external SIEM system. This will create the Issue/IssueVariant and match it to a ComponentInstance.
+    createSIEMAlert(input: SIEMAlertInput!): SIEMAlert!
 }
