@@ -17,6 +17,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/samber/lo"
 
@@ -34,13 +35,21 @@ func TestIssueMatchHandler(t *testing.T) {
 }
 
 var (
-	er    event.EventRegistry
-	authz openfga.Authorization
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
 )
 
 var _ = BeforeSuite(func() {
-	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	cfg = common.GetTestConfig()
+	enableLogs := false
+	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+	handlerContext = common.HandlerContext{
+		Cache: nil,
+		Authz: authz,
+	}
+	handlerContext.Authz.RemoveAllRelations()
 })
 
 func getIssueMatchFilter() *entity.IssueMatchFilter {
@@ -60,22 +69,20 @@ func getIssueMatchFilter() *entity.IssueMatchFilter {
 
 var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getIssueMatchFilter()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -181,6 +188,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatch
@@ -191,11 +199,13 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ss                severity.SeverityHandler
 		ivs               issue_variant.IssueVariantHandler
 		rs                issue_repository.IssueRepositoryHandler
-		handlerContext    common.HandlerContext
+		r                 openfga.RelationInput
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 		issueMatch = test.NewFakeIssueMatch()
 		ivFilter = entity.NewIssueVariantFilter()
 		irFilter = entity.NewIssueRepositoryFilter()
@@ -205,11 +215,10 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ivFilter.After = &after
 		irFilter.First = &first
 		irFilter.After = &after
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+
+		handlerContext.DB = db
+		handlerContext.EventReg = er
+
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
 		ivs = issue_variant.NewIssueVariantHandler(handlerContext, rs)
 		ss = severity.NewSeverityHandler(handlerContext, ivs)
@@ -242,19 +251,50 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 			Expect(newIssueMatch.Severity.Value).To(BeEquivalentTo(issueMatch.Severity.Value))
 		})
 	})
+
+	Context("when handling a CreateIssueMatchEvent", func() {
+		Context("when new issue match is created", func() {
+			It("should add user resource relationship tuple in openfga", func() {
+				imFake := test.NewFakeIssueMatch()
+				createEvent := &im.CreateIssueMatchEvent{
+					IssueMatch: &imFake,
+				}
+
+				r = openfga.RelationInput{
+					UserType:   openfga.TypeRole,
+					UserId:     "0",
+					ObjectId:   "test_issue_match",
+					ObjectType: openfga.TypeIssueMatch,
+					Relation:   openfga.TypeRole,
+				}
+
+				// Use type assertion to convert a CreateServiceEvent into an Event
+				var event event.Event = createEvent
+				r.ObjectId = openfga.ObjectIdFromInt(createEvent.IssueMatch.Id)
+				// Simulate event
+				im.OnIssueMatchCreateAuthz(db, event, handlerContext.Authz)
+
+				ok, err := handlerContext.Authz.CheckPermission(r)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(ok).To(BeTrue(), "permission should be granted")
+			})
+		})
+	})
 })
 
 var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatchResult
 		filter            *entity.IssueMatchFilter
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 		issueMatch = test.NewFakeIssueMatchResult()
 		first := 10
 		after := ""
@@ -264,11 +304,8 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("updates issueMatch", func() {
@@ -296,20 +333,69 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 			Expect(updatedIssueMatch.Severity.Value).To(BeEquivalentTo(issueMatch.Severity.Value))
 		})
 	})
+
+	Context("when handling an UpdateIssueMatchEvent", func() {
+		It("should update the component_instance relation tuple in openfga", func() {
+			imFake := test.NewFakeIssueMatch()
+			oldComponentInstanceId := int64(12345)
+			newComponentInstanceId := int64(67890)
+
+			// Add an initial relation: issue_match -> old component_instance
+			initialRelation := openfga.RelationInput{
+				UserType:   openfga.TypeComponentInstance,
+				UserId:     openfga.UserIdFromInt(oldComponentInstanceId),
+				Relation:   openfga.RelComponentInstance,
+				ObjectType: openfga.TypeIssueMatch,
+				ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
+			}
+
+			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{initialRelation})
+
+			// Prepare the update event with the new component_instance id
+			imFake.ComponentInstanceId = newComponentInstanceId
+			updateEvent := &im.UpdateIssueMatchEvent{
+				IssueMatch: &imFake,
+			}
+			var event event.Event = updateEvent
+
+			// Simulate event
+			im.OnIssueMatchUpdateAuthz(db, event, handlerContext.Authz)
+
+			// Check that the old relation is gone
+			remainingOld, err := handlerContext.Authz.ListRelations(initialRelation)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remainingOld).To(BeEmpty(), "old relation should be removed")
+
+			// Check that the new relation exists
+			newRelation := openfga.RelationInput{
+				UserType:   openfga.TypeComponentInstance,
+				UserId:     openfga.UserIdFromInt(newComponentInstanceId),
+				Relation:   openfga.RelComponentInstance,
+				ObjectType: openfga.TypeIssueMatch,
+				ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
+			}
+			remainingNew, err := handlerContext.Authz.ListRelations(newRelation)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
+		})
+	})
 })
 
 var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		id                int64
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
+
 		id = 1
 		first := 10
 		after := ""
@@ -320,11 +406,8 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 			},
 		}
 		options = entity.NewListOptions()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("deletes issueMatch", func() {
@@ -339,6 +422,81 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, options)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatches.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	Context("when handling a DeleteIssueMatchEvent", func() {
+		Context("when new issue match is deleted", func() {
+			It("should delete tuples related to that issuematch in openfga", func() {
+				// Test OnIssueMatchDeleteAuthz against all possible relations
+				imFake := test.NewFakeIssueMatch()
+				deleteEvent := &im.DeleteIssueMatchEvent{
+					IssueMatchID: imFake.Id,
+				}
+				objectId := openfga.ObjectIdFromInt(deleteEvent.IssueMatchID)
+				relations := []openfga.RelationInput{
+					{ // user - issue_match: a user can view the issue match
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.IDUser,
+						ObjectId:   objectId,
+						ObjectType: openfga.TypeIssueMatch,
+						Relation:   openfga.RelCanView,
+					},
+					{ // component_instance - issue_match: a component instance is related to the issue match
+						UserType:   openfga.TypeComponentInstance,
+						UserId:     openfga.IDComponentInstance,
+						ObjectId:   objectId,
+						ObjectType: openfga.TypeIssueMatch,
+						Relation:   openfga.RelComponentInstance,
+					},
+					{ // role - issue_match: a role is assigned to the issue match
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.IDRole,
+						ObjectId:   objectId,
+						ObjectType: openfga.TypeIssueMatch,
+						Relation:   openfga.RelRole,
+					},
+				}
+
+				handlerContext.Authz.AddRelationBulk(relations)
+
+				// get the number of relations before deletion
+				relCountBefore := 0
+				for _, r := range relations {
+					relations, err := handlerContext.Authz.ListRelations(r)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					relCountBefore += len(relations)
+				}
+				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
+
+				// check that relations were created
+				for _, r := range relations {
+					ok, err := handlerContext.Authz.CheckPermission(r)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(ok).To(BeTrue(), "permission should be granted")
+				}
+
+				var event event.Event = deleteEvent
+				// Simulate event
+				im.OnIssueMatchDeleteAuthz(db, event, handlerContext.Authz)
+
+				// get the number of relations after deletion
+				relCountAfter := 0
+				for _, r := range relations {
+					relations, err := handlerContext.Authz.ListRelations(r)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					relCountAfter += len(relations)
+				}
+				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
+				Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+
+				// verify that relations were deleted
+				for _, r := range relations {
+					ok, err := handlerContext.Authz.CheckPermission(r)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(ok).To(BeFalse(), "permission should NOT be granted")
+				}
+			})
+		})
 	})
 })
 
