@@ -1,5 +1,3 @@
 FROM bitnami/mariadb:latest
 
 LABEL source_repository="https://github.com/cloudoperators/heureka"
-
-COPY ./internal/database/mariadb/init/schema.sql /docker-entrypoint-initdb.d/

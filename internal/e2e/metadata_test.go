@@ -85,7 +85,7 @@ func parseTimeExpectNoError(t string) time.Time {
 	return tt
 }
 
-var _ = Describe("Creating, updating and state filtering of entity via API", Label("e2e", "Entities"), func() {
+var _ = Describe("Creating, updating and state filtering of entity via API", Label("e2e", "Metadata"), func() {
 	var s *server.Server
 	var cfg util.Config
 	var db *mariadb.SqlDatabase

@@ -5,113 +5,58 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func buildRemediationFilterParameters(filter *entity.RemediationFilter, withCursor bool, cursorFields []Field) []interface{} {
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.Severity)
-	filterParameters = buildQueryParameters(filterParameters, filter.Type)
-	filterParameters = buildQueryParameters(filterParameters, filter.Service)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Component)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Issue)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Search)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
-	}
-	return filterParameters
+var remediationObject = DbObject{
+	Properties: []PropertySpec{
+		Property{Name: "remediation_description", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Description != "" })},
+		Property{Name: "remediation_type", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Type != "" && r.Type != entity.RemediationTypeUnknown })},
+		Property{Name: "remediation_severity", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool {
+			return r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
+		})},
+		Property{Name: "remediation_remediation_date", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return !r.RemediationDate.IsZero() })},
+		Property{Name: "remediation_expiration_date", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return !r.ExpirationDate.IsZero() })},
+		Property{Name: "remediation_service", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Service != "" })},
+		Property{Name: "remediation_service_id", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.ServiceId != 0 })},
+		Property{Name: "remediation_component", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Component != "" })},
+		Property{Name: "remediation_component_id", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.ComponentId != 0 })},
+		Property{Name: "remediation_issue", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Issue != "" })},
+		Property{Name: "remediation_issue_id", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.IssueId != 0 })},
+		Property{Name: "remediation_remediated_by"},
+		Property{Name: "remediation_remediated_by_id"},
+		Property{Name: "remediation_created_by"},
+		Property{Name: "remediation_updated_by", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.UpdatedBy != 0 })},
+	},
+	FilterProperties: []FilterPropertySpec{
+		FilterProperty{Query: "R.remediation_id = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.Id })},
+		FilterProperty{Query: "R.remediation_severity = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Severity })},
+		FilterProperty{Query: "R.remediation_type = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Type })},
+		FilterProperty{Query: "R.remediation_service = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Service })},
+		FilterProperty{Query: "R.remediation_service_id = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.ServiceId })},
+		FilterProperty{Query: "R.remediation_component = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Component })},
+		FilterProperty{Query: "R.remediation_component_id = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.ComponentId })},
+		FilterProperty{Query: "R.remediation_issue = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Issue })},
+		FilterProperty{Query: "R.remediation_issue_id = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.IssueId })},
+		FilterProperty{Query: "R.remediation_issue LIKE Concat('%',?,'%')", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Search })},
+		StateFilterProperty{Prefix: "R.remediation", Param: WrapRetState(func(filter *entity.RemediationFilter) []entity.StateFilterType { return filter.State })},
+	},
 }
 
 func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.RemediationFilter {
-	var first int = 1000
-	var after string = ""
 	if filter == nil {
-		filter = &entity.RemediationFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-		}
+		filter = &entity.RemediationFilter{}
 	}
-	if filter.First == nil {
-		filter.First = &first
-	}
-	if filter.After == nil {
-		filter.After = &after
-	}
-	return filter
-}
-
-func getRemediationUpdateFields(remediation *entity.Remediation) string {
-	fl := []string{}
-	if remediation.Description != "" {
-		fl = append(fl, "remediation_description = :remediation_description")
-	}
-	if remediation.Type != "" && remediation.Type != entity.RemediationTypeUnknown {
-		fl = append(fl, "remediation_type = :remediation_type")
-	}
-	if remediation.Severity != "" && remediation.Severity != entity.SeverityValuesUnknown {
-		fl = append(fl, "remediation_severity = :remediation_severity")
-	}
-	if !remediation.RemediationDate.IsZero() {
-		fl = append(fl, "remediation_remediation_date = :remediation_remediation_date")
-	}
-	if !remediation.ExpirationDate.IsZero() {
-		fl = append(fl, "remediation_expiration_date = :remediation_expiration_date")
-	}
-	if remediation.Service != "" {
-		fl = append(fl, "remediation_service = :remediation_service")
-	}
-	if remediation.ServiceId != 0 {
-		fl = append(fl, "remediation_service_id = :remediation_service_id")
-	}
-	if remediation.Component != "" {
-		fl = append(fl, "remediation_component = :remediation_component")
-	}
-	if remediation.ComponentId != 0 {
-		fl = append(fl, "remediation_component_id = :remediation_component_id")
-	}
-	if remediation.Issue != "" {
-		fl = append(fl, "remediation_issue = :remediation_issue")
-	}
-	if remediation.IssueId != 0 {
-		fl = append(fl, "remediation_issue_id = :remediation_issue_id")
-	}
-	if remediation.UpdatedBy != 0 {
-		fl = append(fl, "remediation_updated_by = :remediation_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
-func getRemediationFilterString(filter *entity.RemediationFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "R.remediation_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Severity, "R.remediation_severity = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Type, "R.remediation_type = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Service, "R.remediation_service = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "R.remediation_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Component, "R.remediation_component = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentId, "R.remediation_component_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Issue, "R.remediation_issue = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "R.remediation_issue_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Search, "R.remediation_issue LIKE Concat('%',?,'%')", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "R.remediation"))
-	return combineFilterQueries(fl, OP_AND)
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity.RemediationFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	filter = ensureRemediationFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getRemediationFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
@@ -121,6 +66,7 @@ func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity
 	order = GetDefaultOrder(order, entity.RemediationId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
+	filterStr := remediationObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -149,7 +95,7 @@ func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity
 		return nil, nil, fmt.Errorf("failed to prepare Remediation statement: %w", err)
 	}
 
-	filterParameters := buildRemediationFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := remediationObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -265,51 +211,18 @@ func (s *SqlDatabase) GetAllRemediationCursors(filter *entity.RemediationFilter,
 	}), nil
 }
 
+// This function can be extracted to generic function, but we would need to change
+// all functions like FromRemediation etc functions to interface (FromRemediation->EntityToRow, AsRemediation->RowToEntity)
 func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entity.Remediation, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"remediation": remediation,
 		"event":       "database.CreateRemediation",
 	})
 
-	query := `
-		INSERT INTO Remediation (
-			remediation_description,
-			remediation_type,
-			remediation_severity,
-			remediation_remediation_date,
-			remediation_expiration_date,
-			remediation_service,
-			remediation_service_id,
-			remediation_component,
-			remediation_component_id,
-			remediation_issue,
-			remediation_issue_id,
-			remediation_remediated_by,
-			remediation_remediated_by_id,
-			remediation_created_by,
-			remediation_updated_by
-		) VALUES (
-			:remediation_description,
-			:remediation_type,
-			:remediation_severity,
-			:remediation_remediation_date,
-			:remediation_expiration_date,
-			:remediation_service,
-			:remediation_service_id,
-			:remediation_component,
-			:remediation_component_id,
-			:remediation_issue,
-			:remediation_issue_id,
-			:remediation_remediated_by,
-			:remediation_remediated_by_id,
-			:remediation_created_by,
-			:remediation_updated_by
-		)
-	`
-
 	remediationRow := RemediationRow{}
 	remediationRow.FromRemediation(remediation)
 
+	query := remediationObject.InsertQuery("Remediation")
 	id, err := performInsert(s, query, remediationRow, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Remediation: %w", err)
@@ -320,6 +233,8 @@ func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entit
 	return remediation, nil
 }
 
+// This function can be extracted to generic function, but we would need to change
+// all functions like FromRemediation etc functions to interface (FromRemediation->EntityToRow, AsRemediation->RowToEntity)
 func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
 	l := logrus.WithFields(logrus.Fields{
 		"remediation": remediation,
@@ -332,8 +247,7 @@ func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
 		WHERE remediation_id = :remediation_id
 	`
 
-	updateFields := getRemediationUpdateFields(remediation)
-
+	updateFields := remediationObject.GetUpdateFields(remediation)
 	query := fmt.Sprintf(baseQuery, updateFields)
 
 	remediationRow := RemediationRow{}
@@ -347,6 +261,7 @@ func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
 	return nil
 }
 
+// This function can be extracted to generic function when CreateRemediation and UpdateRemediation will be generic
 func (s *SqlDatabase) DeleteRemediation(id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
