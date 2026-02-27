@@ -35,18 +35,16 @@ type Config struct {
 	//Environment                string   `envconfig:"ENVIRONMENT" required:"true" json:"environment"`
 	//// https://pkg.go.dev/github.com/robfig/cron#hdr-Predefined_schedules
 	//DiscoverySchedule string `envconfig:"DISOVERY_SCHEDULE" default:"0 0 0 * * *" json:"discoverySchedule"`
-	SeedMode              bool   `envconfig:"SEED_MODE" required:"false" default:"false" json:"seedMode"`
-	AuthTokenSecret       string `envconfig:"AUTH_TOKEN_SECRET" required:"false" json:"-"`
-	AuthOidcClientId      string `envconfig:"AUTH_OIDC_CLIENT_ID" required:"false" json:"-"`
-	AuthOidcUrl           string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
-	AuthzOpenFgaApiUrl    string `envconfig:"AUTHZ_FGA_API_URL" required:"false" json:"-"`
-	AuthzOpenFgaApiToken  string `envconfig:"AUTHZ_FGA_API_TOKEN" required:"false" json:"-"`
-	AuthzOpenFgaStoreName string `envconfig:"AUTHZ_FGA_STORE_NAME" required:"false" json:"-"`
-	AuthzModelFilePath    string `envconfig:"AUTHZ_MODEL_FILE_PATH" required:"false" json:"-"`
-	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
-	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
-	// CurrentUser is a placeholder variable to be implemented for future user context functionality
-	CurrentUser                   string `envconfig:"CURRENT_USER" required:"false" default:"heureka-admin" json:"currentUser"`
+	SeedMode                      bool   `envconfig:"SEED_MODE" required:"false" default:"false" json:"seedMode"`
+	AuthTokenSecret               string `envconfig:"AUTH_TOKEN_SECRET" required:"false" json:"-"`
+	AuthOidcClientId              string `envconfig:"AUTH_OIDC_CLIENT_ID" required:"false" json:"-"`
+	AuthOidcUrl                   string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
+	AuthzOpenFgaApiUrl            string `envconfig:"AUTHZ_FGA_API_URL" required:"false" json:"-"`
+	AuthzOpenFgaApiToken          string `envconfig:"AUTHZ_FGA_API_TOKEN" required:"false" json:"-"`
+	AuthzOpenFgaStoreName         string `envconfig:"AUTHZ_FGA_STORE_NAME" required:"false" json:"-"`
+	AuthzModelFilePath            string `envconfig:"AUTHZ_MODEL_FILE_PATH" required:"false" json:"-"`
+	DefaultIssuePriority          int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
+	DefaultRepositoryName         string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
 	CacheEnable                   bool   `envconfig:"CACHE_ENABLE" default:"false" json:"-"`
 	CacheValkeyUrl                string `envconfig:"CACHE_VALKEY_URL" default:"" json:"-"`
 	CacheValkeyPassword           string `envconfig:"CACHE_VALKEY_PASSWORD" default:"" json:"-"`

@@ -36,7 +36,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db, authz)
+	er = event.NewEventRegistry(db)
 })
 
 var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), func() {

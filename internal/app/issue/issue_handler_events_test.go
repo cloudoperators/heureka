@@ -4,7 +4,6 @@ package issue_test
 
 import (
 	"github.com/cloudoperators/heureka/internal/app/issue"
-	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -38,7 +37,6 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 		issueVariant        entity.IssueVariant
 		serviceIssueVariant entity.ServiceIssueVariant
 		event               *issue.AddComponentVersionToIssueEvent
-		authz               openfga.Authorization
 	)
 
 	BeforeEach(func() {
@@ -108,7 +106,7 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 			db.On("CreateIssueMatch", matchIssueMatch(expectedMatch)).Return(expectedMatch, nil)
 
 			// Emit event
-			issue.OnComponentVersionAttachmentToIssue(db, event, authz)
+			issue.OnComponentVersionAttachmentToIssue(db, event)
 
 			// Assert expectations
 			db.AssertExpectations(GinkgoT())
@@ -127,7 +125,7 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 				IssueId:             []*int64{&issueEntity.Id},
 			}, []entity.Order{}).Return([]entity.IssueMatchResult{existingMatch}, nil)
 
-			issue.OnComponentVersionAttachmentToIssue(db, event, authz)
+			issue.OnComponentVersionAttachmentToIssue(db, event)
 			db.AssertNotCalled(GinkgoT(), "CreateIssueMatch", mock.Anything)
 		})
 	})

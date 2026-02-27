@@ -13,7 +13,6 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/mocks"
-	"github.com/cloudoperators/heureka/internal/openfga"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -41,12 +40,11 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		db     *mocks.MockDatabase
 		ctx    context.Context
 		cancel context.CancelFunc
-		authz  openfga.Authorization
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = NewEventRegistry(db, authz)
+		er = NewEventRegistry(db)
 		ctx, cancel = context.WithCancel(context.Background())
 	})
 
@@ -56,7 +54,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should register and handle events", func() {
 		var eventHandled int32
-		handler := func(db database.Database, e Event, authz openfga.Authorization) {
+		handler := func(db database.Database, e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
 
@@ -71,7 +69,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should handle multiple events", func() {
 		var eventHandled int32
-		handler := func(db database.Database, e Event, authz openfga.Authorization) {
+		handler := func(db database.Database, e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
 		er.Run(ctx)
@@ -88,8 +86,8 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		const numEvents = 10000
 		var eventHandled int64
 
-		handler := func(db database.Database, e Event, authz openfga.Authorization) {
-			time.Sleep(2 * time.Millisecond) //important to ensure that the events are shortly blocking and force channel resizing
+		handler := func(db database.Database, e Event) {
+			time.Sleep(2 * time.Millisecond) // important to ensure that the events are shortly blocking and force channel resizing
 			atomic.AddInt64(&eventHandled, 1)
 		}
 
@@ -131,7 +129,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		const numEvents = 150 // More than channel capacity
 		var eventHandled int64
 
-		handler := func(db database.Database, e Event, authz openfga.Authorization) {
+		handler := func(db database.Database, e Event) {
 			time.Sleep(10 * time.Millisecond) // Slow handler
 			atomic.AddInt64(&eventHandled, 1)
 		}
@@ -165,7 +163,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should handle multiple times when multiple handlers are registered", func() {
 		var eventHandled int32
-		handler := func(db database.Database, e Event, authz openfga.Authorization) {
+		handler := func(db database.Database, e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
 
@@ -183,7 +181,7 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 
 	It("should stop processing on context cancel", func() {
 		var eventHandled int32
-		handler := func(db database.Database, e Event, authz openfga.Authorization) {
+		handler := func(db database.Database, e Event) {
 			atomic.AddInt32(&eventHandled, 1)
 		}
 
