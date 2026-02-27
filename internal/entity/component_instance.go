@@ -123,10 +123,6 @@ type ComponentInstanceFilter struct {
 	State                   []StateFilterType `json:"state"`
 }
 
-func (cif *ComponentInstanceFilter) GetPaginatedX() *PaginatedX {
-	return &cif.PaginatedX
-}
-
 type ComponentInstanceAggregations struct{}
 
 type ComponentInstanceResult struct {

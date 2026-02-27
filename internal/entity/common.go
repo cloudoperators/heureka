@@ -154,6 +154,10 @@ type PaginatedX struct {
 	After *string `json:"from"`
 }
 
+func (p *PaginatedX) GetPaginatedX() *PaginatedX {
+	return p
+}
+
 type HasPagination interface {
 	GetPaginatedX() *PaginatedX
 }
