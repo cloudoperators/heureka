@@ -21,7 +21,7 @@ const (
 
 func buildIssueFilterParametersWithCursor(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
 	filterParameters := buildIssueFilterParameters(filter, cursorFields)
-	filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+	filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	return filterParameters
 }
 
@@ -143,7 +143,7 @@ func ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilter {
 	var after string = ""
 	if f == nil {
 		return &entity.IssueFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -237,7 +237,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
-	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(ifilter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -267,7 +267,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
-	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(ifilter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -347,7 +347,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	filter = ensureIssueFilter(filter)
 	filterStr := getIssueFilterString(filter)
 	joins := getIssueJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, err
 	}

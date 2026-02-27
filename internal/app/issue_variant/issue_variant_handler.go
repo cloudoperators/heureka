@@ -19,9 +19,10 @@ import (
 )
 
 var (
-	CacheTtlGetIssueVariants      = 12 * time.Hour
-	CacheTtlGetAllIssueVariantIds = 12 * time.Hour
-	CacheTtlCountIssueVariants    = 12 * time.Hour
+	CacheTtlGetIssueVariants          = 12 * time.Hour
+	CacheTtlGetAllIssueVariantIds     = 12 * time.Hour
+	CacheTtlGetAllIssueVariantCursors = 12 * time.Hour
+	CacheTtlCountIssueVariants        = 12 * time.Hour
 )
 
 type issueVariantHandler struct {
@@ -54,25 +55,18 @@ func (e *IssueVariantHandlerError) Error() string {
 
 func (iv *issueVariantHandler) getIssueVariantResults(filter *entity.IssueVariantFilter) ([]entity.IssueVariantResult, error) {
 	var ivResults []entity.IssueVariantResult
-	issueVariants, err := cache.CallCached[[]entity.IssueVariant](
+	ivResults, err := cache.CallCached[[]entity.IssueVariantResult](
 		iv.cache,
 		CacheTtlGetIssueVariants,
 		"GetIssueVariants",
 		iv.database.GetIssueVariants,
 		filter,
+		[]entity.Order{},
 	)
 	if err != nil {
 		return nil, err
 	}
-	for _, iv := range issueVariants {
-		issueVariant := iv
-		cursor := fmt.Sprintf("%d", issueVariant.Id)
-		ivResults = append(ivResults, entity.IssueVariantResult{
-			WithCursor:               entity.WithCursor{Value: cursor},
-			IssueVariantAggregations: nil,
-			IssueVariant:             &issueVariant,
-		})
-	}
+
 	return ivResults, nil
 }
 
@@ -94,19 +88,22 @@ func (iv *issueVariantHandler) ListIssueVariants(filter *entity.IssueVariantFilt
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := cache.CallCached[[]int64](
+			cursors, err := cache.CallCached[[]string](
 				iv.cache,
-				CacheTtlGetAllIssueVariantIds,
-				"GetAllIssueVariantIds",
-				iv.database.GetAllIssueVariantIds,
+				CacheTtlGetAllIssueVariantCursors,
+				"GetAllIssueVariantCursors",
+				iv.database.GetAllIssueVariantCursors,
 				filter,
+				options.Order,
 			)
 			if err != nil {
 				l.Error(err)
-				return nil, NewIssueVariantHandlerError("Error while getting all Ids")
+
+				return nil, NewIssueVariantHandlerError("Error while getting IssueVariant cursors")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = cache.CallCached[int64](

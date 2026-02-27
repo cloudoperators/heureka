@@ -511,7 +511,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						db.GetComponentVersions,
 						func(first *int, after *int64, afterX *string) *entity.ComponentVersionFilter {
 							return &entity.ComponentVersionFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: afterX},
 							}
 						},
 						[]entity.Order{},
@@ -570,7 +570,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				It("can count", func() {
 					f := 10
 					filter := &entity.ComponentVersionFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: nil,
 						},

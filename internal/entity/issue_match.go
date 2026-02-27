@@ -54,7 +54,7 @@ type IssueMatch struct {
 }
 
 type IssueMatchFilter struct {
-	PaginatedX
+	Paginated
 	Id                       []*int64          `json:"id"`
 	ServiceCCRN              []*string         `json:"service_ccrn"`
 	SeverityValue            []*string         `json:"severity_value"`

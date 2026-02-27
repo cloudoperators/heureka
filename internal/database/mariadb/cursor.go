@@ -329,3 +329,63 @@ func GetCursorQueryParameters(pagFirst *int, cursorFields []Field) []interface{}
 	}
 	return cursorParameters
 }
+
+func WithUser(order []entity.Order, r entity.User) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.UserID, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.UserID:
+				cursors.fields = append(cursors.fields, Field{Name: entity.UserID, Value: r.Id, Order: o.Direction})
+			case entity.UserUniqueUserID:
+				cursors.fields = append(cursors.fields, Field{Name: entity.UserUniqueUserID, Value: r.Id, Order: o.Direction})
+			case entity.UserName:
+				cursors.fields = append(cursors.fields, Field{Name: entity.UserName, Value: r.Id, Order: o.Direction})
+			}
+		}
+
+		return nil
+	}
+}
+
+func WithIssueVariant(order []entity.Order, r entity.IssueVariant) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.IssueVariantID, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.IssueVariantID:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueVariantID, Value: r.Id, Order: o.Direction})
+			}
+		}
+
+		return nil
+	}
+}
+
+func WithIssueRepository(order []entity.Order, r entity.IssueRepository) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.IssueRepositoryID, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.IssueRepositoryID:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueRepositoryID, Value: r.Id, Order: o.Direction})
+			}
+		}
+
+		return nil
+	}
+}
+
+func WithServiceIssueVariant(order []entity.Order, r entity.ServiceIssueVariant) NewCursor {
+	return func(cursors *cursors) error {
+		order = GetDefaultOrder(order, entity.ServiceIssueVariantID, entity.OrderDirectionAsc)
+		for _, o := range order {
+			switch o.By {
+			case entity.ServiceIssueVariantID:
+				cursors.fields = append(cursors.fields, Field{Name: entity.ServiceIssueVariantID, Value: r.Id, Order: o.Direction})
+			}
+		}
+
+		return nil
+	}
+}

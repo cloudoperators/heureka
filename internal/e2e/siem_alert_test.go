@@ -94,7 +94,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 				Expect(len(issues)).To(Equal(1))
 				issueId := issues[0].Issue.Id
 
-				ivs, err := db.GetIssueVariants(&entity.IssueVariantFilter{IssueId: []*int64{&issueId}})
+				ivs, err := db.GetIssueVariants(&entity.IssueVariantFilter{IssueId: []*int64{&issueId}}, []entity.Order{})
 				Expect(err).To(BeNil())
 				Expect(len(ivs)).To(BeNumerically(">=", 1))
 
@@ -182,7 +182,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 
 				// Verify the IssueRepository in the database
 				repoFilter := &entity.IssueRepositoryFilter{Name: []*string{&source}}
-				repos, err := db.GetIssueRepositories(repoFilter)
+				repos, err := db.GetIssueRepositories(repoFilter, []entity.Order{})
 				Expect(err).To(BeNil())
 				Expect(len(repos)).To(Equal(1))
 				Expect(repos[0].Name).To(Equal(source))
@@ -195,7 +195,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 				ivs, err := db.GetIssueVariants(&entity.IssueVariantFilter{
 					IssueId:           []*int64{&issueId},
 					IssueRepositoryId: []*int64{&repos[0].Id},
-				})
+				}, []entity.Order{})
 				Expect(err).To(BeNil())
 				Expect(len(ivs)).To(Equal(1))
 			})

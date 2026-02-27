@@ -30,7 +30,7 @@ func ensureComponentFilter(f *entity.ComponentFilter) *entity.ComponentFilter {
 	after := ""
 	if f == nil {
 		return &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -155,7 +155,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 
 	filterStr := getComponentFilterString(filter)
 	joins := s.getComponentJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -202,7 +202,7 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil

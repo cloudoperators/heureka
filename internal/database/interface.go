@@ -20,16 +20,18 @@ type Database interface {
 	RemoveComponentVersionFromIssue(int64, int64) error
 	GetIssueNames(*entity.IssueFilter) ([]string, error)
 
-	GetServiceIssueVariants(*entity.ServiceIssueVariantFilter) ([]entity.ServiceIssueVariant, error)
-	GetIssueVariants(*entity.IssueVariantFilter) ([]entity.IssueVariant, error)
+	GetServiceIssueVariants(*entity.ServiceIssueVariantFilter, []entity.Order) ([]entity.ServiceIssueVariantResult, error)
+	GetIssueVariants(*entity.IssueVariantFilter, []entity.Order) ([]entity.IssueVariantResult, error)
 	GetAllIssueVariantIds(*entity.IssueVariantFilter) ([]int64, error)
+	GetAllIssueVariantCursors(*entity.IssueVariantFilter, []entity.Order) ([]string, error)
 	CountIssueVariants(*entity.IssueVariantFilter) (int64, error)
 	CreateIssueVariant(*entity.IssueVariant) (*entity.IssueVariant, error)
 	UpdateIssueVariant(*entity.IssueVariant) error
 	DeleteIssueVariant(int64, int64) error
 
-	GetIssueRepositories(*entity.IssueRepositoryFilter) ([]entity.IssueRepository, error)
+	GetIssueRepositories(*entity.IssueRepositoryFilter, []entity.Order) ([]entity.IssueRepositoryResult, error)
 	GetAllIssueRepositoryIds(*entity.IssueRepositoryFilter) ([]int64, error)
+	GetAllIssueRepositoryCursors(*entity.IssueRepositoryFilter, []entity.Order) ([]string, error)
 	CountIssueRepositories(*entity.IssueRepositoryFilter) (int64, error)
 	CreateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
 	UpdateIssueRepository(*entity.IssueRepository) error
@@ -61,8 +63,9 @@ type Database interface {
 	GetServiceDomains(*entity.ServiceFilter) ([]string, error)
 	GetServiceRegions(*entity.ServiceFilter) ([]string, error)
 
-	GetUsers(*entity.UserFilter) ([]entity.User, error)
+	GetUsers(*entity.UserFilter) ([]entity.UserResult, error)
 	GetAllUserIds(*entity.UserFilter) ([]int64, error)
+	GetAllUserCursors(*entity.UserFilter, []entity.Order) ([]string, error)
 	CountUsers(*entity.UserFilter) (int64, error)
 	CreateUser(*entity.User) (*entity.User, error)
 	UpdateUser(*entity.User) error

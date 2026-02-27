@@ -178,7 +178,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 						db.GetPatches,
 						func(first *int, after *int64, afterX *string) *entity.PatchFilter {
 							return &entity.PatchFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: afterX},
 							}
 						},
 						[]entity.Order{},
@@ -238,7 +238,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					f := 10
 					after := ""
 					filter := &entity.PatchFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},

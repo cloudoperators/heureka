@@ -13,7 +13,7 @@ type Patch struct {
 }
 
 type PatchFilter struct {
-	PaginatedX
+	Paginated
 	Id                   []*int64          `json:"id"`
 	ServiceId            []*int64          `json:"service_id"`
 	ServiceName          []*string         `json:"service_name"`

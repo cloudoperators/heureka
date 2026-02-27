@@ -61,7 +61,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 			req.Var("filter", map[string]string{})
 			req.Var("first", 10)
-			req.Var("after", "0")
+			req.Var("after", "")
 
 			req.Header.Set("Cache-Control", "no-cache")
 			ctx := context.Background()
@@ -98,7 +98,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 5)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()
@@ -131,7 +131,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 
 					req.Var("filter", map[string]string{})
 					req.Var("first", 3)
-					req.Var("after", "0")
+					req.Var("after", "")
 
 					req.Header.Set("Cache-Control", "no-cache")
 					ctx := context.Background()

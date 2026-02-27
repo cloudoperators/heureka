@@ -17,7 +17,7 @@ func ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.Co
 	var after string = ""
 	if f == nil {
 		return &entity.ComponentInstanceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -136,7 +136,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getComponentInstanceFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
 	}
@@ -196,7 +196,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionVersion)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil

@@ -351,7 +351,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					f := 10
 					after := ""
 					filter := &entity.SupportGroupFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},

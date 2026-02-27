@@ -6,23 +6,32 @@ package user
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	CacheTtlGetAllUserCursors = 12 * time.Hour
+	CacheTtlGetUsers          = 12 * time.Hour
+)
+
 type userHandler struct {
 	database      database.Database
+	cache         cache.Cache
 	eventRegistry event.EventRegistry
 }
 
 func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
 	return &userHandler{
 		database:      handlerContext.DB,
+		cache:         handlerContext.Cache,
 		eventRegistry: handlerContext.EventReg,
 	}
 }
@@ -39,23 +48,23 @@ func NewUserHandlerError(msg string) *UserHandlerError {
 	return &UserHandlerError{msg: msg}
 }
 
-func (u *userHandler) getUserResults(filter *entity.UserFilter) ([]entity.UserResult, error) {
-	var userResults []entity.UserResult
-	users, err := u.database.GetUsers(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, u := range users {
-		user := u
-		cursor := fmt.Sprintf("%d", user.Id)
-		userResults = append(userResults, entity.UserResult{
-			WithCursor:       entity.WithCursor{Value: cursor},
-			UserAggregations: nil,
-			User:             &user,
-		})
-	}
-	return userResults, nil
-}
+// func (u *userHandler) getUserResults(filter *entity.UserFilter) ([]entity.UserResult, error) {
+// 	var userResults []entity.UserResult
+// 	users, err := u.database.GetUsers(filter)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	for _, u := range users {
+// 		user := u
+// 		cursor := fmt.Sprintf("%d", user.Id)
+// 		userResults = append(userResults, entity.UserResult{
+// 			WithCursor:       entity.WithCursor{Value: cursor},
+// 			UserAggregations: nil,
+// 			User:             &user,
+// 		})
+// 	}
+// 	return userResults, nil
+// }
 
 func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListOptions) (*entity.List[entity.UserResult], error) {
 	var count int64
@@ -68,21 +77,36 @@ func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListO
 		"filter": filter,
 	})
 
-	res, err := u.getUserResults(filter)
+	res, err := cache.CallCached[[]entity.UserResult](
+		u.cache,
+		CacheTtlGetUsers,
+		"GetUsers",
+		u.database.GetUsers,
+		filter,
+	)
 	if err != nil {
 		l.Error(err)
-		return nil, NewUserHandlerError("Error while filtering for Users")
+		return nil, NewUserHandlerError("Error while getting Users")
 	}
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := u.database.GetAllUserIds(filter)
+			cursors, err := cache.CallCached[[]string](
+				u.cache,
+				CacheTtlGetAllUserCursors,
+				"GetAllUserCursors",
+				u.database.GetAllUserCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
 				l.Error(err)
-				return nil, NewUserHandlerError("Error while getting all Ids")
+
+				return nil, NewUserHandlerError("Error while getting User cursors")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = u.database.CountUsers(filter)

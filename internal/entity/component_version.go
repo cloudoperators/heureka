@@ -4,7 +4,7 @@
 package entity
 
 type ComponentVersionFilter struct {
-	PaginatedX
+	Paginated
 	Id            []*int64  `json:"id"`
 	IssueId       []*int64  `json:"issue_id"`
 	ComponentCCRN []*string `json:"component_ccrn"`

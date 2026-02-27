@@ -20,7 +20,7 @@ func buildPatchFilterParameters(filter *entity.PatchFilter, withCursor bool, cur
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionName)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 
 	return filterParameters
@@ -31,7 +31,7 @@ func ensurePatchFilter(filter *entity.PatchFilter) *entity.PatchFilter {
 	var after string = ""
 	if filter == nil {
 		filter = &entity.PatchFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -85,7 +85,7 @@ func (s *SqlDatabase) buildPatchStatement(baseQuery string, filter *entity.Patch
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getPatchFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Patch cursor: %w", err)
 	}

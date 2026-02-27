@@ -62,7 +62,7 @@ func ensureSupportGroupFilter(f *entity.SupportGroupFilter) *entity.SupportGroup
 	var after string = ""
 	if f == nil {
 		return &entity.SupportGroupFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -88,7 +88,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getSupportGroupFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,7 +134,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	filterParameters = buildQueryParameters(filterParameters, filter.UserId)
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil

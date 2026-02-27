@@ -539,7 +539,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						db.GetIssues,
 						func(first *int, after *int64, afterX *string) *entity.IssueFilter {
 							return &entity.IssueFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: afterX},
 							}
 						},
 						[]entity.Order{},
@@ -685,7 +685,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					first := 1
 					var after string = ""
 					filter := &entity.IssueFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &first,
 							After: &after,
 						},

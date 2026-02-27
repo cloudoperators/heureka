@@ -60,7 +60,7 @@ type Remediation struct {
 }
 
 type RemediationFilter struct {
-	PaginatedX
+	Paginated
 	Id          []*int64          `json:"id"`
 	Severity    []*string         `json:"severity"`
 	Service     []*string         `json:"service"`

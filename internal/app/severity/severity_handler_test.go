@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestSeverityHandler(t *testing.T) {
@@ -50,6 +51,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		ivFilter         *entity.IssueVariantFilter
 		irFilter         *entity.IssueRepositoryFilter
 		issueVariants    []entity.IssueVariant
+		ivResults        []entity.IssueVariantResult
 		repositories     []entity.IssueRepository
 		maxSeverityScore float64
 		authz            openfga.Authorization
@@ -62,7 +64,7 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		ivFilter = entity.NewIssueVariantFilter()
 		first := 10
 		ivFilter.First = &first
-		var after int64 = 0
+		var after string
 		ivFilter.After = &after
 		irFilter = entity.NewIssueRepositoryFilter()
 		irFilter.First = &first
@@ -88,13 +90,30 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 			irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
 				return &item.IssueRepositoryId
 			})
-			db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
-			db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
+
+			ivResults = make([]entity.IssueVariantResult, 0, len(issueVariants))
+
+			for _, iv := range issueVariants {
+				ivResults = append(ivResults, entity.IssueVariantResult{
+					IssueVariant: &iv,
+				})
+			}
+
+			irResults := make([]entity.IssueRepositoryResult, 0, len(repositories))
+
+			for _, ir := range repositories {
+				irResults = append(irResults, entity.IssueRepositoryResult{
+					IssueRepository: &ir,
+				})
+			}
+
+			db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
+			db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 		})
 		When("higher priority issue variant has highest severity score", func() {
 			BeforeEach(func() {
 				maxSeverityScore = 90000.0
-				issueVariants[1].Severity.Score = maxSeverityScore
+				ivResults[1].Severity.Score = maxSeverityScore
 			})
 			It("returns severity value", func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
@@ -107,8 +126,8 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 		When("lower priority issueVariant has highest score", func() {
 			BeforeEach(func() {
 				maxSeverityScore = 90000.0
-				issueVariants[0].Severity.Score = maxSeverityScore
-				issueVariants[1].Severity.Score = maxSeverityScore - 1
+				ivResults[0].Severity.Score = maxSeverityScore
+				ivResults[1].Severity.Score = maxSeverityScore - 1
 			})
 			It("returns severity value", func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)
@@ -131,14 +150,31 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 			irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
 				return &item.IssueRepositoryId
 			})
-			db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
-			db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
+
+			ivResults = make([]entity.IssueVariantResult, 0, len(issueVariants))
+
+			for _, iv := range issueVariants {
+				ivResults = append(ivResults, entity.IssueVariantResult{
+					IssueVariant: &iv,
+				})
+			}
+
+			irResults := make([]entity.IssueRepositoryResult, 0, len(repositories))
+
+			for _, ir := range repositories {
+				irResults = append(irResults, entity.IssueRepositoryResult{
+					IssueRepository: &ir,
+				})
+			}
+
+			db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
+			db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 		})
 		When("issueVariants have different severity score", func() {
 			BeforeEach(func() {
 				maxSeverityScore = 90000.0
-				issueVariants[0].Severity.Score = maxSeverityScore
-				issueVariants[1].Severity.Score = maxSeverityScore - 1
+				ivResults[0].Severity.Score = maxSeverityScore
+				ivResults[1].Severity.Score = maxSeverityScore - 1
 			})
 			It("return severity value", func() {
 				severityHandler = ss.NewSeverityHandler(handlerContext, ivs)

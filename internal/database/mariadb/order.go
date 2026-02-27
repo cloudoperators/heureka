@@ -43,8 +43,14 @@ func ColumnName(f entity.OrderByField) string {
 		return "componentversion_repository"
 	case entity.IssueId:
 		return "issue_id"
+	case entity.IssueVariantID:
+		return "issuevariant_id"
 	case entity.IssueVariantRating:
 		return "issuevariant_rating_num"
+	case entity.ServiceIssueVariantID:
+		return "issuevariant_id"
+	case entity.IssueRepositoryID:
+		return "issuerepository_id"
 	case entity.IssuePrimaryName:
 		return "issue_primary_name"
 	case entity.IssueMatchId:
@@ -81,6 +87,12 @@ func ColumnName(f entity.OrderByField) string {
 		return "remediation_expiration_date"
 	case entity.PatchId:
 		return "patch_id"
+	case entity.UserID:
+		return "user_id"
+	case entity.UserUniqueUserID:
+		return "user_unique_user_id"
+	case entity.UserName:
+		return "user_name"
 	default:
 		return ""
 	}

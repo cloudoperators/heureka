@@ -5,11 +5,9 @@ package entity
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	interutil "github.com/cloudoperators/heureka/internal/util"
-	"github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/sirupsen/logrus"
@@ -18,13 +16,15 @@ import (
 type HeurekaEntity interface {
 	IssueVariant |
 		IssueVariantAggregations |
+		IssueVariantResult |
 		BaseIssueRepository |
+		ServiceIssueVariantResult |
 		IssueRepository |
 		IssueRepositoryAggregations |
+		IssueRepositoryResult |
 		ResultList |
 		ListOptions |
 		PageInfo |
-		Paginated |
 		Severity |
 		Cvss |
 		Component |
@@ -47,6 +47,7 @@ type HeurekaEntity interface {
 		SupportGroupService |
 		SupportGroupUser |
 		User |
+		UserResult |
 		UserAggregations |
 		IssueWithAggregations |
 		IssueAggregations |
@@ -145,19 +146,8 @@ type TimeFilter struct {
 }
 
 type Paginated struct {
-	First *int   `json:"first"`
-	After *int64 `json:"from"`
-}
-
-type PaginatedX struct {
 	First *int    `json:"first"`
 	After *string `json:"from"`
-}
-
-func MaxPaginated() Paginated {
-	return Paginated{
-		First: util.Ptr(math.MaxInt),
-	}
 }
 
 type Severity struct {

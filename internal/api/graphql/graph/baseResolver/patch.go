@@ -39,7 +39,7 @@ func PatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.Patch
 	}
 
 	f := &entity.PatchFilter{
-		PaginatedX:           entity.PaginatedX{First: first, After: after},
+		Paginated:            entity.Paginated{First: first, After: after},
 		Id:                   ids,
 		ServiceId:            serviceIds,
 		ServiceName:          filter.ServiceName,
