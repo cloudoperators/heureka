@@ -33,18 +33,6 @@ type componentInstanceHandler struct {
 	logger        *logrus.Logger
 }
 
-type ComponentInstanceHandlerError struct {
-	msg string
-}
-
-func (e *ComponentInstanceHandlerError) Error() string {
-	return fmt.Sprintf("ComponentInstanceHandlerError: %s", e.msg)
-}
-
-func NewComponentInstanceHandlerError(msg string) *ComponentInstanceHandlerError {
-	return &ComponentInstanceHandlerError{msg: msg}
-}
-
 func NewComponentInstanceHandler(handlerContext common.HandlerContext) ComponentInstanceHandler {
 	return &componentInstanceHandler{
 		database:      handlerContext.DB,

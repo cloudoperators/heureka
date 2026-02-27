@@ -33,3 +33,4 @@ build/
 internal/mocks/*.go
 internal/api/graphql/graph/model/models_gen.go
 internal/api/graphql/graph/generated.go
+
