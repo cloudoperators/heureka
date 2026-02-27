@@ -53,7 +53,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 				map[string]any{
 					"filter": map[string]string{},
 					"first":  10,
-					"after":  "0",
+					"after":  "",
 				},
 				nil,
 			)
@@ -80,7 +80,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 						map[string]any{
 							"filter": map[string]string{},
 							"first":  5,
-							"after":  "0",
+							"after":  "",
 						},
 						nil,
 					)
@@ -103,7 +103,7 @@ var _ = Describe("Getting Users via API", Label("e2e", "Users"), func() {
 						map[string]any{
 							"filter": map[string]string{},
 							"first":  5,
-							"after":  "0",
+							"after":  "",
 						},
 						nil,
 					)

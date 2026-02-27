@@ -31,7 +31,7 @@ func buildServiceFilterParameters(filter *entity.ServiceFilter, withCursor bool,
 	filterParameters = buildQueryParameters(filterParameters, filter.OwnerId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 	return filterParameters
 }
@@ -131,7 +131,7 @@ func ensureServiceFilter(f *entity.ServiceFilter) *entity.ServiceFilter {
 	var after string = ""
 	if f == nil {
 		return &entity.ServiceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -178,7 +178,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getServiceFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -242,27 +242,6 @@ func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error)
 	defer stmt.Close()
 
 	return performCountScan(stmt, filterParameters, l)
-}
-
-func (s *SqlDatabase) GetAllServiceIds(filter *entity.ServiceFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetServiceIds",
-	})
-
-	baseQuery := `
-		SELECT S.service_id FROM Service S 
-		%s
-	 	%s GROUP BY S.service_id ORDER BY %s
-    `
-
-	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, []entity.Order{}, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer stmt.Close()
-
-	return performIdScan(stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.Order) ([]entity.ServiceResult, error) {
@@ -361,7 +340,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	orderStr := CreateOrderString(order)
 	joins := s.getServiceJoins(filter, order)
 	columns := s.getServiceColumns(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, err
 	}

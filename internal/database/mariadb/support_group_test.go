@@ -31,83 +31,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	When("Getting All SupportGroup IDs", Label("GetAllSupportGroupIds"), func() {
-		Context("and the database is empty", func() {
-			It("can perform the query", func() {
-				res, err := db.GetAllSupportGroupIds(nil)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-				By("returning an empty list", func() {
-					Expect(res).To(BeEmpty())
-				})
-			})
-		})
-		Context("and we have 20 Services in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-
-				for _, s := range seedCollection.ServiceRows {
-					ids = append(ids, s.Id.Int64)
-				}
-			})
-			Context("and using no filter", func() {
-				It("can fetch the items correctly", func() {
-					res, err := db.GetAllSupportGroupIds(nil)
-
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.SupportGroupRows)))
-					})
-
-					By("returning the correct order", func() {
-						var prev int64 = 0
-						for _, r := range res {
-
-							Expect(r > prev).Should(BeTrue())
-							prev = r
-
-						}
-					})
-
-					By("returning the correct fields", func() {
-						for _, r := range res {
-							Expect(lo.Contains(ids, r)).To(BeTrue())
-						}
-					})
-				})
-			})
-			Context("and using a filter", func() {
-				It("can filter by a single support group id that does exist", func() {
-					sId := ids[rand.Intn(len(ids))]
-					filter := &entity.SupportGroupFilter{
-						Id: []*int64{&sId},
-					}
-
-					entries, err := db.GetAllSupportGroupIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(1))
-					})
-
-					By("returning expected elements", func() {
-						Expect(entries[0]).To(BeEquivalentTo(sId))
-					})
-				})
-			})
-		})
-	})
-
 	When("Getting SupportGroups", Label("GetSupportGroups"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
@@ -351,7 +274,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					f := 10
 					after := ""
 					filter := &entity.SupportGroupFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,9 +26,26 @@ func getUserFilterString(filter *entity.UserFilter) string {
 	return combineFilterQueries(fl, OP_AND)
 }
 
+func buildUserFilterParameters(filter *entity.UserFilter, withCursor bool, cursorFields []Field) []any {
+	var filterParameters []any
+	filterParameters = buildQueryParameters(filterParameters, filter.Id)
+	filterParameters = buildQueryParameters(filterParameters, filter.Name)
+	filterParameters = buildQueryParameters(filterParameters, filter.UniqueUserID)
+	filterParameters = buildQueryParameters(filterParameters, filter.Type)
+	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
+	filterParameters = buildQueryParameters(filterParameters, filter.Email)
+	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
+
+	if withCursor {
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
+	}
+
+	return filterParameters
+}
+
 func ensureUserFilter(f *entity.UserFilter) *entity.UserFilter {
 	var first int = 1000
-	var after int64 = 0
+	var after string
 	if f == nil {
 		return &entity.UserFilter{
 			Paginated: entity.Paginated{
@@ -88,28 +106,38 @@ func (s *SqlDatabase) getUserJoins(filter *entity.UserFilter) string {
 	return joins
 }
 
-func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
-	var query string
+func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
 	filter = ensureUserFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getUserFilterString(filter)
 	joins := s.getUserJoins(filter)
-	cursor := getCursor(filter.Paginated, filterStr, "U.user_id > ?")
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to decode User cursor: %w", err)
+	}
+
+	cursorQuery := CreateCursorQuery("", cursorFields)
+
+	order = GetDefaultOrder(order, entity.UserID, entity.OrderDirectionAsc)
+	orderStr := CreateOrderString(order)
 
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
 	}
 
-	// construct final query
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause)
+	if filterStr != "" && withCursor && cursorQuery != "" {
+		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
 
-	// construct prepared statement and if where clause does exist add parameters
+	var query string
+	if withCursor {
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+	} else {
+		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+	}
+
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -119,22 +147,10 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
-		return nil, nil, fmt.Errorf("%s", msg)
+		return nil, nil, fmt.Errorf("failed to prepare User statement: %w", err)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.Name)
-	filterParameters = buildQueryParameters(filterParameters, filter.UniqueUserID)
-	filterParameters = buildQueryParameters(filterParameters, filter.Type)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Email) // Add this line
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	if withCursor {
-		filterParameters = append(filterParameters, cursor.Value)
-		filterParameters = append(filterParameters, cursor.Limit)
-	}
+	filterParameters := buildUserFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -147,10 +163,11 @@ func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) 
 	baseQuery := `
 		SELECT U.user_id FROM User U 
 		%s
-	 	%s GROUP BY U.user_id ORDER BY U.user_id
+		%s
+	 	GROUP BY U.user_id ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, []entity.Order{}, l)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +177,51 @@ func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) 
 	return performIdScan(stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.User, error) {
+func (s *SqlDatabase) GetAllUserCursors(filter *entity.UserFilter, order []entity.Order) ([]string, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"filter": filter,
+		"event":  "database.GetAllUserCursors",
+	})
+
+	baseQuery := `
+		SELECT U.* FROM User U 
+		%s
+		%s GROUP BY U.user_id ORDER BY %s
+	`
+
+	filter = ensureUserFilter(filter)
+	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, order, l)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build User cursor query: %w", err)
+	}
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error while close statement: %s", err.Error())
+		}
+	}()
+
+	rows, err := performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []RowComposite, e RowComposite) []RowComposite {
+			return append(l, e)
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get User cursors: %w", err)
+	}
+
+	return lo.Map(rows, func(row RowComposite, _ int) string {
+		r := row.AsUser()
+
+		cursor, _ := EncodeCursor(WithUser(order, r))
+
+		return cursor
+	}), nil
+}
+
+func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.UserResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetUsers",
 	})
@@ -169,24 +230,33 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.User, error)
 		SELECT U.* FROM User U
 		%s
 		%s
-		%s GROUP BY U.user_id ORDER BY U.user_id LIMIT ?
+		%s GROUP BY U.user_id ORDER BY %s LIMIT ?
     `
 
 	filter = ensureUserFilter(filter)
-	baseQuery = fmt.Sprintf(baseQuery, "%s", "%s", "%s")
 
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, true, l)
+	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, true, []entity.Order{}, l)
 	if err != nil {
 		return nil, err
 	}
-
 	defer stmt.Close()
+
 	return performListScan(
 		stmt,
 		filterParameters,
 		l,
-		func(l []entity.User, e UserRow) []entity.User {
-			return append(l, e.AsUser())
+		func(l []entity.UserResult, e UserRow) []entity.UserResult {
+			u := e.AsUser()
+			cursor, _ := EncodeCursor(WithUser([]entity.Order{}, u))
+
+			ur := entity.UserResult{
+				WithCursor: entity.WithCursor{
+					Value: cursor,
+				},
+				User: &u,
+			}
+
+			return append(l, ur)
 		},
 	)
 }
@@ -200,8 +270,9 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 		SELECT count(distinct U.user_id) FROM User U
 		%s
 		%s
+		ORDER BY %s
 	`
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, []entity.Order{}, l)
 	if err != nil {
 		return -1, err
 	}
@@ -302,17 +373,21 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 	})
 
 	baseQuery := `
-    SELECT U.user_name FROM User U
-    %s
-    %s
-    ORDER BY U.user_name
+		SELECT U.user_name FROM User U
+		%s
+		%s
+		ORDER BY %s
     `
 
 	// Ensure the filter is initialized
 	filter = ensureUserFilter(filter)
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, []entity.Order{
+		{
+			By: entity.UserName,
+		},
+	}, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err
@@ -352,17 +427,21 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
 	})
 
 	baseQuery := `
-    SELECT U.user_unique_user_id FROM User U
-    %s
-    %s
-    ORDER BY U.user_unique_user_id
+		SELECT U.user_unique_user_id FROM User U
+		%s
+		%s
+		ORDER BY %s
     `
 
 	// Ensure the filter is initialized
 	filter = ensureUserFilter(filter)
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, []entity.Order{
+		{
+			By: entity.UserUniqueUserID,
+		},
+	}, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err

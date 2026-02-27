@@ -371,9 +371,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
 					test.TestPaginationOfListWithOrder(
 						db.GetRemediations,
-						func(first *int, after *int64, afterX *string) *entity.RemediationFilter {
+						func(first *int, after *string) *entity.RemediationFilter {
 							return &entity.RemediationFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: after},
 							}
 						},
 						[]entity.Order{},
@@ -489,7 +489,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					f := 10
 					after := ""
 					filter := &entity.RemediationFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},

@@ -145,7 +145,7 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 
 func getIssueFilter() *entity.IssueFilter {
 	return &entity.IssueFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -479,7 +479,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		first := 10
 		after := ""
 		filter = &entity.IssueFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -634,7 +634,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 		first := 10
 		after := ""
 		filter = &entity.IssueFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -766,7 +766,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 		first := 10
 		after := ""
 		filter = &entity.IssueFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},

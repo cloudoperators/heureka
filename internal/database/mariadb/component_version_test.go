@@ -29,149 +29,6 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 		dbm.TestTearDown(db)
 	})
 
-	When("Getting All ComponentVersion IDs", Label("GetAllComponentVersionIds"), func() {
-		Context("and the database is empty", func() {
-			It("can perform the query", func() {
-				res, err := db.GetAllComponentVersionIds(nil)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-				By("returning an empty list", func() {
-					Expect(res).To(BeEmpty())
-				})
-			})
-		})
-		Context("and we have 20 ComponentVersions in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-
-				for _, cv := range seedCollection.ComponentVersionRows {
-					ids = append(ids, cv.Id.Int64)
-				}
-			})
-			Context("and using no filter", func() {
-				It("can fetch the items correctly", func() {
-					res, err := db.GetAllComponentVersionIds(nil)
-
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentVersionRows)))
-					})
-
-					By("returning the correct order", func() {
-						var prev int64 = 0
-						for _, r := range res {
-							Expect(r > prev).Should(BeTrue())
-							prev = r
-						}
-					})
-
-					By("returning the correct fields", func() {
-						for _, r := range res {
-							Expect(lo.Contains(ids, r)).To(BeTrue())
-						}
-					})
-				})
-			})
-			Context("and using a filter", func() {
-				It("can filter by a single componentVersion id that does exist", func() {
-					cvId := ids[rand.Intn(len(ids))]
-					filter := &entity.ComponentVersionFilter{
-						Id: []*int64{&cvId},
-					}
-
-					entries, err := db.GetAllComponentVersionIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(1))
-					})
-
-					By("returning expected elements", func() {
-						Expect(entries[0]).To(BeEquivalentTo(cvId))
-					})
-				})
-				It("can filter by end of life as true value", func() {
-					endOfLifeAsTrue := true
-
-					filter := &entity.ComponentVersionFilter{
-						EndOfLife: []*bool{&endOfLifeAsTrue},
-					}
-
-					ids, err := db.GetAllComponentVersionIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning versions without end of life", func() {
-						Expect(ids).ToNot(BeEmpty())
-					})
-
-					cvFilterIDs := make([]*int64, 0, len(ids))
-					for _, id := range ids {
-						cvFilterIDs = append(cvFilterIDs, &id)
-					}
-
-					res, err := db.GetComponentVersions(&entity.ComponentVersionFilter{
-						Id: cvFilterIDs,
-					}, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					for _, r := range res {
-						Expect(*r.EndOfLife).To(BeTrue())
-					}
-				})
-				It("can filter by end of life as false value", func() {
-					endOfLifeAsFalse := false
-
-					filter := &entity.ComponentVersionFilter{
-						EndOfLife: []*bool{&endOfLifeAsFalse},
-					}
-
-					ids, err := db.GetAllComponentVersionIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning versions without end of life", func() {
-						Expect(ids).ToNot(BeEmpty())
-					})
-
-					cvFilterIDs := make([]*int64, 0, len(ids))
-					for _, id := range ids {
-						cvFilterIDs = append(cvFilterIDs, &id)
-					}
-
-					res, err := db.GetComponentVersions(&entity.ComponentVersionFilter{
-						Id: cvFilterIDs,
-					}, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					for _, r := range res {
-						Expect(*r.EndOfLife).To(BeFalse())
-					}
-				})
-			})
-		})
-	})
-
 	When("Getting ComponentVersions", Label("GetComponentVersions"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
@@ -509,9 +366,9 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
 					test.TestPaginationOfListWithOrder(
 						db.GetComponentVersions,
-						func(first *int, after *int64, afterX *string) *entity.ComponentVersionFilter {
+						func(first *int, after *string) *entity.ComponentVersionFilter {
 							return &entity.ComponentVersionFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: after},
 							}
 						},
 						[]entity.Order{},
@@ -570,7 +427,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				It("can count", func() {
 					f := 10
 					filter := &entity.ComponentVersionFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: nil,
 						},

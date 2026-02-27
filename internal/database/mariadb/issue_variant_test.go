@@ -28,87 +28,10 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	When("Getting All IssueVariant IDs", Label("GetAllIssueVariantIds"), func() {
-		Context("and the database is empty", func() {
-			It("can perform the query", func() {
-				res, err := db.GetAllIssueVariantIds(nil)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-				By("returning an empty list", func() {
-					Expect(res).To(BeEmpty())
-				})
-			})
-		})
-		Context("and we have 20 Issue Variants in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-
-				for _, a := range seedCollection.IssueVariantRows {
-					ids = append(ids, a.Id.Int64)
-				}
-			})
-			Context("and using no filter", func() {
-				It("can fetch the items correctly", func() {
-					res, err := db.GetAllIssueVariantIds(nil)
-
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.IssueVariantRows)))
-					})
-
-					By("returning the correct order", func() {
-						var prev int64 = 0
-						for _, r := range res {
-
-							Expect(r > prev).Should(BeTrue())
-							prev = r
-
-						}
-					})
-
-					By("returning the correct fields", func() {
-						for _, r := range res {
-							Expect(lo.Contains(ids, r)).To(BeTrue())
-						}
-					})
-				})
-			})
-			Context("and using a filter", func() {
-				It("can filter by a single issue variant id that does exist", func() {
-					ivId := ids[rand.Intn(len(ids))]
-					filter := &entity.IssueVariantFilter{
-						Id: []*int64{&ivId},
-					}
-
-					entries, err := db.GetAllIssueVariantIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(1))
-					})
-
-					By("returning expected elements", func() {
-						Expect(entries[0]).To(BeEquivalentTo(ivId))
-					})
-				})
-			})
-		})
-	})
-
 	When("Getting IssueVariants", Label("GetIssueVariants"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
-				res, err := db.GetIssueVariants(nil)
+				res, err := db.GetIssueVariants(nil, []entity.Order{})
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -125,7 +48,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetIssueVariants(nil)
+					res, err := db.GetIssueVariants(nil, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -169,7 +92,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Id: []*int64{&issueVariant.Id.Int64},
 					}
 
-					entries, err := db.GetIssueVariants(filter)
+					entries, err := db.GetIssueVariants(filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -193,7 +116,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						IssueId:   []*int64{&issueId},
 					}
 
-					entries, err := db.GetIssueVariants(filter)
+					entries, err := db.GetIssueVariants(filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -205,7 +128,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(lo.ContainsBy(entries, func(a entity.IssueVariant) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
+							Expect(lo.ContainsBy(entries, func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
 						}
 					})
 				})
@@ -224,7 +147,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						IssueId:   []*int64{&issueId1, &issueId2},
 					}
 
-					entries, err := db.GetIssueVariants(filter)
+					entries, err := db.GetIssueVariants(filter, []entity.Order{})
 
 					By("throwing no Error", func() {
 						Expect(err).To(BeNil())
@@ -236,7 +159,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(lo.ContainsBy(entries, func(a entity.IssueVariant) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
+							Expect(lo.ContainsBy(entries, func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
 						}
 					})
 				})
@@ -247,7 +170,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						IssueRepositoryId: []*int64{&ir.IssueRepositoryId.Int64},
 					}
 
-					issueVariants, err := db.GetIssueVariants(filter)
+					issueVariants, err := db.GetIssueVariants(filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -272,7 +195,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						ServiceId: []*int64{&service.Id.Int64},
 					}
 
-					entries, err := db.GetIssueVariants(filter)
+					entries, err := db.GetIssueVariants(filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -284,7 +207,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(lo.ContainsBy(entries, func(a entity.IssueVariant) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
+							Expect(lo.ContainsBy(entries, func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
 						}
 					})
 				})
@@ -297,7 +220,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						IssueMatchId: []*int64{&im.Id.Int64},
 					}
 
-					entries, err := db.GetIssueVariants(filter)
+					entries, err := db.GetIssueVariants(filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -309,7 +232,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(lo.ContainsBy(entries, func(a entity.IssueVariant) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
+							Expect(lo.ContainsBy(entries, func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
 						}
 					})
 				})
@@ -320,7 +243,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						SecondaryName: []*string{&iv.SecondaryName.String},
 					}
 
-					entries, err := db.GetIssueVariants(filter)
+					entries, err := db.GetIssueVariants(filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -337,18 +260,19 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 			})
 			Context("and using Pagination", func() {
 				DescribeTable("can correctly paginate", func(pageSize int) {
-					test.TestPaginationOfList(
+					test.TestPaginationOfListWithOrder(
 						db.GetIssueVariants,
-						func(first *int, after *int64) *entity.IssueVariantFilter {
+						func(first *int, after *string) *entity.IssueVariantFilter {
 							return &entity.IssueVariantFilter{
-								Paginated: entity.Paginated{
-									First: first,
-									After: after,
-								},
+								Paginated: entity.Paginated{First: first, After: after},
 							}
 						},
-						func(entries []entity.IssueVariant) *int64 { return &entries[len(entries)-1].Id },
-						10,
+						[]entity.Order{},
+						func(entries []entity.IssueVariantResult) string {
+							after, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, *entries[len(entries)-1].IssueVariant))
+							return after
+						},
+						len(seedCollection.IssueVariantRows),
 						pageSize,
 					)
 				},
@@ -469,7 +393,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Id: []*int64{&issueVariant.Id},
 					}
 
-					iv, err := db.GetIssueVariants(issueVariantFilter)
+					iv, err := db.GetIssueVariants(issueVariantFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -524,7 +448,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Id: []*int64{&issueVariant.Id},
 					}
 
-					iv, err := db.GetIssueVariants(issueVariantFilter)
+					iv, err := db.GetIssueVariants(issueVariantFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -565,7 +489,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Id: []*int64{&issueVariant.Id},
 					}
 
-					iv, err := db.GetIssueVariants(issueVariantFilter)
+					iv, err := db.GetIssueVariants(issueVariantFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})

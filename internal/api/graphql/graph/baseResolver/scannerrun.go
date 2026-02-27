@@ -42,7 +42,7 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 		efilter = entity.ScannerRunFilter{
 			Paginated: entity.Paginated{
 				First: first,
-				After: value,
+				After: after,
 			},
 			Tag:       nil,
 			Completed: false,
@@ -51,7 +51,7 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 		efilter = entity.ScannerRunFilter{
 			Paginated: entity.Paginated{
 				First: first,
-				After: value,
+				After: after,
 			},
 			Tag:       filter.Tag,
 			Completed: filter.Completed,

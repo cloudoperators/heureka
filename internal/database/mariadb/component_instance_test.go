@@ -33,187 +33,6 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 		dbm.TestTearDown(db)
 	})
 
-	When("Getting All ComponentInstance IDs", Label("GetAllComponentInstanceIds"), func() {
-		Context("and the database is empty", func() {
-			It("can perform the query", func() {
-				canPerformComponentInstanceQuery(db.GetAllComponentInstanceIds)
-			})
-		})
-		Context("and we have 20 ComponentInstances in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-
-				for _, ci := range seedCollection.ComponentInstanceRows {
-					ids = append(ids, ci.Id.Int64)
-				}
-			})
-			Context("and using no filter", func() {
-				It("can fetch the items correctly", func() {
-					res, err := db.GetAllComponentInstanceIds(nil)
-
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentInstanceRows)))
-					})
-
-					By("returning the correct order", func() {
-						var prev int64 = 0
-						for _, r := range res {
-
-							Expect(r > prev).Should(BeTrue())
-							prev = r
-
-						}
-					})
-
-					By("returning the correct fields", func() {
-						for _, r := range res {
-							Expect(lo.Contains(ids, r)).To(BeTrue())
-						}
-					})
-				})
-			})
-			Context("and using a filter", func() {
-				It("can filter by a single componentInstance id that does exist", func() {
-					ciId := ids[rand.Intn(len(ids))]
-					filter := &entity.ComponentInstanceFilter{
-						Id: []*int64{&ciId},
-					}
-
-					entries, err := db.GetAllComponentInstanceIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(1))
-					})
-
-					By("returning expected elements", func() {
-						Expect(entries[0]).To(BeEquivalentTo(ciId))
-					})
-				})
-				It("can filter by a single service ccrn that does exist", func() {
-					ciRow := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
-					serviceRow, _ := lo.Find(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow) bool {
-						return s.Id.Int64 == ciRow.ServiceId.Int64
-					})
-					filter := &entity.ComponentInstanceFilter{
-						ServiceCcrn: []*string{&serviceRow.CCRN.String},
-					}
-
-					entries, err := db.GetComponentInstances(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(Not(BeZero()))
-					})
-
-					for _, entry := range entries {
-						Expect(entry.ServiceId).To(BeEquivalentTo(ciRow.ServiceId.Int64))
-					}
-				})
-				It("can filter by a single ccrn that does exist", func() {
-					ciRow := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
-					filter := &entity.ComponentInstanceFilter{
-						CCRN: []*string{&ciRow.CCRN.String},
-					}
-
-					entries, err := db.GetComponentInstances(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(entries).To(HaveLen(1))
-					})
-					By("returning expected ccrn", func() {
-						Expect(entries[0].CCRN).To(BeEquivalentTo(ciRow.CCRN.String))
-						Expect(entries[0].Region).To(BeEquivalentTo(ciRow.Region.String))
-						Expect(entries[0].Cluster).To(BeEquivalentTo(ciRow.Cluster.String))
-						Expect(entries[0].Namespace).To(BeEquivalentTo(ciRow.Namespace.String))
-						Expect(entries[0].Domain).To(BeEquivalentTo(ciRow.Domain.String))
-						Expect(entries[0].Project).To(BeEquivalentTo(ciRow.Project.String))
-						Expect(entries[0].Pod).To(BeEquivalentTo(ciRow.Pod.String))
-						Expect(entries[0].Container).To(BeEquivalentTo(ciRow.Container.String))
-						Expect(entries[0].Type.String()).To(BeEquivalentTo(ciRow.Type.String))
-						Expect((*map[string]interface{})(entries[0].Context)).To(BeEquivalentTo(util.ConvertStrToJsonNoError(&ciRow.Context.String)))
-					})
-				})
-				It("can filter by a single componentVersion id that does exist", func() {
-					// select a component version
-					cvRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
-
-					// collect all componentInstance ids that belong to the component version
-					ciIds := []int64{}
-					for _, ciRow := range seedCollection.ComponentInstanceRows {
-						if ciRow.ComponentVersionId.Int64 == cvRow.Id.Int64 {
-							ciIds = append(ciIds, ciRow.ServiceId.Int64)
-						}
-					}
-
-					filter := &entity.ComponentInstanceFilter{
-						ComponentVersionId: []*int64{&cvRow.Id.Int64},
-					}
-
-					entries, err := db.GetAllComponentInstanceIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected elements", func() {
-						Expect(len(entries)).To(BeEquivalentTo(len(ciIds)))
-					})
-				})
-				It("can filter Component Instance Ccrn using wild card search", func() {
-					row := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
-
-					const charactersToRemoveFromBeginning = 2
-					const charactersToRemoveFromEnd = 2
-					const minimalCharactersToKeep = 2
-
-					start := charactersToRemoveFromBeginning
-					end := len(row.CCRN.String) - charactersToRemoveFromEnd
-
-					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
-
-					searchStr := row.CCRN.String[start:end]
-					filter := &entity.ComponentInstanceFilter{Search: []*string{&searchStr}}
-
-					entries, err := db.GetComponentInstances(filter, nil)
-
-					ccrn := []string{}
-					for _, entry := range entries {
-						ccrn = append(ccrn, entry.CCRN)
-					}
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("at least one element was discarded (filtered)", func() {
-						Expect(len(seedCollection.ServiceRows) > len(ccrn)).To(BeTrue())
-					})
-
-					By("returning the expected elements", func() {
-						Expect(ccrn).To(ContainElement(row.CCRN.String))
-					})
-				})
-			})
-		})
-	})
-
 	When("Getting ComponentInstances", Label("GetComponentInstance"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
@@ -302,7 +121,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					rnd := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					ciId := rnd.ComponentInstanceId.Int64
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX:   entity.PaginatedX{},
+						Paginated:    entity.Paginated{},
 						IssueMatchId: []*int64{&rnd.Id.Int64},
 					}
 
@@ -323,8 +142,8 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				It("can filter by a single service id that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX: entity.PaginatedX{},
-						ServiceId:  []*int64{&cir.ServiceId.Int64},
+						Paginated: entity.Paginated{},
+						ServiceId: []*int64{&cir.ServiceId.Int64},
 					}
 
 					entries, err := db.GetComponentInstances(filter, nil)
@@ -346,7 +165,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				It("can filter by a single component version id that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX:         entity.PaginatedX{},
+						Paginated:          entity.Paginated{},
 						ComponentVersionId: []*int64{&cir.ComponentVersionId.Int64},
 					}
 
@@ -373,7 +192,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX:              entity.PaginatedX{},
+						Paginated:               entity.Paginated{},
 						ComponentVersionVersion: []*string{&cvr.Version.String},
 					}
 
@@ -412,9 +231,9 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
 					test.TestPaginationOfListWithOrder(
 						db.GetComponentInstances,
-						func(first *int, after *int64, afterX *string) *entity.ComponentInstanceFilter {
+						func(first *int, after *string) *entity.ComponentInstanceFilter {
 							return &entity.ComponentInstanceFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: after},
 							}
 						},
 						[]entity.Order{},
@@ -474,7 +293,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				It("can count", func() {
 					f := 10
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: nil,
 						},
@@ -496,7 +315,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(imCol)
 
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &pageSize,
 							After: nil,
 						},

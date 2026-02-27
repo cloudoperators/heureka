@@ -48,7 +48,7 @@ var _ = BeforeSuite(func() {
 
 func getComponentVersionFilter() *entity.ComponentVersionFilter {
 	return &entity.ComponentVersionFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -309,7 +309,7 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		first := 10
 		after := ""
 		filter = &entity.ComponentVersionFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -400,7 +400,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		first := 10
 		after := ""
 		filter = &entity.ComponentVersionFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},

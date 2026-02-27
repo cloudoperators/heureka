@@ -301,30 +301,6 @@ func performCountScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry
 	return row, nil
 }
 
-func getCursor(p entity.Paginated, filterStr string, stmt string) entity.Cursor {
-	prependAnd := ""
-	if filterStr != "" {
-		prependAnd = OP_AND
-	}
-	stmt = fmt.Sprintf("%s %s", prependAnd, stmt)
-
-	var cursorValue int64 = 0
-	if p.After != nil {
-		cursorValue = *p.After
-	}
-
-	limit := 1000
-	if p.First != nil {
-		limit = *p.First
-	}
-
-	return entity.Cursor{
-		Statement: stmt,
-		Value:     cursorValue,
-		Limit:     limit,
-	}
-}
-
 func GetDefaultOrder(order []entity.Order, by entity.OrderByField, direction entity.OrderDirection) []entity.Order {
 	if len(order) == 0 {
 		order = append([]entity.Order{{By: by, Direction: direction}}, order...)

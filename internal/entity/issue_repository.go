@@ -46,3 +46,8 @@ type IssueRepositoryResult struct {
 	*IssueRepositoryAggregations
 	*IssueRepository
 }
+
+type ServiceIssueVariantResult struct {
+	WithCursor
+	*ServiceIssueVariant
+}

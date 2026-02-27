@@ -6,22 +6,31 @@ package issue_repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	CacheTtlGetAllIssueRepositoryCursors = 12 * time.Hour
+	CacheTtlGetIssueRepository           = 12 * time.Hour
+)
+
 type issueRepositoryHandler struct {
 	database      database.Database
+	cache         cache.Cache
 	eventRegistry event.EventRegistry
 }
 
 func NewIssueRepositoryHandler(handlerContext common.HandlerContext) IssueRepositoryHandler {
 	return &issueRepositoryHandler{
 		database:      handlerContext.DB,
+		cache:         handlerContext.Cache,
 		eventRegistry: handlerContext.EventReg,
 	}
 }
@@ -40,19 +49,18 @@ func (e *IssueRepositoryHandlerError) Error() string {
 
 func (ir *issueRepositoryHandler) getIssueRepositoryResults(filter *entity.IssueRepositoryFilter) ([]entity.IssueRepositoryResult, error) {
 	var irResults []entity.IssueRepositoryResult
-	issueRepositories, err := ir.database.GetIssueRepositories(filter)
+	irResults, err := cache.CallCached[[]entity.IssueRepositoryResult](
+		ir.cache,
+		CacheTtlGetIssueRepository,
+		"GetIssueRepositories",
+		ir.database.GetIssueRepositories,
+		filter,
+		[]entity.Order{},
+	)
 	if err != nil {
 		return nil, err
 	}
-	for _, ir := range issueRepositories {
-		issueRepository := ir
-		cursor := fmt.Sprintf("%d", ir.Id)
-		irResults = append(irResults, entity.IssueRepositoryResult{
-			WithCursor:                  entity.WithCursor{Value: cursor},
-			IssueRepositoryAggregations: nil,
-			IssueRepository:             &issueRepository,
-		})
-	}
+
 	return irResults, nil
 }
 
@@ -73,13 +81,22 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := ir.database.GetAllIssueRepositoryIds(filter)
+			cursors, err := cache.CallCached[[]string](
+				ir.cache,
+				CacheTtlGetAllIssueRepositoryCursors,
+				"GetAllIssueRepositoryCursors",
+				ir.database.GetAllIssueRepositoryCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
 				l.Error(err)
-				return nil, NewIssueRepositoryHandlerError("Error while getting all Ids")
+
+				return nil, NewIssueRepositoryHandlerError("Error while getting IssueRepository cursors")
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = ir.database.CountIssueRepositories(filter)

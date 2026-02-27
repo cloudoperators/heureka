@@ -98,7 +98,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	f := &entity.IssueFilter{
-		PaginatedX:         entity.PaginatedX{First: first, After: after},
+		Paginated:          entity.Paginated{First: first, After: after},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		ComponentVersionId: cvId,
@@ -187,7 +187,7 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	}
 
 	f := &entity.IssueFilter{
-		PaginatedX:                      entity.PaginatedX{},
+		Paginated:                       entity.Paginated{},
 		ServiceCCRN:                     filter.ServiceCcrn,
 		PrimaryName:                     filter.PrimaryName,
 		SupportGroupCCRN:                filter.SupportGroupCcrn,
@@ -268,7 +268,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	f := &entity.IssueFilter{
-		PaginatedX:         entity.PaginatedX{},
+		Paginated:          entity.Paginated{},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		PrimaryName:        filter.PrimaryName,

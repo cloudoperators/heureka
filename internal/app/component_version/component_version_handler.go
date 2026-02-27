@@ -52,7 +52,7 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListComponentVersionsEventName,
@@ -86,7 +86,7 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 				l.Error(err)
 				return nil, NewComponentVersionHandlerError("Error while getting all cursors")
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {

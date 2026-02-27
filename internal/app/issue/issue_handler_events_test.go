@@ -95,7 +95,9 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 			db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
 				ComponentInstanceId: []*int64{&componentInstance.Id},
 				IssueId:             []*int64{&issueEntity.Id},
-			}).Return([]entity.ServiceIssueVariant{serviceIssueVariant}, nil)
+			}, mock.Anything).Return([]entity.ServiceIssueVariantResult{{
+				ServiceIssueVariant: &serviceIssueVariant,
+			}}, nil)
 
 			expectedMatch := &entity.IssueMatch{
 				UserId:              1,
@@ -119,7 +121,9 @@ var _ = Describe("OnComponentVersionAttachmentToIssue", Label("app", "ComponentV
 			db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
 				ComponentInstanceId: []*int64{&componentInstance.Id},
 				IssueId:             []*int64{&issueEntity.Id},
-			}).Return([]entity.ServiceIssueVariant{serviceIssueVariant}, nil)
+			}, mock.Anything).Return([]entity.ServiceIssueVariantResult{{
+				ServiceIssueVariant: &serviceIssueVariant,
+			}}, nil)
 
 			// Setup expectation to return existing match
 			db.On("GetIssueMatches", &entity.IssueMatchFilter{

@@ -64,9 +64,9 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	}
 
 	f := &entity.ComponentFilter{
-		PaginatedX: entity.PaginatedX{First: first, After: after},
-		CCRN:       filter.ComponentCcrn,
-		State:      model.GetStateFilterType(filter.State),
+		Paginated: entity.Paginated{First: first, After: after},
+		CCRN:      filter.ComponentCcrn,
+		State:     model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -111,8 +111,8 @@ func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 	}
 
 	f := &entity.ComponentFilter{
-		PaginatedX: entity.PaginatedX{},
-		CCRN:       filter.ComponentCcrn,
+		Paginated: entity.Paginated{},
+		CCRN:      filter.ComponentCcrn,
 	}
 
 	opt := GetListOptions(requestedFields)

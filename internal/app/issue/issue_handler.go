@@ -108,7 +108,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 		List: &entity.List[entity.IssueResult]{},
 	}
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
 	options = ensureIssueListOptions(options)
 
 	if options.IncludeAggregations {
@@ -166,7 +166,7 @@ func (is *issueHandler) ListIssues(filter *entity.IssueFilter, options *entity.I
 				})
 				return nil, wrappedErr
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			issueList.PageInfo = pageInfo
 		}
 	}

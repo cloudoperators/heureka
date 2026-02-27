@@ -20,7 +20,7 @@ type ComponentResult struct {
 }
 
 type ComponentFilter struct {
-	PaginatedX
+	Paginated
 	CCRN               []*string         `json:"ccrn"`
 	Repository         []*string         `json:"repository"`
 	Organization       []*string         `json:"organization"`

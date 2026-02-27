@@ -82,7 +82,7 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 	var res []entity.ServiceResult
 	var err error
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
 	options = common.EnsureListOptions(options)
 
 	l := logrus.WithFields(logrus.Fields{
@@ -131,7 +131,7 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 			if err != nil {
 				return nil, NewServiceHandlerError("Error while getting all cursors")
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {

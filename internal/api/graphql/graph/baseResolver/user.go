@@ -59,12 +59,6 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 		"parent":          parent,
 	}).Debug("Called UserBaseResolver")
 
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("UserBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("UserBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
-
 	var supportGroupId []*int64
 	var serviceId []*int64
 	if parent != nil {
@@ -88,7 +82,7 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 	}
 
 	f := &entity.UserFilter{
-		Paginated:      entity.Paginated{First: first, After: afterId},
+		Paginated:      entity.Paginated{First: first, After: after},
 		SupportGroupId: supportGroupId,
 		ServiceId:      serviceId,
 		Name:           filter.UserName,

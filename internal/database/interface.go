@@ -11,7 +11,6 @@ type Database interface {
 	CountIssues(*entity.IssueFilter) (int64, error)
 	CountIssueTypes(*entity.IssueFilter) (*entity.IssueTypeCounts, error)
 	CountIssueRatings(*entity.IssueFilter) (*entity.IssueSeverityCounts, error)
-	GetAllIssueIds(*entity.IssueFilter) ([]int64, error)
 	GetAllIssueCursors(*entity.IssueFilter, []entity.Order) ([]string, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
@@ -20,16 +19,16 @@ type Database interface {
 	RemoveComponentVersionFromIssue(int64, int64) error
 	GetIssueNames(*entity.IssueFilter) ([]string, error)
 
-	GetServiceIssueVariants(*entity.ServiceIssueVariantFilter) ([]entity.ServiceIssueVariant, error)
-	GetIssueVariants(*entity.IssueVariantFilter) ([]entity.IssueVariant, error)
-	GetAllIssueVariantIds(*entity.IssueVariantFilter) ([]int64, error)
+	GetServiceIssueVariants(*entity.ServiceIssueVariantFilter, []entity.Order) ([]entity.ServiceIssueVariantResult, error)
+	GetIssueVariants(*entity.IssueVariantFilter, []entity.Order) ([]entity.IssueVariantResult, error)
+	GetAllIssueVariantCursors(*entity.IssueVariantFilter, []entity.Order) ([]string, error)
 	CountIssueVariants(*entity.IssueVariantFilter) (int64, error)
 	CreateIssueVariant(*entity.IssueVariant) (*entity.IssueVariant, error)
 	UpdateIssueVariant(*entity.IssueVariant) error
 	DeleteIssueVariant(int64, int64) error
 
-	GetIssueRepositories(*entity.IssueRepositoryFilter) ([]entity.IssueRepository, error)
-	GetAllIssueRepositoryIds(*entity.IssueRepositoryFilter) ([]int64, error)
+	GetIssueRepositories(*entity.IssueRepositoryFilter, []entity.Order) ([]entity.IssueRepositoryResult, error)
+	GetAllIssueRepositoryCursors(*entity.IssueRepositoryFilter, []entity.Order) ([]string, error)
 	CountIssueRepositories(*entity.IssueRepositoryFilter) (int64, error)
 	CreateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
 	UpdateIssueRepository(*entity.IssueRepository) error
@@ -48,7 +47,6 @@ type Database interface {
 	GetServices(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
 	GetServicesWithAggregations(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
 	GetAllServiceCursors(*entity.ServiceFilter, []entity.Order) ([]string, error)
-	GetAllServiceIds(*entity.ServiceFilter) ([]int64, error)
 	CountServices(*entity.ServiceFilter) (int64, error)
 	CreateService(*entity.Service) (*entity.Service, error)
 	UpdateService(*entity.Service) error
@@ -61,8 +59,9 @@ type Database interface {
 	GetServiceDomains(*entity.ServiceFilter) ([]string, error)
 	GetServiceRegions(*entity.ServiceFilter) ([]string, error)
 
-	GetUsers(*entity.UserFilter) ([]entity.User, error)
+	GetUsers(*entity.UserFilter) ([]entity.UserResult, error)
 	GetAllUserIds(*entity.UserFilter) ([]int64, error)
+	GetAllUserCursors(*entity.UserFilter, []entity.Order) ([]string, error)
 	CountUsers(*entity.UserFilter) (int64, error)
 	CreateUser(*entity.User) (*entity.User, error)
 	UpdateUser(*entity.User) error
@@ -71,7 +70,6 @@ type Database interface {
 	GetUniqueUserIDs(*entity.UserFilter) ([]string, error)
 
 	GetSupportGroups(*entity.SupportGroupFilter, []entity.Order) ([]entity.SupportGroupResult, error)
-	GetAllSupportGroupIds(*entity.SupportGroupFilter) ([]int64, error)
 	GetAllSupportGroupCursors(*entity.SupportGroupFilter, []entity.Order) ([]string, error)
 	CountSupportGroups(*entity.SupportGroupFilter) (int64, error)
 	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
@@ -84,7 +82,6 @@ type Database interface {
 	GetSupportGroupCcrns(*entity.SupportGroupFilter) ([]string, error)
 
 	GetComponentInstances(*entity.ComponentInstanceFilter, []entity.Order) ([]entity.ComponentInstanceResult, error)
-	GetAllComponentInstanceIds(*entity.ComponentInstanceFilter) ([]int64, error)
 	GetAllComponentInstanceCursors(*entity.ComponentInstanceFilter, []entity.Order) ([]string, error)
 	CountComponentInstances(*entity.ComponentInstanceFilter) (int64, error)
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
@@ -104,7 +101,6 @@ type Database interface {
 	GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetComponents(*entity.ComponentFilter, []entity.Order) ([]entity.ComponentResult, error)
-	GetAllComponentIds(*entity.ComponentFilter) ([]int64, error)
 	GetAllComponentCursors(*entity.ComponentFilter, []entity.Order) ([]string, error)
 	CountComponents(*entity.ComponentFilter) (int64, error)
 	CountComponentVulnerabilities(*entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
@@ -114,7 +110,6 @@ type Database interface {
 
 	GetComponentVersions(*entity.ComponentVersionFilter, []entity.Order) ([]entity.ComponentVersionResult, error)
 	GetAllComponentVersionCursors(*entity.ComponentVersionFilter, []entity.Order) ([]string, error)
-	GetAllComponentVersionIds(*entity.ComponentVersionFilter) ([]int64, error)
 	CountComponentVersions(*entity.ComponentVersionFilter) (int64, error)
 	CreateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)
 	UpdateComponentVersion(*entity.ComponentVersion) error

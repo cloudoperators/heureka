@@ -108,8 +108,8 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("can filter by a single issue id that does exist", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
-						PaginatedX: entity.PaginatedX{},
-						IssueId:    []*int64{&issueMatch.IssueId.Int64},
+						Paginated: entity.Paginated{},
+						IssueId:   []*int64{&issueMatch.IssueId.Int64},
 					}
 
 					var imIds []int64
@@ -413,11 +413,11 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					DescribeTable("can correctly paginate ", func(pageSize int) {
 						test.TestPaginationOfListWithOrder(
 							db.GetIssueMatches,
-							func(first *int, after *int64, afterX *string) *entity.IssueMatchFilter {
+							func(first *int, after *string) *entity.IssueMatchFilter {
 								return &entity.IssueMatchFilter{
-									PaginatedX: entity.PaginatedX{
+									Paginated: entity.Paginated{
 										First: first,
-										After: afterX,
+										After: after,
 									},
 								}
 							},
@@ -470,7 +470,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					first := 1
 					var after string = ""
 					filter := &entity.IssueMatchFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &first,
 							After: &after,
 						},
@@ -488,8 +488,8 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("does show the correct amount when filtering for an issue", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
-						PaginatedX: entity.PaginatedX{},
-						IssueId:    []*int64{&issueMatch.IssueId.Int64},
+						Paginated: entity.Paginated{},
+						IssueId:   []*int64{&issueMatch.IssueId.Int64},
 					}
 
 					var imIds []int64
@@ -1039,7 +1039,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 			Expect(err).To(BeNil())
 			Expect(im).To(HaveLen(1))
 			filterWithCursor := entity.IssueMatchFilter{
-				PaginatedX: entity.PaginatedX{
+				Paginated: entity.Paginated{
 					After: im[0].Cursor(),
 				},
 			}
