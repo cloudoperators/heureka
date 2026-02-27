@@ -27,12 +27,10 @@ func TestIssueVariantHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
-var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db, authz)
-
+	er = event.NewEventRegistry(db)
 })
 
 func issueVariantFilter() *entity.IssueVariantFilter {

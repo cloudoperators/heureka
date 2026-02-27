@@ -5,15 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-      "name": "Debug All Tests (ginkgo -r)",
-      "type": "go",
-      "request": "launch",
-      "mode": "test",
-      "program": "${workspaceFolder}",
-      "args": ["-ginkgo.v", "-ginkgo.r"], // -ginkgo.r for recursive, -ginkgo.v for verbose
-      "env": {}
-        },
-        {
             "name": "Launch K8sScanner",
             "type": "go",
             "request": "launch",

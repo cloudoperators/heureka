@@ -13,7 +13,6 @@ import (
 	s "github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/openfga"
-	"github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -30,25 +29,13 @@ func TestServiceHandler(t *testing.T) {
 }
 
 var (
-	er             event.EventRegistry
-	authz          openfga.Authorization
-	handlerContext common.HandlerContext
-	cfg            *util.Config
+	er    event.EventRegistry
+	authz openfga.Authorization
 )
 
 var _ = BeforeSuite(func() {
-	cfg = common.GetTestConfig()
-	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
-	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
-	er := event.NewEventRegistry(db, authz)
-	handlerContext = common.HandlerContext{
-		DB:       db,
-		EventReg: er,
-		Cache:    nil,
-		Authz:    authz,
-	}
-	handlerContext.Authz.RemoveAllRelations()
+	er = event.NewEventRegistry(db)
 })
 
 func getServiceFilter() *entity.ServiceFilter {
@@ -66,20 +53,22 @@ func getServiceFilter() *entity.ServiceFilter {
 
 var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 	var (
-		er             event.EventRegistry
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("the list option does include the totalCount", func() {
@@ -232,14 +221,11 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		serviceHandler s.ServiceHandler
 		service        entity.Service
 		filter         *entity.ServiceFilter
-		r              openfga.RelationInput
-		er             event.EventRegistry
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
-		handlerContext.Authz.RemoveAllRelations()
 		service = test.NewFakeServiceEntity()
 		first := 10
 		after := ""
@@ -249,9 +235,11 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				After: &after,
 			},
 		}
-
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("creates service", func() {
@@ -297,7 +285,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				db.On("AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio)).Return(nil)
 
 				// Simulate event
-				s.OnServiceCreate(db, event, handlerContext.Authz)
+				s.OnServiceCreate(db, event)
 
 				// Check AddIssueRepositoryToService was called
 				db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio))
@@ -311,7 +299,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				// Use type assertion to convert
 				var event event.Event = invalidEvent
 
-				s.OnServiceCreate(db, event, handlerContext.Authz)
+				s.OnServiceCreate(db, event)
 
 				// These functions should not be called in case of a different event
 				db.AssertNotCalled(GinkgoT(), "GetIssueRepositories")
@@ -334,39 +322,10 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 					Name: []*string{&defaultRepoName},
 				}).Return([]entity.IssueRepository{}, nil)
 
-				s.OnServiceCreate(db, event, handlerContext.Authz)
+				s.OnServiceCreate(db, event)
 
 				db.AssertNotCalled(GinkgoT(), "AddIssueRepositoryToService")
 				// TODO: we could also check for the error message here
-			})
-		})
-	})
-
-	Context("when handling a CreateServiceEvent authz", func() {
-		Context("when new service is created", func() {
-			It("should add user resource relationship tuple in openfga", func() {
-				srv := test.NewFakeServiceEntity()
-				createEvent := &s.CreateServiceEvent{
-					Service: &srv,
-				}
-
-				r = openfga.RelationInput{
-					UserType:   openfga.TypeRole,
-					UserId:     "0",
-					ObjectId:   openfga.IDService,
-					ObjectType: openfga.TypeService,
-					Relation:   openfga.RelRole,
-				}
-
-				// Use type assertion to convert a CreateServiceEvent into an Event
-				var event event.Event = createEvent
-				r.ObjectId = openfga.ObjectIdFromInt(createEvent.Service.Id)
-				// Simulate event
-				s.OnServiceCreateAuthz(db, event, handlerContext.Authz)
-
-				ok, err := handlerContext.Authz.CheckPermission(r)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(ok).To(BeTrue(), "permission should be granted")
 			})
 		})
 	})
@@ -374,16 +333,15 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 var _ = Describe("When updating Service", Label("app", "UpdateService"), func() {
 	var (
-		er             event.EventRegistry
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
 		service        entity.ServiceResult
 		filter         *entity.ServiceFilter
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
 		service = test.NewFakeServiceResult()
 		first := 10
 		after := ""
@@ -393,8 +351,11 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 				After: &after,
 			},
 		}
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("updates service", func() {
@@ -414,16 +375,15 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 
 var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() {
 	var (
-		er             event.EventRegistry
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
 		id             int64
 		filter         *entity.ServiceFilter
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
 		id = 1
 		first := 10
 		after := ""
@@ -433,8 +393,11 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 				After: &after,
 			},
 		}
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("deletes service", func() {
@@ -451,106 +414,20 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(services.Elements).To(BeEmpty(), "no services should be found")
 	})
-
-	Context("when handling a DeleteServiceEvent", func() {
-		Context("when new service is deleted", func() {
-			It("should delete tuples related to that service in openfga", func() {
-				// Test OnServiceDeleteAuthz against all possible relations
-				srv := test.NewFakeServiceEntity()
-				deleteEvent := &s.DeleteServiceEvent{
-					ServiceID: srv.Id,
-				}
-				objectId := openfga.ObjectIdFromInt(deleteEvent.ServiceID)
-				userId := openfga.UserIdFromInt(deleteEvent.ServiceID)
-
-				relations := []openfga.RelationInput{
-					{ // user - service: a user can view the service
-						UserType:   openfga.TypeUser,
-						UserId:     openfga.IDUser,
-						ObjectId:   objectId,
-						ObjectType: openfga.TypeService,
-						Relation:   openfga.RelCanView,
-					},
-					{ // role - service: a role is assigned to the service
-						UserType:   openfga.TypeRole,
-						UserId:     openfga.IDRole,
-						ObjectId:   objectId,
-						ObjectType: openfga.TypeService,
-						Relation:   openfga.RelRole,
-					},
-					{ // support group - service: a support group is related to the service
-						UserType:   openfga.TypeSupportGroup,
-						UserId:     openfga.IDSupportGroup,
-						ObjectId:   objectId,
-						ObjectType: openfga.TypeService,
-						Relation:   openfga.RelSupportGroup,
-					},
-					{ // service - component_instance: a service is related to a component instance
-						UserType:   openfga.TypeService,
-						UserId:     userId,
-						ObjectId:   openfga.IDComponentInstance,
-						ObjectType: openfga.RelComponentInstance,
-						Relation:   openfga.RelRelatedService,
-					},
-				}
-
-				handlerContext.Authz.AddRelationBulk(relations)
-
-				// get the number of relations before deletion
-				relCountBefore := 0
-				for _, r := range relations {
-					relations, err := handlerContext.Authz.ListRelations(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					relCountBefore += len(relations)
-				}
-				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
-
-				// check that relations were created
-				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					Expect(ok).To(BeTrue(), "permission should be granted")
-				}
-
-				var event event.Event = deleteEvent
-				// Simulate event
-				s.OnServiceDeleteAuthz(db, event, handlerContext.Authz)
-
-				// get the number of relations after deletion
-				relCountAfter := 0
-				for _, r := range relations {
-					relations, err := handlerContext.Authz.ListRelations(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					relCountAfter += len(relations)
-				}
-				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
-				Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
-
-				// verify that relations were deleted
-				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					Expect(ok).To(BeFalse(), "permission should NOT be granted")
-				}
-			})
-		})
-	})
 })
 
 var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"), func() {
 	var (
 		db             *mocks.MockDatabase
-		er             event.EventRegistry
 		serviceHandler s.ServiceHandler
 		service        entity.ServiceResult
 		owner          entity.User
 		filter         *entity.ServiceFilter
-		r              openfga.RelationInput
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
 		service = test.NewFakeServiceResult()
 		owner = test.NewFakeUserEntity()
 		first := 10
@@ -562,8 +439,11 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 			},
 			Id: []*int64{&service.Id},
 		}
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("adds owner to service", func() {
@@ -575,33 +455,6 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		Expect(service).NotTo(BeNil(), "service should be returned")
 	})
 
-	Context("when handling an AddOwnerToServiceEvent", func() {
-		It("should add the owner-service relation tuple in openfga", func() {
-			serviceFake := test.NewFakeServiceResult()
-			ownerFake := test.NewFakeUserEntity()
-			addEvent := &s.AddOwnerToServiceEvent{
-				ServiceID: serviceFake.Id,
-				OwnerID:   ownerFake.Id,
-			}
-			r = openfga.RelationInput{
-				UserType:   openfga.TypeUser,
-				UserId:     "",
-				ObjectType: openfga.TypeService,
-				ObjectId:   "",
-				Relation:   openfga.RelOwner,
-			}
-
-			var event event.Event = addEvent
-			s.OnAddOwnerToService(db, event, handlerContext.Authz)
-
-			r.ObjectId = openfga.ObjectIdFromInt(addEvent.ServiceID)
-			r.UserId = openfga.UserIdFromInt(addEvent.OwnerID)
-			ok, err := handlerContext.Authz.CheckPermission(r)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(ok).To(BeTrue(), "permission should be granted")
-		})
-	})
-
 	It("removes owner from service", func() {
 		db.On("RemoveOwnerFromService", service.Id, owner.Id).Return(nil)
 		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
@@ -610,52 +463,21 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(service).NotTo(BeNil(), "service should be returned")
 	})
-
-	Context("when handling a RemoveOwnerFromServiceEvent", func() {
-		It("should remove the owner-service relation tuple in openfga", func() {
-			serviceFake := test.NewFakeServiceResult()
-			ownerFake := test.NewFakeUserEntity()
-			removeEvent := &s.RemoveOwnerFromServiceEvent{
-				ServiceID: serviceFake.Id,
-				OwnerID:   ownerFake.Id,
-			}
-			serviceId := openfga.ObjectIdFromInt(removeEvent.ServiceID)
-			ownerId := openfga.UserIdFromInt(removeEvent.OwnerID)
-
-			rel := openfga.RelationInput{
-				UserType:   openfga.TypeUser,
-				UserId:     ownerId,
-				ObjectType: openfga.TypeService,
-				ObjectId:   serviceId,
-				Relation:   openfga.RelOwner,
-			}
-
-			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{rel})
-
-			var event event.Event = removeEvent
-			s.OnRemoveOwnerFromService(db, event, handlerContext.Authz)
-
-			remaining, err := handlerContext.Authz.ListRelations(rel)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
-		})
-	})
 })
 
 var _ = Describe("When modifying relationship of issueRepository and Service", Label("app", "IssueRepositoryHandlerRelationship"), func() {
 	var (
-		er              event.EventRegistry
 		db              *mocks.MockDatabase
 		serviceHandler  s.ServiceHandler
 		service         entity.ServiceResult
 		issueRepository entity.IssueRepository
 		filter          *entity.ServiceFilter
 		priority        int64
+		handlerContext  common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
 		service = test.NewFakeServiceResult()
 		issueRepository = test.NewFakeIssueRepositoryEntity()
 		first := 10
@@ -668,8 +490,11 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 			Id: []*int64{&service.Id},
 		}
 		priority = 1
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	It("adds issueRepository to service", func() {
@@ -693,22 +518,24 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 
 var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"), func() {
 	var (
-		er             event.EventRegistry
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 		name           string
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		name = "f1"
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
@@ -742,22 +569,24 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 
 var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomains"), func() {
 	var (
-		er             event.EventRegistry
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 		domain         string
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		domain = "f1"
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
@@ -791,22 +620,24 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 
 var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions"), func() {
 	var (
-		er             event.EventRegistry
 		db             *mocks.MockDatabase
 		serviceHandler s.ServiceHandler
 		filter         *entity.ServiceFilter
 		options        *entity.ListOptions
 		region         string
+		handlerContext common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
-		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getServiceFilter()
 		region = "f1"
-		handlerContext.DB = db
-		handlerContext.EventReg = er
+		handlerContext = common.HandlerContext{
+			DB:       db,
+			EventReg: er,
+			Authz:    authz,
+		}
 	})
 
 	When("no filters are used", func() {
