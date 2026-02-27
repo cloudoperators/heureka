@@ -10,7 +10,7 @@ type user
 type role
 relations
     define admin: [user]
-    define component_scanner: [user]
+    define component_scanner: [user] 
     define issue_scanner: [user]
 
 type support_group
