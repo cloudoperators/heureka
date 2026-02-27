@@ -74,10 +74,6 @@ type RemediationFilter struct {
 	Search      []*string         `json:"search"`
 }
 
-func (rf *RemediationFilter) GetPaginatedX() *PaginatedX {
-	return &rf.PaginatedX
-}
-
 type RemediationResult struct {
 	WithCursor
 	*Remediation

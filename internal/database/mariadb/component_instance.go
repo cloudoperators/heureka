@@ -55,7 +55,7 @@ var componentInstanceObject = DbObject{
 
 func ensureComponentInstanceFilter(filter *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
 	if filter == nil {
-		return &entity.ComponentInstanceFilter{}
+		filter = &entity.ComponentInstanceFilter{}
 	}
 	return EnsurePagination(filter)
 }
