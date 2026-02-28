@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -582,8 +583,13 @@ func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {
 	}
 
 	_, err := performExec(s, query, args, l)
-
-	return err
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("User %d already an owner of Service %d", userId, serviceId))
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *SqlDatabase) RemoveOwnerFromService(serviceId int64, userId int64) error {
@@ -635,8 +641,13 @@ func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueReposito
 	}
 
 	_, err := performExec(s, query, args, l)
-
-	return err
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("IssueRepository %d already associated with Service %d", issueRepositoryId, serviceId))
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRepositoryId int64) error {
