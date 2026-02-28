@@ -19,6 +19,7 @@ type ComponentResult struct {
 	*Component
 }
 
+// @todo missing filter for serviceId/supportGroupId
 type ComponentFilter struct {
 	PaginatedX
 	CCRN               []*string         `json:"ccrn"`

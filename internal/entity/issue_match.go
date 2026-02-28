@@ -53,6 +53,7 @@ type IssueMatch struct {
 	TargetRemediationDate time.Time             `json:"target_remediation_date"`
 }
 
+// @todo missing filter for serviceId/supportGroupId
 type IssueMatchFilter struct {
 	PaginatedX
 	Id                       []*int64          `json:"id"`
