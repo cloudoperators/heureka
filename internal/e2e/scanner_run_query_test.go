@@ -4,22 +4,15 @@
 package e2e_test
 
 import (
-	"context"
-	"fmt"
-	"os"
-
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
-	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func() {
@@ -31,7 +24,7 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 		db = dbm.NewTestSchemaWithoutMigration()
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -46,31 +39,21 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				sampleTag := gofakeit.Word()
 				sampleUUID := gofakeit.UUID()
 
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/create.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("input", map[string]string{
-					"tag":  sampleTag,
-					"uuid": sampleUUID,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Result bool `json:"createScannerRun"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/scannerRun/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"tag":  sampleTag,
+							"uuid": sampleUUID,
+						},
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Result).To(BeTrue())
 			})
 		})
@@ -80,52 +63,35 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				sampleTag := gofakeit.Word()
 				sampleUUID := gofakeit.UUID()
 
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/create.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("input", map[string]string{
-					"tag":  sampleTag,
-					"uuid": sampleUUID,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Result bool `json:"createScannerRun"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/scannerRun/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"tag":  sampleTag,
+							"uuid": sampleUUID,
+						},
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Result).To(BeTrue())
 
-				b, err = os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/complete.graphql")
-
-				Expect(err).To(BeNil())
-				str = string(b)
-				new_req := graphql.NewRequest(str)
-
-				new_req.Var("uuid", sampleUUID)
-
-				new_req.Header.Set("Cache-Control", "no-cache")
-				ctx = context.Background()
-
-				var newRespData struct {
+				newRespData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Result bool `json:"completeScannerRun"`
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/scannerRun/complete.graphql",
+					map[string]any{
+						"uuid": sampleUUID,
+					},
+					nil,
+				)
 
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, new_req, &newRespData) }); err != nil {
-					logrus.WithError(err).WithField("request", new_req).Fatalln("Error while unmarshaling")
-				}
-
+				Expect(err).ToNot(HaveOccurred())
 				Expect(newRespData.Result).To(BeTrue())
 			})
 		})
@@ -136,53 +102,36 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 				sampleUUID := gofakeit.UUID()
 				sampleMessage := gofakeit.Sentence()
 
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/create.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("input", map[string]string{
-					"tag":  sampleTag,
-					"uuid": sampleUUID,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Result bool `json:"createScannerRun"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/scannerRun/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"tag":  sampleTag,
+							"uuid": sampleUUID,
+						},
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Result).To(BeTrue())
 
-				b, err = os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/fail.graphql")
-
-				Expect(err).To(BeNil())
-				str = string(b)
-				new_req := graphql.NewRequest(str)
-
-				new_req.Var("message", sampleMessage)
-				new_req.Var("uuid", sampleUUID)
-
-				new_req.Header.Set("Cache-Control", "no-cache")
-				ctx = context.Background()
-
-				var newRespData struct {
+				newRespData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Result bool `json:"failScannerRun"`
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/scannerRun/fail.graphql",
+					map[string]any{
+						"message": sampleMessage,
+						"uuid":    sampleUUID,
+					},
+					nil,
+				)
 
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, new_req, &newRespData) }); err != nil {
-					logrus.WithError(err).WithField("request", new_req).Fatalln("Error while unmarshaling")
-				}
-
+				Expect(err).ToNot(HaveOccurred())
 				Expect(newRespData.Result).To(BeTrue())
 			})
 		})
@@ -192,16 +141,14 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func() {
 	var s *server.Server
 	var cfg util.Config
-	var client *graphql.Client
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		db = dbm.NewTestSchemaWithoutMigration()
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
-		client = graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
 	})
 
 	AfterEach(func() {
@@ -212,35 +159,24 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 	When("the database is empty", func() {
 		Context("and a query for scannerruns is performed", Label("create.graphql"), func() {
 			It("returns an empty list", func() {
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/scannerRun/scannerruns.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				graphql.NewRequest(str)
-
-				new_req := graphql.NewRequest(str)
-
-				new_req.Header.Set("Cache-Control", "no-cache")
-
-				new_req.Var("filter", struct {
-					Tag       []string `json:"tag"`
-					Completed bool     `json:"completed"`
-				}{Tag: []string{}, Completed: false})
-
-				new_req.Var("first", 10)
-				new_req.Var("after", 0)
-
-				ctx := context.Background()
-
-				var newRespData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Result int `json:"totalCount"`
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/scannerRun/scannerruns.graphql",
+					map[string]any{
+						"filter": map[string]any{
+							"tag":       []string{},
+							"completed": false,
+						},
+						"first": 10,
+						"after": 0,
+					},
+					nil,
+				)
 
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, new_req, &newRespData) }); err != nil {
-					logrus.WithError(err).WithField("request", new_req).Fatalln("Error while unmarshaling")
-				}
-
-				Expect(newRespData.Result).To(Equal(0))
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respData.Result).To(Equal(0))
 			})
 		})
 	})

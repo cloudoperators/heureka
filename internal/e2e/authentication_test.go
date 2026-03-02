@@ -15,7 +15,6 @@ import (
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/oidc"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -113,16 +112,16 @@ func newAuthenticationTest() *authenticationTest {
 	db := dbm.NewTestSchemaWithoutMigration()
 
 	cfg := dbm.DbConfig()
-	cfg.Port = util2.GetRandomFreePort()
+	cfg.Port = e2e_common.GetRandomFreePort()
 	cfg.AuthOidcClientId = "mock-client-id"
-	cfg.AuthOidcUrl = fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
+	cfg.AuthOidcUrl = fmt.Sprintf("http://localhost:%s", e2e_common.GetRandomFreePort())
 	oidcProvider := oidc.NewProvider(cfg.AuthOidcUrl, enableOidcProviderLog)
 	oidcProvider.Start()
 
 	seeder, err := test.NewDatabaseSeeder(cfg)
 	Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
-	cfg.Port = util2.GetRandomFreePort()
+	cfg.Port = e2e_common.GetRandomFreePort()
 	server := e2e_common.NewRunningServer(cfg)
 
 	seedCollection := seeder.SeedDbWithNFakeData(defaultTestFakeDataItems)

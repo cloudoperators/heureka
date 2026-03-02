@@ -14,7 +14,6 @@ import (
 	"github.com/cloudoperators/heureka/pkg/oidc"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/test"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -32,9 +31,9 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 	BeforeEach(func() {
 		db = dbm.NewTestSchemaWithoutMigration()
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		cfg.AuthOidcClientId = "mock-client-id"
-		cfg.AuthOidcUrl = fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
+		cfg.AuthOidcUrl = fmt.Sprintf("http://localhost:%s", e2e_common.GetRandomFreePort())
 		oidcProvider = oidc.NewProvider(cfg.AuthOidcUrl, enableOidcProviderLog)
 		oidcProvider.Start()
 

@@ -4,24 +4,17 @@
 package e2e_test
 
 import (
-	"context"
-	"fmt"
-	"os"
-
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
-	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "ComponentFilterValues"), func() {
@@ -37,7 +30,7 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -48,24 +41,16 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 
 	When("the database is empty", func() {
 		It("returns empty for componentCcrns", func() {
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentFilter/componentCcrn.graphqls")
-
-			Expect(err).To(BeNil())
-			str := string(b)
-			req := graphql.NewRequest(str)
-
-			req.Header.Set("Cache-Control", "no-cache")
-			ctx := context.Background()
-
-			var respData struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 				ComponentFilterValues model.ComponentFilterValue `json:"ComponentFilterValues"`
-			}
-			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-			}
+			}](
+				cfg.Port,
+				"../api/graphql/graph/queryCollection/componentFilter/componentCcrn.graphqls",
+				nil,
+				nil,
+			)
 
+			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.ComponentFilterValues.ComponentCcrn.Values).To(BeEmpty())
 		})
 	})
@@ -77,24 +62,16 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 		})
 		Context("and no additional filters are present", func() {
 			It("returns correct componentCcrns", func() {
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentFilter/componentCcrn.graphqls")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					ComponentFilterValues model.ComponentFilterValue `json:"ComponentFilterValues"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentFilter/componentCcrn.graphqls",
+					nil,
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(len(respData.ComponentFilterValues.ComponentCcrn.Values)).To(Equal(len(seedCollection.ComponentRows)))
 
 				existingComponentCcrns := lo.Map(seedCollection.ComponentRows, func(s mariadb.ComponentRow, index int) string {
