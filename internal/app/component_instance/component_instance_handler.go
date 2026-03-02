@@ -47,7 +47,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
 
 	res, err := cache.CallCached[[]entity.ComponentInstanceResult](
 		ci.cache,
@@ -82,7 +82,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 				})
 				return nil, wrappedErr
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {

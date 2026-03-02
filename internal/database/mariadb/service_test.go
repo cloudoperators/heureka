@@ -471,7 +471,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						db.GetServices,
 						func(first *int, after *int64, afterX *string) *entity.ServiceFilter {
 							return &entity.ServiceFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: afterX},
 							}
 						},
 						[]entity.Order{},
@@ -590,7 +590,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					f := 10
 					after := ""
 					filter := &entity.ServiceFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},
@@ -621,7 +621,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					after := ""
 					filter := &entity.ServiceFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &pageSize,
 							After: &after,
 						},

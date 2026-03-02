@@ -373,7 +373,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						db.GetRemediations,
 						func(first *int, after *int64, afterX *string) *entity.RemediationFilter {
 							return &entity.RemediationFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: afterX},
 							}
 						},
 						[]entity.Order{},
@@ -489,7 +489,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					f := 10
 					after := ""
 					filter := &entity.RemediationFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},

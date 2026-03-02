@@ -42,14 +42,14 @@ func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	f := &entity.RemediationFilter{
-		PaginatedX: entity.PaginatedX{First: first, After: after},
-		Service:    filter.Service,
-		Component:  filter.Image,
-		Issue:      filter.Vulnerability,
-		Type:       lo.Map(filter.Type, func(item *model.RemediationTypeValues, _ int) *string { return pointer.String(item.String()) }),
-		ServiceId:  serviceId,
-		State:      model.GetStateFilterType(filter.State),
-		Search:     filter.Search,
+		Paginated: entity.Paginated{First: first, After: after},
+		Service:   filter.Service,
+		Component: filter.Image,
+		Issue:     filter.Vulnerability,
+		Type:      lo.Map(filter.Type, func(item *model.RemediationTypeValues, _ int) *string { return pointer.String(item.String()) }),
+		ServiceId: serviceId,
+		State:     model.GetStateFilterType(filter.State),
+		Search:    filter.Search,
 	}
 
 	opt := GetListOptions(requestedFields)

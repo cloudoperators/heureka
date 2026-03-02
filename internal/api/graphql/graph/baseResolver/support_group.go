@@ -46,12 +46,12 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	f := &entity.SupportGroupFilter{
-		PaginatedX: entity.PaginatedX{First: first, After: after},
-		ServiceId:  serviceId,
-		UserId:     userId,
-		CCRN:       filter.SupportGroupCcrn,
-		State:      model.GetStateFilterType(filter.State),
-		IssueId:    issueId,
+		Paginated: entity.Paginated{First: first, After: after},
+		ServiceId: serviceId,
+		UserId:    userId,
+		CCRN:      filter.SupportGroupCcrn,
+		State:     model.GetStateFilterType(filter.State),
+		IssueId:   issueId,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -109,10 +109,10 @@ func SupportGroupCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	f := &entity.SupportGroupFilter{
-		PaginatedX: entity.PaginatedX{},
-		UserId:     userIds,
-		CCRN:       filter.SupportGroupCcrn,
-		State:      model.GetStateFilterType(filter.State),
+		Paginated: entity.Paginated{},
+		UserId:    userIds,
+		CCRN:      filter.SupportGroupCcrn,
+		State:     model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

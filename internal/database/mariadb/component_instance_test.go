@@ -302,7 +302,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					rnd := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					ciId := rnd.ComponentInstanceId.Int64
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX:   entity.PaginatedX{},
+						Paginated:    entity.Paginated{},
 						IssueMatchId: []*int64{&rnd.Id.Int64},
 					}
 
@@ -323,8 +323,8 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				It("can filter by a single service id that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX: entity.PaginatedX{},
-						ServiceId:  []*int64{&cir.ServiceId.Int64},
+						Paginated: entity.Paginated{},
+						ServiceId: []*int64{&cir.ServiceId.Int64},
 					}
 
 					entries, err := db.GetComponentInstances(filter, nil)
@@ -346,7 +346,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				It("can filter by a single component version id that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX:         entity.PaginatedX{},
+						Paginated:          entity.Paginated{},
 						ComponentVersionId: []*int64{&cir.ComponentVersionId.Int64},
 					}
 
@@ -373,7 +373,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX:              entity.PaginatedX{},
+						Paginated:               entity.Paginated{},
 						ComponentVersionVersion: []*string{&cvr.Version.String},
 					}
 
@@ -414,7 +414,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						db.GetComponentInstances,
 						func(first *int, after *int64, afterX *string) *entity.ComponentInstanceFilter {
 							return &entity.ComponentInstanceFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: afterX},
 							}
 						},
 						[]entity.Order{},
@@ -474,7 +474,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				It("can count", func() {
 					f := 10
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: nil,
 						},
@@ -496,7 +496,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(imCol)
 
 					filter := &entity.ComponentInstanceFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &pageSize,
 							After: nil,
 						},

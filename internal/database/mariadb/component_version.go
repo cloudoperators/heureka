@@ -19,7 +19,7 @@ func ensureComponentVersionFilter(f *entity.ComponentVersionFilter) *entity.Comp
 	var after string = ""
 	if f == nil {
 		return &entity.ComponentVersionFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -144,7 +144,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 
 	filterStr := getComponentVersionFilterString(filter)
 	joins := s.getComponentVersionJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -199,7 +199,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
 	filterParameters = buildQueryParameters(filterParameters, filter.EndOfLife)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil

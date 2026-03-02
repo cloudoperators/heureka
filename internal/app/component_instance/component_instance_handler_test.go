@@ -42,7 +42,7 @@ var _ = BeforeSuite(func() {
 
 func componentInstanceFilter() *entity.ComponentInstanceFilter {
 	return &entity.ComponentInstanceFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -282,7 +282,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		first := 10
 		after := ""
 		filter = &entity.ComponentInstanceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -348,7 +348,7 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		first := 10
 		after := ""
 		filter = &entity.ComponentInstanceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},

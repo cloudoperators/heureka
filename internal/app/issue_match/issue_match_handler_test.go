@@ -45,7 +45,7 @@ var _ = BeforeSuite(func() {
 
 func getIssueMatchFilter() *entity.IssueMatchFilter {
 	return &entity.IssueMatchFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -201,7 +201,7 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		irFilter = entity.NewIssueRepositoryFilter()
 		first := 10
 		ivFilter.First = &first
-		var after int64 = 0
+		var after string
 		ivFilter.After = &after
 		irFilter.First = &first
 		irFilter.After = &after
@@ -224,8 +224,21 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		issueMatch.Severity = issueVariants[0].Severity
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueMatch", &issueMatch).Return(&issueMatch, nil)
-		db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
-		db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
+		db.On("GetIssueVariants", ivFilter, mock.Anything).Return([]entity.IssueVariantResult{
+			{
+				IssueVariant: &issueVariants[0],
+			},
+		}, nil)
+
+		irResults := make([]entity.IssueRepositoryResult, 0, len(repositories))
+
+		for _, ir := range repositories {
+			irResults = append(irResults, entity.IssueRepositoryResult{
+				IssueRepository: &ir,
+			})
+		}
+
+		db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, ss)
 		newIssueMatch, err := issueMatchHandler.CreateIssueMatch(common.NewAdminContext(), &issueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -259,7 +272,7 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 		first := 10
 		after := ""
 		filter = &entity.IssueMatchFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -314,7 +327,7 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		first := 10
 		after := ""
 		filter = &entity.IssueMatchFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -371,7 +384,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				// Mocks
 				db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
 					ComponentInstanceId: []*int64{lo.ToPtr(int64(1))},
-				}).Return([]entity.ServiceIssueVariant{}, nil)
+				}, mock.Anything).Return([]entity.ServiceIssueVariantResult{}, nil)
 			})
 
 			It("should return an empty map", func() {
@@ -385,11 +398,20 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 		When("all data is retrieved successfully", func() {
 			BeforeEach(func() {
 				variants := test.NNewFakeServiceIssueVariantEntity(2, 10, nil)
+
+				sivResult := make([]entity.ServiceIssueVariantResult, 0, len(variants))
+
+				for _, variant := range variants {
+					sivResult = append(sivResult, entity.ServiceIssueVariantResult{
+						ServiceIssueVariant: &variant,
+					})
+				}
+
 				// Mocks
 				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
-				})).Return(variants, nil)
+				}), mock.Anything).Return(sivResult, nil)
 			})
 
 			It("should return the correct issue variant map", func() {
@@ -406,11 +428,20 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				v1 := test.NewFakeServiceIssueVariantEntity(100, lo.ToPtr(int64(1)))
 				v2 = test.NewFakeServiceIssueVariantEntity(200, lo.ToPtr(int64(1)))
 				variants := []entity.ServiceIssueVariant{v1, v2}
+
+				sivResult := make([]entity.ServiceIssueVariantResult, 0, len(variants))
+
+				for _, variant := range variants {
+					sivResult = append(sivResult, entity.ServiceIssueVariantResult{
+						ServiceIssueVariant: &variant,
+					})
+				}
+
 				// Mocks
 				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
-				})).Return(variants, nil)
+				}), mock.Anything).Return(sivResult, nil)
 			})
 			It("it should chose the issue repository with the highest priority", func() {
 				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
@@ -425,11 +456,20 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 		When("multiple issue repository with same priority", func() {
 			BeforeEach(func() {
 				variants := test.NNewFakeServiceIssueVariantEntity(2, 10, lo.ToPtr(int64(1)))
+
+				sivResult := make([]entity.ServiceIssueVariantResult, 0, len(variants))
+
+				for _, variant := range variants {
+					sivResult = append(sivResult, entity.ServiceIssueVariantResult{
+						ServiceIssueVariant: &variant,
+					})
+				}
+
 				// Mocks
 				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
-				})).Return(variants, nil)
+				}), mock.Anything).Return(sivResult, nil)
 			})
 			It("it should randomly chose one issue repository", func() {
 				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
@@ -452,11 +492,20 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				v1 := test.NewFakeServiceIssueVariantEntity(100, lo.ToPtr(int64(1)))
 				v2 := test.NewFakeServiceIssueVariantEntity(200, lo.ToPtr(int64(2)))
 				variants := []entity.ServiceIssueVariant{v1, v2}
+
+				sivResult := make([]entity.ServiceIssueVariantResult, 0, len(variants))
+
+				for _, variant := range variants {
+					sivResult = append(sivResult, entity.ServiceIssueVariantResult{
+						ServiceIssueVariant: &variant,
+					})
+				}
+
 				// Mocks
 				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
-				})).Return(variants, nil)
+				}), mock.Anything).Return(sivResult, nil)
 			})
 
 			It("should create issue matches for each issue", func() {

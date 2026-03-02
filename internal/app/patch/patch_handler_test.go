@@ -50,7 +50,7 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = &entity.PatchFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: nil,
 				After: nil,
 			},

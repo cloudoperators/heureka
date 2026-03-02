@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	u "github.com/cloudoperators/heureka/internal/app/user"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -70,7 +71,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetUsers", filter).Return([]entity.User{}, nil)
+			db.On("GetUsers", filter).Return([]entity.UserResult{}, nil)
 			db.On("CountUsers", filter).Return(int64(1337), nil)
 		})
 
@@ -86,18 +87,29 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
+
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			users := test.NNewFakeUserEntities(resElements)
+			users := []entity.UserResult{}
 
-			ids := lo.Map(users, func(u entity.User, _ int) int64 { return u.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			for _, user := range test.NNewFakeUserEntities(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, user))
+				users = append(users, entity.UserResult{WithCursor: entity.WithCursor{Value: cursor}, User: lo.ToPtr(user)})
 			}
+
+			cursors := lo.Map(users, func(m entity.UserResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, *m.User))
+				return cursor
+			})
+
+			for i := 0; len(cursors) < dbElements; i++ {
+				user := test.NewFakeUserEntity()
+				c, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, user))
+				cursors = append(cursors, c)
+			}
+
 			db.On("GetUsers", filter).Return(users, nil)
-			db.On("GetAllUserIds", filter).Return(ids, nil)
+			db.On("GetAllUserCursors", filter, []entity.Order{}).Return(cursors, nil)
 			userHandler = u.NewUserHandler(handlerContext)
 			res, err := userHandler.ListUsers(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -125,8 +137,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		user = test.NewFakeUserEntity()
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -144,7 +155,7 @@ var _ = Describe("When creating User", Label("app", "CreateUser"), func() {
 		filter.UniqueUserID = []*string{&user.UniqueUserID}
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateUser", &user).Return(&user, nil)
-		db.On("GetUsers", filter).Return([]entity.User{}, nil)
+		db.On("GetUsers", filter).Return([]entity.UserResult{}, nil)
 		userHandler = u.NewUserHandler(handlerContext)
 		newUser, err := userHandler.CreateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -169,8 +180,7 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		user = test.NewFakeUserEntity()
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -190,7 +200,11 @@ var _ = Describe("When updating User", Label("app", "UpdateUser"), func() {
 		userHandler = u.NewUserHandler(handlerContext)
 		user.Name = "Sauron"
 		filter.Id = []*int64{&user.Id}
-		db.On("GetUsers", filter).Return([]entity.User{user}, nil)
+		db.On("GetUsers", filter).Return([]entity.UserResult{
+			{
+				User: &user,
+			},
+		}, nil)
 		updatedUser, err := userHandler.UpdateUser(common.NewAdminContext(), &user)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
@@ -213,8 +227,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.UserFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -232,7 +245,7 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteUser", id, mock.Anything).Return(nil)
 		userHandler = u.NewUserHandler(handlerContext)
-		db.On("GetUsers", filter).Return([]entity.User{}, nil)
+		db.On("GetUsers", filter).Return([]entity.UserResult{}, nil)
 		err := userHandler.DeleteUser(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 

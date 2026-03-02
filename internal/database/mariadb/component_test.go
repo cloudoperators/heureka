@@ -210,7 +210,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						db.GetComponents,
 						func(first *int, after *int64, afterX *string) *entity.ComponentFilter {
 							return &entity.ComponentFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: afterX},
 							}
 						},
 						[]entity.Order{},
@@ -263,7 +263,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				It("can count", func() {
 					after := ""
 					filter := &entity.ComponentFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &count,
 							After: &after,
 						},
@@ -279,7 +279,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					})
 
 					filter := &entity.ComponentFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &pageSize,
 							After: nil,
 						},
