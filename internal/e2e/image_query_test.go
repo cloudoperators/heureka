@@ -9,7 +9,6 @@ import (
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/server"
@@ -115,7 +114,7 @@ func newImageTest() *imageTest {
 	db := dbm.NewTestSchemaWithoutMigration()
 
 	cfg := dbm.DbConfig()
-	cfg.Port = util2.GetRandomFreePort()
+	cfg.Port = e2e_common.GetRandomFreePort()
 
 	seeder, err := test.NewDatabaseSeeder(cfg)
 	Expect(err).To(BeNil(), "Database Seeder Setup should work")

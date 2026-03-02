@@ -11,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -36,7 +35,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -128,7 +127,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -194,7 +193,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -308,7 +307,7 @@ var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), f
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

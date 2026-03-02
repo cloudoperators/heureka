@@ -4,17 +4,12 @@
 package e2e_test
 
 import (
-	"context"
 	"fmt"
-	"os"
-	"strings"
-	"time"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 
@@ -22,11 +17,9 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/server"
-	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"), func() {
@@ -42,7 +35,7 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -53,31 +46,20 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 
 	When("the database is empty", func() {
 		It("returns empty resultset", func() {
-			// create a queryCollection (safe to share across requests)
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/minimal.graphql")
-
-			Expect(err).To(BeNil())
-			str := string(b)
-			req := graphql.NewRequest(str)
-
-			req.Var("filter", map[string]string{})
-			req.Var("first", 10)
-			req.Var("after", "")
-
-			req.Header.Set("Cache-Control", "no-cache")
-			ctx := context.Background()
-
-			var respData struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 				SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
-			}
+			}](
+				cfg.Port,
+				"../api/graphql/graph/queryCollection/supportGroup/minimal.graphql",
+				map[string]any{
+					"filter": map[string]string{},
+					"first":  10,
+					"after":  "",
+				},
+				nil,
+			)
 
-			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-			}
-
+			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.SupportGroups.TotalCount).To(Equal(0))
 		})
 	})
@@ -91,75 +73,45 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 		Context(", no additional filters are present", func() {
 			Context("and  a minimal query is performed", Label("minimal.graphql"), func() {
 				It("returns correct result count", func() {
-					// create a queryCollection (safe to share across requests)
-					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-					b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/minimal.graphql")
-
-					Expect(err).To(BeNil())
-					str := string(b)
-					req := graphql.NewRequest(str)
-
-					req.Var("filter", map[string]string{})
-					req.Var("first", 5)
-					req.Var("after", "")
-
-					req.Header.Set("Cache-Control", "no-cache")
-					ctx := context.Background()
-
-					var respData struct {
+					respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 						SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
-					}
-					if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-						if strings.Contains(err.Error(), "connect: connection refused") {
-							time.Sleep(3 * time.Second)
-							if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-								logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-							}
-						} else {
-							logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-						}
-					}
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/supportGroup/minimal.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
+					Expect(err).ToNot(HaveOccurred())
 					Expect(respData.SupportGroups.TotalCount).To(Equal(len(seedCollection.SupportGroupRows)))
 					Expect(len(respData.SupportGroups.Edges)).To(Equal(5))
 				})
 			})
 			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-				var respData struct {
+				respData := struct {
 					SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
-				}
+				}{}
 				BeforeEach(func() {
-					// create a queryCollection (safe to share across requests)
-					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/supportGroup/directRelations.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
-					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-					b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/directRelations.graphql")
+					Expect(err).ToNot(HaveOccurred())
 
-					Expect(err).To(BeNil())
-					str := string(b)
-					req := graphql.NewRequest(str)
-
-					req.Var("filter", map[string]string{})
-					req.Var("first", 5)
-					req.Var("after", "")
-
-					req.Header.Set("Cache-Control", "no-cache")
-					ctx := context.Background()
-
-					if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-						if strings.Contains(err.Error(), "connect: connection refused") {
-							time.Sleep(3 * time.Second)
-							if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-								logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-							}
-						} else {
-							logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-						}
-					}
-
-					Expect(err).To(BeNil(), "Error while unmarshaling")
+					respData = resp
 				})
 
 				It("- returns the correct result count", func() {
@@ -212,36 +164,26 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 			})
 		})
 		Context("and we use order", Label("withOrder.graphql"), func() {
-			var respData struct {
-				SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
-			}
 			c := collate.New(language.English)
 
 			It("can order by ccrn", Label("withOrder.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/supportGroup/withOrder.graphql",
+					map[string]any{
+						"filter": map[string]string{},
+						"first":  10,
+						"after":  "",
+						"orderBy": []map[string]string{
+							{"by": "ccrn", "direction": "asc"},
+						},
+					},
+					nil,
+				)
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/withOrder.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("filter", map[string]string{})
-				req.Var("first", 10)
-				req.Var("after", "")
-				req.Var("orderBy", []map[string]string{
-					{"by": "ccrn", "direction": "asc"},
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-
-				ctx := context.Background()
-
-				err = client.Run(ctx, req, &respData)
-
-				Expect(err).To(BeNil(), "Error while unmarshaling")
+				Expect(err).ToNot(HaveOccurred())
 
 				By("- returns the correct result count", func() {
 					Expect(respData.SupportGroups.TotalCount).To(Equal(len(seedCollection.SupportGroupRows)))
@@ -274,7 +216,7 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -291,30 +233,20 @@ var _ = Describe("Creating SupportGroup via API", Label("e2e", "SupportGroups"),
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new supportGroup", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/create.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("input", map[string]string{
-					"ccrn": supportGroup.CCRN,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					SupportGroup model.SupportGroup `json:"createSupportGroup"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/supportGroup/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"ccrn": supportGroup.CCRN,
+						},
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.SupportGroup.Ccrn).To(Equal(supportGroup.CCRN))
 			})
 		})
@@ -334,7 +266,7 @@ var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"),
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -352,34 +284,24 @@ var _ = Describe("Updating SupportGroup via API", Label("e2e", "SupportGroups"),
 
 		Context("and a mutation query is performed", Label("update.graphql"), func() {
 			It("updates supportGroup", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/update.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 				supportGroup.CCRN = "Team Alone"
 
-				req.Var("id", fmt.Sprintf("%d", supportGroup.Id))
-				req.Var("input", map[string]string{
-					"ccrn": supportGroup.CCRN,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					SupportGroup model.SupportGroup `json:"updateSupportGroup"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/supportGroup/update.graphql",
+					map[string]any{
+						"id": supportGroup.Id,
+						"input": map[string]string{
+							"ccrn": supportGroup.CCRN,
+						},
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.SupportGroup.Ccrn).To(Equal(supportGroup.CCRN))
 			})
 		})
@@ -399,7 +321,7 @@ var _ = Describe("Deleting SupportGroup via API", Label("e2e", "SupportGroups"),
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -417,30 +339,20 @@ var _ = Describe("Deleting SupportGroup via API", Label("e2e", "SupportGroups"),
 
 		Context("and a mutation query is performed", Label("delete.graphql"), func() {
 			It("deletes supportGroup", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/delete.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				id := fmt.Sprintf("%d", seedCollection.SupportGroupRows[0].Id.Int64)
 
-				req.Var("id", id)
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Id string `json:"deleteSupportGroup"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/supportGroup/delete.graphql",
+					map[string]any{
+						"id": id,
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Id).To(Equal(id))
 			})
 		})
@@ -460,7 +372,7 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -478,16 +390,6 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 
 		Context("and a mutation query is performed", func() {
 			It("adds service to supportGroup", Label("addService.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/addService.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 				// find all services that are attached to the supportGroup
 				serviceIds := lo.FilterMap(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow, _ int) (int64, bool) {
@@ -502,19 +404,19 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 					return !lo.Contains(serviceIds, row.Id.Int64)
 				})
 
-				req.Var("supportGroupId", fmt.Sprintf("%d", supportGroup.Id))
-				req.Var("serviceId", fmt.Sprintf("%d", serviceRow.Id.Int64))
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					SupportGroup model.SupportGroup `json:"addServiceToSupportGroup"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/supportGroup/addService.graphql",
+					map[string]any{
+						"supportGroupId": fmt.Sprintf("%d", supportGroup.Id),
+						"serviceId":      fmt.Sprintf("%d", serviceRow.Id.Int64),
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				_, found := lo.Find(respData.SupportGroup.Services.Edges, func(edge *model.ServiceEdge) bool {
 					return edge.Node.ID == fmt.Sprintf("%d", serviceRow.Id.Int64)
 				})
@@ -523,16 +425,6 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 				Expect(found).To(BeTrue())
 			})
 			It("removes service from supportGroup", Label("removeService.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/removeService.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
 				// find a service that is attached to the supportGroup
@@ -540,19 +432,19 @@ var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "Sup
 					return row.SupportGroupId.Int64 == supportGroup.Id
 				})
 
-				req.Var("supportGroupId", fmt.Sprintf("%d", supportGroup.Id))
-				req.Var("serviceId", fmt.Sprintf("%d", serviceRow.ServiceId.Int64))
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					SupportGroup model.SupportGroup `json:"removeServiceFromSupportGroup"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/supportGroup/removeService.graphql",
+					map[string]any{
+						"supportGroupId": fmt.Sprintf("%d", supportGroup.Id),
+						"serviceId":      fmt.Sprintf("%d", serviceRow.ServiceId.Int64),
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				_, found := lo.Find(respData.SupportGroup.Services.Edges, func(edge *model.ServiceEdge) bool {
 					return edge.Node.ID == fmt.Sprintf("%d", serviceRow.ServiceId.Int64)
 				})
@@ -577,7 +469,7 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -595,16 +487,6 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 
 		Context("and a mutation query is performed", func() {
 			It("adds user to supportGroup", Label("addUser.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/addUser.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 				// find all users that are attached to the supportGroup
 				userIds := lo.FilterMap(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow, _ int) (int64, bool) {
@@ -619,20 +501,19 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 					return !lo.Contains(userIds, row.Id.Int64)
 				})
 
-				req.Var("supportGroupId", fmt.Sprintf("%d", supportGroup.Id))
-				req.Var("userId", fmt.Sprintf("%d", userRow.Id.Int64))
-
-				req.Header.Set("Cache-Control", "no-cache")
-
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					SupportGroup model.SupportGroup `json:"addUserToSupportGroup"`
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/supportGroup/addUser.graphql",
+					map[string]any{
+						"supportGroupId": fmt.Sprintf("%d", supportGroup.Id),
+						"userId":         fmt.Sprintf("%d", userRow.Id.Int64),
+					},
+					nil,
+				)
 
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				Expect(err).ToNot(HaveOccurred())
 
 				_, found := lo.Find(respData.SupportGroup.Users.Edges, func(edge *model.UserEdge) bool {
 					return edge.Node.ID == fmt.Sprintf("%d", userRow.Id.Int64)
@@ -642,16 +523,6 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 				Expect(found).To(BeTrue())
 			})
 			It("removes user from supportGroup", Label("removeUser.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/supportGroup/removeUser.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
 				// find a user that is attached to the supportGroup
@@ -659,18 +530,19 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 					return row.SupportGroupId.Int64 == supportGroup.Id
 				})
 
-				req.Var("supportGroupId", fmt.Sprintf("%d", supportGroup.Id))
-				req.Var("userId", fmt.Sprintf("%d", userRow.UserId.Int64))
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					SupportGroup model.SupportGroup `json:"removeUserFromSupportGroup"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/supportGroup/removeUser.graphql",
+					map[string]any{
+						"supportGroupId": fmt.Sprintf("%d", supportGroup.Id),
+						"userId":         fmt.Sprintf("%d", userRow.UserId.Int64),
+					},
+					nil,
+				)
+
+				Expect(err).ToNot(HaveOccurred())
 
 				_, found := lo.Find(respData.SupportGroup.Users.Edges, func(edge *model.UserEdge) bool {
 					return edge.Node.ID == fmt.Sprintf("%d", userRow.UserId.Int64)

@@ -9,7 +9,6 @@ import (
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/app/service"
 	"github.com/cloudoperators/heureka/internal/server"
@@ -73,7 +72,7 @@ func newCacheTest(valkeyUrl string, ttl time.Duration, maxDbConcurrentRefreshes 
 		ct.startDbProxy()
 	}
 
-	ct.cfg.Port = util2.GetRandomFreePort()
+	ct.cfg.Port = e2e_common.GetRandomFreePort()
 	ct.cfg.CacheEnable = true
 	ct.cfg.CacheValkeyUrl = valkeyUrl
 	ct.cfg.CacheMaxDbConcurrentRefreshes = maxDbConcurrentRefreshes
@@ -90,7 +89,7 @@ func newCacheTest(valkeyUrl string, ttl time.Duration, maxDbConcurrentRefreshes 
 
 func (ct *cacheTest) startDbProxy() {
 	dbPort := ct.cfg.DBPort
-	dbProxyPort := util2.GetRandomFreePort()
+	dbProxyPort := e2e_common.GetRandomFreePort()
 	ct.dbProxy = e2e_common.NewPausableProxy(fmt.Sprintf("localhost:%s", dbProxyPort), fmt.Sprintf("localhost:%s", dbPort))
 	err := ct.dbProxy.Start()
 	Expect(err).To(BeNil(), "Could not start DB proxy")
