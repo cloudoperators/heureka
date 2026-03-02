@@ -6,13 +6,14 @@ package processor
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/cloudoperators/heureka/scanner/nvd/client"
 	"github.com/cloudoperators/heureka/scanner/nvd/models"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 )
 
 type Processor struct {
@@ -25,9 +26,10 @@ type Processor struct {
 
 // NewProcessor
 func NewProcessor(cfg Config) *Processor {
-	httpClient := http.Client{Timeout: time.Duration(10) * time.Second}
+	httpClient := util.NewRateLimitedHTTPClient(rate.Limit(cfg.HeurekaRateLimit), cfg.HeurekaRateBurst, nil)
+	httpClient.Timeout = time.Duration(10) * time.Second
 	return &Processor{
-		GraphqlClient:       graphql.NewClient(cfg.HeurekaUrl, &httpClient),
+		GraphqlClient:       graphql.NewClient(cfg.HeurekaUrl, httpClient),
 		IssueRepositoryName: cfg.IssueRepositoryName,
 		IssueRepositoryUrl:  cfg.IssueRepositoryUrl,
 		CveDetailsUrl:       cfg.CveDetailsUrl,
