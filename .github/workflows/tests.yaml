@@ -36,7 +36,7 @@ jobs:
       - name: Generate Gqlgen code
         run: make gqlgen
       - name: Start OpenFGA server
-        run: docker-compose -f docker-compose.yaml --profile openfga up -d
+        run: docker compose -f docker-compose.yaml --profile openfga up -d
       - name: Run Tests
         env:
           DB_USER: my_username
