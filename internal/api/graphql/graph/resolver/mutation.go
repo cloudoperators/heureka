@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 )
 
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
@@ -742,6 +743,138 @@ func (r *mutationResolver) DeleteRemediation(ctx context.Context, id string) (st
 		return "", baseResolver.NewResolverError("DeleteRemediationMutationResolver", "Internal Error - when deleting remediation")
 	}
 	return id, nil
+}
+
+func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEMAlertInput) (*model.SIEMAlert, error) {
+	isComponentInstanceDataPresent := func(s *string) bool {
+		return s != nil && *s != ""
+	}
+
+	if !isComponentInstanceDataPresent(input.Service) ||
+		!isComponentInstanceDataPresent(input.Region) ||
+		!isComponentInstanceDataPresent(input.Cluster) ||
+		!isComponentInstanceDataPresent(input.Namespace) ||
+		!isComponentInstanceDataPresent(input.Pod) ||
+		!isComponentInstanceDataPresent(input.Container) {
+		return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Invalid Input - service, region, cluster, namespace, pod, and container are all required")
+	}
+
+	svc, err := r.getOrCreateService(ctx, input.Service)
+	if err != nil {
+		return nil, err
+	}
+	sg, err := r.getOrCreateSupportGroup(ctx, input.SupportGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	if svc != nil && sg != nil {
+		if _, err := r.App.AddServiceToSupportGroup(svc.Id, sg.Id); err != nil {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when adding service to supportGroup")
+		}
+	}
+	ccrn := buildCCRN(input)
+	ci, err := r.getOrCreateComponentInstance(ctx, ccrn, svc, input)
+	if err != nil {
+		return nil, err
+	}
+	issue, issueVariant, err := r.getOrCreateIssueAndVariant(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.createIssueMatchIfCI(ctx, ci, issue); err != nil {
+		return nil, err
+	}
+
+	var name *string
+	if issue != nil {
+		name = &issue.PrimaryName
+	}
+
+	var description *string
+	if issueVariant != nil && issueVariant.Description != "" {
+		description = &issueVariant.Description
+	} else if input.Description != nil {
+		description = input.Description
+	}
+
+	var severity *model.SeverityValues
+	if issueVariant != nil && issueVariant.Severity.Value != "" {
+		severity = lo.ToPtr(model.SeverityValues(issueVariant.Severity.Value))
+	} else if input.Severity != nil {
+		severity = input.Severity
+	}
+
+	var url *string
+	if issueVariant != nil && issueVariant.ExternalUrl != "" {
+		url = &issueVariant.ExternalUrl
+	} else if input.URL != nil {
+		url = input.URL
+	}
+
+	var servicePtr *string
+	if svc != nil {
+		servicePtr = lo.ToPtr(svc.CCRN)
+	} else if input.Service != nil {
+		servicePtr = input.Service
+	}
+
+	var supportGroupPtr *string
+	if sg != nil {
+		supportGroupPtr = lo.ToPtr(sg.CCRN)
+	} else if input.SupportGroup != nil {
+		supportGroupPtr = input.SupportGroup
+	}
+
+	var regionPtr, clusterPtr, namespacePtr, podPtr, containerPtr *string
+	if ci != nil {
+		if ci.Region != "" {
+			regionPtr = lo.ToPtr(ci.Region)
+		}
+		if ci.Cluster != "" {
+			clusterPtr = lo.ToPtr(ci.Cluster)
+		}
+		if ci.Namespace != "" {
+			namespacePtr = lo.ToPtr(ci.Namespace)
+		}
+		if ci.Pod != "" {
+			podPtr = lo.ToPtr(ci.Pod)
+		}
+		if ci.Container != "" {
+			containerPtr = lo.ToPtr(ci.Container)
+		}
+	}
+	if regionPtr == nil {
+		regionPtr = input.Region
+	}
+	if clusterPtr == nil {
+		clusterPtr = input.Cluster
+	}
+	if namespacePtr == nil {
+		namespacePtr = input.Namespace
+	}
+	if podPtr == nil {
+		podPtr = input.Pod
+	}
+	if containerPtr == nil {
+		containerPtr = input.Container
+	}
+
+	res := model.SIEMAlert{
+		Name:         name,
+		Description:  description,
+		Severity:     severity,
+		URL:          url,
+		Service:      servicePtr,
+		SupportGroup: supportGroupPtr,
+		Region:       regionPtr,
+		Cluster:      clusterPtr,
+		Namespace:    namespacePtr,
+		Pod:          podPtr,
+		Container:    containerPtr,
+		Source:       input.Source,
+	}
+	return &res, nil
 }
 
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
