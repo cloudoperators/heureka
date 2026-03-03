@@ -4,6 +4,19 @@ on: [pull_request]
 jobs:
   tests:
     runs-on: [ ubuntu-latest ]
+    env:
+      DB_USER: my_username
+      DB_PASSWORD: my_password
+      DB_ROOT_PASSWORD: my_password
+      DB_NAME: heureka
+      DB_ADDRESS: localhost
+      DB_PORT: 3306
+      DB_SCHEMA: internal/database/mariadb/init/schema.sql
+      LOCAL_TEST_DB: true
+      AUTHZ_FGA_API_URL: http://localhost:8080
+      AUTHZ_FGA_API_TOKEN: test_token
+      AUTHZ_FGA_STORE_NAME: heureka_store
+      AUTHZ_MODEL_FILE_PATH: ./internal/openfga/model/model.fga
     services:
       mariadb:
         image: mariadb:latest
@@ -38,17 +51,4 @@ jobs:
       - name: Start OpenFGA server
         run: docker compose -f docker-compose.yaml --profile openfga up -d
       - name: Run Tests
-        env:
-          DB_USER: my_username
-          DB_PASSWORD: my_password
-          DB_ROOT_PASSWORD: my_password
-          DB_NAME: heureka
-          DB_ADDRESS: localhost
-          DB_PORT: 3306
-          DB_SCHEMA: internal/database/mariadb/init/schema.sql
-          LOCAL_TEST_DB: true
-          AUTHZ_FGA_API_URL: http://localhost:8080
-          AUTHZ_FGA_API_TOKEN: test_token
-          AUTHZ_FGA_STORE_NAME: heureka_store
-          AUTHZ_MODEL_FILE_PATH: ./internal/openfga/model/model.fga
         run: ginkgo --trace -r -randomize-all -randomize-suites
