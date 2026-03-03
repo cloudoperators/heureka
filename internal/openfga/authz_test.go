@@ -53,6 +53,8 @@ var _ = Describe("Authz", func() {
 			ObjectId:   "document1",
 		}
 		authz = openfga.NewAuthorizationHandler(cfg, true)
+		// ensure store is clean before each test
+		Expect(authz.RemoveAllRelations()).To(Succeed())
 	})
 
 	Describe("NewAuthz", func() {
