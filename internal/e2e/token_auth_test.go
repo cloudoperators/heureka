@@ -13,7 +13,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/access/test"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,7 +27,7 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 	BeforeEach(func() {
 		db = dbm.NewTestSchemaWithoutMigration()
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		cfg.AuthTokenSecret = "xxx"
 		s = e2e_common.NewRunningServer(cfg)
 		queryUrl = fmt.Sprintf("http://localhost:%s/query", cfg.Port)
