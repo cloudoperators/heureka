@@ -16,7 +16,7 @@ jobs:
       AUTHZ_FGA_API_URL: http://localhost:8080
       AUTHZ_FGA_API_TOKEN: test_token
       AUTHZ_FGA_STORE_NAME: heureka_store
-      AUTHZ_MODEL_FILE_PATH: ./internal/openfga/model/model.fga
+      AUTHZ_MODEL_FILE_PATH: internal/openfga/model/model.fga
     services:
       mariadb:
         image: mariadb:latest
