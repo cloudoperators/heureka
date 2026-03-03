@@ -12,6 +12,10 @@ import (
 	"github.com/machinebox/graphql"
 )
 
+func GetRandomFreePort() string {
+	return util2.GetRandomFreePort()
+}
+
 var GqlStandardHeaders map[string]string = map[string]string{
 	"Cache-Control": "no-cache",
 }

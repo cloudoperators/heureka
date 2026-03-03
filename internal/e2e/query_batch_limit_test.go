@@ -6,7 +6,6 @@ package e2e_test
 import (
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -68,7 +67,7 @@ var _ = Describe("Getting data via API", Label("e2e", "Batch Limiting"), func() 
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
 		// Set batch limit as 2 for testing pourpose
 		cfg.GQLBatchLimit = 2
 		s = e2e_common.NewRunningServer(cfg)
