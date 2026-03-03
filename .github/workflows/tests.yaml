@@ -25,6 +25,8 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
       - name: Install Ginkgo
         run: go install github.com/onsi/ginkgo/v2/ginkgo
       - name: Install Mockery
@@ -34,7 +36,7 @@ jobs:
       - name: Generate Gqlgen code
         run: make gqlgen
       - name: Start OpenFGA server
-        run: docker compose -f docker-compose.yaml --profile openfga up -d
+        run: docker-compose -f docker-compose.yaml --profile openfga up -d
       - name: Run Tests
         env:
           DB_USER: my_username
