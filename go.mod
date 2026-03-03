@@ -49,7 +49,6 @@ require (
 	github.com/openfga/api/proto v0.0.0-20240905181937-3583905f61a6 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/urfave/cli/v3 v3.6.2 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.32 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c // indirect

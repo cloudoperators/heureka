@@ -69,7 +69,13 @@ var _ = Describe("Authz", func() {
 		})
 
 		It("should return an error for invalid resource type", func() {
+			r.ObjectType = "invalid_type"
 			ok, err := authz.CheckPermission(r)
+			Expect(ok).To(BeFalse())
+			Expect(err).NotTo(BeNil())
+			// using valid object type should throw no error
+			r.ObjectType = documentType
+			ok, err = authz.CheckPermission(r)
 			Expect(ok).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
@@ -187,7 +193,11 @@ var _ = Describe("Authz", func() {
 			Expect(ok).To(BeFalse())
 
 			// listing by object type should return no tuples for this type
-			listInput := openfga.RelationInput{ObjectType: documentType}
+			listInput := openfga.RelationInput{
+				UserType:   r.UserType,
+				UserId:     r.UserId,
+				ObjectType: documentType,
+			}
 			relations, err := authz.ListRelations(listInput)
 			Expect(err).To(BeNil())
 			Expect(relations).To(BeEmpty())
@@ -271,8 +281,14 @@ var _ = Describe("Authz", func() {
 
 	Describe("ListAccessibleResources", func() {
 		It("should return an empty slice and no error", func() {
-			r.ObjectId = "read"
-			resources, err := authz.ListAccessibleResources(r)
+			nonExistingInput := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "non_existing_user",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "non_existing_document",
+			}
+			resources, err := authz.ListAccessibleResources(nonExistingInput)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
 		})
