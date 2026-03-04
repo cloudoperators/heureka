@@ -13,9 +13,9 @@ import (
 type ginContextKeyType string
 
 const (
-	ginContextKey  ginContextKeyType = "GinContextKey"
-	scannerNameKey string            = "scannername"
-	userNameKey    string            = "username"
+	ginContextKey             ginContextKeyType = "GinContextKey"
+	UserNameKey               string            = "username"
+	authenticationRequiredKey string            = "authenticationRequired"
 )
 
 func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
@@ -31,41 +31,50 @@ func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
 	return gc, nil
 }
 
-func ginContextSet(c *gin.Context, key string, val string) {
+func ginContextSet[T any](c *gin.Context, key string, val T) {
 	c.Set(key, val)
 	ctx := context.WithValue(c.Request.Context(), ginContextKey, c)
 	c.Request = c.Request.WithContext(ctx)
 }
 
 func ginContextGet(ctx context.Context, key string) (string, error) {
+	var result string
 	gc, err := ginContextFromContext(ctx)
 	if err != nil {
-		return "", err
+		return result, err
 	}
 
-	s, ok := gc.Get(key)
+	v, ok := gc.Get(key)
 	if !ok {
-		return "", fmt.Errorf("could not find key: '%s' in gin.Context", key)
+		return result, fmt.Errorf("could not find key: '%s' in gin.Context", key)
 	}
-	ss, ok := s.(string)
+	result, ok = v.(string)
 	if !ok {
-		return "", fmt.Errorf("invalid key type: '%T', should be string", s)
+		return result, fmt.Errorf("invalid key type: '%T', should be string", v)
 	}
-	return ss, nil
+	return result, nil
+}
+
+func ginContextGetBool(ctx context.Context, key string) bool {
+	gc, err := ginContextFromContext(ctx)
+	if err != nil {
+		return false
+	}
+	return gc.GetBool(key)
 }
 
 func UserNameToContext(c *gin.Context, username string) {
-	ginContextSet(c, userNameKey, username)
+	ginContextSet(c, UserNameKey, username)
 }
 
 func UserNameFromContext(ctx context.Context) (string, error) {
-	return ginContextGet(ctx, userNameKey)
+	return ginContextGet(ctx, UserNameKey)
 }
 
-func ScannerNameToContext(c *gin.Context, scannername string) {
-	ginContextSet(c, scannerNameKey, scannername)
+func SetAuthenticationRequired(c *gin.Context) {
+	ginContextSet(c, authenticationRequiredKey, true)
 }
 
-func ScannerNameFromContext(ctx context.Context) (string, error) {
-	return ginContextGet(ctx, scannerNameKey)
+func IsAuthenticationRequired(ctx context.Context) bool {
+	return ginContextGetBool(ctx, authenticationRequiredKey)
 }

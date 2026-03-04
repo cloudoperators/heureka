@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
 type Service implements Node {
@@ -8,10 +8,10 @@ type Service implements Node {
     region: String
     owners(filter: UserFilter, first: Int, after: String): UserConnection
     supportGroups(filter: SupportGroupFilter, first: Int, after: String, orderBy: [SupportGroupOrderBy]): SupportGroupConnection
-    activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     issueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
     componentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
     issueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
+    remediations(filter: RemediationFilter, first: Int, after: String, orderBy: [RemediationOrderBy]): RemediationConnection
     objectMetadata: ServiceMetadata
     issueCounts(filter: IssueFilter): SeverityCounts
     metadata: Metadata

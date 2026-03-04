@@ -13,7 +13,6 @@ import (
 )
 
 func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.IssueVariant, error) {
-
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -31,7 +30,6 @@ func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent
 	opt := &entity.ListOptions{}
 
 	variants, err := app.ListIssueVariants(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueVariantBaseResolver", err.Error())
@@ -42,7 +40,7 @@ func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent
 		return nil, NewResolverError("SingleIssueVariantBaseResolver", "Internal Error - found multiple variants")
 	}
 
-	//not found
+	// not found
 	if len(variants.Elements) < 1 {
 		return nil, nil
 	}
@@ -59,12 +57,6 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called IssueVariantBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("IssueVariantBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("IssueVariantBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var issueId []*int64
 	var irId []*int64
@@ -89,7 +81,7 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	f := &entity.IssueVariantFilter{
-		Paginated:         entity.Paginated{First: first, After: afterId},
+		Paginated:         entity.Paginated{First: first, After: after},
 		IssueId:           issueId,
 		IssueRepositoryId: irId,
 		SecondaryName:     filter.SecondaryName,
@@ -99,7 +91,6 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	opt := GetListOptions(requestedFields)
 
 	variants, err := app.ListIssueVariants(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("IssueVariantBaseResolver", err.Error())
 	}
@@ -126,7 +117,6 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	return &connection, nil
-
 }
 
 func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueVariantFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueVariantConnection, error) {
@@ -135,12 +125,6 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called EffectiveIssueVariantBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("EffectiveIssueVariantBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("EffectiveIssueVariantBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var imId []*int64
 	if parent != nil {
@@ -162,7 +146,7 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 	}
 
 	f := &entity.IssueVariantFilter{
-		Paginated:    entity.Paginated{First: first, After: afterId},
+		Paginated:    entity.Paginated{First: first, After: after},
 		IssueMatchId: imId,
 		State:        model.GetStateFilterType(filter.State),
 	}
@@ -170,7 +154,6 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 	opt := GetListOptions(requestedFields)
 
 	variants, err := app.ListEffectiveIssueVariants(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("EffectiveIssueVariantBaseResolver", err.Error())
 	}
@@ -197,5 +180,4 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 	}
 
 	return &connection, nil
-
 }

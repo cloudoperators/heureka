@@ -4,25 +4,21 @@
 package e2e_test
 
 import (
-	"context"
 	"fmt"
-	"os"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
-	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVersions"), func() {
@@ -33,114 +29,127 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
 		It("returns empty resultset", func() {
-			// create a queryCollection (safe to share across requests)
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/minimal.graphql")
-
-			Expect(err).To(BeNil())
-			str := string(b)
-			req := graphql.NewRequest(str)
-
-			req.Var("filter", map[string]string{})
-			req.Var("first", 10)
-			req.Var("after", "")
-
-			req.Header.Set("Cache-Control", "no-cache")
-			ctx := context.Background()
-
-			var respData struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 				ComponentVersion model.ComponentVersionConnection `json:"ComponentVersion"`
-			}
-			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-			}
+			}](
+				cfg.Port,
+				"../api/graphql/graph/queryCollection/componentVersion/minimal.graphql",
+				map[string]any{
+					"filter": map[string]string{},
+					"first":  10,
+					"after":  "",
+				},
+				nil,
+			)
 
+			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.ComponentVersion.TotalCount).To(Equal(0))
 		})
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 		})
 		Context("and  no additional filters are present", func() {
 			It("returns correct result count", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/minimal.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("filter", map[string]string{})
-				req.Var("first", 5)
-				req.Var("after", "")
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/minimal.graphql",
+					map[string]any{
+						"filter": map[string]string{},
+						"first":  5,
+						"after":  "",
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.ComponentVersions.TotalCount).To(Equal(len(seedCollection.ComponentVersionRows)))
 				Expect(len(respData.ComponentVersions.Edges)).To(Equal(5))
 			})
+		})
+		Context("and end of life filter presents as true", func() {
+			It("returns correct result", func() {
+				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+				}](cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/minimal.graphql",
+					map[string]any{
+						"filter": map[string]bool{
+							"endOfLife": true,
+						},
+					},
+				)
 
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(resp.ComponentVersions.Edges)).To(Equal(5))
+
+				for _, edge := range resp.ComponentVersions.Edges {
+					Expect(*edge.Node.EndOfLife).To(BeTrue())
+				}
+			})
+		})
+		Context("and end of life filter presents as false", func() {
+			It("returns correct result", func() {
+				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+				}](cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/minimal.graphql",
+					map[string]any{
+						"filter": map[string]bool{
+							"endOfLife": false,
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(resp.ComponentVersions.Edges)).To(Equal(5))
+
+				for _, edge := range resp.ComponentVersions.Edges {
+					Expect(*edge.Node.EndOfLife).To(BeFalse())
+				}
+			})
 		})
 		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
-			var respData struct {
+			respData := struct {
 				ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
-			}
+			}{}
 			BeforeEach(func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+				resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/directRelations.graphql",
+					map[string]any{
+						"filter": map[string]string{},
+						"first":  5,
+						"after":  "",
+					},
+					nil,
+				)
 
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/directRelations.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("filter", map[string]string{})
-				req.Var("first", 5)
-				req.Var("after", "")
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				err = client.Run(ctx, req, &respData)
-
-				Expect(err).To(BeNil(), "Error while unmarshaling")
+				Expect(err).ToNot(HaveOccurred())
+				respData = resp
 			})
 
 			It("- returns the correct result count", func() {
@@ -149,7 +158,7 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 			})
 
 			It("- returns the expected content", func() {
-				//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 				// a complete verification
 				// additional checks are added based on bugs discovered during usage
 
@@ -222,29 +231,25 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
-	var respData struct {
-		ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
-	}
 	var db *mariadb.SqlDatabase
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
-	var loadTestData = func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
+	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
 		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
 		if err != nil {
 			return nil, nil, err
@@ -275,22 +280,24 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 			}
 		})
 
-		var runOrderTest = func(orderDirection string, expectedOrder []string) {
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/withOrder.graphql")
-			Expect(err).To(BeNil())
-			str := string(b)
-			req := graphql.NewRequest(str)
-			req.Var("filter", map[string]string{})
-			req.Var("first", 10)
-			req.Var("after", "")
-			req.Var("orderBy", []map[string]string{
-				{"by": "severity", "direction": orderDirection},
-			})
-			req.Header.Set("Cache-Control", "no-cache")
-			ctx := context.Background()
-			err = client.Run(ctx, req, &respData)
-			Expect(err).To(BeNil(), "Error while unmarshaling")
+		runOrderTest := func(orderDirection string, expectedOrder []string) {
+			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+				ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+			}](
+				cfg.Port,
+				"../api/graphql/graph/queryCollection/componentVersion/withOrder.graphql",
+				map[string]any{
+					"filter": map[string]string{},
+					"first":  10,
+					"after":  "",
+					"orderBy": []map[string]string{
+						{"by": "severity", "direction": orderDirection},
+					},
+				},
+				nil,
+			)
+
+			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.ComponentVersions.TotalCount).To(Equal(10))
 			Expect(len(respData.ComponentVersions.Edges)).To(Equal(10))
 			for i, id := range expectedOrder {
@@ -309,7 +316,6 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var seedCollection *test.SeedCollection
 	var s *server.Server
@@ -320,23 +326,21 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database has 10 entries", func() {
-
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
 			componentVersion = testentity.NewFakeComponentVersionEntity()
@@ -345,34 +349,24 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new componentVersion", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/create.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				testTag := "test-tag-e2e"
 
-				req.Var("input", map[string]string{
-					"version":     componentVersion.Version,
-					"componentId": fmt.Sprintf("%d", componentId),
-					"tag":         testTag,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					ComponentVersion model.ComponentVersion `json:"createComponentVersion"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"version":     componentVersion.Version,
+							"componentId": fmt.Sprintf("%d", componentId),
+							"tag":         testTag,
+						},
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.ComponentVersion.Version).To(Equal(componentVersion.Version))
 				Expect(*respData.ComponentVersion.ComponentID).To(Equal(fmt.Sprintf("%d", componentId)))
 				Expect(*respData.ComponentVersion.Tag).To(Equal(testTag))
@@ -382,7 +376,6 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -390,18 +383,17 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -414,36 +406,26 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 
 		Context("and a mutation query is performed", Label("update.graphql"), func() {
 			It("updates componentVersion", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/update.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
 				componentVersion.Version = "4.2.0"
 				componentVersion.Tag = "updated-tag-e2e"
 
-				req.Var("id", fmt.Sprintf("%d", componentVersion.Id))
-				req.Var("input", map[string]string{
-					"version": componentVersion.Version,
-					"tag":     componentVersion.Tag,
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					ComponentVersion model.ComponentVersion `json:"updateComponentVersion"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", componentVersion.Id),
+						"input": map[string]string{
+							"version": componentVersion.Version,
+							"tag":     componentVersion.Tag,
+						},
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.ComponentVersion.Version).To(Equal(componentVersion.Version))
 				Expect(*respData.ComponentVersion.Tag).To(Equal(componentVersion.Tag))
 			})
@@ -452,7 +434,6 @@ var _ = Describe("Updating ComponentVersion via API", Label("e2e", "ComponentVer
 })
 
 var _ = Describe("Deleting ComponentVersion via API", Label("e2e", "ComponentVersions"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -460,18 +441,17 @@ var _ = Describe("Deleting ComponentVersion via API", Label("e2e", "ComponentVer
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -484,30 +464,20 @@ var _ = Describe("Deleting ComponentVersion via API", Label("e2e", "ComponentVer
 
 		Context("and a mutation query is performed", Label("delete.graphql"), func() {
 			It("deletes component", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/componentVersion/delete.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				id := fmt.Sprintf("%d", seedCollection.ComponentVersionRows[0].Id.Int64)
 
-				req.Var("id", id)
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Id string `json:"deleteComponentVersion"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/componentVersion/delete.graphql",
+					map[string]any{
+						"id": id,
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Id).To(Equal(id))
 			})
 		})

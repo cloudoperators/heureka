@@ -14,7 +14,6 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                 lastModified
                 objectMetadata {
                     serviceCount
-                    activityCount
                     issueMatchCount
                     componentInstanceCount
                     earliestDiscoveryDate
@@ -32,9 +31,6 @@ query ($filter: IssueFilter, $first: Int, $after: String) {
                             }
                         }
                     }
-                }
-                activities {
-                    totalCount
                 }
             }
         }

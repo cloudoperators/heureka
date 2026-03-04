@@ -33,7 +33,7 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 
 	opt := &entity.ListOptions{}
 
-	componentInstances, err := app.ListComponentInstances(f, opt)
+	componentInstances, err := app.ListComponentInstances(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
@@ -43,7 +43,7 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleComponentInstanceBaseResolver"), "ComponentInstance", appErrors.Internal, "found multiple component instances"))
 	}
 
-	//not found
+	// not found
 	if len(componentInstances.Elements) < 1 {
 		return nil, nil
 	}
@@ -92,7 +92,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	}
 
 	f := &entity.ComponentInstanceFilter{
-		PaginatedX:              entity.PaginatedX{First: first, After: after},
+		Paginated:               entity.Paginated{First: first, After: after},
 		CCRN:                    filter.Ccrn,
 		Region:                  filter.Region,
 		Cluster:                 filter.Cluster,
@@ -117,7 +117,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		opt.Order = append(opt.Order, o.ToOrderEntity())
 	}
 
-	componentInstances, err := app.ListComponentInstances(f, opt)
+	componentInstances, err := app.ListComponentInstances(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
@@ -241,8 +241,8 @@ func ComponentInstanceFilterBaseResolver(
 	appCall func(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error),
 	ctx context.Context,
 	filter *model.ComponentInstanceFilter,
-	filterDisplay *string) (*model.FilterItem, error) {
-
+	filterDisplay *string,
+) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,

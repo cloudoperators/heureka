@@ -13,6 +13,7 @@ query ($filter: ComponentVersionFilter, $first: Int, $after: String) {
                 id
                 version
                 tag
+                endOfLife
             }
             cursor
         }

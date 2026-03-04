@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -127,7 +128,6 @@ var _ = Describe("User", Label("database", "User"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetUsers(nil)
 					res = e2e_common.SubtractSystemUsersEntity(res)
@@ -339,7 +339,6 @@ var _ = Describe("User", Label("database", "User"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				sgRows = seedCollection.UserRows
 				count = len(sgRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -375,7 +374,6 @@ var _ = Describe("User", Label("database", "User"), func() {
 				})
 			})
 		})
-
 	})
 	When("Insert User", Label("InsertUser"), func() {
 		Context("and we have 10 Users in the database", func() {
@@ -426,7 +424,6 @@ var _ = Describe("User", Label("database", "User"), func() {
 				By("no user returned", func() {
 					Expect(newUser).To(BeNil())
 				})
-
 			})
 		})
 	})
@@ -531,7 +528,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			It("can delete user correctly", func() {
 				user := seedCollection.UserRows[0].AsUser()
 
-				err := db.DeleteUser(user.Id, systemUserId)
+				err := db.DeleteUser(user.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -595,7 +592,6 @@ var _ = Describe("User", Label("database", "User"), func() {
 				})
 			})
 			Context("and using a UserNames filter", func() {
-
 				var filter *entity.UserFilter
 				var expectedUserNames []string
 				BeforeEach(func() {
@@ -626,10 +622,8 @@ var _ = Describe("User", Label("database", "User"), func() {
 						})
 					})
 					It("and using another filter", func() {
-
 						var anotherFilter *entity.UserFilter
 						BeforeEach(func() {
-
 							nonExistentUserName := "NonexistentUserName"
 
 							nonExistentUserNames := []*string{&nonExistentUserName}
@@ -701,7 +695,6 @@ var _ = Describe("User", Label("database", "User"), func() {
 				})
 			})
 			Context("and using a UniqueUserID filter", func() {
-
 				var filter *entity.UserFilter
 				var expectedUniqueUserIDs []string
 				BeforeEach(func() {
@@ -732,10 +725,8 @@ var _ = Describe("User", Label("database", "User"), func() {
 						})
 					})
 					It("and using another filter", func() {
-
 						var anotherFilter *entity.UserFilter
 						BeforeEach(func() {
-
 							nonExistentUniqueUserID := "NonexistentUniqueUserIDs"
 
 							nonExistentUniqueUserIDs := []*string{&nonExistentUniqueUserID}

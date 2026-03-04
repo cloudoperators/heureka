@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+query ($filter: RemediationFilter, $first: Int, $after: String) {
+    Remediations (
+        filter: $filter,
+        first: $first,
+        after: $after
+    ) {
+        totalCount
+        edges { 
+            node { 
+                id
+                description
+                severity
+                service
+                image
+                vulnerability
+                remediationDate
+                expirationDate
+                remediatedBy
+            }
+            cursor
+        }
+        pageInfo {
+            hasNextPage
+            hasPreviousPage
+            isValidPage
+            pageNumber
+            nextPageAfter
+            pages {
+                after
+                isCurrent
+                pageNumber
+                pageCount
+            }
+        }
+    }
+}

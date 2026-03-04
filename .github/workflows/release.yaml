@@ -28,7 +28,7 @@ jobs:
   # First, run the semantic release to determine if we have a new version
   release:
     name: Semantic Release
-    runs-on: default
+    runs-on: [ ubuntu-latest ]
     permissions:
       contents: write
       issues: write
@@ -41,19 +41,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: 18
 
       - name: Install dependencies
         run: npm install --save-dev semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github
-      - uses: codfish/semantic-release-action@v4
+      - uses: codfish/semantic-release-action@v5
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,7 +71,7 @@ jobs:
   build:
     name: Build Docker Images
     needs: release
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -95,7 +95,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Ensure we get the tag if a release was created
           fetch-depth: 0
@@ -103,7 +103,7 @@ jobs:
 
       # Install the cosign tool
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3.10.0
+        uses: sigstore/cosign-installer@v4.0.0
         with:
           cosign-release: 'v2.2.3'
 
@@ -180,7 +180,7 @@ jobs:
 
     name: Vulnerability Scan
     needs: build
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     steps:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

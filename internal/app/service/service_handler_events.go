@@ -158,8 +158,7 @@ func OnServiceCreate(db database.Database, e event.Event, authz openfga.Authoriz
 		// Fetch IssueRepositories
 		issueRepositories, err := db.GetIssueRepositories(&entity.IssueRepositoryFilter{
 			Name: []*string{&defaultRepoName},
-		})
-
+		}, []entity.Order{})
 		if err != nil {
 			l.WithField("event-step", "GetIssueRepository").WithError(err).Error("Error while fetching issue repository by name")
 			return

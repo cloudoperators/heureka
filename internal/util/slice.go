@@ -53,3 +53,16 @@ func ConvertStrToIntSlice(slice []*string) ([]*int64, error) {
 	}
 	return result, nil
 }
+
+func ConvertIntToStrSlice(slice []*int64) []*string {
+	var result []*string
+	for _, num := range slice {
+		if num != nil {
+			val := strconv.FormatInt(*num, 10)
+			result = append(result, &val)
+		} else {
+			result = append(result, nil)
+		}
+	}
+	return result
+}

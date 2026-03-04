@@ -32,7 +32,8 @@ func NewValkeyCache(ctx context.Context, wg *sync.WaitGroup, config ValkeyCacheC
 		InitAddress: []string{config.Url},
 		Username:    config.Username,
 		Password:    config.Password,
-		ClientName:  config.ClientName})
+		ClientName:  config.ClientName,
+	})
 	if err != nil {
 		log := logrus.New()
 		log.WithFields(logrus.Fields{

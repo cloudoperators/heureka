@@ -122,7 +122,6 @@ func main() {
 
 		return nil
 	})
-
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "scan error:", err)
 		os.Exit(1)

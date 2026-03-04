@@ -5,10 +5,11 @@ package log
 
 import (
 	"fmt"
-	"github.com/kelseyhightower/envconfig"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
+
+	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
 )
 
 type envLogConfig struct {
@@ -59,7 +60,7 @@ func (l *LogConfig) SetWriter(v string) {
 	case "stdout":
 		l.Writer = os.Stdout
 	default:
-		f, err := os.OpenFile("/var/log/heureka.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		f, err := os.OpenFile("/var/log/heureka.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
 		if err != nil {
 			logrus.Warn(fmt.Sprintf("Error while creating log io.Writer for file: %s, Using default: %s", v, "stdout"))
 			l.Writer = os.Stdout

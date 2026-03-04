@@ -30,7 +30,6 @@ type ScannerRunHandlerError struct {
 
 func (srh *scannerRunHandler) CreateScannerRun(sr *entity.ScannerRun) (bool, error) {
 	_, err := srh.database.CreateScannerRun(sr)
-
 	if err != nil {
 		return false, &ScannerRunHandlerError{msg: "Error creating scanner run"}
 	}
@@ -41,22 +40,21 @@ func (srh *scannerRunHandler) CreateScannerRun(sr *entity.ScannerRun) (bool, err
 
 func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (bool, error) {
 	_, err := srh.database.CompleteScannerRun(uuid)
-
 	if err != nil {
 		return false, &ScannerRunHandlerError{msg: "Error updating scanner run"}
 	}
 
-	// Trigger autoclose whenever a scanner run has completed successfully
-	if _, err := srh.database.Autoclose(); err != nil {
-		return false, &ScannerRunHandlerError{msg: "Error executing autoclose in CompleteScannerRun"}
+	// Trigger autopatch whenever a scanner run has completed successfully
+	if _, err := srh.database.Autopatch(); err != nil {
+		return false, &ScannerRunHandlerError{msg: "Error executing autopatch in CompleteScannerRun"}
 	}
+
 	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{successfulRun: true})
 	return true, nil
 }
 
 func (srh *scannerRunHandler) FailScannerRun(uuid string, message string) (bool, error) {
 	_, err := srh.database.FailScannerRun(uuid, message)
-
 	if err != nil {
 		return false, &ScannerRunHandlerError{msg: fmt.Sprintf("Error updating scanner run: %v", err)}
 	}
@@ -73,7 +71,6 @@ func (srh *scannerRunHandler) GetScannerRunTags() ([]string, error) {
 	var res []string
 
 	res, err := srh.database.GetScannerRunTags()
-
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +82,6 @@ func (srh *scannerRunHandler) GetScannerRuns(filter *entity.ScannerRunFilter, li
 	var res []entity.ScannerRun
 
 	res, err := srh.database.GetScannerRuns(filter)
-
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +93,6 @@ func (srh *scannerRunHandler) CountScannerRuns(filter *entity.ScannerRunFilter) 
 	var res int
 
 	res, err := srh.database.CountScannerRuns(filter)
-
 	if err != nil {
 		return -1, err
 	}

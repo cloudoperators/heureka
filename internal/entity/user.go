@@ -33,8 +33,7 @@ type UserFilter struct {
 	Email          []*string         `json:"email"`
 }
 
-type UserAggregations struct {
-}
+type UserAggregations struct{}
 
 type UserResult struct {
 	WithCursor

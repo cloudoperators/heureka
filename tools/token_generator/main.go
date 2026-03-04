@@ -27,8 +27,8 @@ func GenerateJWT(jwtSecret []byte, expireIn time.Duration) (string, error) {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "heureka",
 			Subject:   "testclient",
-        },
-    }
+		},
+	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString(jwtSecret)

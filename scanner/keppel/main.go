@@ -4,10 +4,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
-
-	"context"
 	"runtime"
 	"sync"
 
@@ -53,7 +52,6 @@ func init() {
 	}
 
 	level, err := log.ParseLevel(cfg.LogLevel)
-
 	if err != nil {
 		log.WithError(err).Fatal("Error while parsing log level")
 	}

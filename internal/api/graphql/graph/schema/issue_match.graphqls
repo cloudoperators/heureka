@@ -9,14 +9,12 @@ type IssueMatch implements Node {
     targetRemediationDate: DateTime
     severity: Severity
     effectiveIssueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
-    evidences(filter: EvidenceFilter, first: Int, after: String): EvidenceConnection
     issueId: String
     issue: Issue!
     userId: String
     user: User
     componentInstanceId: String
     componentInstance: ComponentInstance!
-    issueMatchChanges(filter: IssueMatchChangeFilter, first: Int, after: String): IssueMatchChangeConnection
     metadata: Metadata
 }
 

@@ -1,7 +1,7 @@
 # OpenFGA Authentication & Authorization
 
-Heureka utilizes OpenFGA for authentication and authorization.
-It works using an OpenFGA server loaded with a custom authorization model for Heureka's entities which the main Heureka app communicates to via API calls.
+Heureka utilizes OpenFGA for authorization, after utilizing either OIDC or a custom JWT token for authentication.
+It works using an OpenFGA server loaded with a custom authorization model for Heureka's entities. After loading the model, tuples are created to represent user to object relationships. Communication with the server is done via API calls from the main Heureka app.
 
 ## Setup Details
 
@@ -18,12 +18,14 @@ It then checks if a model has already been created in the store or not, and if o
 
 ## Interface
 
-The interface consists of four main functions
+internal/openfga/interface.go consists of the following.
 
 - CheckPermission(p PermissionInput)
     - Checks if a given user has a given level of permission on a given resource (based on relation between user and resource)
 - AddRelation(r RelationInput)
     - Adds a specified relation between a given user and a given resource
+- AddRelationBulk(r RelationInput)
+    - Adds multiple relationships between given users and resources
 - RemoveRelationBulk (r []RelationInput)
     - Remove all relations that match any given RelationInput as filters
 - RemoveRelation(r RelationInput)
@@ -37,7 +39,7 @@ The interface consists of four main functions
 - GetCurrentUser() 
     - Placeholder function to be implemented for future user context functionality
 
-PermissionInput and RelationInput are structs defined in the interface that contain all the parameters for the above functions.
+RelationInput is a struct that contains all the fields to create a tuple in above functions.
 
 For more info on how OpenFGA handles users, objects, and relations: https://openfga.dev/docs/concepts
 

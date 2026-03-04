@@ -20,7 +20,7 @@ import (
 // Temporary used until order is used in all entities
 func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntity](
 	listFunction func(*F, []entity.Order) ([]E, error),
-	filterFunction func(*int, *int64, *string) *F,
+	filterFunction func(*int, *string) *F,
 	order []entity.Order,
 	getAfterFunction func([]E) string,
 	elementCount int,
@@ -32,10 +32,9 @@ func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntit
 		expectedPages = expectedPages + 1
 	}
 
-	var after *int64
 	var afterS string
 	for i := expectedPages; i > 0; i-- {
-		entries, err := listFunction(filterFunction(&pageSize, after, &afterS), order)
+		entries, err := listFunction(filterFunction(&pageSize, &afterS), order)
 
 		Expect(err).To(BeNil())
 
@@ -46,7 +45,6 @@ func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntit
 				Expect(len(entries)).To(BeEquivalentTo(elementCount), "on a page with a higher pageSize then element count we expect")
 			} else {
 				Expect(len(entries)).To(BeEquivalentTo(pageSize), "on a normal page we expect the element count to be equal to the page size")
-
 			}
 		}
 		afterS = getAfterFunction(entries)
@@ -79,7 +77,6 @@ func TestPaginationOfList[F entity.HeurekaFilter, E entity.HeurekaEntity](
 				Expect(len(entries)).To(BeEquivalentTo(elementCount), "on a page with a higher pageSize then element count we expect")
 			} else {
 				Expect(len(entries)).To(BeEquivalentTo(pageSize), "on a normal page we expect the element count to be equal to the page size")
-
 			}
 		}
 		after = getAfterFunction(entries)
@@ -221,6 +218,7 @@ func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, erro
 		Tag          string `json:"tag"`
 		Repository   string `json:"repository"`
 		Organization string `json:"organization"`
+		EndOfLife    bool   `json:"end_of_life"`
 	}
 	var tempComponents []tempComponentVersion
 	if err := json.Unmarshal(data, &tempComponents); err != nil {
@@ -234,6 +232,7 @@ func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, erro
 			ComponentId:  sql.NullInt64{Int64: tc.ComponentID, Valid: true},
 			Repository:   sql.NullString{String: tc.Repository, Valid: true},
 			Organization: sql.NullString{String: tc.Organization, Valid: true},
+			EndOfLife:    sql.NullBool{Bool: tc.EndOfLife, Valid: true},
 		}
 	}
 	return components, nil

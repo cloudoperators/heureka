@@ -3,11 +3,11 @@ on: [pull_request]
 
 jobs:
   check-migration-files:
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     permissions:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Check migration files not modified
         run: make check-migration-files

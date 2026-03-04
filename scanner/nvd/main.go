@@ -6,15 +6,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"runtime"
+	"sync"
+	"time"
+
 	"github.com/cloudoperators/heureka/scanner/nvd/models"
 	p "github.com/cloudoperators/heureka/scanner/nvd/processor"
 	s "github.com/cloudoperators/heureka/scanner/nvd/scanner"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"runtime"
-	"sync"
-	"time"
 )
 
 func init() {
@@ -33,7 +34,6 @@ func init() {
 }
 
 func startTimeWindow(scanner *s.Scanner, processor *p.Processor, config s.Config) error {
-
 	startTime, err := time.Parse("2006-01-02", config.StartDate)
 
 	absoluteEnd := time.Now()
@@ -191,5 +191,4 @@ func main() {
 
 		scanAndProcess(scanner, processor, yesterday, today)
 	}
-
 }

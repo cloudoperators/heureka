@@ -56,8 +56,6 @@ DOCKER_CREDENTIAL_STORE=docker-credential-desktop
 
 LOG_PRETTY_PRINT=true
 
-LOCAL_TEST_DB=true
-
 SEED_MODE=false
 ```
 
@@ -136,11 +134,6 @@ Heureka uses [Ginkgo](https://onsi.github.io/ginkgo/) for behavior-driven develo
 
 - Database Tests: These tests are found in the ./internal/database/db directory. Database tests ensure that the application correctly interacts with the database. They test database queries, updates, deletions, and other related operations.
 
-In the `.test.env` file, the `LOCAL_TEST_DB` variable controls the database used for testing:
-
-- If `LOCAL_TEST_DB=true`, tests will interact with a **local database**. Please ensure your local database server is running before executing the tests.
-- If `LOCAL_TEST_DB=false`, tests will run against a **containerized database**.
-
 Run all tests:
 ```
 ginkgo -r
@@ -180,4 +173,4 @@ We as members, contributors, and leaders pledge to make participation in our com
 
 ## Licensing
 
-Copyright 2004 SAP SE or an SAP affiliate company and heureka contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/SAP/<your-project>).
+Copyright 2025 SAP SE or an SAP affiliate company and Heureka contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/cloudoperators/heureka).

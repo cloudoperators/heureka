@@ -27,7 +27,7 @@ func BuildIssueVariantMap(db database.Database, filter *entity.ServiceIssueVaria
 	})
 
 	// Get Issue Variants based on filter
-	issueVariants, err := db.GetServiceIssueVariants(filter)
+	issueVariants, err := db.GetServiceIssueVariants(filter, []entity.Order{})
 	if err != nil {
 		l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants")
 		return nil, fmt.Errorf("Error while fetching issue variants: %w", err)
@@ -40,20 +40,19 @@ func BuildIssueVariantMap(db database.Database, filter *entity.ServiceIssueVaria
 	}
 
 	// create a map of issue id to variants for easy access
-	var issueVariantMap = make(map[int64]entity.ServiceIssueVariant)
+	issueVariantMap := make(map[int64]entity.ServiceIssueVariant)
 
 	for _, variant := range issueVariants {
-
 		if _, ok := issueVariantMap[variant.IssueId]; ok {
 			// if there are multiple variants with the same priority on their repositories we take the highest severity one
 			// if serverity and score are the same the first occuring issue variant is taken
 			if issueVariantMap[variant.IssueId].Priority < variant.Priority {
-				issueVariantMap[variant.IssueId] = variant
+				issueVariantMap[variant.IssueId] = *variant.ServiceIssueVariant
 			} else if issueVariantMap[variant.IssueId].Severity.Score < variant.Severity.Score {
-				issueVariantMap[variant.IssueId] = variant
+				issueVariantMap[variant.IssueId] = *variant.ServiceIssueVariant
 			}
 		} else {
-			issueVariantMap[variant.IssueId] = variant
+			issueVariantMap[variant.IssueId] = *variant.ServiceIssueVariant
 		}
 	}
 

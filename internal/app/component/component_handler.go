@@ -4,6 +4,7 @@
 package component
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -17,9 +18,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetComponentCcrns = 12 * time.Hour
-var CacheTtlGetAllComponentCursors = 12 * time.Hour
-var CacheTtlCountComponents = 12 * time.Hour
+var (
+	CacheTtlGetComponentCcrns      = 12 * time.Hour
+	CacheTtlGetAllComponentCursors = 12 * time.Hour
+	CacheTtlCountComponents        = 12 * time.Hour
+)
 
 type componentHandler struct {
 	database      database.Database
@@ -49,11 +52,12 @@ func NewComponentHandlerError(msg string) *ComponentHandlerError {
 	return &ComponentHandlerError{msg: msg}
 }
 
-func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, options *entity.ListOptions) (*entity.List[entity.ComponentResult], error) {
+func (cs *componentHandler) ListComponents(ctx context.Context, filter *entity.ComponentFilter, options *entity.ListOptions) (*entity.List[entity.ComponentResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
+	options = common.EnsureListOptions(options)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListComponentsEventName,
@@ -61,7 +65,7 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 	})
 
 	// get current user id
-	currentUserId, err := common.GetCurrentUserId(cs.database)
+	currentUserId, err := common.GetCurrentUserId(ctx, cs.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Error while getting current user id")
@@ -78,7 +82,6 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleComponentIds)
 
 	res, err := cs.database.GetComponents(filter, options.Order)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Error while filtering for Components")
@@ -98,7 +101,7 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 				l.Error(err)
 				return nil, NewComponentHandlerError("Error while getting all Ids")
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
@@ -126,7 +129,7 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 	return ret, nil
 }
 
-func (cs *componentHandler) CreateComponent(component *entity.Component) (*entity.Component, error) {
+func (cs *componentHandler) CreateComponent(ctx context.Context, component *entity.Component) (*entity.Component, error) {
 	f := &entity.ComponentFilter{
 		CCRN: []*string{&component.CCRN},
 	}
@@ -138,7 +141,7 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	})
 
 	var err error
-	component.CreatedBy, err = common.GetCurrentUserId(cs.database)
+	component.CreatedBy, err = common.GetCurrentUserId(ctx, cs.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while creating component (GetUserId).")
@@ -146,8 +149,7 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	component.UpdatedBy = component.CreatedBy
 
 	lo := entity.NewListOptions()
-	components, err := cs.ListComponents(f, lo)
-
+	components, err := cs.ListComponents(ctx, f, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while creating component.")
@@ -158,7 +160,6 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	}
 
 	newComponent, err := cs.database.CreateComponent(component)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while creating component.")
@@ -169,29 +170,27 @@ func (cs *componentHandler) CreateComponent(component *entity.Component) (*entit
 	return newComponent, nil
 }
 
-func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entity.Component, error) {
+func (cs *componentHandler) UpdateComponent(ctx context.Context, component *entity.Component) (*entity.Component, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentEventName,
 		"object": component,
 	})
 
 	var err error
-	component.UpdatedBy, err = common.GetCurrentUserId(cs.database)
+	component.UpdatedBy, err = common.GetCurrentUserId(ctx, cs.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while updating component (GetUserId).")
 	}
 
 	err = cs.database.UpdateComponent(component)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while updating component.")
 	}
 
 	lo := entity.NewListOptions()
-	componentResult, err := cs.ListComponents(&entity.ComponentFilter{Id: []*int64{&component.Id}}, lo)
-
+	componentResult, err := cs.ListComponents(ctx, &entity.ComponentFilter{Id: []*int64{&component.Id}}, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while retrieving updated component.")
@@ -207,20 +206,19 @@ func (cs *componentHandler) UpdateComponent(component *entity.Component) (*entit
 	return componentResult.Elements[0].Component, nil
 }
 
-func (cs *componentHandler) DeleteComponent(id int64) error {
+func (cs *componentHandler) DeleteComponent(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteComponentEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(cs.database)
+	userId, err := common.GetCurrentUserId(ctx, cs.database)
 	if err != nil {
 		l.Error(err)
 		return NewComponentHandlerError("Internal error while deleting component (GetUserId).")
 	}
 
 	err = cs.database.DeleteComponent(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewComponentHandlerError("Internal error while deleting component.")
@@ -244,7 +242,6 @@ func (cs *componentHandler) ListComponentCcrns(filter *entity.ComponentFilter, o
 		cs.database.GetComponentCcrns,
 		filter,
 	)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while retrieving componentCcrns.")

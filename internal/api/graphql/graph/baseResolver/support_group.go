@@ -46,12 +46,12 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	f := &entity.SupportGroupFilter{
-		PaginatedX: entity.PaginatedX{First: first, After: after},
-		ServiceId:  serviceId,
-		UserId:     userId,
-		CCRN:       filter.SupportGroupCcrn,
-		State:      model.GetStateFilterType(filter.State),
-		IssueId:    issueId,
+		Paginated: entity.Paginated{First: first, After: after},
+		ServiceId: serviceId,
+		UserId:    userId,
+		CCRN:      filter.SupportGroupCcrn,
+		State:     model.GetStateFilterType(filter.State),
+		IssueId:   issueId,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -59,8 +59,7 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		opt.Order = append(opt.Order, o.ToOrderEntity())
 	}
 
-	supportGroups, err := app.ListSupportGroups(f, opt)
-
+	supportGroups, err := app.ListSupportGroups(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("SupportGroupBaseResolver", err.Error())
 	}
@@ -103,7 +102,6 @@ func SupportGroupCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *
 
 	if len(filter.UserIds) > 0 {
 		userIds, err = util.ConvertStrToIntSlice(filter.UserIds)
-
 		if err != nil {
 			logrus.WithField("Filter", filter).Error("SupportGroupCcrnBaseResolver: Error while parsing 'UserIds'")
 			return nil, NewResolverError("SupportGroupCcrnBaseResolver", "Bad Request - unable to parse 'UserIds'")
@@ -111,16 +109,15 @@ func SupportGroupCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	f := &entity.SupportGroupFilter{
-		PaginatedX: entity.PaginatedX{},
-		UserId:     userIds,
-		CCRN:       filter.SupportGroupCcrn,
-		State:      model.GetStateFilterType(filter.State),
+		Paginated: entity.Paginated{},
+		UserId:    userIds,
+		CCRN:      filter.SupportGroupCcrn,
+		State:     model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
 
 	names, err := app.ListSupportGroupCcrns(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("SupportGroupCcrnBaseResolver", err.Error())
 	}

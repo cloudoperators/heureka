@@ -17,7 +17,6 @@ type Resolver struct {
 }
 
 func NewResolver(a app.Heureka) graph.Config {
-
 	r := Resolver{
 		App: a,
 	}

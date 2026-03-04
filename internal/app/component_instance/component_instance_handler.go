@@ -4,11 +4,11 @@
 package component_instance
 
 import (
-	"time"
-
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -21,9 +21,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetComponentInstances = 12 * time.Hour
-var CacheTtlGetAllComponentInstanceCursors = 12 * time.Hour
-var CacheTtlCountComponentInstances = 12 * time.Hour
+var (
+	CacheTtlGetComponentInstances          = 12 * time.Hour
+	CacheTtlGetAllComponentInstanceCursors = 12 * time.Hour
+	CacheTtlCountComponentInstances        = 12 * time.Hour
+)
 
 type componentInstanceHandler struct {
 	database      database.Database
@@ -55,15 +57,15 @@ func NewComponentInstanceHandler(handlerContext common.HandlerContext) Component
 	}
 }
 
-func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
+func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
 	op := appErrors.Op("componentInstanceHandler.ListComponentInstances")
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
 
 	// get current user id
-	currentUserId, err := common.GetCurrentUserId(ci.database)
+	currentUserId, err := common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
 		ci.logger.Error(err)
 		return nil, NewComponentInstanceHandlerError("Error while getting current user id")
@@ -87,7 +89,6 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 		filter,
 		options.Order,
 	)
-
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -113,7 +114,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 				})
 				return nil, wrappedErr
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
@@ -148,7 +149,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.Compon
 	return result, nil
 }
 
-func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context, componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
 	op := appErrors.Op("componentInstanceHandler.CreateComponentInstance")
 
 	// Input validation - check for required fields
@@ -189,7 +190,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 
 	// Get current user for audit fields
 	var err error
-	componentInstance.CreatedBy, err = common.GetCurrentUserId(ci.database)
+	componentInstance.CreatedBy, err = common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -251,7 +252,7 @@ func (ci *componentInstanceHandler) CreateComponentInstance(componentInstance *e
 	return newComponentInstance, nil
 }
 
-func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) UpdateComponentInstance(ctx context.Context, componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
 	op := appErrors.Op("componentInstanceHandler.UpdateComponentInstance")
 
 	// Input validation
@@ -281,7 +282,7 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 
 	// Get current user for audit fields
 	var err error
-	componentInstance.UpdatedBy, err = common.GetCurrentUserId(ci.database)
+	componentInstance.UpdatedBy, err = common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -320,7 +321,7 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 
 	// Retrieve updated component instance to return fresh data
 	lo := entity.NewListOptions()
-	componentInstanceResult, err := ci.ListComponentInstances(&entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, lo)
+	componentInstanceResult, err := ci.ListComponentInstances(ctx, &entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, lo)
 	if err != nil {
 		wrappedErr := appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.Internal, err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
@@ -351,7 +352,7 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(componentInstance *e
 	return updatedComponentInstance, nil
 }
 
-func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
+func (ci *componentInstanceHandler) DeleteComponentInstance(ctx context.Context, id int64) error {
 	op := appErrors.Op("componentInstanceHandler.DeleteComponentInstance")
 
 	// Input validation
@@ -362,7 +363,7 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(id int64) error {
 	}
 
 	// Get current user for audit fields
-	userId, err := common.GetCurrentUserId(ci.database)
+	userId, err := common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(id, 10), err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{

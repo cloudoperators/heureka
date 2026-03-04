@@ -4,9 +4,10 @@
 package scanner_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"testing"
 
 	"github.com/cloudoperators/heureka/scanners/keppel/scanner"
 )
@@ -17,9 +18,7 @@ func TestScanner(t *testing.T) {
 }
 
 var _ = Describe("Scanner", func() {
-	var (
-		testScanner *scanner.Scanner
-	)
+	var testScanner *scanner.Scanner
 
 	BeforeEach(func() {
 		testScanner = scanner.NewScanner(scanner.Config{})

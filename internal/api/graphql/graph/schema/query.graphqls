@@ -4,15 +4,12 @@
 type Query {
     Issues(filter: IssueFilter, first: Int, after: String, orderBy: [IssueOrderBy]): IssueConnection
     IssueMatches(filter: IssueMatchFilter, first: Int, after: String, orderBy: [IssueMatchOrderBy]): IssueMatchConnection
-    IssueMatchChanges(filter: IssueMatchChangeFilter, first: Int, after: String): IssueMatchChangeConnection
     Services(filter: ServiceFilter, first: Int, after: String, orderBy: [ServiceOrderBy]): ServiceConnection
     Components(filter: ComponentFilter, first: Int, after: String): ComponentConnection
     ComponentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     ComponentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
-    Activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     IssueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     IssueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
-    Evidences(filter: EvidenceFilter, first: Int, after: String): EvidenceConnection
     SupportGroups(filter: SupportGroupFilter, first: Int, after: String, orderBy: [SupportGroupOrderBy]): SupportGroupConnection
     Users(filter: UserFilter, first: Int, after: String): UserConnection
     ServiceFilterValues: ServiceFilterValue
@@ -25,4 +22,7 @@ type Query {
     Vulnerabilities(filter: VulnerabilityFilter, first: Int, after: String): VulnerabilityConnection
     VulnerabilityFilterValues: VulnerabilityFilterValue
     Images(filter: ImageFilter, first: Int, after: String): ImageConnection
+    ImageVersions(filter: ImageVersionFilter, first: Int, after: String): ImageVersionConnection
+    Remediations(filter: RemediationFilter, first: Int, after: String, orderBy: [RemediationOrderBy]): RemediationConnection
+    Patches(filter: PatchFilter, first: Int, after: String): PatchConnection
 }

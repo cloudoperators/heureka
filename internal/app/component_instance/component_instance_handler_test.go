@@ -4,8 +4,8 @@
 package component_instance_test
 
 import (
+	"context"
 	"errors"
-
 	"math"
 	"strconv"
 	"testing"
@@ -13,7 +13,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	ci "github.com/cloudoperators/heureka/internal/app/component_instance"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	dbtest "github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -33,8 +32,12 @@ func TestComponentInstanceHandler(t *testing.T) {
 	RunSpecs(t, "Component Instance Service Test Suite")
 }
 
-var handlerContext common.HandlerContext
-var cfg *util.Config
+var (
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
+)
 
 var _ = BeforeSuite(func() {
 	authEnabled := false
@@ -42,7 +45,7 @@ var _ = BeforeSuite(func() {
 	enableLogs := false
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
-		Cache: cache.NewNoCache(),
+		Cache: nil,
 		Authz: authz,
 	}
 	handlerContext.Authz.RemoveAllRelations()
@@ -50,7 +53,7 @@ var _ = BeforeSuite(func() {
 
 func componentInstanceFilter() *entity.ComponentInstanceFilter {
 	return &entity.ComponentInstanceFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -64,6 +67,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		er                       event.EventRegistry
 		db                       *mocks.MockDatabase
 		componentInstanceHandler ci.ComponentInstanceHandler
+		ctx                      context.Context
 		filter                   *entity.ComponentInstanceFilter
 		options                  *entity.ListOptions
 	)
@@ -72,6 +76,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 
+		ctx = common.NewAdminContext() // Use admin context for testing
 		options = entity.NewListOptions()
 		filter = componentInstanceFilter()
 		handlerContext.DB = db
@@ -79,7 +84,6 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
@@ -90,7 +94,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 		It("shows the total count in the results", func() {
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
+			res, err := componentInstanceHandler.ListComponentInstances(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -108,7 +112,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 				componentInstances = append(componentInstances, entity.ComponentInstanceResult{WithCursor: entity.WithCursor{Value: cursor}, ComponentInstance: lo.ToPtr(ci)})
 			}
 
-			var cursors = lo.Map(componentInstances, func(m entity.ComponentInstanceResult, _ int) string {
+			cursors := lo.Map(componentInstances, func(m entity.ComponentInstanceResult, _ int) string {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, *m.ComponentInstance))
 				return cursor
 			})
@@ -125,7 +129,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 			db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).Return(cursors, nil)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-			res, err := componentInstanceHandler.ListComponentInstances(filter, options)
+			res, err := componentInstanceHandler.ListComponentInstances(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -146,7 +150,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-			result, err := componentInstanceHandler.ListComponentInstances(filter, options)
+			result, err := componentInstanceHandler.ListComponentInstances(ctx, filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -185,7 +189,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-			result, err := componentInstanceHandler.ListComponentInstances(filter, options)
+			result, err := componentInstanceHandler.ListComponentInstances(ctx, filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -225,7 +229,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 			It("should return no component instances", func() {
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-				res, err := componentInstanceHandler.ListComponentInstances(filter, options)
+				res, err := componentInstanceHandler.ListComponentInstances(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
 			})
@@ -297,7 +301,7 @@ var _ = Describe("When listing Component Instances", Label("app", "ListComponent
 
 			It("should return the expected component instance in the result", func() {
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-				res, err := componentInstanceHandler.ListComponentInstances(filter, options)
+				res, err := componentInstanceHandler.ListComponentInstances(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
 				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(componentInstance.CCRN)) // check that the returned component instance is the expected one
@@ -336,7 +340,9 @@ var _ = Describe("When creating ComponentInstance", Label("app", "CreateComponen
 			// Ensure type is allowed if ParentId is set
 			componentInstance.Type = "RecordSet"
 			componentInstance.ParentId = 1234
-			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(&componentInstance, nil)
+			// Set ComponentVersionId to 0 to test creation without it
+			componentInstance.ComponentVersionId = 0
+			newComponentInstance, err := componentInstanceHandler.CreateComponentInstance(common.NewAdminContext(), &componentInstance, nil)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(newComponentInstance.Id).NotTo(BeEquivalentTo(0))
 			By("setting fields", func() {
@@ -423,7 +429,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 		first := 10
 		after := ""
 		filter = &entity.ComponentInstanceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -450,7 +456,7 @@ var _ = Describe("When updating ComponentInstance", Label("app", "UpdateComponen
 			componentInstance.CCRN = dbtest.GenerateFakeCcrn(componentInstance.Cluster, componentInstance.Namespace)
 			filter.Id = []*int64{&componentInstance.Id}
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
-			updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(componentInstance.ComponentInstance, nil)
+			updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(common.NewAdminContext(), componentInstance.ComponentInstance, nil)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			By("setting fields", func() {
 				Expect(updatedComponentInstance.CCRN).To(BeEquivalentTo(componentInstance.CCRN))
@@ -632,6 +638,7 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		componentInstanceHandler ci.ComponentInstanceHandler
 		id                       int64
 		filter                   *entity.ComponentInstanceFilter
+		ctx                      context.Context
 	)
 
 	BeforeEach(func() {
@@ -642,13 +649,14 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 		first := 10
 		after := ""
 		filter = &entity.ComponentInstanceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
 		}
 		handlerContext.DB = db
 		handlerContext.EventReg = er
+		ctx = common.NewAdminContext() // Use admin context for testing
 	})
 
 	Context("with valid input", func() {
@@ -658,12 +666,12 @@ var _ = Describe("When deleting ComponentInstance", Label("app", "DeleteComponen
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			db.On("GetComponentInstances", filter, []entity.Order{}).Return([]entity.ComponentInstanceResult{}, nil)
-			err := componentInstanceHandler.DeleteComponentInstance(id)
+			err := componentInstanceHandler.DeleteComponentInstance(common.NewAdminContext(), id)
 			Expect(err).To(BeNil(), "no error should be thrown")
 
 			filter.Id = []*int64{&id}
 			lo := entity.NewListOptions()
-			componentInstances, err := componentInstanceHandler.ListComponentInstances(filter, lo)
+			componentInstances, err := componentInstanceHandler.ListComponentInstances(ctx, filter, lo)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(componentInstances.Elements).To(BeEmpty(), "component instance should be deleted")
 		})

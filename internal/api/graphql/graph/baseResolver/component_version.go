@@ -30,8 +30,7 @@ func SingleComponentVersionBaseResolver(app app.Heureka, ctx context.Context, pa
 
 	opt := &entity.ListOptions{}
 
-	componentVersions, err := app.ListComponentVersions(f, opt)
-
+	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleComponentVersionBaseResolver", err.Error())
@@ -42,7 +41,7 @@ func SingleComponentVersionBaseResolver(app app.Heureka, ctx context.Context, pa
 		return nil, NewResolverError("SingleComponentVersionBaseResolver", "Internal Error - found multiple component versions")
 	}
 
-	//not found
+	// not found
 	if len(componentVersions.Elements) < 1 {
 		return nil, nil
 	}
@@ -85,26 +84,23 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		}
 	} else {
 		componentId, err = util.ConvertStrToIntSlice(filter.ComponentID)
-
 		if err != nil {
 			return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter component ID")
 		}
 	}
 
 	serviceIds, err := util.ConvertStrToIntSlice(filter.ServiceID)
-
 	if err != nil {
 		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter service ID")
 	}
 
 	repositoryIds, err := util.ConvertStrToIntSlice(filter.IssueRepositoryID)
-
 	if err != nil {
 		return nil, NewResolverError("ComponentVersionBaseResolver", "Bad Request - Error while parsing filter issue repository ID")
 	}
 
 	f := &entity.ComponentVersionFilter{
-		PaginatedX:        entity.PaginatedX{First: first, After: after},
+		Paginated:         entity.Paginated{First: first, After: after},
 		IssueId:           issueId,
 		ComponentId:       componentId,
 		ComponentCCRN:     filter.ComponentCcrn,
@@ -113,6 +109,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		IssueRepositoryId: repositoryIds,
 		Version:           filter.Version,
 		State:             model.GetStateFilterType(filter.State),
+		EndOfLife:         filter.EndOfLife,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -129,8 +126,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		}
 	}
 
-	componentVersions, err := app.ListComponentVersions(f, opt)
-
+	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	//@todo propper error handling
 	if err != nil {
 		return nil, NewResolverError("ComponentVersionBaseResolver", err.Error())

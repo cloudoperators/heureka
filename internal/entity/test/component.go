@@ -10,9 +10,12 @@ import (
 
 func NewFakeComponentEntity() entity.Component {
 	return entity.Component{
-		Id:   int64(gofakeit.Number(1, 10000000)),
-		CCRN: gofakeit.Name(),
-		Type: gofakeit.Word(),
+		Id:           int64(gofakeit.Number(1, 10000000)),
+		CCRN:         gofakeit.Name(),
+		Repository:   gofakeit.AppName(),
+		Organization: gofakeit.Company(),
+		Url:          gofakeit.URL(),
+		Type:         gofakeit.Word(),
 		Metadata: entity.Metadata{
 			CreatedAt: gofakeit.Date(),
 			DeletedAt: gofakeit.Date(),

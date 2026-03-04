@@ -42,8 +42,7 @@ func NewIssueVariantFilter() *IssueVariantFilter {
 	}
 }
 
-type IssueVariantAggregations struct {
-}
+type IssueVariantAggregations struct{}
 
 type IssueVariantResult struct {
 	WithCursor

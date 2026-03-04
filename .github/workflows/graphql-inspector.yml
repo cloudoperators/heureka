@@ -9,9 +9,18 @@ on:
 jobs:
   schema-check:
     runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
     steps:
+      - name: Generate GitHub App Token
+        id: github-app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+          private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          permission-pull-requests: write
+          
       - name: Checkout base branch (main)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.base_ref }}
           path: base-branch
@@ -22,7 +31,7 @@ jobs:
           cat base-branch/internal/api/graphql/graph/schema/*.graphqls > .github/schemas/old-schema.graphql
 
       - name: Checkout PR branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: pr-branch
 
@@ -31,7 +40,7 @@ jobs:
           cat pr-branch/internal/api/graphql/graph/schema/*.graphqls > .github/schemas/new-schema.graphql
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '18'
 
@@ -79,7 +88,7 @@ jobs:
         id: generate-report
         uses: actions/github-script@v8
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.github-app-token.outputs.token }}
           script: |
             const fs = require('fs');
 

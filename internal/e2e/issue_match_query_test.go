@@ -4,29 +4,23 @@
 package e2e_test
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"time"
 
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	testentity "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/server"
-	"github.com/machinebox/graphql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -34,52 +28,41 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
 	When("the database is empty", func() {
 		It("returns empty resultset", func() {
-			// create a queryCollection (safe to share across requests)
-			client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-			//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-			b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/minimal.graphql")
-
-			Expect(err).To(BeNil())
-			str := string(b)
-			req := graphql.NewRequest(str)
-
-			req.Var("filter", map[string]string{})
-			req.Var("first", 10)
-			req.Var("after", "")
-
-			req.Header.Set("Cache-Control", "no-cache")
-			ctx := context.Background()
-
-			var respData struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 				IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
-			}
-			if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-				logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-			}
+			}](
+				cfg.Port,
+				"../api/graphql/graph/queryCollection/issueMatch/minimal.graphql",
+				map[string]any{
+					"filter": map[string]string{},
+					"first":  10,
+					"after":  "",
+				},
+				nil,
+			)
 
+			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.IssueMatches.TotalCount).To(Equal(0))
 		})
 	})
 
 	When("the database has 10 entries", func() {
-
 		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
 			seedCollection = seeder.SeedDbWithNFakeData(10)
@@ -88,61 +71,45 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 		Context(", no additional filters are present", func() {
 			Context("and  a minimal query is performed", Label("minimal.graphql"), func() {
 				It("returns correct result count", func() {
-					// create a queryCollection (safe to share across requests)
-					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/minimal.graphql")
-
-					Expect(err).To(BeNil())
-					str := string(b)
-					req := graphql.NewRequest(str)
-
-					req.Var("filter", map[string]string{})
-					req.Var("first", 5)
-					req.Var("after", "")
-
-					req.Header.Set("Cache-Control", "no-cache")
-					ctx := context.Background()
-
-					var respData struct {
+					respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 						IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
-					}
-					if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-						logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-					}
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/issueMatch/minimal.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
+					Expect(err).ToNot(HaveOccurred())
 					Expect(respData.IssueMatches.TotalCount).To(Equal(len(seedCollection.IssueMatchRows)))
 					Expect(len(respData.IssueMatches.Edges)).To(Equal(5))
 				})
 			})
 			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-
-				var respData struct {
+				respData := struct {
 					IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
-				}
+				}{}
 				BeforeEach(func() {
-					// create a queryCollection (safe to share across requests)
-					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/issueMatch/directRelations.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
-					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/directRelations.graphql")
+					Expect(err).ToNot(HaveOccurred())
 
-					Expect(err).To(BeNil())
-					str := string(b)
-					req := graphql.NewRequest(str)
-
-					req.Var("filter", map[string]string{})
-					req.Var("first", 5)
-					req.Var("after", "")
-
-					req.Header.Set("Cache-Control", "no-cache")
-
-					ctx := context.Background()
-
-					err = client.Run(ctx, req, &respData)
-
-					Expect(err).To(BeNil(), "Error while unmarshaling")
+					respData = resp
 				})
 
 				It("- returns the correct result count", func() {
@@ -151,7 +118,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 				})
 
 				It("- returns the expected content", func() {
-					//this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
+					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
 					// a complete verification
 					// additional checks are added based on bugs discovered during usage
 
@@ -172,24 +139,6 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 							Expect(eiv.Node.SecondaryName).ToNot(BeNil(), "effectiveIssueVariant has a name set")
 						}
 
-						for _, evidence := range im.Node.Evidences.Edges {
-							Expect(evidence.Node.ID).ToNot(BeNil(), "evidence has a ID set")
-							Expect(evidence.Node.Description).ToNot(BeNil(), "evidence has a description set")
-
-							_, evidenceFound := lo.Find(seedCollection.IssueMatchEvidenceRows, func(row mariadb.IssueMatchEvidenceRow) bool {
-								return fmt.Sprintf("%d", row.EvidenceId.Int64) == evidence.Node.ID && // correct evidence
-									fmt.Sprintf("%d", row.IssueMatchId.Int64) == im.Node.ID // belongs actually to the im
-							})
-							Expect(evidenceFound).To(BeTrue(), "attached evidence does exist and belongs to vm")
-						}
-
-						for _, imc := range im.Node.IssueMatchChanges.Edges {
-							Expect(imc.Node.ID).ToNot(BeNil(), "issueMatchChange has a ID set")
-							Expect(imc.Node.Action).ToNot(BeNil(), "issueMatchChange has an action set")
-							Expect(imc.Node.ActivityID).ToNot(BeNil(), "issueMatchChange has an activityId set")
-							Expect(imc.Node.IssueMatchID).ToNot(BeNil(), "issueMatchChange has a issueMatchId set")
-						}
-
 						issue := im.Node.Issue
 						Expect(issue.ID).ToNot(BeNil(), "issue has a ID set")
 						Expect(issue.LastModified).ToNot(BeNil(), "issue has a lastModified set")
@@ -204,36 +153,24 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 				})
 			})
 			Context("we use ordering", Label("withOrder.graphql"), func() {
-				var respData struct {
-					IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
-				}
-
 				It("can order by primaryName", Label("withOrder.graphql"), func() {
-					// create a queryCollection (safe to share across requests)
-					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+					respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/issueMatch/withOrder.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  10,
+							"after":  "",
+							"orderBy": []map[string]string{
+								{"by": "primaryName", "direction": "asc"},
+							},
+						},
+						nil,
+					)
 
-					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/withOrder.graphql")
-
-					Expect(err).To(BeNil())
-					str := string(b)
-					req := graphql.NewRequest(str)
-
-					req.Var("filter", map[string]string{})
-					req.Var("first", 10)
-					req.Var("after", "")
-					req.Var("orderBy", []map[string]string{
-						{"by": "primaryName", "direction": "asc"},
-					})
-
-					req.Header.Set("Cache-Control", "no-cache")
-
-					ctx := context.Background()
-
-					err = client.Run(ctx, req, &respData)
-
-					Expect(err).To(BeNil(), "Error while unmarshaling")
-
+					Expect(err).ToNot(HaveOccurred())
 					By("- returns the correct result count", func() {
 						Expect(respData.IssueMatches.TotalCount).To(Equal(len(seedCollection.IssueMatchRows)))
 						Expect(len(respData.IssueMatches.Edges)).To(Equal(10))
@@ -249,32 +186,24 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 				})
 
 				It("can order by primaryName and targetRemediationDate", Label("withOrder.graphql"), func() {
-					// create a queryCollection (safe to share across requests)
-					client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
+					respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						IssueMatches model.IssueMatchConnection `json:"IssueMatches"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/issueMatch/withOrder.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  10,
+							"after":  "",
+							"orderBy": []map[string]string{
+								{"by": "primaryName", "direction": "asc"},
+								{"by": "targetRemediationDate", "direction": "desc"},
+							},
+						},
+						nil,
+					)
 
-					//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-					b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/withOrder.graphql")
-
-					Expect(err).To(BeNil())
-					str := string(b)
-					req := graphql.NewRequest(str)
-
-					req.Var("filter", map[string]string{})
-					req.Var("first", 10)
-					req.Var("after", "")
-					req.Var("orderBy", []map[string]string{
-						{"by": "primaryName", "direction": "asc"},
-						{"by": "targetRemediationDate", "direction": "desc"},
-					})
-
-					req.Header.Set("Cache-Control", "no-cache")
-
-					ctx := context.Background()
-
-					err = client.Run(ctx, req, &respData)
-
-					Expect(err).To(BeNil(), "Error while unmarshaling")
-
+					Expect(err).ToNot(HaveOccurred())
 					By("- returns the correct result count", func() {
 						Expect(respData.IssueMatches.TotalCount).To(Equal(len(seedCollection.IssueMatchRows)))
 						Expect(len(respData.IssueMatches.Edges)).To(Equal(10))
@@ -297,14 +226,12 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 						}
 					})
 				})
-
 			})
 		})
 	})
 })
 
 var _ = Describe("Creating IssueMatch via API", Label("e2e", "IssueMatches"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -313,19 +240,17 @@ var _ = Describe("Creating IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -343,35 +268,25 @@ var _ = Describe("Creating IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 		Context("and a mutation query is performed", Label("create.graphql"), func() {
 			It("creates new issueMatch", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/create.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				req.Var("input", map[string]interface{}{
-					"status":                issueMatch.Status,
-					"userId":                issueMatch.UserId,
-					"componentInstanceId":   issueMatch.ComponentInstanceId,
-					"issueId":               fmt.Sprintf("%d", issueMatch.IssueId),
-					"remediationDate":       issueMatch.RemediationDate.Format(time.RFC3339),
-					"targetRemediationDate": issueMatch.TargetRemediationDate.Format(time.RFC3339),
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					IssueMatch model.IssueMatch `json:"createIssueMatch"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/issueMatch/create.graphql",
+					map[string]any{
+						"input": map[string]interface{}{
+							"status":                issueMatch.Status,
+							"userId":                issueMatch.UserId,
+							"componentInstanceId":   issueMatch.ComponentInstanceId,
+							"issueId":               fmt.Sprintf("%d", issueMatch.IssueId),
+							"remediationDate":       issueMatch.RemediationDate.Format(time.RFC3339),
+							"targetRemediationDate": issueMatch.TargetRemediationDate.Format(time.RFC3339),
+						},
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.IssueMatch.Status.String()).To(Equal(issueMatch.Status.String()))
 				Expect(*respData.IssueMatch.IssueID).To(Equal(fmt.Sprintf("%d", issueMatch.IssueId)))
 				Expect(*respData.IssueMatch.UserID).To(Equal(fmt.Sprintf("%d", issueMatch.UserId)))
@@ -384,7 +299,6 @@ var _ = Describe("Creating IssueMatch via API", Label("e2e", "IssueMatches"), fu
 })
 
 var _ = Describe("Updating issueMatch via API", Label("e2e", "IssueMatches"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -392,19 +306,17 @@ var _ = Describe("Updating issueMatch via API", Label("e2e", "IssueMatches"), fu
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -417,35 +329,24 @@ var _ = Describe("Updating issueMatch via API", Label("e2e", "IssueMatches"), fu
 
 		Context("and a mutation query is performed", Label("update.graphql"), func() {
 			It("updates issueMatch", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/update.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
 				issueMatch.RemediationDate = issueMatch.RemediationDate.Add(time.Hour * 24 * 7)
 
-				req.Var("id", fmt.Sprintf("%d", issueMatch.Id))
-				req.Var("input", map[string]string{
-					"remediationDate": issueMatch.RemediationDate.Format(time.RFC3339),
-				})
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					IssueMatch model.IssueMatch `json:"updateIssueMatch"`
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/issueMatch/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", issueMatch.Id),
+						"input": map[string]string{
+							"remediationDate": issueMatch.RemediationDate.Format(time.RFC3339),
+						},
+					},
+					nil,
+				)
 
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
-
+				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.IssueMatch.RemediationDate).To(Equal(issueMatch.RemediationDate.Format(time.RFC3339)))
 			})
 		})
@@ -453,7 +354,6 @@ var _ = Describe("Updating issueMatch via API", Label("e2e", "IssueMatches"), fu
 })
 
 var _ = Describe("Deleting IssueMatch via API", Label("e2e", "IssueMatches"), func() {
-
 	var seeder *test.DatabaseSeeder
 	var s *server.Server
 	var cfg util.Config
@@ -461,19 +361,17 @@ var _ = Describe("Deleting IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 	BeforeEach(func() {
 		var err error
-		db = dbm.NewTestSchema()
+		db = dbm.NewTestSchemaWithoutMigration()
 		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		s = e2e_common.NewRunningServer(cfg)
 	})
 
 	AfterEach(func() {
-		s.BlockingStop()
+		e2e_common.ServerTeardown(s)
 		dbm.TestTearDown(db)
 	})
 
@@ -486,151 +384,21 @@ var _ = Describe("Deleting IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 		Context("and a mutation query is performed", Label("delete.graphql"), func() {
 			It("deletes issuematch", func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/delete.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
 				id := fmt.Sprintf("%d", seedCollection.IssueVariantRows[0].Id.Int64)
 
-				req.Var("id", id)
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Id string `json:"deleteIssueMatch"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/issueMatch/delete.graphql",
+					map[string]any{
+						"id": id,
+					},
+					nil,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
 				Expect(respData.Id).To(Equal(id))
-			})
-		})
-	})
-})
-
-var _ = Describe("Modifying Evidence of IssueMatch via API", Label("e2e", "IssueMatches"), func() {
-
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
-
-	BeforeEach(func() {
-		var err error
-		db = dbm.NewTestSchema()
-		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
-		Expect(err).To(BeNil(), "Database Seeder Setup should work")
-
-		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
-		s = server.NewServer(cfg)
-
-		s.NonBlockingStart()
-	})
-
-	AfterEach(func() {
-		s.BlockingStop()
-		dbm.TestTearDown(db)
-	})
-
-	When("the database has 10 entries", func() {
-		var seedCollection *test.SeedCollection
-
-		BeforeEach(func() {
-			seedCollection = seeder.SeedDbWithNFakeData(10)
-		})
-
-		Context("and a mutation query is performed", func() {
-			It("adds evidence to issueMatch", Label("addEvidence.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/addEvidence.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
-				// find all evidenceIds that are attached to the issueMatch
-				evidenceIds := lo.FilterMap(seedCollection.IssueMatchEvidenceRows, func(row mariadb.IssueMatchEvidenceRow, _ int) (int64, bool) {
-					if row.IssueMatchId.Int64 == issueMatch.Id {
-						return row.EvidenceId.Int64, true
-					}
-					return 0, false
-				})
-
-				// find evidence that is not attached to the issueMatch
-				evidenceRow, _ := lo.Find(seedCollection.EvidenceRows, func(row mariadb.EvidenceRow) bool {
-					return !lo.Contains(evidenceIds, row.Id.Int64)
-				})
-
-				req.Var("issueMatchId", fmt.Sprintf("%d", issueMatch.Id))
-				req.Var("evidenceId", fmt.Sprintf("%d", evidenceRow.Id.Int64))
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
-					IssueMatch model.IssueMatch `json:"addEvidenceToIssueMatch"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
-
-				_, found := lo.Find(respData.IssueMatch.Evidences.Edges, func(edge *model.EvidenceEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", evidenceRow.Id.Int64)
-				})
-
-				Expect(respData.IssueMatch.ID).To(Equal(fmt.Sprintf("%d", issueMatch.Id)))
-				Expect(found).To(BeTrue())
-			})
-			It("removes evidence from issueMatch", Label("removeEvidence.graphql"), func() {
-				// create a queryCollection (safe to share across requests)
-				client := graphql.NewClient(fmt.Sprintf("http://localhost:%s/query", cfg.Port))
-
-				//@todo may need to make this more fault proof?! What if the test is executed from the root dir? does it still work?
-				b, err := os.ReadFile("../api/graphql/graph/queryCollection/issueMatch/removeEvidence.graphql")
-
-				Expect(err).To(BeNil())
-				str := string(b)
-				req := graphql.NewRequest(str)
-
-				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
-
-				// find evidence that is attached to the issueMatch
-				evidenceRow, _ := lo.Find(seedCollection.IssueMatchEvidenceRows, func(row mariadb.IssueMatchEvidenceRow) bool {
-					return row.IssueMatchId.Int64 == issueMatch.Id
-				})
-
-				req.Var("issueMatchId", fmt.Sprintf("%d", issueMatch.Id))
-				req.Var("evidenceId", fmt.Sprintf("%d", evidenceRow.EvidenceId.Int64))
-
-				req.Header.Set("Cache-Control", "no-cache")
-				ctx := context.Background()
-
-				var respData struct {
-					IssueMatch model.IssueMatch `json:"removeEvidenceFromIssueMatch"`
-				}
-				if err := util2.RequestWithBackoff(func() error { return client.Run(ctx, req, &respData) }); err != nil {
-					logrus.WithError(err).WithField("request", req).Fatalln("Error while unmarshaling")
-				}
-
-				_, found := lo.Find(respData.IssueMatch.Evidences.Edges, func(edge *model.EvidenceEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", evidenceRow.EvidenceId.Int64)
-				})
-
-				Expect(respData.IssueMatch.ID).To(Equal(fmt.Sprintf("%d", issueMatch.Id)))
-				Expect(found).To(BeFalse())
 			})
 		})
 	})

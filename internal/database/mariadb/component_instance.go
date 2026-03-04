@@ -5,18 +5,19 @@ package mariadb
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
-func (s *SqlDatabase) ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
+func ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
 	var first int = 1000
 	var after string = ""
 	if f == nil {
 		return &entity.ComponentInstanceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -38,7 +39,7 @@ const (
 	componentInstanceWildCardFilterQuery = "CI.componentinstance_ccrn LIKE Concat('%',?,'%')"
 )
 
-func (s *SqlDatabase) getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
+func getComponentInstanceFilterString(filter *entity.ComponentInstanceFilter) string {
 	var fl []string
 	fl = append(fl, buildFilterQuery(filter.Id, "CI.componentinstance_id = ?", OP_OR))
 	fl = append(fl, buildFilterQuery(filter.CCRN, "CI.componentinstance_ccrn = ?", OP_OR))
@@ -78,7 +79,7 @@ func (s *SqlDatabase) getComponentInstanceJoins(filter *entity.ComponentInstance
 	return joins
 }
 
-func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity.ComponentInstance) string {
+func getComponentInstanceUpdateFields(componentInstance *entity.ComponentInstance) string {
 	fl := []string{}
 	if componentInstance.CCRN != "" {
 		fl = append(fl, "componentinstance_ccrn = :componentinstance_ccrn")
@@ -131,11 +132,11 @@ func (s *SqlDatabase) getComponentInstanceUpdateFields(componentInstance *entity
 
 func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *entity.ComponentInstanceFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	var query string
-	filter = s.ensureComponentInstanceFilter(filter)
+	filter = ensureComponentInstanceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := s.getComponentInstanceFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	filterStr := getComponentInstanceFilterString(filter)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
 	}
@@ -161,7 +162,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	// construct prepared statement and if where clause does exist add parameters
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -174,7 +175,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 		return nil, nil, fmt.Errorf("failed to prepare ComponentInstance statement: %w", err)
 	}
 
-	//adding parameters
+	// adding parameters
 	var filterParameters []interface{}
 	filterParameters = buildQueryParameters(filterParameters, filter.Id)
 	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
@@ -195,41 +196,10 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionVersion)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		p := CreateCursorParameters([]any{}, cursorFields)
-		filterParameters = append(filterParameters, p...)
-		if filter.PaginatedX.First == nil {
-			filterParameters = append(filterParameters, 1000)
-		} else {
-			filterParameters = append(filterParameters, filter.PaginatedX.First)
-		}
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
-}
-
-func (s *SqlDatabase) GetAllComponentInstanceIds(filter *entity.ComponentInstanceFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetComponentInstanceIds",
-	})
-
-	baseQuery := `
-		SELECT CI.componentinstance_id FROM ComponentInstance CI 
-		%s
-	 	%s GROUP BY CI.componentinstance_id ORDER BY %s
-    `
-
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, []entity.Order{}, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build ComponentInstance IDs query: %w", err)
-	}
-	defer stmt.Close()
-
-	ids, err := performIdScan(stmt, filterParameters, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance IDs: %w", err)
-	}
-
-	return ids, nil
 }
 
 func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilter, order []entity.Order) ([]entity.ComponentInstanceResult, error) {
@@ -409,7 +379,7 @@ func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.Componen
 		WHERE componentinstance_id = :componentinstance_id
 	`
 
-	updateFields := s.getComponentInstanceUpdateFields(componentInstance)
+	updateFields := getComponentInstanceUpdateFields(componentInstance)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
@@ -467,7 +437,7 @@ func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.C
 	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
 
 	// Ensure the filter is initialized
-	filter = s.ensureComponentInstanceFilter(filter)
+	filter = ensureComponentInstanceFilter(filter)
 
 	order := []entity.Order{
 		{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
@@ -595,8 +565,8 @@ func (s *SqlDatabase) GetContext(filter *entity.ComponentInstanceFilter) ([]stri
 func (s *SqlDatabase) CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error {
 	query := `
         INSERT INTO ScannerRunComponentInstanceTracker (
-			scannerruncomponentinstance_component_instance_id, 
-			scannerruncomponentinstance_scannerrun_run_id
+			scannerruncomponentinstancetracker_component_instance_id, 
+			scannerruncomponentinstancetracker_scannerrun_run_id
 		)
         VALUES (?, ?)
     `

@@ -6,7 +6,6 @@ package scanner
 import (
 	"context"
 	"fmt"
-
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -167,7 +166,6 @@ func (s *Scanner) extractImageInfo(image string) (ImageInfo, error) {
 }
 
 func (s *Scanner) GetPodInfo(pod v1.Pod) PodInfo {
-
 	controlledByName := ""
 	controlledByKind := ""
 	if len(pod.OwnerReferences) > 0 {

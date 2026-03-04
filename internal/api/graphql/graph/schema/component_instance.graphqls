@@ -21,6 +21,7 @@ type ComponentInstance implements Node {
     service: Service
     metadata: Metadata
     parentId: String
+    parent: ComponentInstance
 }
 
 input ComponentInstanceInput {

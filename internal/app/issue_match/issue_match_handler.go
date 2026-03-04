@@ -4,6 +4,7 @@
 package issue_match
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -17,9 +18,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var CacheTtlGetIssueMatches = 12 * time.Hour
-var CacheTtlGetAllIssueMatchCursors = 12 * time.Hour
-var CacheTtlCountIssueMatches = 12 * time.Hour
+var (
+	CacheTtlGetIssueMatches         = 12 * time.Hour
+	CacheTtlGetAllIssueMatchCursors = 12 * time.Hour
+	CacheTtlCountIssueMatches       = 12 * time.Hour
+)
 
 type issueMatchHandler struct {
 	database        database.Database
@@ -51,14 +54,14 @@ func (e *IssueMatchHandlerError) Error() string {
 	return e.message
 }
 
-func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) GetIssueMatch(ctx context.Context, issueMatchId int64) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetIssueMatchEventName,
 		"id":    issueMatchId,
 	})
 
 	// get current user id
-	currentUserId, err := common.GetCurrentUserId(im.database)
+	currentUserId, err := common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Error while getting current user id")
@@ -82,8 +85,7 @@ func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMat
 
 	issueMatchFilter := entity.IssueMatchFilter{Id: []*int64{&issueMatchId}}
 	options := entity.ListOptions{Order: []entity.Order{}}
-	issueMatches, err := im.ListIssueMatches(&issueMatchFilter, &options)
-
+	issueMatches, err := im.ListIssueMatches(ctx, &issueMatchFilter, &options)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while retrieving issueMatches.")
@@ -101,11 +103,11 @@ func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMat
 	return issueMatches.Elements[0].IssueMatch, nil
 }
 
-func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) {
+func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
 
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListIssueMatchesEventName,
@@ -113,7 +115,7 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 	})
 
 	// get current user id
-	currentUserId, err := common.GetCurrentUserId(im.database)
+	currentUserId, err := common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Error while getting current user id")
@@ -137,7 +139,6 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 		filter,
 		options.Order,
 	)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Error while filtering for Issue Matches")
@@ -157,7 +158,7 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 				l.Error(err)
 				return nil, NewIssueMatchHandlerError("Error while getting all Ids")
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
@@ -189,14 +190,14 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 	return ret, nil
 }
 
-func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) CreateIssueMatch(ctx context.Context, issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateIssueMatchEventName,
 		"object": issueMatch,
 	})
 
 	var err error
-	issueMatch.CreatedBy, err = common.GetCurrentUserId(im.database)
+	issueMatch.CreatedBy, err = common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while creating issueMatch (GetUserId).")
@@ -209,7 +210,6 @@ func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*e
 
 	//@todo discuss: may be moved to somewhere else?
 	effectiveSeverity, err := im.severityHandler.GetSeverity(severityFilter)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity.")
@@ -218,7 +218,6 @@ func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*e
 	issueMatch.Severity = *effectiveSeverity
 
 	newIssueMatch, err := im.database.CreateIssueMatch(issueMatch)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while creating issueMatch.")
@@ -231,21 +230,20 @@ func (im *issueMatchHandler) CreateIssueMatch(issueMatch *entity.IssueMatch) (*e
 	return newIssueMatch, nil
 }
 
-func (im *issueMatchHandler) UpdateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) UpdateIssueMatch(ctx context.Context, issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueMatchEventName,
 		"object": issueMatch,
 	})
 
 	var err error
-	issueMatch.UpdatedBy, err = common.GetCurrentUserId(im.database)
+	issueMatch.UpdatedBy, err = common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while updating issueMatch (GetUserId).")
 	}
 
 	err = im.database.UpdateIssueMatch(issueMatch)
-
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while updating issueMatch.")
@@ -255,23 +253,22 @@ func (im *issueMatchHandler) UpdateIssueMatch(issueMatch *entity.IssueMatch) (*e
 		IssueMatch: issueMatch,
 	})
 
-	return im.GetIssueMatch(issueMatch.Id)
+	return im.GetIssueMatch(ctx, issueMatch.Id)
 }
 
-func (im *issueMatchHandler) DeleteIssueMatch(id int64) error {
+func (im *issueMatchHandler) DeleteIssueMatch(ctx context.Context, id int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"event": DeleteIssueMatchEventName,
 		"id":    id,
 	})
 
-	userId, err := common.GetCurrentUserId(im.database)
+	userId, err := common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
 		return NewIssueMatchHandlerError("Internal error while deleting issueMatch (GetUserId).")
 	}
 
 	err = im.database.DeleteIssueMatch(id, userId)
-
 	if err != nil {
 		l.Error(err)
 		return NewIssueMatchHandlerError("Internal error while deleting issueMatch.")
@@ -282,47 +279,4 @@ func (im *issueMatchHandler) DeleteIssueMatch(id int64) error {
 	})
 
 	return nil
-}
-
-func (im *issueMatchHandler) AddEvidenceToIssueMatch(issueMatchId, evidenceId int64) (*entity.IssueMatch, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":        AddEvidenceToIssueMatchEventName,
-		"issueMatchId": issueMatchId,
-		"evidenceId":   evidenceId,
-	})
-
-	err := im.database.AddEvidenceToIssueMatch(issueMatchId, evidenceId)
-
-	if err != nil {
-		l.Error(err)
-		return nil, NewIssueMatchHandlerError("Internal error while adding evidence to issueMatch.")
-	}
-
-	im.eventRegistry.PushEvent(&AddEvidenceToIssueMatchEvent{
-		IssueMatchID: issueMatchId,
-		EvidenceID:   evidenceId,
-	})
-
-	return im.GetIssueMatch(issueMatchId)
-}
-
-func (im *issueMatchHandler) RemoveEvidenceFromIssueMatch(issueMatchId, evidenceId int64) (*entity.IssueMatch, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event":        RemoveEvidenceFromIssueMatchEventName,
-		"issueMatchId": issueMatchId,
-		"evidenceId":   evidenceId,
-	})
-
-	err := im.database.RemoveEvidenceFromIssueMatch(issueMatchId, evidenceId)
-
-	if err != nil {
-		l.Error(err)
-		return nil, NewIssueMatchHandlerError("Internal error while removing evidence from issueMatch.")
-	}
-
-	im.eventRegistry.PushEvent(&RemoveEvidenceFromIssueMatchEvent{
-		IssueMatchID: issueMatchId,
-	})
-
-	return im.GetIssueMatch(issueMatchId)
 }

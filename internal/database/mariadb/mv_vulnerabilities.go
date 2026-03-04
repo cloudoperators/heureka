@@ -10,85 +10,77 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getMvCountIssueRatingsJoin(filter *entity.IssueFilter) string {
+func getCountTable(filter *entity.IssueFilter) string {
 	if filter.AllServices && filter.Unique {
-		// Conunt unique issues. AllServices filter is set, so we count issues that are matched to a service
-		// COUNT(distinct IV.issuevariant_issue_id)
-		return `
-			LEFT JOIN mvCountIssueRatingsUniqueService CIR ON IV.issuevariant_rating = CIR.issue_value
-		`
+		// Total count of unique issues
+		return "mvCountIssueRatingsUniqueService"
 	} else if filter.AllServices {
-		// Count issues that appear in multiple services and in multiple component versions per service
-		//COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', S.service_id))
 		if len(filter.SupportGroupCCRN) > 0 {
-			return `
-				LEFT JOIN mvCountIssueRatingsService CIR ON SG.supportgroup_ccrn = CIR.supportgroup_ccrn
-                                                        AND IV.issuevariant_rating = CIR.issue_value
-			`
+			// total count of issues in support group across all services
+			// service list view total count with support group filter
+			return "mvCountIssueRatingsService"
 		} else {
-			// call/branch can be replaced with (something to consider):
-			// SELECT issue_value, issue_count
-			// FROM mvCountIssueRatingsServiceWithoutSupportGroup
-			// ORDER BY issue_value ASC;
-			return `
-				LEFT JOIN mvCountIssueRatingsServiceWithoutSupportGroup CIR ON IV.issuevariant_rating = CIR.issue_value
-			`
+			// total count of issues in all services (across all support groups)
+			// service list view total count without support group filter
+			return "mvCountIssueRatingsServiceWithoutSupportGroup"
 		}
-	} else if len(filter.SupportGroupCCRN) > 0 {
-		// Count issues that appear in multiple support groups
-		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id, ',', SGS.supportgroupservice_service_id, ',', SG.supportgroup_id))
-		return `
-			LEFT JOIN mvCountIssueRatingsSupportGroup CIR ON SG.supportgroup_ccrn = CIR.supportgroup_ccrn
-                                              AND IV.issuevariant_rating = CIR.issue_value
-		`
+	} else if len(filter.SupportGroupCCRN) > 0 && len(filter.ServiceCCRN) == 0 && len(filter.ServiceId) == 0 {
+		// Count issues in a support group
+		return "mvCountIssueRatingsSupportGroup"
 	} else if len(filter.ComponentVersionId) > 0 {
-		// Count issues that appear in multiple component versions
-		// COUNT(DISTINCT CONCAT(CVI.componentversionissue_component_version_id, ',', CVI.componentversionissue_issue_id)) "
-		return `
-			LEFT JOIN mvCountIssueRatingsComponentVersion CIR ON CVI.componentversionissue_component_version_id = CIR.component_version_id
-                                              AND IV.issuevariant_rating = CIR.issue_value
-		`
+		// Count issues in a component version of a *service*
+		return "mvCountIssueRatingsComponentVersion"
 	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
-		// COUNT(distinct CONCAT(CI.componentinstance_component_version_id, ',', I.issue_id))
-		return `
-			LEFT JOIN mvCountIssueRatingsServiceId CIR ON CI.componentinstance_service_id = CIR.service_id
-                                              AND IV.issuevariant_rating = CIR.issue_value
-		`
+		// Count issues that appear in single service
+		return "mvCountIssueRatingsServiceId"
 	} else {
-		// COUNT(distinct IV.issuevariant_issue_id)
-		return `
-			LEFT JOIN mvCountIssueRatingsOther CIR ON IV.issuevariant_rating = CIR.issue_value
-		`
+		// Total count of issues
+		return "mvCountIssueRatingsOther"
 	}
 }
 
-func getIssueJoinsWithMvCountIssueRatingsJoin(filter *entity.IssueFilter, order []entity.Order) string {
-	joins := getIssueJoins(filter, order)
-	joins = fmt.Sprintf("%s\n%s", joins, getMvCountIssueRatingsJoin(filter))
-	return joins
-}
+func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
+	l := logrus.WithFields(logrus.Fields{
+		"event": "database.CountIssueRatings",
+	})
+	var fl []string
+	var filterParameters []any
 
-func getIssueQueryWithMvCountIssueRatingsJoin(baseQuery string, order []entity.Order, filter *entity.IssueFilter) string {
-	issueColumns := getIssueColumns(order)
-	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
-	joins := getIssueJoinsWithMvCountIssueRatingsJoin(filter, order)
-	whereClause := getIssueFilterWhereClause(filter)
-	orderStr := CreateOrderString(defaultOrder)
-	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, orderStr)
-}
+	filter = ensureIssueFilter(filter)
 
-func (s *SqlDatabase) buildIssueStatementWithMvCountIssueRatingsJoin(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
-	ifilter := s.ensureIssueFilter(filter)
-	l.WithFields(logrus.Fields{"filter": ifilter})
+	baseQuery := `
+		SELECT CIR.critical_count, CIR.high_count, CIR.medium_count, CIR.low_count, CIR.none_count FROM %s AS CIR
+	`
 
-	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
-	if err != nil {
-		return nil, nil, err
+	tableName := getCountTable(filter)
+
+	query := fmt.Sprintf(baseQuery, tableName)
+
+	if len(filter.ServiceId) > 0 {
+		filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
+		fl = append(fl, buildFilterQuery(filter.ServiceId, "CIR.service_id = ?", OP_OR))
 	}
 
-	query := getIssueQueryWithMvCountIssueRatingsJoin(baseQuery, order, ifilter)
+	if len(filter.ServiceCCRN) > 0 {
+		filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
+		fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "CIR.service_ccrn = ?", OP_OR))
+	}
 
-	//construct prepared statement and if where clause does exist add parameters
+	if len(filter.ComponentVersionId) > 0 {
+		filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
+		fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CIR.component_version_id = ?", OP_OR))
+	}
+
+	if len(filter.SupportGroupCCRN) > 0 && len(filter.ServiceId) == 0 && len(filter.ServiceCCRN) == 0 {
+		filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
+		fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "CIR.supportgroup_ccrn = ?", OP_OR))
+	}
+
+	filterStr := combineFilterQueries(fl, OP_AND)
+	if filterStr != "" {
+		query = fmt.Sprintf("%s WHERE %s", query, filterStr)
+	}
+
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -98,38 +90,7 @@ func (s *SqlDatabase) buildIssueStatementWithMvCountIssueRatingsJoin(baseQuery s
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
-		return nil, nil, fmt.Errorf("%s", msg)
-	}
-
-	//adding parameters
-	filterParameters := s.buildIssueFilterParameters(ifilter, cursorFields)
-
-	return stmt, filterParameters, nil
-}
-
-func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.CountIssueRatings",
-	})
-
-	filter = s.ensureIssueFilter(filter)
-
-	baseQuery := `
-		SELECT IV.issuevariant_rating AS issue_value, CIR.issue_count AS issue_count FROM %s Issue I
-		%s
-		%s
-		%s
-		GROUP BY IV.issuevariant_rating ORDER BY %s
-	`
-
-	if len(filter.IssueRepositoryId) == 0 {
-		baseQuery = fmt.Sprintf(baseQuery, "%s", "LEFT JOIN IssueVariant IV ON IV.issuevariant_issue_id = I.issue_id", "%s", "%s", "%s")
-	}
-
-	stmt, filterParameters, err := s.buildIssueStatementWithMvCountIssueRatingsJoin(baseQuery, filter, []entity.Order{}, l)
-
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s", msg)
 	}
 
 	defer stmt.Close()
@@ -138,30 +99,31 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 		stmt,
 		filterParameters,
 		l,
-		func(l []entity.IssueCount, e IssueCountRow) []entity.IssueCount {
-			return append(l, e.AsIssueCount())
+		func(l []entity.IssueSeverityCounts, e RatingCount) []entity.IssueSeverityCounts {
+			return append(l, e.AsIssueSeverityCounts())
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
-	var issueSeverityCounts entity.IssueSeverityCounts
-	for _, count := range counts {
-		switch count.Value {
-		case entity.SeverityValuesCritical.String():
-			issueSeverityCounts.Critical = count.Count
-		case entity.SeverityValuesHigh.String():
-			issueSeverityCounts.High = count.Count
-		case entity.SeverityValuesMedium.String():
-			issueSeverityCounts.Medium = count.Count
-		case entity.SeverityValuesLow.String():
-			issueSeverityCounts.Low = count.Count
-		case entity.SeverityValuesNone.String():
-			issueSeverityCounts.None = count.Count
-		}
-		issueSeverityCounts.Total += count.Count
+	issueCounts := &entity.IssueSeverityCounts{
+		Critical: 0,
+		High:     0,
+		Medium:   0,
+		Low:      0,
+		None:     0,
+		Total:    0,
 	}
-	return &issueSeverityCounts, nil
+
+	for _, c := range counts {
+		issueCounts.Critical += c.Critical
+		issueCounts.High += c.High
+		issueCounts.Medium += c.Medium
+		issueCounts.Low += c.Low
+		issueCounts.None += c.None
+		issueCounts.Total += c.Total
+	}
+
+	return issueCounts, nil
 }

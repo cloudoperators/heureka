@@ -52,7 +52,8 @@ func NewOidcAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 			return &NoAuthMethod{
 				logger:         l,
 				authMethodName: oidcAuthMethodName,
-				msg:            "Could not initialize OIDC provider: " + err.Error()}
+				msg:            "Could not initialize OIDC provider: " + err.Error(),
+			}
 		}
 
 		oidcConfig := &oidc.Config{

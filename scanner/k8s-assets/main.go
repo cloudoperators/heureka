@@ -7,10 +7,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"time"
-
-	"runtime"
 
 	kubeconfig "github.com/cloudoperators/heureka/scanners/k8s-assets/config"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/processor"
@@ -48,7 +47,6 @@ func init() {
 	}
 
 	level, err := log.ParseLevel(cfg.LogLevel)
-
 	if err != nil {
 		log.WithError(err).Fatal("Error while parsing log level")
 	}
@@ -223,5 +221,4 @@ func main() {
 	if ok {
 		processor.CompleteScannerRun(context.Background())
 	}
-
 }

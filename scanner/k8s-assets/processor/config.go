@@ -64,7 +64,7 @@ func NewAdvancedConfig(path string) (*AdvancedConfig, error) {
 
 	b, err := os.ReadFile(path)
 	if err != nil {
-		//gracefully handle the case where the file does not exist and just return an empty Config
+		// gracefully handle the case where the file does not exist and just return an empty Config
 		if os.IsNotExist(err) {
 			return cfg, nil
 		}

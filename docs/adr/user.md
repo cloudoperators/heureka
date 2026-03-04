@@ -12,7 +12,7 @@ The Heureka API operations are designed to be used by either a scanner or a UI u
 
 ### Scanner Authentication
 
-This method relies on a custom JWT token. To enable scanner authentication, the `AUTH_TOKEN_SECRET` variable must be configured. This secret must be shared with the token generator. The user associated with the scanner context is identified in the JWT token under the `subject` claim.
+This method relies on a custom JWT token. To enable scanner authentication, the `AUTH_TOKEN_SECRET` variable must be configured. This secret must be shared with the token generator. The user associated with the scanner stored in context is identified in the JWT token under the `subject` claim.
 
 
 ### User Authentication

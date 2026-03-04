@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	ir "github.com/cloudoperators/heureka/internal/app/issue_repository"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -25,8 +26,10 @@ func TestIssueRepositoryHandler(t *testing.T) {
 	RunSpecs(t, "Test IssueRepository Service")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -68,10 +71,9 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
+			db.On("GetIssueRepositories", filter, mock.Anything).Return([]entity.IssueRepositoryResult{}, nil)
 			db.On("CountIssueRepositories", filter).Return(int64(1337), nil)
 		})
 
@@ -87,18 +89,29 @@ var _ = Describe("When listing IssueRepositories", Label("app", "ListIssueReposi
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
+
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			repositories := test.NNewFakeIssueRepositories(resElements)
+			irResults := []entity.IssueRepositoryResult{}
 
-			var ids = lo.Map(repositories, func(ar entity.IssueRepository, _ int) int64 { return ar.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			for _, ir := range test.NNewFakeIssueRepositories(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueRepository([]entity.Order{}, ir))
+				irResults = append(irResults, entity.IssueRepositoryResult{WithCursor: entity.WithCursor{Value: cursor}, IssueRepository: lo.ToPtr(ir)})
 			}
-			db.On("GetIssueRepositories", filter).Return(repositories, nil)
-			db.On("GetAllIssueRepositoryIds", filter).Return(ids, nil)
+
+			cursors := lo.Map(irResults, func(m entity.IssueRepositoryResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueRepository([]entity.Order{}, *m.IssueRepository))
+				return cursor
+			})
+
+			for i := 0; len(cursors) < dbElements; i++ {
+				ir := test.NewFakeIssueRepositoryEntity()
+				c, _ := mariadb.EncodeCursor(mariadb.WithIssueRepository([]entity.Order{}, ir))
+				cursors = append(cursors, c)
+			}
+
+			db.On("GetIssueRepositories", filter, mock.Anything).Return(irResults, nil)
+			db.On("GetAllIssueRepositoryCursors", filter, mock.Anything).Return(cursors, nil)
 			issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 			res, err := issueRepositoryHandler.ListIssueRepositories(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -127,8 +140,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		db = mocks.NewMockDatabase(GinkgoT())
 		issueRepository = test.NewFakeIssueRepositoryEntity()
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -150,9 +162,9 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		filter.Name = []*string{&issueRepository.Name}
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueRepository", &issueRepository).Return(&issueRepository, nil)
-		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
+		db.On("GetIssueRepositories", filter, mock.Anything).Return([]entity.IssueRepositoryResult{}, nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
-		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(&issueRepository)
+		newIssueRepository, err := issueRepositoryHandler.CreateIssueRepository(common.NewAdminContext(), &issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueRepository.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -174,7 +186,6 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 			db.On("AddIssueRepositoryToService", int64(1), int64(1), int64(100)).Return(nil)
 			db.On("AddIssueRepositoryToService", int64(2), int64(1), int64(100)).Return(nil)
 			db.On("GetDefaultIssuePriority").Return(int64(100))
-
 		})
 
 		It("adds the issue repository to all services", func() {
@@ -199,8 +210,7 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 		db = mocks.NewMockDatabase(GinkgoT())
 		issueRepository = test.NewFakeIssueRepositoryEntity()
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -220,8 +230,10 @@ var _ = Describe("When updating IssueRepository", Label("app", "UpdateIssueRepos
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
 		issueRepository.Name = "SecretRepository"
 		filter.Id = []*int64{&issueRepository.Id}
-		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{issueRepository}, nil)
-		updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(&issueRepository)
+		db.On("GetIssueRepositories", filter, mock.Anything).Return([]entity.IssueRepositoryResult{{
+			IssueRepository: &issueRepository,
+		}}, nil)
+		updatedIssueRepository, err := issueRepositoryHandler.UpdateIssueRepository(common.NewAdminContext(), &issueRepository)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueRepository.Name).To(BeEquivalentTo(issueRepository.Name))
@@ -242,8 +254,7 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.IssueRepositoryFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -261,8 +272,8 @@ var _ = Describe("When deleting IssueRepository", Label("app", "DeleteIssueRepos
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueRepository", id, mock.Anything).Return(nil)
 		issueRepositoryHandler = ir.NewIssueRepositoryHandler(handlerContext)
-		db.On("GetIssueRepositories", filter).Return([]entity.IssueRepository{}, nil)
-		err := issueRepositoryHandler.DeleteIssueRepository(id)
+		db.On("GetIssueRepositories", filter, mock.Anything).Return([]entity.IssueRepositoryResult{}, nil)
+		err := issueRepositoryHandler.DeleteIssueRepository(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}

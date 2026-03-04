@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -15,15 +14,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	interUtil "github.com/cloudoperators/heureka/internal/util"
 	"github.com/cloudoperators/heureka/pkg/util"
-)
-
-// Example CCRN: ccrn://docker.io/library/nginx
-const (
-	ccrnSchemeIndex    = 0
-	ccrnRegistryIndex  = 1
-	ccrnNamespaceIndex = 2
-	ccrnRepoIndex      = 3
-	expectedTokenCount = 4
 )
 
 // add custom models here
@@ -172,6 +162,20 @@ func (so *ServiceOrderBy) ToOrderEntity() entity.Order {
 	return order
 }
 
+func (ro *RemediationOrderBy) ToOrderEntity() entity.Order {
+	var order entity.Order
+	switch *ro.By {
+	case RemediationOrderByFieldVulnerability:
+		order.By = entity.RemediationIssue
+	case RemediationOrderByFieldSeverity:
+		order.By = entity.RemediationSeverity
+	case RemediationOrderByFieldExpirationDate:
+		order.By = entity.RemediationExpirationDate
+	}
+	order.Direction = ro.Direction.ToOrderDirectionEntity()
+	return order
+}
+
 func NewPageInfo(p *entity.PageInfo) *PageInfo {
 	if p == nil {
 		return nil
@@ -305,6 +309,22 @@ func NewSeverityCounts(counts *entity.IssueSeverityCounts) SeverityCounts {
 	}
 }
 
+func NewIssueStatus(status *VulnerabilityStatus) entity.IssueStatus {
+	if status == nil {
+		return entity.IssueStatusAll
+	}
+	switch status.String() {
+	case VulnerabilityStatusOpen.String():
+		return entity.IssueStatusOpen
+	case VulnerabilityStatusRemediated.String():
+		return entity.IssueStatusRemediated
+	case VulnerabilityStatusAll.String():
+		return entity.IssueStatusAll
+	}
+
+	return entity.IssueStatusAll
+}
+
 func NewIssue(issue *entity.Issue) Issue {
 	lastModified := issue.UpdatedAt.String()
 	issueType := IssueTypes(issue.Type.String())
@@ -327,7 +347,6 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	if issue.IssueAggregations != nil {
 		objectMetadata = IssueMetadata{
 			ServiceCount:                  int(issue.IssueAggregations.AffectedServices),
-			ActivityCount:                 int(issue.IssueAggregations.Activities),
 			IssueMatchCount:               int(issue.IssueAggregations.IssueMatches),
 			ComponentInstanceCount:        int(issue.IssueAggregations.AffectedComponentInstances),
 			ComponentVersionCount:         int(issue.IssueAggregations.ComponentVersions),
@@ -360,7 +379,6 @@ func NewIssueEntity(issue *IssueInput) entity.Issue {
 }
 
 func NewScannerRunEntity(sr *ScannerRunInput) entity.ScannerRun {
-
 	return entity.ScannerRun{
 		RunID:     -1,
 		UUID:      lo.FromPtr(sr.UUID),
@@ -386,21 +404,21 @@ func NewScannerRun(sr *entity.ScannerRun) ScannerRun {
 }
 
 func NewImage(component *entity.Component) Image {
-	tokens := strings.Split(component.CCRN, "/")
-
-	var repository string
-	if len(tokens) == expectedTokenCount {
-		// Full CCRN: namespace + repository
-		repository = fmt.Sprintf("%s/%s", tokens[ccrnNamespaceIndex], tokens[ccrnRepoIndex])
-	} else {
-		// Fallback: last token is assumed to be the repository name
-		repository = tokens[len(tokens)-1]
-	}
-
 	return Image{
 		ID:               fmt.Sprintf("%d", component.Id),
-		ImageRegistryURL: &component.CCRN,
-		Repository:       &repository,
+		ImageRegistryURL: &component.Url,
+		Repository:       &component.Repository,
+	}
+}
+
+func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
+	return ImageVersion{
+		ID:         fmt.Sprintf("%d", componentVersion.Id),
+		Tag:        &componentVersion.Tag,
+		Version:    &componentVersion.Version,
+		Repository: &componentVersion.Repository,
+		Metadata:   getModelMetadata(componentVersion.Metadata),
+		EndOfLife:  componentVersion.EndOfLife,
 	}
 }
 
@@ -452,30 +470,6 @@ func NewIssueMatchEntity(im *IssueMatchInput) entity.IssueMatch {
 		ComponentInstanceId:   ciId,
 		UserId:                userId,
 		Metadata:              entity.Metadata{CreatedAt: createdAt},
-	}
-}
-
-func NewIssueMatchChange(imc *entity.IssueMatchChange) IssueMatchChange {
-	action := IssueMatchChangeAction(imc.Action)
-	return IssueMatchChange{
-		ID:           fmt.Sprintf("%d", imc.Id),
-		Action:       &action,
-		IssueMatchID: util.Ptr(fmt.Sprintf("%d", imc.IssueMatchId)),
-		IssueMatch:   nil,
-		ActivityID:   util.Ptr(fmt.Sprintf("%d", imc.ActivityId)),
-		Activity:     nil,
-		Metadata:     getModelMetadata(imc.Metadata),
-	}
-}
-
-func NewIssueMatchChangeEntity(imc *IssueMatchChangeInput) entity.IssueMatchChange {
-	action := entity.IssueMatchChangeAction(lo.FromPtr(imc.Action))
-	issueMatchId, _ := strconv.ParseInt(lo.FromPtr(imc.IssueMatchID), 10, 64)
-	activityId, _ := strconv.ParseInt(lo.FromPtr(imc.ActivityID), 10, 64)
-	return entity.IssueMatchChange{
-		Action:       action.String(),
-		IssueMatchId: issueMatchId,
-		ActivityId:   activityId,
 	}
 }
 
@@ -614,66 +608,16 @@ func NewSupportGroupEntity(supportGroup *SupportGroupInput) entity.SupportGroup 
 	}
 }
 
-func NewActivity(activity *entity.Activity) Activity {
-	status := ActivityStatusValues(activity.Status.String())
-	return Activity{
-		ID:       fmt.Sprintf("%d", activity.Id),
-		Status:   &status,
-		Metadata: getModelMetadata(activity.Metadata),
-	}
-}
-
-func NewActivityEntity(activity *ActivityInput) entity.Activity {
-	status := entity.ActivityStatusValuesOpen
-	if activity.Status != nil {
-		status = entity.NewActivityStatusValue(activity.Status.String())
-	}
-	return entity.Activity{
-		Status: status,
-	}
-}
-
-func NewEvidence(evidence *entity.Evidence) Evidence {
-	authorId := fmt.Sprintf("%d", evidence.UserId)
-	activityId := fmt.Sprintf("%d", evidence.ActivityId)
-	severity := NewSeverity(evidence.Severity)
-	t := evidence.Type.String()
-	raaEnd := evidence.RaaEnd.Format(time.RFC3339)
-	return Evidence{
-		ID:          fmt.Sprintf("%d", evidence.Id),
-		Description: &evidence.Description,
-		AuthorID:    &authorId,
-		ActivityID:  &activityId,
-		Vector:      severity.Cvss.Vector,
-		Type:        &t,
-		RaaEnd:      &raaEnd,
-		Metadata:    getModelMetadata(evidence.Metadata),
-	}
-}
-
-func NewEvidenceEntity(evidence *EvidenceInput) entity.Evidence {
-	authorId, _ := strconv.ParseInt(lo.FromPtr(evidence.AuthorID), 10, 64)
-	activityId, _ := strconv.ParseInt(lo.FromPtr(evidence.ActivityID), 10, 64)
-	t := entity.NewEvidenceTypeValue(lo.FromPtr(evidence.Type))
-	raaEnd, _ := time.Parse(time.RFC3339, lo.FromPtr(evidence.RaaEnd))
-	// raaEnd, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", lo.FromPtr(evidence.RaaEnd))
-	return entity.Evidence{
-		Description: lo.FromPtr(evidence.Description),
-		UserId:      authorId,
-		ActivityId:  activityId,
-		Severity:    NewSeverityEntity(evidence.Severity),
-		Type:        t,
-		RaaEnd:      raaEnd,
-	}
-}
-
 func NewComponent(component *entity.Component) Component {
 	componentType, _ := ComponentTypeValue(component.Type)
 	return Component{
-		ID:       fmt.Sprintf("%d", component.Id),
-		Ccrn:     &component.CCRN,
-		Type:     &componentType,
-		Metadata: getModelMetadata(component.Metadata),
+		ID:           fmt.Sprintf("%d", component.Id),
+		Ccrn:         &component.CCRN,
+		Repository:   &component.Repository,
+		Organization: &component.Organization,
+		URL:          &component.Url,
+		Type:         &componentType,
+		Metadata:     getModelMetadata(component.Metadata),
 	}
 }
 
@@ -683,8 +627,11 @@ func NewComponentEntity(component *ComponentInput) entity.Component {
 		componentType = component.Type.String()
 	}
 	return entity.Component{
-		CCRN: lo.FromPtr(component.Ccrn),
-		Type: componentType,
+		CCRN:         lo.FromPtr(component.Ccrn),
+		Repository:   lo.FromPtr(component.Repository),
+		Organization: lo.FromPtr(component.Organization),
+		Url:          lo.FromPtr(component.URL),
+		Type:         componentType,
 	}
 }
 
@@ -697,6 +644,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		Organization: &componentVersion.Organization,
 		Tag:          &componentVersion.Tag,
 		Metadata:     getModelMetadata(componentVersion.Metadata),
+		EndOfLife:    componentVersion.EndOfLife,
 	}
 }
 
@@ -705,12 +653,14 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 	if err != nil {
 		componentId = 0
 	}
+
 	return entity.ComponentVersion{
 		Version:      lo.FromPtr(componentVersion.Version),
 		ComponentId:  componentId,
 		Repository:   lo.FromPtr(componentVersion.Repository),
 		Organization: lo.FromPtr(componentVersion.Organization),
 		Tag:          lo.FromPtr(componentVersion.Tag),
+		EndOfLife:    componentVersion.EndOfLife,
 	}
 }
 
@@ -817,4 +767,56 @@ func GetStateFilterType(sf []StateFilter) []entity.StateFilterType {
 		return s
 	}
 	return []entity.StateFilterType{entity.Active}
+}
+
+func NewRemediationEntity(r *RemediationInput) entity.Remediation {
+	remediationDate, _ := time.Parse(time.RFC3339, lo.FromPtr(r.RemediationDate))
+	expirationDate, _ := time.Parse(time.RFC3339, lo.FromPtr(r.ExpirationDate))
+	rType := entity.NewRemediationType(lo.FromPtr(r.Type).String())
+	rSeverity := entity.NewSeverityValues(lo.FromPtr(r.Severity).String())
+	return entity.Remediation{
+		Description:     lo.FromPtr(r.Description),
+		Severity:        rSeverity,
+		Service:         lo.FromPtr(r.Service),
+		Component:       lo.FromPtr(r.Image),
+		Issue:           lo.FromPtr(r.Vulnerability),
+		Type:            rType,
+		RemediatedBy:    lo.FromPtr(r.RemediatedBy),
+		RemediationDate: remediationDate,
+		ExpirationDate:  expirationDate,
+	}
+}
+
+func NewRemediation(r *entity.Remediation) Remediation {
+	remediationDate := r.RemediationDate.Format(time.RFC3339)
+	expirationDate := r.ExpirationDate.Format(time.RFC3339)
+	remediationType := RemediationTypeValues(r.Type)
+	remediationSeverity := SeverityValues(r.Severity.String())
+	return Remediation{
+		ID:              fmt.Sprintf("%d", r.Id),
+		Description:     &r.Description,
+		Severity:        &remediationSeverity,
+		Type:            &remediationType,
+		Service:         &r.Service,
+		ServiceID:       lo.ToPtr(fmt.Sprintf("%d", r.ServiceId)),
+		Image:           &r.Component,
+		ImageID:         lo.ToPtr(fmt.Sprintf("%d", r.ComponentId)),
+		Vulnerability:   &r.Issue,
+		VulnerabilityID: lo.ToPtr(fmt.Sprintf("%d", r.IssueId)),
+		RemediationDate: &remediationDate,
+		ExpirationDate:  &expirationDate,
+		RemediatedBy:    &r.RemediatedBy,
+		Metadata:        getModelMetadata(r.Metadata),
+	}
+}
+
+func NewPatch(p *entity.Patch) Patch {
+	return Patch{
+		ID:                   fmt.Sprintf("%d", p.Id),
+		ServiceID:            lo.ToPtr(fmt.Sprintf("%d", p.ServiceId)),
+		ServiceName:          &p.ServiceName,
+		ComponentVersionID:   lo.ToPtr(fmt.Sprintf("%d", p.ComponentVersionId)),
+		ComponentVersionName: &p.ComponentVersionName,
+		Metadata:             getModelMetadata(p.Metadata),
+	}
 }

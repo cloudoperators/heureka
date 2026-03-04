@@ -14,9 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	mode string
-)
+var mode string
 
 func main() {
 	fmt.Println(util.HeurekaFiglet)
@@ -31,10 +29,7 @@ func main() {
 	cfg.ConfigToConsole()
 
 	if cfg.SeedMode {
-		dbManager := test.NewLocalTestDatabaseManager()
-
-		err = dbManager.ResetSchema(cfg.DBName)
-		if err != nil {
+		if err = test.NewDatabaseManager().ResetSchema(cfg.DBName); err != nil {
 			logrus.WithError(err).Fatalln("Error while resetting database schema.")
 		}
 

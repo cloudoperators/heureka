@@ -29,20 +29,6 @@ query ($filter: IssueMatchFilter, $first: Int, $after: String) {
                         }
                     }
                 }
-                evidences { 
-                    totalCount
-                    edges { 
-                        node { 
-                            id
-                            description
-                        }
-                        cursor
-                    }
-                    pageInfo { 
-                        hasNextPage
-                        nextPageAfter
-                    }
-                }
                 issueId
                 issue { 
                     id
@@ -53,22 +39,6 @@ query ($filter: IssueMatchFilter, $first: Int, $after: String) {
                     id
                     ccrn
                     count
-                }
-                issueMatchChanges {
-                    totalCount
-                    edges {
-                        node {
-                            id
-                            action
-                            issueMatchId
-                            activityId
-                        }
-                        cursor
-                    }
-                    pageInfo {
-                        hasNextPage
-                        nextPageAfter
-                    }
                 }
             }
             cursor

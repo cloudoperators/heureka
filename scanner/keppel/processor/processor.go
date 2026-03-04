@@ -17,6 +17,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	RottenVulnerabilityStatus = "Rotten"
+)
+
 type Processor struct {
 	uuid                string
 	tag                 string
@@ -46,7 +50,6 @@ func (p *Processor) Setup() error {
 		Name: []string{p.IssueRepositoryName},
 	}
 	listRepositoriesResp, err := client.GetIssueRepositories(context.TODO(), *p.Client, &queryFilter)
-
 	if err != nil {
 		return err
 	}
@@ -98,10 +101,12 @@ func (p *Processor) CompleteScannerRun(ctx context.Context) error {
 
 func (p *Processor) ProcessRepository(registry string, account models.Account, repository models.Repository) (*client.Component, error) {
 	r, err := client.CreateComponent(context.Background(), *p.Client, &client.ComponentInput{
-		Ccrn: fmt.Sprintf("%s/%s/%s", registry, account.Name, repository.Name),
-		Type: client.ComponentTypeValuesContainerimage,
+		Ccrn:         fmt.Sprintf("%s/%s/%s", registry, account.Name, repository.Name),
+		Organization: account.Name,
+		Repository:   repository.Name,
+		Url:          fmt.Sprintf("https://%s/%s/%s", registry, account.Name, repository.Name),
+		Type:         client.ComponentTypeValuesContainerimage,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -120,8 +125,8 @@ func (p *Processor) ProcessManifest(manifest models.Manifest, componentId string
 	r, err := client.CreateComponentVersion(context.Background(), *p.Client, &client.ComponentVersionInput{
 		Version:     manifest.Digest,
 		ComponentId: componentId,
+		EndOfLife:   manifest.VulnerabilityStatus == RottenVulnerabilityStatus,
 	})
-
 	if err != nil {
 		log.WithError(err).Error("Error while creating component")
 		return nil, err
@@ -192,7 +197,17 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 				}).Info("Added issue to componentVersion")
 			}
 		}
+	}
 
+	if report.Metadata.OS.Eosl {
+		_, err := client.UpdateComponentVersion(context.Background(), *p.Client, componentVersionId, &client.ComponentVersionInput{
+			EndOfLife: true,
+		})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"componentVersionId": componentVersionId,
+			}).WithError(err).Error("Could not update ComponentVersion")
+		}
 	}
 }
 
@@ -232,7 +247,6 @@ func (p *Processor) GetComponentVersions(componentId string) ([]*client.Componen
 	listCompVersionResp, err := client.ListComponentVersions(context.Background(), *p.Client, &client.ComponentVersionFilter{
 		ComponentId: []string{componentId},
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("cannot list ComponentVersions: %w", err)
 	}
@@ -251,7 +265,6 @@ func (p *Processor) GetIssue(primaryName string) (*client.Issue, error) {
 	r, err := client.ListIssues(context.Background(), *p.Client, &client.IssueFilter{
 		PrimaryName: []string{primaryName},
 	}, 1)
-
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +284,6 @@ func (p *Processor) CreateIssue(primaryName string, description string) (*client
 		Type:        "Vulnerability",
 		Uuid:        p.uuid,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +311,6 @@ func (p *Processor) CreateIssueVariant(secondaryName string, description string,
 			Rating: severityValue,
 		},
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("secondaryName: %s, issueId: %s, severity: %s %w", secondaryName, issueId, severity, err)
 	}

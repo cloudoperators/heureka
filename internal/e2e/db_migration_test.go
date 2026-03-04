@@ -15,9 +15,9 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -161,7 +161,7 @@ func (dbmt *DbMigrationTest) setup() {
 	dbmt.heurekaMigration = mariadb.MigrationFs
 	dbmt.db = dbm.NewTestSchemaWithoutMigration()
 	dbmt.cfg = dbm.DbConfig()
-	dbmt.cfg.Port = util2.GetRandomFreePort()
+	dbmt.cfg.Port = e2e_common.GetRandomFreePort()
 }
 
 func (dbmt *DbMigrationTest) teardown() {

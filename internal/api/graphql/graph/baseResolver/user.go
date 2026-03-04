@@ -30,8 +30,7 @@ func SingleUserBaseResolver(app app.Heureka, ctx context.Context, parent *model.
 
 	opt := &entity.ListOptions{}
 
-	users, err := app.ListUsers(f, opt)
-
+	users, err := app.ListUsers(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleUserBaseResolver", err.Error())
@@ -42,7 +41,7 @@ func SingleUserBaseResolver(app app.Heureka, ctx context.Context, parent *model.
 		return nil, NewResolverError("SingleUserBaseResolver", "Internal Error - found multiple users")
 	}
 
-	//not found
+	// not found
 	if len(users.Elements) < 1 {
 		return nil, nil
 	}
@@ -59,12 +58,6 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called UserBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("UserBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("UserBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var supportGroupId []*int64
 	var serviceId []*int64
@@ -89,7 +82,7 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 	}
 
 	f := &entity.UserFilter{
-		Paginated:      entity.Paginated{First: first, After: afterId},
+		Paginated:      entity.Paginated{First: first, After: after},
 		SupportGroupId: supportGroupId,
 		ServiceId:      serviceId,
 		Name:           filter.UserName,
@@ -99,8 +92,7 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 
 	opt := GetListOptions(requestedFields)
 
-	users, err := app.ListUsers(f, opt)
-
+	users, err := app.ListUsers(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("UserBaseResolver", err.Error())
 	}
@@ -128,6 +120,7 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 
 	return &connection, nil
 }
+
 func UserNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFilter) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
@@ -148,7 +141,6 @@ func UserNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.Us
 	opt := GetListOptions(requestedFields)
 
 	names, err := app.ListUserNames(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("UserNameBaseResolver", err.Error())
 	}
@@ -187,7 +179,6 @@ func UniqueUserIDBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	opt := GetListOptions(requestedFields)
 
 	names, err := app.ListUniqueUserIDs(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("UniqueUserIDBaseResolver", err.Error())
 	}
@@ -226,7 +217,6 @@ func UserNameWithIdBaseResolver(app app.Heureka, ctx context.Context, filter *mo
 	opt := GetListOptions(requestedFields)
 
 	names, ids, err := app.ListUserNamesAndIds(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("UserNameWithIdBaseResolver", err.Error())
 	}

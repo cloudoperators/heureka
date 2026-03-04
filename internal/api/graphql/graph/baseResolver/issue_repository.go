@@ -31,7 +31,6 @@ func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, par
 	opt := &entity.ListOptions{}
 
 	issueRepositories, err := app.ListIssueRepositories(f, opt)
-
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueRepositoryBaseResolver", err.Error())
@@ -42,7 +41,7 @@ func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, par
 		return nil, NewResolverError("SingleIssueRepositoryBaseResolver", "Internal Error - found multiple issue repositories")
 	}
 
-	//not found
+	// not found
 	if len(issueRepositories.Elements) < 1 {
 		return nil, nil
 	}
@@ -59,12 +58,6 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called IssueRepositoryBaseResolver")
-
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("IssueRepositoryBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("IssueRepositoryBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
 
 	var serviceId []*int64
 	if parent != nil {
@@ -86,7 +79,7 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 	}
 
 	f := &entity.IssueRepositoryFilter{
-		Paginated:   entity.Paginated{First: first, After: afterId},
+		Paginated:   entity.Paginated{First: first, After: after},
 		ServiceId:   serviceId,
 		Name:        filter.Name,
 		ServiceCCRN: filter.ServiceCcrn,
@@ -96,7 +89,6 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 	opt := GetListOptions(requestedFields)
 
 	issueRepositories, err := app.ListIssueRepositories(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("IssueRepositoryBaseResolver", err.Error())
 	}
@@ -130,5 +122,4 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 	}
 
 	return &connection, nil
-
 }

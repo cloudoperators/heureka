@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package openfga
 
 import (
@@ -14,26 +17,6 @@ func ObjectIdFromInt(id int64) ObjectId {
 // UserIdFromInt converts an int ID to an OpenFGA UserId.
 func UserIdFromInt(id int64) UserId {
 	return UserId(strconv.FormatInt(id, 10))
-}
-
-// matchesFilter checks if the given userParts and objectParts match the filters specified in RelationInput.
-func matchesFilter(userParts, objectParts []string, r RelationInput, relation string) bool {
-	if r.UserType != "" && (len(userParts) < 1 || userParts[0] != string(r.UserType)) {
-		return false
-	}
-	if r.UserId != "" && (len(userParts) < 2 || userParts[1] != string(r.UserId)) {
-		return false
-	}
-	if r.Relation != "" && relation != string(r.Relation) {
-		return false
-	}
-	if r.ObjectType != "" && (len(objectParts) < 1 || objectParts[0] != string(r.ObjectType)) {
-		return false
-	}
-	if r.ObjectId != "" && (len(objectParts) < 2 || objectParts[1] != string(r.ObjectId)) {
-		return false
-	}
-	return true
 }
 
 // helper: build a consistent log entry for a relation input

@@ -6,6 +6,9 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
+	"path"
+
 	"github.com/jedib0t/go-pretty/v6/table"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -13,8 +16,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"os"
-	"path"
 )
 
 func localKubeConfig() *rest.Config {
@@ -38,12 +39,11 @@ func localKubeConfig() *rest.Config {
 
 func oidcBasedConfig() *rest.Config {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		//replace path with a kubeconfig that has a valid oidc token for your cluster
+		// replace path with a kubeconfig that has a valid oidc token for your cluster
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: path.Join(homedir.HomeDir(), "Library", "Application Support", "SAPCC", "u8s", ".kube", "config")},
-		//replace with the context you want to use
+		// replace with the context you want to use
 		&clientcmd.ConfigOverrides{CurrentContext: "qa-de-1"},
 	).ClientConfig()
-
 	if err != nil {
 		panic(err.Error())
 	}
@@ -51,7 +51,6 @@ func oidcBasedConfig() *rest.Config {
 }
 
 func localSAConfig() *rest.Config {
-
 	tokenFilePath := "my_token" // path to the token file
 	token, err := os.ReadFile(tokenFilePath)
 	if err != nil {
@@ -62,9 +61,9 @@ func localSAConfig() *rest.Config {
 		Host: "https://localhost:6443", // The API server's URL
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: true, // allow insecure connections ( ok as we are local )
-			//CAFile:   "/path/to/ca.crt", // Path to the CA certificate
+			// CAFile:   "/path/to/ca.crt", // Path to the CA certificate
 		},
-		BearerToken: string(token), //the token
+		BearerToken: string(token), // the token
 	}
 	return config
 }

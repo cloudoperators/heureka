@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	testScannerName          = "testAccessScanner"
+	testTokenUserName        = "dummyTokenUserName"
 	authTokenSecret          = "xxx"
 	enableTokenMiddlewareLog = false
 	enableTokenServerLog     = false
@@ -35,27 +35,27 @@ var _ = Describe("Pass token data via context when using token auth middleware",
 		testServer.Stop()
 	})
 
-	When("Scanner access api through token auth middleware with valid token", func() {
+	When("User access api through token auth middleware with valid token", func() {
 		BeforeEach(func() {
-			token := test.GenerateJwtWithName(test.TokenStringHandler, authTokenSecret, 1*time.Hour, testScannerName)
+			token := test.GenerateJwtWithName(test.TokenStringHandler, authTokenSecret, 1*time.Hour, testTokenUserName)
 			resp := test.SendGetRequest(testServer.EndpointUrl(), map[string]string{"X-Service-Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(200))
 		})
-		It("Should be able to access scanner name from request context", func() {
-			name, err := context.ScannerNameFromContext(testServer.Context())
+		It("Should be able to access user name from request context", func() {
+			name, err := context.UserNameFromContext(testServer.Context())
 			Expect(err).To(BeNil())
-			Expect(name).To(BeEquivalentTo(testScannerName))
+			Expect(name).To(BeEquivalentTo(testTokenUserName))
 		})
 	})
 
-	When("Scanner access api through token auth middleware with invalid token", func() {
+	When("User access api through token auth middleware with invalid token", func() {
 		BeforeEach(func() {
 			token := test.GenerateJwt(test.InvalidTokenStringHandler, authTokenSecret, 1*time.Hour)
 			resp := test.SendGetRequest(testServer.EndpointUrl(), map[string]string{"X-Service-Authorization": test.WithBearer(token)})
 			Expect(resp.StatusCode).To(Equal(401))
 		})
 		It("Should not store gin context in request context", func() {
-			_, err := context.ScannerNameFromContext(testServer.Context())
+			_, err := context.UserNameFromContext(testServer.Context())
 			Expect(err).ShouldNot(BeNil())
 		})
 	})

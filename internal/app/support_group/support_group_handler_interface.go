@@ -3,17 +3,21 @@
 
 package support_group
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type SupportGroupHandler interface {
-	ListSupportGroups(*entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
-	GetSupportGroup(int64) (*entity.SupportGroup, error)
-	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
-	UpdateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
-	DeleteSupportGroup(int64) error
-	AddServiceToSupportGroup(int64, int64) (*entity.SupportGroup, error)
-	RemoveServiceFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
-	AddUserToSupportGroup(int64, int64) (*entity.SupportGroup, error)
-	RemoveUserFromSupportGroup(int64, int64) (*entity.SupportGroup, error)
+	ListSupportGroups(context.Context, *entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
+	GetSupportGroup(context.Context, int64) (*entity.SupportGroup, error)
+	CreateSupportGroup(context.Context, *entity.SupportGroup) (*entity.SupportGroup, error)
+	UpdateSupportGroup(context.Context, *entity.SupportGroup) (*entity.SupportGroup, error)
+	DeleteSupportGroup(context.Context, int64) error
+	AddServiceToSupportGroup(context.Context, int64, int64) (*entity.SupportGroup, error)
+	RemoveServiceFromSupportGroup(context.Context, int64, int64) (*entity.SupportGroup, error)
+	AddUserToSupportGroup(context.Context, int64, int64) (*entity.SupportGroup, error)
+	RemoveUserFromSupportGroup(context.Context, int64, int64) (*entity.SupportGroup, error)
 	ListSupportGroupCcrns(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)
 }

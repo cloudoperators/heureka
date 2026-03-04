@@ -3,11 +3,15 @@
 
 package issue_repository
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type IssueRepositoryHandler interface {
 	ListIssueRepositories(*entity.IssueRepositoryFilter, *entity.ListOptions) (*entity.List[entity.IssueRepositoryResult], error)
-	CreateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
-	UpdateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
-	DeleteIssueRepository(int64) error
+	CreateIssueRepository(context.Context, *entity.IssueRepository) (*entity.IssueRepository, error)
+	UpdateIssueRepository(context.Context, *entity.IssueRepository) (*entity.IssueRepository, error)
+	DeleteIssueRepository(context.Context, int64) error
 }

@@ -30,8 +30,7 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 
 	opt := &entity.ListOptions{}
 
-	components, err := app.ListComponents(f, opt)
-
+	components, err := app.ListComponents(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleComponentBaseResolver", err.Error())
@@ -42,7 +41,7 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 		return nil, NewResolverError("SingleComponentBaseResolver", "Internal Error - found multiple components")
 	}
 
-	//not found
+	// not found
 	if len(components.Elements) < 1 {
 		return nil, nil
 	}
@@ -65,15 +64,14 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	}
 
 	f := &entity.ComponentFilter{
-		PaginatedX: entity.PaginatedX{First: first, After: after},
-		CCRN:       filter.ComponentCcrn,
-		State:      model.GetStateFilterType(filter.State),
+		Paginated: entity.Paginated{First: first, After: after},
+		CCRN:      filter.ComponentCcrn,
+		State:     model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
 
-	components, err := app.ListComponents(f, opt)
-
+	components, err := app.ListComponents(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("ComponentBaseResolver", err.Error())
 	}
@@ -100,7 +98,6 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	}
 
 	return &connection, nil
-
 }
 
 func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter) (*model.FilterItem, error) {
@@ -114,14 +111,13 @@ func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 	}
 
 	f := &entity.ComponentFilter{
-		PaginatedX: entity.PaginatedX{},
-		CCRN:       filter.ComponentCcrn,
+		Paginated: entity.Paginated{},
+		CCRN:      filter.ComponentCcrn,
 	}
 
 	opt := GetListOptions(requestedFields)
 
 	names, err := app.ListComponentCcrns(f, opt)
-
 	if err != nil {
 		return nil, NewResolverError("ComponentCcrnBaseReolver", err.Error())
 	}

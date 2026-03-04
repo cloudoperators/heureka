@@ -11,7 +11,6 @@ import (
 
 func IsPortFree(port string) bool {
 	ln, err := net.Listen("tcp", ":"+port)
-
 	if err != nil {
 		return false
 	}

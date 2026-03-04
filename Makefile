@@ -96,8 +96,11 @@ test-authorization: gqlgen install-build-dependencies
 test-db: gqlgen install-build-dependencies
 	ginkgo -r internal/database/mariadb
 
+install-gofumpt:
+	go install mvdan.cc/gofumpt@latest
+
 fmt:
-	go fmt ./...
+	gofumpt -l -w .
 
 DOCKER_COMPOSE := docker-compose -f docker-compose.yaml
 DOCKER_COMPOSE_SERVICES := heureka-app heureka-db valkey

@@ -4,13 +4,13 @@
 package component_test
 
 import (
+	"context"
 	"math"
 	"testing"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	c "github.com/cloudoperators/heureka/internal/app/component"
 	"github.com/cloudoperators/heureka/internal/app/event"
-	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
@@ -28,8 +28,12 @@ func TestComponentHandler(t *testing.T) {
 	RunSpecs(t, "Component Service Test Suite")
 }
 
-var handlerContext common.HandlerContext
-var cfg *util.Config
+var (
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
+)
 
 var _ = BeforeSuite(func() {
 	authEnabled := false
@@ -41,7 +45,7 @@ var _ = BeforeSuite(func() {
 	handlerContext = common.HandlerContext{
 		DB:       db,
 		EventReg: er,
-		Cache:    cache.NewNoCache(),
+		Cache:    nil,
 		Authz:    authz,
 	}
 	handlerContext.Authz.RemoveAllRelations()
@@ -50,7 +54,7 @@ var _ = BeforeSuite(func() {
 func getComponentFilter() *entity.ComponentFilter {
 	cCCRN := "SomeNotExistingComponent"
 	return &entity.ComponentFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -63,6 +67,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		er               event.EventRegistry
 		db               *mocks.MockDatabase
 		componentHandler c.ComponentHandler
+		ctx              context.Context
 		filter           *entity.ComponentFilter
 		options          *entity.ListOptions
 	)
@@ -72,13 +77,13 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getComponentFilter()
+		ctx = common.NewAdminContext()
 
 		handlerContext.DB = db
 		handlerContext.EventReg = er
 	})
 
 	When("the list option does include the totalCount", func() {
-
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
@@ -88,7 +93,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 
 		It("shows the total count in the results", func() {
 			componentHandler = c.NewComponentHandler(handlerContext)
-			res, err := componentHandler.ListComponents(filter, options)
+			res, err := componentHandler.ListComponents(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -102,12 +107,12 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			filter.First = &pageSize
 			components := []entity.ComponentResult{}
 			for _, c := range test.NNewFakeComponentEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, c, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, c, entity.IssueSeverityCounts{}))
 				components = append(components, entity.ComponentResult{WithCursor: entity.WithCursor{Value: cursor}, Component: lo.ToPtr(c)})
 			}
 
-			var cursors = lo.Map(components, func(m entity.ComponentResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *m.Component, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+			cursors := lo.Map(components, func(m entity.ComponentResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *m.Component, entity.IssueSeverityCounts{}))
 				return cursor
 			})
 
@@ -115,14 +120,14 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			for len(cursors) < dbElements {
 				i++
 				component := test.NewFakeComponentEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, component, entity.ComponentVersion{}, entity.IssueSeverityCounts{}))
+				c, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, component, entity.IssueSeverityCounts{}))
 				cursors = append(cursors, c)
 			}
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponents", filter, []entity.Order{}).Return(components, nil)
 			db.On("GetAllComponentCursors", filter, []entity.Order{}).Return(cursors, nil)
 			componentHandler = c.NewComponentHandler(handlerContext)
-			res, err := componentHandler.ListComponents(filter, options)
+			res, err := componentHandler.ListComponents(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -160,7 +165,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 
 			It("should return no components", func() {
 				componentHandler = c.NewComponentHandler(handlerContext)
-				res, err := componentHandler.ListComponents(filter, options)
+				res, err := componentHandler.ListComponents(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
 			})
@@ -202,7 +207,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 
 			It("should return the expected components in the result", func() {
 				componentHandler = c.NewComponentHandler(handlerContext)
-				res, err := componentHandler.ListComponents(filter, options)
+				res, err := componentHandler.ListComponents(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
 				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(component.CCRN)) // check that the returned component is the expected one
@@ -230,7 +235,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -246,7 +251,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		db.On("CreateComponent", &component).Return(&component, nil)
 		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
 		componentHandler = c.NewComponentHandler(handlerContext)
-		newComponent, err := componentHandler.CreateComponent(&component)
+		newComponent, err := componentHandler.CreateComponent(common.NewAdminContext(), &component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponent.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -320,7 +325,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -337,7 +342,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		component.CCRN = "NewComponent"
 		filter.Id = []*int64{&component.Id}
 		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{component}, nil)
-		updatedComponent, err := componentHandler.UpdateComponent(component.Component)
+		updatedComponent, err := componentHandler.UpdateComponent(common.NewAdminContext(), component.Component)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponent.CCRN).To(BeEquivalentTo(component.CCRN))
@@ -353,6 +358,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		componentHandler c.ComponentHandler
 		id               int64
 		filter           *entity.ComponentFilter
+		ctx              context.Context
 	)
 
 	BeforeEach(func() {
@@ -363,11 +369,12 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
 		}
+		ctx = common.NewAdminContext()
 
 		handlerContext.DB = db
 		handlerContext.EventReg = er
@@ -378,12 +385,12 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		db.On("DeleteComponent", id, mock.Anything).Return(nil)
 		componentHandler = c.NewComponentHandler(handlerContext)
 		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
-		err := componentHandler.DeleteComponent(id)
+		err := componentHandler.DeleteComponent(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
 		lo := entity.NewListOptions()
-		components, err := componentHandler.ListComponents(filter, lo)
+		components, err := componentHandler.ListComponents(ctx, filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(components.Elements).To(BeEmpty(), "no error should be thrown")
 	})

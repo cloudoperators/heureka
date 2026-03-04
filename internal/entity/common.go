@@ -1,33 +1,30 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package entity
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	interutil "github.com/cloudoperators/heureka/internal/util"
-	"github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/sirupsen/logrus"
 )
 
 type HeurekaEntity interface {
-	Activity |
-		ActivityAggregations |
-		ActivityHasIssue |
-		IssueVariant |
+	IssueVariant |
 		IssueVariantAggregations |
+		IssueVariantResult |
 		BaseIssueRepository |
+		ServiceIssueVariantResult |
 		IssueRepository |
 		IssueRepositoryAggregations |
+		IssueRepositoryResult |
 		ResultList |
 		ListOptions |
 		PageInfo |
-		Paginated |
 		Severity |
 		Cvss |
 		Component |
@@ -39,8 +36,6 @@ type HeurekaEntity interface {
 		ComponentVersion |
 		ComponentVersionResult |
 		ComponentVersionAggregations |
-		Evidence |
-		EvidenceAggregations |
 		BaseService |
 		Service |
 		ServiceAggregations |
@@ -52,6 +47,7 @@ type HeurekaEntity interface {
 		SupportGroupService |
 		SupportGroupUser |
 		User |
+		UserResult |
 		UserAggregations |
 		IssueWithAggregations |
 		IssueAggregations |
@@ -59,17 +55,19 @@ type HeurekaEntity interface {
 		IssueResult |
 		IssueMatch |
 		IssueMatchResult |
-		IssueMatchChange |
 		HeurekaFilter |
 		IssueCount |
 		IssueTypeCounts |
 		IssueSeverityCounts |
-		ServiceIssueVariant
+		ServiceIssueVariant |
+		Remediation |
+		RemediationResult |
+		Patch |
+		PatchResult
 }
 
 type HeurekaFilter interface {
 	IssueMatchFilter |
-		IssueMatchChangeFilter |
 		IssueFilter |
 		UserFilter |
 		SupportGroupFilter |
@@ -77,12 +75,12 @@ type HeurekaFilter interface {
 		ComponentInstanceFilter |
 		TimeFilter |
 		IssueVariantFilter |
-		ActivityFilter |
-		EvidenceFilter |
 		ComponentFilter |
 		ComponentVersionFilter |
 		IssueRepositoryFilter |
-		SeverityFilter
+		SeverityFilter |
+		RemediationFilter |
+		PatchFilter
 }
 
 type HasCursor interface {
@@ -148,19 +146,8 @@ type TimeFilter struct {
 }
 
 type Paginated struct {
-	First *int   `json:"first"`
-	After *int64 `json:"from"`
-}
-
-type PaginatedX struct {
 	First *int    `json:"first"`
 	After *string `json:"from"`
-}
-
-func MaxPaginated() Paginated {
-	return Paginated{
-		First: util.Ptr(math.MaxInt),
-	}
 }
 
 type Severity struct {
@@ -201,7 +188,6 @@ func NewSeverityFromRating(rating SeverityValues) Severity {
 
 func NewSeverity(url string) Severity {
 	ev, err := metric.NewEnvironmental().Decode(url)
-
 	if err != nil {
 		logrus.WithField("cvssUrl", url).WithError(err).Warning("Error while parsing CVSS Url.")
 	}

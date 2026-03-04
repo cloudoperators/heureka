@@ -4,6 +4,7 @@
 package issue
 
 import (
+	"context"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -121,7 +122,6 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event, au
 		componentInstances, err := db.GetComponentInstances(&entity.ComponentInstanceFilter{
 			ComponentVersionId: []*int64{&attachmentEvent.ComponentVersionID},
 		}, []entity.Order{})
-
 		if err != nil {
 			l.WithField("event-step", "GetComponentInstances").WithError(err).Error("Error while fetching ComponentInstances")
 			return
@@ -140,12 +140,11 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event, au
 			}
 
 			// Create new IssueMatches
-			createIssueMatches(db, l, compInst.Id, issueVariantMap)
+			createIssueMatches(common.NewAdminContext(), db, l, compInst.Id, issueVariantMap)
 		}
 	} else {
 		l.Error("Invalid event type received")
 	}
-
 }
 
 // TODO: This function is very similar to the one used in issue_match_handler_events.go
@@ -154,6 +153,7 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event, au
 // createIssueMatches creates new issue matches based on the component instance Id,
 // issue ID and their corresponding issue variants (sorted by priority)
 func createIssueMatches(
+	ctx context.Context,
 	db database.Database,
 	l *logrus.Entry,
 	componentInstanceId int64,
@@ -170,7 +170,6 @@ func createIssueMatches(
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceId},
 		}, []entity.Order{})
-
 		if err != nil {
 			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
 		}
@@ -181,7 +180,7 @@ func createIssueMatches(
 			continue
 		}
 
-		user, err := common.GetCurrentUserId(db)
+		user, err := common.GetCurrentUserId(ctx, db)
 		if err != nil {
 			l.WithField("event-step", "GetCurrentUserId").WithError(err).Error("Error while getting current user ID")
 			continue
@@ -195,7 +194,7 @@ func createIssueMatches(
 			},
 			UserId:                user,
 			Status:                entity.IssueMatchStatusValuesNew,
-			Severity:              issueVariantMap[issueId].Severity, //we got two  simply take the first one
+			Severity:              issueVariantMap[issueId].Severity, // we got two  simply take the first one
 			ComponentInstanceId:   componentInstanceId,
 			IssueId:               issueId,
 			TargetRemediationDate: shared.GetTargetRemediationTimeline(issueVariant.Severity, time.Now(), nil),

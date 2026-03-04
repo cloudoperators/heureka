@@ -12,37 +12,25 @@ func (e NodeName) String() string {
 }
 
 const (
-	ActivityNodeName          NodeName = "Activity"
 	IssueVariantNodeName      NodeName = "IssueVariant"
 	IssueRepositoryNodeName   NodeName = "IssueRepository"
 	ComponentNodeName         NodeName = "Component"
 	ComponentInstanceNodeName NodeName = "ComponentInstance"
 	ComponentVersionNodeName  NodeName = "ComponentVersion"
-	EvidenceNodeName          NodeName = "Evidence"
 	ServiceNodeName           NodeName = "Service"
 	SupportGroupNodeName      NodeName = "SupportGroup"
 	UserNodeName              NodeName = "User"
 	IssueNodeName             NodeName = "Issue"
 	IssueMatchNodeName        NodeName = "IssueMatch"
-	IssueMatchChangeNodeName  NodeName = "IssueMatchChange"
 	VulnerabilityNodeName     NodeName = "Vulnerability"
 	ImageNodeName             NodeName = "Image"
+	ImageVersionNodeName      NodeName = "ImageVersion"
 )
 
 type NodeParent struct {
 	Parent     Node
 	ParentName NodeName
 	ChildIds   []*int64
-}
-
-func IssueMatchChangeAction(s string) IssueMatchChangeActions {
-	switch s {
-	case IssueMatchChangeActionsAdd.String():
-		return IssueMatchChangeActionsAdd
-	case IssueMatchChangeActionsRemove.String():
-		return IssueMatchChangeActionsRemove
-	}
-	return IssueMatchChangeActionsAdd
 }
 
 func IssueMatchStatusValue(s string) IssueMatchStatusValues {

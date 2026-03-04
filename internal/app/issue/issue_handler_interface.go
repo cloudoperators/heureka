@@ -3,14 +3,18 @@
 
 package issue
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type IssueHandler interface {
 	ListIssues(*entity.IssueFilter, *entity.IssueListOptions) (*entity.IssueList, error)
 	GetIssue(int64) (*entity.Issue, error)
-	CreateIssue(*entity.Issue) (*entity.Issue, error)
-	UpdateIssue(*entity.Issue) (*entity.Issue, error)
-	DeleteIssue(int64) error
+	CreateIssue(context.Context, *entity.Issue) (*entity.Issue, error)
+	UpdateIssue(context.Context, *entity.Issue) (*entity.Issue, error)
+	DeleteIssue(context.Context, int64) error
 	AddComponentVersionToIssue(int64, int64) (*entity.Issue, error)
 	RemoveComponentVersionFromIssue(int64, int64) (*entity.Issue, error)
 	ListIssueNames(*entity.IssueFilter, *entity.ListOptions) ([]string, error)

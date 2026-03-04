@@ -10,7 +10,7 @@ type SupportGroup struct {
 }
 
 type SupportGroupFilter struct {
-	PaginatedX
+	Paginated
 	Id        []*int64          `json:"id"`
 	ServiceId []*int64          `json:"service_id"`
 	UserId    []*int64          `json:"user_id"`
@@ -19,8 +19,7 @@ type SupportGroupFilter struct {
 	State     []StateFilterType `json:"state"`
 }
 
-type SupportGroupAggregations struct {
-}
+type SupportGroupAggregations struct{}
 
 type SupportGroupResult struct {
 	WithCursor

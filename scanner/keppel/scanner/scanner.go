@@ -5,7 +5,6 @@ package scanner
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +17,8 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
+	"github.com/sapcc/go-api-declarations/bininfo"
+	"github.com/sapcc/go-bits/httpext"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 	"k8s.io/client-go/util/retry"
@@ -54,9 +55,11 @@ func (i ImageInfo) FullRepository() string {
 }
 
 func NewScanner(cfg Config) *Scanner {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
+	orig := &http.Transport{}
+	rt := http.RoundTripper(orig)
+	wrap := httpext.WrapTransport(&rt)
+	wrap.SetOverrideUserAgent("heureka-keppel-scanner", bininfo.CommitOr("unknown"))
+	wrap.SetInsecureSkipVerify(true)
 
 	rl := rate.NewLimiter(rate.Every(time.Minute/60), 10)    // 60 requests per minute
 	trivyRl := rate.NewLimiter(rate.Every(time.Minute/5), 1) // 5 requests per minute
@@ -69,7 +72,7 @@ func NewScanner(cfg Config) *Scanner {
 		UserDomain:       cfg.KeppelUserDomain,
 		Project:          cfg.Project,
 		IdentityEndpoint: cfg.IdentityEndpoint,
-		HTTPClient:       &http.Client{Transport: tr},
+		HTTPClient:       &http.Client{Transport: rt},
 		RateLimiter:      rl,
 		TrivyRateLimiter: trivyRl,
 	}
@@ -100,7 +103,6 @@ func (s *Scanner) CreateAuthToken() (string, error) {
 }
 
 func (s *Scanner) newAuthenticatedProviderClient() (*gophercloud.ProviderClient, error) {
-
 	opts := &tokens.AuthOptions{
 		IdentityEndpoint: s.IdentityEndpoint,
 		Username:         s.Username,
@@ -225,7 +227,6 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 	}
 
 	return &trivyReport, nil
-
 }
 
 // extractImageInfo extracts image registry, image repository and the account name
@@ -264,7 +265,8 @@ func (s *Scanner) sendRequest(url string, token string) ([]byte, http.Header, er
 	}
 
 	req.Header = http.Header{
-		"X-Auth-Token": []string{token},
+		"X-Auth-Token":                          []string{token},
+		"X-Keppel-No-Count-Towards-Last-Pulled": []string{"1"},
 	}
 
 	backoff := retry.DefaultBackoff
@@ -329,7 +331,6 @@ func (s *Scanner) sendRequest(url string, token string) ([]byte, http.Header, er
 			responseHeaders = resp.Header
 			return nil
 		})
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("request failed after retries: %w", err)
 	}

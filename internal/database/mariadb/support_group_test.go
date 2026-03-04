@@ -13,6 +13,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -28,83 +29,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	})
 	AfterEach(func() {
 		dbm.TestTearDown(db)
-	})
-
-	When("Getting All SupportGroup IDs", Label("GetAllSupportGroupIds"), func() {
-		Context("and the database is empty", func() {
-			It("can perform the query", func() {
-				res, err := db.GetAllSupportGroupIds(nil)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-				By("returning an empty list", func() {
-					Expect(res).To(BeEmpty())
-				})
-			})
-		})
-		Context("and we have 20 Services in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-
-				for _, s := range seedCollection.ServiceRows {
-					ids = append(ids, s.Id.Int64)
-				}
-			})
-			Context("and using no filter", func() {
-				It("can fetch the items correctly", func() {
-					res, err := db.GetAllSupportGroupIds(nil)
-
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.SupportGroupRows)))
-					})
-
-					By("returning the correct order", func() {
-						var prev int64 = 0
-						for _, r := range res {
-
-							Expect(r > prev).Should(BeTrue())
-							prev = r
-
-						}
-					})
-
-					By("returning the correct fields", func() {
-						for _, r := range res {
-							Expect(lo.Contains(ids, r)).To(BeTrue())
-						}
-					})
-				})
-			})
-			Context("and using a filter", func() {
-				It("can filter by a single support group id that does exist", func() {
-					sId := ids[rand.Intn(len(ids))]
-					filter := &entity.SupportGroupFilter{
-						Id: []*int64{&sId},
-					}
-
-					entries, err := db.GetAllSupportGroupIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(1))
-					})
-
-					By("returning expected elements", func() {
-						Expect(entries[0]).To(BeEquivalentTo(sId))
-					})
-				})
-			})
-		})
 	})
 
 	When("Getting SupportGroups", Label("GetSupportGroups"), func() {
@@ -126,7 +50,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
 			Context("and using no filter", func() {
-
 				It("can fetch the items correctly", func() {
 					res, err := db.GetSupportGroups(nil, nil)
 
@@ -256,7 +179,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			})
 			Context("and using ordering", func() {
 				c := collate.New(language.English)
-				var testOrder = func(
+				testOrder := func(
 					order []entity.Order,
 					verifyFunc func(res []entity.SupportGroupResult),
 				) {
@@ -290,9 +213,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 								prev = r.SupportGroup.CCRN
 							}
 						})
-
 					})
-
 				})
 				Context("and using desc order", func() {
 					It("can order by ccrn", func() {
@@ -335,7 +256,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				sgRows = seedCollection.SupportGroupRows
 				count = len(sgRows)
-
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
@@ -354,7 +274,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					f := 10
 					after := ""
 					filter := &entity.SupportGroupFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},
@@ -370,7 +290,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				})
 			})
 		})
-
 	})
 	When("Insert SupportGroup", Label("InsertSupportGroup"), func() {
 		Context("and we have 10 SupportGroups in the database", func() {
@@ -452,7 +371,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			It("can delete supportGroup correctly", func() {
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
-				err := db.DeleteSupportGroup(supportGroup.Id, systemUserId)
+				err := db.DeleteSupportGroup(supportGroup.Id, util.SystemUserId)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -644,7 +563,6 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				})
 			})
 			Context("and using a SupportGroupCcrns filter", func() {
-
 				var filter *entity.SupportGroupFilter
 				var expectedSupportGroupCcrns []string
 				BeforeEach(func() {
@@ -675,10 +593,8 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						})
 					})
 					It("and using another filter", func() {
-
 						var anotherFilter *entity.SupportGroupFilter
 						BeforeEach(func() {
-
 							nonExistentSupportGroupCcrn := "NonexistentService"
 
 							nonExistentSupportGroupCcrns := []*string{&nonExistentSupportGroupCcrn}
