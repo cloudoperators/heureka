@@ -12,23 +12,23 @@ import (
 )
 
 var componentObject = DbObject{
-	Properties: []PropertySpec{
-		Property{Name: "component_ccrn", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.CCRN != "" })},
-		Property{Name: "component_repository", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.Repository != "" })},
-		Property{Name: "component_organization", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.Organization != "" })},
-		Property{Name: "component_url", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.Url != "" })},
-		Property{Name: "component_type", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.Type != "" })},
-		Property{Name: "component_created_by"},
-		Property{Name: "component_updated_by", IsUpdatePresent: WrapChecker(func(c *entity.Component) bool { return c.UpdatedBy != 0 })},
+	Properties: []*Property{
+		NewProperty("component_ccrn", WrapChecker(func(c *entity.Component) bool { return c.CCRN != "" })),
+		NewProperty("component_repository", WrapChecker(func(c *entity.Component) bool { return c.Repository != "" })),
+		NewProperty("component_organization", WrapChecker(func(c *entity.Component) bool { return c.Organization != "" })),
+		NewProperty("component_url", WrapChecker(func(c *entity.Component) bool { return c.Url != "" })),
+		NewProperty("component_type", WrapChecker(func(c *entity.Component) bool { return c.Type != "" })),
+		NewImmutableProperty("component_created_by"),
+		NewProperty("component_updated_by", WrapChecker(func(c *entity.Component) bool { return c.UpdatedBy != 0 })),
 	},
-	FilterProperties: []FilterPropertySpec{
-		FilterProperty{Query: "C.component_ccrn = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.CCRN })},
-		FilterProperty{Query: "C.component_repository = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.Repository })},
-		FilterProperty{Query: "C.component_organization = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.Organization })},
-		FilterProperty{Query: "C.component_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.Id })},
-		FilterProperty{Query: "CV.componentversion_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.ComponentVersionId })},
-		FilterProperty{Query: "S.service_ccrn = ?", Param: WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.ServiceCCRN })},
-		StateFilterProperty{Prefix: "C.component", Param: WrapRetState(func(filter *entity.ComponentFilter) []entity.StateFilterType { return filter.State })},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("C.component_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.CCRN })),
+		NewFilterProperty("C.component_repository = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.Repository })),
+		NewFilterProperty("C.component_organization = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.Organization })),
+		NewFilterProperty("C.component_id = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("CV.componentversion_id = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.ComponentVersionId })),
+		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.ServiceCCRN })),
+		NewStateFilterProperty("C.component", WrapRetState(func(filter *entity.ComponentFilter) []entity.StateFilterType { return filter.State })),
 	},
 }
 

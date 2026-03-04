@@ -12,37 +12,37 @@ import (
 )
 
 var remediationObject = DbObject{
-	Properties: []PropertySpec{
-		Property{Name: "remediation_description", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Description != "" })},
-		Property{Name: "remediation_type", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Type != "" && r.Type != entity.RemediationTypeUnknown })},
-		Property{Name: "remediation_severity", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool {
+	Properties: []*Property{
+		NewProperty("remediation_description", WrapChecker(func(r *entity.Remediation) bool { return r.Description != "" })),
+		NewProperty("remediation_type", WrapChecker(func(r *entity.Remediation) bool { return r.Type != "" && r.Type != entity.RemediationTypeUnknown })),
+		NewProperty("remediation_severity", WrapChecker(func(r *entity.Remediation) bool {
 			return r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
-		})},
-		Property{Name: "remediation_remediation_date", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return !r.RemediationDate.IsZero() })},
-		Property{Name: "remediation_expiration_date", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return !r.ExpirationDate.IsZero() })},
-		Property{Name: "remediation_service", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Service != "" })},
-		Property{Name: "remediation_service_id", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.ServiceId != 0 })},
-		Property{Name: "remediation_component", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Component != "" })},
-		Property{Name: "remediation_component_id", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.ComponentId != 0 })},
-		Property{Name: "remediation_issue", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.Issue != "" })},
-		Property{Name: "remediation_issue_id", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.IssueId != 0 })},
-		Property{Name: "remediation_remediated_by"},
-		Property{Name: "remediation_remediated_by_id"},
-		Property{Name: "remediation_created_by"},
-		Property{Name: "remediation_updated_by", IsUpdatePresent: WrapChecker(func(r *entity.Remediation) bool { return r.UpdatedBy != 0 })},
+		})),
+		NewProperty("remediation_remediation_date", WrapChecker(func(r *entity.Remediation) bool { return !r.RemediationDate.IsZero() })),
+		NewProperty("remediation_expiration_date", WrapChecker(func(r *entity.Remediation) bool { return !r.ExpirationDate.IsZero() })),
+		NewProperty("remediation_service", WrapChecker(func(r *entity.Remediation) bool { return r.Service != "" })),
+		NewProperty("remediation_service_id", WrapChecker(func(r *entity.Remediation) bool { return r.ServiceId != 0 })),
+		NewProperty("remediation_component", WrapChecker(func(r *entity.Remediation) bool { return r.Component != "" })),
+		NewProperty("remediation_component_id", WrapChecker(func(r *entity.Remediation) bool { return r.ComponentId != 0 })),
+		NewProperty("remediation_issue", WrapChecker(func(r *entity.Remediation) bool { return r.Issue != "" })),
+		NewProperty("remediation_issue_id", WrapChecker(func(r *entity.Remediation) bool { return r.IssueId != 0 })),
+		NewImmutableProperty("remediation_remediated_by"),
+		NewImmutableProperty("remediation_remediated_by_id"),
+		NewImmutableProperty("remediation_created_by"),
+		NewProperty("remediation_updated_by", WrapChecker(func(r *entity.Remediation) bool { return r.UpdatedBy != 0 })),
 	},
-	FilterProperties: []FilterPropertySpec{
-		FilterProperty{Query: "R.remediation_id = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.Id })},
-		FilterProperty{Query: "R.remediation_severity = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Severity })},
-		FilterProperty{Query: "R.remediation_type = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Type })},
-		FilterProperty{Query: "R.remediation_service = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Service })},
-		FilterProperty{Query: "R.remediation_service_id = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.ServiceId })},
-		FilterProperty{Query: "R.remediation_component = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Component })},
-		FilterProperty{Query: "R.remediation_component_id = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.ComponentId })},
-		FilterProperty{Query: "R.remediation_issue = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Issue })},
-		FilterProperty{Query: "R.remediation_issue_id = ?", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.IssueId })},
-		FilterProperty{Query: "R.remediation_issue LIKE Concat('%',?,'%')", Param: WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Search })},
-		StateFilterProperty{Prefix: "R.remediation", Param: WrapRetState(func(filter *entity.RemediationFilter) []entity.StateFilterType { return filter.State })},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("R.remediation_id = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("R.remediation_severity = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Severity })),
+		NewFilterProperty("R.remediation_type = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Type })),
+		NewFilterProperty("R.remediation_service = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Service })),
+		NewFilterProperty("R.remediation_service_id = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("R.remediation_component = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Component })),
+		NewFilterProperty("R.remediation_component_id = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.ComponentId })),
+		NewFilterProperty("R.remediation_issue = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Issue })),
+		NewFilterProperty("R.remediation_issue_id = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.IssueId })),
+		NewFilterProperty("R.remediation_issue LIKE Concat('%',?,'%')", WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Search })),
+		NewStateFilterProperty("R.remediation", WrapRetState(func(filter *entity.RemediationFilter) []entity.StateFilterType { return filter.State })),
 	},
 }
 

@@ -15,32 +15,30 @@ import (
 )
 
 var componentVersionObject = DbObject{
-	Properties: []PropertySpec{
-		Property{Name: "componentversion_component_id", IsUpdatePresent: WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.ComponentId != 0 })},
-		Property{Name: "componentversion_version", IsUpdatePresent: WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Version != "" })},
-		Property{Name: "componentversion_tag", IsUpdatePresent: WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Tag != "" })},
-		Property{Name: "componentversion_repository", IsUpdatePresent: WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Repository != "" })},
-		Property{Name: "componentversion_organization", IsUpdatePresent: WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Organization != "" })},
-		Property{Name: "componentversion_created_by"},
-		Property{Name: "componentversion_updated_by", IsUpdatePresent: WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.UpdatedBy != 0 })},
-		Property{Name: "componentversion_end_of_life", IsUpdatePresent: WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.EndOfLife != nil })}, //TODO: boolean property?
-		//fl = append(fl, fmt.Sprintf("componentversion_end_of_life = %t", *componentVersion.EndOfLife))
-
+	Properties: []*Property{
+		NewProperty("componentversion_component_id", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.ComponentId != 0 })),
+		NewProperty("componentversion_version", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Version != "" })),
+		NewProperty("componentversion_tag", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Tag != "" })),
+		NewProperty("componentversion_repository", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Repository != "" })),
+		NewProperty("componentversion_organization", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Organization != "" })),
+		NewImmutableProperty("componentversion_created_by"),
+		NewProperty("componentversion_updated_by", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.UpdatedBy != 0 })),
+		NewProperty("componentversion_end_of_life", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.EndOfLife != nil })),
 	},
-	FilterProperties: []FilterPropertySpec{
-		FilterProperty{Query: "CV.componentversion_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.Id })},
-		FilterProperty{Query: "CVI.componentversionissue_issue_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.IssueId })},
-		FilterProperty{Query: "CV.componentversion_component_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.ComponentId })},
-		FilterProperty{Query: "CV.componentversion_version = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Version })},
-		FilterProperty{Query: "CV.componentversion_tag = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Tag })},
-		FilterProperty{Query: "CV.componentversion_repository = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Repository })},
-		FilterProperty{Query: "CV.componentversion_organization = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Organization })},
-		FilterProperty{Query: "C.component_ccrn = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.ComponentCCRN })},
-		FilterProperty{Query: "S.service_ccrn = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.ServiceCCRN })},
-		FilterProperty{Query: "CI.componentinstance_service_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.ServiceId })},
-		FilterProperty{Query: "IV.issuevariant_repository_id = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.IssueRepositoryId })},
-		FilterProperty{Query: "CV.componentversion_end_of_life = ?", Param: WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*bool { return filter.EndOfLife })},
-		StateFilterProperty{Prefix: "CV.componentversion", Param: WrapRetState(func(filter *entity.ComponentVersionFilter) []entity.StateFilterType { return filter.State })},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("CV.componentversion_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("CVI.componentversionissue_issue_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.IssueId })),
+		NewFilterProperty("CV.componentversion_component_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.ComponentId })),
+		NewFilterProperty("CV.componentversion_version = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Version })),
+		NewFilterProperty("CV.componentversion_tag = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Tag })),
+		NewFilterProperty("CV.componentversion_repository = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Repository })),
+		NewFilterProperty("CV.componentversion_organization = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Organization })),
+		NewFilterProperty("C.component_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.ComponentCCRN })),
+		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.ServiceCCRN })),
+		NewFilterProperty("CI.componentinstance_service_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("IV.issuevariant_repository_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.IssueRepositoryId })),
+		NewFilterProperty("CV.componentversion_end_of_life = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*bool { return filter.EndOfLife })),
+		NewStateFilterProperty("CV.componentversion", WrapRetState(func(filter *entity.ComponentVersionFilter) []entity.StateFilterType { return filter.State })),
 	},
 }
 

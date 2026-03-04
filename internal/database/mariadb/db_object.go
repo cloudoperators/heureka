@@ -11,16 +11,17 @@ import (
 	"github.com/samber/lo"
 )
 
+// DbObject
 type DbObject struct {
-	Properties       []PropertySpec
-	FilterProperties []FilterPropertySpec
+	Properties       []*Property
+	FilterProperties []*FilterProperty
 }
 
 func (do *DbObject) InsertQuery(insertTable string) string {
 	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
 		insertTable,
-		strings.Join(lo.Map(do.Properties, func(p PropertySpec, _ int) string { return p.GetName() }), ","),
-		strings.Join(lo.Map(do.Properties, func(p PropertySpec, _ int) string { return ":" + p.GetName() }), ","))
+		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return p.GetName() }), ","),
+		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return ":" + p.GetName() }), ","))
 }
 
 func (do *DbObject) GetUpdateFields(f any) string {
@@ -54,9 +55,13 @@ func (do *DbObject) GetFilterParameters(filter entity.HasPagination, withCursor 
 	return filterParameters
 }
 
-type PropertySpec interface {
-	GetName() string
-	GetUpdateExpression(any) string
+// Property
+func NewProperty(name string, isUpdatePresent func(any) bool) *Property {
+	return &Property{Name: name, IsUpdatePresent: isUpdatePresent}
+}
+
+func NewImmutableProperty(name string) *Property {
+	return &Property{Name: name}
 }
 
 type Property struct {
@@ -75,49 +80,59 @@ func (p Property) GetUpdateExpression(f any) string {
 	return ""
 }
 
-type FilterPropertySpec interface {
-	AppendParameters([]any, any) []any
-	GetQuery(any) string
-}
-
+// FilterProperty
 type FilterProperty struct {
-	Query string
-	Param func(any) []any
+	QueryBuilder  func([]any) string
+	Param         func(any) []any
+	ParamAppender func([]any, any) []any
 }
 
 func (fp FilterProperty) AppendParameters(params []any, filter any) []any {
-	return buildQueryParameters(params, fp.Param(filter))
+	return fp.ParamAppender(params, filter)
 }
 
-func (fp FilterProperty) GetQuery(item any) string {
-	return buildFilterQuery(fp.Param(item), fp.Query, OP_OR)
+func (fp FilterProperty) GetQuery(filter any) string {
+	return fp.QueryBuilder(fp.Param(filter))
 }
 
-type StateFilterProperty struct {
-	Prefix string
-	Param  func(any) []entity.StateFilterType
+func doNotAppendParameters(params []any, _ any) []any {
+	return params
 }
 
-func (sfp StateFilterProperty) AppendParameters(params []any, filter any) []any {
-	return params // There is no parameter needed for State so let's not append any
+func NewFilterProperty(query string, param func(any) []any) *FilterProperty {
+	return NewNFilterProperty(query, param, 1)
 }
 
-func (sfp StateFilterProperty) GetQuery(item any) string {
-	// State query has to be modified according to parameter
-	return buildStateFilterQuery(sfp.Param(item), sfp.Prefix)
+func NewNFilterProperty(query string, param func(any) []any, nparam int) *FilterProperty {
+	return &FilterProperty{
+		QueryBuilder:  func(filter []any) string { return buildFilterQuery(filter, query, OP_OR) },
+		Param:         param,
+		ParamAppender: func(params []any, filter any) []any { return buildQueryParametersCount(params, param(filter), nparam) },
+	}
 }
 
-type JsonFilterProperty struct {
-	Query string
-	Param func(any) []*entity.Json
+func NewStateFilterProperty(prefix string, param func(any) []entity.StateFilterType) *FilterProperty {
+	return &FilterProperty{
+		QueryBuilder:  func(state []any) string { return buildStateFilterQuery(ToStateSlice(state), prefix) },
+		Param:         WrapRetSlice(param),
+		ParamAppender: doNotAppendParameters,
+	}
 }
 
-func (jfp JsonFilterProperty) AppendParameters(params []any, filter any) []any {
-	return buildJsonQueryParameters(params, jfp.Param(filter))
+func NewJsonFilterProperty(query string, param func(any) []*entity.Json) *FilterProperty {
+	return &FilterProperty{
+		QueryBuilder:  func(json []any) string { return buildJsonFilterQuery(ToJsonSlice(json), query, OP_OR) },
+		Param:         WrapRetSlice(param),
+		ParamAppender: func(params []any, filter any) []any { return buildJsonQueryParameters(params, param(filter)) },
+	}
 }
 
-func (jfp JsonFilterProperty) GetQuery(item any) string {
-	return buildJsonFilterQuery(jfp.Param(item), jfp.Query, OP_OR)
+func NewCustomFilterProperty(queryBuilder func([]any) string, param func(any) []any) *FilterProperty {
+	return &FilterProperty{
+		QueryBuilder:  queryBuilder,
+		Param:         param,
+		ParamAppender: doNotAppendParameters,
+	}
 }
 
 // DB helpers
@@ -142,10 +157,31 @@ func EnsurePagination[T entity.HasPagination](filter T) T {
 // WrapChecker turns a type-specific check into a generic check
 func WrapChecker[T any](check func(T) bool) func(any) bool {
 	return func(val any) bool {
-		if typedVal, ok := val.(T); ok {
-			return check(typedVal)
+		typedVal, ok := val.(T)
+		if !ok {
+			panic(fmt.Sprintf("WrapChecker: expected %T but got %T", *new(T), val))
 		}
-		return false
+		return check(typedVal)
+	}
+}
+
+// WrapBuilder turns a type-specific builder function into a generic builder function
+func WrapBuilder[T any](build func([]T) string) func([]any) string {
+	return func(values []any) string {
+		typed := make([]T, len(values))
+
+		for i, v := range values {
+			tv, ok := v.(T)
+			if !ok {
+				panic(fmt.Sprintf(
+					"WrapBuilderSlice: expected %T but got %T",
+					*new(T), v,
+				))
+			}
+			typed[i] = tv
+		}
+
+		return build(typed)
 	}
 }
 
@@ -154,7 +190,7 @@ func WrapRetSlice[T any, E any](fn func(T) []E) func(any) []any {
 	return func(input any) []any {
 		val, ok := input.(T)
 		if !ok {
-			return nil
+			panic(fmt.Sprintf("WrapRetSlice: expected %T but got %T", *new(T), input))
 		}
 
 		res := fn(val)
@@ -172,7 +208,7 @@ func WrapRetState[T any](fn func(T) []entity.StateFilterType) func(any) []entity
 	return func(input any) []entity.StateFilterType {
 		val, ok := input.(T)
 		if !ok {
-			return nil
+			panic(fmt.Sprintf("WrapRetState: expected %T but got %T", *new(T), input))
 		}
 
 		res := fn(val)
@@ -190,7 +226,7 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 	return func(input any) []*entity.Json {
 		val, ok := input.(T)
 		if !ok {
-			return nil
+			panic(fmt.Sprintf("WrapRetJson: expected %T but got %T", *new(T), input))
 		}
 
 		res := fn(val)
@@ -203,10 +239,26 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 	}
 }
 
-func ToAnySlice[T any](in []T) []any {
-	out := make([]any, len(in))
+func ToStateSlice(in []any) []entity.StateFilterType { //REMOVE TEMPLATE?
+	out := make([]entity.StateFilterType, len(in))
 	for i := range in {
-		out[i] = in[i]
+		s, ok := in[i].(entity.StateFilterType)
+		if !ok {
+			panic(fmt.Sprintf("ToStateSlice: expected %T but got %T", new(entity.StateFilterType), in[i]))
+		}
+		out[i] = s
+	}
+	return out
+}
+
+func ToJsonSlice(in []any) []*entity.Json { //REMOVE TEMPLATE?
+	out := make([]*entity.Json, len(in))
+	for i := range in {
+		s, ok := in[i].(*entity.Json)
+		if !ok {
+			panic(fmt.Sprintf("ToJsonSlice: expected %T but got %T", new(*entity.Json), in[i]))
+		}
+		out[i] = s
 	}
 	return out
 }

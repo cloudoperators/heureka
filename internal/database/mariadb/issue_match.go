@@ -12,6 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	wildCardFilterQuery      = "IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')"
+	wildCardFilterParamCount = 2
+)
+
 func ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity.IssueMatchFilter {
 	if f != nil {
 		return f
