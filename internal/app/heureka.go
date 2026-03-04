@@ -69,7 +69,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	profiler := profiler.NewProfiler(cfg.CpuProfilerFilePath)
 	profiler.Start()
 
-	er := event.NewEventRegistry(db)
+	er := event.NewEventRegistry(db, authz)
 
 	handlerContext := common.HandlerContext{
 		DB:       db,
@@ -109,6 +109,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	}
 
 	heureka.SubscribeHandlers()
+	heureka.SubscribeAuthzHandlers()
 	return heureka
 }
 
@@ -137,29 +138,58 @@ func NewAppCache(ctx context.Context, wg *sync.WaitGroup, cfg util.Config) cache
 }
 
 func (h *HeurekaApp) SubscribeHandlers() {
-	// Event handlers for Components
-	h.eventRegistry.RegisterEventHandler(
-		component_instance.CreateComponentInstanceEventName,
-		event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
-	)
+	// Register handlers to follow up on create events and link entities together
+	handlers := []struct {
+		eventName event.EventName
+		handler   event.EventHandlerFunc
+	}{
+		{component_instance.CreateComponentInstanceEventName, event.EventHandlerFunc(issue_match.OnComponentInstanceCreate)},
+		{service.CreateServiceEventName, event.EventHandlerFunc(service.OnServiceCreate)},
+		{issue_repository.CreateIssueRepositoryEventName, event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate)},
+		{issue.AddComponentVersionToIssueEventName, event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue)},
+	}
 
-	// Event handlers for Services
-	h.eventRegistry.RegisterEventHandler(
-		service.CreateServiceEventName,
-		event.EventHandlerFunc(service.OnServiceCreate),
-	)
+	for _, hdl := range handlers {
+		h.eventRegistry.RegisterEventHandler(hdl.eventName, hdl.handler)
+	}
+}
 
-	// Event handlers for IssueRepositories
-	h.eventRegistry.RegisterEventHandler(
-		issue_repository.CreateIssueRepositoryEventName,
-		event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate),
-	)
+func (h *HeurekaApp) SubscribeAuthzHandlers() {
+	// Register handlers to update, create, and delete authz relations in openfga
+	authzHandlers := []struct {
+		eventName event.EventName
+		handler   event.EventHandlerFunc
+	}{
+		// Create events
+		{service.CreateServiceEventName, event.EventHandlerFunc(service.OnServiceCreateAuthz)},
+		{component_instance.CreateComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceCreateAuthz)},
+		{component_version.CreateComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionCreateAuthz)},
+		{support_group.CreateSupportGroupEventName, event.EventHandlerFunc(support_group.OnSupportGroupCreateAuthz)},
+		{component.CreateComponentEventName, event.EventHandlerFunc(component.OnComponentCreateAuthz)},
+		{issue_match.CreateIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchCreateAuthz)},
+		// Delete events
+		{user.DeleteUserEventName, event.EventHandlerFunc(user.OnUserDeleteAuthz)},
+		{service.DeleteServiceEventName, event.EventHandlerFunc(service.OnServiceDeleteAuthz)},
+		{component_instance.DeleteComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceDeleteAuthz)},
+		{component_version.DeleteComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionDeleteAuthz)},
+		{support_group.DeleteSupportGroupEventName, event.EventHandlerFunc(support_group.OnSupportGroupDeleteAuthz)},
+		{component.DeleteComponentEventName, event.EventHandlerFunc(component.OnComponentDeleteAuthz)},
+		{issue_match.DeleteIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchDeleteAuthz)},
+		// Update events
+		{component_version.UpdateComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionUpdateAuthz)},
+		{issue_match.UpdateIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchUpdateAuthz)},
+		{component_instance.UpdateComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceUpdateAuthz)},
+		{support_group.AddServiceToSupportGroupEventName, event.EventHandlerFunc(support_group.OnAddServiceToSupportGroup)},
+		{support_group.RemoveServiceFromSupportGroupEventName, event.EventHandlerFunc(support_group.OnRemoveServiceFromSupportGroup)},
+		{support_group.AddUserToSupportGroupEventName, event.EventHandlerFunc(support_group.OnAddUserToSupportGroup)},
+		{support_group.RemoveUserFromSupportGroupEventName, event.EventHandlerFunc(support_group.OnRemoveUserFromSupportGroup)},
+		{service.AddOwnerToServiceEventName, event.EventHandlerFunc(service.OnAddOwnerToService)},
+		{service.RemoveOwnerFromServiceEventName, event.EventHandlerFunc(service.OnRemoveOwnerFromService)},
+	}
 
-	// Event handlers for ComponentVersion attachments to Issues
-	h.eventRegistry.RegisterEventHandler(
-		issue.AddComponentVersionToIssueEventName,
-		event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue),
-	)
+	for _, handler := range authzHandlers {
+		h.eventRegistry.RegisterEventHandler(handler.eventName, handler.handler)
+	}
 }
 
 func (h *HeurekaApp) Shutdown() error {

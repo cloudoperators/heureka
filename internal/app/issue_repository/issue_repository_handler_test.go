@@ -32,7 +32,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 func getIssueRepositoryFilter() *entity.IssueRepositoryFilter {
@@ -178,7 +178,7 @@ var _ = Describe("When creating IssueRepository", Label("app", "CreateIssueRepos
 		})
 
 		It("adds the issue repository to all services", func() {
-			ir.OnIssueRepositoryCreate(db, event)
+			ir.OnIssueRepositoryCreate(db, event, authz)
 
 			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", int64(1), int64(1), int64(100))
 			db.AssertCalled(GinkgoT(), "AddIssueRepositoryToService", int64(2), int64(1), int64(100))

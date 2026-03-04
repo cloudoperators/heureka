@@ -7,6 +7,8 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,7 +55,9 @@ func (e *DeleteIssueRepositoryEvent) Name() event.EventName {
 
 // OnIssueRepositoryCreate is a handler for the CreateIssueRepositoryEvent
 // Is adding the default priority  for the default issue repository
-func OnIssueRepositoryCreate(db database.Database, e event.Event) {
+func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnIssueRepositoryCreate")
+
 	defaultPrio := db.GetDefaultIssuePriority()
 
 	l := logrus.WithFields(logrus.Fields{
@@ -89,6 +93,8 @@ func OnIssueRepositoryCreate(db database.Database, e event.Event) {
 			}
 		}
 	} else {
-		l.Error("Wrong event")
+		err := NewIssueRepositoryHandlerError("OnIssueRepositoryCreate: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
+		l.Error(wrappedErr)
 	}
 }

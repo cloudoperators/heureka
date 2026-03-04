@@ -27,7 +27,6 @@ const (
 var (
 	cfg   *util.Config
 	authz openfga.Authorization
-	p     openfga.PermissionInput
 	r     openfga.RelationInput
 )
 
@@ -46,13 +45,6 @@ var _ = BeforeSuite(func() {
 
 var _ = Describe("Authz", func() {
 	BeforeEach(func() {
-		p = openfga.PermissionInput{
-			UserType:   userType,
-			UserId:     "user1",
-			Relation:   readerRel,
-			ObjectType: documentType,
-			ObjectId:   "document1",
-		}
 		r = openfga.RelationInput{
 			UserType:   userType,
 			UserId:     "user1",
@@ -61,6 +53,8 @@ var _ = Describe("Authz", func() {
 			ObjectId:   "document1",
 		}
 		authz = openfga.NewAuthorizationHandler(cfg, true)
+		// ensure store is clean before each test
+		Expect(authz.RemoveAllRelations()).To(Succeed())
 	})
 
 	Describe("NewAuthz", func() {
@@ -71,13 +65,19 @@ var _ = Describe("Authz", func() {
 
 	Describe("CheckPermission", func() {
 		It("should return false with no relations added", func() {
-			ok, err := authz.CheckPermission(p)
+			ok, err := authz.CheckPermission(r)
 			Expect(ok).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
 
 		It("should return an error for invalid resource type", func() {
-			ok, err := authz.CheckPermission(p)
+			r.ObjectType = "invalid_type"
+			ok, err := authz.CheckPermission(r)
+			Expect(ok).To(BeFalse())
+			Expect(err).NotTo(BeNil())
+			// using valid object type should throw no error
+			r.ObjectType = documentType
+			ok, err = authz.CheckPermission(r)
 			Expect(ok).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
@@ -86,7 +86,7 @@ var _ = Describe("Authz", func() {
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
 
-			ok, err := authz.CheckPermission(p)
+			ok, err := authz.CheckPermission(r)
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
@@ -95,8 +95,8 @@ var _ = Describe("Authz", func() {
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
 
-			p.Relation = ownerRel
-			ok, err := authz.CheckPermission(p)
+			r.Relation = ownerRel
+			ok, err := authz.CheckPermission(r)
 			Expect(ok).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
@@ -134,8 +134,7 @@ var _ = Describe("Authz", func() {
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
 
-			p.Relation = ownerRel
-			ok, err := authz.CheckPermission(p)
+			ok, err := authz.CheckPermission(r)
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
@@ -161,24 +160,137 @@ var _ = Describe("Authz", func() {
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
 
-			p.Relation = ownerRel
-			ok, err := authz.CheckPermission(p)
+			ok, err := authz.CheckPermission(r)
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 
 			err = authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
 
-			ok, err = authz.CheckPermission(p)
+			ok, err = authz.CheckPermission(r)
 			Expect(ok).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
 	})
 
+	Describe("RemoveAllRelations", func() {
+		It("removes all tuples when present", func() {
+			r.Relation = ownerRel
+			r.ObjectId = "docA"
+			Expect(authz.AddRelation(r)).To(BeNil())
+
+			r.ObjectId = "docB"
+			Expect(authz.AddRelation(r)).To(BeNil())
+
+			r.Relation = ownerRel
+			r.ObjectId = "docA"
+			ok, err := authz.CheckPermission(r)
+			Expect(err).To(BeNil())
+			Expect(ok).To(BeTrue())
+
+			Expect(authz.RemoveAllRelations()).To(BeNil())
+
+			ok, err = authz.CheckPermission(r)
+			Expect(err).To(BeNil())
+			Expect(ok).To(BeFalse())
+
+			// listing by object type should return no tuples for this type
+			listInput := openfga.RelationInput{
+				UserType:   r.UserType,
+				UserId:     r.UserId,
+				ObjectType: documentType,
+			}
+			relations, err := authz.ListRelations(listInput)
+			Expect(err).To(BeNil())
+			Expect(relations).To(BeEmpty())
+		})
+	})
+
+	Describe("ListResources", func() {
+		It("should return nothing for a non-existing relation input", func() {
+			input := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "non_existing_user",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "non_existing_document",
+			}
+			relations, err := authz.ListRelations(input)
+			Expect(err).To(BeNil())
+			Expect(relations).To(BeEmpty())
+		})
+
+		It("should return existing relation", func() {
+			newRelation := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "new_document",
+			}
+			r = newRelation
+			err := authz.AddRelation(r)
+			Expect(err).To(BeNil())
+
+			relations, err := authz.ListRelations(r)
+			Expect(err).To(BeNil())
+			Expect(len(relations)).To(Equal(1))
+			Expect(relations[0].User).To(Equal("user:new_user"))
+			Expect(relations[0].Relation).To(Equal(ownerRel))
+			Expect(relations[0].Object).To(Equal("document:new_document"))
+		})
+
+		It("should return multiple existing relations", func() {
+			newRelation1 := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user_1",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "new_document1",
+			}
+			err := authz.AddRelation(newRelation1)
+			Expect(err).To(BeNil())
+			newRelation2 := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user_1",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "new_document2",
+			}
+			err = authz.AddRelation(newRelation2)
+			Expect(err).To(BeNil())
+			newRelation3 := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user_1",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "new_document3",
+			}
+			err = authz.AddRelation(newRelation3)
+			Expect(err).To(BeNil())
+
+			listRelInput := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "new_user_1",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+			}
+			relations, err := authz.ListRelations(listRelInput)
+			Expect(err).To(BeNil())
+			Expect(len(relations)).To(Equal(3))
+		})
+	})
+
 	Describe("ListAccessibleResources", func() {
 		It("should return an empty slice and no error", func() {
-			p.ObjectId = "read"
-			resources, err := authz.ListAccessibleResources(p)
+			nonExistingInput := openfga.RelationInput{
+				UserType:   userType,
+				UserId:     "non_existing_user",
+				Relation:   ownerRel,
+				ObjectType: documentType,
+				ObjectId:   "non_existing_document",
+			}
+			resources, err := authz.ListAccessibleResources(nonExistingInput)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
 		})
@@ -188,10 +300,10 @@ var _ = Describe("Authz", func() {
 			err := authz.AddRelation(r)
 			Expect(err).To(BeNil())
 
-			p.ObjectType = "invalid_type"
-			p.ObjectId = "read"
-			p.Relation = ownerRel
-			resources, err := authz.ListAccessibleResources(p)
+			r.ObjectType = "invalid_type"
+			r.ObjectId = "read"
+			r.Relation = ownerRel
+			resources, err := authz.ListAccessibleResources(r)
 			Expect(err).NotTo(BeNil())
 			Expect(resources).To(BeEmpty())
 		})
@@ -205,9 +317,9 @@ var _ = Describe("Authz", func() {
 				{ObjectType: documentType, ObjectId: "document1"},
 			}
 
-			p.Relation = ownerRel
-			p.ObjectId = "read"
-			resources, err := authz.ListAccessibleResources(p)
+			r.Relation = ownerRel
+			r.ObjectId = "read"
+			resources, err := authz.ListAccessibleResources(r)
 			Expect(err).To(BeNil())
 			Expect(resources).To(Equal(expectedResult))
 		})
@@ -230,9 +342,9 @@ var _ = Describe("Authz", func() {
 				{ObjectType: documentType, ObjectId: "document3"},
 			}
 
-			p.Relation = ownerRel
-			p.ObjectId = "read"
-			resources, err := authz.ListAccessibleResources(p)
+			r.Relation = ownerRel
+			r.ObjectId = "read"
+			resources, err := authz.ListAccessibleResources(r)
 			Expect(err).To(BeNil())
 			Expect(resources).To(ConsistOf(expectedResult))
 		})
@@ -258,9 +370,9 @@ var _ = Describe("Authz", func() {
 			err = authz.RemoveRelation(r)
 			Expect(err).To(BeNil())
 
-			p.Relation = ownerRel
-			p.ObjectId = "read"
-			resources, err := authz.ListAccessibleResources(p)
+			r.Relation = ownerRel
+			r.ObjectId = "read"
+			resources, err := authz.ListAccessibleResources(r)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
 		})
