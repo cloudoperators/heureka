@@ -103,7 +103,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 
 	f := &entity.IssueMatchFilter{
 		Id:                       imIds,
-		PaginatedX:               entity.PaginatedX{First: first, After: after},
+		Paginated:                entity.Paginated{First: first, After: after},
 		ServiceCCRN:              filter.ServiceCcrn,
 		Status:                   lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
 		SeverityValue:            lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),

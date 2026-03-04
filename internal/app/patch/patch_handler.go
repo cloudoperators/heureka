@@ -43,7 +43,7 @@ func (ph *patchHandler) ListPatches(filter *entity.PatchFilter, options *entity.
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
 
 	res, err := cache.CallCached[[]entity.PatchResult](
 		ph.cache,
@@ -78,7 +78,7 @@ func (ph *patchHandler) ListPatches(filter *entity.PatchFilter, options *entity.
 				})
 				return nil, wrappedErr
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {

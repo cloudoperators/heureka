@@ -62,9 +62,9 @@ func SubtractSystemUserNameVL(v []string) []string {
 	})
 }
 
-func SubtractSystemUsersEntity(v []entity.User) []entity.User {
-	return lo.Filter(v, func(val entity.User, _ int) bool {
-		return val.UniqueUserID != systemUserUniqueUserId
+func SubtractSystemUsersEntity(v []entity.UserResult) []entity.UserResult {
+	return lo.Filter(v, func(val entity.UserResult, _ int) bool {
+		return val.User.UniqueUserID != systemUserUniqueUserId
 	})
 }
 

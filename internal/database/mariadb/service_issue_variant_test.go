@@ -33,7 +33,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 	When("Getting ServiceIssueVariants", Label("GetServiceIssueVariants"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
-				res, err := db.GetServiceIssueVariants(nil)
+				res, err := db.GetServiceIssueVariants(nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -50,7 +50,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 			// this should work and give me all combinations back
 			Context("and using no filter", func() {
 				It("Should work", func() {
-					_, err := db.GetServiceIssueVariants(nil)
+					_, err := db.GetServiceIssueVariants(nil, nil)
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
 					})
@@ -161,7 +161,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 							Paginated:           entity.Paginated{},
 							ComponentInstanceId: cids,
 						}
-						res, err := db.GetServiceIssueVariants(filter)
+						res, err := db.GetServiceIssueVariants(filter, []entity.Order{})
 
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
@@ -191,7 +191,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 						IssueId: []*int64{someId},
 					}
 
-					res, err := db.GetServiceIssueVariants(filter)
+					res, err := db.GetServiceIssueVariants(filter, []entity.Order{})
 
 					Expect(err).To(BeNil())
 					Expect(res).To(BeEmpty())
@@ -267,7 +267,7 @@ var _ = Describe("ServiceIssueVariant - ", Label("database", "IssueVariant"), fu
 						IssueId:             []*int64{lo.ToPtr(issue.Id.Int64)},
 					}
 
-					res, err := db.GetServiceIssueVariants(filter)
+					res, err := db.GetServiceIssueVariants(filter, []entity.Order{})
 					Expect(err).To(BeNil())
 					Expect(res).To(HaveLen(5)) // One variant per repository
 

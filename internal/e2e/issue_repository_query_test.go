@@ -52,7 +52,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 				map[string]any{
 					"filter": map[string]string{},
 					"first":  10,
-					"after":  "0",
+					"after":  "",
 				},
 				nil,
 			)
@@ -79,7 +79,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 						map[string]any{
 							"filter": map[string]string{},
 							"first":  5,
-							"after":  "0",
+							"after":  "",
 						},
 						nil,
 					)
@@ -102,7 +102,7 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 						map[string]any{
 							"filter": map[string]string{},
 							"first":  3,
-							"after":  "0",
+							"after":  "",
 						},
 						nil,
 					)

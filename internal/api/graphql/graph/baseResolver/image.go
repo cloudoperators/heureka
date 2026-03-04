@@ -27,7 +27,7 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 	}
 
 	f := &entity.ComponentFilter{
-		PaginatedX:  entity.PaginatedX{First: first, After: after},
+		Paginated:   entity.Paginated{First: first, After: after},
 		ServiceCCRN: filter.Service,
 		Repository:  filter.Repository,
 	}

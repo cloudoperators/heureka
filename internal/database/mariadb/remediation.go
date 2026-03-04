@@ -25,7 +25,7 @@ func buildRemediationFilterParameters(filter *entity.RemediationFilter, withCurs
 	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 	return filterParameters
 }
@@ -35,7 +35,7 @@ func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.Remediati
 	var after string = ""
 	if filter == nil {
 		filter = &entity.RemediationFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -112,7 +112,7 @@ func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getRemediationFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}

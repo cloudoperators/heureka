@@ -34,83 +34,6 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	When("Getting All Issue IDs", Label("GetAllIssueIds"), func() {
-		Context("and the database is empty", func() {
-			It("can perform the query", func() {
-				res, err := db.GetAllIssueIds(nil)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-				By("returning an empty list", func() {
-					Expect(res).To(BeEmpty())
-				})
-			})
-		})
-		Context("and we have 20 Issues in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-
-				for _, issue := range seedCollection.IssueRows {
-					ids = append(ids, issue.Id.Int64)
-				}
-			})
-			Context("and using no filter", func() {
-				It("can fetch the items correctly", func() {
-					res, err := db.GetAllIssueIds(nil)
-
-					By("throwing no error", func() {
-						Expect(err).Should(BeNil())
-					})
-
-					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.IssueRows)))
-					})
-
-					By("returning the correct order", func() {
-						var prev int64 = 0
-						for _, r := range res {
-
-							Expect(r > prev).Should(BeTrue())
-							prev = r
-
-						}
-					})
-
-					By("returning the correct fields", func() {
-						for _, r := range res {
-							Expect(lo.Contains(ids, r)).To(BeTrue())
-						}
-					})
-				})
-			})
-			Context("and using a filter", func() {
-				It("can filter by a single issue id that does exist", func() {
-					issueId := ids[rand.Intn(len(ids))]
-					filter := &entity.IssueFilter{
-						Id: []*int64{&issueId},
-					}
-
-					entries, err := db.GetAllIssueIds(filter)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(1))
-					})
-
-					By("returning expected elements", func() {
-						Expect(entries[0]).To(BeEquivalentTo(issueId))
-					})
-				})
-			})
-		})
-	})
-
 	When("Getting Issues", Label("GetIssues"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
@@ -537,9 +460,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				DescribeTable("can correctly paginate", func(pageSize int) {
 					test.TestPaginationOfListWithOrder(
 						db.GetIssues,
-						func(first *int, after *int64, afterX *string) *entity.IssueFilter {
+						func(first *int, after *string) *entity.IssueFilter {
 							return &entity.IssueFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: after},
 							}
 						},
 						[]entity.Order{},
@@ -685,7 +608,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					first := 1
 					var after string = ""
 					filter := &entity.IssueFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &first,
 							After: &after,
 						},

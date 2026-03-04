@@ -33,59 +33,6 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		dbm.TestTearDown(db)
 	})
 
-	When("Getting All Component IDs", Label("GetAllComponentIds"), func() {
-		testGetComponentIds := func(filter *entity.ComponentFilter, expectedIds []int64, check func(entries []int64)) {
-			res, err := db.GetAllComponentIds(filter)
-			Expect(err).To(BeNil(), "GetAllComponentIds should not error")
-			Expect(len(res)).To(BeEquivalentTo(len(expectedIds)), "GetAllComponentIds should return expected number of ids")
-			check(res)
-		}
-
-		Context("and the database is empty", func() {
-			It("can perform the query", func() {
-				testGetComponentIds(nil, []int64{}, func(entries []int64) {})
-			})
-		})
-		Context("and we have 20 Components in the database", func() {
-			var seedCollection *test.SeedCollection
-			var ids []int64
-			var randomId int64
-
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-				ids = lo.Map(seedCollection.ComponentRows, func(c mariadb.ComponentRow, _ int) int64 {
-					return c.Id.Int64
-				})
-				randomId = ids[rand.Intn(len(ids))]
-			})
-			Context("and using no filter", func() {
-				It("can fetch the items correctly", func() {
-					testGetComponentIds(nil, ids, func(entries []int64) {
-						var prev int64 = 0
-						for _, r := range entries {
-							Expect(r > prev).Should(BeTrue())
-							prev = r
-						}
-						for _, r := range entries {
-							Expect(lo.Contains(ids, r)).To(BeTrue())
-						}
-					})
-				})
-			})
-			Context("and using a filter", func() {
-				It("can filter by a single component id that does exist", func() {
-					filter := &entity.ComponentFilter{
-						Id: []*int64{&randomId},
-					}
-
-					testGetComponentIds(filter, []int64{randomId}, func(entries []int64) {
-						Expect(entries[0]).To(BeEquivalentTo(randomId))
-					})
-				})
-			})
-		})
-	})
-
 	When("Getting Components", Label("GetComponents"), func() {
 		testGetComponents := func(filter *entity.ComponentFilter, order []entity.Order, expectedComponents []mariadb.ComponentRow, check func(entries []entity.ComponentResult)) {
 			res, err := db.GetComponents(filter, order)
@@ -208,9 +155,9 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
 					test.TestPaginationOfListWithOrder(
 						db.GetComponents,
-						func(first *int, after *int64, afterX *string) *entity.ComponentFilter {
+						func(first *int, after *string) *entity.ComponentFilter {
 							return &entity.ComponentFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: after},
 							}
 						},
 						[]entity.Order{},
@@ -263,7 +210,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 				It("can count", func() {
 					after := ""
 					filter := &entity.ComponentFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &count,
 							After: &after,
 						},
@@ -279,7 +226,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					})
 
 					filter := &entity.ComponentFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &pageSize,
 							After: nil,
 						},

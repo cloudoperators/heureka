@@ -58,7 +58,7 @@ const (
 )
 
 type IssueFilter struct {
-	PaginatedX
+	Paginated
 	PrimaryName                     []*string         `json:"primary_name"`
 	ServiceCCRN                     []*string         `json:"service_ccrn"`
 	AllServices                     bool              `json:"all_services"`

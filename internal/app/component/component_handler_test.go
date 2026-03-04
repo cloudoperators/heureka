@@ -52,7 +52,7 @@ var _ = BeforeSuite(func() {
 func getComponentFilter() *entity.ComponentFilter {
 	cCCRN := "SomeNotExistingComponent"
 	return &entity.ComponentFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -152,7 +152,7 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -223,7 +223,7 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -266,7 +266,7 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},

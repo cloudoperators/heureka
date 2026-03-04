@@ -54,7 +54,7 @@ var _ = BeforeSuite(func() {
 func getServiceFilter() *entity.ServiceFilter {
 	sgName := "SomeNotExistingSupportGroup"
 	return &entity.ServiceFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -244,7 +244,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 		first := 10
 		after := ""
 		filter = &entity.ServiceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -293,7 +293,11 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
 					Name: []*string{&defaultRepoName},
-				}).Return([]entity.IssueRepository{repo}, nil)
+				}, mock.Anything).Return([]entity.IssueRepositoryResult{
+					{
+						IssueRepository: &repo,
+					},
+				}, nil)
 				db.On("AddIssueRepositoryToService", createEvent.Service.Id, repo.Id, int64(defaultPrio)).Return(nil)
 
 				// Simulate event
@@ -332,7 +336,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				defaultRepoName := "nvd"
 				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
 					Name: []*string{&defaultRepoName},
-				}).Return([]entity.IssueRepository{}, nil)
+				}, mock.Anything).Return([]entity.IssueRepositoryResult{}, nil)
 
 				s.OnServiceCreate(db, event, handlerContext.Authz)
 
@@ -388,7 +392,7 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 		first := 10
 		after := ""
 		filter = &entity.ServiceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -428,7 +432,7 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 		first := 10
 		after := ""
 		filter = &entity.ServiceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -556,7 +560,7 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 		first := 10
 		after := ""
 		filter = &entity.ServiceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -661,7 +665,7 @@ var _ = Describe("When modifying relationship of issueRepository and Service", L
 		first := 10
 		after := ""
 		filter = &entity.ServiceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},

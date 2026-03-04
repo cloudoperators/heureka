@@ -17,7 +17,7 @@ func ensureComponentInstanceFilter(f *entity.ComponentInstanceFilter) *entity.Co
 	var after string = ""
 	if f == nil {
 		return &entity.ComponentInstanceFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -136,7 +136,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	filterStr := getComponentInstanceFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
 	}
@@ -196,35 +196,10 @@ func (s *SqlDatabase) buildComponentInstanceStatement(baseQuery string, filter *
 	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionVersion)
 	filterParameters = buildQueryParameters(filterParameters, filter.Search)
 	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
+		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
 	}
 
 	return stmt, filterParameters, nil
-}
-
-func (s *SqlDatabase) GetAllComponentInstanceIds(filter *entity.ComponentInstanceFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetComponentInstanceIds",
-	})
-
-	baseQuery := `
-		SELECT CI.componentinstance_id FROM ComponentInstance CI 
-		%s
-	 	%s GROUP BY CI.componentinstance_id ORDER BY %s
-    `
-
-	stmt, filterParameters, err := s.buildComponentInstanceStatement(baseQuery, filter, false, []entity.Order{}, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build ComponentInstance IDs query: %w", err)
-	}
-	defer stmt.Close()
-
-	ids, err := performIdScan(stmt, filterParameters, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ComponentInstance IDs: %w", err)
-	}
-
-	return ids, nil
 }
 
 func (s *SqlDatabase) GetComponentInstances(filter *entity.ComponentInstanceFilter, order []entity.Order) ([]entity.ComponentInstanceResult, error) {

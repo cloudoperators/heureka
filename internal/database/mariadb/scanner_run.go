@@ -175,7 +175,7 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 
 func ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity.ScannerRunFilter {
 	var first int = 100
-	var after int64 = 0
+	var after string
 	if f == nil {
 		return &entity.ScannerRunFilter{
 			Paginated: entity.Paginated{

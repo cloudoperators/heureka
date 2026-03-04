@@ -47,7 +47,7 @@ var _ = BeforeSuite(func() {
 
 func getSupportGroupFilter() *entity.SupportGroupFilter {
 	return &entity.SupportGroupFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -150,7 +150,7 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		first := 10
 		after := ""
 		filter = &entity.SupportGroupFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -223,7 +223,7 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 		after := ""
 		order = []entity.Order{}
 		filter = &entity.SupportGroupFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -269,7 +269,7 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 		after := ""
 		order = []entity.Order{}
 		filter = &entity.SupportGroupFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -397,7 +397,7 @@ var _ = Describe("When modifying relationship of Service and SupportGroup", Labe
 		first := 10
 		after := ""
 		filter = &entity.SupportGroupFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -504,7 +504,7 @@ var _ = Describe("When modifying relationship of User and SupportGroup", Label("
 		after := ""
 		order = []entity.Order{}
 		filter = &entity.SupportGroupFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
