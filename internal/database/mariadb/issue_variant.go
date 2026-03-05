@@ -5,38 +5,43 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func ensureIssueVariantFilter(f *entity.IssueVariantFilter) *entity.IssueVariantFilter {
-	first := 1000
-	var after string
-	if f == nil {
-		return &entity.IssueVariantFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			Id:                nil,
-			SecondaryName:     nil,
-			IssueId:           nil,
-			IssueRepositoryId: nil,
-			ServiceId:         nil,
-			IssueMatchId:      nil,
-		}
-	}
+var issueVariantObject = DbObject{
+	Properties: []*Property{
+		NewProperty("issuevariant_issue_id", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.IssueId != 0 })),
+		NewProperty("issuevariant_repository_id", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.IssueRepositoryId != 0 })),
+		// if rating but not vector is passed, we need to include the vector in the update in order to overwrite any existing vector
+		NewProperty("issuevariant_vector", WrapChecker(func(iv *entity.IssueVariant) bool {
+			return iv.Severity.Cvss.Vector != "" || (iv.Severity.Value != "" && iv.Severity.Cvss.Vector == "")
+		})),
+		NewProperty("issuevariant_rating", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.Severity.Value != "" })),
+		NewProperty("issuevariant_secondary_name", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.SecondaryName != "" })),
+		NewProperty("issuevariant_description", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.Description != "" })),
+		NewProperty("issuevariant_external_url", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.ExternalUrl != "" })),
+		NewImmutableProperty("issuevariant_created_by"),
+		NewProperty("issuevariant_updated_by", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.UpdatedBy != 0 })),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("IV.issuevariant_id = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("IV.issuevariant_secondary_name = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*string { return filter.SecondaryName })),
+		NewFilterProperty("IV.issuevariant_issue_id = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.IssueId })),
+		NewFilterProperty("IV.issuevariant_repository_id = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.IssueRepositoryId })),
+		NewFilterProperty("IRS.issuerepositoryservice_service_id = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("IM.issuematch_id = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.IssueMatchId })),
+		NewStateFilterProperty("IV.issuevariant", WrapRetState(func(filter *entity.IssueVariantFilter) []entity.StateFilterType { return filter.State })),
+	},
+}
 
-	if f.After == nil {
-		f.After = &after
+func ensureIssueVariantFilter(filter *entity.IssueVariantFilter) *entity.IssueVariantFilter {
+	if filter == nil {
+		filter = &entity.IssueVariantFilter{}
 	}
-	if f.First == nil {
-		f.First = &first
-	}
-	return f
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) getIssueVariantJoins(filter *entity.IssueVariantFilter) string {
@@ -63,69 +68,10 @@ func (s *SqlDatabase) getIssueVariantJoins(filter *entity.IssueVariantFilter) st
 	return joins
 }
 
-func getIssueVariantFilterString(filter *entity.IssueVariantFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "IV.issuevariant_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.SecondaryName, "IV.issuevariant_secondary_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "IV.issuevariant_issue_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id  = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "IRS.issuerepositoryservice_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id  = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "IV.issuevariant"))
-
-	return combineFilterQueries(fl, OP_AND)
-}
-
-func buildIssueVariantFilterParameters(filter *entity.IssueVariantFilter, withCursor bool, cursorFields []Field) []any {
-	var filterParameters []any
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.SecondaryName)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
-	}
-
-	return filterParameters
-}
-
-func getIssueVariantUpdateFields(issueVariant *entity.IssueVariant) string {
-	fl := []string{}
-	if issueVariant.SecondaryName != "" {
-		fl = append(fl, "issuevariant_secondary_name = :issuevariant_secondary_name")
-	}
-	// if rating but not vector is passed, we need to include the vector in the update in order to overwrite any existing vector
-	if issueVariant.Severity.Cvss.Vector != "" || (issueVariant.Severity.Value != "" && issueVariant.Severity.Cvss.Vector == "") {
-		fl = append(fl, "issuevariant_vector = :issuevariant_vector")
-	}
-	if issueVariant.Severity.Value != "" {
-		fl = append(fl, "issuevariant_rating = :issuevariant_rating")
-	}
-	if issueVariant.Description != "" {
-		fl = append(fl, "issuevariant_description = :issuevariant_description")
-	}
-	if issueVariant.ExternalUrl != "" {
-		fl = append(fl, "issuevariant_external_url = :issuevariant_external_url")
-	}
-	if issueVariant.IssueId != 0 {
-		fl = append(fl, "issuevariant_issue_id = :issuevariant_issue_id")
-	}
-	if issueVariant.IssueRepositoryId != 0 {
-		fl = append(fl, "issuevariant_repository_id = :issuevariant_repository_id")
-	}
-	if issueVariant.UpdatedBy != 0 {
-		fl = append(fl, "issuevariant_updated_by = :issuevariant_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
 func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entity.IssueVariantFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	filter = ensureIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getIssueVariantFilterString(filter)
 	joins := s.getIssueVariantJoins(filter)
 	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
@@ -136,6 +82,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entit
 	order = GetDefaultOrder(order, entity.IssueVariantID, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
+	filterStr := issueVariantObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -164,7 +111,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(baseQuery string, filter *entit
 		return nil, nil, fmt.Errorf("failed to prepare IssueVariant statement: %w", err)
 	}
 
-	filterParameters := buildIssueVariantFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := issueVariantObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -286,33 +233,10 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 		"event":        "database.CreateIssueVariant",
 	})
 
-	query := `
-		INSERT INTO IssueVariant (
-			issuevariant_issue_id,
-			issuevariant_repository_id,
-			issuevariant_vector,
-			issuevariant_rating,
-			issuevariant_secondary_name,
-			issuevariant_description,
-			issuevariant_external_url,
-			issuevariant_created_by,
-			issuevariant_updated_by
-		) VALUES (
-			:issuevariant_issue_id,
-			:issuevariant_repository_id,
-			:issuevariant_vector,
-			:issuevariant_rating,
-			:issuevariant_secondary_name,
-			:issuevariant_description,
-			:issuevariant_external_url,
-			:issuevariant_created_by,
-			:issuevariant_updated_by
-		)
-	`
-
 	issueVariantRow := IssueVariantRow{}
 	issueVariantRow.FromIssueVariant(issueVariant)
 
+	query := issueVariantObject.InsertQuery("IssueVariant")
 	id, err := performInsert(s, query, issueVariantRow, l)
 	if err != nil {
 		return nil, err
@@ -335,7 +259,7 @@ func (s *SqlDatabase) UpdateIssueVariant(issueVariant *entity.IssueVariant) erro
 		WHERE issuevariant_id = :issuevariant_id
 	`
 
-	updateFields := getIssueVariantUpdateFields(issueVariant)
+	updateFields := issueVariantObject.GetUpdateFields(issueVariant)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
