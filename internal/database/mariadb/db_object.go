@@ -17,9 +17,9 @@ type DbObject struct {
 	FilterProperties []*FilterProperty
 }
 
-func (do *DbObject) InsertQuery(insertTable string) string {
+func (do *DbObject) InsertQuery(tableName string) string {
 	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		insertTable,
+		tableName,
 		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return p.GetName() }), ","),
 		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return ":" + p.GetName() }), ","))
 }
