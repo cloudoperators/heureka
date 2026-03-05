@@ -36,7 +36,7 @@ func ensureUserFilter(filter *entity.UserFilter) *entity.UserFilter {
 	if filter == nil {
 		return &entity.UserFilter{}
 	}
-	return filter
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) getUserJoins(filter *entity.UserFilter) string {

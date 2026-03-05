@@ -40,7 +40,7 @@ func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {
 	if filter == nil {
 		filter = &entity.ServiceFilter{}
 	}
-	return filter
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []entity.Order) string {

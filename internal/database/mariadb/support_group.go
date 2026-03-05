@@ -52,7 +52,7 @@ func ensureSupportGroupFilter(filter *entity.SupportGroupFilter) *entity.Support
 	if filter == nil {
 		filter = &entity.SupportGroupFilter{}
 	}
-	return filter
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entity.SupportGroupFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
