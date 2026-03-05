@@ -57,7 +57,7 @@ func (s *SqlDatabase) buildRemediationStatement(baseQuery string, filter *entity
 	filter = ensureRemediationFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}

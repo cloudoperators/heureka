@@ -150,7 +150,7 @@ type Paginated struct {
 	After *string `json:"from"`
 }
 
-func (p *PaginatedX) GetPaginatedX() *PaginatedX {
+func (p *Paginated) GetPaginated() *Paginated {
 	return p
 }
 

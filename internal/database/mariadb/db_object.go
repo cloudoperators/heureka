@@ -49,7 +49,7 @@ func (do *DbObject) GetFilterParameters(filter entity.HasPagination, withCursor 
 		filterParameters = v.AppendParameters(filterParameters, filter)
 	}
 	if withCursor {
-		paginatedX := filter.GetPaginatedX()
+		paginatedX := filter.GetPaginated()
 		filterParameters = append(filterParameters, GetCursorQueryParameters(paginatedX.First, cursorFields)...)
 	}
 	return filterParameters
@@ -140,7 +140,7 @@ func EnsurePagination[T entity.HasPagination](filter T) T {
 	var first = 1000
 	var after = ""
 
-	px := filter.GetPaginatedX()
+	px := filter.GetPaginated()
 
 	if px.First == nil {
 		px.First = &first
