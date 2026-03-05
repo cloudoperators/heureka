@@ -5,90 +5,38 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func getUserFilterString(filter *entity.UserFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "U.user_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Name, "U.user_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.UniqueUserID, "U.user_unique_user_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Type, "U.user_type = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Email, "U.user_email = ?", OP_OR)) // Add this line
-	fl = append(fl, buildFilterQuery(filter.SupportGroupId, "SGU.supportgroupuser_support_group_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "O.owner_service_id = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "U.user"))
-
-	return combineFilterQueries(fl, OP_AND)
+var userObject = DbObject{
+	Properties: []*Property{
+		NewProperty("user_name", WrapChecker(func(u *entity.User) bool { return u.Name != "" })),
+		NewProperty("user_unique_user_id", WrapChecker(func(u *entity.User) bool { return u.UniqueUserID != "" })),
+		NewProperty("user_type", WrapChecker(func(u *entity.User) bool { return u.Type != entity.InvalidUserType })),
+		NewProperty("user_email", WrapChecker(func(u *entity.User) bool { return u.Email != "" })),
+		NewImmutableProperty("user_created_by"),
+		NewProperty("user_updated_by", WrapChecker(func(u *entity.User) bool { return u.UpdatedBy != 0 })),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("U.user_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("U.user_name = ?", WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.Name })),
+		NewFilterProperty("U.user_unique_user_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.UniqueUserID })),
+		NewFilterProperty("U.user_type = ?", WrapRetSlice(func(filter *entity.UserFilter) []entity.UserType { return filter.Type })),
+		NewFilterProperty("U.user_email = ?", WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.Email })),
+		NewFilterProperty("SGU.supportgroupuser_support_group_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.SupportGroupId })),
+		NewFilterProperty("O.owner_service_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.ServiceId })),
+		NewStateFilterProperty("U.user", WrapRetState(func(filter *entity.UserFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
-func buildUserFilterParameters(filter *entity.UserFilter, withCursor bool, cursorFields []Field) []any {
-	var filterParameters []any
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.Name)
-	filterParameters = buildQueryParameters(filterParameters, filter.UniqueUserID)
-	filterParameters = buildQueryParameters(filterParameters, filter.Type)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Email)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
+func ensureUserFilter(filter *entity.UserFilter) *entity.UserFilter {
+	if filter == nil {
+		return &entity.UserFilter{}
 	}
-
-	return filterParameters
-}
-
-func ensureUserFilter(f *entity.UserFilter) *entity.UserFilter {
-	var first int = 1000
-	var after string
-	if f == nil {
-		return &entity.UserFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			Id:             nil,
-			Name:           nil,
-			UniqueUserID:   nil,
-			Type:           nil,
-			SupportGroupId: nil,
-			ServiceId:      nil,
-			Email:          nil, // Initialize Email filter
-		}
-	}
-	if f.First == nil {
-		f.First = &first
-	}
-	if f.After == nil {
-		f.After = &after
-	}
-	return f
-}
-
-func getUserUpdateFields(user *entity.User) string {
-	fl := []string{}
-	if user.Name != "" {
-		fl = append(fl, "user_name = :user_name")
-	}
-	if user.UniqueUserID != "" {
-		fl = append(fl, "user_unique_user_id = :user_unique_user_id")
-	}
-	if user.Type != entity.InvalidUserType {
-		fl = append(fl, "user_type = :user_type")
-	}
-	if user.UpdatedBy != 0 {
-		fl = append(fl, "user_updated_by = :user_updated_by")
-	}
-	if user.Email != "" { // Add this condition
-		fl = append(fl, "user_email = :user_email")
-	}
-
-	return strings.Join(fl, ", ")
+	return filter
 }
 
 func (s *SqlDatabase) getUserJoins(filter *entity.UserFilter) string {
@@ -110,7 +58,6 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 	filter = ensureUserFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getUserFilterString(filter)
 	joins := s.getUserJoins(filter)
 	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
@@ -122,6 +69,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 	order = GetDefaultOrder(order, entity.UserID, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
+	filterStr := userObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -150,7 +98,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 		return nil, nil, fmt.Errorf("failed to prepare User statement: %w", err)
 	}
 
-	filterParameters := buildUserFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := userObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -288,27 +236,10 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 		"event": "database.CreateUser",
 	})
 
-	query := `
-		INSERT INTO User (
-			user_name,
-			user_unique_user_id,
-			user_type,
-			user_email,
-			user_created_by,
-			user_updated_by
-		) VALUES (
-			:user_name,
-			:user_unique_user_id,
-			:user_type,
-			:user_email,
-			:user_created_by,
-			:user_updated_by
-		)
-	`
-
 	userRow := UserRow{}
 	userRow.FromUser(user)
 
+	query := userObject.InsertQuery("User")
 	id, err := performInsert(s, query, userRow, l)
 	if err != nil {
 		return nil, err
@@ -331,7 +262,7 @@ func (s *SqlDatabase) UpdateUser(user *entity.User) error {
 		WHERE user_id = :user_id
 	`
 
-	updateFields := getUserUpdateFields(user)
+	updateFields := userObject.GetUpdateFields(user)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

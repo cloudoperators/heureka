@@ -5,35 +5,26 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func getSupportGroupFilterString(filter *entity.SupportGroupFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "SG.supportgroup_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "SGS.supportgroupservice_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.CCRN, "SG.supportgroup_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.UserId, "SGU.supportgroupuser_user_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "SG.supportgroup"))
-
-	return combineFilterQueries(fl, OP_AND)
-}
-
-func getSupportGroupUpdateFields(supportGroup *entity.SupportGroup) string {
-	fl := []string{}
-	if supportGroup.CCRN != "" {
-		fl = append(fl, "supportgroup_ccrn = :supportgroup_ccrn")
-	}
-	if supportGroup.UpdatedBy != 0 {
-		fl = append(fl, "supportgroup_updated_by = :supportgroup_updated_by")
-	}
-
-	return strings.Join(fl, ", ")
+var supportGroupObject = DbObject{
+	Properties: []*Property{
+		NewProperty("supportgroup_ccrn", WrapChecker(func(sg *entity.SupportGroup) bool { return sg.CCRN != "" })),
+		NewImmutableProperty("supportgroup_created_by"),
+		NewProperty("supportgroup_updated_by", WrapChecker(func(sg *entity.SupportGroup) bool { return sg.UpdatedBy != 0 })),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("SG.supportgroup_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("SGS.supportgroupservice_service_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("SG.supportgroup_ccrn = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*string { return filter.CCRN })),
+		NewFilterProperty("SGU.supportgroupuser_user_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.UserId })),
+		NewFilterProperty("IM.issuematch_issue_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.IssueId })),
+		NewStateFilterProperty("SG.supportgroup", WrapRetState(func(filter *entity.SupportGroupFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
 func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) string {
@@ -57,29 +48,11 @@ func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) st
 	return joins
 }
 
-func ensureSupportGroupFilter(f *entity.SupportGroupFilter) *entity.SupportGroupFilter {
-	var first int = 1000
-	var after string = ""
-	if f == nil {
-		return &entity.SupportGroupFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			Id:        nil,
-			ServiceId: nil,
-			UserId:    nil,
-			IssueId:   nil,
-			CCRN:      nil,
-		}
+func ensureSupportGroupFilter(filter *entity.SupportGroupFilter) *entity.SupportGroupFilter {
+	if filter == nil {
+		filter = &entity.SupportGroupFilter{}
 	}
-	if f.First == nil {
-		f.First = &first
-	}
-	if f.After == nil {
-		f.After = &after
-	}
-	return f
+	return filter
 }
 
 func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entity.SupportGroupFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
@@ -87,7 +60,6 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	filter = ensureSupportGroupFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getSupportGroupFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
@@ -97,6 +69,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	orderStr := CreateOrderString(order)
 	joins := s.getSupportGroupJoins(filter)
 
+	filterStr := supportGroupObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -126,16 +99,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.UserId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
-	}
+	filterParameters := supportGroupObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -245,24 +209,13 @@ func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*en
 		"event":        "database.CreateSupportGroup",
 	})
 
-	query := `
-		INSERT INTO SupportGroup (
-			supportgroup_ccrn,
-			supportgroup_created_by,
-			supportgroup_updated_by
-		) VALUES (
-			:supportgroup_ccrn,
-			:supportgroup_created_by,
-			:supportgroup_updated_by
-		)
-	`
-
 	supportGroupRow := SupportGroupRow{}
 	supportGroupRow.FromSupportGroup(supportGroup)
 
+	query := supportGroupObject.InsertQuery("SupportGroup")
 	id, err := performInsert(s, query, supportGroupRow, l)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create SupportGroup: %w", err)
 	}
 
 	supportGroup.Id = id
@@ -282,7 +235,7 @@ func (s *SqlDatabase) UpdateSupportGroup(supportGroup *entity.SupportGroup) erro
 		WHERE supportgroup_id = :supportgroup_id
 	`
 
-	updateFields := getSupportGroupUpdateFields(supportGroup)
+	updateFields := supportGroupObject.GetUpdateFields(supportGroup)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 
