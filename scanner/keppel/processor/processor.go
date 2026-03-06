@@ -6,15 +6,16 @@ package processor
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -32,8 +33,8 @@ type Processor struct {
 }
 
 func NewProcessor(cfg Config, tag string) *Processor {
-	httpClient := http.Client{}
-	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
+	httpClient := util.NewRateLimitedHTTPClient(rate.Limit(cfg.HeurekaRateLimit), cfg.HeurekaRateBurst, nil)
+	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	return &Processor{
 		Client:              &gClient,
 		uuid:                uuid.New().String(),

@@ -11,8 +11,12 @@ type Config struct {
 	KeppelUserDomain string `envconfig:"KEPPEL_USER_DOMAIN" required:"true" json:"-"`
 	KeppelPassword   string `envconfig:"KEPPEL_PASSWORD" required:"true" json:"-"`
 	Domain           string `envconfig:"KEPPEL_DOMAIN" required:"true" json:"-"`
-	Project          string `envconfig:"KEPPEL_PROJECT" required:"true" json:"-"`
-	IdentityEndpoint string `envconfig:"IDENTITY_ENDPOINT" required:"true" json:"-"`
+	Project          string  `envconfig:"KEPPEL_PROJECT" required:"true" json:"-"`
+	IdentityEndpoint string  `envconfig:"IDENTITY_ENDPOINT" required:"true" json:"-"`
+	KeppelRateLimit  float64 `envconfig:"KEPPEL_RATE_LIMIT" default:"1.0" json:"-"`
+	KeppelRateBurst  int     `envconfig:"KEPPEL_RATE_BURST" default:"10" json:"-"`
+	TrivyRateLimit   float64 `envconfig:"TRIVY_RATE_LIMIT" default:"0.0833" json:"-"` // 5 requests per minute
+	TrivyRateBurst   int     `envconfig:"TRIVY_RATE_BURST" default:"1" json:"-"`
 }
 
 func (c *Config) KeppelBaseUrl() string {

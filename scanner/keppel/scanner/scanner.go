@@ -61,8 +61,8 @@ func NewScanner(cfg Config) *Scanner {
 	wrap.SetOverrideUserAgent("heureka-keppel-scanner", bininfo.CommitOr("unknown"))
 	wrap.SetInsecureSkipVerify(true)
 
-	rl := rate.NewLimiter(rate.Every(time.Minute/60), 10)    // 60 requests per minute
-	trivyRl := rate.NewLimiter(rate.Every(time.Minute/5), 1) // 5 requests per minute
+	rl := rate.NewLimiter(rate.Limit(cfg.KeppelRateLimit), cfg.KeppelRateBurst)
+	trivyRl := rate.NewLimiter(rate.Limit(cfg.TrivyRateLimit), cfg.TrivyRateBurst)
 
 	return &Scanner{
 		KeppelBaseUrl:    cfg.KeppelBaseUrl(),

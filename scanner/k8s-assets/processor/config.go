@@ -11,11 +11,13 @@ import (
 )
 
 type Config struct {
-	HeurekaUrl            string `envconfig:"HEUREKA_URL" required:"true" json:"-"`
-	ClusterName           string `envconfig:"HEUREKA_CLUSTER_NAME" required:"true" json:"-"`
-	RegionName            string `envconfig:"HEUREKA_CLUSTER_REGION" required:"true" json:"-"`
-	ConfigPath            string `envconfig:"CONFIG_PATH" default:"/etc/config" required:"true"`
-	DefaultKeppelRegistry string `envconfig:"DEFAULT_KEPPEL_REGISTRY" required:"true"`
+	HeurekaUrl            string  `envconfig:"HEUREKA_URL" required:"true" json:"-"`
+	ClusterName           string  `envconfig:"HEUREKA_CLUSTER_NAME" required:"true" json:"-"`
+	RegionName            string  `envconfig:"HEUREKA_CLUSTER_REGION" required:"true" json:"-"`
+	ConfigPath            string  `envconfig:"CONFIG_PATH" default:"/etc/config" required:"true"`
+	DefaultKeppelRegistry string  `envconfig:"DEFAULT_KEPPEL_REGISTRY" required:"true"`
+	HeurekaRateLimit      float64 `envconfig:"HEUREKA_RATE_LIMIT" default:"100.0" json:"-"`
+	HeurekaRateBurst      int     `envconfig:"HEUREKA_RATE_BURST" default:"100" json:"-"`
 }
 
 func (c *Config) LoadAdvancedConfig() (*AdvancedConfig, error) {

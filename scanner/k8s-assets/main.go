@@ -177,6 +177,10 @@ func main() {
 		log.WithError(err).Fatal("couldn't load kubeConfig")
 	}
 
+	// Set QPS and Burst
+	kubeConfig.QPS = float32(scannerCfg.K8sRateLimit)
+	kubeConfig.Burst = scannerCfg.K8sRateBurst
+
 	// Create k8s client
 	k8sClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
