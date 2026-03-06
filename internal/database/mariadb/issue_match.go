@@ -5,48 +5,59 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func ensureIssueMatchFilter(f *entity.IssueMatchFilter) *entity.IssueMatchFilter {
-	if f != nil {
-		return f
-	}
+const (
+	wildCardFilterQuery      = "IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')"
+	wildCardFilterParamCount = 2
+)
 
-	first := 1000
-	var after string = ""
-	return &entity.IssueMatchFilter{
-		Paginated: entity.Paginated{
-			First: &first,
-			After: &after,
-		},
-		IssueId: nil,
-	}
+var issueMatchObject = DbObject{
+	Properties: []*Property{
+		NewProperty("issuematch_status", WrapChecker(func(im *entity.IssueMatch) bool {
+			return im.Status != "" && im.Status != entity.IssueMatchStatusValuesNone
+		})),
+		NewProperty("issuematch_remediation_date", WrapChecker(func(im *entity.IssueMatch) bool { return !im.RemediationDate.IsZero() })),
+		NewProperty("issuematch_target_remediation_date", WrapChecker(func(im *entity.IssueMatch) bool { return !im.TargetRemediationDate.IsZero() })),
+		NewProperty("issuematch_vector", WrapChecker(func(im *entity.IssueMatch) bool { return im.Severity.Cvss.Vector != "" })),
+		NewProperty("issuematch_rating", WrapChecker(func(im *entity.IssueMatch) bool { return im.Severity.Value != "" })),
+		NewProperty("issuematch_user_id", WrapChecker(func(im *entity.IssueMatch) bool { return im.UserId != 0 })),
+		NewProperty("issuematch_component_instance_id", WrapChecker(func(im *entity.IssueMatch) bool { return im.ComponentInstanceId != 0 })),
+		NewProperty("issuematch_issue_id", WrapChecker(func(im *entity.IssueMatch) bool { return im.IssueId != 0 })),
+		NewImmutableProperty("issuematch_created_by"),
+		NewProperty("issuematch_updated_by", WrapChecker(func(im *entity.IssueMatch) bool { return im.UpdatedBy != 0 })),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("IM.issuematch_id = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("IM.issuematch_issue_id = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*int64 { return filter.IssueId })),
+		NewFilterProperty("IM.issuematch_component_instance_id = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*int64 { return filter.ComponentInstanceId })),
+		NewFilterProperty("S.ServiceCCRN = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.ServiceCCRN })),
+		NewFilterProperty("CI.componentinstance_service_id = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("IM.issuematch_rating = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.SeverityValue })),
+		NewFilterProperty("IM.issuematch_status = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.Status })),
+		NewFilterProperty("SG.supportgroup_ccrn = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.SupportGroupCCRN })),
+		NewFilterProperty("I.issue_primary_name = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.PrimaryName })),
+		NewFilterProperty("C.component_ccrn = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.ComponentCCRN })),
+		NewFilterProperty("I.issue_type = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.IssueType })),
+		NewFilterProperty("U.user_name = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.ServiceOwnerUsername })),
+		NewFilterProperty("U.user_unique_user_id = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.ServiceOwnerUniqueUserId })),
+		NewNFilterProperty(
+			"IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')",
+			WrapRetSlice(func(filter *entity.IssueMatchFilter) []*string { return filter.Search }),
+			2),
+		NewStateFilterProperty("IM.issuematch", WrapRetState(func(filter *entity.IssueMatchFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
-func getIssueMatchFilterString(filter *entity.IssueMatchFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "IM.issuematch_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "IM.issuematch_component_instance_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.SeverityValue, "IM.issuematch_rating = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Status, "IM.issuematch_status = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueType, "I.issue_type = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceOwnerUsername, "U.user_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceOwnerUniqueUserId, "U.user_unique_user_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "IM.issuematch"))
-
-	return combineFilterQueries(fl, OP_AND)
+func ensureIssueMatchFilter(filter *entity.IssueMatchFilter) *entity.IssueMatchFilter {
+	if filter == nil {
+		filter = &entity.IssueMatchFilter{}
+	}
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order []entity.Order) string {
@@ -105,38 +116,6 @@ func (s *SqlDatabase) getIssueMatchJoins(filter *entity.IssueMatchFilter, order 
 	return joins
 }
 
-func getIssueMatchUpdateFields(issueMatch *entity.IssueMatch) string {
-	fl := []string{}
-	if issueMatch.Status != "" && issueMatch.Status != entity.IssueMatchStatusValuesNone {
-		fl = append(fl, "issuematch_status = :issuematch_status")
-	}
-	if issueMatch.Severity.Cvss.Vector != "" {
-		fl = append(fl, "issuematch_vector = :issuematch_vector")
-	}
-	if issueMatch.Severity.Value != "" {
-		fl = append(fl, "issuematch_rating = :issuematch_rating")
-	}
-	if issueMatch.UserId != 0 {
-		fl = append(fl, "issuematch_user_id = :issuematch_user_id")
-	}
-	if issueMatch.ComponentInstanceId != 0 {
-		fl = append(fl, "issuematch_component_instance_id = :issuematch_component_instance_id")
-	}
-	if issueMatch.IssueId != 0 {
-		fl = append(fl, "issuematch_issue_id = :issuematch_issue_id")
-	}
-	if !issueMatch.RemediationDate.IsZero() {
-		fl = append(fl, "issuematch_remediation_date = :issuematch_remediation_date")
-	}
-	if !issueMatch.TargetRemediationDate.IsZero() {
-		fl = append(fl, "issuematch_target_remediation_date = :issuematch_target_remediation_date")
-	}
-	if issueMatch.UpdatedBy != 0 {
-		fl = append(fl, "issuematch_updated_by = :issuematch_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
 func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
 	columns := ""
 	for _, o := range order {
@@ -151,11 +130,9 @@ func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
 }
 
 func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.IssueMatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
-	var query string
 	filter = ensureIssueMatchFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getIssueMatchFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
@@ -167,6 +144,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 	columns := s.getIssueMatchColumns(order)
 	joins := s.getIssueMatchJoins(filter, order)
 
+	filterStr := issueMatchObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -176,7 +154,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
 
-	// construct final query
+	var query string
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, orderStr)
 	} else {
@@ -196,26 +174,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(baseQuery string, filter *entity.
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.SeverityValue)
-	filterParameters = buildQueryParameters(filterParameters, filter.Status)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueType)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceOwnerUsername)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceOwnerUniqueUserId)
-	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
-
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
-	}
+	filterParameters := issueMatchObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -356,38 +315,13 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 		"event":      "database.CreateIssueMatch",
 	})
 
-	query := `
-		INSERT INTO IssueMatch (
-			issuematch_status,
-			issuematch_remediation_date,
-			issuematch_target_remediation_date,
-			issuematch_vector,
-			issuematch_rating,
-			issuematch_user_id,
-			issuematch_component_instance_id,
-			issuematch_issue_id,
-			issuematch_created_by,
-			issuematch_updated_by
-		) VALUES (
-			:issuematch_status,
-			:issuematch_remediation_date,
-			:issuematch_target_remediation_date,
-			:issuematch_vector,
-			:issuematch_rating,
-			:issuematch_user_id,
-			:issuematch_component_instance_id,
-			:issuematch_issue_id,
-			:issuematch_created_by,
-			:issuematch_updated_by
-		)
-	`
-
 	issueMatchRow := IssueMatchRow{}
 	issueMatchRow.FromIssueMatch(issueMatch)
 
+	query := issueMatchObject.InsertQuery("IssueMatch")
 	id, err := performInsert(s, query, issueMatchRow, l)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create IssueMatch: %w", err)
 	}
 
 	issueMatch.Id = id
@@ -407,7 +341,7 @@ func (s *SqlDatabase) UpdateIssueMatch(issueMatch *entity.IssueMatch) error {
 		WHERE issuematch_id = :issuematch_id
 	`
 
-	updateFields := getIssueMatchUpdateFields(issueMatch)
+	updateFields := issueMatchObject.GetUpdateFields(issueMatch)
 
 	query := fmt.Sprintf(baseQuery, updateFields)
 

@@ -5,86 +5,35 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func buildPatchFilterParameters(filter *entity.PatchFilter, withCursor bool, cursorFields []Field) []interface{} {
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceName)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionName)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
-	}
-
-	return filterParameters
+var patchObject = DbObject{
+	Properties: []*Property{},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("P.patch_id = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("P.patch_service_id = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("P.patch_service_name = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*string { return filter.ServiceName })),
+		NewFilterProperty("P.patch_component_version_id = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.ComponentVersionId })),
+		NewFilterProperty("P.patch_component_version_name = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*string { return filter.ComponentVersionName })),
+		NewStateFilterProperty("P.patch", WrapRetState(func(filter *entity.PatchFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
 func ensurePatchFilter(filter *entity.PatchFilter) *entity.PatchFilter {
-	var first int = 1000
-	var after string = ""
 	if filter == nil {
-		filter = &entity.PatchFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-		}
+		filter = &entity.PatchFilter{}
 	}
-	if filter.First == nil {
-		filter.First = &first
-	}
-	if filter.After == nil {
-		filter.After = &after
-	}
-	return filter
-}
-
-func getPatchUpdateFields(patch *entity.Patch) string {
-	fl := []string{}
-	if patch.Id != 0 {
-		fl = append(fl, "patch_id = :patch_id")
-	}
-	if patch.ServiceId != 0 {
-		fl = append(fl, "patch_service_id = :patch_service_id")
-	}
-	if patch.ServiceName != "" {
-		fl = append(fl, "patch_service_name = :patch_service_name")
-	}
-	if patch.ComponentVersionId != 0 {
-		fl = append(fl, "patch_component_version_id = :patch_component_version_id")
-	}
-	if patch.ComponentVersionName != "" {
-		fl = append(fl, "patch_component_version_name = :patch_component_version_name")
-	}
-	if patch.UpdatedBy != 0 {
-		fl = append(fl, "patch_updated_by = :patch_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
-func getPatchFilterString(filter *entity.PatchFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "P.patch_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "P.patch_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceName, "P.patch_service_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "P.patch_component_version_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentVersionName, "P.patch_component_version_name = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "P.patch"))
-	return combineFilterQueries(fl, OP_AND)
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) buildPatchStatement(baseQuery string, filter *entity.PatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	filter = ensurePatchFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getPatchFilterString(filter)
 	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Patch cursor: %w", err)
@@ -94,6 +43,7 @@ func (s *SqlDatabase) buildPatchStatement(baseQuery string, filter *entity.Patch
 	order = GetDefaultOrder(order, entity.PatchId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
+	filterStr := patchObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -122,7 +72,7 @@ func (s *SqlDatabase) buildPatchStatement(baseQuery string, filter *entity.Patch
 		return nil, nil, fmt.Errorf("failed to prepare Patch statement: %w", err)
 	}
 
-	filterParameters := buildPatchFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := patchObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }

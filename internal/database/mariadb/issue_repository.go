@@ -5,35 +5,33 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func getIssueRepositoryFilterString(filter *entity.IssueRepositoryFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Name, "IR.issuerepository_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Id, "IR.issuerepository_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "IRS.issuerepositoryservice_service_id = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "IR.issuerepository"))
-
-	return combineFilterQueries(fl, OP_AND)
+var issueRepositoryObject = DbObject{
+	Properties: []*Property{
+		NewProperty("issuerepository_name", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.Name != "" })),
+		NewProperty("issuerepository_url", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.Url != "" })),
+		NewImmutableProperty("issuerepository_created_by"),
+		NewProperty("issuerepository_updated_by", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.BaseIssueRepository.UpdatedBy != 0 })),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("IR.issuerepository_name = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*string { return filter.Name })),
+		NewFilterProperty("IR.issuerepository_id = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*string { return filter.ServiceCCRN })),
+		NewFilterProperty("IRS.issuerepositoryservice_service_id = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.ServiceId })),
+		NewStateFilterProperty("IR.issuerepository", WrapRetState(func(filter *entity.IssueRepositoryFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
-func buildIssueRepositoryFilterParameters(filter *entity.IssueRepositoryFilter, withCursor bool, cursorFields []Field) []any {
-	var filterParameters []any
-	filterParameters = buildQueryParameters(filterParameters, filter.Name)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
+func ensureIssueRepositoryFilter(filter *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
+	if filter == nil {
+		filter = &entity.IssueRepositoryFilter{}
 	}
-
-	return filterParameters
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilter) string {
@@ -51,49 +49,10 @@ func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilt
 	return joins
 }
 
-func getIssueRepositoryUpdateFields(issueRepository *entity.IssueRepository) string {
-	fl := []string{}
-	if issueRepository.Name != "" {
-		fl = append(fl, "issuerepository_name = :issuerepository_name")
-	}
-	if issueRepository.Url != "" {
-		fl = append(fl, "issuerepository_url = :issuerepository_url")
-	}
-	if issueRepository.BaseIssueRepository.UpdatedBy != 0 {
-		fl = append(fl, "issuerepository_updated_by = :issuerepository_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
-func ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
-	var first int = 1000
-	var after string
-	if f == nil {
-		return &entity.IssueRepositoryFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			ServiceId:   nil,
-			Name:        nil,
-			Id:          nil,
-			ServiceCCRN: nil,
-		}
-	}
-	if f.First == nil {
-		f.First = &first
-	}
-	if f.After == nil {
-		f.After = &after
-	}
-	return f
-}
-
 func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *entity.IssueRepositoryFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	filter = ensureIssueRepositoryFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getIssueRepositoryFilterString(filter)
 	joins := s.getIssueRepositoryJoins(filter)
 
 	cursorFields, err := DecodeCursor(filter.Paginated.After)
@@ -106,6 +65,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 	order = GetDefaultOrder(order, entity.IssueRepositoryID, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
+	filterStr := issueRepositoryObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -134,7 +94,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 		return nil, nil, fmt.Errorf("failed to prepare IssueRepository statement: %w", err)
 	}
 
-	filterParameters := buildIssueRepositoryFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := issueRepositoryObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -254,23 +214,10 @@ func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueReposit
 		"event":           "database.CreateIssueRepository",
 	})
 
-	query := `
-		INSERT INTO IssueRepository (
-			issuerepository_name,
-			issuerepository_url,
-			issuerepository_created_by,
-			issuerepository_updated_by
-		) VALUES (
-			:issuerepository_name,
-			:issuerepository_url,
-			:issuerepository_created_by,
-			:issuerepository_updated_by
-		)
-	`
-
 	issueRepositoryRow := IssueRepositoryRow{}
 	issueRepositoryRow.FromIssueRepository(issueRepository)
 
+	query := issueRepositoryObject.InsertQuery("IssueRepository")
 	id, err := performInsert(s, query, issueRepositoryRow, l)
 	if err != nil {
 		return nil, err
@@ -293,8 +240,7 @@ func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueReposit
 		WHERE issuerepository_id = :issuerepository_id
 	`
 
-	updateFields := getIssueRepositoryUpdateFields(issueRepository)
-
+	updateFields := issueRepositoryObject.GetUpdateFields(issueRepository)
 	query := fmt.Sprintf(baseQuery, updateFields)
 
 	issueRepositoryRow := IssueRepositoryRow{}

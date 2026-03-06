@@ -10,53 +10,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ensureServiceIssueVariantFilter(f *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
-	first := 1000
-	var after string
-	if f == nil {
-		return &entity.ServiceIssueVariantFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			ComponentInstanceId: nil,
-		}
-	}
-
-	if f.After == nil {
-		f.After = &after
-	}
-	if f.First == nil {
-		f.First = &first
-	}
-	return f
+var serviceIssueVariantObject = DbObject{
+	Properties: []*Property{},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("CI.componentinstance_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.ComponentInstanceId })),
+		NewFilterProperty("I.issue_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.IssueId })),
+		NewStateFilterProperty("IV.issuevariant", WrapRetState(func(filter *entity.ServiceIssueVariantFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
-func getServiceIssueVariantFilterString(filter *entity.ServiceIssueVariantFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "I.issue_id = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "IV.issuevariant"))
-
-	return combineFilterQueries(fl, OP_AND)
-}
-
-func buildServiceIssueVariantFilterParameters(filter *entity.ServiceIssueVariantFilter, withCursor bool, cursorFields []Field) []any {
-	var filterParameters []any
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.Paginated.First, cursorFields)...)
+func ensureServiceIssueVariantFilter(filter *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
+	if filter == nil {
+		filter = &entity.ServiceIssueVariantFilter{}
 	}
-
-	return filterParameters
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter *entity.ServiceIssueVariantFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	filter = ensureServiceIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
-
-	filterStr := getServiceIssueVariantFilterString(filter)
 
 	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
@@ -67,6 +39,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 	order = GetDefaultOrder(order, entity.ServiceIssueVariantID, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
+	filterStr := serviceIssueVariantObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -96,7 +69,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	filterParameters := buildServiceIssueVariantFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := serviceIssueVariantObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
