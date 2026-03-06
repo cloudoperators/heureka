@@ -25,6 +25,7 @@ var issueObject = DbObject{
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.ServiceCCRN })),
 		NewFilterProperty("CI.componentinstance_service_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("CI.componentinstance_region = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.Region })),
 		NewFilterProperty("I.issue_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.Id })),
 		NewFilterProperty("IM.issuematch_status = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.IssueMatchStatus })),
 		NewFilterProperty("IM.issuematch_rating = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.IssueMatchSeverity })),
@@ -75,13 +76,15 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
-		len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 {
+		len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 ||
+		len(filter.Region) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
 
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 ||
+		len(filter.Region) > 0 || filter.AllServices {
 
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
@@ -254,10 +257,6 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
         %s
         GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
     `
-
-	// count(distinct activity_id) as agg_activities,
-	// LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
-	// LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id~
 
 	baseAggQuery := `
 		SELECT I.*,

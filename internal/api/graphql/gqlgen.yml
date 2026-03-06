@@ -206,6 +206,8 @@ models:
         resolver: false
       service:
         resolver: true
+      region:
+        resolver: true
   IssueMatchFilterValue:
     fields:
       status:

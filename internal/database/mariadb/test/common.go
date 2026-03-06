@@ -319,7 +319,7 @@ func loadIssueCountsFromFile(filename string, idKey string) (map[string]entity.I
 		return nil, err
 	}
 
-	var tempIssueCounts []map[string]int64
+	var tempIssueCounts []map[string]any
 	if err := json.Unmarshal(data, &tempIssueCounts); err != nil {
 		return nil, err
 	}
@@ -328,12 +328,12 @@ func loadIssueCountsFromFile(filename string, idKey string) (map[string]entity.I
 	for _, tic := range tempIssueCounts {
 		id := fmt.Sprintf("%v", tic[idKey])
 		issueCounts[id] = entity.IssueSeverityCounts{
-			Critical: tic["critical"],
-			High:     tic["high"],
-			Medium:   tic["medium"],
-			Low:      tic["low"],
-			None:     tic["none"],
-			Total:    tic["total"],
+			Critical: int64(tic["critical"].(float64)),
+			High:     int64(tic["high"].(float64)),
+			Medium:   int64(tic["medium"].(float64)),
+			Low:      int64(tic["low"].(float64)),
+			None:     int64(tic["none"].(float64)),
+			Total:    int64(tic["total"].(float64)),
 		}
 	}
 
@@ -350,6 +350,10 @@ func LoadComponentVersionIssueCounts(filename string) (map[string]entity.IssueSe
 
 func LoadSupportGroupIssueCounts(filename string) (map[string]entity.IssueSeverityCounts, error) {
 	return loadIssueCountsFromFile(filename, "support_group_id")
+}
+
+func LoadRegionIssueCounts(filename string) (map[string]entity.IssueSeverityCounts, error) {
+	return loadIssueCountsFromFile(filename, "region")
 }
 
 func LoadIssueCounts(filename string) (entity.IssueSeverityCounts, error) {
