@@ -128,6 +128,23 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						Expect(entries).To(BeEmpty())
 					})
 				})
+				It("can filter by a region", func() {
+					region := "test-de-1"
+
+					filter := &entity.IssueFilter{Region: []*string{
+						&region,
+					}}
+
+					entries, err := db.GetIssues(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning results", func() {
+						Expect(entries).ToNot(BeEmpty())
+					})
+				})
 				It("can filter by multiple existing service names", func() {
 					serviceCcrns := make([]*string, len(seedCollection.ServiceRows))
 					var expectedIssues []mariadb.IssueRow
