@@ -271,6 +271,7 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		Paginated:          entity.Paginated{},
 		ServiceCCRN:        filter.ServiceCcrn,
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
+		Region:             filter.Region,
 		PrimaryName:        filter.PrimaryName,
 		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
 		Search:             filter.Search,

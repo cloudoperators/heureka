@@ -1,0 +1,20 @@
+[
+    {
+        "critical": 2,
+        "high": 0,
+        "medium": 1,
+        "low": 2,
+        "none": 1,
+        "total": 6,
+        "region": "test-de-1"
+    },
+    {
+        "critical": 0,
+        "high": 2,
+        "medium": 1,
+        "low": 0,
+        "none": 1,
+        "total": 4,
+        "region": "test-de-2"
+    }
+]
