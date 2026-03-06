@@ -59,7 +59,7 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		opt.Order = append(opt.Order, o.ToOrderEntity())
 	}
 
-	supportGroups, err := app.ListSupportGroups(f, opt)
+	supportGroups, err := app.ListSupportGroups(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("SupportGroupBaseResolver", err.Error())
 	}

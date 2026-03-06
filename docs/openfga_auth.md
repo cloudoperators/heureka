@@ -26,18 +26,20 @@ internal/openfga/interface.go consists of the following.
     - Adds a specified relation between a given user and a given resource
 - AddRelationBulk(r RelationInput)
     - Adds multiple relationships between given users and resources
-- RemoveRelationBulk (r []RelationInput)
-    - Remove all relations that match any given RelationInput as filters
 - RemoveRelation(r RelationInput)
     - Removes a single relation between a given user and a given resource (if such a relation exists)
+- RemoveRelationBulk (r []RelationInput)
+    - Remove all relations that match any given RelationInput as filters
 - RemoveAllRelations()
     - Remove all relations in the authorization store, used mainly for tests
+- UpdateRelation(r RelationInput, u RelationInput)
+    - Update relations based on filters provided
 - ListRelations(filters []RelationInput)
     - Returns a list of relations that match any given RelationInput as filters
 - ListAccessibleResources(p PermissionInput)
     - Returns a list of all objects of a specified type that a given user has a given relation with
-- GetCurrentUser() 
-    - Placeholder function to be implemented for future user context functionality
+- GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType)
+    - Returns a list of object Ids of a given type that the user can access
 
 RelationInput is a struct that contains all the fields to create a tuple in above functions.
 
@@ -71,6 +73,13 @@ Using the event handling system, openfga tuples are modified based on the event 
 | DeleteUser         | OnUserDeleteAuthz         | delete user - role<br>delete user - service<br>delete user - component_instance<br>delete user - support_group<br>delete user - issue_match<br>delete user - component_version<br>delete user - component         |
 | CreateComponent         | OnComponentCreateAuthz         | add role - component                                                                             |
 | DeleteComponent         | OnComponentDeleteAuthz         | delete user - component<br>delete component_version - component<br>delete role - component        |
+
+## Read Permissions
+
+For various entities, get & list operations are protected by permission checks using openFGA.
+For get operations, a call to CheckPermission with the ID of the exact object attempting to be accessed is made.
+For list operations, a call to GetListOfAccessibleObjectIds is made to obtain a list of IDs to be used as a filter when querying the DB.
+If no objects are accessible, -1 is returned and used as the filter.
 
 ## Usage
 

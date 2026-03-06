@@ -17,6 +17,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,6 +31,7 @@ type componentInstanceHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
+	authz         openfga.Authorization
 	logger        *logrus.Logger
 }
 
@@ -50,16 +52,34 @@ func NewComponentInstanceHandler(handlerContext common.HandlerContext) Component
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
 		logger:        logrus.New(),
 	}
 }
 
-func (ci *componentInstanceHandler) ListComponentInstances(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
+func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
 	op := appErrors.Op("componentInstanceHandler.ListComponentInstances")
 	var count int64
 	var pageInfo *entity.PageInfo
 
 	common.EnsurePaginated(&filter.Paginated)
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, ci.database)
+	if err != nil {
+		ci.logger.Error(err)
+		return nil, NewComponentInstanceHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleServiceIds, err := ci.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeService)
+	if err != nil {
+		ci.logger.Error(err)
+		return nil, NewComponentInstanceHandlerError("Error while listing accessible component instances for user")
+	}
+
+	// Update the filter.ServiceId based on accessibleServiceIds
+	filter.ServiceId = common.CombineFilterWithAccesibleIds(filter.ServiceId, accessibleServiceIds)
 
 	res, err := cache.CallCached[[]entity.ComponentInstanceResult](
 		ci.cache,
@@ -301,7 +321,7 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(ctx context.Context,
 
 	// Retrieve updated component instance to return fresh data
 	lo := entity.NewListOptions()
-	componentInstanceResult, err := ci.ListComponentInstances(&entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, lo)
+	componentInstanceResult, err := ci.ListComponentInstances(ctx, &entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, lo)
 	if err != nil {
 		wrappedErr := appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.Internal, err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{

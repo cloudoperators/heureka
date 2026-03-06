@@ -33,6 +33,7 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

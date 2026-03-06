@@ -32,6 +32,32 @@ jobs:
         image: valkey/valkey:7.2
         ports:
           - "6379:6379"
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - "5432:5432"
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      openfga:
+        image: openfga/openfga:latest
+        env:
+          OPENFGA_DATASTORE_ENGINE: postgres
+          OPENFGA_DATASTORE_URI: postgres://postgres:password@postgres:5432/postgres?sslmode=disable
+          OPENFGA_LOG_FORMAT: json
+          OPENFGA_AUTHN_METHOD: preshared
+          OPENFGA_AUTHN_PRESHARED_KEYS: test_token
+        ports:
+          - "8080:8080"
+          - "8081:8081"
     steps:
       - uses: actions/checkout@v6
       - name: Set up Go

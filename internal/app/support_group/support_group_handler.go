@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -18,12 +19,14 @@ import (
 type supportGroupHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
+	authz         openfga.Authorization
 }
 
 func NewSupportGroupHandler(handlerContext common.HandlerContext) SupportGroupHandler {
 	return &supportGroupHandler{
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
+		authz:         handlerContext.Authz,
 	}
 }
 
@@ -39,14 +42,38 @@ func (e *SupportGroupHandlerError) Error() string {
 	return e.message
 }
 
-func (sg *supportGroupHandler) GetSupportGroup(supportGroupId int64) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) GetSupportGroup(ctx context.Context, supportGroupId int64) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetSupportGroupEventName,
 		"id":    supportGroupId,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, sg.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	hasPermission, err := sg.authz.CheckPermission(openfga.RelationInput{
+		UserType:   openfga.TypeUser,
+		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
+		Relation:   openfga.RelCanView,
+		ObjectType: openfga.TypeSupportGroup,
+		ObjectId:   openfga.ObjectId(fmt.Sprint(supportGroupId)),
+	})
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while checking permission for user")
+	}
+	if !hasPermission {
+		return nil, NewSupportGroupHandlerError("User does not have permission to view this support group")
+	}
+
 	lo := entity.NewListOptions()
 	supportGroupFilter := entity.SupportGroupFilter{Id: []*int64{&supportGroupId}}
-	supportGroups, err := sg.ListSupportGroups(&supportGroupFilter, lo)
+	supportGroups, err := sg.ListSupportGroups(ctx, &supportGroupFilter, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while retrieving supportGroup.")
@@ -64,7 +91,7 @@ func (sg *supportGroupHandler) GetSupportGroup(supportGroupId int64) (*entity.Su
 	return supportGroups.Elements[0].SupportGroup, nil
 }
 
-func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilter, options *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error) {
+func (sg *supportGroupHandler) ListSupportGroups(ctx context.Context, filter *entity.SupportGroupFilter, options *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -74,6 +101,23 @@ func (sg *supportGroupHandler) ListSupportGroups(filter *entity.SupportGroupFilt
 		"event":  ListSupportGroupsEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, sg.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleSupportGroupIds, err := sg.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
+	if err != nil {
+		l.Error(err)
+		return nil, NewSupportGroupHandlerError("Error while listing accessible support groups for user")
+	}
+
+	// Update the filter.Id based on accessibleSupportGroupIds
+	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleSupportGroupIds)
 
 	res, err := sg.database.GetSupportGroups(filter, options.Order)
 	if err != nil {
@@ -133,7 +177,7 @@ func (sg *supportGroupHandler) CreateSupportGroup(ctx context.Context, supportGr
 	supportGroup.UpdatedBy = supportGroup.CreatedBy
 
 	lo := entity.NewListOptions()
-	supportGroups, err := sg.ListSupportGroups(f, lo)
+	supportGroups, err := sg.ListSupportGroups(ctx, f, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewSupportGroupHandlerError("Internal error while creating supportGroup.")
@@ -177,7 +221,7 @@ func (sg *supportGroupHandler) UpdateSupportGroup(ctx context.Context, supportGr
 
 	sg.eventRegistry.PushEvent(&UpdateSupportGroupEvent{SupportGroup: supportGroup})
 
-	return sg.GetSupportGroup(supportGroup.Id)
+	return sg.GetSupportGroup(ctx, supportGroup.Id)
 }
 
 func (sg *supportGroupHandler) DeleteSupportGroup(ctx context.Context, id int64) error {
@@ -203,7 +247,7 @@ func (sg *supportGroupHandler) DeleteSupportGroup(ctx context.Context, id int64)
 	return nil
 }
 
-func (sg *supportGroupHandler) AddServiceToSupportGroup(supportGroupId int64, serviceId int64) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) AddServiceToSupportGroup(ctx context.Context, supportGroupId int64, serviceId int64) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":          AddServiceToSupportGroupEventName,
 		"serviceId":      serviceId,
@@ -218,10 +262,10 @@ func (sg *supportGroupHandler) AddServiceToSupportGroup(supportGroupId int64, se
 
 	sg.eventRegistry.PushEvent(&AddServiceToSupportGroupEvent{SupportGroupID: supportGroupId, ServiceID: serviceId})
 
-	return sg.GetSupportGroup(supportGroupId)
+	return sg.GetSupportGroup(ctx, supportGroupId)
 }
 
-func (sg *supportGroupHandler) RemoveServiceFromSupportGroup(supportGroupId int64, serviceId int64) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) RemoveServiceFromSupportGroup(ctx context.Context, supportGroupId int64, serviceId int64) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":          RemoveServiceFromSupportGroupEventName,
 		"serviceId":      serviceId,
@@ -236,10 +280,10 @@ func (sg *supportGroupHandler) RemoveServiceFromSupportGroup(supportGroupId int6
 
 	sg.eventRegistry.PushEvent(&RemoveServiceFromSupportGroupEvent{SupportGroupID: supportGroupId, ServiceID: serviceId})
 
-	return sg.GetSupportGroup(supportGroupId)
+	return sg.GetSupportGroup(ctx, supportGroupId)
 }
 
-func (sg *supportGroupHandler) AddUserToSupportGroup(supportGroupId int64, userId int64) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) AddUserToSupportGroup(ctx context.Context, supportGroupId int64, userId int64) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":          AddUserToSupportGroupEventName,
 		"userId":         userId,
@@ -254,10 +298,10 @@ func (sg *supportGroupHandler) AddUserToSupportGroup(supportGroupId int64, userI
 
 	sg.eventRegistry.PushEvent(&AddUserToSupportGroupEvent{SupportGroupID: supportGroupId, UserID: userId})
 
-	return sg.GetSupportGroup(supportGroupId)
+	return sg.GetSupportGroup(ctx, supportGroupId)
 }
 
-func (sg *supportGroupHandler) RemoveUserFromSupportGroup(supportGroupId int64, userId int64) (*entity.SupportGroup, error) {
+func (sg *supportGroupHandler) RemoveUserFromSupportGroup(ctx context.Context, supportGroupId int64, userId int64) (*entity.SupportGroup, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":          RemoveUserFromSupportGroupEventName,
 		"userId":         userId,
@@ -272,7 +316,7 @@ func (sg *supportGroupHandler) RemoveUserFromSupportGroup(supportGroupId int64, 
 
 	sg.eventRegistry.PushEvent(&RemoveUserFromSupportGroupEvent{SupportGroupID: supportGroupId, UserID: userId})
 
-	return sg.GetSupportGroup(supportGroupId)
+	return sg.GetSupportGroup(ctx, supportGroupId)
 }
 
 func (sg *supportGroupHandler) ListSupportGroupCcrns(filter *entity.SupportGroupFilter, options *entity.ListOptions) ([]string, error) {

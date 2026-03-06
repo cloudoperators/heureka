@@ -30,7 +30,7 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 
 	opt := &entity.ListOptions{}
 
-	components, err := app.ListComponents(f, opt)
+	components, err := app.ListComponents(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleComponentBaseResolver", err.Error())
@@ -71,7 +71,7 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 
 	opt := GetListOptions(requestedFields)
 
-	components, err := app.ListComponents(f, opt)
+	components, err := app.ListComponents(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("ComponentBaseResolver", err.Error())
 	}

@@ -20,7 +20,7 @@ func (r *mutationResolver) getOrCreateService(ctx context.Context, inputService 
 		return nil, nil
 	}
 	svcFilter := entity.ServiceFilter{CCRN: []*string{inputService}}
-	s, err := r.App.ListServices(&svcFilter, entity.NewListOptions())
+	s, err := r.App.ListServices(ctx, &svcFilter, entity.NewListOptions())
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when listing services")
 	}
@@ -31,7 +31,7 @@ func (r *mutationResolver) getOrCreateService(ctx context.Context, inputService 
 	svcEntity := model.NewServiceEntity(&svcInput)
 	newSvc, err := r.App.CreateService(ctx, &svcEntity)
 	if err != nil {
-		s2, err2 := r.App.ListServices(&svcFilter, entity.NewListOptions())
+		s2, err2 := r.App.ListServices(ctx, &svcFilter, entity.NewListOptions())
 		if err2 != nil || len(s2.Elements) == 0 {
 			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating service")
 		}
@@ -45,7 +45,7 @@ func (r *mutationResolver) getOrCreateSupportGroup(ctx context.Context, inputSup
 		return nil, nil
 	}
 	sgFilter := entity.SupportGroupFilter{CCRN: []*string{inputSupportGroup}}
-	sgList, err := r.App.ListSupportGroups(&sgFilter, entity.NewListOptions())
+	sgList, err := r.App.ListSupportGroups(ctx, &sgFilter, entity.NewListOptions())
 	if err != nil {
 		return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when listing support groups")
 	}
@@ -55,7 +55,7 @@ func (r *mutationResolver) getOrCreateSupportGroup(ctx context.Context, inputSup
 	sgEntity := model.NewSupportGroupEntity(&model.SupportGroupInput{Ccrn: inputSupportGroup})
 	newSg, err := r.App.CreateSupportGroup(ctx, &sgEntity)
 	if err != nil {
-		sg2, err2 := r.App.ListSupportGroups(&sgFilter, entity.NewListOptions())
+		sg2, err2 := r.App.ListSupportGroups(ctx, &sgFilter, entity.NewListOptions())
 		if err2 != nil || len(sg2.Elements) == 0 {
 			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating support group")
 		}
@@ -104,7 +104,7 @@ func (r *mutationResolver) getOrCreateComponentInstance(ctx context.Context, ccr
 	newCi, err := r.App.CreateComponentInstance(ctx, &ciEntity, nil)
 	if err != nil {
 		filter := entity.ComponentInstanceFilter{CCRN: []*string{&ccrn}}
-		cis, err2 := r.App.ListComponentInstances(&filter, &entity.ListOptions{})
+		cis, err2 := r.App.ListComponentInstances(ctx, &filter, &entity.ListOptions{})
 		if err2 != nil || len(cis.Elements) == 0 {
 			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when creating componentInstance")
 		}
@@ -229,7 +229,7 @@ func (r *mutationResolver) createIssueMatchIfCI(ctx context.Context, ci *entity.
 		return nil
 	}
 	userId := util.SystemUserId
-	users, err := r.App.ListUsers(&entity.UserFilter{}, &entity.ListOptions{})
+	users, err := r.App.ListUsers(ctx, &entity.UserFilter{}, &entity.ListOptions{})
 	if err == nil && len(users.Elements) > 0 {
 		userId = users.Elements[0].User.Id
 	}

@@ -292,7 +292,7 @@ var _ = Describe("Authz", func() {
 			}
 			resources, err := authz.ListAccessibleResources(nonExistingInput)
 			Expect(err).To(BeNil())
-			Expect(resources).To(BeEmpty())
+			Expect(resources).To(Equal([]openfga.AccessibleResource{openfga.AccessibleResource{ObjectType: nonExistingInput.ObjectType, ObjectId: "-1"}}))
 		})
 
 		It("should return an empty slice for invalid resource type", func() {
@@ -374,7 +374,8 @@ var _ = Describe("Authz", func() {
 			r.ObjectId = "read"
 			resources, err := authz.ListAccessibleResources(r)
 			Expect(err).To(BeNil())
-			Expect(resources).To(BeEmpty())
+			// resources should have a single entry that is -1
+			Expect(resources).To(Equal([]openfga.AccessibleResource{openfga.AccessibleResource{ObjectType: r.ObjectType, ObjectId: "-1"}}))
 		})
 	})
 })

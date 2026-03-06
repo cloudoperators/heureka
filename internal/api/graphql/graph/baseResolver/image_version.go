@@ -60,7 +60,7 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: entity.OrderDirectionDesc})
 	opt.Order = append(opt.Order, entity.Order{By: entity.ComponentVersionRepository, Direction: entity.OrderDirectionAsc})
 
-	componentVersions, err := app.ListComponentVersions(f, opt)
+	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("ImageVersionBaseResolver", err.Error())
 	}

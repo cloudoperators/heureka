@@ -92,6 +92,7 @@ var _ = Describe("Getting data via API", Label("e2e", "Depth Limiting"), func() 
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		// Set depth limit as 10 for testing pourpose
 		cfg.GQLDepthLimit = 10
 		s = e2e_common.NewRunningServer(cfg)

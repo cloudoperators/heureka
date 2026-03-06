@@ -63,3 +63,8 @@ func (a *NoAuthz) ListAccessibleResources(r RelationInput) ([]AccessibleResource
 	resources := []AccessibleResource{}
 	return resources, nil
 }
+
+// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
+func (a *NoAuthz) GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType) ([]*int64, error) {
+	return []*int64{}, nil
+}

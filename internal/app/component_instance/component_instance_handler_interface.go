@@ -10,7 +10,7 @@ import (
 )
 
 type ComponentInstanceHandler interface {
-	ListComponentInstances(*entity.ComponentInstanceFilter, *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error)
+	ListComponentInstances(context.Context, *entity.ComponentInstanceFilter, *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error)
 	CreateComponentInstance(context.Context, *entity.ComponentInstance, *string) (*entity.ComponentInstance, error)
 	UpdateComponentInstance(context.Context, *entity.ComponentInstance, *string) (*entity.ComponentInstance, error)
 	DeleteComponentInstance(context.Context, int64) error

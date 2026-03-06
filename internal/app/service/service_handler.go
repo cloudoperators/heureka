@@ -53,15 +53,39 @@ func NewServiceHandlerError(msg string) *ServiceHandlerError {
 	return &ServiceHandlerError{msg: msg}
 }
 
-func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
+func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetServiceEventName,
 		"id":    serviceId,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, s.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	hasPermission, err := s.authz.CheckPermission(openfga.RelationInput{
+		UserType:   openfga.TypeUser,
+		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
+		Relation:   openfga.RelCanView,
+		ObjectType: openfga.TypeService,
+		ObjectId:   openfga.ObjectId(fmt.Sprint(serviceId)),
+	})
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while checking permission for user")
+	}
+	if !hasPermission {
+		return nil, NewServiceHandlerError("User does not have permission to view this service")
+	}
+
 	serviceFilter := entity.ServiceFilter{Id: []*int64{&serviceId}}
 	lo := entity.NewListOptions()
 
-	services, err := s.ListServices(&serviceFilter, lo)
+	services, err := s.ListServices(ctx, &serviceFilter, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while retrieving services.")
@@ -76,7 +100,7 @@ func (s *serviceHandler) GetService(serviceId int64) (*entity.Service, error) {
 	return services.Elements[0].Service, nil
 }
 
-func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error) {
+func (s *serviceHandler) ListServices(ctx context.Context, filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 	var res []entity.ServiceResult
@@ -89,6 +113,23 @@ func (s *serviceHandler) ListServices(filter *entity.ServiceFilter, options *ent
 		"event":  ListServicesEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, s.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleSupportGroupIds, err := s.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
+	if err != nil {
+		l.Error(err)
+		return nil, NewServiceHandlerError("Error while listing accessible services for user")
+	}
+
+	// Update the filter.Id based on accessibleSupportGroupIds
+	filter.SupportGroupId = common.CombineFilterWithAccesibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
 
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.ServiceResult](
@@ -178,7 +219,7 @@ func (s *serviceHandler) CreateService(ctx context.Context, service *entity.Serv
 	service.BaseService.UpdatedBy = service.BaseService.CreatedBy
 	lo := entity.NewListOptions()
 
-	services, err := s.ListServices(f, lo)
+	services, err := s.ListServices(ctx, f, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewServiceHandlerError("Internal error while creating service.")
@@ -220,7 +261,7 @@ func (s *serviceHandler) UpdateService(ctx context.Context, service *entity.Serv
 
 	s.eventRegistry.PushEvent(&UpdateServiceEvent{Service: service})
 
-	return s.GetService(service.Id)
+	return s.GetService(ctx, service.Id)
 }
 
 func (s *serviceHandler) DeleteService(ctx context.Context, id int64) error {
@@ -246,7 +287,7 @@ func (s *serviceHandler) DeleteService(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *serviceHandler) AddOwnerToService(serviceId, ownerId int64) (*entity.Service, error) {
+func (s *serviceHandler) AddOwnerToService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":     AddOwnerToServiceEventName,
 		"serviceId": serviceId,
@@ -261,10 +302,10 @@ func (s *serviceHandler) AddOwnerToService(serviceId, ownerId int64) (*entity.Se
 
 	s.eventRegistry.PushEvent(&AddOwnerToServiceEvent{ServiceID: serviceId, OwnerID: ownerId})
 
-	return s.GetService(serviceId)
+	return s.GetService(ctx, serviceId)
 }
 
-func (s *serviceHandler) RemoveOwnerFromService(serviceId, ownerId int64) (*entity.Service, error) {
+func (s *serviceHandler) RemoveOwnerFromService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":     RemoveOwnerFromServiceEventName,
 		"serviceId": serviceId,
@@ -279,10 +320,10 @@ func (s *serviceHandler) RemoveOwnerFromService(serviceId, ownerId int64) (*enti
 
 	s.eventRegistry.PushEvent(&RemoveOwnerFromServiceEvent{ServiceID: serviceId, OwnerID: ownerId})
 
-	return s.GetService(serviceId)
+	return s.GetService(ctx, serviceId)
 }
 
-func (s *serviceHandler) AddIssueRepositoryToService(serviceId, issueRepositoryId int64, priority int64) (*entity.Service, error) {
+func (s *serviceHandler) AddIssueRepositoryToService(ctx context.Context, serviceId, issueRepositoryId int64, priority int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":             AddIssueRepositoryToServiceEventName,
 		"serviceId":         serviceId,
@@ -297,10 +338,10 @@ func (s *serviceHandler) AddIssueRepositoryToService(serviceId, issueRepositoryI
 
 	s.eventRegistry.PushEvent(&AddIssueRepositoryToServiceEvent{ServiceID: serviceId, RepositoryID: issueRepositoryId})
 
-	return s.GetService(serviceId)
+	return s.GetService(ctx, serviceId)
 }
 
-func (s *serviceHandler) RemoveIssueRepositoryFromService(serviceId, issueRepositoryId int64) (*entity.Service, error) {
+func (s *serviceHandler) RemoveIssueRepositoryFromService(ctx context.Context, serviceId, issueRepositoryId int64) (*entity.Service, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":             RemoveIssueRepositoryFromServiceEventName,
 		"serviceId":         serviceId,
@@ -315,7 +356,7 @@ func (s *serviceHandler) RemoveIssueRepositoryFromService(serviceId, issueReposi
 
 	s.eventRegistry.PushEvent(&RemoveIssueRepositoryFromServiceEvent{ServiceID: serviceId, RepositoryID: issueRepositoryId})
 
-	return s.GetService(serviceId)
+	return s.GetService(ctx, serviceId)
 }
 
 func (s *serviceHandler) ListServiceCcrns(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error) {

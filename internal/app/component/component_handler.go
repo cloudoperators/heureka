@@ -28,7 +28,7 @@ type componentHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
-	openfga       openfga.Authorization
+	authz         openfga.Authorization
 }
 
 func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler {
@@ -36,6 +36,7 @@ func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler 
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
 	}
 }
 
@@ -51,7 +52,7 @@ func NewComponentHandlerError(msg string) *ComponentHandlerError {
 	return &ComponentHandlerError{msg: msg}
 }
 
-func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, options *entity.ListOptions) (*entity.List[entity.ComponentResult], error) {
+func (cs *componentHandler) ListComponents(ctx context.Context, filter *entity.ComponentFilter, options *entity.ListOptions) (*entity.List[entity.ComponentResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -62,6 +63,23 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 		"event":  ListComponentsEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, cs.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleComponentIds, err := cs.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeComponent)
+	if err != nil {
+		l.Error(err)
+		return nil, NewComponentHandlerError("Error while listing accessible components for user")
+	}
+
+	// Update the filter.Id based on accessibleComponentIds
+	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleComponentIds)
 
 	res, err := cs.database.GetComponents(filter, options.Order)
 	if err != nil {
@@ -131,7 +149,7 @@ func (cs *componentHandler) CreateComponent(ctx context.Context, component *enti
 	component.UpdatedBy = component.CreatedBy
 
 	lo := entity.NewListOptions()
-	components, err := cs.ListComponents(f, lo)
+	components, err := cs.ListComponents(ctx, f, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while creating component.")
@@ -172,7 +190,7 @@ func (cs *componentHandler) UpdateComponent(ctx context.Context, component *enti
 	}
 
 	lo := entity.NewListOptions()
-	componentResult, err := cs.ListComponents(&entity.ComponentFilter{Id: []*int64{&component.Id}}, lo)
+	componentResult, err := cs.ListComponents(ctx, &entity.ComponentFilter{Id: []*int64{&component.Id}}, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while retrieving updated component.")

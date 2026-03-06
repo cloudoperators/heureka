@@ -35,6 +35,7 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -175,6 +176,7 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -267,6 +269,7 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -355,6 +358,7 @@ var _ = Describe("Deleting IssueVariant via API", Label("e2e", "IssueVariants"),
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

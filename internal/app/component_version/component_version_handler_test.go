@@ -4,6 +4,7 @@
 package component_version_test
 
 import (
+	"context"
 	"math"
 	"strconv"
 	"testing"
@@ -36,7 +37,8 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	cfg = common.GetTestConfig()
+	authEnabled := false
+	cfg = common.GetTestConfig(authEnabled)
 	enableLogs := false
 	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
 	handlerContext = common.HandlerContext{
@@ -60,6 +62,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		er        event.EventRegistry
 		db        *mocks.MockDatabase
 		cvHandler cv.ComponentVersionHandler
+		ctx       context.Context
 		filter    *entity.ComponentVersionFilter
 		options   *entity.ListOptions
 	)
@@ -68,6 +71,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		db = mocks.NewMockDatabase(GinkgoT())
 		er = event.NewEventRegistry(db, handlerContext.Authz)
 
+		ctx = common.NewAdminContext()
 		options = entity.NewListOptions()
 		filter = getComponentVersionFilter()
 		handlerContext.DB = db
@@ -77,13 +81,14 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
 			db.On("CountComponentVersions", filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
 			cvHandler = cv.NewComponentVersionHandler(handlerContext)
-			res, err := cvHandler.ListComponentVersions(filter, options)
+			res, err := cvHandler.ListComponentVersions(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -113,10 +118,11 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 				c, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, componentVersion, entity.IssueSeverityCounts{}))
 				cursors = append(cursors, c)
 			}
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", filter, []entity.Order{}).Return(componentVersions, nil)
 			db.On("GetAllComponentVersionCursors", filter, []entity.Order{}).Return(cursors, nil)
 			cvHandler = cv.NewComponentVersionHandler(handlerContext)
-			res, err := cvHandler.ListComponentVersions(filter, options)
+			res, err := cvHandler.ListComponentVersions(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -141,6 +147,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			tagFilter.Tag = []*string{&testTag}
 
 			// Mock database calls
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", tagFilter, []entity.Order{}).Return(componentVersions, nil)
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", tagFilter).Return(int64(len(componentVersions)), nil)
@@ -148,7 +155,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 			// Execute the handler
 			cvHandler = cv.NewComponentVersionHandler(handlerContext)
-			result, err := cvHandler.ListComponentVersions(tagFilter, options)
+			result, err := cvHandler.ListComponentVersions(ctx, tagFilter, options)
 
 			// Verify results
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -174,6 +181,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			repoFilter.Repository = []*string{&testRepo}
 
 			// Mock database calls
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", repoFilter, []entity.Order{}).Return(componentVersions, nil)
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", repoFilter).Return(int64(len(componentVersions)), nil)
@@ -181,7 +189,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 			// Execute the handler
 			cvHandler = cv.NewComponentVersionHandler(handlerContext)
-			result, err := cvHandler.ListComponentVersions(repoFilter, options)
+			result, err := cvHandler.ListComponentVersions(ctx, repoFilter, options)
 
 			// Verify results
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -207,6 +215,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			orgFilter.Organization = []*string{&testOrg}
 
 			// Mock database calls
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponentVersions", orgFilter, []entity.Order{}).Return(componentVersions, nil)
 			if options.ShowTotalCount {
 				db.On("CountComponentVersions", orgFilter).Return(int64(len(componentVersions)), nil)
@@ -214,7 +223,7 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 			// Execute the handler
 			cvHandler = cv.NewComponentVersionHandler(handlerContext)
-			result, err := cvHandler.ListComponentVersions(orgFilter, options)
+			result, err := cvHandler.ListComponentVersions(ctx, orgFilter, options)
 
 			// Verify results
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -225,6 +234,91 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 				Expect(element.ComponentVersion.Organization).To(Equal(testOrg))
 			}
 		})
+	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any component versions", func() {
+			BeforeEach(func() {
+				compIds := int64(-1)
+				filter.ComponentId = []*int64{&compIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
+			})
+
+			It("should return no component versions", func() {
+				cvHandler = cv.NewComponentVersionHandler(handlerContext)
+				res, err := cvHandler.ListComponentVersions(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes a component ID that has component versions related to it", func() {
+			var (
+				componentVersion entity.ComponentVersion
+			)
+
+			BeforeEach(func() {
+				compId := int64(111)
+				userId := int64(123)
+				systemUserId := int64(1)
+				filter.ComponentId = []*int64{&compId}
+				componentVersion = test.NewFakeComponentVersionEntity()
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{{ComponentVersion: &componentVersion}}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create component
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeComponent,
+						ObjectId:   openfga.ObjectIdFromInt(compId),
+					},
+					{ // create component version
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeComponentVersion,
+						ObjectId:   openfga.ObjectIdFromInt(componentVersion.Id),
+					},
+					{ // give user read permission to component
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanView,
+						ObjectType: openfga.TypeComponent,
+						ObjectId:   openfga.ObjectIdFromInt(compId),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected component versions in the result", func() {
+				cvHandler = cv.NewComponentVersionHandler(handlerContext)
+				res, err := cvHandler.ListComponentVersions(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].ComponentVersion.Id).To(BeEquivalentTo(componentVersion.Id)) // check that the returned component version is the expected one
+			})
+		})
+
 	})
 })
 
@@ -261,31 +355,49 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		})
 	})
 
-	Context("when handling a CreateComponentInstanceEvent", func() {
-		Context("when new component instance is created", func() {
-			It("should add user resource relationship tuple in openfga", func() {
-				cvFake := test.NewFakeComponentVersionEntity()
-				createEvent := &cv.CreateComponentVersionEvent{
-					ComponentVersion: &cvFake,
-				}
-				r = openfga.RelationInput{
-					UserType:   openfga.TypeRole,
-					UserId:     "0",
-					ObjectId:   "",
-					ObjectType: openfga.TypeComponentVersion,
-					Relation:   openfga.TypeRole,
-				}
+	Context("when authz is enabled", func() {
 
-				// Use type assertion to convert a CreateServiceEvent into an Event
-				var event event.Event = createEvent
-				resourceId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
-				r.ObjectId = openfga.ObjectId(resourceId)
-				// Simulate event
-				cv.OnComponentVersionCreateAuthz(db, event, handlerContext.Authz)
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-				ok, err := handlerContext.Authz.CheckPermission(r)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(ok).To(BeTrue(), "permission should be granted")
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("when handling a CreateComponentInstanceEvent", func() {
+			Context("when new component instance is created", func() {
+				It("should add user resource relationship tuple in openfga", func() {
+					cvFake := test.NewFakeComponentVersionEntity()
+					createEvent := &cv.CreateComponentVersionEvent{
+						ComponentVersion: &cvFake,
+					}
+					r = openfga.RelationInput{
+						UserType:   openfga.TypeRole,
+						UserId:     "0",
+						ObjectId:   "",
+						ObjectType: openfga.TypeComponentVersion,
+						Relation:   openfga.TypeRole,
+					}
+
+					// Use type assertion to convert a CreateServiceEvent into an Event
+					var event event.Event = createEvent
+					resourceId := strconv.FormatInt(createEvent.ComponentVersion.Id, 10)
+					r.ObjectId = openfga.ObjectId(resourceId)
+					// Simulate event
+					cv.OnComponentVersionCreateAuthz(db, event, handlerContext.Authz)
+
+					ok, err := handlerContext.Authz.CheckPermission(r)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(ok).To(BeTrue(), "permission should be granted")
+				})
 			})
 		})
 	})
@@ -335,49 +447,67 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		})
 	})
 
-	Context("when handling an UpdateComponentVersionEvent", func() {
-		It("should update the component relation tuple in openfga", func() {
-			cvFake := test.NewFakeComponentVersionEntity()
-			oldComponentId := int64(12345)
-			newComponentId := int64(67890)
+	Context("when authz is enabled", func() {
 
-			// Add an initial relation: component_version -> old component
-			initialRelation := openfga.RelationInput{
-				UserType:   "component_version",
-				UserId:     openfga.UserIdFromInt(cvFake.Id),
-				Relation:   "component_version",
-				ObjectType: "component",
-				ObjectId:   openfga.ObjectIdFromInt(oldComponentId),
-			}
-			// Bulk add instead of single add
-			handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{initialRelation})
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-			// Prepare the update event with the new component id
-			cvFake.ComponentId = newComponentId
-			updateEvent := &cv.UpdateComponentVersionEvent{
-				ComponentVersion: &cvFake,
-			}
-			var event event.Event = updateEvent
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-			// Simulate event
-			cv.OnComponentVersionUpdateAuthz(db, event, handlerContext.Authz)
+		Context("when handling an UpdateComponentVersionEvent", func() {
+			It("should update the component relation tuple in openfga", func() {
+				cvFake := test.NewFakeComponentVersionEntity()
+				oldComponentId := int64(12345)
+				newComponentId := int64(67890)
 
-			// Check that the old relation is gone
-			remainingOld, err := handlerContext.Authz.ListRelations(initialRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingOld).To(BeEmpty(), "old relation should be removed")
+				// Add an initial relation: component_version -> old component
+				initialRelation := openfga.RelationInput{
+					UserType:   "component_version",
+					UserId:     openfga.UserIdFromInt(cvFake.Id),
+					Relation:   "component_version",
+					ObjectType: "component",
+					ObjectId:   openfga.ObjectIdFromInt(oldComponentId),
+				}
+				// Bulk add instead of single add
+				handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{initialRelation})
 
-			// Check that the new relation exists
-			newRelation := openfga.RelationInput{
-				UserType:   openfga.TypeComponentVersion,
-				UserId:     openfga.UserIdFromInt(cvFake.Id),
-				Relation:   openfga.RelComponentVersion,
-				ObjectType: openfga.TypeComponent,
-				ObjectId:   openfga.ObjectIdFromInt(newComponentId),
-			}
-			remainingNew, err := handlerContext.Authz.ListRelations(newRelation)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
+				// Prepare the update event with the new component id
+				cvFake.ComponentId = newComponentId
+				updateEvent := &cv.UpdateComponentVersionEvent{
+					ComponentVersion: &cvFake,
+				}
+				var event event.Event = updateEvent
+
+				// Simulate event
+				cv.OnComponentVersionUpdateAuthz(db, event, handlerContext.Authz)
+
+				// Check that the old relation is gone
+				remainingOld, err := handlerContext.Authz.ListRelations(initialRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingOld).To(BeEmpty(), "old relation should be removed")
+
+				// Check that the new relation exists
+				newRelation := openfga.RelationInput{
+					UserType:   openfga.TypeComponentVersion,
+					UserId:     openfga.UserIdFromInt(cvFake.Id),
+					Relation:   openfga.RelComponentVersion,
+					ObjectType: openfga.TypeComponent,
+					ObjectId:   openfga.ObjectIdFromInt(newComponentId),
+				}
+				remainingNew, err := handlerContext.Authz.ListRelations(newRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
+			})
 		})
 	})
 })
@@ -389,6 +519,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		componenVersionService cv.ComponentVersionHandler
 		id                     int64
 		filter                 *entity.ComponentVersionFilter
+		ctx                    context.Context
 	)
 
 	BeforeEach(func() {
@@ -407,6 +538,7 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		}
 		handlerContext.DB = db
 		handlerContext.EventReg = er
+		ctx = common.NewAdminContext()
 	})
 
 	It("deletes componentVersion", func() {
@@ -419,90 +551,108 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 
 		filter.Id = []*int64{&id}
 		lo := entity.NewListOptions()
-		componentVersions, err := componenVersionService.ListComponentVersions(filter, lo)
+		componentVersions, err := componenVersionService.ListComponentVersions(ctx, filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(componentVersions.Elements).To(BeEmpty(), "no error should be thrown")
 	})
 
-	Context("when handling a DeleteComponentVersionEvent", func() {
-		Context("when new component version is deleted", func() {
-			It("should delete tuples related to that component version in openfga", func() {
-				// Test OnComponentVersionDeleteAuthz against all possible relations
-				cvFake := test.NewFakeComponentVersionEntity()
-				deleteEvent := &cv.DeleteComponentVersionEvent{
-					ComponentVersionID: cvFake.Id,
-				}
-				objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentVersionID)
-				userId := openfga.UserIdFromInt(deleteEvent.ComponentVersionID)
-				relations := []openfga.RelationInput{
-					{ // user - component_version: a user can view the component version
-						UserType:   openfga.TypeUser,
-						UserId:     openfga.IDUser,
-						ObjectId:   objectId,
-						ObjectType: openfga.TypeComponentVersion,
-						Relation:   openfga.RelCanView,
-					},
-					{ // component_instance - component_version: a component instance is related to the component version
-						UserType:   openfga.TypeComponentInstance,
-						UserId:     openfga.IDComponentInstance,
-						ObjectId:   objectId,
-						ObjectType: openfga.TypeComponentVersion,
-						Relation:   openfga.RelComponentInstance,
-					},
-					{ // role - component_version: a role is assigned to the component version
-						UserType:   openfga.TypeRole,
-						UserId:     openfga.IDRole,
-						ObjectId:   objectId,
-						ObjectType: openfga.TypeComponentVersion,
-						Relation:   openfga.RelRole,
-					},
-					{ // component_version - component: a component version is related to a component
-						UserType:   openfga.TypeComponentVersion,
-						UserId:     userId,
-						ObjectId:   openfga.IDComponent,
-						ObjectType: openfga.TypeComponent,
-						Relation:   openfga.RelComponentVersion,
-					},
-				}
+	Context("when authz is enabled", func() {
 
-				handlerContext.Authz.AddRelationBulk(relations)
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-				// get the number of relations before deletion
-				relCountBefore := 0
-				for _, r := range relations {
-					relations, err := handlerContext.Authz.ListRelations(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					relCountBefore += len(relations)
-				}
-				Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-				// check that relations were created
-				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					Expect(ok).To(BeTrue(), "permission should be granted")
-				}
+		Context("when handling a DeleteComponentVersionEvent", func() {
+			Context("when new component version is deleted", func() {
+				It("should delete tuples related to that component version in openfga", func() {
+					// Test OnComponentVersionDeleteAuthz against all possible relations
+					cvFake := test.NewFakeComponentVersionEntity()
+					deleteEvent := &cv.DeleteComponentVersionEvent{
+						ComponentVersionID: cvFake.Id,
+					}
+					objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentVersionID)
+					userId := openfga.UserIdFromInt(deleteEvent.ComponentVersionID)
+					relations := []openfga.RelationInput{
+						{ // user - component_version: a user can view the component version
+							UserType:   openfga.TypeUser,
+							UserId:     openfga.IDUser,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeComponentVersion,
+							Relation:   openfga.RelCanView,
+						},
+						{ // component_instance - component_version: a component instance is related to the component version
+							UserType:   openfga.TypeComponentInstance,
+							UserId:     openfga.IDComponentInstance,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeComponentVersion,
+							Relation:   openfga.RelComponentInstance,
+						},
+						{ // role - component_version: a role is assigned to the component version
+							UserType:   openfga.TypeRole,
+							UserId:     openfga.IDRole,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeComponentVersion,
+							Relation:   openfga.RelRole,
+						},
+						{ // component_version - component: a component version is related to a component
+							UserType:   openfga.TypeComponentVersion,
+							UserId:     userId,
+							ObjectId:   openfga.IDComponent,
+							ObjectType: openfga.TypeComponent,
+							Relation:   openfga.RelComponentVersion,
+						},
+					}
 
-				var event event.Event = deleteEvent
-				// Simulate event
-				cv.OnComponentVersionDeleteAuthz(db, event, handlerContext.Authz)
+					handlerContext.Authz.AddRelationBulk(relations)
 
-				// get the number of relations after deletion
-				relCountAfter := 0
-				for _, r := range relations {
-					relations, err := handlerContext.Authz.ListRelations(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					relCountAfter += len(relations)
-				}
-				Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
-				Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+					// get the number of relations before deletion
+					relCountBefore := 0
+					for _, r := range relations {
+						relations, err := handlerContext.Authz.ListRelations(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						relCountBefore += len(relations)
+					}
+					Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
 
-				// verify that relations were deleted
-				for _, r := range relations {
-					ok, err := handlerContext.Authz.CheckPermission(r)
-					Expect(err).To(BeNil(), "no error should be thrown")
-					Expect(ok).To(BeFalse(), "permission should NOT be granted")
-				}
+					// check that relations were created
+					for _, r := range relations {
+						ok, err := handlerContext.Authz.CheckPermission(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						Expect(ok).To(BeTrue(), "permission should be granted")
+					}
+
+					var event event.Event = deleteEvent
+					// Simulate event
+					cv.OnComponentVersionDeleteAuthz(db, event, handlerContext.Authz)
+
+					// get the number of relations after deletion
+					relCountAfter := 0
+					for _, r := range relations {
+						relations, err := handlerContext.Authz.ListRelations(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						relCountAfter += len(relations)
+					}
+					Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
+					Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+
+					// verify that relations were deleted
+					for _, r := range relations {
+						ok, err := handlerContext.Authz.CheckPermission(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						Expect(ok).To(BeFalse(), "permission should NOT be granted")
+					}
+				})
 			})
 		})
 	})

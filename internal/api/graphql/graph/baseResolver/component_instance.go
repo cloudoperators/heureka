@@ -33,7 +33,7 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 
 	opt := &entity.ListOptions{}
 
-	componentInstances, err := app.ListComponentInstances(f, opt)
+	componentInstances, err := app.ListComponentInstances(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
@@ -117,7 +117,7 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 		opt.Order = append(opt.Order, o.ToOrderEntity())
 	}
 
-	componentInstances, err := app.ListComponentInstances(f, opt)
+	componentInstances, err := app.ListComponentInstances(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}

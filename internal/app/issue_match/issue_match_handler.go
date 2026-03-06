@@ -14,6 +14,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,6 +28,7 @@ type issueMatchHandler struct {
 	database        database.Database
 	eventRegistry   event.EventRegistry
 	cache           cache.Cache
+	authz           openfga.Authorization
 	severityHandler severity.SeverityHandler
 }
 
@@ -35,6 +37,7 @@ func NewIssueMatchHandler(handlerContext common.HandlerContext, ss severity.Seve
 		database:        handlerContext.DB,
 		eventRegistry:   handlerContext.EventReg,
 		cache:           handlerContext.Cache,
+		authz:           handlerContext.Authz,
 		severityHandler: ss,
 	}
 }
@@ -51,14 +54,38 @@ func (e *IssueMatchHandlerError) Error() string {
 	return e.message
 }
 
-func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) GetIssueMatch(ctx context.Context, issueMatchId int64) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetIssueMatchEventName,
 		"id":    issueMatchId,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, im.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	hasPermission, err := im.authz.CheckPermission(openfga.RelationInput{
+		UserType:   openfga.TypeUser,
+		UserId:     openfga.UserId(fmt.Sprint(currentUserId)),
+		Relation:   openfga.RelCanView,
+		ObjectType: openfga.TypeIssueMatch,
+		ObjectId:   openfga.ObjectId(fmt.Sprint(issueMatchId)),
+	})
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchHandlerError("Error while checking permission for user")
+	}
+	if !hasPermission {
+		return nil, NewIssueMatchHandlerError("User does not have permission to view this issue match")
+	}
+
 	issueMatchFilter := entity.IssueMatchFilter{Id: []*int64{&issueMatchId}}
 	options := entity.ListOptions{Order: []entity.Order{}}
-	issueMatches, err := im.ListIssueMatches(&issueMatchFilter, &options)
+	issueMatches, err := im.ListIssueMatches(ctx, &issueMatchFilter, &options)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while retrieving issueMatches.")
@@ -76,7 +103,7 @@ func (im *issueMatchHandler) GetIssueMatch(issueMatchId int64) (*entity.IssueMat
 	return issueMatches.Elements[0].IssueMatch, nil
 }
 
-func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) {
+func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -86,6 +113,23 @@ func (im *issueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, o
 		"event":  ListIssueMatchesEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, im.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleCompInstIds, err := im.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeComponentInstance)
+	if err != nil {
+		l.Error(err)
+		return nil, NewIssueMatchHandlerError("Error while listing accessible issue matches for user")
+	}
+
+	// Update the filter.ComponentInstanceId based on accessibleCompInstIds
+	filter.ComponentInstanceId = common.CombineFilterWithAccesibleIds(filter.ComponentInstanceId, accessibleCompInstIds)
 
 	res, err := cache.CallCached[[]entity.IssueMatchResult](
 		im.cache,
@@ -209,7 +253,7 @@ func (im *issueMatchHandler) UpdateIssueMatch(ctx context.Context, issueMatch *e
 		IssueMatch: issueMatch,
 	})
 
-	return im.GetIssueMatch(issueMatch.Id)
+	return im.GetIssueMatch(ctx, issueMatch.Id)
 }
 
 func (im *issueMatchHandler) DeleteIssueMatch(ctx context.Context, id int64) error {

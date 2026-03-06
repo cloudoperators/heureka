@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
@@ -26,6 +27,7 @@ type userHandler struct {
 	database      database.Database
 	cache         cache.Cache
 	eventRegistry event.EventRegistry
+	authz         openfga.Authorization
 }
 
 func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
@@ -33,6 +35,7 @@ func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
 		database:      handlerContext.DB,
 		cache:         handlerContext.Cache,
 		eventRegistry: handlerContext.EventReg,
+		authz:         handlerContext.Authz,
 	}
 }
 
@@ -48,7 +51,7 @@ func NewUserHandlerError(msg string) *UserHandlerError {
 	return &UserHandlerError{msg: msg}
 }
 
-func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListOptions) (*entity.List[entity.UserResult], error) {
+func (u *userHandler) ListUsers(ctx context.Context, filter *entity.UserFilter, options *entity.ListOptions) (*entity.List[entity.UserResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
@@ -58,6 +61,23 @@ func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListO
 		"event":  ListUsersEventName,
 		"filter": filter,
 	})
+
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, u.database)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Error while getting current user id")
+	}
+
+	// Authorization check
+	accessibleSupportGroupIds, err := u.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
+	if err != nil {
+		l.Error(err)
+		return nil, NewUserHandlerError("Error while listing accessible users for user")
+	}
+
+	// Update the filter.Id based on accessibleSupportGroupIds
+	filter.SupportGroupId = common.CombineFilterWithAccesibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
 
 	res, err := cache.CallCached[[]entity.UserResult](
 		u.cache,
@@ -126,7 +146,7 @@ func (u *userHandler) CreateUser(ctx context.Context, user *entity.User) (*entit
 	}
 	user.UpdatedBy = user.CreatedBy
 
-	users, err := u.ListUsers(f, &entity.ListOptions{})
+	users, err := u.ListUsers(ctx, f, &entity.ListOptions{})
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating user.")
@@ -166,7 +186,7 @@ func (u *userHandler) UpdateUser(ctx context.Context, user *entity.User) (*entit
 		return nil, NewUserHandlerError("Internal error while updating user.")
 	}
 
-	userResult, err := u.ListUsers(&entity.UserFilter{Id: []*int64{&user.Id}}, &entity.ListOptions{})
+	userResult, err := u.ListUsers(ctx, &entity.UserFilter{Id: []*int64{&user.Id}}, &entity.ListOptions{})
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving updated user.")

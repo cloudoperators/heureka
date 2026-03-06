@@ -10,7 +10,7 @@ import (
 )
 
 type ComponentVersionHandler interface {
-	ListComponentVersions(*entity.ComponentVersionFilter, *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error)
+	ListComponentVersions(context.Context, *entity.ComponentVersionFilter, *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error)
 	CreateComponentVersion(context.Context, *entity.ComponentVersion) (*entity.ComponentVersion, error)
 	UpdateComponentVersion(context.Context, *entity.ComponentVersion) (*entity.ComponentVersion, error)
 	DeleteComponentVersion(context.Context, int64) error
