@@ -33,6 +33,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

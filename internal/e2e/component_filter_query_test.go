@@ -31,6 +31,7 @@ var _ = Describe("Getting ComponentFilterValues via API", Label("e2e", "Componen
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

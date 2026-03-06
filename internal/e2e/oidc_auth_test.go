@@ -32,6 +32,7 @@ var _ = Describe("Getting access via API", Label("e2e", "OidcAuthorization"), fu
 		db = dbm.NewTestSchemaWithoutMigration()
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		cfg.AuthOidcClientId = "mock-client-id"
 		cfg.AuthOidcUrl = fmt.Sprintf("http://localhost:%s", e2e_common.GetRandomFreePort())
 		oidcProvider = oidc.NewProvider(cfg.AuthOidcUrl, enableOidcProviderLog)

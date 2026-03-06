@@ -28,6 +28,7 @@ var _ = Describe("Getting access via API", Label("e2e", "TokenAuthorization"), f
 		db = dbm.NewTestSchemaWithoutMigration()
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		cfg.AuthTokenSecret = "xxx"
 		s = e2e_common.NewRunningServer(cfg)
 		queryUrl = fmt.Sprintf("http://localhost:%s/query", cfg.Port)

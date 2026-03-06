@@ -35,6 +35,7 @@ var _ = Describe("Getting Issues via API", Label("e2e", "Issues"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -275,6 +276,7 @@ var _ = Describe("Creating Issue via API", Label("e2e", "Issues"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -329,6 +331,7 @@ var _ = Describe("Updating issue via API", Label("e2e", "Issues"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -384,6 +387,7 @@ var _ = Describe("Deleting Issue via API", Label("e2e", "Issues"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -435,6 +439,7 @@ var _ = Describe("Modifying relationship of ComponentVersion of Issue via API", 
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

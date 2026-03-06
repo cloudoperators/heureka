@@ -37,6 +37,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -370,6 +371,7 @@ var _ = Describe("Creating Service via API", Label("e2e", "Services"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -421,6 +423,7 @@ var _ = Describe("Updating service via API", Label("e2e", "Services"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -477,6 +480,7 @@ var _ = Describe("Deleting Service via API", Label("e2e", "Services"), func() {
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -529,6 +533,7 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -626,6 +631,7 @@ var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "S
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

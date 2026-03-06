@@ -68,6 +68,7 @@ var _ = Describe("Getting data via API", Label("e2e", "Batch Limiting"), func() 
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		// Set batch limit as 2 for testing pourpose
 		cfg.GQLBatchLimit = 2
 		s = e2e_common.NewRunningServer(cfg)

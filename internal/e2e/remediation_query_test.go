@@ -36,6 +36,7 @@ var _ = Describe("Getting Remediations via API", Label("e2e", "Remediations"), f
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -128,6 +129,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -194,6 +196,7 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -308,6 +311,7 @@ var _ = Describe("Deleting Remediation via API", Label("e2e", "Remediations"), f
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
