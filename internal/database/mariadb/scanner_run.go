@@ -173,24 +173,11 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 	return queryArgs, baseQuery
 }
 
-func ensureScannerRunFilter(f *entity.ScannerRunFilter) *entity.ScannerRunFilter {
-	var first int = 100
-	var after string
-	if f == nil {
-		return &entity.ScannerRunFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-		}
+func ensureScannerRunFilter(filter *entity.ScannerRunFilter) *entity.ScannerRunFilter {
+	if filter == nil {
+		filter = &entity.ScannerRunFilter{}
 	}
-	if f.First == nil {
-		f.First = &first
-	}
-	if f.After == nil {
-		f.After = &after
-	}
-	return f
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
