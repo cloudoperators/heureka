@@ -1,30 +1,5 @@
 package common
 
-// example 1:
-// filter.Id: [123, 456, 789]
-// accessibleServiceIds: [456, 101, 102]
-// result: [456]
-
-// example 2:
-// filter.Id: []
-// accessibleServiceIds: [456, 101, 102]
-// result: [456, 101, 102]
-
-// example 3:
-// filter.Id: [123, 789]
-// accessibleServiceIds: [456, 101, 102]
-// result: [-1]
-
-// example 4:
-// filter.Id: [123, 456, 789]
-// accessibleServiceIds: [] (means full access)
-// result: [123, 456, 789]
-
-// example 5:
-// filter.Id: [123, 456, 789]
-// accessibleServiceIds: [-1] (means no access)
-// result: [-1]
-
 // CombineFilterWithAccesibleIds combines filterIds and accessibleIds based on the following rules:
 // - If accessibleIds is empty, return filterIds (full access)
 // - If accessibleIds contains only -1, return [-1] (no access)
@@ -72,30 +47,3 @@ func getIntersectionOfIdSlices(slice1 []*int64, slice2 []*int64) []*int64 {
 func Int64Ptr(i int64) *int64 {
 	return &i
 }
-
-// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
-// func GetListOfAccessibleObjectIds(userId string, objectType openfga.ObjectType, authz openfga.Authorization) ([]*int64, error) {
-// 	permission := openfga.PermissionInput{
-// 		UserType:   openfga.TypeUser,
-// 		UserId:     openfga.UserId(userId),
-// 		Relation:   "can_view",
-// 		ObjectType: objectType,
-// 		ObjectId:   "*",
-// 	}
-
-// 	// Get all services the user has access to
-// 	accessibleServices, err := authz.ListAccessibleResources(permission)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Convert []openfga.ObjectId to []int64
-// 	var ids []*int64
-// 	for _, resource := range accessibleServices {
-// 		if intId, err := strconv.ParseInt(string(resource.ObjectId), 10, 64); err == nil {
-// 			ids = append(ids, &intId)
-// 		}
-// 	}
-
-// 	return ids, nil
-// }
