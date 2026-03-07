@@ -15,6 +15,8 @@ import (
 )
 
 var componentVersionObject = DbObject{
+	Prefix:    "componentversion",
+	TableName: "ComponentVersion",
 	Properties: []*Property{
 		NewProperty("componentversion_component_id", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.ComponentId != 0 })),
 		NewProperty("componentversion_version", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Version != "" })),
@@ -261,7 +263,7 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 	componentVersionRow := ComponentVersionRow{}
 	componentVersionRow.FromComponentVersion(componentVersion)
 
-	query := componentVersionObject.InsertQuery("ComponentVersion")
+	query := componentVersionObject.InsertQuery()
 	id, err := performInsert(s, query, componentVersionRow, l)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "Error 1062") {
@@ -299,24 +301,5 @@ func (s *SqlDatabase) UpdateComponentVersion(componentVersion *entity.ComponentV
 }
 
 func (s *SqlDatabase) DeleteComponentVersion(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteComponentVersion",
-	})
-
-	query := `
-		UPDATE ComponentVersion SET
-		componentversion_deleted_at = NOW(),
-		componentversion_updated_by = :userId
-		WHERE componentversion_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return componentVersionObject.Delete(s.db, id, userId)
 }

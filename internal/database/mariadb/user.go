@@ -12,6 +12,8 @@ import (
 )
 
 var userObject = DbObject{
+	Prefix:    "user",
+	TableName: "User",
 	Properties: []*Property{
 		NewProperty("user_name", WrapChecker(func(u *entity.User) bool { return u.Name != "" })),
 		NewProperty("user_unique_user_id", WrapChecker(func(u *entity.User) bool { return u.UniqueUserID != "" })),
@@ -239,7 +241,7 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 	userRow := UserRow{}
 	userRow.FromUser(user)
 
-	query := userObject.InsertQuery("User")
+	query := userObject.InsertQuery()
 	id, err := performInsert(s, query, userRow, l)
 	if err != nil {
 		return nil, err
@@ -275,26 +277,7 @@ func (s *SqlDatabase) UpdateUser(user *entity.User) error {
 }
 
 func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteUser",
-	})
-
-	query := `
-		UPDATE User SET
-		user_deleted_at = NOW(),
-		user_updated_by = :userId
-		WHERE user_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return userObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) {

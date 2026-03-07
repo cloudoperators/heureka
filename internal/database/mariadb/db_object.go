@@ -9,17 +9,23 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 )
 
 // DbObject
+// TODO: type DbObject[ET EntityType, RT RowType] struct {
+// TODO: implement Update
+// TODO: create Entity and Row interface, extract ToEntity ToRow, reuse
 type DbObject struct {
+	Prefix           string
+	TableName        string
 	Properties       []*Property
 	FilterProperties []*FilterProperty
 }
 
-func (do *DbObject) InsertQuery(tableName string) string {
+func (do *DbObject) InsertQuery() string {
 	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		tableName,
+		do.TableName,
 		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return p.GetName() }), ","),
 		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return ":" + p.GetName() }), ","))
 }
@@ -53,6 +59,47 @@ func (do *DbObject) GetFilterParameters(filter entity.HasPagination, withCursor 
 		filterParameters = append(filterParameters, GetCursorQueryParameters(paginatedX.First, cursorFields)...)
 	}
 	return filterParameters
+}
+
+func (do *DbObject) Delete(db Db, id int64, userId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"id":    id,
+		"event": fmt.Sprintf("database.Delete%s", do.TableName),
+	})
+	query := fmt.Sprintf(
+		"UPDATE %s SET %s_deleted_at = NOW(), %s_updated_by = :userId WHERE %s_id = :id",
+		do.TableName,
+		do.Prefix,
+		do.Prefix,
+		do.Prefix)
+
+	args := map[string]interface{}{
+		"userId": userId,
+		"id":     id,
+	}
+
+	stmt, err := db.PrepareNamed(query)
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+			}).Error(msg)
+		return fmt.Errorf("%s", msg)
+	}
+
+	defer stmt.Close()
+	_, err = stmt.Exec(args)
+	if err != nil {
+		msg := err.Error()
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+			}).Error(msg)
+		return fmt.Errorf("%s", msg)
+	}
+	return nil
 }
 
 // Property

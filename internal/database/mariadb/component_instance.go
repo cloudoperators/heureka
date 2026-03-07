@@ -12,6 +12,8 @@ import (
 )
 
 var componentInstanceObject = DbObject{
+	Prefix:    "componentinstance",
+	TableName: "ComponentInstance",
 	Properties: []*Property{
 		NewProperty("componentinstance_ccrn", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.CCRN != "" })),
 		NewProperty("componentinstance_region", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Region != "" })),
@@ -241,7 +243,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 	componentInstanceRow := ComponentInstanceRow{}
 	componentInstanceRow.FromComponentInstance(componentInstance)
 
-	query := componentInstanceObject.InsertQuery("ComponentInstance")
+	query := componentInstanceObject.InsertQuery()
 	id, err := performInsert(s, query, componentInstanceRow, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ComponentInstance with CCRN '%s': %w",
@@ -280,29 +282,7 @@ func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.Componen
 }
 
 func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteComponentInstance",
-	})
-
-	query := `
-		UPDATE ComponentInstance SET
-		componentinstance_deleted_at = NOW(),
-		componentinstance_updated_by = :userId
-		WHERE componentinstance_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		return fmt.Errorf("failed to delete ComponentInstance with ID %d: %w", id, err)
-	}
-
-	return nil
+	return componentInstanceObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.ComponentInstanceFilter) ([]string, error) {

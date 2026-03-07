@@ -15,6 +15,8 @@ import (
 )
 
 var issueObject = DbObject{
+	Prefix:    "issue",
+	TableName: "Issue",
 	Properties: []*Property{
 		NewProperty("issue_primary_name", WrapChecker(func(i *entity.Issue) bool { return i.PrimaryName != "" })),
 		NewProperty("issue_type", WrapChecker(func(i *entity.Issue) bool { return i.Type != "" })),
@@ -528,7 +530,7 @@ func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
 	issueRow := IssueRow{}
 	issueRow.FromIssue(issue)
 
-	query := issueObject.InsertQuery("Issue")
+	query := issueObject.InsertQuery()
 	id, err := performInsert(s, query, issueRow, l)
 	if err != nil {
 		return nil, err
@@ -563,26 +565,7 @@ func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
 }
 
 func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteIssue",
-	})
-
-	query := `
-		UPDATE Issue SET
-		issue_deleted_at = NOW(),
-		issue_updated_by = :userId
-		WHERE issue_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return issueObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersionId int64) error {

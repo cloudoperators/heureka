@@ -12,6 +12,8 @@ import (
 )
 
 var componentObject = DbObject{
+	Prefix:    "component",
+	TableName: "Component",
 	Properties: []*Property{
 		NewProperty("component_ccrn", WrapChecker(func(c *entity.Component) bool { return c.CCRN != "" })),
 		NewProperty("component_repository", WrapChecker(func(c *entity.Component) bool { return c.Repository != "" })),
@@ -361,7 +363,7 @@ func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Comp
 	componentRow := ComponentRow{}
 	componentRow.FromComponent(component)
 
-	query := componentObject.InsertQuery("Component")
+	query := componentObject.InsertQuery()
 	id, err := performInsert(s, query, componentRow, l)
 	if err != nil {
 		return nil, err
@@ -389,6 +391,7 @@ func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
 
 	componentRow := ComponentRow{}
 	componentRow.FromComponent(component)
+	//TODO: NewComponentRowFromComponent(component) template struct?
 
 	_, err := performExec(s, query, componentRow, l)
 
@@ -396,26 +399,7 @@ func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
 }
 
 func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteComponent",
-	})
-
-	query := `
-		UPDATE Component SET
-		component_deleted_at = NOW(),
-		component_updated_by = :userId
-		WHERE component_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return componentObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error) {

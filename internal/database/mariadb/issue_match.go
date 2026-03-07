@@ -17,6 +17,8 @@ const (
 )
 
 var issueMatchObject = DbObject{
+	Prefix:    "issuematch",
+	TableName: "IssueMatch",
 	Properties: []*Property{
 		NewProperty("issuematch_status", WrapChecker(func(im *entity.IssueMatch) bool {
 			return im.Status != "" && im.Status != entity.IssueMatchStatusValuesNone
@@ -318,7 +320,7 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 	issueMatchRow := IssueMatchRow{}
 	issueMatchRow.FromIssueMatch(issueMatch)
 
-	query := issueMatchObject.InsertQuery("IssueMatch")
+	query := issueMatchObject.InsertQuery()
 	id, err := performInsert(s, query, issueMatchRow, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create IssueMatch: %w", err)
@@ -354,24 +356,5 @@ func (s *SqlDatabase) UpdateIssueMatch(issueMatch *entity.IssueMatch) error {
 }
 
 func (s *SqlDatabase) DeleteIssueMatch(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteIssueMatch",
-	})
-
-	query := `
-		UPDATE IssueMatch SET
-		issuematch_deleted_at = NOW(),
-		issuematch_updated_by = :userId
-		WHERE issuematch_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return issueMatchObject.Delete(s.db, id, userId)
 }
