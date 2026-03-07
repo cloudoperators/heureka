@@ -12,6 +12,8 @@ import (
 )
 
 var supportGroupObject = DbObject{
+	Prefix:    "supportgroup",
+	TableName: "SupportGroup",
 	Properties: []*Property{
 		NewProperty("supportgroup_ccrn", WrapChecker(func(sg *entity.SupportGroup) bool { return sg.CCRN != "" })),
 		NewImmutableProperty("supportgroup_created_by"),
@@ -212,7 +214,7 @@ func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*en
 	supportGroupRow := SupportGroupRow{}
 	supportGroupRow.FromSupportGroup(supportGroup)
 
-	query := supportGroupObject.InsertQuery("SupportGroup")
+	query := supportGroupObject.InsertQuery()
 	id, err := performInsert(s, query, supportGroupRow, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SupportGroup: %w", err)
@@ -248,26 +250,7 @@ func (s *SqlDatabase) UpdateSupportGroup(supportGroup *entity.SupportGroup) erro
 }
 
 func (s *SqlDatabase) DeleteSupportGroup(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteSupportGroup",
-	})
-
-	query := `
-		UPDATE SupportGroup SET
-		supportgroup_deleted_at = NOW(),
-		supportgroup_updated_by = :userId
-		WHERE supportgroup_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return supportGroupObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) AddServiceToSupportGroup(supportGroupId int64, serviceId int64) error {

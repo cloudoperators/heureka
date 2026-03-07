@@ -12,6 +12,8 @@ import (
 )
 
 var remediationObject = DbObject{
+	Prefix:    "remediation",
+	TableName: "Remediation",
 	Properties: []*Property{
 		NewProperty("remediation_description", WrapChecker(func(r *entity.Remediation) bool { return r.Description != "" })),
 		NewProperty("remediation_type", WrapChecker(func(r *entity.Remediation) bool { return r.Type != "" && r.Type != entity.RemediationTypeUnknown })),
@@ -222,7 +224,7 @@ func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entit
 	remediationRow := RemediationRow{}
 	remediationRow.FromRemediation(remediation)
 
-	query := remediationObject.InsertQuery("Remediation")
+	query := remediationObject.InsertQuery()
 	id, err := performInsert(s, query, remediationRow, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Remediation: %w", err)
@@ -263,27 +265,5 @@ func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
 
 // This function can be extracted to generic function when CreateRemediation and UpdateRemediation will be generic
 func (s *SqlDatabase) DeleteRemediation(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteRemediation",
-	})
-
-	query := `
-		UPDATE Remediation SET
-		remediation_deleted_at = NOW(),
-		remediation_updated_by = :userId
-		WHERE remediation_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		return fmt.Errorf("failed to delete Remediation: %w", err)
-	}
-
-	return nil
+	return remediationObject.Delete(s.db, id, userId)
 }

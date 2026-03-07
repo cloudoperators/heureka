@@ -12,6 +12,8 @@ import (
 )
 
 var issueVariantObject = DbObject{
+	Prefix:    "issuevariant",
+	TableName: "IssueVariant",
 	Properties: []*Property{
 		NewProperty("issuevariant_issue_id", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.IssueId != 0 })),
 		NewProperty("issuevariant_repository_id", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.IssueRepositoryId != 0 })),
@@ -236,7 +238,7 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 	issueVariantRow := IssueVariantRow{}
 	issueVariantRow.FromIssueVariant(issueVariant)
 
-	query := issueVariantObject.InsertQuery("IssueVariant")
+	query := issueVariantObject.InsertQuery()
 	id, err := performInsert(s, query, issueVariantRow, l)
 	if err != nil {
 		return nil, err
@@ -272,24 +274,5 @@ func (s *SqlDatabase) UpdateIssueVariant(issueVariant *entity.IssueVariant) erro
 }
 
 func (s *SqlDatabase) DeleteIssueVariant(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteIssueVariant",
-	})
-
-	query := `
-		UPDATE IssueVariant SET
-		issuevariant_deleted_at = NOW(),
-		issuevariant_updated_by = :userId
-		WHERE issuevariant_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return issueVariantObject.Delete(s.db, id, userId)
 }

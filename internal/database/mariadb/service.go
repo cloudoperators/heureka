@@ -12,6 +12,8 @@ import (
 )
 
 var serviceObject = DbObject{
+	Prefix:    "service",
+	TableName: "Service",
 	Properties: []*Property{
 		NewProperty("service_ccrn", WrapChecker(func(s *entity.Service) bool { return s.CCRN != "" })),
 		NewProperty("service_domain", WrapChecker(func(s *entity.Service) bool { return s.Domain != "" })),
@@ -407,7 +409,7 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 	serviceRow := ServiceRow{}
 	serviceRow.FromService(service)
 
-	query := serviceObject.InsertQuery("Service")
+	query := serviceObject.InsertQuery()
 	id, err := performInsert(s, query, serviceRow, l)
 	if err != nil {
 		return nil, err
@@ -442,26 +444,7 @@ func (s *SqlDatabase) UpdateService(service *entity.Service) error {
 }
 
 func (s *SqlDatabase) DeleteService(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteService",
-	})
-
-	query := `
-		UPDATE Service SET
-		service_deleted_at = NOW(),
-		service_updated_by = :userId
-		WHERE service_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return serviceObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {

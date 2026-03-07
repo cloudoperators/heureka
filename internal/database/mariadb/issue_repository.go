@@ -12,6 +12,8 @@ import (
 )
 
 var issueRepositoryObject = DbObject{
+	Prefix:    "issuerepository",
+	TableName: "IssueRepository",
 	Properties: []*Property{
 		NewProperty("issuerepository_name", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.Name != "" })),
 		NewProperty("issuerepository_url", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.Url != "" })),
@@ -217,7 +219,7 @@ func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueReposit
 	issueRepositoryRow := IssueRepositoryRow{}
 	issueRepositoryRow.FromIssueRepository(issueRepository)
 
-	query := issueRepositoryObject.InsertQuery("IssueRepository")
+	query := issueRepositoryObject.InsertQuery()
 	id, err := performInsert(s, query, issueRepositoryRow, l)
 	if err != nil {
 		return nil, err
@@ -252,24 +254,5 @@ func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueReposit
 }
 
 func (s *SqlDatabase) DeleteIssueRepository(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteIssueRepository",
-	})
-
-	query := `
-		UPDATE IssueRepository SET
-		issuerepository_deleted_at = NOW(),
-		issuerepository_updated_by = :userId
-		WHERE issuerepository_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return issueRepositoryObject.Delete(s.db, id, userId)
 }
