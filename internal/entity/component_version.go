@@ -3,6 +3,7 @@
 
 package entity
 
+// @todo missing filter for serviceId/supportGroupId
 type ComponentVersionFilter struct {
 	Paginated
 	Id            []*int64  `json:"id"`
