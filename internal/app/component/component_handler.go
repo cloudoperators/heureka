@@ -79,7 +79,7 @@ func (cs *componentHandler) ListComponents(ctx context.Context, filter *entity.C
 	}
 
 	// Update the filter.Id based on accessibleComponentIds
-	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleComponentIds)
+	filter.Id = common.CombineFilterWithAccessibleIds(filter.Id, accessibleComponentIds)
 
 	res, err := cs.database.GetComponents(filter, options.Order)
 	if err != nil {

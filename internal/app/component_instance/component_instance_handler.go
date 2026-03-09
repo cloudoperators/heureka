@@ -79,7 +79,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, 
 	}
 
 	// Update the filter.ServiceId based on accessibleServiceIds
-	filter.ServiceId = common.CombineFilterWithAccesibleIds(filter.ServiceId, accessibleServiceIds)
+	filter.ServiceId = common.CombineFilterWithAccessibleIds(filter.ServiceId, accessibleServiceIds)
 
 	res, err := cache.CallCached[[]entity.ComponentInstanceResult](
 		ci.cache,

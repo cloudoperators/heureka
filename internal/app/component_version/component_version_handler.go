@@ -77,8 +77,8 @@ func (cv *componentVersionHandler) ListComponentVersions(ctx context.Context, fi
 		return nil, NewComponentVersionHandlerError("Error while listing accessible component versions for user")
 	}
 
-	// Update the filter.Id based on accessibleComponentIds
-	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleComponentIds)
+	// Update the filter.ComponentId based on accessibleComponentIds
+	filter.ComponentId = common.CombineFilterWithAccessibleIds(filter.ComponentId, accessibleComponentIds)
 
 	res, err := cache.CallCached[[]entity.ComponentVersionResult](
 		cv.cache,

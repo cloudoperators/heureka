@@ -117,7 +117,7 @@ func (sg *supportGroupHandler) ListSupportGroups(ctx context.Context, filter *en
 	}
 
 	// Update the filter.Id based on accessibleSupportGroupIds
-	filter.Id = common.CombineFilterWithAccesibleIds(filter.Id, accessibleSupportGroupIds)
+	filter.Id = common.CombineFilterWithAccessibleIds(filter.Id, accessibleSupportGroupIds)
 
 	res, err := sg.database.GetSupportGroups(filter, options.Order)
 	if err != nil {

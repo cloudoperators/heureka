@@ -129,7 +129,7 @@ func (s *serviceHandler) ListServices(ctx context.Context, filter *entity.Servic
 	}
 
 	// Update the filter.Id based on accessibleSupportGroupIds
-	filter.SupportGroupId = common.CombineFilterWithAccesibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
+	filter.SupportGroupId = common.CombineFilterWithAccessibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
 
 	if options.IncludeAggregations {
 		res, err = cache.CallCached[[]entity.ServiceResult](

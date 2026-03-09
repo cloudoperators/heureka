@@ -20,11 +20,11 @@ It then checks if a model has already been created in the store or not, and if o
 
 internal/openfga/interface.go consists of the following.
 
-- CheckPermission(p PermissionInput)
+- CheckPermission(r RelationInput)
     - Checks if a given user has a given level of permission on a given resource (based on relation between user and resource)
 - AddRelation(r RelationInput)
     - Adds a specified relation between a given user and a given resource
-- AddRelationBulk(r RelationInput)
+- AddRelationBulk(r []RelationInput)
     - Adds multiple relationships between given users and resources
 - RemoveRelation(r RelationInput)
     - Removes a single relation between a given user and a given resource (if such a relation exists)
@@ -34,9 +34,9 @@ internal/openfga/interface.go consists of the following.
     - Remove all relations in the authorization store, used mainly for tests
 - UpdateRelation(r RelationInput, u RelationInput)
     - Update relations based on filters provided
-- ListRelations(filters []RelationInput)
+- ListRelations(filters RelationInput)
     - Returns a list of relations that match any given RelationInput as filters
-- ListAccessibleResources(p PermissionInput)
+- ListAccessibleResources(r RelationInput)
     - Returns a list of all objects of a specified type that a given user has a given relation with
 - GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType)
     - Returns a list of object Ids of a given type that the user can access

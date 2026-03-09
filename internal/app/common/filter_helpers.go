@@ -3,12 +3,12 @@
 
 package common
 
-// CombineFilterWithAccesibleIds combines filterIds and accessibleIds based on the following rules:
+// CombineFilterWithAccessibleIds combines filterIds and accessibleIds based on the following rules:
 // - If accessibleIds is empty, return filterIds (full access)
 // - If accessibleIds contains only -1, return [-1] (no access)
 // - If filterIds is empty, return accessibleIds (use accessibleIds as filter)
 // - Otherwise, calculate & return the intersection of filterIds and accessibleIds
-func CombineFilterWithAccesibleIds(filterIds []*int64, accessibleIds []*int64) []*int64 {
+func CombineFilterWithAccessibleIds(filterIds []*int64, accessibleIds []*int64) []*int64 {
 	if len(accessibleIds) == 1 && accessibleIds[0] != nil && *accessibleIds[0] == -1 {
 		filterIds = accessibleIds
 	} else if len(accessibleIds) > 0 {
@@ -34,11 +34,17 @@ func CombineFilterWithAccesibleIds(filterIds []*int64, accessibleIds []*int64) [
 func getIntersectionOfIdSlices(slice1 []*int64, slice2 []*int64) []*int64 {
 	set := make(map[int64]struct{})
 	for _, v := range slice1 {
+		if v == nil {
+			continue
+		}
 		set[*v] = struct{}{}
 	}
 
 	var intersection []*int64
 	for _, v := range slice2 {
+		if v == nil {
+			continue
+		}
 		if _, found := set[*v]; found {
 			intersection = append(intersection, v)
 		}

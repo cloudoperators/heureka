@@ -129,7 +129,7 @@ func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entit
 	}
 
 	// Update the filter.ComponentInstanceId based on accessibleCompInstIds
-	filter.ComponentInstanceId = common.CombineFilterWithAccesibleIds(filter.ComponentInstanceId, accessibleCompInstIds)
+	filter.ComponentInstanceId = common.CombineFilterWithAccessibleIds(filter.ComponentInstanceId, accessibleCompInstIds)
 
 	res, err := cache.CallCached[[]entity.IssueMatchResult](
 		im.cache,

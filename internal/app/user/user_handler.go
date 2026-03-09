@@ -77,7 +77,7 @@ func (u *userHandler) ListUsers(ctx context.Context, filter *entity.UserFilter, 
 	}
 
 	// Update the filter.Id based on accessibleSupportGroupIds
-	filter.SupportGroupId = common.CombineFilterWithAccesibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
+	filter.SupportGroupId = common.CombineFilterWithAccessibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
 
 	res, err := cache.CallCached[[]entity.UserResult](
 		u.cache,

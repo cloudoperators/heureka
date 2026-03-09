@@ -503,9 +503,9 @@ func (a *Authz) ListAccessibleResources(r RelationInput) ([]AccessibleResource, 
 // GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
 func (a *Authz) GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType) ([]*int64, error) {
 	permission := RelationInput{
-		UserType:   "user",
+		UserType:   TypeUser,
 		UserId:     userId,
-		Relation:   "can_view",
+		Relation:   RelCanView,
 		ObjectType: objectType,
 		ObjectId:   "*",
 	}
