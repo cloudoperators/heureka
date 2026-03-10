@@ -33,6 +33,8 @@ func getCountTable(filter *entity.IssueFilter) string {
 	} else if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
 		// Count issues that appear in single service
 		return "mvCountIssueRatingsServiceId"
+	} else if len(filter.Region) > 0 {
+		return "mvCountIssueRatingsRegion"
 	} else {
 		// Total count of issues
 		return "mvCountIssueRatingsOther"
@@ -74,6 +76,11 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 	if len(filter.SupportGroupCCRN) > 0 && len(filter.ServiceId) == 0 && len(filter.ServiceCCRN) == 0 {
 		filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
 		fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "CIR.supportgroup_ccrn = ?", OP_OR))
+	}
+
+	if len(filter.Region) > 0 {
+		filterParameters = buildQueryParameters(filterParameters, filter.Region)
+		fl = append(fl, buildFilterQuery(filter.Region, "CIR.region = ?", OP_OR))
 	}
 
 	filterStr := combineFilterQueries(fl, OP_AND)

@@ -714,6 +714,8 @@ func (s *DatabaseSeeder) SeedComponentVersions(num int, components []mariadb.Com
 }
 
 func (s *DatabaseSeeder) SeedComponentInstances(num int, componentVersions []mariadb.ComponentVersionRow, services []mariadb.BaseServiceRow) []mariadb.ComponentInstanceRow {
+	regions := []string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"}
+
 	var componentInstances []mariadb.ComponentInstanceRow
 	for i := 0; i < num; i++ {
 		componentInstance := NewFakeComponentInstance()
@@ -729,6 +731,11 @@ func (s *DatabaseSeeder) SeedComponentInstances(num int, componentVersions []mar
 		} else {
 			componentInstance.Id = sql.NullInt64{Int64: componentInstanceId, Valid: true}
 			componentInstances = append(componentInstances, componentInstance)
+		}
+
+		componentInstance.Region = sql.NullString{
+			String: regions[i%len(regions)],
+			Valid:  true,
 		}
 	}
 	return componentInstances
@@ -1692,6 +1699,7 @@ func (s *DatabaseSeeder) RefreshCountIssueRatings() error {
 		CALL refresh_mvCountIssueRatingsComponentVersion_proc();
 		CALL refresh_mvCountIssueRatingsServiceId_proc();
 		CALL refresh_mvCountIssueRatingsOther_proc();
+		CALL refresh_mvCountIssueRatingsRegion_proc();
 	`)
 	return err
 }

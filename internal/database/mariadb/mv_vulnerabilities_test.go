@@ -108,6 +108,16 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		testIssueSeverityCount(filter, counts)
 	}
 
+	testRegionTotalCount := func(counts map[string]entity.IssueSeverityCounts) {
+		for _, cir := range seedCollection.ComponentInstanceRows {
+			filter := &entity.IssueFilter{
+				Region: []*string{&cir.Region.String},
+			}
+
+			testIssueSeverityCount(filter, counts[cir.Region.String])
+		}
+	}
+
 	insertRemediation := func(serviceRow *mariadb.BaseServiceRow, componentRow *mariadb.ComponentRow, expirationDate time.Time) *entity.Remediation {
 		remediation := test.NewFakeRemediation()
 		if serviceRow != nil {
@@ -487,6 +497,13 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			totalCount.Total -= 1
 
 			testServicesTotalCount(totalCount)
+		})
+
+		It("return the total count with region filter", func() {
+			severityCounts, err := test.LoadRegionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_region.json"))
+			Expect(err).ToNot(HaveOccurred())
+
+			testRegionTotalCount(severityCounts)
 		})
 	})
 	When("there is an active remediation for a vulnerability only in one service", Label("WithRemediations"), func() {
