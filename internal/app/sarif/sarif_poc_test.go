@@ -9,8 +9,6 @@ import (
 )
 
 func TestSARIFImportPOC(t *testing.T) {
-	// Example Trivy SARIF output (truncated for brevity, real one is in docs/SARIF_IMPLEMENTATION_GUIDE.md)
-	// This is a minimal valid SARIF document for testing purposes
 	exampleTrivySARIF := `{
   "version": "2.1.0",
   "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
@@ -104,11 +102,34 @@ func TestSARIFImportPOC(t *testing.T) {
 	importer := NewSARIFImporter()
 	ctx := context.Background()
 
+	// Define the service components that exist in the system
+	serviceComponents := []ComponentMatch{
+		{
+			ComponentInstanceId: 10,
+			PackageName:         "example/lib",
+			Version:             "1.0.0",
+			Purl:               "pkg:deb/debian/example/lib@1.0.0?arch=amd64",
+		},
+		{
+			ComponentInstanceId: 11,
+			PackageName:         "another/dep",
+			Version:             "2.1.0",
+			Purl:               "pkg:npm/another/dep@2.1.0",
+		},
+		{
+			ComponentInstanceId: 12,
+			PackageName:         "critical/app",
+			Version:             "0.5.0",
+			Purl:               "pkg:golang/critical/app@0.5.0",
+		},
+	}
+
 	input := &ImportInput{
 		SARIFDocument:    exampleTrivySARIF,
-		ScannerName:      "trivy",
+		ScannerName:      "Trivy",
 		ServiceId:        1,
 		Tag:              "test-scan-1",
+		ServiceComponents: serviceComponents,
 	}
 
 	result, err := importer.ImportSARIF(ctx, input)
@@ -124,8 +145,6 @@ func TestSARIFImportPOC(t *testing.T) {
 		t.Errorf("Expected 3 issue matches to be created, got %d", result.IssueMatchesCreated)
 	}
 
-	// Because of how mockIssueHandler works, each CreateIssue call will return a new mocked issue.
-	// If Issue creation was properly deduplicated, this would be 3. For POC, it's fine.
 	if result.IssuesCreated != 3 {
 		t.Errorf("Expected 3 unique issues to be processed, got %d", result.IssuesCreated)
 	}

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/app/scanner"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 
 	"github.com/google/uuid"
 )
@@ -36,9 +36,15 @@ func (m *mockDatabase) CreateScannerAssetMapping(mapping *entity.ScannerAssetMap
 	return mapping, nil
 }
 func (m *mockDatabase) GetScannerAssetMappingByUri(scannerName, artifactUri string) (*entity.ScannerAssetMapping, error) {
-	return nil, nil // Not implemented for POC
+	// purely mock
+	if artifactUri == "/path/to/known/asset" {
+		return &entity.ScannerAssetMapping{
+			ComponentInstanceId: 42,
+			ArtifactUri:         artifactUri,
+		}, nil
+	}
+	return nil, nil
 }
-
 
 type mockIssueHandler struct{}
 
@@ -46,9 +52,15 @@ func (m *mockIssueHandler) CreateIssue(ctx context.Context, issue *entity.Issue)
 	issue.Id = 1
 	return issue, nil
 }
-func (m *mockIssueHandler) GetIssue(ctx context.Context, id int64) (*entity.Issue, error) { return nil, nil }
-func (m *mockIssueHandler) ListIssues(ctx context.Context, options entity.IssueListOptions) ([]*entity.Issue, error) { return nil, nil }
-func (m *mockIssueHandler) UpdateIssue(ctx context.Context, issue *entity.Issue) (*entity.Issue, error) { return nil, nil }
+func (m *mockIssueHandler) GetIssue(ctx context.Context, id int64) (*entity.Issue, error) {
+	return nil, nil
+}
+func (m *mockIssueHandler) ListIssues(ctx context.Context, options entity.IssueListOptions) ([]*entity.Issue, error) {
+	return nil, nil
+}
+func (m *mockIssueHandler) UpdateIssue(ctx context.Context, issue *entity.Issue) (*entity.Issue, error) {
+	return nil, nil
+}
 func (m *mockIssueHandler) DeleteIssue(ctx context.Context, id int64) error { return nil }
 
 type mockIssueMatchHandler struct{}
@@ -57,12 +69,19 @@ func (m *mockIssueMatchHandler) CreateIssueMatch(ctx context.Context, match *ent
 	match.Id = 1
 	return match, nil
 }
-func (m *mockIssueMatchHandler) GetIssueMatch(ctx context.Context, id int64) (*entity.IssueMatch, error) { return nil, nil }
-func (m *mockIssueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) { return nil, nil }
-func (m *mockIssueMatchHandler) UpdateIssueMatch(ctx context.Context, match *entity.IssueMatch) (*entity.IssueMatch, error) { return nil, nil }
+func (m *mockIssueMatchHandler) GetIssueMatch(ctx context.Context, id int64) (*entity.IssueMatch, error) {
+	return nil, nil
+}
+func (m *mockIssueMatchHandler) ListIssueMatches(filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) {
+	return nil, nil
+}
+func (m *mockIssueMatchHandler) UpdateIssueMatch(ctx context.Context, match *entity.IssueMatch) (*entity.IssueMatch, error) {
+	return nil, nil
+}
 func (m *mockIssueMatchHandler) DeleteIssueMatch(ctx context.Context, id int64) error { return nil }
-func (m *mockIssueMatchHandler) ListIssueMatchesByIssue(ctx context.Context, issueId int64) ([]*entity.IssueMatch, error) { return nil, nil }
-
+func (m *mockIssueMatchHandler) ListIssueMatchesByIssue(ctx context.Context, issueId int64) ([]*entity.IssueMatch, error) {
+	return nil, nil
+}
 
 type sarifImporter struct {
 	parser       *Parser
@@ -83,6 +102,17 @@ func NewSARIFImporter() Importer {
 	}
 }
 
+func (m *mockDatabase) ListComponentInstances(serviceId int64) ([]ComponentMatch, error) {
+	// purely mock
+	if serviceId == 1 {
+		return []ComponentMatch{
+			{ComponentInstanceId: 101, PackageName: "example/lib", Version: "1.0.0", Purl: "pkg:npm/example/lib@1.0.0"},
+			{ComponentInstanceId: 102, PackageName: "openssl", Version: "3.0.1", Purl: "pkg:generic/openssl@3.0.1"},
+		}, nil
+	}
+	return []ComponentMatch{}, nil
+}
+
 func (si *sarifImporter) ImportSARIF(ctx context.Context, input *ImportInput) (*ImportResult, error) {
 	op := appErrors.Op("SARIFImporter.ImportSARIF")
 
@@ -98,6 +128,20 @@ func (si *sarifImporter) ImportSARIF(ctx context.Context, input *ImportInput) (*
 		return nil, appErrors.E(op, "Scanner run tag is required")
 	}
 
+	// AUTOMATION: If no components provided, fetch them from the database automatically
+	serviceComponents := input.ServiceComponents
+	if len(serviceComponents) == 0 {
+		autoComponents, err := si.db.ListComponentInstances(input.ServiceId)
+		if err != nil {
+			return nil, appErrors.E(op, "Failed to auto-discover service components", err)
+		}
+		serviceComponents = autoComponents
+	}
+
+	if len(serviceComponents) == 0 {
+		return nil, appErrors.E(op, "No component instances found for service. Resolution is impossible.")
+	}
+
 	result := &ImportResult{
 		Errors: []ImportError{},
 	}
@@ -105,6 +149,10 @@ func (si *sarifImporter) ImportSARIF(ctx context.Context, input *ImportInput) (*
 	parsed, err := si.parser.ParseSARIFDocument(input.SARIFDocument)
 	if err != nil {
 		return result, appErrors.E(op, "Failed to parse SARIF", err)
+	}
+
+	if input.ScannerName != "" && input.ScannerName != parsed.ScannerName {
+		return result, appErrors.E(op, fmt.Sprintf("Scanner name mismatch: input specified '%s' but SARIF document specifies '%s'", input.ScannerName, parsed.ScannerName))
 	}
 
 	for _, parseErr := range parsed.Errors {
@@ -129,14 +177,46 @@ func (si *sarifImporter) ImportSARIF(ctx context.Context, input *ImportInput) (*
 
 	result.ScannerRunId = createdRun.RunID
 
+	// Create package resolver from service components (either provided or auto-discovered)
+	resolver := NewPackageResolver(serviceComponents)
+
 	uniqueArtifacts := make(map[string]bool)
 
 	for _, parsedResult := range parsed.Results {
 		artifactUri := parsedResult.ArtifactUri
+		var componentInstanceId int64
 
-		// Resolve asset
-		// For POC, we mock the asset resolution
-		asset := &entity.ComponentInstance{Id: 123}
+		// Strategy 1: Look up by ScannerAssetMapping (Direct Mapping)
+		mapping, err := si.assetMapper.GetAssetMapping(ctx, parsed.ScannerName, artifactUri)
+		if err == nil && mapping != nil {
+			componentInstanceId = mapping.ComponentInstanceId
+		} else {
+			// Strategy 2: Extract package info from SARIF and Resolve (Standardized Meta-matching)
+			info, found := parsedResult.GetPackageInfo()
+			if !found {
+				result.Errors = append(result.Errors, ImportError{
+					Line:     0,
+					Message:  fmt.Sprintf("Failed to extract package info from artifact %s and no pre-mapping found", artifactUri),
+					Severity: "warning",
+				})
+				continue
+			}
+
+			// Resolve via PackageResolver (PURL first, then Name/Version)
+			id, resolved := resolver.Resolve(info)
+			if !resolved {
+				result.Errors = append(result.Errors, ImportError{
+					Line:     0,
+					Message:  fmt.Sprintf("Could not resolve package %s to a component instance", info.String()),
+					Severity: "warning",
+				})
+				continue
+			}
+			componentInstanceId = id
+		}
+
+		asset := &entity.ComponentInstance{Id: componentInstanceId}
+		// ...
 
 		issueEntity := &entity.Issue{
 			Type:        entity.IssueTypeVulnerability,
@@ -155,10 +235,10 @@ func (si *sarifImporter) ImportSARIF(ctx context.Context, input *ImportInput) (*
 		}
 
 		matchEntity := &entity.IssueMatch{
-			IssueId:           createdIssue.Id,
+			IssueId:             createdIssue.Id,
 			ComponentInstanceId: asset.Id,
-			Status:            entity.IssueMatchStatusValuesNew,
-			UserId:            1,
+			Status:              entity.IssueMatchStatusValuesNew,
+			UserId:              1,
 		}
 
 		severity := entity.NewSeverityFromRating(parsedResult.Severity)

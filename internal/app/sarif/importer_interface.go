@@ -12,18 +12,19 @@ type Importer interface {
 }
 
 type ImportInput struct {
-	SARIFDocument      string
-	ScannerName        string
-	ServiceId          int64
-	Tag                string
+	SARIFDocument     string
+	ScannerName       string
+	ServiceId         int64
+	Tag               string
+	ServiceComponents []ComponentMatch
 }
 
 type ImportResult struct {
-	ScannerRunId       int64
-	IssuesCreated      int
+	ScannerRunId        int64
+	IssuesCreated       int
 	IssueMatchesCreated int
-	AssetsCreated      int
-	Errors             []ImportError
+	AssetsCreated       int
+	Errors              []ImportError
 }
 
 type ImportError struct {

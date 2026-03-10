@@ -59,7 +59,7 @@ func (p *Parser) ParseSARIFDocument(sarifJSON string) (*ParsedSARIFData, error) 
 	return parsed, nil
 }
 
-// validateSARIF checks SARIF document structure
+// validateSARIF checks SARIF document structure and required fields
 func (p *Parser) validateSARIF(doc *SARIFDocument) error {
 	op := appErrors.Op("Parser.validateSARIF")
 
@@ -71,16 +71,103 @@ func (p *Parser) validateSARIF(doc *SARIFDocument) error {
 		return appErrors.E(op, "SARIF document must contain at least one run")
 	}
 
-	for _, run := range doc.Runs {
-		if run.Tool.Driver.Name == "" {
-			return appErrors.E(op, "Tool driver name is required")
+	for runIdx, run := range doc.Runs {
+		if err := p.validateRun(&run, runIdx); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// parseResult extracts and maps a single SARIF result
+func (p *Parser) validateRun(run *SARIFRun, runIdx int) error {
+	op := appErrors.Op("Parser.validateRun")
+
+	if run.Tool.Driver.Name == "" {
+		return appErrors.E(op, fmt.Sprintf("Tool driver name is required in run %d", runIdx))
+	}
+
+	if err := p.validateRules(run.Tool.Driver.Rules, runIdx); err != nil {
+		return err
+	}
+
+	if err := p.validateResults(run.Results, runIdx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Parser) validateRules(rules []SARIFRule, runIdx int) error {
+	op := appErrors.Op("Parser.validateRules")
+
+	for ruleIdx, rule := range rules {
+		if rule.Id == "" {
+			return appErrors.E(op, fmt.Sprintf("Rule ID is required in run %d, rule index %d", runIdx, ruleIdx))
+		}
+
+		if rule.DefaultConfiguration.Level != "" {
+			if !isValidSARIFLevel(rule.DefaultConfiguration.Level) {
+				return appErrors.E(op, fmt.Sprintf("Invalid rule level '%s' in run %d, rule '%s'. Must be one of: none, note, warning, error", rule.DefaultConfiguration.Level, runIdx, rule.Id))
+			}
+		}
+	}
+
+	return nil
+}
+
+func (p *Parser) validateResults(results []SARIFResult, runIdx int) error {
+	op := appErrors.Op("Parser.validateResults")
+
+	for resultIdx, result := range results {
+		if result.RuleId == "" {
+			return appErrors.E(op, fmt.Sprintf("Result rule ID is required in run %d, result index %d", runIdx, resultIdx))
+		}
+
+		if result.Level != "" {
+			if !isValidSARIFLevel(result.Level) {
+				return appErrors.E(op, fmt.Sprintf("Invalid result level '%s' in run %d, result %d. Must be one of: none, note, warning, error", result.Level, runIdx, resultIdx))
+			}
+		}
+
+		if result.Message.Text == "" && result.Message.Markdown == "" {
+			return appErrors.E(op, fmt.Sprintf("Result must have either text or markdown message in run %d, result %d", runIdx, resultIdx))
+		}
+
+		if len(result.Locations) == 0 {
+			return appErrors.E(op, fmt.Sprintf("Result must have at least one location in run %d, result %d", runIdx, resultIdx))
+		}
+
+		for locIdx, location := range result.Locations {
+			if err := p.validateLocation(&location, runIdx, resultIdx, locIdx); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (p *Parser) validateLocation(location *SARIFLocation, runIdx, resultIdx, locIdx int) error {
+	op := appErrors.Op("Parser.validateLocation")
+
+	if location.PhysicalLocation.ArtifactLocation.Uri == "" {
+		return appErrors.E(op, fmt.Sprintf("Artifact location URI is required in run %d, result %d, location %d", runIdx, resultIdx, locIdx))
+	}
+
+	return nil
+}
+
+func isValidSARIFLevel(level string) bool {
+	validLevels := map[string]bool{
+		"none":    true,
+		"note":    true,
+		"warning": true,
+		"error":   true,
+	}
+	return validLevels[level]
+}
+
 func (p *Parser) parseResult(result SARIFResult, rules map[string]*SARIFRule) (ParsedSARIFResult, error) {
 	op := appErrors.Op("Parser.parseResult")
 
