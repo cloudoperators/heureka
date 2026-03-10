@@ -16,6 +16,7 @@ type ImportInput struct {
 	ScannerName        string
 	ServiceId          int64
 	Tag                string
+	ServiceComponents  []ComponentMatch
 }
 
 type ImportResult struct {

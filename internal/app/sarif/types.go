@@ -3,7 +3,10 @@
 
 package sarif
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+		"github.com/cloudoperators/heureka/internal/entity"
+ 		"fmt"
+	)
 
 type SARIFDocument struct {
 	Version string      `json:"version"`
@@ -119,4 +122,49 @@ type ParseError struct {
 	Line    int
 	Message string
 	Severity string
+}
+type PackageInfo struct {
+	Name    string
+	Version string
+	Purl    string
+}
+
+func (pi PackageInfo) String() string {
+	if pi.Purl != "" {
+		return pi.Purl
+	}
+	return fmt.Sprintf("%s (version %s)", pi.Name, pi.Version)
+}
+
+func (psr *ParsedSARIFResult) GetPackageInfo() (*PackageInfo, bool) {
+	if psr == nil || psr.Result == nil || psr.Result.Properties == nil {
+		return nil, false
+	}
+
+	props := psr.Result.Properties
+	info := &PackageInfo{}
+
+	if purl, ok := props["purl"].(string); ok && purl != "" {
+		info.Purl = purl
+	} else if purl, ok := props["Purl"].(string); ok && purl != "" {
+		info.Purl = purl
+	}
+
+	nameKeys := []string{"PkgName", "pkgName", "packageName", "name"}
+	for _, key := range nameKeys {
+		if val, ok := props[key].(string); ok && val != "" {
+			info.Name = val
+			break
+		}
+	}
+
+	versionKeys := []string{"InstalledVersion", "version", "installedVersion", "pkgVersion"}
+	for _, key := range versionKeys {
+		if val, ok := props[key].(string); ok && val != "" {
+			info.Version = val
+			break
+		}
+	}
+
+	return info, info.Purl != "" || info.Name != ""
 }

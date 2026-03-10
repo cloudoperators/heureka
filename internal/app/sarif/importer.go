@@ -36,7 +36,14 @@ func (m *mockDatabase) CreateScannerAssetMapping(mapping *entity.ScannerAssetMap
 	return mapping, nil
 }
 func (m *mockDatabase) GetScannerAssetMappingByUri(scannerName, artifactUri string) (*entity.ScannerAssetMapping, error) {
-	return nil, nil // Not implemented for POC
+	// purely mock
+	if artifactUri == "/path/to/known/asset" {
+		return &entity.ScannerAssetMapping{
+			ComponentInstanceId: 42,
+			ArtifactUri:         artifactUri,
+		}, nil
+	}
+	return nil, nil
 }
 
 
@@ -83,6 +90,17 @@ func NewSARIFImporter() Importer {
 	}
 }
 
+func (m *mockDatabase) ListComponentInstances(serviceId int64) ([]ComponentMatch, error) {
+	// purely mock
+	if serviceId == 1 {
+		return []ComponentMatch{
+			{ComponentInstanceId: 101, PackageName: "example/lib", Version: "1.0.0", Purl: "pkg:npm/example/lib@1.0.0"},
+			{ComponentInstanceId: 102, PackageName: "openssl", Version: "3.0.1", Purl: "pkg:generic/openssl@3.0.1"},
+		}, nil
+	}
+	return []ComponentMatch{}, nil
+}
+
 func (si *sarifImporter) ImportSARIF(ctx context.Context, input *ImportInput) (*ImportResult, error) {
 	op := appErrors.Op("SARIFImporter.ImportSARIF")
 
@@ -98,11 +116,26 @@ func (si *sarifImporter) ImportSARIF(ctx context.Context, input *ImportInput) (*
 		return nil, appErrors.E(op, "Scanner run tag is required")
 	}
 
+	// AUTOMATION: If no components provided, fetch them from the database automatically
+	serviceComponents := input.ServiceComponents
+	if len(serviceComponents) == 0 {
+		autoComponents, err := si.db.ListComponentInstances(input.ServiceId)
+		if err != nil {
+			return nil, appErrors.E(op, "Failed to auto-discover service components", err)
+		}
+		serviceComponents = autoComponents
+	}
+
+	if len(serviceComponents) == 0 {
+		return nil, appErrors.E(op, "No component instances found for service. Resolution is impossible.")
+	}
+
 	result := &ImportResult{
 		Errors: []ImportError{},
 	}
 
 	parsed, err := si.parser.ParseSARIFDocument(input.SARIFDocument)
+	// ... (rest of the function remains the same, using serviceComponents)
 	if err != nil {
 		return result, appErrors.E(op, "Failed to parse SARIF", err)
 	}
@@ -129,14 +162,46 @@ func (si *sarifImporter) ImportSARIF(ctx context.Context, input *ImportInput) (*
 
 	result.ScannerRunId = createdRun.RunID
 
+	// Create package resolver from service components (either provided or auto-discovered)
+	resolver := NewPackageResolver(serviceComponents)
+
 	uniqueArtifacts := make(map[string]bool)
 
 	for _, parsedResult := range parsed.Results {
 		artifactUri := parsedResult.ArtifactUri
+		var componentInstanceId int64
 
-		// Resolve asset
-		// For POC, we mock the asset resolution
-		asset := &entity.ComponentInstance{Id: 123}
+		// Strategy 1: Look up by ScannerAssetMapping (Direct Mapping)
+		mapping, err := si.assetMapper.GetAssetMapping(ctx, parsed.ScannerName, artifactUri)
+		if err == nil && mapping != nil {
+			componentInstanceId = mapping.ComponentInstanceId
+		} else {
+			// Strategy 2: Extract package info from SARIF and Resolve (Standardized Meta-matching)
+			info, found := parsedResult.GetPackageInfo()
+			if !found {
+				result.Errors = append(result.Errors, ImportError{
+					Line:     0,
+					Message:  fmt.Sprintf("Failed to extract package info from artifact %s and no pre-mapping found", artifactUri),
+					Severity: "warning",
+				})
+				continue
+			}
+
+			// Resolve via PackageResolver (PURL first, then Name/Version)
+			id, resolved := resolver.Resolve(info)
+			if !resolved {
+				result.Errors = append(result.Errors, ImportError{
+					Line:     0,
+					Message:  fmt.Sprintf("Could not resolve package %s to a component instance", info.String()),
+					Severity: "warning",
+				})
+				continue
+			}
+			componentInstanceId = id
+		}
+
+		asset := &entity.ComponentInstance{Id: componentInstanceId}
+// ...
 
 		issueEntity := &entity.Issue{
 			Type:        entity.IssueTypeVulnerability,
