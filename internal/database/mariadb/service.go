@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var serviceObject = DbObject{
+var serviceObject = DbObject[entity.Service, *ServiceRow]{
 	Prefix:    "service",
 	TableName: "Service",
 	Properties: []*Property{
@@ -36,6 +36,7 @@ var serviceObject = DbObject{
 		NewFilterProperty("S.service_ccrn LIKE Concat('%',?,'%')", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Search })),
 		NewStateFilterProperty("S.service", WrapRetState(func(filter *entity.ServiceFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *ServiceRow { return &ServiceRow{} },
 }
 
 func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {
@@ -421,26 +422,7 @@ func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, e
 }
 
 func (s *SqlDatabase) UpdateService(service *entity.Service) error {
-	l := logrus.WithFields(logrus.Fields{
-		"service": service,
-		"event":   "database.UpdateService",
-	})
-
-	baseQuery := `
-		UPDATE Service SET
-		%s
-		WHERE service_id = :service_id
-	`
-
-	updateFields := serviceObject.GetUpdateFields(service)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	serviceRow := ServiceRow{}
-	serviceRow.FromService(service)
-
-	_, err := performExec(s, query, serviceRow, l)
-
-	return err
+	return serviceObject.Update(s.db, *service)
 }
 
 func (s *SqlDatabase) DeleteService(id int64, userId int64) error {

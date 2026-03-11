@@ -268,3 +268,6 @@ type Json map[string]interface{}
 func (e Json) String() string {
 	return interutil.ConvertJsonToStrNoError((*map[string]interface{})(&e))
 }
+
+type Entity interface {
+}

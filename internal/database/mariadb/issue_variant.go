@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueVariantObject = DbObject{
+var issueVariantObject = DbObject[entity.IssueVariant, *IssueVariantRow]{
 	Prefix:    "issuevariant",
 	TableName: "IssueVariant",
 	Properties: []*Property{
@@ -37,6 +37,7 @@ var issueVariantObject = DbObject{
 		NewFilterProperty("IM.issuematch_id = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.IssueMatchId })),
 		NewStateFilterProperty("IV.issuevariant", WrapRetState(func(filter *entity.IssueVariantFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *IssueVariantRow { return &IssueVariantRow{} },
 }
 
 func ensureIssueVariantFilter(filter *entity.IssueVariantFilter) *entity.IssueVariantFilter {
@@ -154,7 +155,7 @@ func (s *SqlDatabase) GetAllIssueVariantCursors(filter *entity.IssueVariantFilte
 	}
 
 	return lo.Map(rows, func(row IssueVariantRow, _ int) string {
-		iv := row.AsIssueVariant(&entity.IssueRepository{})
+		iv := row.AsIssueVariant()
 
 		cursor, _ := EncodeCursor(WithIssueVariant(order, iv))
 
@@ -189,7 +190,7 @@ func (s *SqlDatabase) GetIssueVariants(filter *entity.IssueVariantFilter, order 
 		filterParameters,
 		l,
 		func(l []entity.IssueVariantResult, e IssueVariantRow) []entity.IssueVariantResult {
-			iv := e.AsIssueVariant(&entity.IssueRepository{})
+			iv := e.AsIssueVariant()
 			cursor, _ := EncodeCursor(WithIssueVariant(order, iv))
 
 			ivr := entity.IssueVariantResult{
@@ -250,27 +251,7 @@ func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*en
 }
 
 func (s *SqlDatabase) UpdateIssueVariant(issueVariant *entity.IssueVariant) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueVariant": issueVariant,
-		"event":        "database.UpdateIssueVariant",
-	})
-
-	baseQuery := `
-		UPDATE IssueVariant SET
-		%s
-		WHERE issuevariant_id = :issuevariant_id
-	`
-
-	updateFields := issueVariantObject.GetUpdateFields(issueVariant)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	ivRow := IssueVariantRow{}
-	ivRow.FromIssueVariant(issueVariant)
-
-	_, err := performExec(s, query, ivRow, l)
-
-	return err
+	return issueVariantObject.Update(s.db, *issueVariant)
 }
 
 func (s *SqlDatabase) DeleteIssueVariant(id int64, userId int64) error {

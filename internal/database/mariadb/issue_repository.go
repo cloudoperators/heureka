@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueRepositoryObject = DbObject{
+var issueRepositoryObject = DbObject[entity.IssueRepository, *IssueRepositoryRow]{
 	Prefix:    "issuerepository",
 	TableName: "IssueRepository",
 	Properties: []*Property{
@@ -27,6 +27,7 @@ var issueRepositoryObject = DbObject{
 		NewFilterProperty("IRS.issuerepositoryservice_service_id = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.ServiceId })),
 		NewStateFilterProperty("IR.issuerepository", WrapRetState(func(filter *entity.IssueRepositoryFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *IssueRepositoryRow { return &IssueRepositoryRow{} },
 }
 
 func ensureIssueRepositoryFilter(filter *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
@@ -231,26 +232,7 @@ func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueReposit
 }
 
 func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueRepository) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueRepository": issueRepository,
-		"event":           "database.UpdateIssueRepository",
-	})
-
-	baseQuery := `
-		UPDATE IssueRepository SET
-		%s
-		WHERE issuerepository_id = :issuerepository_id
-	`
-
-	updateFields := issueRepositoryObject.GetUpdateFields(issueRepository)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	issueRepositoryRow := IssueRepositoryRow{}
-	issueRepositoryRow.FromIssueRepository(issueRepository)
-
-	_, err := performExec(s, query, issueRepositoryRow, l)
-
-	return err
+	return issueRepositoryObject.Update(s.db, *issueRepository)
 }
 
 func (s *SqlDatabase) DeleteIssueRepository(id int64, userId int64) error {

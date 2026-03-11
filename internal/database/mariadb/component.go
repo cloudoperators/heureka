@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentObject = DbObject{
+var componentObject = DbObject[entity.Component, *ComponentRow]{
 	Prefix:    "component",
 	TableName: "Component",
 	Properties: []*Property{
@@ -32,6 +32,7 @@ var componentObject = DbObject{
 		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.ServiceCCRN })),
 		NewStateFilterProperty("C.component", WrapRetState(func(filter *entity.ComponentFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *ComponentRow { return &ComponentRow{} },
 }
 
 func ensureComponentFilter(filter *entity.ComponentFilter) *entity.ComponentFilter {
@@ -375,27 +376,7 @@ func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Comp
 }
 
 func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
-	l := logrus.WithFields(logrus.Fields{
-		"component": component,
-		"event":     "database.UpdateComponent",
-	})
-
-	baseQuery := `
-		UPDATE Component SET
-		%s
-		WHERE component_id = :component_id
-	`
-
-	updateFields := componentObject.GetUpdateFields(component)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	componentRow := ComponentRow{}
-	componentRow.FromComponent(component)
-	//TODO: NewComponentRowFromComponent(component) template struct?
-
-	_, err := performExec(s, query, componentRow, l)
-
-	return err
+	return componentObject.Update(s.db, *component)
 }
 
 func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {

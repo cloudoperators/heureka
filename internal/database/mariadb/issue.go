@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueObject = DbObject{
+var issueObject = DbObject[entity.Issue, *IssueRow]{
 	Prefix:    "issue",
 	TableName: "Issue",
 	Properties: []*Property{
@@ -58,6 +58,7 @@ var issueObject = DbObject{
 			}),
 			WrapRetSlice(func(filter *entity.IssueFilter) []entity.IssueStatus { return []entity.IssueStatus{filter.Status} })),
 	},
+	NewRow: func() *IssueRow { return &IssueRow{} },
 }
 
 func ensureIssueFilter(filter *entity.IssueFilter) *entity.IssueFilter {
@@ -542,26 +543,7 @@ func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
 }
 
 func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issue": issue,
-		"event": "database.UpdateIssue",
-	})
-
-	baseQuery := `
-		UPDATE Issue SET
-		%s
-		WHERE issue_id = :issue_id
-	`
-
-	updateFields := issueObject.GetUpdateFields(issue)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	issueRow := IssueRow{}
-	issueRow.FromIssue(issue)
-
-	_, err := performExec(s, query, issueRow, l)
-
-	return err
+	return issueObject.Update(s.db, *issue)
 }
 
 func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {

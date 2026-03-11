@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var remediationObject = DbObject{
+var remediationObject = DbObject[entity.Remediation, *RemediationRow]{
 	Prefix:    "remediation",
 	TableName: "Remediation",
 	Properties: []*Property{
@@ -46,6 +46,7 @@ var remediationObject = DbObject{
 		NewFilterProperty("R.remediation_issue LIKE Concat('%',?,'%')", WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Search })),
 		NewStateFilterProperty("R.remediation", WrapRetState(func(filter *entity.RemediationFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *RemediationRow { return &RemediationRow{} },
 }
 
 func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.RemediationFilter {
@@ -238,29 +239,7 @@ func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entit
 // This function can be extracted to generic function, but we would need to change
 // all functions like FromRemediation etc functions to interface (FromRemediation->EntityToRow, AsRemediation->RowToEntity)
 func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
-	l := logrus.WithFields(logrus.Fields{
-		"remediation": remediation,
-		"event":       "database.UpdateRemediation",
-	})
-
-	baseQuery := `
-		UPDATE Remediation SET
-		%s
-		WHERE remediation_id = :remediation_id
-	`
-
-	updateFields := remediationObject.GetUpdateFields(remediation)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	remediationRow := RemediationRow{}
-	remediationRow.FromRemediation(remediation)
-
-	_, err := performExec(s, query, remediationRow, l)
-	if err != nil {
-		return fmt.Errorf("failed to update Remediation: %w", err)
-	}
-
-	return nil
+	return remediationObject.Update(s.db, *remediation)
 }
 
 // This function can be extracted to generic function when CreateRemediation and UpdateRemediation will be generic
