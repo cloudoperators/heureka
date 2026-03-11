@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -214,50 +215,36 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
-		DescribeTable(
-			"pagination information is correct",
-			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-				filter.First = &pageSize
-				issues := []entity.IssueResult{}
-				for _, i := range test.NNewFakeIssueEntities(resElements) {
-					cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0))
-					issues = append(
-						issues,
-						entity.IssueResult{
-							WithCursor: entity.WithCursor{Value: cursor},
-							Issue:      new(i),
-						},
-					)
-				}
+		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+			filter.First = &pageSize
+			issues := []entity.IssueResult{}
+			for _, i := range test.NNewFakeIssueEntities(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0, time.Time{}))
+				issues = append(issues, entity.IssueResult{WithCursor: entity.WithCursor{Value: cursor}, Issue: lo.ToPtr(i)})
+			}
 
-				cursors := lo.Map(issues, func(ir entity.IssueResult, _ int) string {
-					cursor, _ := mariadb.EncodeCursor(
-						mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0),
-					)
-					return cursor
-				})
+			cursors := lo.Map(issues, func(ir entity.IssueResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0, time.Time{}))
+				return cursor
+			})
 
-				var i int64 = 0
-				for len(cursors) < dbElements {
-					i++
-					issue := test.NewFakeIssueEntity()
-					c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0))
-					cursors = append(cursors, c)
-				}
-				db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
-				db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
-				db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
-				issueHandler = issue.NewIssueHandler(handlerContext)
-				res, err := issueHandler.ListIssues(filter, options)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(
-					*res.PageInfo.HasNextPage,
-				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-				Expect(
-					len(res.PageInfo.Pages),
-				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-			},
+			var i int64 = 0
+			for len(cursors) < dbElements {
+				i++
+				issue := test.NewFakeIssueEntity()
+				c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0, time.Time{}))
+				cursors = append(cursors, c)
+			}
+			db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
+			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
+			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
+			issueHandler = appIssue.NewIssueHandler(handlerContext)
+			res, err := issueHandler.ListIssues(filter, options)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+		},
 			Entry("When pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
 			Entry("When pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
 			Entry(

@@ -6,6 +6,7 @@ package mariadb
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/samber/lo"
@@ -158,15 +159,17 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 	orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
 		return o.By == entity.IssueVariantRating
 	})
+	orderByRemediationDate := lo.ContainsBy(order, func(o entity.Order) bool {
+		return o.By == entity.IssueEarliestTargetRemediationDate
+	})
 
 	if filter.AllServices || filter.HasIssueMatches {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
-		len(
-			filter.IssueMatchId,
-		) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 {
+		len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 ||
+		orderByRemediationDate {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
@@ -244,10 +247,9 @@ func getIssueColumns(order []entity.Order) string {
 	for _, o := range order {
 		switch o.By {
 		case entity.IssueVariantRating:
-			columns = fmt.Sprintf(
-				"%s, MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num",
-				columns,
-			)
+			columns = fmt.Sprintf("%s, MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num", columns)
+		case entity.IssueEarliestTargetRemediationDate:
+			columns = fmt.Sprintf("%s, MIN(IM.issuematch_target_remediation_date) AS agg_earliest_target_remediation_date", columns)
 		}
 	}
 
@@ -493,7 +495,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 				ivRating = e.RatingNumerical.Int64
 			}
 
-			cursor, _ := EncodeCursor(WithIssue(defaultOrder, issue.Issue, ivRating))
+			cursor, _ := EncodeCursor(WithIssue(defaultOrder, issue.Issue, ivRating, issue.EarliestTargetRemediationDate))
 
 			sr := entity.IssueResult{
 				WithCursor: entity.WithCursor{
@@ -630,8 +632,12 @@ func (s *SqlDatabase) GetAllIssueCursors(
 		if row.IssueVariantRow != nil {
 			ivRating = row.RatingNumerical.Int64
 		}
+		var etrd time.Time
+		if row.IssueAggregationsRow != nil {
+			etrd = GetTimeValue(row.IssueAggregationsRow.EarliestTargetRemediationDate)
+		}
 
-		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
+		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating, etrd))
 
 		return cursor
 	}), nil
@@ -676,8 +682,12 @@ func (s *SqlDatabase) GetIssues(
 			if e.IssueVariantRow != nil {
 				ivRating = e.RatingNumerical.Int64
 			}
+			var etrd time.Time
+			if e.IssueAggregationsRow != nil {
+				etrd = GetTimeValue(e.IssueAggregationsRow.EarliestTargetRemediationDate)
+			}
 
-			cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
+			cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating, etrd))
 
 			sr := entity.IssueResult{
 				WithCursor: entity.WithCursor{
