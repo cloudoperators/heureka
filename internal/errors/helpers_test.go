@@ -67,6 +67,31 @@ var _ = Describe("Error Helpers", func() {
 		})
 	})
 
+	Describe("IsPermissionDenied", func() {
+		Context("when error is PermissionDenied", func() {
+			It("should return true", func() {
+				err := E(Op("test"), PermissionDenied)
+				Expect(Is(err, PermissionDenied)).To(BeTrue())
+			})
+		})
+
+		Context("when error is not PermissionDenied", func() {
+			It("should return false for NotFound", func() {
+				err := E(Op("test"), NotFound)
+				Expect(Is(err, PermissionDenied)).To(BeFalse())
+			})
+
+			It("should return false for non-Error type", func() {
+				err := errors.New("standard error")
+				Expect(Is(err, PermissionDenied)).To(BeFalse())
+			})
+
+			It("should return false for nil error", func() {
+				Expect(Is(nil, PermissionDenied)).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("IsInvalidArgument", func() {
 		Context("when error is InvalidArgument", func() {
 			It("should return true", func() {

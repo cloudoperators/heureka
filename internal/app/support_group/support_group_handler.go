@@ -9,10 +9,11 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/database"
-	"github.com/cloudoperators/heureka/internal/openfga"
-
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,6 +21,7 @@ type supportGroupHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	authz         openfga.Authorization
+	logger        *logrus.Logger
 }
 
 func NewSupportGroupHandler(handlerContext common.HandlerContext) SupportGroupHandler {
@@ -27,6 +29,7 @@ func NewSupportGroupHandler(handlerContext common.HandlerContext) SupportGroupHa
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		authz:         handlerContext.Authz,
+		logger:        logrus.New(),
 	}
 }
 
@@ -43,6 +46,8 @@ func (e *SupportGroupHandlerError) Error() string {
 }
 
 func (sg *supportGroupHandler) GetSupportGroup(ctx context.Context, supportGroupId int64) (*entity.SupportGroup, error) {
+	op := appErrors.Op("supportGroupHandler.GetSupportGroup")
+
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetSupportGroupEventName,
 		"id":    supportGroupId,
@@ -68,7 +73,12 @@ func (sg *supportGroupHandler) GetSupportGroup(ctx context.Context, supportGroup
 		return nil, NewSupportGroupHandlerError("Error while checking permission for user")
 	}
 	if !hasPermission {
-		return nil, NewSupportGroupHandlerError("User does not have permission to view this support group")
+		wrappedErr := appErrors.PermissionDeniedError(string(op), "SupportGroup", fmt.Sprint(supportGroupId))
+		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+			"supportGroupId": supportGroupId,
+			"userId":         currentUserId,
+		})
+		return nil, wrappedErr
 	}
 
 	lo := entity.NewListOptions()

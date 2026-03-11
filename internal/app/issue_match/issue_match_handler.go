@@ -10,10 +10,12 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +31,7 @@ type issueMatchHandler struct {
 	eventRegistry   event.EventRegistry
 	cache           cache.Cache
 	authz           openfga.Authorization
+	logger          *logrus.Logger
 	severityHandler severity.SeverityHandler
 }
 
@@ -38,6 +41,7 @@ func NewIssueMatchHandler(handlerContext common.HandlerContext, ss severity.Seve
 		eventRegistry:   handlerContext.EventReg,
 		cache:           handlerContext.Cache,
 		authz:           handlerContext.Authz,
+		logger:          logrus.New(),
 		severityHandler: ss,
 	}
 }
@@ -55,6 +59,8 @@ func (e *IssueMatchHandlerError) Error() string {
 }
 
 func (im *issueMatchHandler) GetIssueMatch(ctx context.Context, issueMatchId int64) (*entity.IssueMatch, error) {
+	op := appErrors.Op("issueMatchHandler.GetIssueMatch")
+
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetIssueMatchEventName,
 		"id":    issueMatchId,
@@ -80,7 +86,12 @@ func (im *issueMatchHandler) GetIssueMatch(ctx context.Context, issueMatchId int
 		return nil, NewIssueMatchHandlerError("Error while checking permission for user")
 	}
 	if !hasPermission {
-		return nil, NewIssueMatchHandlerError("User does not have permission to view this issue match")
+		wrappedErr := appErrors.PermissionDeniedError(string(op), "IssueMatch", fmt.Sprint(issueMatchId))
+		applog.LogError(im.logger, wrappedErr, logrus.Fields{
+			"issueMatchId": issueMatchId,
+			"userId":       currentUserId,
+		})
+		return nil, wrappedErr
 	}
 
 	issueMatchFilter := entity.IssueMatchFilter{Id: []*int64{&issueMatchId}}

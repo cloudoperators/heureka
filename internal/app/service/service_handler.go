@@ -10,9 +10,11 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
@@ -30,6 +32,7 @@ type serviceHandler struct {
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
 	authz         openfga.Authorization
+	logger        *logrus.Logger
 }
 
 func NewServiceHandler(handlerContext common.HandlerContext) ServiceHandler {
@@ -38,6 +41,7 @@ func NewServiceHandler(handlerContext common.HandlerContext) ServiceHandler {
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
 		authz:         handlerContext.Authz,
+		logger:        logrus.New(),
 	}
 }
 
@@ -54,6 +58,8 @@ func NewServiceHandlerError(msg string) *ServiceHandlerError {
 }
 
 func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*entity.Service, error) {
+	op := appErrors.Op("serviceHandler.GetService")
+
 	l := logrus.WithFields(logrus.Fields{
 		"event": GetServiceEventName,
 		"id":    serviceId,
@@ -79,7 +85,12 @@ func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*enti
 		return nil, NewServiceHandlerError("Error while checking permission for user")
 	}
 	if !hasPermission {
-		return nil, NewServiceHandlerError("User does not have permission to view this service")
+		wrappedErr := appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(serviceId))
+		applog.LogError(s.logger, wrappedErr, logrus.Fields{
+			"serviceId": serviceId,
+			"userId":    currentUserId,
+		})
+		return nil, wrappedErr
 	}
 
 	serviceFilter := entity.ServiceFilter{Id: []*int64{&serviceId}}
