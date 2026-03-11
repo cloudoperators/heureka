@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+-- SPDX-License-Identifier: Apache-2.0
+
 DROP EVENT IF EXISTS refresh_mvCountIssueRatingsOther;
 
 DROP EVENT IF EXISTS refresh_mvCountIssueRatingsServiceId;
@@ -91,6 +94,8 @@ DROP TABLE IF EXISTS mvSingleComponentByServiceVulnerabilityCounts;
 DROP TABLE IF EXISTS post_migration_procedure_registry;
 
 DROP TABLE IF EXISTS ComponentInstance;
+
+DROP INDEX IF EXISTS idx_issue_issue_type ON Issue;
 
 DROP TABLE IF EXISTS Issue;
 

@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+-- SPDX-License-Identifier: Apache-2.0
+
 CREATE TABLE IF NOT EXISTS User (
     user_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_name VARCHAR(255) NOT NULL,
@@ -311,6 +314,8 @@ CREATE TABLE IF NOT EXISTS Issue (
     CONSTRAINT fk_issue_created_by FOREIGN KEY (issue_created_by) REFERENCES User (user_id),
     CONSTRAINT fk_issue_updated_by FOREIGN KEY (issue_updated_by) REFERENCES User (user_id)
 );
+
+CREATE INDEX idx_issue_issue_type ON Issue (issue_type);
 
 CREATE TABLE IF NOT EXISTS IssueVariant (
     issuevariant_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
