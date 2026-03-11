@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentVersionObject = DbObject{
+var componentVersionObject = DbObject[entity.ComponentVersion, *ComponentVersionRow]{
 	Prefix:    "componentversion",
 	TableName: "ComponentVersion",
 	Properties: []*Property{
@@ -42,6 +42,7 @@ var componentVersionObject = DbObject{
 		NewFilterProperty("CV.componentversion_end_of_life = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*bool { return filter.EndOfLife })),
 		NewStateFilterProperty("CV.componentversion", WrapRetState(func(filter *entity.ComponentVersionFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *ComponentVersionRow { return &ComponentVersionRow{} },
 }
 
 func ensureComponentVersionFilter(filter *entity.ComponentVersionFilter) *entity.ComponentVersionFilter {
@@ -277,27 +278,7 @@ func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentV
 }
 
 func (s *SqlDatabase) UpdateComponentVersion(componentVersion *entity.ComponentVersion) error {
-	l := logrus.WithFields(logrus.Fields{
-		"componentVersion": componentVersion,
-		"event":            "database.UpdateComponentVersion",
-	})
-
-	baseQuery := `
-		UPDATE ComponentVersion SET
-		%s
-		WHERE componentversion_id = :componentversion_id
-	`
-
-	updateFields := componentVersionObject.GetUpdateFields(componentVersion)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	componentVersionRow := ComponentVersionRow{}
-	componentVersionRow.FromComponentVersion(componentVersion)
-
-	_, err := performExec(s, query, componentVersionRow, l)
-
-	return err
+	return componentVersionObject.Update(s.db, *componentVersion)
 }
 
 func (s *SqlDatabase) DeleteComponentVersion(id int64, userId int64) error {

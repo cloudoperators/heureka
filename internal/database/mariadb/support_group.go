@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var supportGroupObject = DbObject{
+var supportGroupObject = DbObject[entity.SupportGroup, *SupportGroupRow]{
 	Prefix:    "supportgroup",
 	TableName: "SupportGroup",
 	Properties: []*Property{
@@ -27,6 +27,7 @@ var supportGroupObject = DbObject{
 		NewFilterProperty("IM.issuematch_issue_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.IssueId })),
 		NewStateFilterProperty("SG.supportgroup", WrapRetState(func(filter *entity.SupportGroupFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *SupportGroupRow { return &SupportGroupRow{} },
 }
 
 func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) string {
@@ -226,27 +227,7 @@ func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*en
 }
 
 func (s *SqlDatabase) UpdateSupportGroup(supportGroup *entity.SupportGroup) error {
-	l := logrus.WithFields(logrus.Fields{
-		"supportGroup": supportGroup,
-		"event":        "database.UpdateSupportGroup",
-	})
-
-	baseQuery := `
-		UPDATE SupportGroup SET
-		%s
-		WHERE supportgroup_id = :supportgroup_id
-	`
-
-	updateFields := supportGroupObject.GetUpdateFields(supportGroup)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	supportGroupRow := SupportGroupRow{}
-	supportGroupRow.FromSupportGroup(supportGroup)
-
-	_, err := performExec(s, query, supportGroupRow, l)
-
-	return err
+	return supportGroupObject.Update(s.db, *supportGroup)
 }
 
 func (s *SqlDatabase) DeleteSupportGroup(id int64, userId int64) error {

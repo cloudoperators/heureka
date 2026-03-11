@@ -578,8 +578,7 @@ func (uivt *uniquenessIssueVariantTemplate) setup(db *mariadb.SqlDatabase) {
 	issues := seeder.SeedIssues(1)
 
 	ivr := test.NewFakeIssueVariant(issueRepositories, issues)
-	ir := issueRepositories[0].AsIssueRepository()
-	uivt.testIssueVariant = ivr.AsIssueVariant(&ir)
+	uivt.testIssueVariant = ivr.AsIssueVariant()
 }
 
 func (uivt *uniquenessIssueVariantTemplate) createItem() {

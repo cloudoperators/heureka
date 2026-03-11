@@ -13,24 +13,25 @@ import (
 )
 
 // DbObject
-// TODO: type DbObject[ET EntityType, RT RowType] struct {
+// TODO Entity interface add String() method
 // TODO: implement Update
 // TODO: create Entity and Row interface, extract ToEntity ToRow, reuse
-type DbObject struct {
+type DbObject[ET any, R Row[ET]] struct {
 	Prefix           string
 	TableName        string
 	Properties       []*Property
 	FilterProperties []*FilterProperty
+	NewRow           func() R
 }
 
-func (do *DbObject) InsertQuery() string {
+func (do *DbObject[ET, R]) InsertQuery() string {
 	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
 		do.TableName,
 		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return p.GetName() }), ","),
 		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return ":" + p.GetName() }), ","))
 }
 
-func (do *DbObject) GetUpdateFields(f any) string {
+func (do *DbObject[ET, R]) GetUpdateFields(f any) string {
 	fl := []string{}
 	for _, v := range do.Properties {
 		updateField := v.GetUpdateExpression(f)
@@ -41,7 +42,7 @@ func (do *DbObject) GetUpdateFields(f any) string {
 	return strings.Join(fl, ", ")
 }
 
-func (do *DbObject) GetFilterQuery(filter any) string {
+func (do *DbObject[ET, R]) GetFilterQuery(filter any) string {
 	var fl []string
 	for _, v := range do.FilterProperties {
 		fl = append(fl, v.GetQuery(filter))
@@ -49,7 +50,7 @@ func (do *DbObject) GetFilterQuery(filter any) string {
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (do *DbObject) GetFilterParameters(filter entity.HasPagination, withCursor bool, cursorFields []Field) []any {
+func (do *DbObject[ET, R]) GetFilterParameters(filter entity.HasPagination, withCursor bool, cursorFields []Field) []any {
 	var filterParameters []interface{}
 	for _, v := range do.FilterProperties {
 		filterParameters = v.AppendParameters(filterParameters, filter)
@@ -61,7 +62,7 @@ func (do *DbObject) GetFilterParameters(filter entity.HasPagination, withCursor 
 	return filterParameters
 }
 
-func (do *DbObject) Delete(db Db, id int64, userId int64) error {
+func (do *DbObject[ET, R]) Delete(db Db, id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
 		"event": fmt.Sprintf("database.Delete%s", do.TableName),
@@ -91,6 +92,44 @@ func (do *DbObject) Delete(db Db, id int64, userId int64) error {
 
 	defer stmt.Close()
 	_, err = stmt.Exec(args)
+	if err != nil {
+		msg := err.Error()
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+			}).Error(msg)
+		return fmt.Errorf("%s", msg)
+	}
+	return nil
+}
+
+func (do *DbObject[ET, R]) Update(db Db, entityItem ET) error {
+	l := logrus.WithFields(logrus.Fields{
+		do.Prefix: entityItem,
+		"event":   fmt.Sprintf("database.Update%s", do.TableName),
+	})
+
+	baseQuery := fmt.Sprintf("UPDATE %s SET %s WHERE %s_id = :%s_id", do.TableName, "%s", do.Prefix, do.Prefix)
+
+	updateFields := componentObject.GetUpdateFields(&entityItem)
+	query := fmt.Sprintf(baseQuery, updateFields)
+
+	row := do.NewRow()
+	row.FromEntity(entityItem)
+
+	stmt, err := db.PrepareNamed(query) //TODO: remove duplication
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+			}).Error(msg)
+		return fmt.Errorf("%s", msg)
+	}
+
+	defer stmt.Close()
+	_, err = stmt.Exec(row)
 	if err != nil {
 		msg := err.Error()
 		l.WithFields(

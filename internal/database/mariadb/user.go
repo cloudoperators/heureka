@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var userObject = DbObject{
+var userObject = DbObject[entity.User, *UserRow]{
 	Prefix:    "user",
 	TableName: "User",
 	Properties: []*Property{
@@ -32,6 +32,7 @@ var userObject = DbObject{
 		NewFilterProperty("O.owner_service_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.ServiceId })),
 		NewStateFilterProperty("U.user", WrapRetState(func(filter *entity.UserFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *UserRow { return &UserRow{} },
 }
 
 func ensureUserFilter(filter *entity.UserFilter) *entity.UserFilter {
@@ -253,27 +254,7 @@ func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
 }
 
 func (s *SqlDatabase) UpdateUser(user *entity.User) error {
-	l := logrus.WithFields(logrus.Fields{
-		"user":  user,
-		"event": "database.UpdateUser",
-	})
-
-	baseQuery := `
-		UPDATE User SET
-		%s
-		WHERE user_id = :user_id
-	`
-
-	updateFields := userObject.GetUpdateFields(user)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	userRow := UserRow{}
-	userRow.FromUser(user)
-
-	_, err := performExec(s, query, userRow, l)
-
-	return err
+	return userObject.Update(s.db, *user)
 }
 
 func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {

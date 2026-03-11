@@ -16,7 +16,7 @@ const (
 	wildCardFilterParamCount = 2
 )
 
-var issueMatchObject = DbObject{
+var issueMatchObject = DbObject[entity.IssueMatch, *IssueMatchRow]{
 	Prefix:    "issuematch",
 	TableName: "IssueMatch",
 	Properties: []*Property{
@@ -53,6 +53,7 @@ var issueMatchObject = DbObject{
 			2),
 		NewStateFilterProperty("IM.issuematch", WrapRetState(func(filter *entity.IssueMatchFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *IssueMatchRow { return &IssueMatchRow{} },
 }
 
 func ensureIssueMatchFilter(filter *entity.IssueMatchFilter) *entity.IssueMatchFilter {
@@ -332,27 +333,7 @@ func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.I
 }
 
 func (s *SqlDatabase) UpdateIssueMatch(issueMatch *entity.IssueMatch) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueMatch": issueMatch,
-		"event":      "database.UpdateIssueMatch",
-	})
-
-	baseQuery := `
-		UPDATE IssueMatch SET
-		%s
-		WHERE issuematch_id = :issuematch_id
-	`
-
-	updateFields := issueMatchObject.GetUpdateFields(issueMatch)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	issueMatchRow := IssueMatchRow{}
-	issueMatchRow.FromIssueMatch(issueMatch)
-
-	_, err := performExec(s, query, issueMatchRow, l)
-
-	return err
+	return issueMatchObject.Update(s.db, *issueMatch)
 }
 
 func (s *SqlDatabase) DeleteIssueMatch(id int64, userId int64) error {

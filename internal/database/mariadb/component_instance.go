@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentInstanceObject = DbObject{
+var componentInstanceObject = DbObject[entity.ComponentInstance, *ComponentInstanceRow]{
 	Prefix:    "componentinstance",
 	TableName: "ComponentInstance",
 	Properties: []*Property{
@@ -53,6 +53,7 @@ var componentInstanceObject = DbObject{
 		NewFilterProperty("CI.componentinstance_ccrn LIKE Concat('%',?,'%')", WrapRetSlice(func(filter *entity.ComponentInstanceFilter) []*string { return filter.Search })),
 		NewStateFilterProperty("CI.componentinstance", WrapRetState(func(filter *entity.ComponentInstanceFilter) []entity.StateFilterType { return filter.State })),
 	},
+	NewRow: func() *ComponentInstanceRow { return &ComponentInstanceRow{} },
 }
 
 func ensureComponentInstanceFilter(filter *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {
@@ -255,30 +256,7 @@ func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.Componen
 }
 
 func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.ComponentInstance) error {
-	l := logrus.WithFields(logrus.Fields{
-		"componentInstance": componentInstance,
-		"event":             "database.UpdateComponentInstance",
-	})
-
-	baseQuery := `
-		UPDATE ComponentInstance SET
-		%s
-		WHERE componentinstance_id = :componentinstance_id
-	`
-
-	updateFields := componentInstanceObject.GetUpdateFields(componentInstance)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	componentInstanceRow := ComponentInstanceRow{}
-	componentInstanceRow.FromComponentInstance(componentInstance)
-
-	_, err := performExec(s, query, componentInstanceRow, l)
-	if err != nil {
-		return fmt.Errorf("failed to update ComponentInstance with ID %d (CCRN: '%s'): %w",
-			componentInstance.Id, componentInstance.CCRN, err)
-	}
-
-	return nil
+	return componentInstanceObject.Update(s.db, *componentInstance)
 }
 
 func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
