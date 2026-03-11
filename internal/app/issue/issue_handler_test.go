@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -213,12 +214,12 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			filter.First = &pageSize
 			issues := []entity.IssueResult{}
 			for _, i := range test.NNewFakeIssueEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0, time.Time{}))
 				issues = append(issues, entity.IssueResult{WithCursor: entity.WithCursor{Value: cursor}, Issue: lo.ToPtr(i)})
 			}
 
 			cursors := lo.Map(issues, func(ir entity.IssueResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0))
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0, time.Time{}))
 				return cursor
 			})
 
@@ -226,7 +227,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			for len(cursors) < dbElements {
 				i++
 				issue := test.NewFakeIssueEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0))
+				c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0, time.Time{}))
 				cursors = append(cursors, c)
 			}
 			db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)

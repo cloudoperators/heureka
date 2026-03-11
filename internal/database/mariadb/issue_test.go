@@ -467,7 +467,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.IssueResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *entries[len(entries)-1].Issue, 0))
+							after, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *entries[len(entries)-1].Issue, 0, time.Time{}))
 							return after
 						},
 						len(seedCollection.IssueRows),
@@ -1109,6 +1109,44 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 					highestRating := lo.Max(ratings)
 					Expect(highestRating <= prev).Should(BeTrue())
 				}
+			})
+		})
+
+		It("can order by earliest target remediation date", func() {
+			issue1 := seedCollection.IssueRows[0]
+			issue2 := seedCollection.IssueRows[1]
+
+			date1, _ := time.Parse(time.RFC3339, "2026-02-01T00:00:00Z")
+			date2, _ := time.Parse(time.RFC3339, "2026-03-01T00:00:00Z")
+
+			seeder.InsertFakeIssueMatch(mariadb.IssueMatchRow{
+				IssueId:               sql.NullInt64{Int64: issue1.Id.Int64, Valid: true},
+				TargetRemediationDate: sql.NullTime{Time: date1, Valid: true},
+				Status:                sql.NullString{String: "New", Valid: true},
+			})
+			seeder.InsertFakeIssueMatch(mariadb.IssueMatchRow{
+				IssueId:               sql.NullInt64{Int64: issue2.Id.Int64, Valid: true},
+				TargetRemediationDate: sql.NullTime{Time: date2, Valid: true},
+				Status:                sql.NullString{String: "New", Valid: true},
+			})
+
+			order := []entity.Order{
+				{By: entity.IssueEarliestTargetRemediationDate, Direction: entity.OrderDirectionDesc},
+				{By: entity.IssueId, Direction: entity.OrderDirectionAsc},
+			}
+
+			testOrder(order, func(res []entity.IssueResult) {
+				var idx1, idx2 int = -1, -1
+				for i, r := range res {
+					if r.Issue.Id == issue1.Id.Int64 {
+						idx1 = i
+					}
+					if r.Issue.Id == issue2.Id.Int64 {
+						idx2 = i
+					}
+				}
+
+				Expect(idx2 < idx1).To(BeTrue(), "Issue with later remediation date should come first in DESC order")
 			})
 		})
 	})
