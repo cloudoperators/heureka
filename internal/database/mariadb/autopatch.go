@@ -4,6 +4,9 @@
 package mariadb
 
 import (
+	"database/sql"
+	"errors"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
 	"github.com/samber/lo"
@@ -148,13 +151,19 @@ func getDisappearedInstances(latestInstances map[int]struct{}, secondLatestInsta
 
 func (s *SqlDatabase) getPatches(disappearedInstances []int) (map[patchInfo]struct{}, error) {
 	patches := make(map[patchInfo]struct{})
+
 	for _, inst := range disappearedInstances {
 		patchInfo, err := s.fetchServiceAndVersionForInstance(inst)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				continue // skip instances with no rows
+			}
 			return nil, err
 		}
+
 		patches[patchInfo] = struct{}{}
 	}
+
 	return patches, nil
 }
 
