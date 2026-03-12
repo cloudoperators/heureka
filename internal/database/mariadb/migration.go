@@ -105,6 +105,10 @@ func RunMigrations(cfg util.Config) error {
 	if err != nil {
 		return fmt.Errorf("Error while Enabling Scheduler Db: %w", err)
 	}
+	err = registerEvents(cfg)
+	if err != nil {
+		return fmt.Errorf("Error when registering events in scheduler: %w", err)
+	}
 	return nil
 }
 
@@ -117,6 +121,46 @@ func enableScheduler(cfg util.Config) error {
 	defer db.Close()
 
 	_, err = db.Exec("SET GLOBAL event_scheduler = ON;")
+	if err != nil {
+		logrus.WithError(err).Error(err)
+		return err
+	}
+	return nil
+}
+
+func registerEvents(cfg util.Config) error {
+	events := []string{
+		"refresh_mvServiceIssueCounts",
+		"refresh_mvSingleComponentByServiceVulnerabilityCounts",
+		"refresh_mvAllComponentsByServiceVulnerabilityCounts",
+		"refresh_mvCountIssueRatingsUniqueService",
+		"refresh_mvCountIssueRatingsService",
+		"refresh_mvCountIssueRatingsServiceWithoutSupportGroup",
+		"refresh_mvCountIssueRatingsSupportGroup",
+		"refresh_mvCountIssueRatingsComponentVersion",
+		"refresh_mvCountIssueRatingsServiceId",
+		"refresh_mvCountIssueRatingsOther",
+	}
+
+	db, err := GetSqlxConnection(cfg)
+	if err != nil {
+		return fmt.Errorf("Error while Creating Db: %w", err)
+	}
+	defer db.Close()
+
+	periodMinutes := cfg.DBMvCalcPeriodMinutes
+	if !(periodMinutes > 0) {
+		periodMinutes = 200
+	}
+	logrus.Debugf("mv scheduling period set to %d minutes", periodMinutes)
+	var query string
+	for _, e := range events {
+		query = fmt.Sprintf(
+			"%s DROP EVENT IF EXISTS %s; CREATE EVENT %s ON SCHEDULE EVERY %d MINUTE DO CALL %s_proc();",
+			query, e, e, periodMinutes, e)
+	}
+
+	_, err = db.Exec(query)
 	if err != nil {
 		logrus.WithError(err).Error(err)
 		return err

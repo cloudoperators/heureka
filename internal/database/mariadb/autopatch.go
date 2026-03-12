@@ -150,6 +150,7 @@ func (s *SqlDatabase) getPatches(disappearedInstances []int) (map[patchInfo]stru
 	patches := make(map[patchInfo]struct{})
 	for _, inst := range disappearedInstances {
 		patchInfo, err := s.fetchServiceAndVersionForInstance(inst)
+		//TODO: if no rows continue
 		if err != nil {
 			return nil, err
 		}
