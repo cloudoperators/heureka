@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentObject = DbObject[entity.Component, *ComponentRow]{
+var componentObject = DbObject[*entity.Component, *ComponentRow]{
 	Prefix:    "component",
 	TableName: "Component",
 	Properties: []*Property{
@@ -356,27 +356,11 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 }
 
 func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Component, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"component": component,
-		"event":     "database.CreateComponent",
-	})
-
-	componentRow := ComponentRow{}
-	componentRow.FromComponent(component)
-
-	query := componentObject.InsertQuery()
-	id, err := performInsert(s, query, componentRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	component.Id = id
-
-	return component, nil
+	return componentObject.Create(s.db, component)
 }
 
 func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
-	return componentObject.Update(s.db, *component)
+	return componentObject.Update(s.db, component)
 }
 
 func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {

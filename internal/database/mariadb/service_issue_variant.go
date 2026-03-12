@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var serviceIssueVariantObject = DbObject[entity.ServiceIssueVariant, *ServiceIssueVariantRow]{
+var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant, *ServiceIssueVariantRow]{
 	Properties: []*Property{},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("CI.componentinstance_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.ComponentInstanceId })),

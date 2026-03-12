@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentInstanceObject = DbObject[entity.ComponentInstance, *ComponentInstanceRow]{
+var componentInstanceObject = DbObject[*entity.ComponentInstance, *ComponentInstanceRow]{
 	Prefix:    "componentinstance",
 	TableName: "ComponentInstance",
 	Properties: []*Property{
@@ -236,27 +236,11 @@ func (s *SqlDatabase) CountComponentInstances(filter *entity.ComponentInstanceFi
 }
 
 func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"componentInstance": componentInstance,
-		"event":             "database.CreateComponentInstance",
-	})
-
-	componentInstanceRow := ComponentInstanceRow{}
-	componentInstanceRow.FromComponentInstance(componentInstance)
-
-	query := componentInstanceObject.InsertQuery()
-	id, err := performInsert(s, query, componentInstanceRow, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create ComponentInstance with CCRN '%s': %w",
-			componentInstance.CCRN, err)
-	}
-
-	componentInstance.Id = id
-	return componentInstance, nil
+	return componentInstanceObject.Create(s.db, componentInstance)
 }
 
 func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.ComponentInstance) error {
-	return componentInstanceObject.Update(s.db, *componentInstance)
+	return componentInstanceObject.Update(s.db, componentInstance)
 }
 
 func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {

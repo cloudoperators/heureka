@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var remediationObject = DbObject[entity.Remediation, *RemediationRow]{
+var remediationObject = DbObject[*entity.Remediation, *RemediationRow]{
 	Prefix:    "remediation",
 	TableName: "Remediation",
 	Properties: []*Property{
@@ -214,35 +214,14 @@ func (s *SqlDatabase) GetAllRemediationCursors(filter *entity.RemediationFilter,
 	}), nil
 }
 
-// This function can be extracted to generic function, but we would need to change
-// all functions like FromRemediation etc functions to interface (FromRemediation->EntityToRow, AsRemediation->RowToEntity)
 func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entity.Remediation, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"remediation": remediation,
-		"event":       "database.CreateRemediation",
-	})
-
-	remediationRow := RemediationRow{}
-	remediationRow.FromRemediation(remediation)
-
-	query := remediationObject.InsertQuery()
-	id, err := performInsert(s, query, remediationRow, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Remediation: %w", err)
-	}
-
-	remediation.Id = id
-
-	return remediation, nil
+	return remediationObject.Create(s.db, remediation)
 }
 
-// This function can be extracted to generic function, but we would need to change
-// all functions like FromRemediation etc functions to interface (FromRemediation->EntityToRow, AsRemediation->RowToEntity)
 func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
-	return remediationObject.Update(s.db, *remediation)
+	return remediationObject.Update(s.db, remediation)
 }
 
-// This function can be extracted to generic function when CreateRemediation and UpdateRemediation will be generic
 func (s *SqlDatabase) DeleteRemediation(id int64, userId int64) error {
 	return remediationObject.Delete(s.db, id, userId)
 }

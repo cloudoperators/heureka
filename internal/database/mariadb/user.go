@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var userObject = DbObject[entity.User, *UserRow]{
+var userObject = DbObject[*entity.User, *UserRow]{
 	Prefix:    "user",
 	TableName: "User",
 	Properties: []*Property{
@@ -234,27 +234,11 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 }
 
 func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"user":  user,
-		"event": "database.CreateUser",
-	})
-
-	userRow := UserRow{}
-	userRow.FromUser(user)
-
-	query := userObject.InsertQuery()
-	id, err := performInsert(s, query, userRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	user.Id = id
-
-	return user, nil
+	return userObject.Create(s.db, user)
 }
 
 func (s *SqlDatabase) UpdateUser(user *entity.User) error {
-	return userObject.Update(s.db, *user)
+	return userObject.Update(s.db, user)
 }
 
 func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {

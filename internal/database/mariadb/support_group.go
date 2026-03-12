@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var supportGroupObject = DbObject[entity.SupportGroup, *SupportGroupRow]{
+var supportGroupObject = DbObject[*entity.SupportGroup, *SupportGroupRow]{
 	Prefix:    "supportgroup",
 	TableName: "SupportGroup",
 	Properties: []*Property{
@@ -207,27 +207,11 @@ func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int
 }
 
 func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"supportGroup": supportGroup,
-		"event":        "database.CreateSupportGroup",
-	})
-
-	supportGroupRow := SupportGroupRow{}
-	supportGroupRow.FromSupportGroup(supportGroup)
-
-	query := supportGroupObject.InsertQuery()
-	id, err := performInsert(s, query, supportGroupRow, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SupportGroup: %w", err)
-	}
-
-	supportGroup.Id = id
-
-	return supportGroup, nil
+	return supportGroupObject.Create(s.db, supportGroup)
 }
 
 func (s *SqlDatabase) UpdateSupportGroup(supportGroup *entity.SupportGroup) error {
-	return supportGroupObject.Update(s.db, *supportGroup)
+	return supportGroupObject.Update(s.db, supportGroup)
 }
 
 func (s *SqlDatabase) DeleteSupportGroup(id int64, userId int64) error {

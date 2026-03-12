@@ -270,4 +270,5 @@ func (e Json) String() string {
 }
 
 type Entity interface {
+	SetId(int64)
 }

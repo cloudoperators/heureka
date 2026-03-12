@@ -47,6 +47,10 @@ type Service struct {
 	IssueRepositoryService
 }
 
+func (s *Service) SetId(id int64) {
+	s.Id = id
+}
+
 type ServiceResult struct {
 	WithCursor
 	*ServiceAggregations

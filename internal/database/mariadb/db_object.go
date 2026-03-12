@@ -14,9 +14,7 @@ import (
 
 // DbObject
 // TODO Entity interface add String() method
-// TODO: implement Update
-// TODO: create Entity and Row interface, extract ToEntity ToRow, reuse
-type DbObject[ET any, R Row[ET]] struct {
+type DbObject[ET entity.Entity, R Row[ET]] struct {
 	Prefix           string
 	TableName        string
 	Properties       []*Property
@@ -62,6 +60,100 @@ func (do *DbObject[ET, R]) GetFilterParameters(filter entity.HasPagination, with
 	return filterParameters
 }
 
+func (do *DbObject[ET, R]) Create(db Db, entityItem ET) (ET, error) {
+	var zero ET
+	l := logrus.WithFields(logrus.Fields{
+		do.Prefix: entityItem,
+		"event":   fmt.Sprintf("database.Create%s", do.TableName),
+	})
+
+	row := do.NewRow()
+	row.FromEntity(entityItem)
+
+	query := do.InsertQuery()
+
+	stmt, err := db.PrepareNamed(query) //TODO: extract function or change origin to use s.db instead of s
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+			}).Error(msg)
+		//TODO: Consider check for duplicated entry in here to create database.NewDuplicateEntryDatabaseError()
+		return zero, fmt.Errorf("%s", msg)
+	}
+
+	defer stmt.Close()
+	res, err := stmt.Exec(row)
+	if err != nil {
+		msg := err.Error()
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+			}).Error(msg)
+		return zero, fmt.Errorf("%s", msg)
+	}
+	// end of performExec
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		msg := "Error while getting last insert id"
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+			}).Error(msg)
+
+		return zero, fmt.Errorf("%s", msg)
+	}
+
+	l.WithFields(
+		logrus.Fields{
+			"id": id,
+		}).Debug("Successfully performed insert")
+
+	entityItem.SetId(id)
+	return entityItem, nil
+}
+
+func (do *DbObject[ET, R]) Update(db Db, entityItem ET) error {
+	l := logrus.WithFields(logrus.Fields{
+		do.Prefix: entityItem,
+		"event":   fmt.Sprintf("database.Update%s", do.TableName),
+	})
+
+	baseQuery := fmt.Sprintf("UPDATE %s SET %s WHERE %s_id = :%s_id", do.TableName, "%s", do.Prefix, do.Prefix)
+
+	updateFields := do.GetUpdateFields(entityItem)
+	query := fmt.Sprintf(baseQuery, updateFields)
+
+	row := do.NewRow()
+	row.FromEntity(entityItem)
+
+	stmt, err := db.PrepareNamed(query) //TODO: remove duplication or change origin to use s.db instead of s
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+			}).Error(msg)
+		return fmt.Errorf("%s", msg)
+	}
+
+	defer stmt.Close()
+	_, err = stmt.Exec(row)
+	if err != nil {
+		msg := err.Error()
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+			}).Error(msg)
+		return fmt.Errorf("%s", msg)
+	}
+	return nil
+}
+
 func (do *DbObject[ET, R]) Delete(db Db, id int64, userId int64) error {
 	l := logrus.WithFields(logrus.Fields{
 		"id":    id,
@@ -79,7 +171,7 @@ func (do *DbObject[ET, R]) Delete(db Db, id int64, userId int64) error {
 		"id":     id,
 	}
 
-	stmt, err := db.PrepareNamed(query)
+	stmt, err := db.PrepareNamed(query) //TODO: extract function or change origin to use s.db instead of s
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -92,44 +184,6 @@ func (do *DbObject[ET, R]) Delete(db Db, id int64, userId int64) error {
 
 	defer stmt.Close()
 	_, err = stmt.Exec(args)
-	if err != nil {
-		msg := err.Error()
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-			}).Error(msg)
-		return fmt.Errorf("%s", msg)
-	}
-	return nil
-}
-
-func (do *DbObject[ET, R]) Update(db Db, entityItem ET) error {
-	l := logrus.WithFields(logrus.Fields{
-		do.Prefix: entityItem,
-		"event":   fmt.Sprintf("database.Update%s", do.TableName),
-	})
-
-	baseQuery := fmt.Sprintf("UPDATE %s SET %s WHERE %s_id = :%s_id", do.TableName, "%s", do.Prefix, do.Prefix)
-
-	updateFields := componentObject.GetUpdateFields(&entityItem)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	row := do.NewRow()
-	row.FromEntity(entityItem)
-
-	stmt, err := db.PrepareNamed(query) //TODO: remove duplication
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-			}).Error(msg)
-		return fmt.Errorf("%s", msg)
-	}
-
-	defer stmt.Close()
-	_, err = stmt.Exec(row)
 	if err != nil {
 		msg := err.Error()
 		l.WithFields(
