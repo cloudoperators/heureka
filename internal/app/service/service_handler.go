@@ -60,16 +60,14 @@ func NewServiceHandlerError(msg string) *ServiceHandlerError {
 func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*entity.Service, error) {
 	op := appErrors.Op("serviceHandler.GetService")
 
-	l := logrus.WithFields(logrus.Fields{
-		"event": GetServiceEventName,
-		"id":    serviceId,
-	})
-
 	// get current user id
 	currentUserId, err := common.GetCurrentUserId(ctx, s.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Error while getting current user id")
+		wrappedErr := appErrors.InternalError(string(op), "Services", fmt.Sprint(serviceId), err)
+		applog.LogError(s.logger, wrappedErr, logrus.Fields{
+			"serviceId": serviceId,
+		})
+		return nil, wrappedErr
 	}
 
 	// Authorization check
@@ -81,8 +79,11 @@ func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*enti
 		ObjectId:   openfga.ObjectId(fmt.Sprint(serviceId)),
 	})
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Error while checking permission for user")
+		wrappedErr := appErrors.InternalError(string(op), "Services", fmt.Sprint(serviceId), err)
+		applog.LogError(s.logger, wrappedErr, logrus.Fields{
+			"serviceId": serviceId,
+		})
+		return nil, wrappedErr
 	}
 	if !hasPermission {
 		wrappedErr := appErrors.PermissionDeniedError(string(op), "Service", fmt.Sprint(serviceId))
@@ -98,12 +99,19 @@ func (s *serviceHandler) GetService(ctx context.Context, serviceId int64) (*enti
 
 	services, err := s.ListServices(ctx, &serviceFilter, lo)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Internal error while retrieving services.")
+		wrappedErr := appErrors.InternalError(string(op), "Services", fmt.Sprint(serviceId), err)
+		applog.LogError(s.logger, wrappedErr, logrus.Fields{
+			"serviceId": serviceId,
+		})
+		return nil, wrappedErr
 	}
 
 	if len(services.Elements) != 1 {
-		return nil, NewServiceHandlerError(fmt.Sprintf("Service %d not found.", serviceId))
+		wrappedErr := appErrors.NotFoundError(string(op), "Service", fmt.Sprint(serviceId))
+		applog.LogError(s.logger, wrappedErr, logrus.Fields{
+			"serviceId": serviceId,
+		})
+		return nil, wrappedErr
 	}
 
 	s.eventRegistry.PushEvent(&GetServiceEvent{ServiceID: serviceId, Service: services.Elements[0].Service})
@@ -117,26 +125,29 @@ func (s *serviceHandler) ListServices(ctx context.Context, filter *entity.Servic
 	var res []entity.ServiceResult
 	var err error
 
+	op := appErrors.Op("serviceHandler.ListServices")
+
 	common.EnsurePaginated(&filter.Paginated)
 	options = common.EnsureListOptions(options)
-
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListServicesEventName,
-		"filter": filter,
-	})
 
 	// get current user id
 	currentUserId, err := common.GetCurrentUserId(ctx, s.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Error while getting current user id")
+		wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
+		applog.LogError(s.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	// Authorization check
 	accessibleSupportGroupIds, err := s.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
 	if err != nil {
-		l.Error(err)
-		return nil, NewServiceHandlerError("Error while listing accessible services for user")
+		wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
+		applog.LogError(s.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	// Update the filter.Id based on accessibleSupportGroupIds
@@ -152,8 +163,11 @@ func (s *serviceHandler) ListServices(ctx context.Context, filter *entity.Servic
 			options.Order,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewServiceHandlerError("Internal error while retrieving list results with aggregations")
+			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
+			applog.LogError(s.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	} else {
 		res, err = cache.CallCached[[]entity.ServiceResult](
@@ -165,8 +179,11 @@ func (s *serviceHandler) ListServices(ctx context.Context, filter *entity.Servic
 			options.Order,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewServiceHandlerError("Internal error while retrieving list results.")
+			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
+			applog.LogError(s.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	}
 
@@ -181,7 +198,11 @@ func (s *serviceHandler) ListServices(ctx context.Context, filter *entity.Servic
 				options.Order,
 			)
 			if err != nil {
-				return nil, NewServiceHandlerError("Error while getting all cursors")
+				wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
+				applog.LogError(s.logger, wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
@@ -195,8 +216,11 @@ func (s *serviceHandler) ListServices(ctx context.Context, filter *entity.Servic
 			filter,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewServiceHandlerError("Error while total count of Services")
+			wrappedErr := appErrors.InternalError(string(op), "Services", "", err)
+			applog.LogError(s.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	}
 	ret := &entity.List[entity.ServiceResult]{

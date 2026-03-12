@@ -48,16 +48,14 @@ func (e *SupportGroupHandlerError) Error() string {
 func (sg *supportGroupHandler) GetSupportGroup(ctx context.Context, supportGroupId int64) (*entity.SupportGroup, error) {
 	op := appErrors.Op("supportGroupHandler.GetSupportGroup")
 
-	l := logrus.WithFields(logrus.Fields{
-		"event": GetSupportGroupEventName,
-		"id":    supportGroupId,
-	})
-
 	// get current user id
 	currentUserId, err := common.GetCurrentUserId(ctx, sg.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewSupportGroupHandlerError("Error while getting current user id")
+		wrappedErr := appErrors.InternalError(string(op), "SupportGroups", fmt.Sprint(supportGroupId), err)
+		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+			"supportGroupId": supportGroupId,
+		})
+		return nil, wrappedErr
 	}
 
 	// Authorization check
@@ -69,11 +67,14 @@ func (sg *supportGroupHandler) GetSupportGroup(ctx context.Context, supportGroup
 		ObjectId:   openfga.ObjectId(fmt.Sprint(supportGroupId)),
 	})
 	if err != nil {
-		l.Error(err)
-		return nil, NewSupportGroupHandlerError("Error while checking permission for user")
+		wrappedErr := appErrors.InternalError(string(op), "SupportGroups", fmt.Sprint(supportGroupId), err)
+		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+			"supportGroupId": supportGroupId,
+		})
+		return nil, wrappedErr
 	}
 	if !hasPermission {
-		wrappedErr := appErrors.PermissionDeniedError(string(op), "SupportGroup", fmt.Sprint(supportGroupId))
+		wrappedErr := appErrors.PermissionDeniedError(string(op), "SupportGroups", fmt.Sprint(supportGroupId))
 		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
 			"supportGroupId": supportGroupId,
 			"userId":         currentUserId,
@@ -85,12 +86,19 @@ func (sg *supportGroupHandler) GetSupportGroup(ctx context.Context, supportGroup
 	supportGroupFilter := entity.SupportGroupFilter{Id: []*int64{&supportGroupId}}
 	supportGroups, err := sg.ListSupportGroups(ctx, &supportGroupFilter, lo)
 	if err != nil {
-		l.Error(err)
-		return nil, NewSupportGroupHandlerError("Internal error while retrieving supportGroup.")
+		wrappedErr := appErrors.InternalError(string(op), "SupportGroups", fmt.Sprint(supportGroupId), err)
+		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+			"supportGroupId": supportGroupId,
+		})
+		return nil, wrappedErr
 	}
 
 	if len(supportGroups.Elements) != 1 {
-		return nil, NewSupportGroupHandlerError(fmt.Sprintf("SupportGroup %d not found.", supportGroupId))
+		wrappedErr := appErrors.InternalError(string(op), "SupportGroups", fmt.Sprint(supportGroupId), err)
+		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+			"supportGroupId": supportGroupId,
+		})
+		return nil, wrappedErr
 	}
 
 	sg.eventRegistry.PushEvent(&GetSupportGroupEvent{
@@ -105,25 +113,28 @@ func (sg *supportGroupHandler) ListSupportGroups(ctx context.Context, filter *en
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginated(&filter.Paginated)
+	op := appErrors.Op("supportGroupHandler.ListSupportGroups")
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListSupportGroupsEventName,
-		"filter": filter,
-	})
+	common.EnsurePaginated(&filter.Paginated)
 
 	// get current user id
 	currentUserId, err := common.GetCurrentUserId(ctx, sg.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewSupportGroupHandlerError("Error while getting current user id")
+		wrappedErr := appErrors.InternalError(string(op), "SupportGroups", "", err)
+		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	// Authorization check
 	accessibleSupportGroupIds, err := sg.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
 	if err != nil {
-		l.Error(err)
-		return nil, NewSupportGroupHandlerError("Error while listing accessible support groups for user")
+		wrappedErr := appErrors.InternalError(string(op), "SupportGroups", "", err)
+		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	// Update the filter.Id based on accessibleSupportGroupIds
@@ -131,16 +142,22 @@ func (sg *supportGroupHandler) ListSupportGroups(ctx context.Context, filter *en
 
 	res, err := sg.database.GetSupportGroups(filter, options.Order)
 	if err != nil {
-		l.Error(err)
-		return nil, NewSupportGroupHandlerError("Error while filtering for SupportGroups")
+		wrappedErr := appErrors.InternalError(string(op), "SupportGroups", "", err)
+		applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
 			cursors, err := sg.database.GetAllSupportGroupCursors(filter, options.Order)
 			if err != nil {
-				l.Error(err)
-				return nil, NewSupportGroupHandlerError("Error while getting all cursors")
+				wrappedErr := appErrors.InternalError(string(op), "SupportGroups", "", err)
+				applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
@@ -148,8 +165,11 @@ func (sg *supportGroupHandler) ListSupportGroups(ctx context.Context, filter *en
 	} else if options.ShowTotalCount {
 		count, err = sg.database.CountSupportGroups(filter)
 		if err != nil {
-			l.Error(err)
-			return nil, NewSupportGroupHandlerError("Error while total count of SupportGroups")
+			wrappedErr := appErrors.InternalError(string(op), "SupportGroups", "", err)
+			applog.LogError(sg.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	}
 

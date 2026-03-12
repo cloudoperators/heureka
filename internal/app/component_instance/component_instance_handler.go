@@ -67,15 +67,21 @@ func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, 
 	// get current user id
 	currentUserId, err := common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
-		ci.logger.Error(err)
-		return nil, NewComponentInstanceHandlerError("Error while getting current user id")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	// Authorization check
 	accessibleServiceIds, err := ci.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeService)
 	if err != nil {
-		ci.logger.Error(err)
-		return nil, NewComponentInstanceHandlerError("Error while listing accessible component instances for user")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
+		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	// Update the filter.ServiceId based on accessibleServiceIds

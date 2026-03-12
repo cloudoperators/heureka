@@ -10,8 +10,10 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -28,6 +30,7 @@ type userHandler struct {
 	cache         cache.Cache
 	eventRegistry event.EventRegistry
 	authz         openfga.Authorization
+	logger        *logrus.Logger
 }
 
 func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
@@ -36,6 +39,7 @@ func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
 		cache:         handlerContext.Cache,
 		eventRegistry: handlerContext.EventReg,
 		authz:         handlerContext.Authz,
+		logger:        logrus.New(),
 	}
 }
 
@@ -55,25 +59,28 @@ func (u *userHandler) ListUsers(ctx context.Context, filter *entity.UserFilter, 
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginated(&filter.Paginated)
+	op := appErrors.Op("userHandler.ListUsers")
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListUsersEventName,
-		"filter": filter,
-	})
+	common.EnsurePaginated(&filter.Paginated)
 
 	// get current user id
 	currentUserId, err := common.GetCurrentUserId(ctx, u.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Error while getting current user id")
+		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+		applog.LogError(u.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	// Authorization check
 	accessibleSupportGroupIds, err := u.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Error while listing accessible users for user")
+		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+		applog.LogError(u.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	// Update the filter.Id based on accessibleSupportGroupIds
@@ -87,8 +94,11 @@ func (u *userHandler) ListUsers(ctx context.Context, filter *entity.UserFilter, 
 		filter,
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Error while getting Users")
+		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+		applog.LogError(u.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	if options.ShowPageInfo {
@@ -102,9 +112,11 @@ func (u *userHandler) ListUsers(ctx context.Context, filter *entity.UserFilter, 
 				options.Order,
 			)
 			if err != nil {
-				l.Error(err)
-
-				return nil, NewUserHandlerError("Error while getting User cursors")
+				wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+				applog.LogError(u.logger, wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
 
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
@@ -113,8 +125,11 @@ func (u *userHandler) ListUsers(ctx context.Context, filter *entity.UserFilter, 
 	} else if options.ShowTotalCount {
 		count, err = u.database.CountUsers(filter)
 		if err != nil {
-			l.Error(err)
-			return nil, NewUserHandlerError("Error while total count of Users")
+			wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+			applog.LogError(u.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	}
 	ret := &entity.List[entity.UserResult]{
