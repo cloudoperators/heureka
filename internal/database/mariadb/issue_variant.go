@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueVariantObject = DbObject[entity.IssueVariant, *IssueVariantRow]{
+var issueVariantObject = DbObject[*entity.IssueVariant, *IssueVariantRow]{
 	Prefix:    "issuevariant",
 	TableName: "IssueVariant",
 	Properties: []*Property{
@@ -231,27 +231,11 @@ func (s *SqlDatabase) CountIssueVariants(filter *entity.IssueVariantFilter) (int
 }
 
 func (s *SqlDatabase) CreateIssueVariant(issueVariant *entity.IssueVariant) (*entity.IssueVariant, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"issueVariant": issueVariant,
-		"event":        "database.CreateIssueVariant",
-	})
-
-	issueVariantRow := IssueVariantRow{}
-	issueVariantRow.FromIssueVariant(issueVariant)
-
-	query := issueVariantObject.InsertQuery()
-	id, err := performInsert(s, query, issueVariantRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	issueVariant.Id = id
-
-	return issueVariant, nil
+	return issueVariantObject.Create(s.db, issueVariant)
 }
 
 func (s *SqlDatabase) UpdateIssueVariant(issueVariant *entity.IssueVariant) error {
-	return issueVariantObject.Update(s.db, *issueVariant)
+	return issueVariantObject.Update(s.db, issueVariant)
 }
 
 func (s *SqlDatabase) DeleteIssueVariant(id int64, userId int64) error {

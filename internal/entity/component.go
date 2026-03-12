@@ -31,3 +31,7 @@ type ComponentFilter struct {
 }
 
 type ComponentAggregations struct{}
+
+func (c *Component) SetId(id int64) {
+	c.Id = id
+}

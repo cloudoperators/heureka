@@ -102,6 +102,10 @@ type Issue struct {
 	ComponentVersions []ComponentVersion `json:"component_versions,omitempty"`
 }
 
+func (i *Issue) SetId(id int64) {
+	i.Id = id
+}
+
 type IssueCount struct {
 	Count int64  `json:"issue_count"`
 	Value string `json:"issue_value"`

@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueObject = DbObject[entity.Issue, *IssueRow]{
+var issueObject = DbObject[*entity.Issue, *IssueRow]{
 	Prefix:    "issue",
 	TableName: "Issue",
 	Properties: []*Property{
@@ -523,27 +523,11 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 }
 
 func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"issue": issue,
-		"event": "database.CreateIssue",
-	})
-
-	issueRow := IssueRow{}
-	issueRow.FromIssue(issue)
-
-	query := issueObject.InsertQuery()
-	id, err := performInsert(s, query, issueRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	issue.Id = id
-
-	return issue, nil
+	return issueObject.Create(s.db, issue)
 }
 
 func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
-	return issueObject.Update(s.db, *issue)
+	return issueObject.Update(s.db, issue)
 }
 
 func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {

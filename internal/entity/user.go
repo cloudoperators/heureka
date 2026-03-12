@@ -21,6 +21,10 @@ type User struct {
 	Email        string   `json:"email"`
 }
 
+func (u *User) SetId(id int64) {
+	u.Id = id
+}
+
 type UserFilter struct {
 	Paginated
 	Name           []*string         `json:"name"`

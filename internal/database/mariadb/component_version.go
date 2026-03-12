@@ -5,16 +5,14 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
-var componentVersionObject = DbObject[entity.ComponentVersion, *ComponentVersionRow]{
+var componentVersionObject = DbObject[*entity.ComponentVersion, *ComponentVersionRow]{
 	Prefix:    "componentversion",
 	TableName: "ComponentVersion",
 	Properties: []*Property{
@@ -256,29 +254,11 @@ func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilt
 }
 
 func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"componentVersion": componentVersion,
-		"event":            "database.CreateComponentVersion",
-	})
-
-	componentVersionRow := ComponentVersionRow{}
-	componentVersionRow.FromComponentVersion(componentVersion)
-
-	query := componentVersionObject.InsertQuery()
-	id, err := performInsert(s, query, componentVersionRow, l)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "Error 1062") {
-			return nil, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("for ComponentVersion: %s ", componentVersion.Version))
-		}
-		return nil, err
-	}
-
-	componentVersion.Id = id
-	return componentVersion, nil
+	return componentVersionObject.Create(s.db, componentVersion)
 }
 
 func (s *SqlDatabase) UpdateComponentVersion(componentVersion *entity.ComponentVersion) error {
-	return componentVersionObject.Update(s.db, *componentVersion)
+	return componentVersionObject.Update(s.db, componentVersion)
 }
 
 func (s *SqlDatabase) DeleteComponentVersion(id int64, userId int64) error {

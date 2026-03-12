@@ -9,6 +9,10 @@ type SupportGroup struct {
 	CCRN string `json:"ccrn"`
 }
 
+func (sg *SupportGroup) SetId(id int64) {
+	sg.Id = id
+}
+
 type SupportGroupFilter struct {
 	Paginated
 	Id        []*int64          `json:"id"`

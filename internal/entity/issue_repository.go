@@ -12,6 +12,10 @@ type BaseIssueRepository struct {
 	Services      []Service      `json:"services,omitempty"`
 }
 
+func (bir *BaseIssueRepository) SetId(id int64) {
+	bir.Id = id
+}
+
 type IssueRepositoryFilter struct {
 	Paginated
 	Id          []*int64          `json:"id"`

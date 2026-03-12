@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var serviceObject = DbObject[entity.Service, *ServiceRow]{
+var serviceObject = DbObject[*entity.Service, *ServiceRow]{
 	Prefix:    "service",
 	TableName: "Service",
 	Properties: []*Property{
@@ -402,27 +402,11 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 }
 
 func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"service": service,
-		"event":   "database.CreateService",
-	})
-
-	serviceRow := ServiceRow{}
-	serviceRow.FromService(service)
-
-	query := serviceObject.InsertQuery()
-	id, err := performInsert(s, query, serviceRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	service.Id = id
-
-	return service, nil
+	return serviceObject.Create(s.db, service)
 }
 
 func (s *SqlDatabase) UpdateService(service *entity.Service) error {
-	return serviceObject.Update(s.db, *service)
+	return serviceObject.Update(s.db, service)
 }
 
 func (s *SqlDatabase) DeleteService(id int64, userId int64) error {

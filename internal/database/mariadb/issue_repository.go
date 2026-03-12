@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueRepositoryObject = DbObject[entity.IssueRepository, *IssueRepositoryRow]{
+var issueRepositoryObject = DbObject[*entity.IssueRepository, *IssueRepositoryRow]{
 	Prefix:    "issuerepository",
 	TableName: "IssueRepository",
 	Properties: []*Property{
@@ -212,27 +212,11 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 }
 
 func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"issueRepository": issueRepository,
-		"event":           "database.CreateIssueRepository",
-	})
-
-	issueRepositoryRow := IssueRepositoryRow{}
-	issueRepositoryRow.FromIssueRepository(issueRepository)
-
-	query := issueRepositoryObject.InsertQuery()
-	id, err := performInsert(s, query, issueRepositoryRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	issueRepository.Id = id
-
-	return issueRepository, nil
+	return issueRepositoryObject.Create(s.db, issueRepository)
 }
 
 func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueRepository) error {
-	return issueRepositoryObject.Update(s.db, *issueRepository)
+	return issueRepositoryObject.Update(s.db, issueRepository)
 }
 
 func (s *SqlDatabase) DeleteIssueRepository(id int64, userId int64) error {

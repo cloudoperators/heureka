@@ -16,7 +16,7 @@ const (
 	wildCardFilterParamCount = 2
 )
 
-var issueMatchObject = DbObject[entity.IssueMatch, *IssueMatchRow]{
+var issueMatchObject = DbObject[*entity.IssueMatch, *IssueMatchRow]{
 	Prefix:    "issuematch",
 	TableName: "IssueMatch",
 	Properties: []*Property{
@@ -313,27 +313,11 @@ func (s *SqlDatabase) CountIssueMatches(filter *entity.IssueMatchFilter) (int64,
 }
 
 func (s *SqlDatabase) CreateIssueMatch(issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"issueMatch": issueMatch,
-		"event":      "database.CreateIssueMatch",
-	})
-
-	issueMatchRow := IssueMatchRow{}
-	issueMatchRow.FromIssueMatch(issueMatch)
-
-	query := issueMatchObject.InsertQuery()
-	id, err := performInsert(s, query, issueMatchRow, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create IssueMatch: %w", err)
-	}
-
-	issueMatch.Id = id
-
-	return issueMatch, nil
+	return issueMatchObject.Create(s.db, issueMatch)
 }
 
 func (s *SqlDatabase) UpdateIssueMatch(issueMatch *entity.IssueMatch) error {
-	return issueMatchObject.Update(s.db, *issueMatch)
+	return issueMatchObject.Update(s.db, issueMatch)
 }
 
 func (s *SqlDatabase) DeleteIssueMatch(id int64, userId int64) error {
