@@ -154,6 +154,7 @@ func (s *SqlDatabase) getPatches(disappearedInstances []int) (map[patchInfo]stru
 
 	for _, inst := range disappearedInstances {
 		patchInfo, err := s.fetchServiceAndVersionForInstance(inst)
+		//TODO: if no rows continue
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				continue // skip instances with no rows
