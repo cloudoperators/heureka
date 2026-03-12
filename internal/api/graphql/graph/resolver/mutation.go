@@ -7,6 +7,7 @@ package resolver
 
 import (
 	"context"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
@@ -655,6 +656,10 @@ func (r *mutationResolver) FailScannerRun(ctx context.Context, uuid string, mess
 }
 
 func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.RemediationInput) (*model.Remediation, error) {
+	if input.RemediationDate == nil {
+		input.RemediationDate = lo.ToPtr(time.Now().UTC().Format(time.RFC3339))
+	}
+
 	remediation := model.NewRemediationEntity(&input)
 
 	// fetch service id for given service name
