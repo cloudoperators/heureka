@@ -11,13 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var serviceObject = DbObject{
+var serviceObject = DbObject[*entity.Service]{
+	Prefix:    "service",
+	TableName: "Service",
 	Properties: []*Property{
-		NewProperty("service_ccrn", WrapChecker(func(s *entity.Service) bool { return s.CCRN != "" })),
-		NewProperty("service_domain", WrapChecker(func(s *entity.Service) bool { return s.Domain != "" })),
-		NewProperty("service_region", WrapChecker(func(s *entity.Service) bool { return s.Region != "" })),
-		NewImmutableProperty("service_created_by"),
-		NewProperty("service_updated_by", WrapChecker(func(s *entity.Service) bool { return s.BaseService.UpdatedBy != 0 })),
+		NewProperty("service_ccrn", WrapAccess(func(s *entity.Service) (string, bool) { return s.CCRN, s.CCRN != "" })),
+		NewProperty("service_domain", WrapAccess(func(s *entity.Service) (string, bool) { return s.Domain, s.Domain != "" })),
+		NewProperty("service_region", WrapAccess(func(s *entity.Service) (string, bool) { return s.Region, s.Region != "" })),
+		NewProperty("service_created_by", WrapAccess(func(s *entity.Service) (int64, bool) { return s.BaseService.CreatedBy, NoUpdate })),
+		NewProperty("service_updated_by", WrapAccess(func(s *entity.Service) (int64, bool) { return s.BaseService.UpdatedBy, s.BaseService.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.CCRN })),
@@ -399,69 +401,15 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 }
 
 func (s *SqlDatabase) CreateService(service *entity.Service) (*entity.Service, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"service": service,
-		"event":   "database.CreateService",
-	})
-
-	serviceRow := ServiceRow{}
-	serviceRow.FromService(service)
-
-	query := serviceObject.InsertQuery("Service")
-	id, err := performInsert(s, query, serviceRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	service.Id = id
-
-	return service, nil
+	return serviceObject.Create(s.db, service)
 }
 
 func (s *SqlDatabase) UpdateService(service *entity.Service) error {
-	l := logrus.WithFields(logrus.Fields{
-		"service": service,
-		"event":   "database.UpdateService",
-	})
-
-	baseQuery := `
-		UPDATE Service SET
-		%s
-		WHERE service_id = :service_id
-	`
-
-	updateFields := serviceObject.GetUpdateFields(service)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	serviceRow := ServiceRow{}
-	serviceRow.FromService(service)
-
-	_, err := performExec(s, query, serviceRow, l)
-
-	return err
+	return serviceObject.Update(s.db, service)
 }
 
 func (s *SqlDatabase) DeleteService(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteService",
-	})
-
-	query := `
-		UPDATE Service SET
-		service_deleted_at = NOW(),
-		service_updated_by = :userId
-		WHERE service_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return serviceObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {

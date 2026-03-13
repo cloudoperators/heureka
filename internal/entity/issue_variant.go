@@ -16,6 +16,14 @@ type IssueVariant struct {
 	ExternalUrl       string           `json:"external_url"`
 }
 
+func (iv *IssueVariant) GetId() int64 {
+	return iv.Id
+}
+
+func (iv *IssueVariant) SetId(id int64) {
+	iv.Id = id
+}
+
 type IssueVariantFilter struct {
 	Paginated
 	Id                []*int64          `json:"id"`

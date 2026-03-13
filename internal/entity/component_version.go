@@ -42,3 +42,11 @@ type ComponentVersion struct {
 	Issues             []Issue             `json:"issues,omitempty"`
 	EndOfLife          *bool               `json:"end_of_life,omitempty"`
 }
+
+func (cv *ComponentVersion) GetId() int64 {
+	return cv.Id
+}
+
+func (cv *ComponentVersion) SetId(id int64) {
+	cv.Id = id
+}

@@ -11,24 +11,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentInstanceObject = DbObject{
+var componentInstanceObject = DbObject[*entity.ComponentInstance]{
+	Prefix:    "componentinstance",
+	TableName: "ComponentInstance",
 	Properties: []*Property{
-		NewProperty("componentinstance_ccrn", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.CCRN != "" })),
-		NewProperty("componentinstance_region", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Region != "" })),
-		NewProperty("componentinstance_cluster", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Cluster != "" })),
-		NewProperty("componentinstance_namespace", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Namespace != "" })),
-		NewProperty("componentinstance_domain", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Domain != "" })),
-		NewProperty("componentinstance_project", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Project != "" })),
-		NewProperty("componentinstance_pod", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Pod != "" })),
-		NewProperty("componentinstance_container", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Container != "" })),
-		NewProperty("componentinstance_type", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Type != "" })),
-		NewProperty("componentinstance_parent_id", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.ParentId != 0 })),
-		NewProperty("componentinstance_context", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Context != nil })),
-		NewProperty("componentinstance_count", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Count != 0 })),
-		NewProperty("componentinstance_component_version_id", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.ComponentVersionId != 0 })),
-		NewProperty("componentinstance_service_id", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.ServiceId != 0 })),
-		NewImmutableProperty("componentinstance_created_by"),
-		NewProperty("componentinstance_updated_by", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.UpdatedBy != 0 })),
+		NewProperty("componentinstance_ccrn", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.CCRN, ci.CCRN != "" })),
+		NewProperty("componentinstance_region", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Region, ci.Region != "" })),
+		NewProperty("componentinstance_cluster", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Cluster, ci.Cluster != "" })),
+		NewProperty("componentinstance_namespace", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Namespace, ci.Namespace != "" })),
+		NewProperty("componentinstance_domain", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Domain, ci.Domain != "" })),
+		NewProperty("componentinstance_project", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Project, ci.Project != "" })),
+		NewProperty("componentinstance_pod", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Pod, ci.Pod != "" })),
+		NewProperty("componentinstance_container", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Container, ci.Container != "" })),
+		NewProperty("componentinstance_type", WrapAccess(func(ci *entity.ComponentInstance) (entity.ComponentInstanceType, bool) { return ci.Type, ci.Type != "" })),
+		NewProperty("componentinstance_parent_id", WrapAccess(func(ci *entity.ComponentInstance) (*int64, bool) { return NullableId(ci.ParentId) })),
+		NewProperty("componentinstance_context", WrapAccess(func(ci *entity.ComponentInstance) (*entity.Json, bool) { return ci.Context, ci.Context != nil })),
+		NewProperty("componentinstance_count", WrapAccess(func(ci *entity.ComponentInstance) (int16, bool) { return ci.Count, ci.Count != 0 })),
+		NewProperty("componentinstance_component_version_id", WrapAccess(func(ci *entity.ComponentInstance) (*int64, bool) { return NullableId(ci.ComponentVersionId) })),
+		NewProperty("componentinstance_service_id", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.ServiceId, ci.ServiceId != 0 })),
+		NewProperty("componentinstance_created_by", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.CreatedBy, NoUpdate })),
+		NewProperty("componentinstance_updated_by", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.UpdatedBy, ci.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("CI.componentinstance_id = ?", WrapRetSlice(func(filter *entity.ComponentInstanceFilter) []*int64 { return filter.Id })),
@@ -233,76 +235,15 @@ func (s *SqlDatabase) CountComponentInstances(filter *entity.ComponentInstanceFi
 }
 
 func (s *SqlDatabase) CreateComponentInstance(componentInstance *entity.ComponentInstance) (*entity.ComponentInstance, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"componentInstance": componentInstance,
-		"event":             "database.CreateComponentInstance",
-	})
-
-	componentInstanceRow := ComponentInstanceRow{}
-	componentInstanceRow.FromComponentInstance(componentInstance)
-
-	query := componentInstanceObject.InsertQuery("ComponentInstance")
-	id, err := performInsert(s, query, componentInstanceRow, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create ComponentInstance with CCRN '%s': %w",
-			componentInstance.CCRN, err)
-	}
-
-	componentInstance.Id = id
-	return componentInstance, nil
+	return componentInstanceObject.Create(s.db, componentInstance)
 }
 
 func (s *SqlDatabase) UpdateComponentInstance(componentInstance *entity.ComponentInstance) error {
-	l := logrus.WithFields(logrus.Fields{
-		"componentInstance": componentInstance,
-		"event":             "database.UpdateComponentInstance",
-	})
-
-	baseQuery := `
-		UPDATE ComponentInstance SET
-		%s
-		WHERE componentinstance_id = :componentinstance_id
-	`
-
-	updateFields := componentInstanceObject.GetUpdateFields(componentInstance)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	componentInstanceRow := ComponentInstanceRow{}
-	componentInstanceRow.FromComponentInstance(componentInstance)
-
-	_, err := performExec(s, query, componentInstanceRow, l)
-	if err != nil {
-		return fmt.Errorf("failed to update ComponentInstance with ID %d (CCRN: '%s'): %w",
-			componentInstance.Id, componentInstance.CCRN, err)
-	}
-
-	return nil
+	return componentInstanceObject.Update(s.db, componentInstance)
 }
 
 func (s *SqlDatabase) DeleteComponentInstance(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteComponentInstance",
-	})
-
-	query := `
-		UPDATE ComponentInstance SET
-		componentinstance_deleted_at = NOW(),
-		componentinstance_updated_by = :userId
-		WHERE componentinstance_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		return fmt.Errorf("failed to delete ComponentInstance with ID %d: %w", id, err)
-	}
-
-	return nil
+	return componentInstanceObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) getComponentInstanceAttr(attrName string, filter *entity.ComponentInstanceFilter) ([]string, error) {

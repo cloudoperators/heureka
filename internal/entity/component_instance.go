@@ -152,3 +152,11 @@ type ComponentInstance struct {
 	Service            *Service              `json:"service,omitempty"`
 	ServiceId          int64                 `db:"componentinstance_service_id"`
 }
+
+func (ci *ComponentInstance) GetId() int64 {
+	return ci.Id
+}
+
+func (ci *ComponentInstance) SetId(id int64) {
+	ci.Id = id
+}

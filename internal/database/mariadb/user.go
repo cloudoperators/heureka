@@ -11,14 +11,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var userObject = DbObject{
+var userObject = DbObject[*entity.User]{
+	Prefix:    "user",
+	TableName: "User",
 	Properties: []*Property{
-		NewProperty("user_name", WrapChecker(func(u *entity.User) bool { return u.Name != "" })),
-		NewProperty("user_unique_user_id", WrapChecker(func(u *entity.User) bool { return u.UniqueUserID != "" })),
-		NewProperty("user_type", WrapChecker(func(u *entity.User) bool { return u.Type != entity.InvalidUserType })),
-		NewProperty("user_email", WrapChecker(func(u *entity.User) bool { return u.Email != "" })),
-		NewImmutableProperty("user_created_by"),
-		NewProperty("user_updated_by", WrapChecker(func(u *entity.User) bool { return u.UpdatedBy != 0 })),
+		NewProperty("user_name", WrapAccess(func(u *entity.User) (string, bool) { return u.Name, u.Name != "" })),
+		NewProperty("user_unique_user_id", WrapAccess(func(u *entity.User) (string, bool) { return u.UniqueUserID, u.UniqueUserID != "" })),
+		NewProperty("user_type", WrapAccess(func(u *entity.User) (entity.UserType, bool) { return u.Type, u.Type != entity.InvalidUserType })),
+		NewProperty("user_email", WrapAccess(func(u *entity.User) (string, bool) { return u.Email, u.Email != "" })),
+		NewProperty("user_created_by", WrapAccess(func(u *entity.User) (int64, bool) { return u.CreatedBy, NoUpdate })),
+		NewProperty("user_updated_by", WrapAccess(func(u *entity.User) (int64, bool) { return u.UpdatedBy, u.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("U.user_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.Id })),
@@ -231,70 +233,15 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 }
 
 func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"user":  user,
-		"event": "database.CreateUser",
-	})
-
-	userRow := UserRow{}
-	userRow.FromUser(user)
-
-	query := userObject.InsertQuery("User")
-	id, err := performInsert(s, query, userRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	user.Id = id
-
-	return user, nil
+	return userObject.Create(s.db, user)
 }
 
 func (s *SqlDatabase) UpdateUser(user *entity.User) error {
-	l := logrus.WithFields(logrus.Fields{
-		"user":  user,
-		"event": "database.UpdateUser",
-	})
-
-	baseQuery := `
-		UPDATE User SET
-		%s
-		WHERE user_id = :user_id
-	`
-
-	updateFields := userObject.GetUpdateFields(user)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	userRow := UserRow{}
-	userRow.FromUser(user)
-
-	_, err := performExec(s, query, userRow, l)
-
-	return err
+	return userObject.Update(s.db, user)
 }
 
 func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteUser",
-	})
-
-	query := `
-		UPDATE User SET
-		user_deleted_at = NOW(),
-		user_updated_by = :userId
-		WHERE user_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return userObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) {
