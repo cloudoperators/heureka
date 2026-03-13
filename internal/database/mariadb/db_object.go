@@ -234,6 +234,13 @@ func EnsurePagination[T entity.HasPagination](filter T) T {
 	return filter
 }
 
+func NullableId(id int64) (*int64, bool) {
+	if id == 0 {
+		return nil, false // skip in update/insert
+	}
+	return &id, true
+}
+
 func PerformExecArgs(db Db, query string, args []any, l *logrus.Entry) (sql.Result, error) {
 	res, err := db.Exec(query, args...)
 	if err != nil {
@@ -359,7 +366,7 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 	}
 }
 
-func ToStateSlice(in []any) []entity.StateFilterType { //REMOVE TEMPLATE?
+func ToStateSlice(in []any) []entity.StateFilterType {
 	out := make([]entity.StateFilterType, len(in))
 	for i := range in {
 		s, ok := in[i].(entity.StateFilterType)
@@ -371,7 +378,7 @@ func ToStateSlice(in []any) []entity.StateFilterType { //REMOVE TEMPLATE?
 	return out
 }
 
-func ToJsonSlice(in []any) []*entity.Json { //REMOVE TEMPLATE?
+func ToJsonSlice(in []any) []*entity.Json {
 	out := make([]*entity.Json, len(in))
 	for i := range in {
 		s, ok := in[i].(*entity.Json)
@@ -381,4 +388,11 @@ func ToJsonSlice(in []any) []*entity.Json { //REMOVE TEMPLATE?
 		out[i] = s
 	}
 	return out
+}
+
+func ValueOrDefault[T any](p *T, def T) T {
+	if p == nil {
+		return def
+	}
+	return *p
 }

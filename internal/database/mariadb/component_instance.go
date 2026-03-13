@@ -24,12 +24,10 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 		NewProperty("componentinstance_pod", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Pod, ci.Pod != "" })),
 		NewProperty("componentinstance_container", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Container, ci.Container != "" })),
 		NewProperty("componentinstance_type", WrapAccess(func(ci *entity.ComponentInstance) (entity.ComponentInstanceType, bool) { return ci.Type, ci.Type != "" })),
-		NewProperty("componentinstance_parent_id", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.ParentId, ci.ParentId != 0 })),
+		NewProperty("componentinstance_parent_id", WrapAccess(func(ci *entity.ComponentInstance) (*int64, bool) { return NullableId(ci.ParentId) })),
 		NewProperty("componentinstance_context", WrapAccess(func(ci *entity.ComponentInstance) (*entity.Json, bool) { return ci.Context, ci.Context != nil })),
 		NewProperty("componentinstance_count", WrapAccess(func(ci *entity.ComponentInstance) (int16, bool) { return ci.Count, ci.Count != 0 })),
-		NewProperty("componentinstance_component_version_id", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) {
-			return ci.ComponentVersionId, ci.ComponentVersionId != 0
-		})),
+		NewProperty("componentinstance_component_version_id", WrapAccess(func(ci *entity.ComponentInstance) (*int64, bool) { return NullableId(ci.ComponentVersionId) })),
 		NewProperty("componentinstance_service_id", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.ServiceId, ci.ServiceId != 0 })),
 		NewProperty("componentinstance_created_by", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.CreatedBy, NoUpdate })),
 		NewProperty("componentinstance_updated_by", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.UpdatedBy, ci.UpdatedBy != 0 })),
