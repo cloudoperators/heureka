@@ -23,7 +23,9 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 		NewProperty("componentversion_organization", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Organization, cv.Organization != "" })),
 		NewProperty("componentversion_created_by", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.CreatedBy, NoUpdate })),
 		NewProperty("componentversion_updated_by", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.UpdatedBy, cv.UpdatedBy != 0 })),
-		NewProperty("componentversion_end_of_life", WrapAccess(func(cv *entity.ComponentVersion) (*bool, bool) { return cv.EndOfLife, cv.EndOfLife != nil })),
+		NewProperty("componentversion_end_of_life", WrapAccess(func(cv *entity.ComponentVersion) (bool, bool) {
+			return ValueOrDefault(cv.EndOfLife, false), cv.EndOfLife != nil
+		})),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("CV.componentversion_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.Id })),
