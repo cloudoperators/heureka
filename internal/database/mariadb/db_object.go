@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -72,45 +73,10 @@ func (do *DbObject[ET, R]) Create(db Db, entityItem ET) (ET, error) {
 
 	query := do.InsertQuery()
 
-	stmt, err := db.PrepareNamed(query) //TODO: extract function or change origin to use s.db instead of s
+	id, err := PerformInsert(db, query, row, l)
 	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-			}).Error(msg)
-		//TODO: Consider check for duplicated entry in here to create database.NewDuplicateEntryDatabaseError()
-		return zero, fmt.Errorf("%s", msg)
+		return zero, err
 	}
-
-	defer stmt.Close()
-	res, err := stmt.Exec(row)
-	if err != nil {
-		msg := err.Error()
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-			}).Error(msg)
-		return zero, fmt.Errorf("%s", msg)
-	}
-	// end of performExec
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		msg := "Error while getting last insert id"
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-			}).Error(msg)
-
-		return zero, fmt.Errorf("%s", msg)
-	}
-
-	l.WithFields(
-		logrus.Fields{
-			"id": id,
-		}).Debug("Successfully performed insert")
 
 	entityItem.SetId(id)
 	return entityItem, nil
@@ -130,28 +96,8 @@ func (do *DbObject[ET, R]) Update(db Db, entityItem ET) error {
 	row := do.NewRow()
 	row.FromEntity(entityItem)
 
-	stmt, err := db.PrepareNamed(query) //TODO: remove duplication or change origin to use s.db instead of s
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-			}).Error(msg)
-		return fmt.Errorf("%s", msg)
-	}
-
-	defer stmt.Close()
-	_, err = stmt.Exec(row)
-	if err != nil {
-		msg := err.Error()
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-			}).Error(msg)
-		return fmt.Errorf("%s", msg)
-	}
-	return nil
+	_, err := PerformExec(db, query, row, l)
+	return err
 }
 
 func (do *DbObject[ET, R]) Delete(db Db, id int64, userId int64) error {
@@ -171,28 +117,8 @@ func (do *DbObject[ET, R]) Delete(db Db, id int64, userId int64) error {
 		"id":     id,
 	}
 
-	stmt, err := db.PrepareNamed(query) //TODO: extract function or change origin to use s.db instead of s
-	if err != nil {
-		msg := ERROR_MSG_PREPARED_STMT
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-				"query": query,
-			}).Error(msg)
-		return fmt.Errorf("%s", msg)
-	}
-
-	defer stmt.Close()
-	_, err = stmt.Exec(args)
-	if err != nil {
-		msg := err.Error()
-		l.WithFields(
-			logrus.Fields{
-				"error": err,
-			}).Error(msg)
-		return fmt.Errorf("%s", msg)
-	}
-	return nil
+	_, err := PerformExec(db, query, args, l)
+	return err
 }
 
 // Property
@@ -290,6 +216,55 @@ func EnsurePagination[T entity.HasPagination](filter T) T {
 	}
 
 	return filter
+}
+
+func PerformExec[T any](db Db, query string, item T, l *logrus.Entry) (sql.Result, error) {
+	stmt, err := db.PrepareNamed(query)
+	if err != nil {
+		msg := ERROR_MSG_PREPARED_STMT
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+				"query": query,
+			}).Error(msg)
+		return nil, fmt.Errorf("%s", msg)
+	}
+
+	defer stmt.Close()
+	res, err := stmt.Exec(item)
+	if err != nil {
+		msg := err.Error()
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+			}).Error(msg)
+		return nil, fmt.Errorf("%s", msg)
+	}
+	return res, nil
+}
+
+func PerformInsert[T any](db Db, query string, item T, l *logrus.Entry) (int64, error) {
+	res, err := PerformExec(db, query, item, l)
+	if err != nil {
+		return -1, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		msg := "Error while getting last insert id"
+		l.WithFields(
+			logrus.Fields{
+				"error": err,
+			}).Error(msg)
+		return -1, fmt.Errorf("%s", msg)
+	}
+
+	l.WithFields(
+		logrus.Fields{
+			"id": id,
+		}).Debug("Successfully performed insert")
+
+	return id, nil
 }
 
 // Helpers
