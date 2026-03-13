@@ -31,6 +31,19 @@ func GetCurrentUserId(ctx context.Context, db database.Database) (int64, error) 
 	}
 }
 
+func GetCurrentUniqueUserId(ctx context.Context) (string, error) {
+	if authentication_context.IsAuthenticationRequired(ctx) {
+		uniqueUserId, err := authentication_context.UserNameFromContext(ctx)
+		if err != nil {
+			return "", fmt.Errorf("Could not get user name from context: %w", err)
+		}
+
+		return uniqueUserId, nil
+	} else {
+		return systemUserUniqueUserId, nil
+	}
+}
+
 func getUserIdFromDb(db database.Database, uniqueUserId string) (int64, error) {
 	filter := &entity.UserFilter{UniqueUserID: []*string{&uniqueUserId}}
 	ids, err := db.GetAllUserIds(filter)

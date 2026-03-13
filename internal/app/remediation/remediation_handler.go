@@ -142,9 +142,22 @@ func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"remediation": remediation,
 		})
+
 		return nil, wrappedErr
 	}
+
 	remediation.UpdatedBy = remediation.CreatedBy
+	remediation.RemediatedById = remediation.CreatedBy
+
+	remediation.RemediatedBy, err = common.GetCurrentUniqueUserId(ctx)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
+		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+			"remediation": remediation,
+		})
+
+		return nil, wrappedErr
+	}
 
 	newRemediation, err := rh.database.CreateRemediation(remediation)
 	if err != nil {
