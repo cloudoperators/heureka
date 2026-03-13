@@ -21,6 +21,10 @@ type User struct {
 	Email        string   `json:"email"`
 }
 
+func (u *User) GetId() int64 {
+	return u.Id
+}
+
 func (u *User) SetId(id int64) {
 	u.Id = id
 }

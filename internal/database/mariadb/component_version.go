@@ -12,18 +12,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentVersionObject = DbObject[*entity.ComponentVersion, *ComponentVersionRow]{
+var componentVersionObject = DbObject[*entity.ComponentVersion]{
 	Prefix:    "componentversion",
 	TableName: "ComponentVersion",
 	Properties: []*Property{
-		NewProperty("componentversion_component_id", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.ComponentId != 0 })),
-		NewProperty("componentversion_version", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Version != "" })),
-		NewProperty("componentversion_tag", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Tag != "" })),
-		NewProperty("componentversion_repository", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Repository != "" })),
-		NewProperty("componentversion_organization", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Organization != "" })),
-		NewImmutableProperty("componentversion_created_by"),
-		NewProperty("componentversion_updated_by", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.UpdatedBy != 0 })),
-		NewProperty("componentversion_end_of_life", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.EndOfLife != nil })),
+		NewProperty("componentversion_component_id", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.ComponentId, cv.ComponentId != 0 })),
+		NewProperty("componentversion_version", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Version, cv.Version != "" })),
+		NewProperty("componentversion_tag", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Tag, cv.Tag != "" })),
+		NewProperty("componentversion_repository", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Repository, cv.Repository != "" })),
+		NewProperty("componentversion_organization", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Organization, cv.Organization != "" })),
+		NewProperty("componentversion_created_by", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.CreatedBy, NoUpdate })),
+		NewProperty("componentversion_updated_by", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.UpdatedBy, cv.UpdatedBy != 0 })),
+		NewProperty("componentversion_end_of_life", WrapAccess(func(cv *entity.ComponentVersion) (*bool, bool) { return cv.EndOfLife, cv.EndOfLife != nil })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("CV.componentversion_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.Id })),
@@ -40,7 +40,6 @@ var componentVersionObject = DbObject[*entity.ComponentVersion, *ComponentVersio
 		NewFilterProperty("CV.componentversion_end_of_life = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*bool { return filter.EndOfLife })),
 		NewStateFilterProperty("CV.componentversion", WrapRetState(func(filter *entity.ComponentVersionFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *ComponentVersionRow { return &ComponentVersionRow{} },
 }
 
 func ensureComponentVersionFilter(filter *entity.ComponentVersionFilter) *entity.ComponentVersionFilter {

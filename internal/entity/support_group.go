@@ -9,6 +9,10 @@ type SupportGroup struct {
 	CCRN string `json:"ccrn"`
 }
 
+func (sg *SupportGroup) GetId() int64 {
+	return sg.Id
+}
+
 func (sg *SupportGroup) SetId(id int64) {
 	sg.Id = id
 }

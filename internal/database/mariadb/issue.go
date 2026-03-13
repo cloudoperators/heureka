@@ -14,15 +14,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueObject = DbObject[*entity.Issue, *IssueRow]{
+var issueObject = DbObject[*entity.Issue]{
 	Prefix:    "issue",
 	TableName: "Issue",
 	Properties: []*Property{
-		NewProperty("issue_primary_name", WrapChecker(func(i *entity.Issue) bool { return i.PrimaryName != "" })),
-		NewProperty("issue_type", WrapChecker(func(i *entity.Issue) bool { return i.Type != "" })),
-		NewProperty("issue_description", WrapChecker(func(i *entity.Issue) bool { return i.Description != "" })),
-		NewImmutableProperty("issue_created_by"),
-		NewProperty("issue_updated_by", WrapChecker(func(i *entity.Issue) bool { return i.UpdatedBy != 0 })),
+		NewProperty("issue_primary_name", WrapAccess(func(i *entity.Issue) (string, bool) { return i.PrimaryName, i.PrimaryName != "" })),
+		NewProperty("issue_type", WrapAccess(func(i *entity.Issue) (entity.IssueType, bool) { return i.Type, i.Type != "" })),
+		NewProperty("issue_description", WrapAccess(func(i *entity.Issue) (string, bool) { return i.Description, i.Description != "" })),
+		NewProperty("issue_created_by", WrapAccess(func(i *entity.Issue) (int64, bool) { return i.CreatedBy, NoUpdate })),
+		NewProperty("issue_updated_by", WrapAccess(func(i *entity.Issue) (int64, bool) { return i.UpdatedBy, i.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.ServiceCCRN })),
@@ -58,7 +58,6 @@ var issueObject = DbObject[*entity.Issue, *IssueRow]{
 			}),
 			WrapRetSlice(func(filter *entity.IssueFilter) []entity.IssueStatus { return []entity.IssueStatus{filter.Status} })),
 	},
-	NewRow: func() *IssueRow { return &IssueRow{} },
 }
 
 func ensureIssueFilter(filter *entity.IssueFilter) *entity.IssueFilter {

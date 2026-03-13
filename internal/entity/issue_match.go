@@ -53,6 +53,10 @@ type IssueMatch struct {
 	TargetRemediationDate time.Time             `json:"target_remediation_date"`
 }
 
+func (im *IssueMatch) GetId() int64 {
+	return im.Id
+}
+
 func (im *IssueMatch) SetId(id int64) {
 	im.Id = id
 }

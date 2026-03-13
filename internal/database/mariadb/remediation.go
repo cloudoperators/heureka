@@ -5,33 +5,36 @@ package mariadb
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-var remediationObject = DbObject[*entity.Remediation, *RemediationRow]{
+var remediationObject = DbObject[*entity.Remediation]{
 	Prefix:    "remediation",
 	TableName: "Remediation",
 	Properties: []*Property{
-		NewProperty("remediation_description", WrapChecker(func(r *entity.Remediation) bool { return r.Description != "" })),
-		NewProperty("remediation_type", WrapChecker(func(r *entity.Remediation) bool { return r.Type != "" && r.Type != entity.RemediationTypeUnknown })),
-		NewProperty("remediation_severity", WrapChecker(func(r *entity.Remediation) bool {
-			return r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
+		NewProperty("remediation_description", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Description, r.Description != "" })),
+		NewProperty("remediation_type", WrapAccess(func(r *entity.Remediation) (entity.RemediationType, bool) {
+			return r.Type, r.Type != "" && r.Type != entity.RemediationTypeUnknown
 		})),
-		NewProperty("remediation_remediation_date", WrapChecker(func(r *entity.Remediation) bool { return !r.RemediationDate.IsZero() })),
-		NewProperty("remediation_expiration_date", WrapChecker(func(r *entity.Remediation) bool { return !r.ExpirationDate.IsZero() })),
-		NewProperty("remediation_service", WrapChecker(func(r *entity.Remediation) bool { return r.Service != "" })),
-		NewProperty("remediation_service_id", WrapChecker(func(r *entity.Remediation) bool { return r.ServiceId != 0 })),
-		NewProperty("remediation_component", WrapChecker(func(r *entity.Remediation) bool { return r.Component != "" })),
-		NewProperty("remediation_component_id", WrapChecker(func(r *entity.Remediation) bool { return r.ComponentId != 0 })),
-		NewProperty("remediation_issue", WrapChecker(func(r *entity.Remediation) bool { return r.Issue != "" })),
-		NewProperty("remediation_issue_id", WrapChecker(func(r *entity.Remediation) bool { return r.IssueId != 0 })),
-		NewImmutableProperty("remediation_remediated_by"),
-		NewImmutableProperty("remediation_remediated_by_id"),
-		NewImmutableProperty("remediation_created_by"),
-		NewProperty("remediation_updated_by", WrapChecker(func(r *entity.Remediation) bool { return r.UpdatedBy != 0 })),
+		NewProperty("remediation_severity", WrapAccess(func(r *entity.Remediation) (entity.SeverityValues, bool) {
+			return r.Severity, r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
+		})),
+		NewProperty("remediation_remediation_date", WrapAccess(func(r *entity.Remediation) (time.Time, bool) { return r.RemediationDate, !r.RemediationDate.IsZero() })),
+		NewProperty("remediation_expiration_date", WrapAccess(func(r *entity.Remediation) (time.Time, bool) { return r.ExpirationDate, !r.ExpirationDate.IsZero() })),
+		NewProperty("remediation_service", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Service, r.Service != "" })),
+		NewProperty("remediation_service_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.ServiceId, r.ServiceId != 0 })),
+		NewProperty("remediation_component", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Component, r.Component != "" })),
+		NewProperty("remediation_component_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.ComponentId, r.ComponentId != 0 })),
+		NewProperty("remediation_issue", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Issue, r.Issue != "" })),
+		NewProperty("remediation_issue_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.IssueId, r.IssueId != 0 })),
+		NewProperty("remediation_remediated_by", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.RemediatedBy, NoUpdate })),
+		NewProperty("remediation_remediated_by_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.RemediatedById, NoUpdate })),
+		NewProperty("remediation_created_by", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.CreatedBy, NoUpdate })),
+		NewProperty("remediation_updated_by", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.UpdatedBy, r.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("R.remediation_id = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.Id })),
@@ -46,7 +49,6 @@ var remediationObject = DbObject[*entity.Remediation, *RemediationRow]{
 		NewFilterProperty("R.remediation_issue LIKE Concat('%',?,'%')", WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Search })),
 		NewStateFilterProperty("R.remediation", WrapRetState(func(filter *entity.RemediationFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *RemediationRow { return &RemediationRow{} },
 }
 
 func ensureRemediationFilter(filter *entity.RemediationFilter) *entity.RemediationFilter {

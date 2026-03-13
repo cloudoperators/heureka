@@ -11,26 +11,28 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentInstanceObject = DbObject[*entity.ComponentInstance, *ComponentInstanceRow]{
+var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 	Prefix:    "componentinstance",
 	TableName: "ComponentInstance",
 	Properties: []*Property{
-		NewProperty("componentinstance_ccrn", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.CCRN != "" })),
-		NewProperty("componentinstance_region", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Region != "" })),
-		NewProperty("componentinstance_cluster", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Cluster != "" })),
-		NewProperty("componentinstance_namespace", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Namespace != "" })),
-		NewProperty("componentinstance_domain", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Domain != "" })),
-		NewProperty("componentinstance_project", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Project != "" })),
-		NewProperty("componentinstance_pod", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Pod != "" })),
-		NewProperty("componentinstance_container", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Container != "" })),
-		NewProperty("componentinstance_type", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Type != "" })),
-		NewProperty("componentinstance_parent_id", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.ParentId != 0 })),
-		NewProperty("componentinstance_context", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Context != nil })),
-		NewProperty("componentinstance_count", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.Count != 0 })),
-		NewProperty("componentinstance_component_version_id", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.ComponentVersionId != 0 })),
-		NewProperty("componentinstance_service_id", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.ServiceId != 0 })),
-		NewImmutableProperty("componentinstance_created_by"),
-		NewProperty("componentinstance_updated_by", WrapChecker(func(ci *entity.ComponentInstance) bool { return ci.UpdatedBy != 0 })),
+		NewProperty("componentinstance_ccrn", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.CCRN, ci.CCRN != "" })),
+		NewProperty("componentinstance_region", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Region, ci.Region != "" })),
+		NewProperty("componentinstance_cluster", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Cluster, ci.Cluster != "" })),
+		NewProperty("componentinstance_namespace", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Namespace, ci.Namespace != "" })),
+		NewProperty("componentinstance_domain", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Domain, ci.Domain != "" })),
+		NewProperty("componentinstance_project", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Project, ci.Project != "" })),
+		NewProperty("componentinstance_pod", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Pod, ci.Pod != "" })),
+		NewProperty("componentinstance_container", WrapAccess(func(ci *entity.ComponentInstance) (string, bool) { return ci.Container, ci.Container != "" })),
+		NewProperty("componentinstance_type", WrapAccess(func(ci *entity.ComponentInstance) (entity.ComponentInstanceType, bool) { return ci.Type, ci.Type != "" })),
+		NewProperty("componentinstance_parent_id", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.ParentId, ci.ParentId != 0 })),
+		NewProperty("componentinstance_context", WrapAccess(func(ci *entity.ComponentInstance) (*entity.Json, bool) { return ci.Context, ci.Context != nil })),
+		NewProperty("componentinstance_count", WrapAccess(func(ci *entity.ComponentInstance) (int16, bool) { return ci.Count, ci.Count != 0 })),
+		NewProperty("componentinstance_component_version_id", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) {
+			return ci.ComponentVersionId, ci.ComponentVersionId != 0
+		})),
+		NewProperty("componentinstance_service_id", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.ServiceId, ci.ServiceId != 0 })),
+		NewProperty("componentinstance_created_by", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.CreatedBy, NoUpdate })),
+		NewProperty("componentinstance_updated_by", WrapAccess(func(ci *entity.ComponentInstance) (int64, bool) { return ci.UpdatedBy, ci.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("CI.componentinstance_id = ?", WrapRetSlice(func(filter *entity.ComponentInstanceFilter) []*int64 { return filter.Id })),
@@ -53,7 +55,6 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance, *ComponentInst
 		NewFilterProperty("CI.componentinstance_ccrn LIKE Concat('%',?,'%')", WrapRetSlice(func(filter *entity.ComponentInstanceFilter) []*string { return filter.Search })),
 		NewStateFilterProperty("CI.componentinstance", WrapRetState(func(filter *entity.ComponentInstanceFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *ComponentInstanceRow { return &ComponentInstanceRow{} },
 }
 
 func ensureComponentInstanceFilter(filter *entity.ComponentInstanceFilter) *entity.ComponentInstanceFilter {

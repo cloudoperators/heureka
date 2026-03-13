@@ -11,14 +11,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueRepositoryObject = DbObject[*entity.IssueRepository, *IssueRepositoryRow]{
+var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 	Prefix:    "issuerepository",
 	TableName: "IssueRepository",
 	Properties: []*Property{
-		NewProperty("issuerepository_name", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.Name != "" })),
-		NewProperty("issuerepository_url", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.Url != "" })),
-		NewImmutableProperty("issuerepository_created_by"),
-		NewProperty("issuerepository_updated_by", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.BaseIssueRepository.UpdatedBy != 0 })),
+		NewProperty("issuerepository_name", WrapAccess(func(ir *entity.IssueRepository) (string, bool) { return ir.Name, ir.Name != "" })),
+		NewProperty("issuerepository_url", WrapAccess(func(ir *entity.IssueRepository) (string, bool) { return ir.Url, ir.Url != "" })),
+		NewProperty("issuerepository_created_by", WrapAccess(func(ir *entity.IssueRepository) (int64, bool) { return ir.BaseIssueRepository.CreatedBy, NoUpdate })),
+		NewProperty("issuerepository_updated_by", WrapAccess(func(ir *entity.IssueRepository) (int64, bool) {
+			return ir.BaseIssueRepository.UpdatedBy, ir.BaseIssueRepository.UpdatedBy != 0
+		})),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("IR.issuerepository_name = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*string { return filter.Name })),
@@ -27,7 +29,6 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository, *IssueRepositoryRo
 		NewFilterProperty("IRS.issuerepositoryservice_service_id = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.ServiceId })),
 		NewStateFilterProperty("IR.issuerepository", WrapRetState(func(filter *entity.IssueRepositoryFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *IssueRepositoryRow { return &IssueRepositoryRow{} },
 }
 
 func ensureIssueRepositoryFilter(filter *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {

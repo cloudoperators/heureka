@@ -11,22 +11,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueVariantObject = DbObject[*entity.IssueVariant, *IssueVariantRow]{
+var issueVariantObject = DbObject[*entity.IssueVariant]{
 	Prefix:    "issuevariant",
 	TableName: "IssueVariant",
 	Properties: []*Property{
-		NewProperty("issuevariant_issue_id", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.IssueId != 0 })),
-		NewProperty("issuevariant_repository_id", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.IssueRepositoryId != 0 })),
+		NewProperty("issuevariant_issue_id", WrapAccess(func(iv *entity.IssueVariant) (int64, bool) { return iv.IssueId, iv.IssueId != 0 })),
+		NewProperty("issuevariant_repository_id", WrapAccess(func(iv *entity.IssueVariant) (int64, bool) { return iv.IssueRepositoryId, iv.IssueRepositoryId != 0 })),
 		// if rating but not vector is passed, we need to include the vector in the update in order to overwrite any existing vector
-		NewProperty("issuevariant_vector", WrapChecker(func(iv *entity.IssueVariant) bool {
-			return iv.Severity.Cvss.Vector != "" || (iv.Severity.Value != "" && iv.Severity.Cvss.Vector == "")
+		NewProperty("issuevariant_vector", WrapAccess(func(iv *entity.IssueVariant) (string, bool) {
+			return iv.Severity.Cvss.Vector, iv.Severity.Cvss.Vector != "" || (iv.Severity.Value != "" && iv.Severity.Cvss.Vector == "")
 		})),
-		NewProperty("issuevariant_rating", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.Severity.Value != "" })),
-		NewProperty("issuevariant_secondary_name", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.SecondaryName != "" })),
-		NewProperty("issuevariant_description", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.Description != "" })),
-		NewProperty("issuevariant_external_url", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.ExternalUrl != "" })),
-		NewImmutableProperty("issuevariant_created_by"),
-		NewProperty("issuevariant_updated_by", WrapChecker(func(iv *entity.IssueVariant) bool { return iv.UpdatedBy != 0 })),
+		NewProperty("issuevariant_rating", WrapAccess(func(iv *entity.IssueVariant) (string, bool) { return iv.Severity.Value, iv.Severity.Value != "" })),
+		NewProperty("issuevariant_secondary_name", WrapAccess(func(iv *entity.IssueVariant) (string, bool) { return iv.SecondaryName, iv.SecondaryName != "" })),
+		NewProperty("issuevariant_description", WrapAccess(func(iv *entity.IssueVariant) (string, bool) { return iv.Description, iv.Description != "" })),
+		NewProperty("issuevariant_external_url", WrapAccess(func(iv *entity.IssueVariant) (string, bool) { return iv.ExternalUrl, iv.ExternalUrl != "" })),
+		NewProperty("issuevariant_created_by", WrapAccess(func(iv *entity.IssueVariant) (int64, bool) { return iv.CreatedBy, NoUpdate })),
+		NewProperty("issuevariant_updated_by", WrapAccess(func(iv *entity.IssueVariant) (int64, bool) { return iv.UpdatedBy, iv.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("IV.issuevariant_id = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.Id })),
@@ -37,7 +37,6 @@ var issueVariantObject = DbObject[*entity.IssueVariant, *IssueVariantRow]{
 		NewFilterProperty("IM.issuematch_id = ?", WrapRetSlice(func(filter *entity.IssueVariantFilter) []*int64 { return filter.IssueMatchId })),
 		NewStateFilterProperty("IV.issuevariant", WrapRetState(func(filter *entity.IssueVariantFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *IssueVariantRow { return &IssueVariantRow{} },
 }
 
 func ensureIssueVariantFilter(filter *entity.IssueVariantFilter) *entity.IssueVariantFilter {

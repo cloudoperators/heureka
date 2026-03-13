@@ -11,16 +11,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var userObject = DbObject[*entity.User, *UserRow]{
+var userObject = DbObject[*entity.User]{
 	Prefix:    "user",
 	TableName: "User",
 	Properties: []*Property{
-		NewProperty("user_name", WrapChecker(func(u *entity.User) bool { return u.Name != "" })),
-		NewProperty("user_unique_user_id", WrapChecker(func(u *entity.User) bool { return u.UniqueUserID != "" })),
-		NewProperty("user_type", WrapChecker(func(u *entity.User) bool { return u.Type != entity.InvalidUserType })),
-		NewProperty("user_email", WrapChecker(func(u *entity.User) bool { return u.Email != "" })),
-		NewImmutableProperty("user_created_by"),
-		NewProperty("user_updated_by", WrapChecker(func(u *entity.User) bool { return u.UpdatedBy != 0 })),
+		NewProperty("user_name", WrapAccess(func(u *entity.User) (string, bool) { return u.Name, u.Name != "" })),
+		NewProperty("user_unique_user_id", WrapAccess(func(u *entity.User) (string, bool) { return u.UniqueUserID, u.UniqueUserID != "" })),
+		NewProperty("user_type", WrapAccess(func(u *entity.User) (entity.UserType, bool) { return u.Type, u.Type != entity.InvalidUserType })),
+		NewProperty("user_email", WrapAccess(func(u *entity.User) (string, bool) { return u.Email, u.Email != "" })),
+		NewProperty("user_created_by", WrapAccess(func(u *entity.User) (int64, bool) { return u.CreatedBy, NoUpdate })),
+		NewProperty("user_updated_by", WrapAccess(func(u *entity.User) (int64, bool) { return u.UpdatedBy, u.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("U.user_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.Id })),
@@ -32,7 +32,6 @@ var userObject = DbObject[*entity.User, *UserRow]{
 		NewFilterProperty("O.owner_service_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.ServiceId })),
 		NewStateFilterProperty("U.user", WrapRetState(func(filter *entity.UserFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *UserRow { return &UserRow{} },
 }
 
 func ensureUserFilter(filter *entity.UserFilter) *entity.UserFilter {
