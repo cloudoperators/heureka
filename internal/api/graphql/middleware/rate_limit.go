@@ -4,6 +4,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -66,12 +67,16 @@ func (i *IPRateLimiter) getLimiter(ip string) *rate.Limiter {
 
 func (i *IPRateLimiter) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ip := c.ClientIP()
+		ip := c.RemoteIP()
 		limiter := i.getLimiter(ip)
 
 		if !limiter.Allow() {
-			c.Header("Retry-After", "1")
-			c.Header("X-RateLimit-Limit", "")
+			r := limiter.Reserve()
+			retryAfter := r.Delay()
+			r.Cancel()
+
+			c.Header("Retry-After", fmt.Sprintf("%d", int(retryAfter.Seconds())+1))
+			c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", i.burst))
 			c.Header("X-RateLimit-Remaining", "0")
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "Too many requests",
