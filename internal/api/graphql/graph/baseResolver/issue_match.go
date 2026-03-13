@@ -32,7 +32,7 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 
 	opt := entity.NewListOptions()
 
-	issueMatches, err := app.ListIssueMatches(f, opt)
+	issueMatches, err := app.ListIssueMatches(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueMatchBaseResolver", err.Error())
@@ -125,7 +125,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		opt.Order = append(opt.Order, o.ToOrderEntity())
 	}
 
-	issueMatches, err := app.ListIssueMatches(f, opt)
+	issueMatches, err := app.ListIssueMatches(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("IssueMatchBaseResolver", err.Error())
 	}

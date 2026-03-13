@@ -32,6 +32,7 @@ var _ = Describe("Getting IssueCounts via API", Label("e2e", "IssueCounts"), fun
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

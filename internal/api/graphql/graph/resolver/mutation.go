@@ -111,7 +111,7 @@ func (r *mutationResolver) AddServiceToSupportGroup(ctx context.Context, support
 		return nil, baseResolver.NewResolverError("AddServiceToSupportGroupMutationResolver", "Internal Error - when adding service to supportGroup")
 	}
 
-	supportGroup, err := r.App.AddServiceToSupportGroup(*supportGroupIdInt, *serviceIdInt)
+	supportGroup, err := r.App.AddServiceToSupportGroup(ctx, *supportGroupIdInt, *serviceIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("AddServiceToSupportGroupMutationResolver", "Internal Error - when adding service to supportGroup")
 	}
@@ -132,7 +132,7 @@ func (r *mutationResolver) RemoveServiceFromSupportGroup(ctx context.Context, su
 		return nil, baseResolver.NewResolverError("RemoveServiceFromSupportGroupMutationResolver", "Internal Error - when removing service from supportGroup")
 	}
 
-	supportGroup, err := r.App.RemoveServiceFromSupportGroup(*supportGroupIdInt, *serviceIdInt)
+	supportGroup, err := r.App.RemoveServiceFromSupportGroup(ctx, *supportGroupIdInt, *serviceIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveServiceFromSupportGroupMutationResolver", "Internal Error - when removing service from supportGroup")
 	}
@@ -153,7 +153,7 @@ func (r *mutationResolver) AddUserToSupportGroup(ctx context.Context, supportGro
 		return nil, baseResolver.NewResolverError("AddUserToSupportGroupMutationResolver", "Internal Error - when adding user to supportGroup")
 	}
 
-	supportGroup, err := r.App.AddUserToSupportGroup(*supportGroupIdInt, *userIdInt)
+	supportGroup, err := r.App.AddUserToSupportGroup(ctx, *supportGroupIdInt, *userIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("AddUserToSupportGroupMutationResolver", "Internal Error - when adding user to supportGroup")
 	}
@@ -174,7 +174,7 @@ func (r *mutationResolver) RemoveUserFromSupportGroup(ctx context.Context, suppo
 		return nil, baseResolver.NewResolverError("RemoveUserFromSupportGroupMutationResolver", "Internal Error - when removing user from supportGroup")
 	}
 
-	supportGroup, err := r.App.RemoveUserFromSupportGroup(*supportGroupIdInt, *userIdInt)
+	supportGroup, err := r.App.RemoveUserFromSupportGroup(ctx, *supportGroupIdInt, *userIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveUserFromSupportGroupMutationResolver", "Internal Error - when removing user from supportGroup")
 	}
@@ -355,7 +355,7 @@ func (r *mutationResolver) AddOwnerToService(ctx context.Context, serviceID stri
 		return nil, baseResolver.NewResolverError("AddOwnerToServiceMutationResolver", "Internal Error - when adding owner to service")
 	}
 
-	service, err := r.App.AddOwnerToService(*serviceIdInt, *userIdInt)
+	service, err := r.App.AddOwnerToService(ctx, *serviceIdInt, *userIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("AddOwnerToServiceMutationResolver", "Internal Error - when adding owner to service")
 	}
@@ -376,7 +376,7 @@ func (r *mutationResolver) RemoveOwnerFromService(ctx context.Context, serviceID
 		return nil, baseResolver.NewResolverError("RemoveOwnerFromServiceMutationResolver", "Internal Error - when removing owner from service")
 	}
 
-	service, err := r.App.RemoveOwnerFromService(*serviceIdInt, *userIdInt)
+	service, err := r.App.RemoveOwnerFromService(ctx, *serviceIdInt, *userIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveOwnerFromServiceMutationResolver", "Internal Error - when removing owner from service")
 	}
@@ -397,7 +397,7 @@ func (r *mutationResolver) AddIssueRepositoryToService(ctx context.Context, serv
 		return nil, baseResolver.NewResolverError("AddIssueRepositoryToServiceMutationResolver", "Internal Error - when adding IssueRepository to service")
 	}
 
-	service, err := r.App.AddIssueRepositoryToService(*serviceIdInt, *issueRepositoryIdInt, int64(priority))
+	service, err := r.App.AddIssueRepositoryToService(ctx, *serviceIdInt, *issueRepositoryIdInt, int64(priority))
 	if err != nil {
 		return nil, baseResolver.NewResolverError("AddIssueRepositoryToServiceMutationResolver", "Internal Error - when adding IssueRepository to service")
 	}
@@ -418,7 +418,7 @@ func (r *mutationResolver) RemoveIssueRepositoryFromService(ctx context.Context,
 		return nil, baseResolver.NewResolverError("RemoveIssueRepositoryFromServiceMutationResolver", "Internal Error - when removing IssueRepository from service")
 	}
 
-	service, err := r.App.RemoveIssueRepositoryFromService(*serviceIdInt, *issueRepositoryIdInt)
+	service, err := r.App.RemoveIssueRepositoryFromService(ctx, *serviceIdInt, *issueRepositoryIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveIssueRepositoryFromServiceMutationResolver", "Internal Error - when removing IssueRepository from service")
 	}
@@ -663,14 +663,14 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 	remediation := model.NewRemediationEntity(&input)
 
 	// fetch service id for given service name
-	serviceResult, err := r.App.ListServices(&entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
+	serviceResult, err := r.App.ListServices(ctx, &entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
 	if err != nil || len(serviceResult.Elements) == 0 || len(serviceResult.Elements) > 1 {
 		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - service id not found")
 	}
 	remediation.ServiceId = serviceResult.Elements[0].Id
 
 	// fetch component id for given component name
-	componentResult, err := r.App.ListComponents(&entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
+	componentResult, err := r.App.ListComponents(ctx, &entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
 	if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
 		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - component id not found")
 	}
@@ -704,7 +704,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 	// if service name is updated, update foreign key as well
 	if input.Service != nil {
 		// fetch service id for given service name
-		serviceResult, err := r.App.ListServices(&entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
+		serviceResult, err := r.App.ListServices(ctx, &entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
 		if err != nil || len(serviceResult.Elements) == 0 || len(serviceResult.Elements) > 1 {
 			return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation - service id not found")
 		}
@@ -714,7 +714,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 	// if component name is updated, update foreign key as well
 	if input.Image != nil {
 		// fetch component id for given component name
-		componentResult, err := r.App.ListComponents(&entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
+		componentResult, err := r.App.ListComponents(ctx, &entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
 		if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
 			return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation - component id not found")
 		}
@@ -774,7 +774,7 @@ func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEM
 	}
 
 	if svc != nil && sg != nil {
-		if _, err := r.App.AddServiceToSupportGroup(svc.Id, sg.Id); err != nil {
+		if _, err := r.App.AddServiceToSupportGroup(ctx, svc.Id, sg.Id); err != nil {
 			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when adding service to supportGroup")
 		}
 	}

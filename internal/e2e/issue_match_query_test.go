@@ -34,6 +34,7 @@ var _ = Describe("Getting IssueMatches via API", Label("e2e", "IssueMatches"), f
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -246,6 +247,7 @@ var _ = Describe("Creating IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -312,6 +314,7 @@ var _ = Describe("Updating issueMatch via API", Label("e2e", "IssueMatches"), fu
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -367,6 +370,7 @@ var _ = Describe("Deleting IssueMatch via API", Label("e2e", "IssueMatches"), fu
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

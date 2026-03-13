@@ -37,6 +37,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -327,6 +328,7 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -399,6 +401,7 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -461,6 +464,7 @@ var _ = Describe("Deleting ComponentInstance via API", Label("e2e", "ComponentIn
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

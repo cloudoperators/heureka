@@ -25,6 +25,7 @@ var _ = Describe("Creating ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -148,6 +149,7 @@ var _ = Describe("Querying ScannerRun via API", Label("e2e", "ScannerRun"), func
 
 		cfg = dbm.DbConfig()
 		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

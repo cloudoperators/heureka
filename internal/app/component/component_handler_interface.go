@@ -10,7 +10,7 @@ import (
 )
 
 type ComponentHandler interface {
-	ListComponents(*entity.ComponentFilter, *entity.ListOptions) (*entity.List[entity.ComponentResult], error)
+	ListComponents(context.Context, *entity.ComponentFilter, *entity.ListOptions) (*entity.List[entity.ComponentResult], error)
 	CreateComponent(context.Context, *entity.Component) (*entity.Component, error)
 	UpdateComponent(context.Context, *entity.Component) (*entity.Component, error)
 	DeleteComponent(context.Context, int64) error

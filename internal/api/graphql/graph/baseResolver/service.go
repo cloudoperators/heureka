@@ -30,7 +30,7 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 
 	opt := entity.NewListOptions()
 
-	services, err := app.ListServices(f, opt)
+	services, err := app.ListServices(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleServiceBaseResolver", err.Error())
@@ -116,7 +116,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		}
 	}
 
-	services, err := app.ListServices(f, opt)
+	services, err := app.ListServices(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("ServiceBaseResolver", err.Error())
 	}

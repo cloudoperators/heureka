@@ -115,6 +115,11 @@ func AlreadyExistsError(op, entity, id string) *Error {
 	return E(Op(op), entity, id, AlreadyExists, "already exists")
 }
 
+// PermissionDeniedError creates a new PermissionDenied error
+func PermissionDeniedError(op, entity, id string) *Error {
+	return E(Op(op), entity, id, PermissionDenied, "permission denied")
+}
+
 // InvalidArgumentError creates a new InvalidArgument error
 func InvalidArgumentError(op, entity, reason string) *Error {
 	return &Error{

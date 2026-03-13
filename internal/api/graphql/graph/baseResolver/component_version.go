@@ -30,7 +30,7 @@ func SingleComponentVersionBaseResolver(app app.Heureka, ctx context.Context, pa
 
 	opt := &entity.ListOptions{}
 
-	componentVersions, err := app.ListComponentVersions(f, opt)
+	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleComponentVersionBaseResolver", err.Error())
@@ -126,7 +126,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		}
 	}
 
-	componentVersions, err := app.ListComponentVersions(f, opt)
+	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	//@todo propper error handling
 	if err != nil {
 		return nil, NewResolverError("ComponentVersionBaseResolver", err.Error())

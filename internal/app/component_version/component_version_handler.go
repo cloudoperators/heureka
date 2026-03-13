@@ -6,13 +6,17 @@ package component_version
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,6 +30,8 @@ type componentVersionHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
+	authz         openfga.Authorization
+	logger        *logrus.Logger
 }
 
 func NewComponentVersionHandler(handlerContext common.HandlerContext) ComponentVersionHandler {
@@ -33,6 +39,8 @@ func NewComponentVersionHandler(handlerContext common.HandlerContext) ComponentV
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
+		logger:        logrus.New(),
 	}
 }
 
@@ -48,16 +56,36 @@ func (e *ComponentVersionHandlerError) Error() string {
 	return e.message
 }
 
-func (cv *componentVersionHandler) ListComponentVersions(filter *entity.ComponentVersionFilter, options *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error) {
+func (cv *componentVersionHandler) ListComponentVersions(ctx context.Context, filter *entity.ComponentVersionFilter, options *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
+	op := appErrors.Op("componentVersionHandler.ListComponentVersions")
+
 	common.EnsurePaginated(&filter.Paginated)
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListComponentVersionsEventName,
-		"filter": filter,
-	})
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, cv.database)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
+		applog.LogError(cv.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
+	}
+
+	// Authorization check
+	accessibleComponentIds, err := cv.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeComponent)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
+		applog.LogError(cv.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
+	}
+
+	// Update the filter.ComponentId based on accessibleComponentIds
+	filter.ComponentId = common.CombineFilterWithAccessibleIds(filter.ComponentId, accessibleComponentIds)
 
 	res, err := cache.CallCached[[]entity.ComponentVersionResult](
 		cv.cache,
@@ -68,8 +96,11 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 		options.Order,
 	)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentVersionHandlerError("Error while filtering for ComponentVersions")
+		wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
+		applog.LogError(cv.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	if options.ShowPageInfo {
@@ -83,8 +114,11 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 				options.Order,
 			)
 			if err != nil {
-				l.Error(err)
-				return nil, NewComponentVersionHandlerError("Error while getting all cursors")
+				wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
+				applog.LogError(cv.logger, wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
@@ -98,8 +132,11 @@ func (cv *componentVersionHandler) ListComponentVersions(filter *entity.Componen
 			filter,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewComponentVersionHandlerError("Error while total count of ComponentVersions")
+			wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
+			applog.LogError(cv.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	}
 
@@ -169,7 +206,7 @@ func (cv *componentVersionHandler) UpdateComponentVersion(ctx context.Context, c
 	}
 
 	lo := entity.NewListOptions()
-	componentVersionResult, err := cv.ListComponentVersions(&entity.ComponentVersionFilter{Id: []*int64{&componentVersion.Id}}, lo)
+	componentVersionResult, err := cv.ListComponentVersions(ctx, &entity.ComponentVersionFilter{Id: []*int64{&componentVersion.Id}}, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentVersionHandlerError("Internal error while retrieving updated componentVersion.")

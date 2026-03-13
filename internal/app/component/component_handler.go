@@ -10,9 +10,11 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
 	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/sirupsen/logrus"
@@ -28,7 +30,8 @@ type componentHandler struct {
 	database      database.Database
 	eventRegistry event.EventRegistry
 	cache         cache.Cache
-	openfga       openfga.Authorization
+	authz         openfga.Authorization
+	logger        *logrus.Logger
 }
 
 func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler {
@@ -36,6 +39,8 @@ func NewComponentHandler(handlerContext common.HandlerContext) ComponentHandler 
 		database:      handlerContext.DB,
 		eventRegistry: handlerContext.EventReg,
 		cache:         handlerContext.Cache,
+		authz:         handlerContext.Authz,
+		logger:        logrus.New(),
 	}
 }
 
@@ -51,22 +56,45 @@ func NewComponentHandlerError(msg string) *ComponentHandlerError {
 	return &ComponentHandlerError{msg: msg}
 }
 
-func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, options *entity.ListOptions) (*entity.List[entity.ComponentResult], error) {
+func (cs *componentHandler) ListComponents(ctx context.Context, filter *entity.ComponentFilter, options *entity.ListOptions) (*entity.List[entity.ComponentResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
+
+	op := appErrors.Op("componentHandler.ListComponents")
 
 	common.EnsurePaginated(&filter.Paginated)
 	options = common.EnsureListOptions(options)
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListComponentsEventName,
-		"filter": filter,
-	})
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, cs.database)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
+		applog.LogError(cs.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
+	}
+
+	// Authorization check
+	accessibleComponentIds, err := cs.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeComponent)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
+		applog.LogError(cs.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
+	}
+
+	// Update the filter.Id based on accessibleComponentIds
+	filter.Id = common.CombineFilterWithAccessibleIds(filter.Id, accessibleComponentIds)
 
 	res, err := cs.database.GetComponents(filter, options.Order)
 	if err != nil {
-		l.Error(err)
-		return nil, NewComponentHandlerError("Error while filtering for Components")
+		wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
+		applog.LogError(cs.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	if options.ShowPageInfo {
@@ -80,8 +108,11 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 				options.Order,
 			)
 			if err != nil {
-				l.Error(err)
-				return nil, NewComponentHandlerError("Error while getting all Ids")
+				wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
+				applog.LogError(cs.logger, wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
@@ -95,8 +126,11 @@ func (cs *componentHandler) ListComponents(filter *entity.ComponentFilter, optio
 			filter,
 		)
 		if err != nil {
-			l.Error(err)
-			return nil, NewComponentHandlerError("Error while total count of Components")
+			wrappedErr := appErrors.InternalError(string(op), "Components", "", err)
+			applog.LogError(cs.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	}
 
@@ -131,7 +165,7 @@ func (cs *componentHandler) CreateComponent(ctx context.Context, component *enti
 	component.UpdatedBy = component.CreatedBy
 
 	lo := entity.NewListOptions()
-	components, err := cs.ListComponents(f, lo)
+	components, err := cs.ListComponents(ctx, f, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while creating component.")
@@ -172,7 +206,7 @@ func (cs *componentHandler) UpdateComponent(ctx context.Context, component *enti
 	}
 
 	lo := entity.NewListOptions()
-	componentResult, err := cs.ListComponents(&entity.ComponentFilter{Id: []*int64{&component.Id}}, lo)
+	componentResult, err := cs.ListComponents(ctx, &entity.ComponentFilter{Id: []*int64{&component.Id}}, lo)
 	if err != nil {
 		l.Error(err)
 		return nil, NewComponentHandlerError("Internal error while retrieving updated component.")

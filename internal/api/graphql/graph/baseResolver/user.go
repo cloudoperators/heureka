@@ -30,7 +30,7 @@ func SingleUserBaseResolver(app app.Heureka, ctx context.Context, parent *model.
 
 	opt := &entity.ListOptions{}
 
-	users, err := app.ListUsers(f, opt)
+	users, err := app.ListUsers(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleUserBaseResolver", err.Error())
@@ -92,7 +92,7 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 
 	opt := GetListOptions(requestedFields)
 
-	users, err := app.ListUsers(f, opt)
+	users, err := app.ListUsers(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("UserBaseResolver", err.Error())
 	}
