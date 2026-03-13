@@ -4,8 +4,10 @@
 package processor
 
 type Config struct {
-	HeurekaUrl          string `envconfig:"HEUREKA_URL" required:"true" json:"-"`
-	IssueRepositoryName string `envconfig:"ISSUE_REPOSITORY_NAME" required:"true" default:"nvd" json:"-"`
-	IssueRepositoryUrl  string `envconfig:"ISSUE_REPOSITORY_URL" required:"true" default:"https://nvd.nist.gov/" json:"-"`
-	CveDetailsUrl       string `envconfig:"CVE_DETAILS_URL" required:"true" default:"https://nvd.nist.gov/vuln/detail/" json:"-"`
+	HeurekaUrl          string  `envconfig:"HEUREKA_URL" required:"true" json:"-"`
+	IssueRepositoryName string  `envconfig:"ISSUE_REPOSITORY_NAME" required:"true" default:"nvd" json:"-"`
+	IssueRepositoryUrl  string  `envconfig:"ISSUE_REPOSITORY_URL" required:"true" default:"https://nvd.nist.gov/" json:"-"`
+	CveDetailsUrl       string  `envconfig:"CVE_DETAILS_URL" required:"true" default:"https://nvd.nist.gov/vuln/detail/" json:"-"`
+	HeurekaRateLimit    float64 `envconfig:"HEUREKA_RATE_LIMIT" default:"10000.0" json:"-"`
+	HeurekaRateBurst    int     `envconfig:"HEUREKA_RATE_BURST" default:"10000" json:"-"`
 }
