@@ -11,13 +11,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var supportGroupObject = DbObject[*entity.SupportGroup, *SupportGroupRow]{
+var supportGroupObject = DbObject[*entity.SupportGroup]{
 	Prefix:    "supportgroup",
 	TableName: "SupportGroup",
 	Properties: []*Property{
-		NewProperty("supportgroup_ccrn", WrapChecker(func(sg *entity.SupportGroup) bool { return sg.CCRN != "" })),
-		NewImmutableProperty("supportgroup_created_by"),
-		NewProperty("supportgroup_updated_by", WrapChecker(func(sg *entity.SupportGroup) bool { return sg.UpdatedBy != 0 })),
+		NewProperty("supportgroup_ccrn", WrapAccess(func(sg *entity.SupportGroup) (string, bool) { return sg.CCRN, sg.CCRN != "" })),
+		NewProperty("supportgroup_created_by", WrapAccess(func(sg *entity.SupportGroup) (int64, bool) { return sg.CreatedBy, NoUpdate })),
+		NewProperty("supportgroup_updated_by", WrapAccess(func(sg *entity.SupportGroup) (int64, bool) { return sg.UpdatedBy, sg.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("SG.supportgroup_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.Id })),
@@ -27,7 +27,6 @@ var supportGroupObject = DbObject[*entity.SupportGroup, *SupportGroupRow]{
 		NewFilterProperty("IM.issuematch_issue_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.IssueId })),
 		NewStateFilterProperty("SG.supportgroup", WrapRetState(func(filter *entity.SupportGroupFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *SupportGroupRow { return &SupportGroupRow{} },
 }
 
 func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) string {

@@ -10,14 +10,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant, *ServiceIssueVariantRow]{
+var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
 	Properties: []*Property{},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("CI.componentinstance_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.ComponentInstanceId })),
 		NewFilterProperty("I.issue_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.IssueId })),
 		NewStateFilterProperty("IV.issuevariant", WrapRetState(func(filter *entity.ServiceIssueVariantFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *ServiceIssueVariantRow { return &ServiceIssueVariantRow{} },
 }
 
 func ensureServiceIssueVariantFilter(filter *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {

@@ -11,15 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var serviceObject = DbObject[*entity.Service, *ServiceRow]{
+var serviceObject = DbObject[*entity.Service]{
 	Prefix:    "service",
 	TableName: "Service",
 	Properties: []*Property{
-		NewProperty("service_ccrn", WrapChecker(func(s *entity.Service) bool { return s.CCRN != "" })),
-		NewProperty("service_domain", WrapChecker(func(s *entity.Service) bool { return s.Domain != "" })),
-		NewProperty("service_region", WrapChecker(func(s *entity.Service) bool { return s.Region != "" })),
-		NewImmutableProperty("service_created_by"),
-		NewProperty("service_updated_by", WrapChecker(func(s *entity.Service) bool { return s.BaseService.UpdatedBy != 0 })),
+		NewProperty("service_ccrn", WrapAccess(func(s *entity.Service) (string, bool) { return s.CCRN, s.CCRN != "" })),
+		NewProperty("service_domain", WrapAccess(func(s *entity.Service) (string, bool) { return s.Domain, s.Domain != "" })),
+		NewProperty("service_region", WrapAccess(func(s *entity.Service) (string, bool) { return s.Region, s.Region != "" })),
+		NewProperty("service_created_by", WrapAccess(func(s *entity.Service) (int64, bool) { return s.BaseService.CreatedBy, NoUpdate })),
+		NewProperty("service_updated_by", WrapAccess(func(s *entity.Service) (int64, bool) { return s.BaseService.UpdatedBy, s.BaseService.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.CCRN })),
@@ -36,7 +36,6 @@ var serviceObject = DbObject[*entity.Service, *ServiceRow]{
 		NewFilterProperty("S.service_ccrn LIKE Concat('%',?,'%')", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Search })),
 		NewStateFilterProperty("S.service", WrapRetState(func(filter *entity.ServiceFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *ServiceRow { return &ServiceRow{} },
 }
 
 func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {

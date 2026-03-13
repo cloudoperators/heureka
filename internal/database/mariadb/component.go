@@ -11,17 +11,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentObject = DbObject[*entity.Component, *ComponentRow]{
+var componentObject = DbObject[*entity.Component]{
 	Prefix:    "component",
 	TableName: "Component",
 	Properties: []*Property{
-		NewProperty("component_ccrn", WrapChecker(func(c *entity.Component) bool { return c.CCRN != "" })),
-		NewProperty("component_repository", WrapChecker(func(c *entity.Component) bool { return c.Repository != "" })),
-		NewProperty("component_organization", WrapChecker(func(c *entity.Component) bool { return c.Organization != "" })),
-		NewProperty("component_url", WrapChecker(func(c *entity.Component) bool { return c.Url != "" })),
-		NewProperty("component_type", WrapChecker(func(c *entity.Component) bool { return c.Type != "" })),
-		NewImmutableProperty("component_created_by"),
-		NewProperty("component_updated_by", WrapChecker(func(c *entity.Component) bool { return c.UpdatedBy != 0 })),
+		NewProperty("component_ccrn", WrapAccess(func(c *entity.Component) (string, bool) { return c.CCRN, c.CCRN != "" })),
+		NewProperty("component_repository", WrapAccess(func(c *entity.Component) (string, bool) { return c.Repository, c.Repository != "" })),
+		NewProperty("component_organization", WrapAccess(func(c *entity.Component) (string, bool) { return c.Organization, c.Organization != "" })),
+		NewProperty("component_url", WrapAccess(func(c *entity.Component) (string, bool) { return c.Url, c.Url != "" })),
+		NewProperty("component_type", WrapAccess(func(c *entity.Component) (string, bool) { return c.Type, c.Type != "" })),
+		NewProperty("component_created_by", WrapAccess(func(c *entity.Component) (int64, bool) { return c.CreatedBy, NoUpdate })),
+		NewProperty("component_updated_by", WrapAccess(func(c *entity.Component) (int64, bool) { return c.UpdatedBy, c.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("C.component_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.CCRN })),
@@ -32,7 +32,6 @@ var componentObject = DbObject[*entity.Component, *ComponentRow]{
 		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.ServiceCCRN })),
 		NewStateFilterProperty("C.component", WrapRetState(func(filter *entity.ComponentFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *ComponentRow { return &ComponentRow{} },
 }
 
 func ensureComponentFilter(filter *entity.ComponentFilter) *entity.ComponentFilter {

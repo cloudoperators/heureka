@@ -5,6 +5,7 @@ package mariadb
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
@@ -16,22 +17,26 @@ const (
 	wildCardFilterParamCount = 2
 )
 
-var issueMatchObject = DbObject[*entity.IssueMatch, *IssueMatchRow]{
+var issueMatchObject = DbObject[*entity.IssueMatch]{
 	Prefix:    "issuematch",
 	TableName: "IssueMatch",
 	Properties: []*Property{
-		NewProperty("issuematch_status", WrapChecker(func(im *entity.IssueMatch) bool {
-			return im.Status != "" && im.Status != entity.IssueMatchStatusValuesNone
+		NewProperty("issuematch_status", WrapAccess(func(im *entity.IssueMatch) (entity.IssueMatchStatusValue, bool) {
+			return im.Status, im.Status != "" && im.Status != entity.IssueMatchStatusValuesNone
 		})),
-		NewProperty("issuematch_remediation_date", WrapChecker(func(im *entity.IssueMatch) bool { return !im.RemediationDate.IsZero() })),
-		NewProperty("issuematch_target_remediation_date", WrapChecker(func(im *entity.IssueMatch) bool { return !im.TargetRemediationDate.IsZero() })),
-		NewProperty("issuematch_vector", WrapChecker(func(im *entity.IssueMatch) bool { return im.Severity.Cvss.Vector != "" })),
-		NewProperty("issuematch_rating", WrapChecker(func(im *entity.IssueMatch) bool { return im.Severity.Value != "" })),
-		NewProperty("issuematch_user_id", WrapChecker(func(im *entity.IssueMatch) bool { return im.UserId != 0 })),
-		NewProperty("issuematch_component_instance_id", WrapChecker(func(im *entity.IssueMatch) bool { return im.ComponentInstanceId != 0 })),
-		NewProperty("issuematch_issue_id", WrapChecker(func(im *entity.IssueMatch) bool { return im.IssueId != 0 })),
-		NewImmutableProperty("issuematch_created_by"),
-		NewProperty("issuematch_updated_by", WrapChecker(func(im *entity.IssueMatch) bool { return im.UpdatedBy != 0 })),
+		NewProperty("issuematch_remediation_date", WrapAccess(func(im *entity.IssueMatch) (time.Time, bool) { return im.RemediationDate, !im.RemediationDate.IsZero() })),
+		NewProperty("issuematch_target_remediation_date", WrapAccess(func(im *entity.IssueMatch) (time.Time, bool) {
+			return im.RemediationDate, !im.TargetRemediationDate.IsZero()
+		})),
+		NewProperty("issuematch_vector", WrapAccess(func(im *entity.IssueMatch) (string, bool) {
+			return im.Severity.Cvss.Vector, im.Severity.Cvss.Vector != ""
+		})),
+		NewProperty("issuematch_rating", WrapAccess(func(im *entity.IssueMatch) (string, bool) { return im.Severity.Value, im.Severity.Value != "" })),
+		NewProperty("issuematch_user_id", WrapAccess(func(im *entity.IssueMatch) (int64, bool) { return im.UserId, im.UserId != 0 })),
+		NewProperty("issuematch_component_instance_id", WrapAccess(func(im *entity.IssueMatch) (int64, bool) { return im.ComponentInstanceId, im.ComponentInstanceId != 0 })),
+		NewProperty("issuematch_issue_id", WrapAccess(func(im *entity.IssueMatch) (int64, bool) { return im.IssueId, im.IssueId != 0 })),
+		NewProperty("issuematch_created_by", WrapAccess(func(im *entity.IssueMatch) (int64, bool) { return im.CreatedBy, NoUpdate })),
+		NewProperty("issuematch_updated_by", WrapAccess(func(im *entity.IssueMatch) (int64, bool) { return im.UpdatedBy, im.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("IM.issuematch_id = ?", WrapRetSlice(func(filter *entity.IssueMatchFilter) []*int64 { return filter.Id })),
@@ -53,7 +58,6 @@ var issueMatchObject = DbObject[*entity.IssueMatch, *IssueMatchRow]{
 			2),
 		NewStateFilterProperty("IM.issuematch", WrapRetState(func(filter *entity.IssueMatchFilter) []entity.StateFilterType { return filter.State })),
 	},
-	NewRow: func() *IssueMatchRow { return &IssueMatchRow{} },
 }
 
 func ensureIssueMatchFilter(filter *entity.IssueMatchFilter) *entity.IssueMatchFilter {

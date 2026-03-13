@@ -271,4 +271,5 @@ func (e Json) String() string {
 
 type Entity interface {
 	SetId(int64)
+	GetId() int64
 }
