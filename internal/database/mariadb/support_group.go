@@ -6,6 +6,7 @@ package mariadb
 import (
 	"fmt"
 
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -293,8 +294,13 @@ func (s *SqlDatabase) AddServiceToSupportGroup(supportGroupId int64, serviceId i
 	}
 
 	_, err := performExec(s, query, args, l)
-
-	return err
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("Service %d already in SupportGroup %d", serviceId, supportGroupId))
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *SqlDatabase) RemoveServiceFromSupportGroup(supportGroupId int64, serviceId int64) error {
@@ -343,8 +349,13 @@ func (s *SqlDatabase) AddUserToSupportGroup(supportGroupId int64, userId int64) 
 	}
 
 	_, err := performExec(s, query, args, l)
-
-	return err
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return database.NewDuplicateEntryDatabaseError(fmt.Sprintf("User %d already in SupportGroup %d", userId, supportGroupId))
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *SqlDatabase) RemoveUserFromSupportGroup(supportGroupId int64, userId int64) error {
