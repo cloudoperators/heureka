@@ -69,12 +69,19 @@ func ensureIssueFilter(filter *entity.IssueFilter) *entity.IssueFilter {
 }
 
 func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
+	return getIssueJoinsExtended(filter, order, false)
+}
+
+func getIssueJoinsExtended(filter *entity.IssueFilter, order []entity.Order, includeAggJoins bool) string {
 	joins := ""
 	orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
 		return o.By == entity.IssueVariantRating
 	})
-	orderByRemediationDate := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.IssueEarliestTargetRemediationDate
+	orderByIssueMatch := lo.ContainsBy(order, func(o entity.Order) bool {
+		return o.By == entity.IssueEarliestTargetRemediationDate ||
+			o.By == entity.IssueMatchId ||
+			o.By == entity.IssueMatchRating ||
+			o.By == entity.IssueMatchTargetRemediationDate
 	})
 
 	if filter.AllServices || filter.HasIssueMatches {
@@ -83,18 +90,18 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 		`)
 	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
 		len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 ||
-		orderByRemediationDate {
+		orderByIssueMatch || includeAggJoins {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
 
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices || includeAggJoins {
 
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 		`)
-		if len(filter.ServiceCCRN) > 0 || filter.AllServices {
+		if len(filter.ServiceCCRN) > 0 || filter.AllServices || includeAggJoins {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
 				LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
@@ -108,7 +115,7 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 		}
 	}
 
-	if len(filter.ComponentVersionId) > 0 || len(filter.ComponentId) > 0 {
+	if len(filter.ComponentVersionId) > 0 || len(filter.ComponentId) > 0 || includeAggJoins {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
 		`)
@@ -258,8 +265,6 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 
 	baseCiQuery := `
         SELECT I.*, SUM(CI.componentinstance_count) AS agg_affected_component_instances %s FROM Issue I
-        LEFT JOIN IssueMatch IM on I.issue_id = IM.issuematch_issue_id
-        LEFT JOIN ComponentInstance CI on IM.issuematch_component_instance_id = CI.componentinstance_id
         %s
         %s
         GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
@@ -278,11 +283,6 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 		min(issuematch_created_at) agg_earliest_discovery_date
 		%s
         FROM Issue I
-        LEFT JOIN IssueMatch IM on I.issue_id = IM.issuematch_issue_id
-        LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
-        LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
-        LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
-        LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
 		%s
 		%s
 		GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
@@ -295,19 +295,24 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
         Aggs AS (
             %s
         )
-        SELECT A.*, CIC.*
+        SELECT A.*, CIC.agg_affected_component_instances
         FROM ComponentInstanceCounts CIC
-        JOIN Aggs A ON CIC.issue_id = A.issue_id;
+        JOIN Aggs A ON CIC.issue_id = A.issue_id
+        ORDER BY %s;
     `
 
 	filter = ensureIssueFilter(filter)
-	joins := getIssueJoins(filter, order)
+	joins := getIssueJoinsExtended(filter, order, true)
 	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, err
 	}
 
 	columns := getIssueColumns(order)
+	aggOrder := lo.Filter(order, func(o entity.Order, _ int) bool {
+		return o.By != entity.IssueEarliestTargetRemediationDate
+	})
+	aggColumns := getIssueColumns(aggOrder)
 	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(defaultOrder)
 
@@ -320,8 +325,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	}
 
 	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, orderStr)
-	aggQuery := fmt.Sprintf(baseAggQuery, columns, joins, whereClause, cursorQuery, orderStr)
-	query := fmt.Sprintf(baseQuery, ciQuery, aggQuery)
+	aggQuery := fmt.Sprintf(baseAggQuery, aggColumns, joins, whereClause, cursorQuery, orderStr)
+	query := fmt.Sprintf(baseQuery, ciQuery, aggQuery, orderStr)
 
 	stmt, err := s.db.Preparex(query)
 	if err != nil {

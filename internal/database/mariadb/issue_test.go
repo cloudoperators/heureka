@@ -1113,41 +1113,81 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		})
 
 		It("can order by earliest target remediation date", func() {
-			issue1 := seedCollection.IssueRows[0]
-			issue2 := seedCollection.IssueRows[1]
+			issue1Row := test.NewFakeIssue()
+			issue1Row.PrimaryName = sql.NullString{String: "CVE-2024-53068", Valid: true}
+			issue1Id, _ := seeder.InsertFakeIssue(issue1Row)
+			issue1Row.Id = sql.NullInt64{Int64: issue1Id, Valid: true}
 
-			date1, _ := time.Parse(time.RFC3339, "2026-02-01T00:00:00Z")
-			date2, _ := time.Parse(time.RFC3339, "2026-03-01T00:00:00Z")
+			issue2Row := test.NewFakeIssue()
+			issue2Row.PrimaryName = sql.NullString{String: "CVE-2024-53061", Valid: true}
+			issue2Id, _ := seeder.InsertFakeIssue(issue2Row)
+			issue2Row.Id = sql.NullInt64{Int64: issue2Id, Valid: true}
 
-			seeder.InsertFakeIssueMatch(mariadb.IssueMatchRow{
-				IssueId:               sql.NullInt64{Int64: issue1.Id.Int64, Valid: true},
-				TargetRemediationDate: sql.NullTime{Time: date1, Valid: true},
-				Status:                sql.NullString{String: "New", Valid: true},
-			})
-			seeder.InsertFakeIssueMatch(mariadb.IssueMatchRow{
-				IssueId:               sql.NullInt64{Int64: issue2.Id.Int64, Valid: true},
-				TargetRemediationDate: sql.NullTime{Time: date2, Valid: true},
-				Status:                sql.NullString{String: "New", Valid: true},
-			})
+			issue3Row := test.NewFakeIssue()
+			issue3Row.PrimaryName = sql.NullString{String: "CVE-2024-53059", Valid: true}
+			issue3Id, _ := seeder.InsertFakeIssue(issue3Row)
+			issue3Row.Id = sql.NullInt64{Int64: issue3Id, Valid: true}
+
+			date1, _ := time.Parse(time.RFC3339, "2026-02-17T01:10:57Z")
+			date2, _ := time.Parse(time.RFC3339, "2026-02-26T08:37:53Z")
+			date3, _ := time.Parse(time.RFC3339, "2026-02-17T07:15:47Z")
+
+			userId := seedCollection.UserRows[0].Id
+			ciId := seedCollection.ComponentInstanceRows[0].Id
+
+			im1 := test.NewFakeIssueMatch()
+			im1.IssueId = issue1Row.Id
+			im1.TargetRemediationDate = sql.NullTime{Time: date1, Valid: true}
+			im1.UserId = userId
+			im1.ComponentInstanceId = ciId
+			seeder.InsertFakeIssueMatch(im1)
+
+			im2 := test.NewFakeIssueMatch()
+			im2.IssueId = issue2Row.Id
+			im2.TargetRemediationDate = sql.NullTime{Time: date2, Valid: true}
+			im2.UserId = userId
+			im2.ComponentInstanceId = ciId
+			seeder.InsertFakeIssueMatch(im2)
+
+			im3 := test.NewFakeIssueMatch()
+			im3.IssueId = issue3Row.Id
+			im3.TargetRemediationDate = sql.NullTime{Time: date3, Valid: true}
+			im3.UserId = userId
+			im3.ComponentInstanceId = ciId
+			seeder.InsertFakeIssueMatch(im3)
 
 			order := []entity.Order{
 				{By: entity.IssueEarliestTargetRemediationDate, Direction: entity.OrderDirectionDesc},
-				{By: entity.IssueId, Direction: entity.OrderDirectionAsc},
+				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},
 			}
 
-			testOrder(order, func(res []entity.IssueResult) {
-				var idx1, idx2 int = -1, -1
-				for i, r := range res {
-					if r.Issue.Id == issue1.Id.Int64 {
-						idx1 = i
-					}
-					if r.Issue.Id == issue2.Id.Int64 {
-						idx2 = i
-					}
-				}
+			res, err := db.GetIssuesWithAggregations(nil, order)
+			Expect(err).Should(BeNil())
 
-				Expect(idx2 < idx1).To(BeTrue(), "Issue with later remediation date should come first in DESC order")
-			})
+			// Expected order (DESC Date):
+			// 1. Issue 2 (Feb 26)
+			// 2. Issue 3 (Feb 17 07:15)
+			// 3. Issue 1 (Feb 17 01:10)
+
+			var idx1, idx2, idx3 int = -1, -1, -1
+			for i, r := range res {
+				if r.Issue.Id == issue1Row.Id.Int64 {
+					idx1 = i
+				}
+				if r.Issue.Id == issue2Row.Id.Int64 {
+					idx2 = i
+				}
+				if r.Issue.Id == issue3Row.Id.Int64 {
+					idx3 = i
+				}
+			}
+
+			Expect(idx1).ToNot(Equal(-1))
+			Expect(idx2).ToNot(Equal(-1))
+			Expect(idx3).ToNot(Equal(-1))
+
+			Expect(idx2 < idx3).To(BeTrue(), "Issue 2 (Feb 26) should come before Issue 3 (Feb 17 07:15)")
+			Expect(idx3 < idx1).To(BeTrue(), "Issue 3 (Feb 17 07:15) should come before Issue 1 (Feb 17 01:10)")
 		})
 	})
 })
