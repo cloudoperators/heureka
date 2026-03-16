@@ -39,7 +39,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Set up Docker Compose
-        uses: docker/setup-compose-action@v1
+        uses: docker/setup-compose-action@v2
       - name: Install Ginkgo
         run: go install github.com/onsi/ginkgo/v2/ginkgo
       - name: Install Mockery
