@@ -315,7 +315,7 @@ func (ucvt *uniquenessComponentVersionTemplate) expectDeletedItemCount(cnt int64
 
 func (ucvt *uniquenessComponentVersionTemplate) expectDuplicationError() {
 	Expect(ucvt.lastErr).To(HaveOccurred())
-	Expect(ucvt.lastErr.Error()).To(ContainSubstring("Database entry already exist"))
+	Expect(ucvt.lastErr.Error()).To(ContainSubstring("Error 1062 (23000): Duplicate entry"))
 }
 
 // -- Component Version non-interface

@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -28,11 +29,15 @@ var remediationObject = DbObject[*entity.Remediation]{
 		NewProperty("remediation_service", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Service, r.Service != "" })),
 		NewProperty("remediation_service_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.ServiceId, r.ServiceId != 0 })),
 		NewProperty("remediation_component", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Component, r.Component != "" })),
-		NewProperty("remediation_component_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.ComponentId, r.ComponentId != 0 })),
+		NewProperty("remediation_component_id", WrapAccess(func(r *entity.Remediation) (sql.NullInt64, bool) {
+			return sql.NullInt64{Int64: r.ComponentId, Valid: IsValidId(r.ComponentId)}, r.ComponentId != 0
+		})),
 		NewProperty("remediation_issue", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Issue, r.Issue != "" })),
 		NewProperty("remediation_issue_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.IssueId, r.IssueId != 0 })),
 		NewProperty("remediation_remediated_by", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.RemediatedBy, NoUpdate })),
-		NewProperty("remediation_remediated_by_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.RemediatedById, NoUpdate })),
+		NewProperty("remediation_remediated_by_id", WrapAccess(func(r *entity.Remediation) (sql.NullInt64, bool) {
+			return sql.NullInt64{Int64: r.RemediatedById, Valid: IsValidId(r.RemediatedById)}, NoUpdate
+		})),
 		NewProperty("remediation_created_by", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.CreatedBy, NoUpdate })),
 		NewProperty("remediation_updated_by", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.UpdatedBy, r.UpdatedBy != 0 })),
 	},

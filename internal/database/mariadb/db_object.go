@@ -234,13 +234,6 @@ func EnsurePagination[T entity.HasPagination](filter T) T {
 	return filter
 }
 
-func NullableId(id int64) (*int64, bool) {
-	if id == 0 {
-		return nil, false // skip in update/insert
-	}
-	return &id, true
-}
-
 func PerformExecArgs(db Db, query string, args []any, l *logrus.Entry) (sql.Result, error) {
 	res, err := db.Exec(query, args...)
 	if err != nil {
