@@ -24,9 +24,11 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 		NewProperty("issuematch_status", WrapAccess(func(im *entity.IssueMatch) (entity.IssueMatchStatusValue, bool) {
 			return im.Status, im.Status != "" && im.Status != entity.IssueMatchStatusValuesNone
 		})),
-		NewProperty("issuematch_remediation_date", WrapAccess(func(im *entity.IssueMatch) (time.Time, bool) { return im.RemediationDate, !im.RemediationDate.IsZero() })),
+		NewProperty("issuematch_remediation_date", WrapAccess(func(im *entity.IssueMatch) (time.Time, bool) {
+			return im.RemediationDate, !im.RemediationDate.IsZero()
+		})),
 		NewProperty("issuematch_target_remediation_date", WrapAccess(func(im *entity.IssueMatch) (time.Time, bool) {
-			return im.RemediationDate, !im.TargetRemediationDate.IsZero()
+			return im.TargetRemediationDate, !im.TargetRemediationDate.IsZero()
 		})),
 		NewProperty("issuematch_vector", WrapAccess(func(im *entity.IssueMatch) (string, bool) {
 			return im.Severity.Cvss.Vector, im.Severity.Cvss.Vector != ""
