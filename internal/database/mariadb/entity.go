@@ -154,6 +154,7 @@ func (sivr *ServiceIssueVariantRow) ToEntity() *entity.ServiceIssueVariant {
 }
 
 func (sivr *ServiceIssueVariantRow) FromEntity(siv *entity.ServiceIssueVariant) {
+	panic("Not implemented")
 }
 
 func (sgr *SupportGroupRow) ToEntity() *entity.SupportGroup {

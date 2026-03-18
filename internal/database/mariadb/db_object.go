@@ -6,7 +6,9 @@ package mariadb
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -84,6 +86,9 @@ func (do *DbObject[ET]) Create(db Db, entityItem ET) (ET, error) {
 
 	id, err := PerformInsertArgs(db, sqlQuery, args, l)
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return zero, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("%s element already exists", do.TableName))
+		}
 		return zero, err
 	}
 
