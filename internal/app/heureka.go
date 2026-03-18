@@ -81,6 +81,12 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 	rh := issue_repository.NewIssueRepositoryHandler(handlerContext)
 	ivh := issue_variant.NewIssueVariantHandler(handlerContext, rh)
 	sh := severity.NewSeverityHandler(handlerContext, ivh)
+	remediationHandler := remediation.NewRemediationHandler(common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    nil,
+		Authz:    authz,
+	})
 
 	er.Run(ctx)
 
@@ -97,7 +103,7 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 		SeverityHandler:          sh,
 		SupportGroupHandler:      support_group.NewSupportGroupHandler(handlerContext),
 		UserHandler:              user.NewUserHandler(handlerContext),
-		RemediationHandler:       remediation.NewRemediationHandler(handlerContext),
+		RemediationHandler:       remediationHandler,
 		PatchHandler:             patch.NewPatchHandler(handlerContext),
 		eventRegistry:            handlerContext.EventReg,
 		database:                 handlerContext.DB,
