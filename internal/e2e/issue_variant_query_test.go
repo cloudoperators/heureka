@@ -287,8 +287,7 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 
 		Context("and a mutation query is performed", Label("update.graphql"), func() {
 			It("updates issueVariant", func() {
-				ir := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
-				issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant(&ir)
+				issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant()
 				issueVariant.SecondaryName = "SecretIssueVariant"
 				issueVariant.ExternalUrl = "https://new.com"
 
@@ -312,8 +311,7 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 				Expect(*respData.IssueVariant.ExternalURL).To(Equal(issueVariant.ExternalUrl))
 			})
 			It("updates issueVariant severity with rating", func() {
-				ir := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
-				issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant(&ir)
+				issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant()
 
 				newRating := model.SeverityValuesLow
 				issueVariant.Severity.Value = string(newRating)

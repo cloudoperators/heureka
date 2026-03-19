@@ -4,38 +4,55 @@
 package mariadb
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 // DbObject
-type DbObject struct {
+type DbObject[ET entity.Entity] struct {
+	Prefix           string
+	TableName        string
 	Properties       []*Property
 	FilterProperties []*FilterProperty
 }
 
-func (do *DbObject) InsertQuery(tableName string) string {
-	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		tableName,
-		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return p.GetName() }), ","),
-		strings.Join(lo.Map(do.Properties, func(p *Property, _ int) string { return ":" + p.GetName() }), ","))
+func (do *DbObject[ET]) InsertQuery(entityItem ET) (string, []any, error) {
+	columns := lo.Map(do.Properties, func(p *Property, _ int) string {
+		return p.GetName()
+	})
+
+	values := lo.Map(do.Properties, func(p *Property, _ int) any {
+		return p.GetValue(entityItem)
+	})
+
+	qb := sq.
+		Insert(do.TableName).
+		Columns(columns...).
+		Values(values...)
+
+	return qb.ToSql()
 }
 
-func (do *DbObject) GetUpdateFields(f any) string {
-	fl := []string{}
+func (do *DbObject[ET]) GetUpdateMap(f any) map[string]any {
+	m := make(map[string]any)
 	for _, v := range do.Properties {
-		updateField := v.GetUpdateExpression(f)
-		if updateField != "" {
-			fl = append(fl, updateField)
+		val, isUpdatePresent := v.GetUpdateData(f)
+		if isUpdatePresent {
+			m[v.GetName()] = val
 		}
 	}
-	return strings.Join(fl, ", ")
+	return m
 }
 
-func (do *DbObject) GetFilterQuery(filter any) string {
+func (do *DbObject[ET]) GetFilterQuery(filter any) string {
 	var fl []string
 	for _, v := range do.FilterProperties {
 		fl = append(fl, v.GetQuery(filter))
@@ -43,7 +60,7 @@ func (do *DbObject) GetFilterQuery(filter any) string {
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (do *DbObject) GetFilterParameters(filter entity.HasPagination, withCursor bool, cursorFields []Field) []any {
+func (do *DbObject[ET]) GetFilterParameters(filter entity.HasPagination, withCursor bool, cursorFields []Field) []any {
 	var filterParameters []interface{}
 	for _, v := range do.FilterProperties {
 		filterParameters = v.AppendParameters(filterParameters, filter)
@@ -55,29 +72,99 @@ func (do *DbObject) GetFilterParameters(filter entity.HasPagination, withCursor 
 	return filterParameters
 }
 
-// Property
-func NewProperty(name string, isUpdatePresent func(any) bool) *Property {
-	return &Property{Name: name, IsUpdatePresent: isUpdatePresent}
+func (do *DbObject[ET]) Create(db Db, entityItem ET) (ET, error) {
+	var zero ET
+	l := logrus.WithFields(logrus.Fields{
+		do.Prefix: entityItem,
+		"event":   fmt.Sprintf("database.Create%s", do.TableName),
+	})
+
+	sqlQuery, args, err := do.InsertQuery(entityItem)
+	if err != nil {
+		return zero, err
+	}
+
+	id, err := PerformInsertArgs(db, sqlQuery, args, l)
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return zero, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("%s element already exists", do.TableName))
+		}
+		return zero, err
+	}
+
+	entityItem.SetId(id)
+	return entityItem, nil
 }
 
-func NewImmutableProperty(name string) *Property {
-	return &Property{Name: name}
+func (do *DbObject[ET]) Update(db Db, entityItem ET) error {
+	l := logrus.WithFields(logrus.Fields{
+		do.Prefix: entityItem,
+		"event":   fmt.Sprintf("database.Update%s", do.TableName),
+	})
+
+	updateValues := do.GetUpdateMap(entityItem)
+	qb := sq.
+		Update(do.TableName).
+		SetMap(updateValues).
+		Where(sq.Eq{fmt.Sprintf("%s_id", do.Prefix): entityItem.GetId()})
+
+	sqlQuery, args, err := qb.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = PerformExecArgs(db, sqlQuery, args, l)
+	return err
+}
+
+func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"id":    id,
+		"event": fmt.Sprintf("database.Delete%s", do.TableName),
+	})
+
+	deletedAtColumn := do.Prefix + "_deleted_at"
+	updatedByColumn := do.Prefix + "_updated_by"
+	idColumn := do.Prefix + "_id"
+
+	qb := sq.
+		Update(do.TableName).
+		Set(deletedAtColumn, sq.Expr("NOW()")).
+		Set(updatedByColumn, userId).
+		Where(sq.Eq{idColumn: id})
+
+	sqlQuery, args, err := qb.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = PerformExecArgs(db, sqlQuery, args, l)
+	return err
+}
+
+// Property
+const NoUpdate = false
+
+func NewProperty(name string, access func(any) (any, bool)) *Property {
+	return &Property{Name: name, Access: access}
 }
 
 type Property struct {
-	Name            string
-	IsUpdatePresent func(any) bool
+	Name   string
+	Access func(any) (any, bool)
 }
 
 func (p Property) GetName() string {
 	return p.Name
 }
 
-func (p Property) GetUpdateExpression(f any) string {
-	if p.IsUpdatePresent != nil && p.IsUpdatePresent(f) {
-		return fmt.Sprintf("%s = :%s", p.Name, p.Name)
-	}
-	return ""
+func (p Property) GetValue(f any) any {
+	val, _ := p.Access(f)
+	return val
+}
+
+func (p Property) GetUpdateData(f any) (any, bool) {
+	return p.Access(f)
 }
 
 // FilterProperty
@@ -152,16 +239,54 @@ func EnsurePagination[T entity.HasPagination](filter T) T {
 	return filter
 }
 
+func PerformExecArgs(db Db, query string, args []any, l *logrus.Entry) (sql.Result, error) {
+	res, err := db.Exec(query, args...)
+	if err != nil {
+		msg := err.Error()
+		l.WithFields(logrus.Fields{
+			"error": err,
+			"query": query,
+			"args":  args,
+		}).Error(msg)
+
+		return nil, fmt.Errorf("%s", msg)
+	}
+
+	return res, nil
+}
+
+func PerformInsertArgs(db Db, query string, args []any, l *logrus.Entry) (int64, error) {
+	res, err := PerformExecArgs(db, query, args, l)
+	if err != nil {
+		return -1, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		msg := "Error while getting last insert id"
+		l.WithFields(logrus.Fields{
+			"error": err,
+		}).Error(msg)
+		return -1, fmt.Errorf("%s", msg)
+	}
+
+	l.WithFields(logrus.Fields{
+		"id": id,
+	}).Debug("Successfully performed insert")
+
+	return id, nil
+}
+
 // Helpers
 
-// WrapChecker turns a type-specific check into a generic check
-func WrapChecker[T any](check func(T) bool) func(any) bool {
-	return func(val any) bool {
+// WrapAccess turns a type-specific data access into a generic data access
+func WrapAccess[T any, TRet any](access func(T) (TRet, bool)) func(any) (any, bool) {
+	return func(val any) (any, bool) {
 		typedVal, ok := val.(T)
 		if !ok {
-			panic(fmt.Sprintf("WrapChecker: expected %T but got %T", *new(T), val))
+			panic(fmt.Sprintf("WrapAccess: expected %T but got %T", *new(T), val))
 		}
-		return check(typedVal)
+		return access(typedVal)
 	}
 }
 
@@ -239,7 +364,7 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 	}
 }
 
-func ToStateSlice(in []any) []entity.StateFilterType { //REMOVE TEMPLATE?
+func ToStateSlice(in []any) []entity.StateFilterType {
 	out := make([]entity.StateFilterType, len(in))
 	for i := range in {
 		s, ok := in[i].(entity.StateFilterType)
@@ -251,7 +376,7 @@ func ToStateSlice(in []any) []entity.StateFilterType { //REMOVE TEMPLATE?
 	return out
 }
 
-func ToJsonSlice(in []any) []*entity.Json { //REMOVE TEMPLATE?
+func ToJsonSlice(in []any) []*entity.Json {
 	out := make([]*entity.Json, len(in))
 	for i := range in {
 		s, ok := in[i].(*entity.Json)
@@ -261,4 +386,11 @@ func ToJsonSlice(in []any) []*entity.Json { //REMOVE TEMPLATE?
 		out[i] = s
 	}
 	return out
+}
+
+func ValueOrDefault[T any](p *T, def T) T {
+	if p == nil {
+		return def
+	}
+	return *p
 }

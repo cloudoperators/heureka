@@ -1,10 +1,11 @@
 module github.com/cloudoperators/heureka
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/99designs/gqlgen v0.17.88
 	github.com/Khan/genqlient v0.8.1
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/brianvoe/gofakeit/v7 v7.14.1
 	github.com/coreos/go-oidc v2.5.0+incompatible
 	github.com/gin-contrib/cors v1.7.6
@@ -29,6 +30,7 @@ require (
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.11.1
 	github.com/valkey-io/valkey-go v1.0.72
+	github.com/vektah/gqlparser/v2 v2.5.32
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/text v0.35.0
 	golang.org/x/time v0.15.0
@@ -47,11 +49,12 @@ require (
 	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.1 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/openfga/api/proto v0.0.0-20240905181937-3583905f61a6 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/urfave/cli/v3 v3.7.0 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.32 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect

@@ -11,12 +11,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var issueRepositoryObject = DbObject{
+var issueRepositoryObject = DbObject[*entity.IssueRepository]{
+	Prefix:    "issuerepository",
+	TableName: "IssueRepository",
 	Properties: []*Property{
-		NewProperty("issuerepository_name", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.Name != "" })),
-		NewProperty("issuerepository_url", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.Url != "" })),
-		NewImmutableProperty("issuerepository_created_by"),
-		NewProperty("issuerepository_updated_by", WrapChecker(func(ir *entity.IssueRepository) bool { return ir.BaseIssueRepository.UpdatedBy != 0 })),
+		NewProperty("issuerepository_name", WrapAccess(func(ir *entity.IssueRepository) (string, bool) { return ir.Name, ir.Name != "" })),
+		NewProperty("issuerepository_url", WrapAccess(func(ir *entity.IssueRepository) (string, bool) { return ir.Url, ir.Url != "" })),
+		NewProperty("issuerepository_created_by", WrapAccess(func(ir *entity.IssueRepository) (int64, bool) { return ir.BaseIssueRepository.CreatedBy, NoUpdate })),
+		NewProperty("issuerepository_updated_by", WrapAccess(func(ir *entity.IssueRepository) (int64, bool) {
+			return ir.BaseIssueRepository.UpdatedBy, ir.BaseIssueRepository.UpdatedBy != 0
+		})),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("IR.issuerepository_name = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*string { return filter.Name })),
@@ -209,67 +213,13 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 }
 
 func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"issueRepository": issueRepository,
-		"event":           "database.CreateIssueRepository",
-	})
-
-	issueRepositoryRow := IssueRepositoryRow{}
-	issueRepositoryRow.FromIssueRepository(issueRepository)
-
-	query := issueRepositoryObject.InsertQuery("IssueRepository")
-	id, err := performInsert(s, query, issueRepositoryRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	issueRepository.Id = id
-
-	return issueRepository, nil
+	return issueRepositoryObject.Create(s.db, issueRepository)
 }
 
 func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueRepository) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueRepository": issueRepository,
-		"event":           "database.UpdateIssueRepository",
-	})
-
-	baseQuery := `
-		UPDATE IssueRepository SET
-		%s
-		WHERE issuerepository_id = :issuerepository_id
-	`
-
-	updateFields := issueRepositoryObject.GetUpdateFields(issueRepository)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	issueRepositoryRow := IssueRepositoryRow{}
-	issueRepositoryRow.FromIssueRepository(issueRepository)
-
-	_, err := performExec(s, query, issueRepositoryRow, l)
-
-	return err
+	return issueRepositoryObject.Update(s.db, issueRepository)
 }
 
 func (s *SqlDatabase) DeleteIssueRepository(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteIssueRepository",
-	})
-
-	query := `
-		UPDATE IssueRepository SET
-		issuerepository_deleted_at = NOW(),
-		issuerepository_updated_by = :userId
-		WHERE issuerepository_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return issueRepositoryObject.Delete(s.db, id, userId)
 }

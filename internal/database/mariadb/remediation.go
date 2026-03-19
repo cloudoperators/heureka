@@ -4,32 +4,42 @@
 package mariadb
 
 import (
+	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-var remediationObject = DbObject{
+var remediationObject = DbObject[*entity.Remediation]{
+	Prefix:    "remediation",
+	TableName: "Remediation",
 	Properties: []*Property{
-		NewProperty("remediation_description", WrapChecker(func(r *entity.Remediation) bool { return r.Description != "" })),
-		NewProperty("remediation_type", WrapChecker(func(r *entity.Remediation) bool { return r.Type != "" && r.Type != entity.RemediationTypeUnknown })),
-		NewProperty("remediation_severity", WrapChecker(func(r *entity.Remediation) bool {
-			return r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
+		NewProperty("remediation_description", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Description, r.Description != "" })),
+		NewProperty("remediation_type", WrapAccess(func(r *entity.Remediation) (entity.RemediationType, bool) {
+			return r.Type, r.Type != "" && r.Type != entity.RemediationTypeUnknown
 		})),
-		NewProperty("remediation_remediation_date", WrapChecker(func(r *entity.Remediation) bool { return !r.RemediationDate.IsZero() })),
-		NewProperty("remediation_expiration_date", WrapChecker(func(r *entity.Remediation) bool { return !r.ExpirationDate.IsZero() })),
-		NewProperty("remediation_service", WrapChecker(func(r *entity.Remediation) bool { return r.Service != "" })),
-		NewProperty("remediation_service_id", WrapChecker(func(r *entity.Remediation) bool { return r.ServiceId != 0 })),
-		NewProperty("remediation_component", WrapChecker(func(r *entity.Remediation) bool { return r.Component != "" })),
-		NewProperty("remediation_component_id", WrapChecker(func(r *entity.Remediation) bool { return r.ComponentId != 0 })),
-		NewProperty("remediation_issue", WrapChecker(func(r *entity.Remediation) bool { return r.Issue != "" })),
-		NewProperty("remediation_issue_id", WrapChecker(func(r *entity.Remediation) bool { return r.IssueId != 0 })),
-		NewImmutableProperty("remediation_remediated_by"),
-		NewImmutableProperty("remediation_remediated_by_id"),
-		NewImmutableProperty("remediation_created_by"),
-		NewProperty("remediation_updated_by", WrapChecker(func(r *entity.Remediation) bool { return r.UpdatedBy != 0 })),
+		NewProperty("remediation_severity", WrapAccess(func(r *entity.Remediation) (entity.SeverityValues, bool) {
+			return r.Severity, r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
+		})),
+		NewProperty("remediation_remediation_date", WrapAccess(func(r *entity.Remediation) (time.Time, bool) { return r.RemediationDate, !r.RemediationDate.IsZero() })),
+		NewProperty("remediation_expiration_date", WrapAccess(func(r *entity.Remediation) (time.Time, bool) { return r.ExpirationDate, !r.ExpirationDate.IsZero() })),
+		NewProperty("remediation_service", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Service, r.Service != "" })),
+		NewProperty("remediation_service_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.ServiceId, r.ServiceId != 0 })),
+		NewProperty("remediation_component", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Component, r.Component != "" })),
+		NewProperty("remediation_component_id", WrapAccess(func(r *entity.Remediation) (sql.NullInt64, bool) {
+			return sql.NullInt64{Int64: r.ComponentId, Valid: IsValidId(r.ComponentId)}, r.ComponentId != 0
+		})),
+		NewProperty("remediation_issue", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.Issue, r.Issue != "" })),
+		NewProperty("remediation_issue_id", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.IssueId, r.IssueId != 0 })),
+		NewProperty("remediation_remediated_by", WrapAccess(func(r *entity.Remediation) (string, bool) { return r.RemediatedBy, NoUpdate })),
+		NewProperty("remediation_remediated_by_id", WrapAccess(func(r *entity.Remediation) (sql.NullInt64, bool) {
+			return sql.NullInt64{Int64: r.RemediatedById, Valid: IsValidId(r.RemediatedById)}, NoUpdate
+		})),
+		NewProperty("remediation_created_by", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.CreatedBy, NoUpdate })),
+		NewProperty("remediation_updated_by", WrapAccess(func(r *entity.Remediation) (int64, bool) { return r.UpdatedBy, r.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("R.remediation_id = ?", WrapRetSlice(func(filter *entity.RemediationFilter) []*int64 { return filter.Id })),
@@ -211,79 +221,14 @@ func (s *SqlDatabase) GetAllRemediationCursors(filter *entity.RemediationFilter,
 	}), nil
 }
 
-// This function can be extracted to generic function, but we would need to change
-// all functions like FromRemediation etc functions to interface (FromRemediation->EntityToRow, AsRemediation->RowToEntity)
 func (s *SqlDatabase) CreateRemediation(remediation *entity.Remediation) (*entity.Remediation, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"remediation": remediation,
-		"event":       "database.CreateRemediation",
-	})
-
-	remediationRow := RemediationRow{}
-	remediationRow.FromRemediation(remediation)
-
-	query := remediationObject.InsertQuery("Remediation")
-	id, err := performInsert(s, query, remediationRow, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Remediation: %w", err)
-	}
-
-	remediation.Id = id
-
-	return remediation, nil
+	return remediationObject.Create(s.db, remediation)
 }
 
-// This function can be extracted to generic function, but we would need to change
-// all functions like FromRemediation etc functions to interface (FromRemediation->EntityToRow, AsRemediation->RowToEntity)
 func (s *SqlDatabase) UpdateRemediation(remediation *entity.Remediation) error {
-	l := logrus.WithFields(logrus.Fields{
-		"remediation": remediation,
-		"event":       "database.UpdateRemediation",
-	})
-
-	baseQuery := `
-		UPDATE Remediation SET
-		%s
-		WHERE remediation_id = :remediation_id
-	`
-
-	updateFields := remediationObject.GetUpdateFields(remediation)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	remediationRow := RemediationRow{}
-	remediationRow.FromRemediation(remediation)
-
-	_, err := performExec(s, query, remediationRow, l)
-	if err != nil {
-		return fmt.Errorf("failed to update Remediation: %w", err)
-	}
-
-	return nil
+	return remediationObject.Update(s.db, remediation)
 }
 
-// This function can be extracted to generic function when CreateRemediation and UpdateRemediation will be generic
 func (s *SqlDatabase) DeleteRemediation(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteRemediation",
-	})
-
-	query := `
-		UPDATE Remediation SET
-		remediation_deleted_at = NOW(),
-		remediation_updated_by = :userId
-		WHERE remediation_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-	if err != nil {
-		return fmt.Errorf("failed to delete Remediation: %w", err)
-	}
-
-	return nil
+	return remediationObject.Delete(s.db, id, userId)
 }

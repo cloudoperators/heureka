@@ -64,6 +64,115 @@ func IsValidId(id int64) bool {
 	return id > 0
 }
 
+type Row[ET any] interface {
+	FromEntity(ET)
+	ToEntity() ET
+}
+
+func (cr *ComponentRow) ToEntity() *entity.Component {
+	return lo.ToPtr(cr.AsComponent())
+}
+
+func (cr *ComponentRow) FromEntity(c *entity.Component) {
+	cr.FromComponent(c)
+}
+
+func (cir *ComponentInstanceRow) ToEntity() *entity.ComponentInstance {
+	return lo.ToPtr(cir.AsComponentInstance())
+}
+
+func (cir *ComponentInstanceRow) FromEntity(ci *entity.ComponentInstance) {
+	cir.FromComponentInstance(ci)
+}
+
+func (cvr *ComponentVersionRow) ToEntity() *entity.ComponentVersion {
+	return lo.ToPtr(cvr.AsComponentVersion())
+}
+
+func (cvr *ComponentVersionRow) FromEntity(cv *entity.ComponentVersion) {
+	cvr.FromComponentVersion(cv)
+}
+
+func (ir *IssueRow) ToEntity() *entity.Issue {
+	return lo.ToPtr(ir.AsIssue())
+}
+
+func (ir *IssueRow) FromEntity(i *entity.Issue) {
+	ir.FromIssue(i)
+}
+
+func (imr *IssueMatchRow) ToEntity() *entity.IssueMatch {
+	return lo.ToPtr(imr.AsIssueMatch())
+}
+
+func (imr *IssueMatchRow) FromEntity(im *entity.IssueMatch) {
+	imr.FromIssueMatch(im)
+}
+
+func (irr *IssueRepositoryRow) ToEntity() *entity.IssueRepository {
+	return lo.ToPtr(irr.AsIssueRepository())
+}
+
+func (irr *IssueRepositoryRow) FromEntity(ir *entity.IssueRepository) {
+	irr.FromIssueRepository(ir)
+}
+
+func (ivr *IssueVariantRow) ToEntity() *entity.IssueVariant {
+	return lo.ToPtr(ivr.AsIssueVariant())
+}
+
+func (ivr *IssueVariantRow) FromEntity(iv *entity.IssueVariant) {
+	ivr.FromIssueVariant(iv)
+}
+
+func (pr *PatchRow) ToEntity() *entity.Patch {
+	return lo.ToPtr(pr.AsPatch())
+}
+
+func (pr *PatchRow) FromEntity(p *entity.Patch) {
+	pr.FromPatch(p)
+}
+
+func (rr *RemediationRow) ToEntity() *entity.Remediation {
+	return lo.ToPtr(rr.AsRemediation())
+}
+
+func (rr *RemediationRow) FromEntity(r *entity.Remediation) {
+	rr.FromRemediation(r)
+}
+
+func (sr *ServiceRow) ToEntity() *entity.Service {
+	return lo.ToPtr(sr.AsService())
+}
+
+func (sr *ServiceRow) FromEntity(s *entity.Service) {
+	sr.FromService(s)
+}
+
+func (sivr *ServiceIssueVariantRow) ToEntity() *entity.ServiceIssueVariant {
+	return lo.ToPtr(sivr.AsServiceIssueVariantEntry())
+}
+
+func (sivr *ServiceIssueVariantRow) FromEntity(siv *entity.ServiceIssueVariant) {
+	panic("Not implemented")
+}
+
+func (sgr *SupportGroupRow) ToEntity() *entity.SupportGroup {
+	return lo.ToPtr(sgr.AsSupportGroup())
+}
+
+func (sgr *SupportGroupRow) FromEntity(sg *entity.SupportGroup) {
+	sgr.FromSupportGroup(sg)
+}
+
+func (ur *UserRow) ToEntity() *entity.User {
+	return lo.ToPtr(ur.AsUser())
+}
+
+func (ur *UserRow) FromEntity(u *entity.User) {
+	ur.FromUser(u)
+}
+
 // RowComposite is a composite type that contains all the row types for the database
 // This is used to unmarshal the database rows into the corresponding entity types in a dynamical manner
 type RowComposite struct {
@@ -426,7 +535,7 @@ type IssueVariantRow struct {
 	UpdatedBy         sql.NullInt64  `db:"issuevariant_updated_by" json:"updated_by"`
 }
 
-func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) entity.IssueVariant {
+func (ivr *IssueVariantRow) AsIssueVariant() entity.IssueVariant {
 	var severity entity.Severity
 	if ivr.Vector.String == "" {
 		severity = entity.NewSeverityFromRating(entity.SeverityValues(ivr.Rating.String))
@@ -437,7 +546,7 @@ func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) e
 	return entity.IssueVariant{
 		Id:                GetInt64Value(ivr.Id),
 		IssueRepositoryId: GetInt64Value(ivr.IssueRepositoryId),
-		IssueRepository:   repository,
+		IssueRepository:   &entity.IssueRepository{},
 		SecondaryName:     GetStringValue(ivr.SecondaryName),
 		IssueId:           GetInt64Value(ivr.IssueId),
 		Issue:             nil,

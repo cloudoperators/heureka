@@ -372,12 +372,10 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 				var newIssueVariantRow mariadb.IssueVariantRow
 				var newIssueVariant entity.IssueVariant
 				var seedCollection *test.SeedCollection
-				var issueRepository entity.IssueRepository
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 					newIssueVariantRow = test.NewFakeIssueVariant(seedCollection.IssueRepositoryRows, seedCollection.IssueRows)
-					issueRepository = seedCollection.IssueRepositoryRows[0].AsIssueRepository()
-					newIssueVariant = newIssueVariantRow.AsIssueVariant(&issueRepository)
+					newIssueVariant = newIssueVariantRow.AsIssueVariant()
 				})
 				It("can insert correctly", func() {
 					issueVariant, err := db.CreateIssueVariant(&newIssueVariant)
@@ -413,9 +411,8 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					})
 				})
 				It("does not insert issueVariant with existing name", func() {
-					ir := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
 					issueVariantRow := seedCollection.IssueVariantRows[0]
-					issueVariant := issueVariantRow.AsIssueVariant(&ir)
+					issueVariant := issueVariantRow.AsIssueVariant()
 					newIssueVariant, err := db.CreateIssueVariant(&issueVariant)
 
 					By("throwing error", func() {
@@ -434,8 +431,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 				})
 				It("can update name correctly", func() {
-					ir := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
-					issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant(&ir)
+					issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant()
 
 					issueVariant.SecondaryName = "NewName"
 					err := db.UpdateIssueVariant(&issueVariant)
@@ -476,8 +472,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
 				})
 				It("can delete issue variants correctly", func() {
-					ir := seedCollection.IssueRepositoryRows[0].AsIssueRepository()
-					issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant(&ir)
+					issueVariant := seedCollection.IssueVariantRows[0].AsIssueVariant()
 
 					err := db.DeleteIssueVariant(issueVariant.Id, util.SystemUserId)
 
