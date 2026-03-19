@@ -683,7 +683,27 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 	}
 	remediation.IssueId = issueResult.Elements[0].Issue.Id
 
-	// TODO: once authentication + user seeding is in place, fetch the user id of the remediated by user
+	if input.RemediatedBy != nil {
+		userUniqueUserIDs, err := r.App.ListUniqueUserIDs(&entity.UserFilter{
+			UniqueUserID: []*string{input.RemediatedBy},
+		}, nil)
+		if err != nil {
+			return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - user id not found")
+		}
+
+		if len(userUniqueUserIDs) == 0 {
+			user, err := r.App.CreateUser(ctx, &entity.User{
+				UniqueUserID: *input.RemediatedBy,
+			})
+			if err != nil {
+				return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - user id not found")
+			}
+
+			remediation.RemediatedBy = user.UniqueUserID
+		} else {
+			remediation.RemediatedBy = *input.RemediatedBy
+		}
+	}
 
 	_, err = r.App.CreateRemediation(ctx, &remediation)
 	if err != nil {

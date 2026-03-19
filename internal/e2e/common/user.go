@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	systemUserName         = "systemuser"
-	systemUserUniqueUserId = "S0000000"
+	SystemUserName         = "systemuser"
+	SystemUserUniqueUserId = "S0000000"
 )
 
 type Number interface {
@@ -34,37 +34,37 @@ func SubtractSystemUsers[T Number](n T) T {
 
 func SubtractSystemUserName(v []*string) []*string {
 	return lo.Filter(v, func(val *string, _ int) bool {
-		return val == nil || *val != systemUserName
+		return val == nil || *val != SystemUserName
 	})
 }
 
 func SubtractSystemUserNameFromValueItems(v []*model.ValueItem) []*model.ValueItem {
 	return lo.Filter(v, func(val *model.ValueItem, _ int) bool {
-		return val == nil || *val.Value != systemUserUniqueUserId
+		return val == nil || *val.Value != SystemUserUniqueUserId
 	})
 }
 
 func SubtractSystemUserUniqueUserId(v []*string) []*string {
 	return lo.Filter(v, func(val *string, _ int) bool {
-		return val == nil || *val != systemUserUniqueUserId
+		return val == nil || *val != SystemUserUniqueUserId
 	})
 }
 
 func SubtractSystemUserUniqueUserIdVL(v []string) []string {
 	return lo.Filter(v, func(val string, _ int) bool {
-		return val != systemUserUniqueUserId
+		return val != SystemUserUniqueUserId
 	})
 }
 
 func SubtractSystemUserNameVL(v []string) []string {
 	return lo.Filter(v, func(val string, _ int) bool {
-		return val != systemUserName
+		return val != SystemUserName
 	})
 }
 
 func SubtractSystemUsersEntity(v []entity.UserResult) []entity.UserResult {
 	return lo.Filter(v, func(val entity.UserResult, _ int) bool {
-		return val.User.UniqueUserID != systemUserUniqueUserId
+		return val.User.UniqueUserID != SystemUserUniqueUserId
 	})
 }
 

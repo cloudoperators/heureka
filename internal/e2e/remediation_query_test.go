@@ -164,7 +164,6 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 							"vulnerability":   remediation.Issue,
 							"remediationDate": remediation.RemediationDate.Format(time.RFC3339),
 							"expirationDate":  remediation.ExpirationDate.Format(time.RFC3339),
-							"remediatedBy":    remediation.RemediatedBy,
 						},
 					})
 
@@ -174,7 +173,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 				Expect(*respData.Remediation.Service).To(Equal(remediation.Service))
 				Expect(*respData.Remediation.Vulnerability).To(Equal(remediation.Issue))
 				Expect(*respData.Remediation.Image).To(Equal(remediation.Component))
-				Expect(*respData.Remediation.RemediatedBy).To(Equal(remediation.RemediatedBy))
+				Expect(*respData.Remediation.RemediatedBy).To(Equal(e2e_common.SystemUserUniqueUserId))
 				Expect(*respData.Remediation.RemediationDate).To(Equal(remediation.RemediationDate.Format(time.RFC3339)))
 				Expect(*respData.Remediation.ExpirationDate).To(Equal(remediation.ExpirationDate.Format(time.RFC3339)))
 			})
