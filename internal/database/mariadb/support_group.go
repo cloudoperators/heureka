@@ -11,11 +11,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var supportGroupObject = DbObject{
+var supportGroupObject = DbObject[*entity.SupportGroup]{
+	Prefix:    "supportgroup",
+	TableName: "SupportGroup",
 	Properties: []*Property{
-		NewProperty("supportgroup_ccrn", WrapChecker(func(sg *entity.SupportGroup) bool { return sg.CCRN != "" })),
-		NewImmutableProperty("supportgroup_created_by"),
-		NewProperty("supportgroup_updated_by", WrapChecker(func(sg *entity.SupportGroup) bool { return sg.UpdatedBy != 0 })),
+		NewProperty("supportgroup_ccrn", WrapAccess(func(sg *entity.SupportGroup) (string, bool) { return sg.CCRN, sg.CCRN != "" })),
+		NewProperty("supportgroup_created_by", WrapAccess(func(sg *entity.SupportGroup) (int64, bool) { return sg.CreatedBy, NoUpdate })),
+		NewProperty("supportgroup_updated_by", WrapAccess(func(sg *entity.SupportGroup) (int64, bool) { return sg.UpdatedBy, sg.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("SG.supportgroup_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.Id })),
@@ -204,70 +206,15 @@ func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int
 }
 
 func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"supportGroup": supportGroup,
-		"event":        "database.CreateSupportGroup",
-	})
-
-	supportGroupRow := SupportGroupRow{}
-	supportGroupRow.FromSupportGroup(supportGroup)
-
-	query := supportGroupObject.InsertQuery("SupportGroup")
-	id, err := performInsert(s, query, supportGroupRow, l)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SupportGroup: %w", err)
-	}
-
-	supportGroup.Id = id
-
-	return supportGroup, nil
+	return supportGroupObject.Create(s.db, supportGroup)
 }
 
 func (s *SqlDatabase) UpdateSupportGroup(supportGroup *entity.SupportGroup) error {
-	l := logrus.WithFields(logrus.Fields{
-		"supportGroup": supportGroup,
-		"event":        "database.UpdateSupportGroup",
-	})
-
-	baseQuery := `
-		UPDATE SupportGroup SET
-		%s
-		WHERE supportgroup_id = :supportgroup_id
-	`
-
-	updateFields := supportGroupObject.GetUpdateFields(supportGroup)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	supportGroupRow := SupportGroupRow{}
-	supportGroupRow.FromSupportGroup(supportGroup)
-
-	_, err := performExec(s, query, supportGroupRow, l)
-
-	return err
+	return supportGroupObject.Update(s.db, supportGroup)
 }
 
 func (s *SqlDatabase) DeleteSupportGroup(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteSupportGroup",
-	})
-
-	query := `
-		UPDATE SupportGroup SET
-		supportgroup_deleted_at = NOW(),
-		supportgroup_updated_by = :userId
-		WHERE supportgroup_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return supportGroupObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) AddServiceToSupportGroup(supportGroupId int64, serviceId int64) error {

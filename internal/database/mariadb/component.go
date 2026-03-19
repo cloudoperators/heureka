@@ -11,15 +11,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var componentObject = DbObject{
+var componentObject = DbObject[*entity.Component]{
+	Prefix:    "component",
+	TableName: "Component",
 	Properties: []*Property{
-		NewProperty("component_ccrn", WrapChecker(func(c *entity.Component) bool { return c.CCRN != "" })),
-		NewProperty("component_repository", WrapChecker(func(c *entity.Component) bool { return c.Repository != "" })),
-		NewProperty("component_organization", WrapChecker(func(c *entity.Component) bool { return c.Organization != "" })),
-		NewProperty("component_url", WrapChecker(func(c *entity.Component) bool { return c.Url != "" })),
-		NewProperty("component_type", WrapChecker(func(c *entity.Component) bool { return c.Type != "" })),
-		NewImmutableProperty("component_created_by"),
-		NewProperty("component_updated_by", WrapChecker(func(c *entity.Component) bool { return c.UpdatedBy != 0 })),
+		NewProperty("component_ccrn", WrapAccess(func(c *entity.Component) (string, bool) { return c.CCRN, c.CCRN != "" })),
+		NewProperty("component_repository", WrapAccess(func(c *entity.Component) (string, bool) { return c.Repository, c.Repository != "" })),
+		NewProperty("component_organization", WrapAccess(func(c *entity.Component) (string, bool) { return c.Organization, c.Organization != "" })),
+		NewProperty("component_url", WrapAccess(func(c *entity.Component) (string, bool) { return c.Url, c.Url != "" })),
+		NewProperty("component_type", WrapAccess(func(c *entity.Component) (string, bool) { return c.Type, c.Type != "" })),
+		NewProperty("component_created_by", WrapAccess(func(c *entity.Component) (int64, bool) { return c.CreatedBy, NoUpdate })),
+		NewProperty("component_updated_by", WrapAccess(func(c *entity.Component) (int64, bool) { return c.UpdatedBy, c.UpdatedBy != 0 })),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("C.component_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.CCRN })),
@@ -353,69 +355,15 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 }
 
 func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Component, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"component": component,
-		"event":     "database.CreateComponent",
-	})
-
-	componentRow := ComponentRow{}
-	componentRow.FromComponent(component)
-
-	query := componentObject.InsertQuery("Component")
-	id, err := performInsert(s, query, componentRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	component.Id = id
-
-	return component, nil
+	return componentObject.Create(s.db, component)
 }
 
 func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
-	l := logrus.WithFields(logrus.Fields{
-		"component": component,
-		"event":     "database.UpdateComponent",
-	})
-
-	baseQuery := `
-		UPDATE Component SET
-		%s
-		WHERE component_id = :component_id
-	`
-
-	updateFields := componentObject.GetUpdateFields(component)
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	componentRow := ComponentRow{}
-	componentRow.FromComponent(component)
-
-	_, err := performExec(s, query, componentRow, l)
-
-	return err
+	return componentObject.Update(s.db, component)
 }
 
 func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteComponent",
-	})
-
-	query := `
-		UPDATE Component SET
-		component_deleted_at = NOW(),
-		component_updated_by = :userId
-		WHERE component_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return componentObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error) {

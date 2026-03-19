@@ -4,6 +4,8 @@
 package entity
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -265,6 +267,18 @@ func (sft StateFilterType) String() string {
 
 type Json map[string]interface{}
 
+func (j Json) Value() (driver.Value, error) {
+	if j == nil {
+		return nil, nil
+	}
+	return json.Marshal(j)
+}
+
 func (e Json) String() string {
 	return interutil.ConvertJsonToStrNoError((*map[string]interface{})(&e))
+}
+
+type Entity interface {
+	SetId(int64)
+	GetId() int64
 }
