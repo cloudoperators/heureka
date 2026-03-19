@@ -5,25 +5,27 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
-var componentVersionObject = DbObject{
+var componentVersionObject = DbObject[*entity.ComponentVersion]{
+	Prefix:    "componentversion",
+	TableName: "ComponentVersion",
 	Properties: []*Property{
-		NewProperty("componentversion_component_id", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.ComponentId != 0 })),
-		NewProperty("componentversion_version", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Version != "" })),
-		NewProperty("componentversion_tag", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Tag != "" })),
-		NewProperty("componentversion_repository", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Repository != "" })),
-		NewProperty("componentversion_organization", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.Organization != "" })),
-		NewImmutableProperty("componentversion_created_by"),
-		NewProperty("componentversion_updated_by", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.UpdatedBy != 0 })),
-		NewProperty("componentversion_end_of_life", WrapChecker(func(cv *entity.ComponentVersion) bool { return cv.EndOfLife != nil })),
+		NewProperty("componentversion_component_id", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.ComponentId, cv.ComponentId != 0 })),
+		NewProperty("componentversion_version", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Version, cv.Version != "" })),
+		NewProperty("componentversion_tag", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Tag, cv.Tag != "" })),
+		NewProperty("componentversion_repository", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Repository, cv.Repository != "" })),
+		NewProperty("componentversion_organization", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Organization, cv.Organization != "" })),
+		NewProperty("componentversion_created_by", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.CreatedBy, NoUpdate })),
+		NewProperty("componentversion_updated_by", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.UpdatedBy, cv.UpdatedBy != 0 })),
+		NewProperty("componentversion_end_of_life", WrapAccess(func(cv *entity.ComponentVersion) (bool, bool) {
+			return ValueOrDefault(cv.EndOfLife, false), cv.EndOfLife != nil
+		})),
 	},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("CV.componentversion_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.Id })),
@@ -253,70 +255,13 @@ func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilt
 }
 
 func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"componentVersion": componentVersion,
-		"event":            "database.CreateComponentVersion",
-	})
-
-	componentVersionRow := ComponentVersionRow{}
-	componentVersionRow.FromComponentVersion(componentVersion)
-
-	query := componentVersionObject.InsertQuery("ComponentVersion")
-	id, err := performInsert(s, query, componentVersionRow, l)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "Error 1062") {
-			return nil, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("for ComponentVersion: %s ", componentVersion.Version))
-		}
-		return nil, err
-	}
-
-	componentVersion.Id = id
-	return componentVersion, nil
+	return componentVersionObject.Create(s.db, componentVersion)
 }
 
 func (s *SqlDatabase) UpdateComponentVersion(componentVersion *entity.ComponentVersion) error {
-	l := logrus.WithFields(logrus.Fields{
-		"componentVersion": componentVersion,
-		"event":            "database.UpdateComponentVersion",
-	})
-
-	baseQuery := `
-		UPDATE ComponentVersion SET
-		%s
-		WHERE componentversion_id = :componentversion_id
-	`
-
-	updateFields := componentVersionObject.GetUpdateFields(componentVersion)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	componentVersionRow := ComponentVersionRow{}
-	componentVersionRow.FromComponentVersion(componentVersion)
-
-	_, err := performExec(s, query, componentVersionRow, l)
-
-	return err
+	return componentVersionObject.Update(s.db, componentVersion)
 }
 
 func (s *SqlDatabase) DeleteComponentVersion(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteComponentVersion",
-	})
-
-	query := `
-		UPDATE ComponentVersion SET
-		componentversion_deleted_at = NOW(),
-		componentversion_updated_by = :userId
-		WHERE componentversion_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return componentVersionObject.Delete(s.db, id, userId)
 }

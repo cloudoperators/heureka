@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var patchObject = DbObject{
+var patchObject = DbObject[*entity.Patch]{
 	Properties: []*Property{},
 	FilterProperties: []*FilterProperty{
 		NewFilterProperty("P.patch_id = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.Id })),
