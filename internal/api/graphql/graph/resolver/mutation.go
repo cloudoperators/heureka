@@ -7,11 +7,13 @@ package resolver
 
 import (
 	"context"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/baseResolver"
 	"github.com/cloudoperators/heureka/internal/api/graphql/graph/model"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 )
 
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
@@ -109,7 +111,7 @@ func (r *mutationResolver) AddServiceToSupportGroup(ctx context.Context, support
 		return nil, baseResolver.NewResolverError("AddServiceToSupportGroupMutationResolver", "Internal Error - when adding service to supportGroup")
 	}
 
-	supportGroup, err := r.App.AddServiceToSupportGroup(*supportGroupIdInt, *serviceIdInt)
+	supportGroup, err := r.App.AddServiceToSupportGroup(ctx, *supportGroupIdInt, *serviceIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("AddServiceToSupportGroupMutationResolver", "Internal Error - when adding service to supportGroup")
 	}
@@ -130,7 +132,7 @@ func (r *mutationResolver) RemoveServiceFromSupportGroup(ctx context.Context, su
 		return nil, baseResolver.NewResolverError("RemoveServiceFromSupportGroupMutationResolver", "Internal Error - when removing service from supportGroup")
 	}
 
-	supportGroup, err := r.App.RemoveServiceFromSupportGroup(*supportGroupIdInt, *serviceIdInt)
+	supportGroup, err := r.App.RemoveServiceFromSupportGroup(ctx, *supportGroupIdInt, *serviceIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveServiceFromSupportGroupMutationResolver", "Internal Error - when removing service from supportGroup")
 	}
@@ -151,7 +153,7 @@ func (r *mutationResolver) AddUserToSupportGroup(ctx context.Context, supportGro
 		return nil, baseResolver.NewResolverError("AddUserToSupportGroupMutationResolver", "Internal Error - when adding user to supportGroup")
 	}
 
-	supportGroup, err := r.App.AddUserToSupportGroup(*supportGroupIdInt, *userIdInt)
+	supportGroup, err := r.App.AddUserToSupportGroup(ctx, *supportGroupIdInt, *userIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("AddUserToSupportGroupMutationResolver", "Internal Error - when adding user to supportGroup")
 	}
@@ -172,7 +174,7 @@ func (r *mutationResolver) RemoveUserFromSupportGroup(ctx context.Context, suppo
 		return nil, baseResolver.NewResolverError("RemoveUserFromSupportGroupMutationResolver", "Internal Error - when removing user from supportGroup")
 	}
 
-	supportGroup, err := r.App.RemoveUserFromSupportGroup(*supportGroupIdInt, *userIdInt)
+	supportGroup, err := r.App.RemoveUserFromSupportGroup(ctx, *supportGroupIdInt, *userIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveUserFromSupportGroupMutationResolver", "Internal Error - when removing user from supportGroup")
 	}
@@ -353,7 +355,7 @@ func (r *mutationResolver) AddOwnerToService(ctx context.Context, serviceID stri
 		return nil, baseResolver.NewResolverError("AddOwnerToServiceMutationResolver", "Internal Error - when adding owner to service")
 	}
 
-	service, err := r.App.AddOwnerToService(*serviceIdInt, *userIdInt)
+	service, err := r.App.AddOwnerToService(ctx, *serviceIdInt, *userIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("AddOwnerToServiceMutationResolver", "Internal Error - when adding owner to service")
 	}
@@ -374,7 +376,7 @@ func (r *mutationResolver) RemoveOwnerFromService(ctx context.Context, serviceID
 		return nil, baseResolver.NewResolverError("RemoveOwnerFromServiceMutationResolver", "Internal Error - when removing owner from service")
 	}
 
-	service, err := r.App.RemoveOwnerFromService(*serviceIdInt, *userIdInt)
+	service, err := r.App.RemoveOwnerFromService(ctx, *serviceIdInt, *userIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveOwnerFromServiceMutationResolver", "Internal Error - when removing owner from service")
 	}
@@ -395,7 +397,7 @@ func (r *mutationResolver) AddIssueRepositoryToService(ctx context.Context, serv
 		return nil, baseResolver.NewResolverError("AddIssueRepositoryToServiceMutationResolver", "Internal Error - when adding IssueRepository to service")
 	}
 
-	service, err := r.App.AddIssueRepositoryToService(*serviceIdInt, *issueRepositoryIdInt, int64(priority))
+	service, err := r.App.AddIssueRepositoryToService(ctx, *serviceIdInt, *issueRepositoryIdInt, int64(priority))
 	if err != nil {
 		return nil, baseResolver.NewResolverError("AddIssueRepositoryToServiceMutationResolver", "Internal Error - when adding IssueRepository to service")
 	}
@@ -416,7 +418,7 @@ func (r *mutationResolver) RemoveIssueRepositoryFromService(ctx context.Context,
 		return nil, baseResolver.NewResolverError("RemoveIssueRepositoryFromServiceMutationResolver", "Internal Error - when removing IssueRepository from service")
 	}
 
-	service, err := r.App.RemoveIssueRepositoryFromService(*serviceIdInt, *issueRepositoryIdInt)
+	service, err := r.App.RemoveIssueRepositoryFromService(ctx, *serviceIdInt, *issueRepositoryIdInt)
 	if err != nil {
 		return nil, baseResolver.NewResolverError("RemoveIssueRepositoryFromServiceMutationResolver", "Internal Error - when removing IssueRepository from service")
 	}
@@ -587,46 +589,6 @@ func (r *mutationResolver) DeleteIssueVariant(ctx context.Context, id string) (s
 	return id, nil
 }
 
-// CreateEvidence is the resolver for the createEvidence field.
-func (r *mutationResolver) CreateEvidence(ctx context.Context, input model.EvidenceInput) (*model.Evidence, error) {
-	evidence := model.NewEvidenceEntity(&input)
-	newEvidence, err := r.App.CreateEvidence(ctx, &evidence)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("CreateEvidenceMutationResolver", "Internal Error - when creating evidence")
-	}
-	e := model.NewEvidence(newEvidence)
-	return &e, nil
-}
-
-// UpdateEvidence is the resolver for the updateEvidence field.
-func (r *mutationResolver) UpdateEvidence(ctx context.Context, id string, input model.EvidenceInput) (*model.Evidence, error) {
-	idInt, err := baseResolver.ParseCursor(&id)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("UpdateEvidenceMutationResolver", "Internal Error - when updating evidence")
-	}
-	evidence := model.NewEvidenceEntity(&input)
-	evidence.Id = *idInt
-	updatedEvidence, err := r.App.UpdateEvidence(ctx, &evidence)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("UpdateEvidenceMutationResolver", "Internal Error - when updating evidence")
-	}
-	e := model.NewEvidence(updatedEvidence)
-	return &e, nil
-}
-
-// DeleteEvidence is the resolver for the deleteEvidence field.
-func (r *mutationResolver) DeleteEvidence(ctx context.Context, id string) (string, error) {
-	idInt, err := baseResolver.ParseCursor(&id)
-	if err != nil {
-		return "", baseResolver.NewResolverError("DeleteEvidenceMutationResolver", "Internal Error - when deleting evidence")
-	}
-	err = r.App.DeleteEvidence(ctx, *idInt)
-	if err != nil {
-		return "", baseResolver.NewResolverError("DeleteEvidenceMutationResolver", "Internal Error - when deleting evidence")
-	}
-	return id, nil
-}
-
 // CreateIssueMatch is the resolver for the createIssueMatch field.
 func (r *mutationResolver) CreateIssueMatch(ctx context.Context, input model.IssueMatchInput) (*model.IssueMatch, error) {
 	issueMatch := model.NewIssueMatchEntity(&input)
@@ -667,172 +629,6 @@ func (r *mutationResolver) DeleteIssueMatch(ctx context.Context, id string) (str
 	return id, nil
 }
 
-// AddEvidenceToIssueMatch is the resolver for the addEvidenceToIssueMatch field.
-func (r *mutationResolver) AddEvidenceToIssueMatch(ctx context.Context, issueMatchID string, evidenceID string) (*model.IssueMatch, error) {
-	issueMatchIdInt, err := baseResolver.ParseCursor(&issueMatchID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddEvidenceToIssueMatchMutationResolver", "Internal Error - when adding evidence to issueMatch")
-	}
-
-	evidenceIdInt, err := baseResolver.ParseCursor(&evidenceID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddEvidenceToIssueMatchMutationResolver", "Internal Error - when adding evidence to issueMatch")
-	}
-
-	issueMatch, err := r.App.AddEvidenceToIssueMatch(*issueMatchIdInt, *evidenceIdInt)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddEvidenceToIssueMatchMutationResolver", "Internal Error - when adding evidence to issueMatch")
-	}
-
-	im := model.NewIssueMatch(issueMatch)
-	return &im, nil
-}
-
-// RemoveEvidenceFromIssueMatch is the resolver for the removeEvidenceFromIssueMatch field.
-func (r *mutationResolver) RemoveEvidenceFromIssueMatch(ctx context.Context, issueMatchID string, evidenceID string) (*model.IssueMatch, error) {
-	issueMatchIdInt, err := baseResolver.ParseCursor(&issueMatchID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveEvidenceFromIssueMatchMutationResolver", "Internal Error - when removing evidence from issueMatch")
-	}
-
-	evidenceIdInt, err := baseResolver.ParseCursor(&evidenceID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveEvidenceFromIssueMatchMutationResolver", "Internal Error - when removing evidence from issueMatch")
-	}
-
-	issueMatch, err := r.App.RemoveEvidenceFromIssueMatch(*issueMatchIdInt, *evidenceIdInt)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveEvidenceFromIssueMatchMutationResolver", "Internal Error - when removing evidence from issueMatch")
-	}
-
-	im := model.NewIssueMatch(issueMatch)
-	return &im, nil
-}
-
-// CreateActivity is the resolver for the createActivity field.
-func (r *mutationResolver) CreateActivity(ctx context.Context, input model.ActivityInput) (*model.Activity, error) {
-	activity := model.NewActivityEntity(&input)
-	newActivity, err := r.App.CreateActivity(ctx, &activity)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("CreateActivityMutationResolver", "Internal Error - when creating activity")
-	}
-	a := model.NewActivity(newActivity)
-	return &a, nil
-}
-
-// UpdateActivity is the resolver for the updateActivity field.
-func (r *mutationResolver) UpdateActivity(ctx context.Context, id string, input model.ActivityInput) (*model.Activity, error) {
-	idInt, err := baseResolver.ParseCursor(&id)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("UpdateActivityMutationResolver", "Internal Error - when updating activity")
-	}
-	activity := model.NewActivityEntity(&input)
-	activity.Id = *idInt
-	updatedActivity, err := r.App.UpdateActivity(ctx, &activity)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("UpdateActivityMutationResolver", "Internal Error - when updating activity")
-	}
-	a := model.NewActivity(updatedActivity)
-	return &a, nil
-}
-
-// DeleteActivity is the resolver for the deleteActivity field.
-func (r *mutationResolver) DeleteActivity(ctx context.Context, id string) (string, error) {
-	idInt, err := baseResolver.ParseCursor(&id)
-	if err != nil {
-		return "", baseResolver.NewResolverError("DeleteActivityResolver", "Internal Error - when deleting activity")
-	}
-	err = r.App.DeleteActivity(ctx, *idInt)
-	if err != nil {
-		return "", baseResolver.NewResolverError("DeleteActivityMutationResolver", "Internal Error - when deleting activity")
-	}
-	return id, nil
-}
-
-// AddServiceToActivity is the resolver for the addServiceToActivity field.
-func (r *mutationResolver) AddServiceToActivity(ctx context.Context, activityID string, serviceID string) (*model.Activity, error) {
-	activityIdInt, err := baseResolver.ParseCursor(&activityID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddServiceToActivityMutationResolver", "Internal Error - when adding service to activity")
-	}
-
-	serviceIdInt, err := baseResolver.ParseCursor(&serviceID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddServiceToActivityMutationResolver", "Internal Error - when adding service to activity")
-	}
-
-	activity, err := r.App.AddServiceToActivity(*activityIdInt, *serviceIdInt)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddServiceToActivityMutationResolver", "Internal Error - when adding service to activity")
-	}
-
-	a := model.NewActivity(activity)
-	return &a, nil
-}
-
-// RemoveServiceFromActivity is the resolver for the removeServiceFromActivity field.
-func (r *mutationResolver) RemoveServiceFromActivity(ctx context.Context, activityID string, serviceID string) (*model.Activity, error) {
-	activityIdInt, err := baseResolver.ParseCursor(&activityID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveServiceFromActivityMutationResolver", "Internal Error - when removing service from activity")
-	}
-
-	serviceIdInt, err := baseResolver.ParseCursor(&serviceID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveServiceFromActivityMutationResolver", "Internal Error - when removing service from activity")
-	}
-
-	activity, err := r.App.RemoveServiceFromActivity(*activityIdInt, *serviceIdInt)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveServiceFromActivityMutationResolver", "Internal Error - when removing service from activity")
-	}
-
-	a := model.NewActivity(activity)
-	return &a, nil
-}
-
-// AddIssueToActivity is the resolver for the addIssueToActivity field.
-func (r *mutationResolver) AddIssueToActivity(ctx context.Context, activityID string, issueID string) (*model.Activity, error) {
-	activityIdInt, err := baseResolver.ParseCursor(&activityID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddIssueToActivityMutationResolver", "Internal Error - when adding issue to activity")
-	}
-
-	issueIdInt, err := baseResolver.ParseCursor(&issueID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddIssueToActivityMutationResolver", "Internal Error - when adding issue to activity")
-	}
-
-	activity, err := r.App.AddIssueToActivity(*activityIdInt, *issueIdInt)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("AddIssueToActivityMutationResolver", "Internal Error - when adding issue to activity")
-	}
-
-	a := model.NewActivity(activity)
-	return &a, nil
-}
-
-// RemoveIssueFromActivity is the resolver for the removeIssueFromActivity field.
-func (r *mutationResolver) RemoveIssueFromActivity(ctx context.Context, activityID string, issueID string) (*model.Activity, error) {
-	activityIdInt, err := baseResolver.ParseCursor(&activityID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveIssueFromActivityMutationResolver", "Internal Error - when removing issue from activity")
-	}
-
-	issueIdInt, err := baseResolver.ParseCursor(&issueID)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveIssueFromActivityMutationResolver", "Internal Error - when removing issue from activity")
-	}
-
-	activity, err := r.App.RemoveIssueFromActivity(*activityIdInt, *issueIdInt)
-	if err != nil {
-		return nil, baseResolver.NewResolverError("RemoveIssueFromActivityMutationResolver", "Internal Error - when removing issue from activity")
-	}
-
-	a := model.NewActivity(activity)
-	return &a, nil
-}
-
 func (r *mutationResolver) CreateScannerRun(ctx context.Context, input model.ScannerRunInput) (bool, error) {
 	scannerRun := model.NewScannerRunEntity(&input)
 	_, err := r.App.CreateScannerRun(&scannerRun)
@@ -860,17 +656,21 @@ func (r *mutationResolver) FailScannerRun(ctx context.Context, uuid string, mess
 }
 
 func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.RemediationInput) (*model.Remediation, error) {
+	if input.RemediationDate == nil {
+		input.RemediationDate = lo.ToPtr(time.Now().UTC().Format(time.RFC3339))
+	}
+
 	remediation := model.NewRemediationEntity(&input)
 
 	// fetch service id for given service name
-	serviceResult, err := r.App.ListServices(&entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
+	serviceResult, err := r.App.ListServices(ctx, &entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
 	if err != nil || len(serviceResult.Elements) == 0 || len(serviceResult.Elements) > 1 {
 		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - service id not found")
 	}
 	remediation.ServiceId = serviceResult.Elements[0].Id
 
 	// fetch component id for given component name
-	componentResult, err := r.App.ListComponents(&entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
+	componentResult, err := r.App.ListComponents(ctx, &entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
 	if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
 		return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - component id not found")
 	}
@@ -883,7 +683,27 @@ func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.Re
 	}
 	remediation.IssueId = issueResult.Elements[0].Issue.Id
 
-	// TODO: once authentication + user seeding is in place, fetch the user id of the remediated by user
+	if input.RemediatedBy != nil {
+		userUniqueUserIDs, err := r.App.ListUniqueUserIDs(&entity.UserFilter{
+			UniqueUserID: []*string{input.RemediatedBy},
+		}, nil)
+		if err != nil {
+			return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - user id not found")
+		}
+
+		if len(userUniqueUserIDs) == 0 {
+			user, err := r.App.CreateUser(ctx, &entity.User{
+				UniqueUserID: *input.RemediatedBy,
+			})
+			if err != nil {
+				return nil, baseResolver.NewResolverError("CreateRemediationMutationResolver", "Internal Error - when creating remediation - user id not found")
+			}
+
+			remediation.RemediatedBy = user.UniqueUserID
+		} else {
+			remediation.RemediatedBy = *input.RemediatedBy
+		}
+	}
 
 	_, err = r.App.CreateRemediation(ctx, &remediation)
 	if err != nil {
@@ -904,7 +724,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 	// if service name is updated, update foreign key as well
 	if input.Service != nil {
 		// fetch service id for given service name
-		serviceResult, err := r.App.ListServices(&entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
+		serviceResult, err := r.App.ListServices(ctx, &entity.ServiceFilter{CCRN: []*string{input.Service}}, nil)
 		if err != nil || len(serviceResult.Elements) == 0 || len(serviceResult.Elements) > 1 {
 			return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation - service id not found")
 		}
@@ -914,7 +734,7 @@ func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, inp
 	// if component name is updated, update foreign key as well
 	if input.Image != nil {
 		// fetch component id for given component name
-		componentResult, err := r.App.ListComponents(&entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
+		componentResult, err := r.App.ListComponents(ctx, &entity.ComponentFilter{Repository: []*string{input.Image}}, nil)
 		if err != nil || len(componentResult.Elements) == 0 || len(componentResult.Elements) > 1 {
 			return nil, baseResolver.NewResolverError("UpdateRemediationMutationResolver", "Internal Error - when updating remediation - component id not found")
 		}
@@ -948,6 +768,138 @@ func (r *mutationResolver) DeleteRemediation(ctx context.Context, id string) (st
 		return "", baseResolver.NewResolverError("DeleteRemediationMutationResolver", "Internal Error - when deleting remediation")
 	}
 	return id, nil
+}
+
+func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEMAlertInput) (*model.SIEMAlert, error) {
+	isComponentInstanceDataPresent := func(s *string) bool {
+		return s != nil && *s != ""
+	}
+
+	if !isComponentInstanceDataPresent(input.Service) ||
+		!isComponentInstanceDataPresent(input.Region) ||
+		!isComponentInstanceDataPresent(input.Cluster) ||
+		!isComponentInstanceDataPresent(input.Namespace) ||
+		!isComponentInstanceDataPresent(input.Pod) ||
+		!isComponentInstanceDataPresent(input.Container) {
+		return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Invalid Input - service, region, cluster, namespace, pod, and container are all required")
+	}
+
+	svc, err := r.getOrCreateService(ctx, input.Service)
+	if err != nil {
+		return nil, err
+	}
+	sg, err := r.getOrCreateSupportGroup(ctx, input.SupportGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	if svc != nil && sg != nil {
+		if _, err := r.App.AddServiceToSupportGroup(ctx, svc.Id, sg.Id); err != nil {
+			return nil, baseResolver.NewResolverError("CreateSIEMAlertMutationResolver", "Internal Error - when adding service to supportGroup")
+		}
+	}
+	ccrn := buildCCRN(input)
+	ci, err := r.getOrCreateComponentInstance(ctx, ccrn, svc, input)
+	if err != nil {
+		return nil, err
+	}
+	issue, issueVariant, err := r.getOrCreateIssueAndVariant(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.createIssueMatchIfCI(ctx, ci, issue); err != nil {
+		return nil, err
+	}
+
+	var name *string
+	if issue != nil {
+		name = &issue.PrimaryName
+	}
+
+	var description *string
+	if issueVariant != nil && issueVariant.Description != "" {
+		description = &issueVariant.Description
+	} else if input.Description != nil {
+		description = input.Description
+	}
+
+	var severity *model.SeverityValues
+	if issueVariant != nil && issueVariant.Severity.Value != "" {
+		severity = lo.ToPtr(model.SeverityValues(issueVariant.Severity.Value))
+	} else if input.Severity != nil {
+		severity = input.Severity
+	}
+
+	var url *string
+	if issueVariant != nil && issueVariant.ExternalUrl != "" {
+		url = &issueVariant.ExternalUrl
+	} else if input.URL != nil {
+		url = input.URL
+	}
+
+	var servicePtr *string
+	if svc != nil {
+		servicePtr = lo.ToPtr(svc.CCRN)
+	} else if input.Service != nil {
+		servicePtr = input.Service
+	}
+
+	var supportGroupPtr *string
+	if sg != nil {
+		supportGroupPtr = lo.ToPtr(sg.CCRN)
+	} else if input.SupportGroup != nil {
+		supportGroupPtr = input.SupportGroup
+	}
+
+	var regionPtr, clusterPtr, namespacePtr, podPtr, containerPtr *string
+	if ci != nil {
+		if ci.Region != "" {
+			regionPtr = lo.ToPtr(ci.Region)
+		}
+		if ci.Cluster != "" {
+			clusterPtr = lo.ToPtr(ci.Cluster)
+		}
+		if ci.Namespace != "" {
+			namespacePtr = lo.ToPtr(ci.Namespace)
+		}
+		if ci.Pod != "" {
+			podPtr = lo.ToPtr(ci.Pod)
+		}
+		if ci.Container != "" {
+			containerPtr = lo.ToPtr(ci.Container)
+		}
+	}
+	if regionPtr == nil {
+		regionPtr = input.Region
+	}
+	if clusterPtr == nil {
+		clusterPtr = input.Cluster
+	}
+	if namespacePtr == nil {
+		namespacePtr = input.Namespace
+	}
+	if podPtr == nil {
+		podPtr = input.Pod
+	}
+	if containerPtr == nil {
+		containerPtr = input.Container
+	}
+
+	res := model.SIEMAlert{
+		Name:         name,
+		Description:  description,
+		Severity:     severity,
+		URL:          url,
+		Service:      servicePtr,
+		SupportGroup: supportGroupPtr,
+		Region:       regionPtr,
+		Cluster:      clusterPtr,
+		Namespace:    namespacePtr,
+		Pod:          podPtr,
+		Container:    containerPtr,
+		Source:       input.Source,
+	}
+	return &res, nil
 }
 
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }

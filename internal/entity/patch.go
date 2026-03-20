@@ -12,8 +12,16 @@ type Patch struct {
 	ComponentVersionName string `json:"component_version_name"`
 }
 
+func (p *Patch) GetId() int64 {
+	return p.Id
+}
+
+func (p *Patch) SetId(id int64) {
+	p.Id = id
+}
+
 type PatchFilter struct {
-	PaginatedX
+	Paginated
 	Id                   []*int64          `json:"id"`
 	ServiceId            []*int64          `json:"service_id"`
 	ServiceName          []*string         `json:"service_name"`

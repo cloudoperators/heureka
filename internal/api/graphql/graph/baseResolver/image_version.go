@@ -42,13 +42,14 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	f := &entity.ComponentVersionFilter{
-		PaginatedX:    entity.PaginatedX{First: first, After: after},
+		Paginated:     entity.Paginated{First: first, After: after},
 		IssueId:       issueId,
 		ComponentId:   componentId,
 		ComponentCCRN: filter.Image,
 		ServiceCCRN:   filter.Service,
 		Version:       filter.Version,
 		State:         model.GetStateFilterType(filter.State),
+		EndOfLife:     filter.EndOfLife,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -59,7 +60,7 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: entity.OrderDirectionDesc})
 	opt.Order = append(opt.Order, entity.Order{By: entity.ComponentVersionRepository, Direction: entity.OrderDirectionAsc})
 
-	componentVersions, err := app.ListComponentVersions(f, opt)
+	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("ImageVersionBaseResolver", err.Error())
 	}

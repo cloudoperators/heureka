@@ -30,6 +30,7 @@ query GetImageVersions(
         tag
         repository
         version
+        endOfLife
         # Counts will result in a subquery. Request only if needed.
         # Counts number of Vulnerabilities per severity
         vulnerabilityCounts{

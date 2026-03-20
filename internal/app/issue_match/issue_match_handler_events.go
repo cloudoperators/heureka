@@ -4,6 +4,7 @@
 package issue_match
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/component_instance"
@@ -11,18 +12,18 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	ListIssueMatchesEventName             event.EventName = "ListIssueMatches"
-	GetIssueMatchEventName                event.EventName = "GetIssueMatch"
-	CreateIssueMatchEventName             event.EventName = "CreateIssueMatch"
-	UpdateIssueMatchEventName             event.EventName = "UpdateIssueMatch"
-	DeleteIssueMatchEventName             event.EventName = "DeleteIssueMatch"
-	AddEvidenceToIssueMatchEventName      event.EventName = "AddEvidenceToIssueMatch"
-	RemoveEvidenceFromIssueMatchEventName event.EventName = "RemoveEvidenceFromIssueMatch"
-	ListIssueMatchIDsEventName            event.EventName = "ListIssueMatchIDs"
+	ListIssueMatchesEventName  event.EventName = "ListIssueMatches"
+	GetIssueMatchEventName     event.EventName = "GetIssueMatch"
+	CreateIssueMatchEventName  event.EventName = "CreateIssueMatch"
+	UpdateIssueMatchEventName  event.EventName = "UpdateIssueMatch"
+	DeleteIssueMatchEventName  event.EventName = "DeleteIssueMatch"
+	ListIssueMatchIDsEventName event.EventName = "ListIssueMatchIDs"
 )
 
 type ListIssueMatchesEvent struct {
@@ -68,25 +69,7 @@ func (e *DeleteIssueMatchEvent) Name() event.EventName {
 	return DeleteIssueMatchEventName
 }
 
-type AddEvidenceToIssueMatchEvent struct {
-	IssueMatchID int64
-	EvidenceID   int64
-}
-
-func (e *AddEvidenceToIssueMatchEvent) Name() event.EventName {
-	return AddEvidenceToIssueMatchEventName
-}
-
-type RemoveEvidenceFromIssueMatchEvent struct {
-	IssueMatchID int64
-	EvidenceID   int64
-}
-
-func (e *RemoveEvidenceFromIssueMatchEvent) Name() event.EventName {
-	return RemoveEvidenceFromIssueMatchEventName
-}
-
-func OnComponentInstanceCreate(db database.Database, event event.Event) {
+func OnComponentInstanceCreate(db database.Database, event event.Event, authz openfga.Authorization) {
 	if createEvent, ok := event.(*component_instance.CreateComponentInstanceEvent); ok {
 		OnComponentVersionAssignmentToComponentInstance(db, createEvent.ComponentInstance.Id, createEvent.ComponentInstance.ComponentVersionId)
 	}
@@ -107,7 +90,7 @@ func BuildIssueVariantMap(db database.Database, componentInstanceID int64, compo
 	})
 
 	// Get Issue Variants
-	issueVariants, err := db.GetServiceIssueVariants(&entity.ServiceIssueVariantFilter{ComponentInstanceId: []*int64{&componentInstanceID}})
+	issueVariants, err := db.GetServiceIssueVariants(&entity.ServiceIssueVariantFilter{ComponentInstanceId: []*int64{&componentInstanceID}}, []entity.Order{})
 	if err != nil {
 		l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants")
 		return nil, NewIssueMatchHandlerError("Error while fetching issue variants")
@@ -127,12 +110,12 @@ func BuildIssueVariantMap(db database.Database, componentInstanceID int64, compo
 			// if there are multiple variants with the same priority on their repositories we take the highest severity one
 			// if serverity and score are the same the first occuring issue variant is taken
 			if issueVariantMap[variant.IssueId].Priority < variant.Priority {
-				issueVariantMap[variant.IssueId] = variant
+				issueVariantMap[variant.IssueId] = *variant.ServiceIssueVariant
 			} else if issueVariantMap[variant.IssueId].Severity.Score < variant.Severity.Score {
-				issueVariantMap[variant.IssueId] = variant
+				issueVariantMap[variant.IssueId] = *variant.ServiceIssueVariant
 			}
 		} else {
-			issueVariantMap[variant.IssueId] = variant
+			issueVariantMap[variant.IssueId] = *variant.ServiceIssueVariant
 		}
 	}
 
@@ -205,5 +188,127 @@ func OnComponentVersionAssignmentToComponentInstance(db database.Database, compo
 			l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
 			return
 		}
+	}
+}
+
+// OnIssueMatchCreateAuthz is a handler for the CreateIssueMatchEvent
+// It creates an OpenFGA relation tuple for the issue match and the current user
+func OnIssueMatchCreateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnIssueMatchCreateAuthz")
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueMatchCreateAuthz",
+		"payload": e,
+	})
+
+	if createEvent, ok := e.(*CreateIssueMatchEvent); ok {
+		userId := openfga.UserIdFromInt(createEvent.IssueMatch.CreatedBy)
+
+		relations := []openfga.RelationInput{
+			{
+				UserType:   openfga.TypeRole,
+				UserId:     userId,
+				Relation:   openfga.RelRole,
+				ObjectType: openfga.TypeIssueMatch,
+				ObjectId:   openfga.ObjectIdFromInt(createEvent.IssueMatch.Id),
+			},
+		}
+
+		err := authz.AddRelationBulk(relations)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+			l.Error(wrappedErr)
+		}
+	} else {
+		err := NewIssueMatchHandlerError("OnIssueMatchCreateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+		l.Error(wrappedErr)
+	}
+}
+
+// OnIssueMatchUpdateAuthz is a handler for the UpdateIssueMatchEvent
+// Fields that can be updated in Issue Match which affect tuple relations include:
+// issuematch_component_instance_id
+func OnIssueMatchUpdateAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnIssueMatchUpdateAuthz")
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueMatchUpdateAuthz",
+		"payload": e,
+	})
+
+	if updateEvent, ok := e.(*UpdateIssueMatchEvent); ok {
+		newComponentInstanceId := strconv.FormatInt(updateEvent.IssueMatch.ComponentInstanceId, 10)
+
+		if newComponentInstanceId != "" {
+			// Remove any existing relation where this issue_match is connected to any component_instance
+			removeInput := openfga.RelationInput{
+				UserType:   openfga.TypeComponentInstance,
+				Relation:   openfga.TypeComponentInstance,
+				ObjectType: openfga.TypeIssueMatch,
+				ObjectId:   openfga.ObjectIdFromInt(updateEvent.IssueMatch.Id),
+			}
+			err := authz.RemoveRelationBulk([]openfga.RelationInput{removeInput})
+			if err != nil {
+				wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+				l.Error(wrappedErr)
+			}
+
+			// Add the new relation to the new component_instance
+			newRelation := openfga.RelationInput{
+				UserType:   openfga.TypeComponentInstance,
+				UserId:     openfga.UserId(newComponentInstanceId),
+				Relation:   openfga.TypeComponentInstance,
+				ObjectType: openfga.TypeIssueMatch,
+				ObjectId:   openfga.ObjectIdFromInt(updateEvent.IssueMatch.Id),
+			}
+
+			err = authz.AddRelationBulk([]openfga.RelationInput{newRelation})
+			if err != nil {
+				wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+				l.Error(wrappedErr)
+			}
+		}
+	} else {
+		err := NewIssueMatchHandlerError("OnIssueMatchUpdateAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+		l.Error(wrappedErr)
+	}
+}
+
+// OnIssueMatchDeleteAuthz is a handler for the DeleteIssueMatchEvent
+func OnIssueMatchDeleteAuthz(db database.Database, e event.Event, authz openfga.Authorization) {
+	op := appErrors.Op("OnIssueMatchDeleteAuthz")
+
+	deleteInput := []openfga.RelationInput{}
+
+	l := logrus.WithFields(logrus.Fields{
+		"event":   "OnIssueMatchDeleteAuthz",
+		"payload": e,
+	})
+
+	if deleteEvent, ok := e.(*DeleteIssueMatchEvent); ok {
+		// Delete all tuples where object is the issue_match
+		deleteInput = append(deleteInput, openfga.RelationInput{
+			ObjectType: openfga.TypeIssueMatch,
+			ObjectId:   openfga.ObjectIdFromInt(deleteEvent.IssueMatchID),
+		})
+
+		// Delete all tuples where user is the issue_match
+		// deleteInput = append(deleteInput, openfga.RelationInput{
+		// 	UserType: openfga.TypeIssueMatch,
+		// 	UserId:   openfga.UserIdFromInt(deleteEvent.IssueMatchID),
+		// 	ObjectType: ,
+		// })
+
+		err := authz.RemoveRelationBulk(deleteInput)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+			l.Error(wrappedErr)
+		}
+	} else {
+		err := NewIssueMatchHandlerError("OnIssueMatchDeleteAuthz: triggered with wrong event type")
+		wrappedErr := appErrors.InternalError(string(op), "IssueMatch", "", err)
+		l.Error(wrappedErr)
 	}
 }

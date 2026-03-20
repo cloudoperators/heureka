@@ -6,24 +6,40 @@ package user
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
+	applog "github.com/cloudoperators/heureka/internal/app/logging"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/cloudoperators/heureka/internal/database"
+	appErrors "github.com/cloudoperators/heureka/internal/errors"
+	"github.com/cloudoperators/heureka/internal/openfga"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	CacheTtlGetAllUserCursors = 12 * time.Hour
+	CacheTtlGetUsers          = 12 * time.Hour
+)
+
 type userHandler struct {
 	database      database.Database
+	cache         cache.Cache
 	eventRegistry event.EventRegistry
+	authz         openfga.Authorization
+	logger        *logrus.Logger
 }
 
 func NewUserHandler(handlerContext common.HandlerContext) UserHandler {
 	return &userHandler{
 		database:      handlerContext.DB,
+		cache:         handlerContext.Cache,
 		eventRegistry: handlerContext.EventReg,
+		authz:         handlerContext.Authz,
+		logger:        logrus.New(),
 	}
 }
 
@@ -39,56 +55,81 @@ func NewUserHandlerError(msg string) *UserHandlerError {
 	return &UserHandlerError{msg: msg}
 }
 
-func (u *userHandler) getUserResults(filter *entity.UserFilter) ([]entity.UserResult, error) {
-	var userResults []entity.UserResult
-	users, err := u.database.GetUsers(filter)
-	if err != nil {
-		return nil, err
-	}
-	for _, u := range users {
-		user := u
-		cursor := fmt.Sprintf("%d", user.Id)
-		userResults = append(userResults, entity.UserResult{
-			WithCursor:       entity.WithCursor{Value: cursor},
-			UserAggregations: nil,
-			User:             &user,
-		})
-	}
-	return userResults, nil
-}
-
-func (u *userHandler) ListUsers(filter *entity.UserFilter, options *entity.ListOptions) (*entity.List[entity.UserResult], error) {
+func (u *userHandler) ListUsers(ctx context.Context, filter *entity.UserFilter, options *entity.ListOptions) (*entity.List[entity.UserResult], error) {
 	var count int64
 	var pageInfo *entity.PageInfo
 
+	op := appErrors.Op("userHandler.ListUsers")
+
 	common.EnsurePaginated(&filter.Paginated)
 
-	l := logrus.WithFields(logrus.Fields{
-		"event":  ListUsersEventName,
-		"filter": filter,
-	})
-
-	res, err := u.getUserResults(filter)
+	// get current user id
+	currentUserId, err := common.GetCurrentUserId(ctx, u.database)
 	if err != nil {
-		l.Error(err)
-		return nil, NewUserHandlerError("Error while filtering for Users")
+		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+		applog.LogError(u.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
+	}
+
+	// Authorization check
+	accessibleSupportGroupIds, err := u.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeSupportGroup)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+		applog.LogError(u.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
+	}
+
+	// Update the filter.Id based on accessibleSupportGroupIds
+	filter.SupportGroupId = common.CombineFilterWithAccessibleIds(filter.SupportGroupId, accessibleSupportGroupIds)
+
+	res, err := cache.CallCached[[]entity.UserResult](
+		u.cache,
+		CacheTtlGetUsers,
+		"GetUsers",
+		u.database.GetUsers,
+		filter,
+	)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+		applog.LogError(u.logger, wrappedErr, logrus.Fields{
+			"filter": filter,
+		})
+		return nil, wrappedErr
 	}
 
 	if options.ShowPageInfo {
 		if len(res) > 0 {
-			ids, err := u.database.GetAllUserIds(filter)
+			cursors, err := cache.CallCached[[]string](
+				u.cache,
+				CacheTtlGetAllUserCursors,
+				"GetAllUserCursors",
+				u.database.GetAllUserCursors,
+				filter,
+				options.Order,
+			)
 			if err != nil {
-				l.Error(err)
-				return nil, NewUserHandlerError("Error while getting all Ids")
+				wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+				applog.LogError(u.logger, wrappedErr, logrus.Fields{
+					"filter": filter,
+				})
+				return nil, wrappedErr
 			}
-			pageInfo = common.GetPageInfo(res, ids, *filter.First, *filter.After)
-			count = int64(len(ids))
+
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
+			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
 		count, err = u.database.CountUsers(filter)
 		if err != nil {
-			l.Error(err)
-			return nil, NewUserHandlerError("Error while total count of Users")
+			wrappedErr := appErrors.InternalError(string(op), "Users", "", err)
+			applog.LogError(u.logger, wrappedErr, logrus.Fields{
+				"filter": filter,
+			})
+			return nil, wrappedErr
 		}
 	}
 	ret := &entity.List[entity.UserResult]{
@@ -120,7 +161,7 @@ func (u *userHandler) CreateUser(ctx context.Context, user *entity.User) (*entit
 	}
 	user.UpdatedBy = user.CreatedBy
 
-	users, err := u.ListUsers(f, &entity.ListOptions{})
+	users, err := u.ListUsers(ctx, f, &entity.ListOptions{})
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while creating user.")
@@ -160,7 +201,7 @@ func (u *userHandler) UpdateUser(ctx context.Context, user *entity.User) (*entit
 		return nil, NewUserHandlerError("Internal error while updating user.")
 	}
 
-	userResult, err := u.ListUsers(&entity.UserFilter{Id: []*int64{&user.Id}}, &entity.ListOptions{})
+	userResult, err := u.ListUsers(ctx, &entity.UserFilter{Id: []*int64{&user.Id}}, &entity.ListOptions{})
 	if err != nil {
 		l.Error(err)
 		return nil, NewUserHandlerError("Internal error while retrieving updated user.")

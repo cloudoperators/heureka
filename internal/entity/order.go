@@ -27,7 +27,12 @@ const (
 	IssueId
 	IssuePrimaryName
 
+	IssueVariantID
 	IssueVariantRating
+
+	ServiceIssueVariantID
+
+	IssueRepositoryID
 
 	IssueMatchId
 	IssueMatchRating
@@ -44,12 +49,17 @@ const (
 
 	RemediationIssue
 	RemediationSeverity
+	RemediationExpirationDate
 
 	SupportGroupId
 	SupportGroupCcrn
 
 	ServiceId
 	ServiceCcrn
+
+	UserID
+	UserUniqueUserID
+	UserName
 )
 
 type OrderDirection int

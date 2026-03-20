@@ -31,19 +31,6 @@ func (r *issueMatchResolver) EffectiveIssueVariants(ctx context.Context, obj *mo
 		})
 }
 
-func (r *issueMatchResolver) Evidences(ctx context.Context, obj *model.IssueMatch, filter *model.EvidenceFilter, first *int, after *string) (*model.EvidenceConnection, error) {
-	return baseResolver.EvidenceBaseResolver(
-		r.App,
-		ctx,
-		filter,
-		first,
-		after,
-		&model.NodeParent{
-			Parent:     obj,
-			ParentName: model.IssueMatchNodeName,
-		})
-}
-
 func (r *issueMatchResolver) Issue(ctx context.Context, obj *model.IssueMatch) (*model.Issue, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueID})
 	if err != nil {

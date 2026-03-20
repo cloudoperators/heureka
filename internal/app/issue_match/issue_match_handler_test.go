@@ -4,6 +4,7 @@
 package issue_match_test
 
 import (
+	"context"
 	"errors"
 	"math"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/severity"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 
 	"github.com/samber/lo"
 
@@ -34,18 +36,27 @@ func TestIssueMatchHandler(t *testing.T) {
 }
 
 var (
-	er    event.EventRegistry
-	authz openfga.Authorization
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
 )
 
 var _ = BeforeSuite(func() {
-	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	authEnabled := false
+	cfg = common.GetTestConfig(authEnabled)
+	enableLogs := false
+	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+	handlerContext = common.HandlerContext{
+		Cache: nil,
+		Authz: authz,
+	}
+	handlerContext.Authz.RemoveAllRelations()
 })
 
 func getIssueMatchFilter() *entity.IssueMatchFilter {
 	return &entity.IssueMatchFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -54,41 +65,41 @@ func getIssueMatchFilter() *entity.IssueMatchFilter {
 		SeverityValue:       nil,
 		Status:              nil,
 		IssueId:             nil,
-		EvidenceId:          nil,
 		ComponentInstanceId: nil,
 	}
 }
 
 var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
+		ctx               context.Context
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		ctx = common.NewAdminContext()
 		options = entity.NewListOptions()
 		filter = getIssueMatchFilter()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 			db.On("CountIssueMatches", filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
 			issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-			res, err := issueMatchHandler.ListIssueMatches(filter, options)
+			res, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -118,10 +129,11 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 				c, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, im))
 				cursors = append(cursors, c)
 			}
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetIssueMatches", filter, []entity.Order{}).Return(matches, nil)
 			db.On("GetAllIssueMatchCursors", filter, []entity.Order{}).Return(cursors, nil)
 			issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-			res, err := issueMatchHandler.ListIssueMatches(filter, options)
+			res, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -140,17 +152,19 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		Context("and the given filter does not have any matches in the database", func() {
 			BeforeEach(func() {
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 			})
 			It("should return an empty result", func() {
 				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-				res, err := issueMatchHandler.ListIssueMatches(filter, options)
+				res, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
 			})
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 				issueMatches := []entity.IssueMatchResult{}
 				for _, im := range test.NNewFakeIssueMatches(15) {
 					issueMatches = append(issueMatches, entity.IssueMatchResult{IssueMatch: lo.ToPtr(im)})
@@ -159,7 +173,7 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 			})
 			It("should return the expected matches in the result", func() {
 				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-				res, err := issueMatchHandler.ListIssueMatches(filter, options)
+				res, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(15), "return 15 results")
 			})
@@ -167,21 +181,145 @@ var _ = Describe("When listing IssueMatches", Label("app", "ListIssueMatches"), 
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, errors.New("some error"))
 			})
 
 			It("should return the expected matches in the result", func() {
 				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-				_, err := issueMatchHandler.ListIssueMatches(filter, options)
+				_, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
 				Expect(err).Error()
 				Expect(err.Error()).ToNot(BeEquivalentTo("some error"), "error gets not passed through")
 			})
 		})
 	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any issue matches", func() {
+			BeforeEach(func() {
+				componentInstanceIds := int64(-1)
+				filter.ComponentInstanceId = []*int64{&componentInstanceIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
+			})
+
+			It("should return no issue matches", func() {
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+				res, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes a component instance Id that has issue matches related to it", func() {
+			var (
+				issueMatch entity.IssueMatch
+			)
+
+			BeforeEach(func() {
+				sgId := int64(111)
+				serviceId := int64(123)
+				ciId := int64(321)
+				userId := int64(234)
+				systemUserId := int64(1)
+				filter.ServiceId = []*int64{&serviceId}
+				issueMatch = test.NewFakeIssueMatch()
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{{IssueMatch: &issueMatch}}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create support group
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // create service
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(serviceId),
+					},
+					{ // create component instance
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeComponentInstance,
+						ObjectId:   openfga.ObjectIdFromInt(ciId),
+					},
+					{ // create issue match
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeIssueMatch,
+						ObjectId:   openfga.ObjectIdFromInt(issueMatch.Id),
+					},
+					{ // link user to support group
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelMember,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   openfga.ObjectIdFromInt(sgId),
+					},
+					{ // link service to support group
+						UserType:   openfga.TypeSupportGroup,
+						UserId:     openfga.UserIdFromInt(sgId),
+						Relation:   openfga.RelSupportGroup,
+						ObjectType: openfga.TypeService,
+						ObjectId:   openfga.ObjectIdFromInt(serviceId),
+					},
+					{ // Link component instance to service
+						UserType:   openfga.TypeService,
+						UserId:     openfga.UserIdFromInt(serviceId),
+						Relation:   openfga.RelRelatedService,
+						ObjectType: openfga.TypeComponentInstance,
+						ObjectId:   openfga.ObjectIdFromInt(ciId),
+					},
+					{ // Link issue match to component instance
+						UserType:   openfga.TypeComponentInstance,
+						UserId:     openfga.UserIdFromInt(ciId),
+						Relation:   openfga.RelComponentInstance,
+						ObjectType: openfga.TypeIssueMatch,
+						ObjectId:   openfga.ObjectIdFromInt(issueMatch.Id),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected issue match in the result", func() {
+				issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
+				res, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].Id).To(BeEquivalentTo(issueMatch.Id)) // check that the returned issue match is the expected one
+			})
+		})
+
+	})
 })
 
 var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatch
@@ -192,25 +330,26 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		ss                severity.SeverityHandler
 		ivs               issue_variant.IssueVariantHandler
 		rs                issue_repository.IssueRepositoryHandler
-		handlerContext    common.HandlerContext
+		r                 openfga.RelationInput
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 		issueMatch = test.NewFakeIssueMatch()
 		ivFilter = entity.NewIssueVariantFilter()
 		irFilter = entity.NewIssueRepositoryFilter()
 		first := 10
 		ivFilter.First = &first
-		var after int64 = 0
+		var after string
 		ivFilter.After = &after
 		irFilter.First = &first
 		irFilter.After = &after
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+
+		handlerContext.DB = db
+		handlerContext.EventReg = er
+
 		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
 		ivs = issue_variant.NewIssueVariantHandler(handlerContext, rs)
 		ss = severity.NewSeverityHandler(handlerContext, ivs)
@@ -225,8 +364,21 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 		issueMatch.Severity = issueVariants[0].Severity
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueMatch", &issueMatch).Return(&issueMatch, nil)
-		db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
-		db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
+		db.On("GetIssueVariants", ivFilter, mock.Anything).Return([]entity.IssueVariantResult{
+			{
+				IssueVariant: &issueVariants[0],
+			},
+		}, nil)
+
+		irResults := make([]entity.IssueRepositoryResult, 0, len(repositories))
+
+		for _, ir := range repositories {
+			irResults = append(irResults, entity.IssueRepositoryResult{
+				IssueRepository: &ir,
+			})
+		}
+
+		db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, ss)
 		newIssueMatch, err := issueMatchHandler.CreateIssueMatch(common.NewAdminContext(), &issueMatch)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -243,33 +395,79 @@ var _ = Describe("When creating IssueMatch", Label("app", "CreateIssueMatch"), f
 			Expect(newIssueMatch.Severity.Value).To(BeEquivalentTo(issueMatch.Severity.Value))
 		})
 	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("when handling a CreateIssueMatchEvent", func() {
+			Context("when new issue match is created", func() {
+				It("should add user resource relationship tuple in openfga", func() {
+					imFake := test.NewFakeIssueMatch()
+					createEvent := &im.CreateIssueMatchEvent{
+						IssueMatch: &imFake,
+					}
+
+					r = openfga.RelationInput{
+						UserType:   openfga.TypeRole,
+						UserId:     "0",
+						ObjectId:   "test_issue_match",
+						ObjectType: openfga.TypeIssueMatch,
+						Relation:   openfga.TypeRole,
+					}
+
+					// Use type assertion to convert a CreateServiceEvent into an Event
+					var event event.Event = createEvent
+					r.ObjectId = openfga.ObjectIdFromInt(createEvent.IssueMatch.Id)
+					// Simulate event
+					im.OnIssueMatchCreateAuthz(db, event, handlerContext.Authz)
+
+					ok, err := handlerContext.Authz.CheckPermission(r)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(ok).To(BeTrue(), "permission should be granted")
+				})
+			})
+		})
+	})
 })
 
 var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		issueMatch        entity.IssueMatchResult
 		filter            *entity.IssueMatchFilter
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 		issueMatch = test.NewFakeIssueMatchResult()
 		first := 10
 		after := ""
 		filter = &entity.IssueMatchFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("updates issueMatch", func() {
@@ -297,35 +495,101 @@ var _ = Describe("When updating IssueMatch", Label("app", "UpdateIssueMatch"), f
 			Expect(updatedIssueMatch.Severity.Value).To(BeEquivalentTo(issueMatch.Severity.Value))
 		})
 	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("when handling an UpdateIssueMatchEvent", func() {
+			It("should update the component_instance relation tuple in openfga", func() {
+				imFake := test.NewFakeIssueMatch()
+				oldComponentInstanceId := int64(12345)
+				newComponentInstanceId := int64(67890)
+
+				// Add an initial relation: issue_match -> old component_instance
+				initialRelation := openfga.RelationInput{
+					UserType:   openfga.TypeComponentInstance,
+					UserId:     openfga.UserIdFromInt(oldComponentInstanceId),
+					Relation:   openfga.RelComponentInstance,
+					ObjectType: openfga.TypeIssueMatch,
+					ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
+				}
+
+				handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{initialRelation})
+
+				// Prepare the update event with the new component_instance id
+				imFake.ComponentInstanceId = newComponentInstanceId
+				updateEvent := &im.UpdateIssueMatchEvent{
+					IssueMatch: &imFake,
+				}
+				var event event.Event = updateEvent
+
+				// Simulate event
+				im.OnIssueMatchUpdateAuthz(db, event, handlerContext.Authz)
+
+				// Check that the old relation is gone
+				remainingOld, err := handlerContext.Authz.ListRelations(initialRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingOld).To(BeEmpty(), "old relation should be removed")
+
+				// Check that the new relation exists
+				newRelation := openfga.RelationInput{
+					UserType:   openfga.TypeComponentInstance,
+					UserId:     openfga.UserIdFromInt(newComponentInstanceId),
+					Relation:   openfga.RelComponentInstance,
+					ObjectType: openfga.TypeIssueMatch,
+					ObjectId:   openfga.ObjectIdFromInt(imFake.Id),
+				}
+				remainingNew, err := handlerContext.Authz.ListRelations(newRelation)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(remainingNew).NotTo(BeEmpty(), "new relation should exist")
+			})
+		})
+	})
 })
 
 var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), func() {
 	var (
+		er                event.EventRegistry
 		db                *mocks.MockDatabase
 		issueMatchHandler im.IssueMatchHandler
 		id                int64
+		ctx               context.Context
 		filter            *entity.IssueMatchFilter
 		options           *entity.ListOptions
-		handlerContext    common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
+
 		id = 1
 		first := 10
 		after := ""
+		ctx = common.NewAdminContext()
 		filter = &entity.IssueMatchFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
 		}
 		options = entity.NewListOptions()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("deletes issueMatch", func() {
@@ -337,58 +601,102 @@ var _ = Describe("When deleting IssueMatch", Label("app", "DeleteIssueMatch"), f
 		Expect(err).To(BeNil(), "no error should be thrown")
 
 		filter.Id = []*int64{&id}
-		issueMatches, err := issueMatchHandler.ListIssueMatches(filter, options)
+		issueMatches, err := issueMatchHandler.ListIssueMatches(ctx, filter, options)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(issueMatches.Elements).To(BeEmpty(), "no error should be thrown")
 	})
-})
 
-var _ = Describe("When modifying relationship of evidence and issueMatch", Label("app", "EvidenceIssueMatchRelationship"), func() {
-	var (
-		db                *mocks.MockDatabase
-		issueMatchHandler im.IssueMatchHandler
-		evidence          entity.Evidence
-		issueMatch        entity.IssueMatchResult
-		filter            *entity.IssueMatchFilter
-		handlerContext    common.HandlerContext
-	)
+	Context("when authz is enabled", func() {
 
-	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
-		issueMatch = test.NewFakeIssueMatchResult()
-		evidence = test.NewFakeEvidenceEntity()
-		first := 10
-		after := ""
-		filter = &entity.IssueMatchFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-			Id: []*int64{&issueMatch.Id},
-		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
-	})
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-	It("adds evidence to issueMatch", func() {
-		db.On("AddEvidenceToIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-		issueMatch, err := issueMatchHandler.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
-	})
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
 
-	It("removes evidence from issueMatch", func() {
-		db.On("RemoveEvidenceFromIssueMatch", issueMatch.Id, evidence.Id).Return(nil)
-		db.On("GetIssueMatches", filter, []entity.Order{}).Return([]entity.IssueMatchResult{issueMatch}, nil)
-		issueMatchHandler = im.NewIssueMatchHandler(handlerContext, nil)
-		issueMatch, err := issueMatchHandler.RemoveEvidenceFromIssueMatch(issueMatch.Id, evidence.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issueMatch).NotTo(BeNil(), "issueMatch should be returned")
+		Context("when handling a DeleteIssueMatchEvent", func() {
+			Context("when new issue match is deleted", func() {
+				It("should delete tuples related to that issuematch in openfga", func() {
+					// Test OnIssueMatchDeleteAuthz against all possible relations
+					imFake := test.NewFakeIssueMatch()
+					deleteEvent := &im.DeleteIssueMatchEvent{
+						IssueMatchID: imFake.Id,
+					}
+					objectId := openfga.ObjectIdFromInt(deleteEvent.IssueMatchID)
+					relations := []openfga.RelationInput{
+						{ // user - issue_match: a user can view the issue match
+							UserType:   openfga.TypeUser,
+							UserId:     openfga.IDUser,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeIssueMatch,
+							Relation:   openfga.RelCanView,
+						},
+						{ // component_instance - issue_match: a component instance is related to the issue match
+							UserType:   openfga.TypeComponentInstance,
+							UserId:     openfga.IDComponentInstance,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeIssueMatch,
+							Relation:   openfga.RelComponentInstance,
+						},
+						{ // role - issue_match: a role is assigned to the issue match
+							UserType:   openfga.TypeRole,
+							UserId:     openfga.IDRole,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeIssueMatch,
+							Relation:   openfga.RelRole,
+						},
+					}
+
+					handlerContext.Authz.AddRelationBulk(relations)
+
+					// get the number of relations before deletion
+					relCountBefore := 0
+					for _, r := range relations {
+						relations, err := handlerContext.Authz.ListRelations(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						relCountBefore += len(relations)
+					}
+					Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
+
+					// check that relations were created
+					for _, r := range relations {
+						ok, err := handlerContext.Authz.CheckPermission(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						Expect(ok).To(BeTrue(), "permission should be granted")
+					}
+
+					var event event.Event = deleteEvent
+					// Simulate event
+					im.OnIssueMatchDeleteAuthz(db, event, handlerContext.Authz)
+
+					// get the number of relations after deletion
+					relCountAfter := 0
+					for _, r := range relations {
+						relations, err := handlerContext.Authz.ListRelations(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						relCountAfter += len(relations)
+					}
+					Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
+					Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+
+					// verify that relations were deleted
+					for _, r := range relations {
+						ok, err := handlerContext.Authz.CheckPermission(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						Expect(ok).To(BeFalse(), "permission should NOT be granted")
+					}
+				})
+			})
+		})
 	})
 })
 
@@ -421,7 +729,7 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				// Mocks
 				db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
 					ComponentInstanceId: []*int64{lo.ToPtr(int64(1))},
-				}).Return([]entity.ServiceIssueVariant{}, nil)
+				}, mock.Anything).Return([]entity.ServiceIssueVariantResult{}, nil)
 			})
 
 			It("should return an empty map", func() {
@@ -435,11 +743,20 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 		When("all data is retrieved successfully", func() {
 			BeforeEach(func() {
 				variants := test.NNewFakeServiceIssueVariantEntity(2, 10, nil)
+
+				sivResult := make([]entity.ServiceIssueVariantResult, 0, len(variants))
+
+				for _, variant := range variants {
+					sivResult = append(sivResult, entity.ServiceIssueVariantResult{
+						ServiceIssueVariant: &variant,
+					})
+				}
+
 				// Mocks
 				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
-				})).Return(variants, nil)
+				}), mock.Anything).Return(sivResult, nil)
 			})
 
 			It("should return the correct issue variant map", func() {
@@ -456,11 +773,20 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				v1 := test.NewFakeServiceIssueVariantEntity(100, lo.ToPtr(int64(1)))
 				v2 = test.NewFakeServiceIssueVariantEntity(200, lo.ToPtr(int64(1)))
 				variants := []entity.ServiceIssueVariant{v1, v2}
+
+				sivResult := make([]entity.ServiceIssueVariantResult, 0, len(variants))
+
+				for _, variant := range variants {
+					sivResult = append(sivResult, entity.ServiceIssueVariantResult{
+						ServiceIssueVariant: &variant,
+					})
+				}
+
 				// Mocks
 				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
-				})).Return(variants, nil)
+				}), mock.Anything).Return(sivResult, nil)
 			})
 			It("it should chose the issue repository with the highest priority", func() {
 				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
@@ -475,11 +801,20 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 		When("multiple issue repository with same priority", func() {
 			BeforeEach(func() {
 				variants := test.NNewFakeServiceIssueVariantEntity(2, 10, lo.ToPtr(int64(1)))
+
+				sivResult := make([]entity.ServiceIssueVariantResult, 0, len(variants))
+
+				for _, variant := range variants {
+					sivResult = append(sivResult, entity.ServiceIssueVariantResult{
+						ServiceIssueVariant: &variant,
+					})
+				}
+
 				// Mocks
 				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
-				})).Return(variants, nil)
+				}), mock.Anything).Return(sivResult, nil)
 			})
 			It("it should randomly chose one issue repository", func() {
 				result, err := im.BuildIssueVariantMap(db, componentInstanceID, componentVersionID)
@@ -502,11 +837,20 @@ var _ = Describe("OnComponentInstanceCreate", Label("app", "OnComponentInstanceC
 				v1 := test.NewFakeServiceIssueVariantEntity(100, lo.ToPtr(int64(1)))
 				v2 := test.NewFakeServiceIssueVariantEntity(200, lo.ToPtr(int64(2)))
 				variants := []entity.ServiceIssueVariant{v1, v2}
+
+				sivResult := make([]entity.ServiceIssueVariantResult, 0, len(variants))
+
+				for _, variant := range variants {
+					sivResult = append(sivResult, entity.ServiceIssueVariantResult{
+						ServiceIssueVariant: &variant,
+					})
+				}
+
 				// Mocks
 				db.On("GetServiceIssueVariants", mock.MatchedBy(func(filter *entity.ServiceIssueVariantFilter) bool {
 					// Check that IssueId and IssueRepositoryId are not nil, but don't care about their contents
 					return filter.ComponentInstanceId != nil
-				})).Return(variants, nil)
+				}), mock.Anything).Return(sivResult, nil)
 			})
 
 			It("should create issue matches for each issue", func() {

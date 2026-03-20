@@ -5,7 +5,6 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -13,28 +12,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getSupportGroupFilterString(filter *entity.SupportGroupFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "SG.supportgroup_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "SGS.supportgroupservice_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.CCRN, "SG.supportgroup_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.UserId, "SGU.supportgroupuser_user_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "IM.issuematch_issue_id = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "SG.supportgroup"))
-
-	return combineFilterQueries(fl, OP_AND)
-}
-
-func getSupportGroupUpdateFields(supportGroup *entity.SupportGroup) string {
-	fl := []string{}
-	if supportGroup.CCRN != "" {
-		fl = append(fl, "supportgroup_ccrn = :supportgroup_ccrn")
-	}
-	if supportGroup.UpdatedBy != 0 {
-		fl = append(fl, "supportgroup_updated_by = :supportgroup_updated_by")
-	}
-
-	return strings.Join(fl, ", ")
+var supportGroupObject = DbObject[*entity.SupportGroup]{
+	Prefix:    "supportgroup",
+	TableName: "SupportGroup",
+	Properties: []*Property{
+		NewProperty("supportgroup_ccrn", WrapAccess(func(sg *entity.SupportGroup) (string, bool) { return sg.CCRN, sg.CCRN != "" })),
+		NewProperty("supportgroup_created_by", WrapAccess(func(sg *entity.SupportGroup) (int64, bool) { return sg.CreatedBy, NoUpdate })),
+		NewProperty("supportgroup_updated_by", WrapAccess(func(sg *entity.SupportGroup) (int64, bool) { return sg.UpdatedBy, sg.UpdatedBy != 0 })),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("SG.supportgroup_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("SGS.supportgroupservice_service_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("SG.supportgroup_ccrn = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*string { return filter.CCRN })),
+		NewFilterProperty("SGU.supportgroupuser_user_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.UserId })),
+		NewFilterProperty("IM.issuematch_issue_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.IssueId })),
+		NewStateFilterProperty("SG.supportgroup", WrapRetState(func(filter *entity.SupportGroupFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
 func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) string {
@@ -58,29 +51,11 @@ func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) st
 	return joins
 }
 
-func ensureSupportGroupFilter(f *entity.SupportGroupFilter) *entity.SupportGroupFilter {
-	var first int = 1000
-	var after string = ""
-	if f == nil {
-		return &entity.SupportGroupFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-			Id:        nil,
-			ServiceId: nil,
-			UserId:    nil,
-			IssueId:   nil,
-			CCRN:      nil,
-		}
+func ensureSupportGroupFilter(filter *entity.SupportGroupFilter) *entity.SupportGroupFilter {
+	if filter == nil {
+		filter = &entity.SupportGroupFilter{}
 	}
-	if f.First == nil {
-		f.First = &first
-	}
-	if f.After == nil {
-		f.After = &after
-	}
-	return f
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entity.SupportGroupFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
@@ -88,8 +63,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	filter = ensureSupportGroupFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getSupportGroupFilterString(filter)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,6 +72,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	orderStr := CreateOrderString(order)
 	joins := s.getSupportGroupJoins(filter)
 
+	filterStr := supportGroupObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -127,39 +102,9 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.UserId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
-	}
+	filterParameters := supportGroupObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
-}
-
-func (s *SqlDatabase) GetAllSupportGroupIds(filter *entity.SupportGroupFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetSupportGroupIds",
-	})
-
-	baseQuery := `
-		SELECT SG.supportgroup_id FROM SupportGroup SG 
-		%s
-	 	%s GROUP BY SG.supportgroup_id ORDER BY %s
-    `
-
-	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, []entity.Order{}, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer stmt.Close()
-
-	return performIdScan(stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetAllSupportGroupCursors(filter *entity.SupportGroupFilter, order []entity.Order) ([]string, error) {
@@ -262,81 +207,15 @@ func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int
 }
 
 func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"supportGroup": supportGroup,
-		"event":        "database.CreateSupportGroup",
-	})
-
-	query := `
-		INSERT INTO SupportGroup (
-			supportgroup_ccrn,
-			supportgroup_created_by,
-			supportgroup_updated_by
-		) VALUES (
-			:supportgroup_ccrn,
-			:supportgroup_created_by,
-			:supportgroup_updated_by
-		)
-	`
-
-	supportGroupRow := SupportGroupRow{}
-	supportGroupRow.FromSupportGroup(supportGroup)
-
-	id, err := performInsert(s, query, supportGroupRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	supportGroup.Id = id
-
-	return supportGroup, nil
+	return supportGroupObject.Create(s.db, supportGroup)
 }
 
 func (s *SqlDatabase) UpdateSupportGroup(supportGroup *entity.SupportGroup) error {
-	l := logrus.WithFields(logrus.Fields{
-		"supportGroup": supportGroup,
-		"event":        "database.UpdateSupportGroup",
-	})
-
-	baseQuery := `
-		UPDATE SupportGroup SET
-		%s
-		WHERE supportgroup_id = :supportgroup_id
-	`
-
-	updateFields := getSupportGroupUpdateFields(supportGroup)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	supportGroupRow := SupportGroupRow{}
-	supportGroupRow.FromSupportGroup(supportGroup)
-
-	_, err := performExec(s, query, supportGroupRow, l)
-
-	return err
+	return supportGroupObject.Update(s.db, supportGroup)
 }
 
 func (s *SqlDatabase) DeleteSupportGroup(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteSupportGroup",
-	})
-
-	query := `
-		UPDATE SupportGroup SET
-		supportgroup_deleted_at = NOW(),
-		supportgroup_updated_by = :userId
-		WHERE supportgroup_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return supportGroupObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) AddServiceToSupportGroup(supportGroupId int64, serviceId int64) error {

@@ -12,6 +12,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/shared"
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/cloudoperators/heureka/internal/openfga"
 	"github.com/sirupsen/logrus"
 )
 
@@ -109,7 +110,7 @@ func (e *GetIssueSeverityCountsEvent) Name() event.EventName {
 
 // OnComponentVersionAttachmentToIssue is an event handler whenever a ComponentVersion
 // is attached to an Issue.
-func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event) {
+func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event, authz openfga.Authorization) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentVersionAttachmentToIssue",
 		"payload": e,

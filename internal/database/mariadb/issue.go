@@ -14,63 +14,57 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	wildCardFilterQuery      = "IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')"
-	wildCardFilterParamCount = 2
-)
-
-func buildIssueFilterParametersWithCursor(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
-	filterParameters := buildIssueFilterParameters(filter, cursorFields)
-	filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
-	return filterParameters
+var issueObject = DbObject[*entity.Issue]{
+	Prefix:    "issue",
+	TableName: "Issue",
+	Properties: []*Property{
+		NewProperty("issue_primary_name", WrapAccess(func(i *entity.Issue) (string, bool) { return i.PrimaryName, i.PrimaryName != "" })),
+		NewProperty("issue_type", WrapAccess(func(i *entity.Issue) (entity.IssueType, bool) { return i.Type, i.Type != "" })),
+		NewProperty("issue_description", WrapAccess(func(i *entity.Issue) (string, bool) { return i.Description, i.Description != "" })),
+		NewProperty("issue_created_by", WrapAccess(func(i *entity.Issue) (int64, bool) { return i.CreatedBy, NoUpdate })),
+		NewProperty("issue_updated_by", WrapAccess(func(i *entity.Issue) (int64, bool) { return i.UpdatedBy, i.UpdatedBy != 0 })),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.ServiceCCRN })),
+		NewFilterProperty("CI.componentinstance_service_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("I.issue_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("IM.issuematch_status = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.IssueMatchStatus })),
+		NewFilterProperty("IM.issuematch_rating = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.IssueMatchSeverity })),
+		NewFilterProperty("IM.issuematch_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.IssueMatchId })),
+		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ComponentVersionId })),
+		NewFilterProperty("IV.issuevariant_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.IssueVariantId })),
+		NewFilterProperty("I.issue_type = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.Type })),
+		NewFilterProperty("I.issue_primary_name = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.PrimaryName })),
+		NewFilterProperty("IV.issuevariant_repository_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.IssueRepositoryId })),
+		NewFilterProperty("SG.supportgroup_ccrn = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.SupportGroupCCRN })),
+		NewFilterProperty("CV.componentversion_component_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ComponentId })),
+		NewNFilterProperty(
+			"IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')",
+			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.Search }),
+			2),
+		NewStateFilterProperty("I.issue", WrapRetState(func(filter *entity.IssueFilter) []entity.StateFilterType { return filter.State })),
+		NewCustomFilterProperty(
+			WrapBuilder(func(is []entity.IssueStatus) string {
+				if len(is) != 1 {
+					panic(fmt.Sprintf("Unexpected number of elements for IssueStatus: %d", len(is)))
+				}
+				switch is[0] {
+				case entity.IssueStatusOpen:
+					return "( R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE() )"
+				case entity.IssueStatusRemediated:
+					return "( R.remediation_id IS NOT NULL AND R.remediation_expiration_date > CURDATE() )"
+				}
+				return ""
+			}),
+			WrapRetSlice(func(filter *entity.IssueFilter) []entity.IssueStatus { return []entity.IssueStatus{filter.Status} })),
+	},
 }
 
-func buildIssueFilterParameters(filter *entity.IssueFilter, cursorFields []Field) []interface{} {
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchStatus)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchSeverity)
-	filterParameters = buildQueryParameters(filterParameters, filter.ActivityId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueMatchId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueVariantId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Type)
-	filterParameters = buildQueryParameters(filterParameters, filter.PrimaryName)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
-	filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
-	filterParameters = buildQueryParametersCount(filterParameters, filter.Search, wildCardFilterParamCount)
-	return filterParameters
-}
-
-func getIssueFilterString(filter *entity.IssueFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id= ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Id, "I.issue_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueMatchStatus, "IM.issuematch_status = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueMatchSeverity, "IM.issuematch_rating = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ActivityId, "A.activity_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueMatchId, "IM.issuematch_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CVI.componentversionissue_component_version_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueVariantId, "IV.issuevariant_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Type, "I.issue_type = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.PrimaryName, "I.issue_primary_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "SG.supportgroup_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Search, wildCardFilterQuery, OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "I.issue"))
-	switch filter.Status {
-	case entity.IssueStatusOpen:
-		fl = append(fl, "( R.remediation_id IS NULL OR R.remediation_expiration_date < CURDATE() )")
-	case entity.IssueStatusRemediated:
-		fl = append(fl, "( R.remediation_id IS NOT NULL AND R.remediation_expiration_date > CURDATE() )")
+func ensureIssueFilter(filter *entity.IssueFilter) *entity.IssueFilter {
+	if filter == nil {
+		filter = &entity.IssueFilter{}
 	}
-
-	return combineFilterQueries(fl, OP_AND)
+	return EnsurePagination(filter)
 }
 
 func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
@@ -78,12 +72,6 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 	orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
 		return o.By == entity.IssueVariantRating
 	})
-	if len(filter.ActivityId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
-         	LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
-		`)
-	}
 	if filter.AllServices || filter.HasIssueMatches {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
@@ -146,55 +134,6 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 	return joins
 }
 
-func ensureIssueFilter(f *entity.IssueFilter) *entity.IssueFilter {
-	first := 1000
-	var after string = ""
-	if f == nil {
-		return &entity.IssueFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-			ServiceCCRN:                     nil,
-			Id:                              nil,
-			ActivityId:                      nil,
-			IssueMatchStatus:                nil,
-			IssueMatchDiscoveryDate:         nil,
-			IssueMatchTargetRemediationDate: nil,
-			IssueMatchId:                    nil,
-			ServiceId:                       nil,
-			ComponentVersionId:              nil,
-			IssueVariantId:                  nil,
-			Type:                            nil,
-		}
-	}
-
-	if f.After == nil {
-		f.After = &after
-	}
-	if f.First == nil {
-		f.First = &first
-	}
-	return f
-}
-
-func getIssueUpdateFields(issue *entity.Issue) string {
-	fl := []string{}
-	if issue.PrimaryName != "" {
-		fl = append(fl, "issue_primary_name = :issue_primary_name")
-	}
-	if issue.Type != "" {
-		fl = append(fl, "issue_type = :issue_type")
-	}
-	if issue.Description != "" {
-		fl = append(fl, "issue_description = :issue_description")
-	}
-	if issue.UpdatedBy != 0 {
-		fl = append(fl, "issue_updated_by = :issue_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
 func getIssueColumns(order []entity.Order) string {
 	columns := ""
 	for _, o := range order {
@@ -207,7 +146,7 @@ func getIssueColumns(order []entity.Order) string {
 }
 
 func getIssueFilterWhereClause(filter *entity.IssueFilter) string {
-	filterStr := getIssueFilterString(filter)
+	filterStr := issueObject.GetFilterQuery(filter)
 	if filterStr != "" {
 		return fmt.Sprintf("WHERE %s", filterStr)
 	}
@@ -215,7 +154,7 @@ func getIssueFilterWhereClause(filter *entity.IssueFilter) string {
 }
 
 func getIssueCursorQuery(filter *entity.IssueFilter, cursorFields []Field) string {
-	filterStr := getIssueFilterString(filter)
+	filterStr := issueObject.GetFilterQuery(filter)
 	cursorQuery := CreateCursorQuery("", cursorFields)
 	if filterStr != "" && cursorQuery != "" {
 		cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
@@ -246,7 +185,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
-	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(ifilter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -267,7 +206,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 	}
 
 	// adding parameters
-	filterParameters := buildIssueFilterParametersWithCursor(ifilter, cursorFields)
+	filterParameters := issueObject.GetFilterParameters(ifilter, true, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -276,7 +215,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
-	cursorFields, err := DecodeCursor(ifilter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(ifilter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -297,7 +236,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	}
 
 	// adding parameters
-	filterParameters := buildIssueFilterParameters(ifilter, cursorFields)
+	filterParameters := issueObject.GetFilterParameters(ifilter, false, cursorFields)
 
 	return stmt, filterParameters, nil
 }
@@ -318,18 +257,19 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
         GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
     `
 
+	// count(distinct activity_id) as agg_activities,
+	// LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
+	// LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id~
+
 	baseAggQuery := `
 		SELECT I.*,
 		count(distinct issuematch_id) as agg_issue_matches,
-		count(distinct activity_id) as agg_activities,
 		count(distinct service_ccrn) as agg_affected_services,
 		count(distinct componentversionissue_component_version_id) as agg_component_versions,
 		min(issuematch_target_remediation_date) as agg_earliest_target_remediation_date,
 		min(issuematch_created_at) agg_earliest_discovery_date
 		%s
         FROM Issue I
-        LEFT JOIN ActivityHasIssue AHI on I.issue_id = AHI.activityhasissue_issue_id
-        LEFT JOIN Activity A on AHI.activityhasissue_activity_id = A.activity_id
         LEFT JOIN IssueMatch IM on I.issue_id = IM.issuematch_issue_id
         LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
         LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
@@ -353,9 +293,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
     `
 
 	filter = ensureIssueFilter(filter)
-	filterStr := getIssueFilterString(filter)
 	joins := getIssueJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, err
 	}
@@ -367,6 +306,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	whereClause := getIssueFilterWhereClause(filter)
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
+	filterStr := issueObject.GetFilterQuery(filter)
 	if filterStr != "" && cursorQuery != "" {
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
@@ -388,9 +328,9 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	}
 
 	// parameters for component instance query
-	filterParameters := buildIssueFilterParametersWithCursor(filter, cursorFields)
+	filterParameters := issueObject.GetFilterParameters(filter, true, cursorFields)
 	// parameters for agg query
-	filterParameters = append(filterParameters, buildIssueFilterParametersWithCursor(filter, cursorFields)...)
+	filterParameters = append(filterParameters, issueObject.GetFilterParameters(filter, true, cursorFields)...)
 
 	defer stmt.Close()
 
@@ -491,27 +431,6 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 	return &issueTypeCounts, nil
 }
 
-func (s *SqlDatabase) GetAllIssueIds(filter *entity.IssueFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetIssueIds",
-	})
-
-	baseQuery := `
-		SELECT I.issue_id %s FROM Issue I 
-		%s
-	 	%s GROUP BY I.issue_id ORDER BY %s
-    `
-
-	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer stmt.Close()
-
-	return performIdScan(stmt, filterParameters, l)
-}
-
 func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []entity.Order) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
@@ -603,85 +522,15 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 }
 
 func (s *SqlDatabase) CreateIssue(issue *entity.Issue) (*entity.Issue, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"issue": issue,
-		"event": "database.CreateIssue",
-	})
-
-	query := `
-		INSERT INTO Issue (
-			issue_primary_name,
-			issue_type,
-			issue_description,
-			issue_created_by,
-			issue_updated_by
-		) VALUES (
-			:issue_primary_name,
-			:issue_type,
-			:issue_description,
-			:issue_created_by,
-			:issue_updated_by
-		)
-	`
-
-	issueRow := IssueRow{}
-	issueRow.FromIssue(issue)
-
-	id, err := performInsert(s, query, issueRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	issue.Id = id
-
-	return issue, nil
+	return issueObject.Create(s.db, issue)
 }
 
 func (s *SqlDatabase) UpdateIssue(issue *entity.Issue) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issue": issue,
-		"event": "database.UpdateIssue",
-	})
-
-	baseQuery := `
-		UPDATE Issue SET
-		%s
-		WHERE issue_id = :issue_id
-	`
-
-	updateFields := getIssueUpdateFields(issue)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	issueRow := IssueRow{}
-	issueRow.FromIssue(issue)
-
-	_, err := performExec(s, query, issueRow, l)
-
-	return err
+	return issueObject.Update(s.db, issue)
 }
 
 func (s *SqlDatabase) DeleteIssue(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteIssue",
-	})
-
-	query := `
-		UPDATE Issue SET
-		issue_deleted_at = NOW(),
-		issue_updated_by = :userId
-		WHERE issue_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return issueObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersionId int64) error {
@@ -733,6 +582,27 @@ func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVe
 
 	args := map[string]interface{}{
 		"issue_id":             issueId,
+		"component_version_id": componentVersionId,
+	}
+
+	_, err := performExec(s, query, args, l)
+
+	return err
+}
+
+func (s *SqlDatabase) RemoveAllIssuesFromComponentVersion(componentVersionId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"componentVersionId": componentVersionId,
+		"event":              "database.RemoveAllIssuesFromComponentVersion",
+	})
+
+	query := `
+		DELETE FROM ComponentVersionIssue
+		WHERE
+			componentversionissue_component_version_id = :component_version_id
+	`
+
+	args := map[string]interface{}{
 		"component_version_id": componentVersionId,
 	}
 

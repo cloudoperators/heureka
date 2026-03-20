@@ -9,7 +9,6 @@ import (
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/server"
@@ -39,7 +38,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			imgTest.seed10Entries()
 		})
 		It("returns the expected content and the expected PageInfo when filtered using service", func() {
-			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
 			}](
 				imgTest.port,
@@ -55,6 +54,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			expectRespDataCounts(respData.Images, 5, 3)
 			expectRespImagesFilledAndInOrder(&respData.Images)
 			expectPageInfoTwoPagesBeingOnFirst(respData.Images.PageInfo)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
 		})
 		It("returns the expected content and the expected PageInfo when filtered using repository", func() {
@@ -74,7 +74,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			// belong to first service and first component
 			counts := model.SeverityCounts{Critical: 2, Total: 2}
 
-			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
 			}](
 				imgTest.port,
@@ -91,6 +91,7 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 			expectRespDataCounts(respData.Images, 1, 1)
 			expectRespImagesFilledAndInOrder(&respData.Images)
 			Expect(*respData.Images.Counts).To(Equal(counts))
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
@@ -113,11 +114,12 @@ func newImageTest() *imageTest {
 	db := dbm.NewTestSchemaWithoutMigration()
 
 	cfg := dbm.DbConfig()
-	cfg.Port = util2.GetRandomFreePort()
+	cfg.Port = e2e_common.GetRandomFreePort()
 
 	seeder, err := test.NewDatabaseSeeder(cfg)
 	Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
+	cfg.AuthzOpenFgaApiUrl = ""
 	server := e2e_common.NewRunningServer(cfg)
 
 	return &imageTest{

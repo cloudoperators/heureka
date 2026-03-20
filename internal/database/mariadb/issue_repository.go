@@ -5,21 +5,37 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func getIssueRepositoryFilterString(filter *entity.IssueRepositoryFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Name, "IR.issuerepository_name = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Id, "IR.issuerepository_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "IRS.issuerepositoryservice_service_id = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "IR.issuerepository"))
+var issueRepositoryObject = DbObject[*entity.IssueRepository]{
+	Prefix:    "issuerepository",
+	TableName: "IssueRepository",
+	Properties: []*Property{
+		NewProperty("issuerepository_name", WrapAccess(func(ir *entity.IssueRepository) (string, bool) { return ir.Name, ir.Name != "" })),
+		NewProperty("issuerepository_url", WrapAccess(func(ir *entity.IssueRepository) (string, bool) { return ir.Url, ir.Url != "" })),
+		NewProperty("issuerepository_created_by", WrapAccess(func(ir *entity.IssueRepository) (int64, bool) { return ir.BaseIssueRepository.CreatedBy, NoUpdate })),
+		NewProperty("issuerepository_updated_by", WrapAccess(func(ir *entity.IssueRepository) (int64, bool) {
+			return ir.BaseIssueRepository.UpdatedBy, ir.BaseIssueRepository.UpdatedBy != 0
+		})),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("IR.issuerepository_name = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*string { return filter.Name })),
+		NewFilterProperty("IR.issuerepository_id = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*string { return filter.ServiceCCRN })),
+		NewFilterProperty("IRS.issuerepositoryservice_service_id = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.ServiceId })),
+		NewStateFilterProperty("IR.issuerepository", WrapRetState(func(filter *entity.IssueRepositoryFilter) []entity.StateFilterType { return filter.State })),
+	},
+}
 
-	return combineFilterQueries(fl, OP_AND)
+func ensureIssueRepositoryFilter(filter *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
+	if filter == nil {
+		filter = &entity.IssueRepositoryFilter{}
+	}
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilter) string {
@@ -37,74 +53,39 @@ func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilt
 	return joins
 }
 
-func getIssueRepositoryUpdateFields(issueRepository *entity.IssueRepository) string {
-	fl := []string{}
-	if issueRepository.Name != "" {
-		fl = append(fl, "issuerepository_name = :issuerepository_name")
-	}
-	if issueRepository.Url != "" {
-		fl = append(fl, "issuerepository_url = :issuerepository_url")
-	}
-	if issueRepository.BaseIssueRepository.UpdatedBy != 0 {
-		fl = append(fl, "issuerepository_updated_by = :issuerepository_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
-func (s *SqlDatabase) getIssueRepositoryColumns(filter *entity.IssueRepositoryFilter) string {
-	columns := "IR.*"
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
-		columns = fmt.Sprintf("%s, %s", columns, "IRS.*")
-	}
-	return columns
-}
-
-func ensureIssueRepositoryFilter(f *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
-	var first int = 1000
-	var after int64 = 0
-	if f == nil {
-		return &entity.IssueRepositoryFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			ServiceId:   nil,
-			Name:        nil,
-			Id:          nil,
-			ServiceCCRN: nil,
-		}
-	}
-	if f.First == nil {
-		f.First = &first
-	}
-	if f.After == nil {
-		f.After = &after
-	}
-	return f
-}
-
-func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *entity.IssueRepositoryFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
-	var query string
+func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *entity.IssueRepositoryFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	filter = ensureIssueRepositoryFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getIssueRepositoryFilterString(filter)
 	joins := s.getIssueRepositoryJoins(filter)
-	cursor := getCursor(filter.Paginated, filterStr, "IR.issuerepository_id > ?")
 
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to decode IssueRepository cursor: %w", err)
+	}
+
+	cursorQuery := CreateCursorQuery("", cursorFields)
+
+	order = GetDefaultOrder(order, entity.IssueRepositoryID, entity.OrderDirectionAsc)
+	orderStr := CreateOrderString(order)
+
+	filterStr := issueRepositoryObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
 	}
 
-	// construct final query
-	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursor.Statement)
-	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause)
+	if filterStr != "" && withCursor && cursorQuery != "" {
+		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
 
-	// construct prepared statement and if where clause does exist add parameters
+	var query string
+	if withCursor {
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+	} else {
+		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+	}
+
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
@@ -114,73 +95,98 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
-		return nil, nil, fmt.Errorf("%s", msg)
+		return nil, nil, fmt.Errorf("failed to prepare IssueRepository statement: %w", err)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Name)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	if withCursor {
-		filterParameters = append(filterParameters, cursor.Value)
-		filterParameters = append(filterParameters, cursor.Limit)
-	}
+	filterParameters := issueRepositoryObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetAllIssueRepositoryIds(filter *entity.IssueRepositoryFilter) ([]int64, error) {
+func (s *SqlDatabase) GetAllIssueRepositoryCursors(filter *entity.IssueRepositoryFilter, order []entity.Order) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetIssueRepositoryIds",
+		"filter": filter,
+		"event":  "database.GetAllIssueRepositoryCursors",
 	})
 
 	baseQuery := `
-		SELECT IR.issuerepository_id FROM IssueRepository IR 
+		SELECT IR.* FROM IssueRepository IR 
 		%s
-	 	%s GROUP BY IR.issuerepository_id ORDER BY IR.issuerepository_id
-    `
+		%s GROUP BY IR.issuerepository_id ORDER BY %s
+	`
 
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, l)
+	filter = ensureIssueRepositoryFilter(filter)
+	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, order, l)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build IssueRepository cursor query: %w", err)
+	}
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error while close statement: %s", err.Error())
+		}
+	}()
+
+	rows, err := performListScan(
+		stmt,
+		filterParameters,
+		l,
+		func(l []IssueRepositoryRow, e IssueRepositoryRow) []IssueRepositoryRow {
+			return append(l, e)
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get IssueRepository cursors: %w", err)
 	}
 
-	defer stmt.Close()
+	return lo.Map(rows, func(row IssueRepositoryRow, _ int) string {
+		ir := row.AsIssueRepository()
 
-	return performIdScan(stmt, filterParameters, l)
+		cursor, _ := EncodeCursor(WithIssueRepository(order, ir))
+
+		return cursor
+	}), nil
 }
 
-func (s *SqlDatabase) GetIssueRepositories(filter *entity.IssueRepositoryFilter) ([]entity.IssueRepository, error) {
+func (s *SqlDatabase) GetIssueRepositories(filter *entity.IssueRepositoryFilter, order []entity.Order) ([]entity.IssueRepositoryResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetIssueRepositories",
 	})
 
 	baseQuery := `
-		SELECT %s FROM IssueRepository IR 
+		SELECT IR.* FROM IssueRepository IR 
 		%s
 		%s
-		%s GROUP BY IR.issuerepository_id ORDER BY IR.issuerepository_id LIMIT ?
+		%s GROUP BY IR.issuerepository_id ORDER BY %s LIMIT ?
     `
 
 	filter = ensureIssueRepositoryFilter(filter)
-	columns := s.getIssueRepositoryColumns(filter)
-	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, true, l)
+	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
-
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			l.Warnf("error while close statement: %s", err.Error())
+		}
+	}()
 
 	return performListScan(
 		stmt,
 		filterParameters,
 		l,
-		func(l []entity.IssueRepository, e IssueRepositoryRow) []entity.IssueRepository {
-			return append(l, e.AsIssueRepository())
+		func(l []entity.IssueRepositoryResult, e IssueRepositoryRow) []entity.IssueRepositoryResult {
+			ir := e.AsIssueRepository()
+			cursor, _ := EncodeCursor(WithIssueRepository(order, ir))
+
+			irr := entity.IssueRepositoryResult{
+				WithCursor: entity.WithCursor{
+					Value: cursor,
+				},
+				IssueRepository: &ir,
+			}
+
+			return append(l, irr)
 		},
 	)
 }
@@ -194,8 +200,9 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 		SELECT count(distinct IR.issuerepository_id) FROM IssueRepository IR 
 		%s
 		%s
+		ORDER BY %s
 	`
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, l)
+	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, []entity.Order{}, l)
 	if err != nil {
 		return -1, err
 	}
@@ -206,81 +213,13 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 }
 
 func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"issueRepository": issueRepository,
-		"event":           "database.CreateIssueRepository",
-	})
-
-	query := `
-		INSERT INTO IssueRepository (
-			issuerepository_name,
-			issuerepository_url,
-			issuerepository_created_by,
-			issuerepository_updated_by
-		) VALUES (
-			:issuerepository_name,
-			:issuerepository_url,
-			:issuerepository_created_by,
-			:issuerepository_updated_by
-		)
-	`
-
-	issueRepositoryRow := IssueRepositoryRow{}
-	issueRepositoryRow.FromIssueRepository(issueRepository)
-
-	id, err := performInsert(s, query, issueRepositoryRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	issueRepository.Id = id
-
-	return issueRepository, nil
+	return issueRepositoryObject.Create(s.db, issueRepository)
 }
 
 func (s *SqlDatabase) UpdateIssueRepository(issueRepository *entity.IssueRepository) error {
-	l := logrus.WithFields(logrus.Fields{
-		"issueRepository": issueRepository,
-		"event":           "database.UpdateIssueRepository",
-	})
-
-	baseQuery := `
-		UPDATE IssueRepository SET
-		%s
-		WHERE issuerepository_id = :issuerepository_id
-	`
-
-	updateFields := getIssueRepositoryUpdateFields(issueRepository)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	issueRepositoryRow := IssueRepositoryRow{}
-	issueRepositoryRow.FromIssueRepository(issueRepository)
-
-	_, err := performExec(s, query, issueRepositoryRow, l)
-
-	return err
+	return issueRepositoryObject.Update(s.db, issueRepository)
 }
 
 func (s *SqlDatabase) DeleteIssueRepository(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteIssueRepository",
-	})
-
-	query := `
-		UPDATE IssueRepository SET
-		issuerepository_deleted_at = NOW(),
-		issuerepository_updated_by = :userId
-		WHERE issuerepository_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return issueRepositoryObject.Delete(s.db, id, userId)
 }

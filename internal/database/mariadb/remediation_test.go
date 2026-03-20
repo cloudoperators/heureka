@@ -252,6 +252,26 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						}
 					})
 				})
+				It("can filter by 'false_positive' type", func() {
+					remediationType := entity.RemediationTypeFalsePositive.String()
+					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
+
+					entries, err := db.GetRemediations(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+
+					By("returning entries include the type", func() {
+						for _, entry := range entries {
+							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeFalsePositive.String()))
+						}
+					})
+				})
 				It("can filter by 'risk_accepted' type", func() {
 					remediationType := entity.RemediationTypeRiskAccepted.String()
 					filter := &entity.RemediationFilter{Type: []*string{&remediationType}}
@@ -351,9 +371,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
 					test.TestPaginationOfListWithOrder(
 						db.GetRemediations,
-						func(first *int, after *int64, afterX *string) *entity.RemediationFilter {
+						func(first *int, after *string) *entity.RemediationFilter {
 							return &entity.RemediationFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: after},
 							}
 						},
 						[]entity.Order{},
@@ -405,12 +425,27 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
 			})
-			weight := map[string]int{"None":1, "Low":2, "Medium":3, "High":4, "Critical":5}
+			weight := map[string]int{"None": 1, "Low": 2, "Medium": 3, "High": 4, "Critical": 5}
 			prevW := 100
 			for _, e := range entries {
 				w := weight[string(e.Severity)]
 				Expect(w).To(BeNumerically("<=", prevW))
 				prevW = w
+			}
+		})
+		It("orders by expiration asc", func() {
+			order := []entity.Order{{By: entity.RemediationExpirationDate, Direction: entity.OrderDirectionAsc}}
+			entries, err := db.GetRemediations(nil, order)
+			By("throwing no error", func() {
+				Expect(err).To(BeNil())
+			})
+
+			var prev time.Time
+			for _, e := range entries {
+				if !prev.IsZero() {
+					Expect(e.ExpirationDate.Before(prev)).To(BeFalse())
+				}
+				prev = e.ExpirationDate
 			}
 		})
 	})
@@ -454,7 +489,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					f := 10
 					after := ""
 					filter := &entity.RemediationFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},

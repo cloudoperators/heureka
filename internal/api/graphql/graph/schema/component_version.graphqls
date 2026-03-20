@@ -13,6 +13,7 @@ type ComponentVersion implements Node {
     tag: String
     repository: String
     organization: String
+    endOfLife: Boolean
 }
 
 input ComponentVersionInput {
@@ -21,6 +22,7 @@ input ComponentVersionInput {
   tag: String
   repository: String
   organization: String
+  endOfLife: Boolean
 }
 
 type ComponentVersionConnection implements Connection {
@@ -47,6 +49,7 @@ input ComponentVersionFilter {
     tag: [String]
     repository: [String]
     organization: [String]
+    endOfLife: [Boolean]
 }
 
 input ComponentVersionOrderBy {

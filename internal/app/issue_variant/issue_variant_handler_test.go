@@ -11,6 +11,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue_repository"
 	iv "github.com/cloudoperators/heureka/internal/app/issue_variant"
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -27,10 +28,12 @@ func TestIssueVariantHandler(t *testing.T) {
 }
 
 var er event.EventRegistry
+var authz openfga.Authorization
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
+
 })
 
 func issueVariantFilter() *entity.IssueVariantFilter {
@@ -93,7 +96,7 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
+			db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
 			db.On("CountIssueVariants", filter).Return(int64(1337), nil)
 		})
 
@@ -111,16 +114,26 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		})
 		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
 			filter.First = &pageSize
-			advisories := test.NNewFakeIssueVariants(resElements)
+			ivResults := []entity.IssueVariantResult{}
 
-			ids := lo.Map(advisories, func(iv entity.IssueVariant, _ int) int64 { return iv.Id })
-			var i int64 = 0
-			for len(ids) < dbElements {
-				i++
-				ids = append(ids, i)
+			for _, iv := range test.NNewFakeIssueVariants(resElements) {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, iv))
+				ivResults = append(ivResults, entity.IssueVariantResult{WithCursor: entity.WithCursor{Value: cursor}, IssueVariant: lo.ToPtr(iv)})
 			}
-			db.On("GetIssueVariants", filter).Return(advisories, nil)
-			db.On("GetAllIssueVariantIds", filter).Return(ids, nil)
+
+			cursors := lo.Map(ivResults, func(m entity.IssueVariantResult, _ int) string {
+				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, *m.IssueVariant))
+				return cursor
+			})
+
+			for i := 0; len(cursors) < dbElements; i++ {
+				iv := test.NewFakeIssueVariantEntity(nil)
+				c, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, iv))
+				cursors = append(cursors, c)
+			}
+
+			db.On("GetIssueVariants", filter, mock.Anything).Return(ivResults, nil)
+			db.On("GetAllIssueVariantCursors", filter, mock.Anything).Return(cursors, nil)
 			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
 			res, err := issueVariantHandler.ListIssueVariants(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
@@ -144,6 +157,7 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 		options             *entity.ListOptions
 		issueVariants       []entity.IssueVariant
 		repositories        []entity.IssueRepository
+		irResults           []entity.IssueRepositoryResult
 		rs                  issue_repository.IssueRepositoryHandler
 		authz               openfga.Authorization
 		handlerContext      common.HandlerContext
@@ -156,7 +170,7 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 		irFilter = issueRepositoryFilter()
 		first := 10
 		ivFilter.First = &first
-		var after int64 = 0
+		var after string
 		irFilter.First = &first
 		irFilter.After = &after
 		handlerContext = common.HandlerContext{
@@ -179,8 +193,25 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 			irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
 				return &item.IssueRepositoryId
 			})
-			db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
-			db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
+
+			ivResults := make([]entity.IssueVariantResult, 0, len(issueVariants))
+
+			for _, iv := range issueVariants {
+				ivResults = append(ivResults, entity.IssueVariantResult{
+					IssueVariant: &iv,
+				})
+			}
+
+			irResults = make([]entity.IssueRepositoryResult, 0, len(repositories))
+
+			for _, ir := range repositories {
+				irResults = append(irResults, entity.IssueRepositoryResult{
+					IssueRepository: &ir,
+				})
+			}
+
+			db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
+			db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 		})
 		It("can list advisories", func() {
 			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
@@ -203,8 +234,25 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 			irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
 				return &item.IssueRepositoryId
 			})
-			db.On("GetIssueVariants", ivFilter).Return(issueVariants, nil)
-			db.On("GetIssueRepositories", irFilter).Return(repositories, nil)
+
+			ivResults := make([]entity.IssueVariantResult, 0, len(issueVariants))
+
+			for _, iv := range issueVariants {
+				ivResults = append(ivResults, entity.IssueVariantResult{
+					IssueVariant: &iv,
+				})
+			}
+
+			irResults = make([]entity.IssueRepositoryResult, 0, len(repositories))
+
+			for _, ir := range repositories {
+				irResults = append(irResults, entity.IssueRepositoryResult{
+					IssueRepository: &ir,
+				})
+			}
+
+			db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
+			db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 		})
 		It("can list issueVariants", func() {
 			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
@@ -213,8 +261,8 @@ var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffect
 			ir_ids := lo.Map(res.Elements, func(item entity.IssueVariantResult, _ int) int64 {
 				return item.IssueRepositoryId
 			})
-			Expect(lo.Contains(ir_ids, repositories[0].Id)).To(BeTrue())
-			Expect(lo.Contains(ir_ids, repositories[1].Id)).To(BeTrue())
+			Expect(lo.Contains(ir_ids, irResults[0].Id)).To(BeTrue())
+			Expect(lo.Contains(ir_ids, irResults[1].Id)).To(BeTrue())
 		})
 	})
 })
@@ -234,8 +282,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		db = mocks.NewMockDatabase(GinkgoT())
 		issueVariant = test.NewFakeIssueVariantEntity(nil)
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -254,7 +301,7 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		filter.SecondaryName = []*string{&issueVariant.SecondaryName}
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
-		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
+		db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
 		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(common.NewAdminContext(), &issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -286,8 +333,7 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		db = mocks.NewMockDatabase(GinkgoT())
 		issueVariant = test.NewFakeIssueVariantEntity(nil)
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -308,7 +354,11 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
 		issueVariant.SecondaryName = "SecretAdvisory"
 		filter.Id = []*int64{&issueVariant.Id}
-		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{issueVariant}, nil)
+		db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{
+			{
+				IssueVariant: &issueVariant,
+			},
+		}, nil)
 		updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(common.NewAdminContext(), &issueVariant)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
@@ -338,8 +388,7 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		db = mocks.NewMockDatabase(GinkgoT())
 		id = 1
 		first := 10
-		var after int64
-		after = 0
+		var after string
 		filter = &entity.IssueVariantFilter{
 			Paginated: entity.Paginated{
 				First: &first,
@@ -358,7 +407,7 @@ var _ = Describe("When deleting IssueVariant", Label("app", "DeleteIssueVariant"
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteIssueVariant", id, mock.Anything).Return(nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-		db.On("GetIssueVariants", filter).Return([]entity.IssueVariant{}, nil)
+		db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
 		err := issueVariantHandler.DeleteIssueVariant(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 

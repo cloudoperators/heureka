@@ -5,40 +5,50 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/samber/lo"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/sirupsen/logrus"
 )
 
-func ensureComponentVersionFilter(f *entity.ComponentVersionFilter) *entity.ComponentVersionFilter {
-	var first int = 1000
-	var after string = ""
-	if f == nil {
-		return &entity.ComponentVersionFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-			Id:            nil,
-			IssueId:       nil,
-			ComponentCCRN: nil,
-			ComponentId:   nil,
-			Tag:           nil,
-			Repository:    nil,
-			Organization:  nil,
-		}
+var componentVersionObject = DbObject[*entity.ComponentVersion]{
+	Prefix:    "componentversion",
+	TableName: "ComponentVersion",
+	Properties: []*Property{
+		NewProperty("componentversion_component_id", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.ComponentId, cv.ComponentId != 0 })),
+		NewProperty("componentversion_version", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Version, cv.Version != "" })),
+		NewProperty("componentversion_tag", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Tag, cv.Tag != "" })),
+		NewProperty("componentversion_repository", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Repository, cv.Repository != "" })),
+		NewProperty("componentversion_organization", WrapAccess(func(cv *entity.ComponentVersion) (string, bool) { return cv.Organization, cv.Organization != "" })),
+		NewProperty("componentversion_created_by", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.CreatedBy, NoUpdate })),
+		NewProperty("componentversion_updated_by", WrapAccess(func(cv *entity.ComponentVersion) (int64, bool) { return cv.UpdatedBy, cv.UpdatedBy != 0 })),
+		NewProperty("componentversion_end_of_life", WrapAccess(func(cv *entity.ComponentVersion) (bool, bool) {
+			return ValueOrDefault(cv.EndOfLife, false), cv.EndOfLife != nil
+		})),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("CV.componentversion_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("CVI.componentversionissue_issue_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.IssueId })),
+		NewFilterProperty("CV.componentversion_component_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.ComponentId })),
+		NewFilterProperty("CV.componentversion_version = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Version })),
+		NewFilterProperty("CV.componentversion_tag = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Tag })),
+		NewFilterProperty("CV.componentversion_repository = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Repository })),
+		NewFilterProperty("CV.componentversion_organization = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.Organization })),
+		NewFilterProperty("C.component_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.ComponentCCRN })),
+		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*string { return filter.ServiceCCRN })),
+		NewFilterProperty("CI.componentinstance_service_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.ServiceId })),
+		NewFilterProperty("IV.issuevariant_repository_id = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*int64 { return filter.IssueRepositoryId })),
+		NewFilterProperty("CV.componentversion_end_of_life = ?", WrapRetSlice(func(filter *entity.ComponentVersionFilter) []*bool { return filter.EndOfLife })),
+		NewStateFilterProperty("CV.componentversion", WrapRetState(func(filter *entity.ComponentVersionFilter) []entity.StateFilterType { return filter.State })),
+	},
+}
+
+func ensureComponentVersionFilter(filter *entity.ComponentVersionFilter) *entity.ComponentVersionFilter {
+	if filter == nil {
+		filter = &entity.ComponentVersionFilter{}
 	}
-	if f.First == nil {
-		f.First = &first
-	}
-	if f.After == nil {
-		f.After = &after
-	}
-	return f
+	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) getComponentVersionJoins(filter *entity.ComponentVersionFilter, order []entity.Order) string {
@@ -65,47 +75,6 @@ func (s *SqlDatabase) getComponentVersionJoins(filter *entity.ComponentVersionFi
 	return joins
 }
 
-func getComponentVersionUpdateFields(componentVersion *entity.ComponentVersion) string {
-	fl := []string{}
-	if componentVersion.Version != "" {
-		fl = append(fl, "componentversion_version = :componentversion_version")
-	}
-	if componentVersion.ComponentId != 0 {
-		fl = append(fl, "componentversion_component_id = :componentversion_component_id")
-	}
-	if componentVersion.Tag != "" {
-		fl = append(fl, "componentversion_tag = :componentversion_tag")
-	}
-	if componentVersion.Repository != "" {
-		fl = append(fl, "componentversion_repository = :componentversion_repository")
-	}
-	if componentVersion.Organization != "" {
-		fl = append(fl, "componentversion_organization = :componentversion_organization")
-	}
-	if componentVersion.UpdatedBy != 0 {
-		fl = append(fl, "componentversion_updated_by = :componentversion_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
-func getComponentVersionFilterString(filter *entity.ComponentVersionFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.Id, "CV.componentversion_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "CVI.componentversionissue_issue_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentId, "CV.componentversion_component_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Version, "CV.componentversion_version = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Tag, "CV.componentversion_tag = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Repository, "CV.componentversion_repository = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Organization, "CV.componentversion_organization = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentCCRN, "C.component_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceId, "CI.componentinstance_service_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueRepositoryId, "IV.issuevariant_repository_id = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "CV.componentversion"))
-
-	return combineFilterQueries(fl, OP_AND)
-}
-
 func (s *SqlDatabase) getComponentVersionColumns(order []entity.Order) string {
 	columns := ""
 	for _, o := range order {
@@ -126,22 +95,20 @@ func (s *SqlDatabase) getComponentVersionColumns(order []entity.Order) string {
 }
 
 func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *entity.ComponentVersionFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
-	var query string
 	filter = ensureComponentVersionFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getComponentVersionFilterString(filter)
-	joins := s.getComponentVersionJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	cursorQuery := CreateCursorQuery("", cursorFields)
-	columns := s.getComponentVersionColumns(order)
+
 	order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
+	joins := s.getComponentVersionJoins(filter, order)
 
+	filterStr := componentVersionObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -153,6 +120,8 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 	}
 
 	// construct final query
+	var query string
+	columns := s.getComponentVersionColumns(order)
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, orderStr)
 	} else {
@@ -172,45 +141,9 @@ func (s *SqlDatabase) buildComponentVersionStatement(baseQuery string, filter *e
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentId)
-	filterParameters = buildQueryParameters(filterParameters, filter.Version)
-	filterParameters = buildQueryParameters(filterParameters, filter.Tag)
-	filterParameters = buildQueryParameters(filterParameters, filter.Repository)
-	filterParameters = buildQueryParameters(filterParameters, filter.Organization)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueRepositoryId)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
-	}
+	filterParameters := componentVersionObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
-}
-
-func (s *SqlDatabase) GetAllComponentVersionIds(filter *entity.ComponentVersionFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetComponentVersionIds",
-	})
-
-	baseQuery := `
-		SELECT CV.componentversion_id %s FROM ComponentVersion CV 
-		%s
-	 	%s GROUP BY CV.componentversion_id ORDER BY %s
-    `
-
-	stmt, filterParameters, err := s.buildComponentVersionStatement(baseQuery, filter, false, []entity.Order{}, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer stmt.Close()
-
-	return performIdScan(stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetAllComponentVersionCursors(filter *entity.ComponentVersionFilter, order []entity.Order) ([]string, error) {
@@ -322,90 +255,13 @@ func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilt
 }
 
 func (s *SqlDatabase) CreateComponentVersion(componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"componentVersion": componentVersion,
-		"event":            "database.CreateComponentVersion",
-	})
-
-	query := `
-		INSERT INTO ComponentVersion (
-			componentversion_component_id,
-			componentversion_version,
-			componentversion_tag,
-			componentversion_repository,
-			componentversion_organization,
-			componentversion_created_by,
-			componentversion_updated_by
-		) VALUES (
-			:componentversion_component_id,
-			:componentversion_version,
-			:componentversion_tag,
-			:componentversion_repository,
-			:componentversion_organization,
-			:componentversion_created_by,
-			:componentversion_updated_by
-		)
-	`
-
-	componentVersionRow := ComponentVersionRow{}
-	componentVersionRow.FromComponentVersion(componentVersion)
-
-	id, err := performInsert(s, query, componentVersionRow, l)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "Error 1062") {
-			return nil, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("for ComponentVersion: %s ", componentVersion.Version))
-		}
-		return nil, err
-	}
-
-	componentVersion.Id = id
-
-	return componentVersion, nil
+	return componentVersionObject.Create(s.db, componentVersion)
 }
 
 func (s *SqlDatabase) UpdateComponentVersion(componentVersion *entity.ComponentVersion) error {
-	l := logrus.WithFields(logrus.Fields{
-		"componentVersion": componentVersion,
-		"event":            "database.UpdateComponentVersion",
-	})
-
-	baseQuery := `
-		UPDATE ComponentVersion SET
-		%s
-		WHERE componentversion_id = :componentversion_id
-	`
-
-	updateFields := getComponentVersionUpdateFields(componentVersion)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	componentVersionRow := ComponentVersionRow{}
-	componentVersionRow.FromComponentVersion(componentVersion)
-
-	_, err := performExec(s, query, componentVersionRow, l)
-
-	return err
+	return componentVersionObject.Update(s.db, componentVersion)
 }
 
 func (s *SqlDatabase) DeleteComponentVersion(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteComponentVersion",
-	})
-
-	query := `
-		UPDATE ComponentVersion SET
-		componentversion_deleted_at = NOW(),
-		componentversion_updated_by = :userId
-		WHERE componentversion_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return componentVersionObject.Delete(s.db, id, userId)
 }

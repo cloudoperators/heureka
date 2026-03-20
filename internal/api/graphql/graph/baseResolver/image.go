@@ -27,7 +27,7 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 	}
 
 	f := &entity.ComponentFilter{
-		PaginatedX:  entity.PaginatedX{First: first, After: after},
+		Paginated:   entity.Paginated{First: first, After: after},
 		ServiceCCRN: filter.Service,
 		Repository:  filter.Repository,
 	}
@@ -46,7 +46,7 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 		Direction: entity.OrderDirectionAsc,
 	})
 
-	components, err := app.ListComponents(f, opt)
+	components, err := app.ListComponents(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("ImageBaseResolver", err.Error())
 	}

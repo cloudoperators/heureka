@@ -1,7 +1,7 @@
 # OpenFGA Authentication & Authorization
 
-Heureka utilizes OpenFGA for authentication and authorization.
-It works using an OpenFGA server loaded with a custom authorization model for Heureka's entities which the main Heureka app communicates to via API calls.
+Heureka utilizes OpenFGA for authorization, after utilizing either OIDC or a custom JWT token for authentication.
+It works using an OpenFGA server loaded with a custom authorization model for Heureka's entities. After loading the model, tuples are created to represent user to object relationships. Communication with the server is done via API calls from the main Heureka app.
 
 ## Setup Details
 
@@ -18,20 +18,68 @@ It then checks if a model has already been created in the store or not, and if o
 
 ## Interface
 
-The interface consists of four main functions
+internal/openfga/interface.go consists of the following.
 
-- CheckPermission(p PermissionInput)
+- CheckPermission(r RelationInput)
     - Checks if a given user has a given level of permission on a given resource (based on relation between user and resource)
 - AddRelation(r RelationInput)
     - Adds a specified relation between a given user and a given resource
+- AddRelationBulk(r []RelationInput)
+    - Adds multiple relationships between given users and resources
 - RemoveRelation(r RelationInput)
-    - Removes a specified relation between a given user and a given resource (if such a relation exists)
-- ListAccessibleResources(p PermissionInput)
+    - Removes a single relation between a given user and a given resource (if such a relation exists)
+- RemoveRelationBulk (r []RelationInput)
+    - Remove all relations that match any given RelationInput as filters
+- RemoveAllRelations()
+    - Remove all relations in the authorization store, used mainly for tests
+- UpdateRelation(r RelationInput, u RelationInput)
+    - Update relations based on filters provided
+- ListRelations(filters RelationInput)
+    - Returns a list of relations that match any given RelationInput as filters
+- ListAccessibleResources(r RelationInput)
     - Returns a list of all objects of a specified type that a given user has a given relation with
+- GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType)
+    - Returns a list of object Ids of a given type that the user can access
 
-PermissionInput and RelationInput are structs defined in the interface that contain all the parameters for the above functions.
+RelationInput is a struct that contains all the fields to create a tuple in above functions.
 
 For more info on how OpenFGA handles users, objects, and relations: https://openfga.dev/docs/concepts
+
+## Handlers
+
+Using the event handling system, openfga tuples are modified based on the event handled. Based on the [Auth Model](https://github.com/cloudoperators/heureka/blob/main/internal/openfga/model/model.fga) defined, the OpenFGA tuples are implemented as follows here. 
+
+| Event                | Event Handler                        | Tuples Implemented (user - object)                                                                                   |
+|-------------------------|-------------------------------|--------------------------------------------------------------------------------------------------|
+| AddOwnerToService       | OnAddOwnerToService           | add service - user                                                                               |
+| RemoveOwnerFromService  | OnRemoveOwnerFromService      | remove service - user                                                                            |
+| CreateService           | OnServiceCreateAuthz           | add role - service                                                                               |
+| DeleteService           | OnServiceDeleteAuthz           | remove user - service<br>remove role - service<br>remove support_group - service<br>remove component_instance - service |
+| UpdateComponentVersion  | OnComponentVersionUpdateAuthz  | update component_version - component                                                             |
+| CreateComponentVersion  | OnComponentVersionCreateAuthz  | add role - component_version                                                                     |
+| DeleteComponentVersion  | OnComponentVersionDeleteAuthz  | remove user - component_version<br>remove component_instance - component_version<br>remove role - component_version<br>remove component - component_version |
+| UpdateIssueMatch        | OnIssueMatchUpdateAuthz        | update component_instance - issue_match                                                                 |
+| CreateIssueMatch        | OnIssueMatchCreateAuthz        | add role - issue_match                                                                           |
+| DeleteIssueMatch        | OnIssueMatchDeleteAuthz        | delete user - issue_match<br>delete component_instance - issue_match<br>delete role - issue_match |
+| UpdateComponentInstance | OnComponentInstanceUpdateAuthz | update component_instance - component_version_id<br>update component_instance - service           |
+| CreateComponentInstance | OnComponentInstanceCreateAuthz | add component_instance - service<br>add role - component_instance<br>add component_instance - component_version |
+| DeleteComponentInstance | OnComponentInstanceDeleteAuthz | delete user - component_instance<br>delete component_instance - service<br>delete role - component_instance<br>delete component_instance - component_version<br>delete component_instance - issue_match |
+| DeleteSupportGroup      | OnSupportGroupDeleteAuthz      | delete user - support_group<br>delete support_group - support_group<br>delete role - support_group<br>delete support_group - service |
+| CreateSupportGroup      | OnSupportGroupCreateAuthz      | add role - support_group                                                                         |
+| AddServicetoSupportGroup| OnAddServiceToSupportGroup     | add support_group - service                                                                      |
+| RemoveServiceFromSupportGroup | OnRemoveServiceFromSupportGroup | remove support_group - service                                                              |
+| AddUsertoSupportGroup   | OnAddUserToSupportGroup        | add support_group - user                                                                         |
+| RemoveUserFromSupportGroup | OnRemoveUserFromSupportGroup | remove support_group - user                                                                  |
+| DeleteUser         | OnUserDeleteAuthz         | delete user - role<br>delete user - service<br>delete user - component_instance<br>delete user - support_group<br>delete user - issue_match<br>delete user - component_version<br>delete user - component         |
+| CreateComponent         | OnComponentCreateAuthz         | add role - component                                                                             |
+| DeleteComponent         | OnComponentDeleteAuthz         | delete user - component<br>delete component_version - component<br>delete role - component        |
+
+## Read Permissions
+
+For various entities, get & list operations are protected by permission checks using openFGA.
+For get operations, a call to CheckPermission with the ID of the exact object attempting to be accessed is made.
+For list operations, a call to GetListOfAccessibleObjectIds is made to obtain a list of IDs to be used as a filter when querying the DB.
+If no objects are accessible, -1 is returned and used as the filter.
 
 ## Usage
 

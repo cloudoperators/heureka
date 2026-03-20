@@ -32,7 +32,7 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 
 	opt := entity.NewListOptions()
 
-	issueMatches, err := app.ListIssueMatches(f, opt)
+	issueMatches, err := app.ListIssueMatches(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueMatchBaseResolver", err.Error())
@@ -61,7 +61,6 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		"parent":          parent,
 	}).Debug("Called IssueMatchBaseResolver")
 
-	var eId []*int64
 	var ciId []*int64
 	var issueId []*int64
 	var serviceId []*int64
@@ -75,8 +74,6 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		}
 
 		switch parent.ParentName {
-		case model.EvidenceNodeName:
-			eId = []*int64{pid}
 		case model.ComponentInstanceNodeName:
 			ciId = []*int64{pid}
 		case model.IssueNodeName, model.VulnerabilityNodeName:
@@ -106,13 +103,12 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 
 	f := &entity.IssueMatchFilter{
 		Id:                       imIds,
-		PaginatedX:               entity.PaginatedX{First: first, After: after},
+		Paginated:                entity.Paginated{First: first, After: after},
 		ServiceCCRN:              filter.ServiceCcrn,
 		Status:                   lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
 		SeverityValue:            lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
 		SupportGroupCCRN:         filter.SupportGroupCcrn,
 		IssueId:                  issueId,
-		EvidenceId:               eId,
 		ServiceId:                serviceId,
 		ComponentInstanceId:      ciId,
 		Search:                   filter.Search,
@@ -129,7 +125,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 		opt.Order = append(opt.Order, o.ToOrderEntity())
 	}
 
-	issueMatches, err := app.ListIssueMatches(f, opt)
+	issueMatches, err := app.ListIssueMatches(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("IssueMatchBaseResolver", err.Error())
 	}

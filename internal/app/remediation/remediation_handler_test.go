@@ -36,7 +36,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	er = event.NewEventRegistry(db, authz)
 })
 
 var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), func() {
@@ -52,7 +52,7 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 		db = mocks.NewMockDatabase(GinkgoT())
 		options = entity.NewListOptions()
 		filter = &entity.RemediationFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: nil,
 				After: nil,
 			},
@@ -237,7 +237,7 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 		first := 10
 		after := ""
 		filter = &entity.RemediationFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
@@ -286,7 +286,7 @@ var _ = Describe("When deleting Remediation", Label("app", "DeleteRemediation"),
 		first := 10
 		after := ""
 		filter = &entity.RemediationFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},

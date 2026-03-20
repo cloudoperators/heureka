@@ -101,7 +101,7 @@ var AllComponentInstanceType = []string{
 }
 
 type ComponentInstanceFilter struct {
-	PaginatedX
+	Paginated
 	IssueMatchId            []*int64          `json:"issue_match_id"`
 	ServiceId               []*int64          `json:"service_id"`
 	ServiceCcrn             []*string         `json:"service_ccrn"`
@@ -151,4 +151,12 @@ type ComponentInstance struct {
 	ComponentVersionId int64                 `db:"componentinstance_component_version_id"`
 	Service            *Service              `json:"service,omitempty"`
 	ServiceId          int64                 `db:"componentinstance_service_id"`
+}
+
+func (ci *ComponentInstance) GetId() int64 {
+	return ci.Id
+}
+
+func (ci *ComponentInstance) SetId(id int64) {
+	ci.Id = id
 }

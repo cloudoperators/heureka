@@ -4,7 +4,7 @@
 package entity
 
 type ComponentVersionFilter struct {
-	PaginatedX
+	Paginated
 	Id            []*int64  `json:"id"`
 	IssueId       []*int64  `json:"issue_id"`
 	ComponentCCRN []*string `json:"component_ccrn"`
@@ -18,6 +18,7 @@ type ComponentVersionFilter struct {
 	Tag               []*string         `json:"tag"`
 	Repository        []*string         `json:"repository"`
 	Organization      []*string         `json:"organization"`
+	EndOfLife         []*bool           `json:"end_of_life"`
 }
 
 type ComponentVersionAggregations struct{}
@@ -39,4 +40,13 @@ type ComponentVersion struct {
 	Organization       string              `json:"organization"`
 	ComponentInstances []ComponentInstance `json:"component_instances,omitempty"`
 	Issues             []Issue             `json:"issues,omitempty"`
+	EndOfLife          *bool               `json:"end_of_life,omitempty"`
+}
+
+func (cv *ComponentVersion) GetId() int64 {
+	return cv.Id
+}
+
+func (cv *ComponentVersion) SetId(id int64) {
+	cv.Id = id
 }

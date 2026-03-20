@@ -176,9 +176,9 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 				DescribeTable("can correctly paginate with x elements", func(pageSize int) {
 					test.TestPaginationOfListWithOrder(
 						db.GetPatches,
-						func(first *int, after *int64, afterX *string) *entity.PatchFilter {
+						func(first *int, after *string) *entity.PatchFilter {
 							return &entity.PatchFilter{
-								PaginatedX: entity.PaginatedX{First: first, After: afterX},
+								Paginated: entity.Paginated{First: first, After: after},
 							}
 						},
 						[]entity.Order{},
@@ -238,7 +238,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					f := 10
 					after := ""
 					filter := &entity.PatchFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &f,
 							After: &after,
 						},

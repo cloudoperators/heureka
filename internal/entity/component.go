@@ -13,6 +13,14 @@ type Component struct {
 	Url          string `json:"url"`
 }
 
+func (c *Component) GetId() int64 {
+	return c.Id
+}
+
+func (c *Component) SetId(id int64) {
+	c.Id = id
+}
+
 type ComponentResult struct {
 	WithCursor
 	*ComponentAggregations
@@ -20,7 +28,7 @@ type ComponentResult struct {
 }
 
 type ComponentFilter struct {
-	PaginatedX
+	Paginated
 	CCRN               []*string         `json:"ccrn"`
 	Repository         []*string         `json:"repository"`
 	Organization       []*string         `json:"organization"`

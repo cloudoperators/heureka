@@ -5,51 +5,43 @@ package mariadb
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
-func getComponentFilterString(filter *entity.ComponentFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.CCRN, "C.component_ccrn = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Repository, "C.component_repository = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Organization, "C.component_organization = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.Id, "C.component_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CV.componentversion_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.ServiceCCRN, "S.service_ccrn = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "C.component"))
-
-	return combineFilterQueries(fl, OP_AND)
+var componentObject = DbObject[*entity.Component]{
+	Prefix:    "component",
+	TableName: "Component",
+	Properties: []*Property{
+		NewProperty("component_ccrn", WrapAccess(func(c *entity.Component) (string, bool) { return c.CCRN, c.CCRN != "" })),
+		NewProperty("component_repository", WrapAccess(func(c *entity.Component) (string, bool) { return c.Repository, c.Repository != "" })),
+		NewProperty("component_organization", WrapAccess(func(c *entity.Component) (string, bool) { return c.Organization, c.Organization != "" })),
+		NewProperty("component_url", WrapAccess(func(c *entity.Component) (string, bool) { return c.Url, c.Url != "" })),
+		NewProperty("component_type", WrapAccess(func(c *entity.Component) (string, bool) { return c.Type, c.Type != "" })),
+		NewProperty("component_created_by", WrapAccess(func(c *entity.Component) (int64, bool) { return c.CreatedBy, NoUpdate })),
+		NewProperty("component_updated_by", WrapAccess(func(c *entity.Component) (int64, bool) { return c.UpdatedBy, c.UpdatedBy != 0 })),
+	},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("C.component_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.CCRN })),
+		NewFilterProperty("C.component_repository = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.Repository })),
+		NewFilterProperty("C.component_organization = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.Organization })),
+		NewFilterProperty("C.component_id = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.Id })),
+		NewFilterProperty("CV.componentversion_id = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*int64 { return filter.ComponentVersionId })),
+		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ComponentFilter) []*string { return filter.ServiceCCRN })),
+		NewStateFilterProperty("C.component", WrapRetState(func(filter *entity.ComponentFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
-func ensureComponentFilter(f *entity.ComponentFilter) *entity.ComponentFilter {
-	first := 1000
-	after := ""
-	if f == nil {
-		return &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
-				First: &first,
-				After: &after,
-			},
-			CCRN:               nil,
-			Id:                 nil,
-			ComponentVersionId: nil,
-		}
+func ensureComponentFilter(filter *entity.ComponentFilter) *entity.ComponentFilter {
+	if filter == nil {
+		filter = &entity.ComponentFilter{}
 	}
-
-	if f.After == nil {
-		f.After = &after
-	}
-	if f.First == nil {
-		f.First = &first
-	}
-	return f
+	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) getComponentJoins(filter *entity.ComponentFilter, order []entity.Order) string {
+func (s *SqlDatabase) getComponentJoins(filter *entity.ComponentFilter, order []entity.Order) string { //TODO: add joins to DbObject
 	joins := ""
 	if s.needComponentVersion(filter, order) {
 		joins = fmt.Sprintf("%s\n%s", joins, `
@@ -125,45 +117,20 @@ func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
 	return columns
 }
 
-func getComponentUpdateFields(component *entity.Component) string {
-	fl := []string{}
-	if component.CCRN != "" {
-		fl = append(fl, "component_ccrn = :component_ccrn")
-	}
-	if component.Repository != "" {
-		fl = append(fl, "component_repository = :component_repository")
-	}
-	if component.Organization != "" {
-		fl = append(fl, "component_organization = :component_organization")
-	}
-	if component.Url != "" {
-		fl = append(fl, "component_url = :component_url")
-	}
-	if component.Type != "" {
-		fl = append(fl, "component_type = :component_type")
-	}
-	if component.UpdatedBy != 0 {
-		fl = append(fl, "component_updated_by = :component_updated_by")
-	}
-	return strings.Join(fl, ", ")
-}
-
 func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.ComponentFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
-	var query string
 	filter = ensureComponentFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getComponentFilterString(filter)
-	joins := s.getComponentJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.PaginatedX.After)
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	order = GetDefaultOrder(order, entity.ComponentId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
+	filterStr := componentObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -173,7 +140,8 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
 
-	// construct final query
+	joins := s.getComponentJoins(filter, order)
+	var query string
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
 	} else {
@@ -193,40 +161,9 @@ func (s *SqlDatabase) buildComponentStatement(baseQuery string, filter *entity.C
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.CCRN)
-	filterParameters = buildQueryParameters(filterParameters, filter.Repository)
-	filterParameters = buildQueryParameters(filterParameters, filter.Organization)
-	filterParameters = buildQueryParameters(filterParameters, filter.Id)
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-	filterParameters = buildQueryParameters(filterParameters, filter.ServiceCCRN)
-	if withCursor {
-		filterParameters = append(filterParameters, GetCursorQueryParameters(filter.PaginatedX.First, cursorFields)...)
-	}
+	filterParameters := componentObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
-}
-
-func (s *SqlDatabase) GetAllComponentIds(filter *entity.ComponentFilter) ([]int64, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"event": "database.GetComponentIds",
-	})
-
-	baseQuery := `
-		SELECT C.component_id FROM Component C 
-		%s
-	 	%s GROUP BY C.component_id ORDER BY %s
-    `
-
-	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, false, []entity.Order{}, l)
-	if err != nil {
-		return nil, err
-	}
-
-	defer stmt.Close()
-
-	return performIdScan(stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetAllComponentCursors(filter *entity.ComponentFilter, order []entity.Order) ([]string, error) {
@@ -418,89 +355,15 @@ func (s *SqlDatabase) CountComponentVulnerabilities(filter *entity.ComponentFilt
 }
 
 func (s *SqlDatabase) CreateComponent(component *entity.Component) (*entity.Component, error) {
-	l := logrus.WithFields(logrus.Fields{
-		"component": component,
-		"event":     "database.CreateComponent",
-	})
-
-	query := `
-		INSERT INTO Component (
-			component_ccrn,
-			component_repository,
-			component_organization,
-			component_url,
-			component_type,
-			component_created_by,
-			component_updated_by
-		) VALUES (
-			:component_ccrn,
-			:component_repository,
-			:component_organization,
-			:component_url,
-			:component_type,
-			:component_created_by,
-			:component_updated_by
-		)
-	`
-
-	componentRow := ComponentRow{}
-	componentRow.FromComponent(component)
-
-	id, err := performInsert(s, query, componentRow, l)
-	if err != nil {
-		return nil, err
-	}
-
-	component.Id = id
-
-	return component, nil
+	return componentObject.Create(s.db, component)
 }
 
 func (s *SqlDatabase) UpdateComponent(component *entity.Component) error {
-	l := logrus.WithFields(logrus.Fields{
-		"component": component,
-		"event":     "database.UpdateComponent",
-	})
-
-	baseQuery := `
-		UPDATE Component SET
-		%s
-		WHERE component_id = :component_id
-	`
-
-	updateFields := getComponentUpdateFields(component)
-
-	query := fmt.Sprintf(baseQuery, updateFields)
-
-	componentRow := ComponentRow{}
-	componentRow.FromComponent(component)
-
-	_, err := performExec(s, query, componentRow, l)
-
-	return err
+	return componentObject.Update(s.db, component)
 }
 
 func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {
-	l := logrus.WithFields(logrus.Fields{
-		"id":    id,
-		"event": "database.DeleteComponent",
-	})
-
-	query := `
-		UPDATE Component SET
-		component_deleted_at = NOW(),
-		component_updated_by = :userId
-		WHERE component_id = :id
-	`
-
-	args := map[string]interface{}{
-		"userId": userId,
-		"id":     id,
-	}
-
-	_, err := performExec(s, query, args, l)
-
-	return err
+	return componentObject.Delete(s.db, id, userId)
 }
 
 func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error) {

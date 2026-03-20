@@ -13,7 +13,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/server"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -85,7 +84,7 @@ func parseTimeExpectNoError(t string) time.Time {
 	return tt
 }
 
-var _ = Describe("Creating, updating and state filtering of entity via API", Label("e2e", "Entities"), func() {
+var _ = Describe("Creating, updating and state filtering of entity via API", Label("e2e", "Metadata"), func() {
 	var s *server.Server
 	var cfg util.Config
 	var db *mariadb.SqlDatabase
@@ -94,7 +93,8 @@ var _ = Describe("Creating, updating and state filtering of entity via API", Lab
 		db = dbm.NewTestSchemaWithoutMigration()
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 

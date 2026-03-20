@@ -15,7 +15,6 @@ var _ = Describe("NoAuthz", func() {
 	var (
 		cfg   *util.Config
 		authz openfga.Authorization
-		p     openfga.PermissionInput
 		r     openfga.RelationInput
 	)
 
@@ -24,13 +23,6 @@ var _ = Describe("NoAuthz", func() {
 			AuthzOpenFgaApiUrl: "",
 		}
 		enableLogs := true
-		p = openfga.PermissionInput{
-			UserType:   "user",
-			UserId:     "user1",
-			Relation:   "read",
-			ObjectType: "doocument",
-			ObjectId:   "document1",
-		}
 		r = openfga.RelationInput{
 			UserType:   "user",
 			UserId:     "user1",
@@ -50,7 +42,7 @@ var _ = Describe("NoAuthz", func() {
 
 	Describe("CheckPermission", func() {
 		It("should always return true and no error", func() {
-			ok, err := authz.CheckPermission(p)
+			ok, err := authz.CheckPermission(r)
 			Expect(ok).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
@@ -73,8 +65,8 @@ var _ = Describe("NoAuthz", func() {
 
 	Describe("ListAccessibleResources", func() {
 		It("should always return an empty slice and no error", func() {
-			p.Relation = "member"
-			resources, err := authz.ListAccessibleResources(p)
+			r.Relation = "member"
+			resources, err := authz.ListAccessibleResources(r)
 			Expect(err).To(BeNil())
 			Expect(resources).To(BeEmpty())
 		})

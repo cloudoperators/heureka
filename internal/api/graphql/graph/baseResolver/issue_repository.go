@@ -59,12 +59,6 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 		"parent":          parent,
 	}).Debug("Called IssueRepositoryBaseResolver")
 
-	afterId, err := ParseCursor(after)
-	if err != nil {
-		logrus.WithField("after", after).Error("IssueRepositoryBaseResolver: Error while parsing parameter 'after'")
-		return nil, NewResolverError("IssueRepositoryBaseResolver", "Bad Request - unable to parse cursor 'after'")
-	}
-
 	var serviceId []*int64
 	if parent != nil {
 		parentId := parent.Parent.GetID()
@@ -85,7 +79,7 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 	}
 
 	f := &entity.IssueRepositoryFilter{
-		Paginated:   entity.Paginated{First: first, After: afterId},
+		Paginated:   entity.Paginated{First: first, After: after},
 		ServiceId:   serviceId,
 		Name:        filter.Name,
 		ServiceCCRN: filter.ServiceCcrn,

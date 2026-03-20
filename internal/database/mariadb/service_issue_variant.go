@@ -10,55 +10,50 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ensureServiceIssueVariantFilter(f *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
-	first := 1000
-	var after int64 = 0
-	if f == nil {
-		return &entity.ServiceIssueVariantFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			ComponentInstanceId: nil,
-		}
-	}
-
-	if f.After == nil {
-		f.After = &after
-	}
-	if f.First == nil {
-		f.First = &first
-	}
-	return f
+var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
+	Properties: []*Property{},
+	FilterProperties: []*FilterProperty{
+		NewFilterProperty("CI.componentinstance_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.ComponentInstanceId })),
+		NewFilterProperty("I.issue_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.IssueId })),
+		NewStateFilterProperty("IV.issuevariant", WrapRetState(func(filter *entity.ServiceIssueVariantFilter) []entity.StateFilterType { return filter.State })),
+	},
 }
 
-func getServiceIssueVariantFilterString(filter *entity.ServiceIssueVariantFilter) string {
-	var fl []string
-	fl = append(fl, buildFilterQuery(filter.ComponentInstanceId, "CI.componentinstance_id = ?", OP_OR))
-	fl = append(fl, buildFilterQuery(filter.IssueId, "I.issue_id = ?", OP_OR))
-	fl = append(fl, buildStateFilterQuery(filter.State, "IV.issuevariant"))
-
-	return combineFilterQueries(fl, OP_AND)
+func ensureServiceIssueVariantFilter(filter *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
+	if filter == nil {
+		filter = &entity.ServiceIssueVariantFilter{}
+	}
+	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter *entity.ServiceIssueVariantFilter, withCursor bool, l *logrus.Entry) (Stmt, []interface{}, error) {
-	var query string
+func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter *entity.ServiceIssueVariantFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
 	filter = ensureServiceIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	filterStr := getServiceIssueVariantFilterString(filter)
-	cursor := getCursor(filter.Paginated, filterStr, "IV.issuevariant_id > ?")
+	cursorFields, err := DecodeCursor(filter.Paginated.After)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to decode ServiceIssueVariant cursor: %w", err)
+	}
+	cursorQuery := CreateCursorQuery("", cursorFields)
 
+	order = GetDefaultOrder(order, entity.ServiceIssueVariantID, entity.OrderDirectionAsc)
+	orderStr := CreateOrderString(order)
+
+	filterStr := serviceIssueVariantObject.GetFilterQuery(filter)
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
 	}
 
-	// construct final query
+	if filterStr != "" && withCursor && cursorQuery != "" {
+		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+	}
+
+	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursor.Statement)
+		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, orderStr)
 	} else {
-		query = fmt.Sprintf(baseQuery, whereClause)
+		query = fmt.Sprintf(baseQuery, whereClause, orderStr)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
@@ -74,20 +69,12 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	// adding parameters
-	var filterParameters []interface{}
-	filterParameters = buildQueryParameters(filterParameters, filter.ComponentInstanceId)
-	filterParameters = buildQueryParameters(filterParameters, filter.IssueId)
-
-	if withCursor {
-		filterParameters = append(filterParameters, cursor.Value)
-		filterParameters = append(filterParameters, cursor.Limit)
-	}
+	filterParameters := serviceIssueVariantObject.GetFilterParameters(filter, withCursor, cursorFields)
 
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariantFilter) ([]entity.ServiceIssueVariant, error) {
+func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariantFilter, order []entity.Order) ([]entity.ServiceIssueVariantResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetIssueVariants",
 	})
@@ -107,10 +94,10 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
 			# Join to from repo and issue to IssueVariant
 			INNER JOIN IssueVariant IV on I.issue_id = IV.issuevariant_issue_id and IV.issuevariant_repository_id = IR.issuerepository_id
 		%s
-		%s ORDER BY IV.issuevariant_id LIMIT ?
+		%s ORDER BY %s LIMIT ?
     `
 
-	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(baseQuery, filter, true, l)
+	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +108,18 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
 		stmt,
 		filterParameters,
 		l,
-		func(l []entity.ServiceIssueVariant, e ServiceIssueVariantRow) []entity.ServiceIssueVariant {
-			return append(l, e.AsServiceIssueVariantEntry())
+		func(l []entity.ServiceIssueVariantResult, e ServiceIssueVariantRow) []entity.ServiceIssueVariantResult {
+			r := e.AsServiceIssueVariantEntry()
+			cursor, _ := EncodeCursor(WithServiceIssueVariant(order, r))
+
+			rr := entity.ServiceIssueVariantResult{
+				WithCursor: entity.WithCursor{
+					Value: cursor,
+				},
+				ServiceIssueVariant: &r,
+			}
+
+			return append(l, rr)
 		},
 	)
 }

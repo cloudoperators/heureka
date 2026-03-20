@@ -10,7 +10,7 @@ import (
 )
 
 type UserHandler interface {
-	ListUsers(*entity.UserFilter, *entity.ListOptions) (*entity.List[entity.UserResult], error)
+	ListUsers(context.Context, *entity.UserFilter, *entity.ListOptions) (*entity.List[entity.UserResult], error)
 	CreateUser(context.Context, *entity.User) (*entity.User, error)
 	UpdateUser(context.Context, *entity.User) (*entity.User, error)
 	DeleteUser(context.Context, int64) error

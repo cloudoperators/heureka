@@ -30,7 +30,7 @@ func SingleComponentVersionBaseResolver(app app.Heureka, ctx context.Context, pa
 
 	opt := &entity.ListOptions{}
 
-	componentVersions, err := app.ListComponentVersions(f, opt)
+	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleComponentVersionBaseResolver", err.Error())
@@ -100,7 +100,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 	}
 
 	f := &entity.ComponentVersionFilter{
-		PaginatedX:        entity.PaginatedX{First: first, After: after},
+		Paginated:         entity.Paginated{First: first, After: after},
 		IssueId:           issueId,
 		ComponentId:       componentId,
 		ComponentCCRN:     filter.ComponentCcrn,
@@ -109,6 +109,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		IssueRepositoryId: repositoryIds,
 		Version:           filter.Version,
 		State:             model.GetStateFilterType(filter.State),
+		EndOfLife:         filter.EndOfLife,
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -125,7 +126,7 @@ func ComponentVersionBaseResolver(app app.Heureka, ctx context.Context, filter *
 		}
 	}
 
-	componentVersions, err := app.ListComponentVersions(f, opt)
+	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	//@todo propper error handling
 	if err != nil {
 		return nil, NewResolverError("ComponentVersionBaseResolver", err.Error())

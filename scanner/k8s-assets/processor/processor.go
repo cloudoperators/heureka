@@ -7,15 +7,16 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"text/template"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/client"
 	"github.com/cloudoperators/heureka/scanners/k8s-assets/scanner"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 )
 
 type Processor struct {
@@ -86,8 +87,8 @@ func (c CCRN) String() string {
 }
 
 func NewProcessor(cfg Config, tag string) *Processor {
-	httpClient := http.Client{}
-	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
+	httpClient := util.NewRateLimitedHTTPClient(rate.Limit(cfg.HeurekaRateLimit), cfg.HeurekaRateBurst, nil)
+	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	advCfg, err := cfg.LoadAdvancedConfig()
 	if err != nil {
 		log.WithError(err).Error("failed to load advanced config")

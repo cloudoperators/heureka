@@ -23,13 +23,6 @@ func (r *issueResolver) IssueVariants(ctx context.Context, obj *model.Issue, fil
 	})
 }
 
-func (r *issueResolver) Activities(ctx context.Context, obj *model.Issue, filter *model.ActivityFilter, first *int, after *string) (*model.ActivityConnection, error) {
-	return baseResolver.ActivityBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.IssueNodeName,
-	})
-}
-
 func (r *issueResolver) IssueMatches(ctx context.Context, obj *model.Issue, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
 	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil, &model.NodeParent{
 		Parent:     obj,

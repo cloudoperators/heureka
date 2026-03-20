@@ -45,7 +45,7 @@ func NewScanner(cfg Config) *Scanner {
 
 	// The public rate limit (without an API key) is 5 requests in a rolling 30 second
 	// window; the rate limit with an API key is 50 requests in a rolling 30 second window
-	rl := rate.NewLimiter(rate.Every(30*time.Second/50), 50)
+	rl := rate.NewLimiter(rate.Limit(cfg.NvdRateLimit), cfg.NvdRateBurst)
 
 	return &Scanner{
 		BaseURL:        cfg.NvdApiUrl,

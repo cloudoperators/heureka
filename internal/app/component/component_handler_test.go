@@ -4,6 +4,7 @@
 package component_test
 
 import (
+	"context"
 	"math"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/mocks"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/cloudoperators/heureka/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
@@ -27,19 +29,32 @@ func TestComponentHandler(t *testing.T) {
 }
 
 var (
-	er    event.EventRegistry
-	authz openfga.Authorization
+	er             event.EventRegistry
+	authz          openfga.Authorization
+	handlerContext common.HandlerContext
+	cfg            *util.Config
 )
 
 var _ = BeforeSuite(func() {
+	authEnabled := false
+	cfg = common.GetTestConfig(authEnabled)
+	enableLogs := false
 	db := mocks.NewMockDatabase(GinkgoT())
-	er = event.NewEventRegistry(db)
+	authz := openfga.NewAuthorizationHandler(cfg, enableLogs)
+	er := event.NewEventRegistry(db, authz)
+	handlerContext = common.HandlerContext{
+		DB:       db,
+		EventReg: er,
+		Cache:    nil,
+		Authz:    authz,
+	}
+	handlerContext.Authz.RemoveAllRelations()
 })
 
 func getComponentFilter() *entity.ComponentFilter {
 	cCCRN := "SomeNotExistingComponent"
 	return &entity.ComponentFilter{
-		PaginatedX: entity.PaginatedX{
+		Paginated: entity.Paginated{
 			First: nil,
 			After: nil,
 		},
@@ -49,35 +64,36 @@ func getComponentFilter() *entity.ComponentFilter {
 
 var _ = Describe("When listing Components", Label("app", "ListComponents"), func() {
 	var (
+		er               event.EventRegistry
 		db               *mocks.MockDatabase
 		componentHandler c.ComponentHandler
+		ctx              context.Context
 		filter           *entity.ComponentFilter
 		options          *entity.ListOptions
-		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		options = entity.NewListOptions()
 		filter = getComponentFilter()
+		ctx = common.NewAdminContext()
 
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
 			db.On("CountComponents", filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
 			componentHandler = c.NewComponentHandler(handlerContext)
-			res, err := componentHandler.ListComponents(filter, options)
+			res, err := componentHandler.ListComponents(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -107,10 +123,11 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 				c, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, component, entity.IssueSeverityCounts{}))
 				cursors = append(cursors, c)
 			}
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 			db.On("GetComponents", filter, []entity.Order{}).Return(components, nil)
 			db.On("GetAllComponentCursors", filter, []entity.Order{}).Return(cursors, nil)
 			componentHandler = c.NewComponentHandler(handlerContext)
-			res, err := componentHandler.ListComponents(filter, options)
+			res, err := componentHandler.ListComponents(ctx, filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
@@ -121,33 +138,111 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
 		)
 	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("and the user has no access to any components", func() {
+			BeforeEach(func() {
+				compIds := int64(-1)
+				filter.Id = []*int64{&compIds}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
+			})
+
+			It("should return no components", func() {
+				componentHandler = c.NewComponentHandler(handlerContext)
+				res, err := componentHandler.ListComponents(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return 0 results")
+			})
+		})
+
+		Context("and the filter includes component IDs the user has access to", func() {
+			var (
+				component entity.Component
+			)
+
+			BeforeEach(func() {
+				userId := int64(123)
+				systemUserId := int64(1)
+				component = test.NewFakeComponentEntity()
+				filter.Id = []*int64{&component.Id}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{{Component: &component}}, nil)
+
+				relations := []openfga.RelationInput{
+					{ // create component
+						UserType:   openfga.TypeRole,
+						UserId:     openfga.UserIdFromInt(systemUserId),
+						Relation:   openfga.RelRole,
+						ObjectType: openfga.TypeComponent,
+						ObjectId:   openfga.ObjectIdFromInt(component.Id),
+					},
+					{ // give user read permission to component
+						UserType:   openfga.TypeUser,
+						UserId:     openfga.UserIdFromInt(userId),
+						Relation:   openfga.RelCanView,
+						ObjectType: openfga.TypeComponent,
+						ObjectId:   openfga.ObjectIdFromInt(component.Id),
+					},
+				}
+
+				err := handlerContext.Authz.AddRelationBulk(relations)
+				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+			})
+
+			It("should return the expected components in the result", func() {
+				componentHandler = c.NewComponentHandler(handlerContext)
+				res, err := componentHandler.ListComponents(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(component.CCRN)) // check that the returned component is the expected one
+			})
+		})
+
+	})
 })
 
 var _ = Describe("When creating Component", Label("app", "CreateComponent"), func() {
 	var (
+		er               event.EventRegistry
 		db               *mocks.MockDatabase
 		componentHandler c.ComponentHandler
 		component        entity.Component
 		filter           *entity.ComponentFilter
-		handlerContext   common.HandlerContext
+		r                openfga.RelationInput
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		component = test.NewFakeComponentEntity()
+		handlerContext.Authz.RemoveAllRelations()
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("creates component", func() {
@@ -164,33 +259,80 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 			Expect(newComponent.Type).To(BeEquivalentTo(component.Type))
 		})
 	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("when handling a CreateComponentEvent", func() {
+			Context("when new component is created", func() {
+				It("should add user resource relationship tuple in openfga", func() {
+					compFake := test.NewFakeComponentEntity()
+					createEvent := &c.CreateComponentEvent{
+						Component: &compFake,
+					}
+
+					r = openfga.RelationInput{
+						UserType:   openfga.TypeRole,
+						UserId:     "0",
+						ObjectType: openfga.TypeComponent,
+						Relation:   openfga.RelRole,
+					}
+
+					// Use type assertion to convert a CreateServiceEvent into an Event
+					var event event.Event = createEvent
+					r.ObjectId = openfga.ObjectIdFromInt(createEvent.Component.Id)
+					// Simulate event
+					c.OnComponentCreateAuthz(db, event, handlerContext.Authz)
+
+					ok, err := handlerContext.Authz.CheckPermission(r)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(ok).To(BeTrue(), "permission should be granted")
+				})
+			})
+		})
+
+	})
 })
 
 var _ = Describe("When updating Component", Label("app", "UpdateComponent"), func() {
 	var (
+		er               event.EventRegistry
 		db               *mocks.MockDatabase
 		componentHandler c.ComponentHandler
 		component        entity.ComponentResult
 		filter           *entity.ComponentFilter
-		handlerContext   common.HandlerContext
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
 		component = test.NewFakeComponentResult()
+		handlerContext.Authz.RemoveAllRelations()
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("updates component", func() {
@@ -211,29 +353,31 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 
 var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), func() {
 	var (
+		er               event.EventRegistry
 		db               *mocks.MockDatabase
 		componentHandler c.ComponentHandler
 		id               int64
 		filter           *entity.ComponentFilter
-		handlerContext   common.HandlerContext
+		ctx              context.Context
 	)
 
 	BeforeEach(func() {
 		db = mocks.NewMockDatabase(GinkgoT())
+		er = event.NewEventRegistry(db, handlerContext.Authz)
+		handlerContext.Authz.RemoveAllRelations()
 		id = 1
 		first := 10
 		after := ""
 		filter = &entity.ComponentFilter{
-			PaginatedX: entity.PaginatedX{
+			Paginated: entity.Paginated{
 				First: &first,
 				After: &after,
 			},
 		}
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
+		ctx = common.NewAdminContext()
+
+		handlerContext.DB = db
+		handlerContext.EventReg = er
 	})
 
 	It("deletes component", func() {
@@ -246,8 +390,102 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 
 		filter.Id = []*int64{&id}
 		lo := entity.NewListOptions()
-		components, err := componentHandler.ListComponents(filter, lo)
+		components, err := componentHandler.ListComponents(ctx, filter, lo)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(components.Elements).To(BeEmpty(), "no error should be thrown")
+	})
+
+	Context("when authz is enabled", func() {
+
+		BeforeEach(func() {
+			authEnabled := true
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		AfterEach(func() {
+			// Reset authz to disabled after finishing tests
+			authEnabled := false
+			cfg = common.GetTestConfig(authEnabled)
+			enableLogs := false
+			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		})
+
+		Context("when handling an DeleteComponentEvent", func() {
+			Context("when new component is deleted", func() {
+				It("should delete tuples related to that component in openfga", func() {
+					// Test OnComponentDeleteAuthz against all possible relations
+					compFake := test.NewFakeComponentEntity()
+					deleteEvent := &c.DeleteComponentEvent{
+						ComponentID: compFake.Id,
+					}
+					objectId := openfga.ObjectIdFromInt(deleteEvent.ComponentID)
+					relations := []openfga.RelationInput{
+						{ // role - component: a role is assigned to the component
+							UserType:   openfga.TypeRole,
+							UserId:     openfga.IDRole,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeComponent,
+							Relation:   openfga.RelRole,
+						},
+						{ // component_version - component: a component version is related to the component
+							UserType:   openfga.TypeComponentVersion,
+							UserId:     openfga.IDComponentVersion,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeComponent,
+							Relation:   openfga.RelComponentVersion,
+						},
+						{ // user - component: a user can view the component
+							UserType:   openfga.TypeUser,
+							UserId:     openfga.IDUser,
+							ObjectId:   objectId,
+							ObjectType: openfga.TypeComponent,
+							Relation:   openfga.RelCanView,
+						},
+					}
+
+					handlerContext.Authz.AddRelationBulk(relations)
+
+					// get the number of relations before deletion
+					relCountBefore := 0
+					for _, r := range relations {
+						relationsList, err := handlerContext.Authz.ListRelations(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						relCountBefore += len(relationsList)
+					}
+					relationsCountBefore := relCountBefore
+					Expect(relationsCountBefore).To(BeEquivalentTo(len(relations)), "all relations should exist before deletion")
+
+					// check that relations were created
+					for _, r := range relations {
+						ok, err := handlerContext.Authz.CheckPermission(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						Expect(ok).To(BeTrue(), "permission should be granted")
+					}
+
+					var event event.Event = deleteEvent
+					c.OnComponentDeleteAuthz(db, event, handlerContext.Authz)
+
+					// get the number of relations after deletion
+					relCountAfter := 0
+					for _, r := range relations {
+						relationsList, err := handlerContext.Authz.ListRelations(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						relCountAfter += len(relationsList)
+					}
+					relationsCountAfter := relCountAfter
+					Expect(relationsCountAfter < relationsCountBefore).To(BeTrue(), "less relations after deletion")
+					Expect(relationsCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+
+					// verify that relations were deleted
+					for _, r := range relations {
+						ok, err := handlerContext.Authz.CheckPermission(r)
+						Expect(err).To(BeNil(), "no error should be thrown")
+						Expect(ok).To(BeFalse(), "permission should NOT be granted")
+					}
+				})
+			})
+		})
 	})
 })

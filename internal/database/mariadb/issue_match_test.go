@@ -108,8 +108,8 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("can filter by a single issue id that does exist", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
-						PaginatedX: entity.PaginatedX{},
-						IssueId:    []*int64{&issueMatch.IssueId.Int64},
+						Paginated: entity.Paginated{},
+						IssueId:   []*int64{&issueMatch.IssueId.Int64},
 					}
 
 					var imIds []int64
@@ -275,35 +275,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					})
 				})
-				It("can filter by a single evidence id that does exist", func() {
-					issueMatch := seedCollection.IssueMatchEvidenceRows[rand.Intn(len(seedCollection.IssueMatchEvidenceRows))]
-					filter := &entity.IssueMatchFilter{
-						EvidenceId: []*int64{&issueMatch.EvidenceId.Int64},
-					}
-
-					var imIds []int64
-					for _, e := range seedCollection.IssueMatchEvidenceRows {
-						if e.EvidenceId.Int64 == issueMatch.EvidenceId.Int64 {
-							imIds = append(imIds, e.IssueMatchId.Int64)
-						}
-					}
-
-					entries, err := db.GetIssueMatches(filter, nil)
-
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-
-					By("returning expected number of results", func() {
-						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
-					})
-
-					By("returning expected elements", func() {
-						for _, entry := range entries {
-							Expect(lo.Contains(imIds, entry.Id)).To(BeTrue())
-						}
-					})
-				})
 				It("can filter by a single service id that does exist", func() {
 					service := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 
@@ -442,11 +413,11 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					DescribeTable("can correctly paginate ", func(pageSize int) {
 						test.TestPaginationOfListWithOrder(
 							db.GetIssueMatches,
-							func(first *int, after *int64, afterX *string) *entity.IssueMatchFilter {
+							func(first *int, after *string) *entity.IssueMatchFilter {
 								return &entity.IssueMatchFilter{
-									PaginatedX: entity.PaginatedX{
+									Paginated: entity.Paginated{
 										First: first,
-										After: afterX,
+										After: after,
 									},
 								}
 							},
@@ -499,7 +470,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					first := 1
 					var after string = ""
 					filter := &entity.IssueMatchFilter{
-						PaginatedX: entity.PaginatedX{
+						Paginated: entity.Paginated{
 							First: &first,
 							After: &after,
 						},
@@ -517,8 +488,8 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				It("does show the correct amount when filtering for an issue", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 					filter := &entity.IssueMatchFilter{
-						PaginatedX: entity.PaginatedX{},
-						IssueId:    []*int64{&issueMatch.IssueId.Int64},
+						Paginated: entity.Paginated{},
+						IssueId:   []*int64{&issueMatch.IssueId.Int64},
 					}
 
 					var imIds []int64
@@ -665,77 +636,6 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				By("returning no issueMatch", func() {
 					Expect(len(im)).To(BeEquivalentTo(0))
 				})
-			})
-		})
-	})
-	When("Add Evidence To IssueMatch", Label("AddEvidenceToIssueMatch"), func() {
-		Context("and we have 10 IssueMatches in the database", func() {
-			var seedCollection *test.SeedCollection
-			var newEvidenceRow mariadb.EvidenceRow
-			var newEvidence entity.Evidence
-			var evidence *entity.Evidence
-			var activity entity.Activity
-			var user entity.User
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-				newEvidenceRow = test.NewFakeEvidence()
-				newEvidence = newEvidenceRow.AsEvidence()
-				activity = seedCollection.ActivityRows[0].AsActivity()
-				user = seedCollection.UserRows[0].AsUser()
-				newEvidence.ActivityId = activity.Id
-				newEvidence.UserId = user.Id
-				evidence, _ = db.CreateEvidence(&newEvidence)
-			})
-			It("can add evidence correctly", func() {
-				issueMatch := seedCollection.IssueMatchRows[0].AsIssueMatch()
-
-				err := db.AddEvidenceToIssueMatch(issueMatch.Id, evidence.Id)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				issueMatchFilter := &entity.IssueMatchFilter{
-					EvidenceId: []*int64{&evidence.Id},
-				}
-
-				im, err := db.GetIssueMatches(issueMatchFilter, nil)
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-				By("returning issueMatch", func() {
-					Expect(len(im)).To(BeEquivalentTo(1))
-				})
-			})
-		})
-	})
-	When("Remove Evidence From IssueMatch", Label("RemoveEvidenceFromIssueMatch"), func() {
-		Context("and we have 10 IssueMatches in the database", func() {
-			var seedCollection *test.SeedCollection
-			var issueMatchEvidenceRow mariadb.IssueMatchEvidenceRow
-			BeforeEach(func() {
-				seedCollection = seeder.SeedDbWithNFakeData(10)
-				issueMatchEvidenceRow = seedCollection.IssueMatchEvidenceRows[0]
-			})
-			It("can remove evidence correctly", func() {
-				err := db.RemoveEvidenceFromIssueMatch(issueMatchEvidenceRow.IssueMatchId.Int64, issueMatchEvidenceRow.EvidenceId.Int64)
-
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				issueMatchFilter := &entity.IssueMatchFilter{
-					EvidenceId: []*int64{&issueMatchEvidenceRow.EvidenceId.Int64},
-				}
-
-				issueMatches, err := db.GetIssueMatches(issueMatchFilter, nil)
-				By("throwing no error", func() {
-					Expect(err).To(BeNil())
-				})
-
-				for _, im := range issueMatches {
-					Expect(im.Id).ToNot(BeEquivalentTo(issueMatchEvidenceRow.IssueMatchId.Int64))
-				}
 			})
 		})
 	})
@@ -1139,7 +1039,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 			Expect(err).To(BeNil())
 			Expect(im).To(HaveLen(1))
 			filterWithCursor := entity.IssueMatchFilter{
-				PaginatedX: entity.PaginatedX{
+				Paginated: entity.Paginated{
 					After: im[0].Cursor(),
 				},
 			}

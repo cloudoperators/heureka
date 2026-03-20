@@ -169,6 +169,8 @@ func (ro *RemediationOrderBy) ToOrderEntity() entity.Order {
 		order.By = entity.RemediationIssue
 	case RemediationOrderByFieldSeverity:
 		order.By = entity.RemediationSeverity
+	case RemediationOrderByFieldExpirationDate:
+		order.By = entity.RemediationExpirationDate
 	}
 	order.Direction = ro.Direction.ToOrderDirectionEntity()
 	return order
@@ -345,7 +347,6 @@ func NewIssueWithAggregations(issue *entity.IssueResult) Issue {
 	if issue.IssueAggregations != nil {
 		objectMetadata = IssueMetadata{
 			ServiceCount:                  int(issue.IssueAggregations.AffectedServices),
-			ActivityCount:                 int(issue.IssueAggregations.Activities),
 			IssueMatchCount:               int(issue.IssueAggregations.IssueMatches),
 			ComponentInstanceCount:        int(issue.IssueAggregations.AffectedComponentInstances),
 			ComponentVersionCount:         int(issue.IssueAggregations.ComponentVersions),
@@ -417,6 +418,7 @@ func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
 		Version:    &componentVersion.Version,
 		Repository: &componentVersion.Repository,
 		Metadata:   getModelMetadata(componentVersion.Metadata),
+		EndOfLife:  componentVersion.EndOfLife,
 	}
 }
 
@@ -606,59 +608,6 @@ func NewSupportGroupEntity(supportGroup *SupportGroupInput) entity.SupportGroup 
 	}
 }
 
-func NewActivity(activity *entity.Activity) Activity {
-	status := ActivityStatusValues(activity.Status.String())
-	return Activity{
-		ID:       fmt.Sprintf("%d", activity.Id),
-		Status:   &status,
-		Metadata: getModelMetadata(activity.Metadata),
-	}
-}
-
-func NewActivityEntity(activity *ActivityInput) entity.Activity {
-	status := entity.ActivityStatusValuesOpen
-	if activity.Status != nil {
-		status = entity.NewActivityStatusValue(activity.Status.String())
-	}
-	return entity.Activity{
-		Status: status,
-	}
-}
-
-func NewEvidence(evidence *entity.Evidence) Evidence {
-	authorId := fmt.Sprintf("%d", evidence.UserId)
-	activityId := fmt.Sprintf("%d", evidence.ActivityId)
-	severity := NewSeverity(evidence.Severity)
-	t := evidence.Type.String()
-	raaEnd := evidence.RaaEnd.Format(time.RFC3339)
-	return Evidence{
-		ID:          fmt.Sprintf("%d", evidence.Id),
-		Description: &evidence.Description,
-		AuthorID:    &authorId,
-		ActivityID:  &activityId,
-		Vector:      severity.Cvss.Vector,
-		Type:        &t,
-		RaaEnd:      &raaEnd,
-		Metadata:    getModelMetadata(evidence.Metadata),
-	}
-}
-
-func NewEvidenceEntity(evidence *EvidenceInput) entity.Evidence {
-	authorId, _ := strconv.ParseInt(lo.FromPtr(evidence.AuthorID), 10, 64)
-	activityId, _ := strconv.ParseInt(lo.FromPtr(evidence.ActivityID), 10, 64)
-	t := entity.NewEvidenceTypeValue(lo.FromPtr(evidence.Type))
-	raaEnd, _ := time.Parse(time.RFC3339, lo.FromPtr(evidence.RaaEnd))
-	// raaEnd, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", lo.FromPtr(evidence.RaaEnd))
-	return entity.Evidence{
-		Description: lo.FromPtr(evidence.Description),
-		UserId:      authorId,
-		ActivityId:  activityId,
-		Severity:    NewSeverityEntity(evidence.Severity),
-		Type:        t,
-		RaaEnd:      raaEnd,
-	}
-}
-
 func NewComponent(component *entity.Component) Component {
 	componentType, _ := ComponentTypeValue(component.Type)
 	return Component{
@@ -695,6 +644,7 @@ func NewComponentVersion(componentVersion *entity.ComponentVersion) ComponentVer
 		Organization: &componentVersion.Organization,
 		Tag:          &componentVersion.Tag,
 		Metadata:     getModelMetadata(componentVersion.Metadata),
+		EndOfLife:    componentVersion.EndOfLife,
 	}
 }
 
@@ -703,12 +653,14 @@ func NewComponentVersionEntity(componentVersion *ComponentVersionInput) entity.C
 	if err != nil {
 		componentId = 0
 	}
+
 	return entity.ComponentVersion{
 		Version:      lo.FromPtr(componentVersion.Version),
 		ComponentId:  componentId,
 		Repository:   lo.FromPtr(componentVersion.Repository),
 		Organization: lo.FromPtr(componentVersion.Organization),
 		Tag:          lo.FromPtr(componentVersion.Tag),
+		EndOfLife:    componentVersion.EndOfLife,
 	}
 }
 

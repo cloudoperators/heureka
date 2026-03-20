@@ -80,7 +80,7 @@ func NewServer(cfg util.Config) *Server {
 
 	// kill (no param) default send syscanll.SIGTERM
 	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
+	// kill -9 is syscall. SIGKILL but can't be catch, so don't need add it
 	signal.Notify(s.sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-s.sigs

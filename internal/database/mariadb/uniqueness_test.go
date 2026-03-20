@@ -206,8 +206,7 @@ func (uut *uniquenessUserTemplate) expectDeletedItemCount(cnt int64) {
 
 func (uut *uniquenessUserTemplate) expectDuplicationError() {
 	Expect(uut.lastErr).To(HaveOccurred())
-	Expect(uut.lastErr.Error()).To(ContainSubstring("Duplicate entry"))
-	Expect(uut.lastErr.Error()).To(ContainSubstring("user_unique_active_unique_user_id"))
+	Expect(uut.lastErr.Error()).To(ContainSubstring("Database entry already exists: User element already exists"))
 }
 
 // -- User non-interface
@@ -257,8 +256,7 @@ func (uct *uniquenessComponentTemplate) expectDeletedItemCount(cnt int64) {
 
 func (uct *uniquenessComponentTemplate) expectDuplicationError() {
 	Expect(uct.lastErr).To(HaveOccurred())
-	Expect(uct.lastErr.Error()).To(ContainSubstring("Duplicate entry"))
-	Expect(uct.lastErr.Error()).To(ContainSubstring("component_unique_active_ccrn"))
+	Expect(uct.lastErr.Error()).To(ContainSubstring("Database entry already exists: Component element already exists"))
 }
 
 // -- Component non-interface
@@ -315,7 +313,7 @@ func (ucvt *uniquenessComponentVersionTemplate) expectDeletedItemCount(cnt int64
 
 func (ucvt *uniquenessComponentVersionTemplate) expectDuplicationError() {
 	Expect(ucvt.lastErr).To(HaveOccurred())
-	Expect(ucvt.lastErr.Error()).To(ContainSubstring("Database entry already exist"))
+	Expect(ucvt.lastErr.Error()).To(ContainSubstring("Database entry already exists: ComponentVersion element already exists"))
 }
 
 // -- Component Version non-interface
@@ -373,8 +371,7 @@ func (ust *uniquenessServiceTemplate) expectDeletedItemCount(cnt int64) {
 
 func (ust *uniquenessServiceTemplate) expectDuplicationError() {
 	Expect(ust.lastErr).To(HaveOccurred())
-	Expect(ust.lastErr.Error()).To(ContainSubstring("Duplicate entry"))
-	Expect(ust.lastErr.Error()).To(ContainSubstring("service_unique_active_ccrn"))
+	Expect(ust.lastErr.Error()).To(ContainSubstring("Database entry already exists: Service element already exists"))
 }
 
 // -- Service non-interface
@@ -431,8 +428,7 @@ func (ucit *uniquenessComponentInstanceTemplate) expectDeletedItemCount(cnt int6
 
 func (ucit *uniquenessComponentInstanceTemplate) expectDuplicationError() {
 	Expect(ucit.lastErr).To(HaveOccurred())
-	Expect(ucit.lastErr.Error()).To(ContainSubstring("Duplicate entry"))
-	Expect(ucit.lastErr.Error()).To(ContainSubstring("componentinstance_unique_active_ccrn"))
+	Expect(ucit.lastErr.Error()).To(ContainSubstring("Database entry already exists: ComponentInstance element already exists"))
 }
 
 // -- Component Instance non-interface
@@ -490,8 +486,7 @@ func (uirt *uniquenessIssueRepositoryTemplate) expectDeletedItemCount(cnt int64)
 
 func (uirt *uniquenessIssueRepositoryTemplate) expectDuplicationError() {
 	Expect(uirt.lastErr).To(HaveOccurred())
-	Expect(uirt.lastErr.Error()).To(ContainSubstring("Duplicate entry"))
-	Expect(uirt.lastErr.Error()).To(ContainSubstring("issuerepository_unique_active_name"))
+	Expect(uirt.lastErr.Error()).To(ContainSubstring("Database entry already exists: IssueRepository element already exists"))
 }
 
 // -- Issue Repository non-interface
@@ -541,8 +536,7 @@ func (uit *uniquenessIssueTemplate) expectDeletedItemCount(cnt int64) {
 
 func (uit *uniquenessIssueTemplate) expectDuplicationError() {
 	Expect(uit.lastErr).To(HaveOccurred())
-	Expect(uit.lastErr.Error()).To(ContainSubstring("Duplicate entry"))
-	Expect(uit.lastErr.Error()).To(ContainSubstring("issue_unique_active_primary_name"))
+	Expect(uit.lastErr.Error()).To(ContainSubstring("Database entry already exists: Issue element already exists"))
 }
 
 // -- Issue non-interface
@@ -578,8 +572,7 @@ func (uivt *uniquenessIssueVariantTemplate) setup(db *mariadb.SqlDatabase) {
 	issues := seeder.SeedIssues(1)
 
 	ivr := test.NewFakeIssueVariant(issueRepositories, issues)
-	ir := issueRepositories[0].AsIssueRepository()
-	uivt.testIssueVariant = ivr.AsIssueVariant(&ir)
+	uivt.testIssueVariant = ivr.AsIssueVariant()
 }
 
 func (uivt *uniquenessIssueVariantTemplate) createItem() {
@@ -600,8 +593,7 @@ func (uivt *uniquenessIssueVariantTemplate) expectDeletedItemCount(cnt int64) {
 
 func (uivt *uniquenessIssueVariantTemplate) expectDuplicationError() {
 	Expect(uivt.lastErr).To(HaveOccurred())
-	Expect(uivt.lastErr.Error()).To(ContainSubstring("Duplicate entry"))
-	Expect(uivt.lastErr.Error()).To(ContainSubstring("issuevariant_unique_active_secondary_name"))
+	Expect(uivt.lastErr.Error()).To(ContainSubstring("Database entry already exists: IssueVariant element already exists"))
 }
 
 // -- Issue Variant non-interface

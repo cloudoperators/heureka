@@ -6,15 +6,20 @@ package processor
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/cloudoperators/heureka/pkg/util"
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
+)
+
+const (
+	RottenVulnerabilityStatus = "Rotten"
 )
 
 type Processor struct {
@@ -28,8 +33,8 @@ type Processor struct {
 }
 
 func NewProcessor(cfg Config, tag string) *Processor {
-	httpClient := http.Client{}
-	gClient := graphql.NewClient(cfg.HeurekaUrl, &httpClient)
+	httpClient := util.NewRateLimitedHTTPClient(rate.Limit(cfg.HeurekaRateLimit), cfg.HeurekaRateBurst, nil)
+	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	return &Processor{
 		Client:              &gClient,
 		uuid:                uuid.New().String(),
@@ -121,6 +126,7 @@ func (p *Processor) ProcessManifest(manifest models.Manifest, componentId string
 	r, err := client.CreateComponentVersion(context.Background(), *p.Client, &client.ComponentVersionInput{
 		Version:     manifest.Digest,
 		ComponentId: componentId,
+		EndOfLife:   manifest.VulnerabilityStatus == RottenVulnerabilityStatus,
 	})
 	if err != nil {
 		log.WithError(err).Error("Error while creating component")
@@ -191,6 +197,17 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 					"componentVersionId": componentVersionId,
 				}).Info("Added issue to componentVersion")
 			}
+		}
+	}
+
+	if report.Metadata.OS.Eosl {
+		_, err := client.UpdateComponentVersion(context.Background(), *p.Client, componentVersionId, &client.ComponentVersionInput{
+			EndOfLife: true,
+		})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"componentVersionId": componentVersionId,
+			}).WithError(err).Error("Could not update ComponentVersion")
 		}
 	}
 }

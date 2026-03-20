@@ -59,8 +59,16 @@ type Remediation struct {
 	RemediatedById  int64           `json:"remediated_by_id"`
 }
 
+func (r *Remediation) GetId() int64 {
+	return r.Id
+}
+
+func (r *Remediation) SetId(id int64) {
+	r.Id = id
+}
+
 type RemediationFilter struct {
-	PaginatedX
+	Paginated
 	Id          []*int64          `json:"id"`
 	Severity    []*string         `json:"severity"`
 	Service     []*string         `json:"service"`

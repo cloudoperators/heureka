@@ -12,13 +12,11 @@ func (e NodeName) String() string {
 }
 
 const (
-	ActivityNodeName          NodeName = "Activity"
 	IssueVariantNodeName      NodeName = "IssueVariant"
 	IssueRepositoryNodeName   NodeName = "IssueRepository"
 	ComponentNodeName         NodeName = "Component"
 	ComponentInstanceNodeName NodeName = "ComponentInstance"
 	ComponentVersionNodeName  NodeName = "ComponentVersion"
-	EvidenceNodeName          NodeName = "Evidence"
 	ServiceNodeName           NodeName = "Service"
 	SupportGroupNodeName      NodeName = "SupportGroup"
 	UserNodeName              NodeName = "User"

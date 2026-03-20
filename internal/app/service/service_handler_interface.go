@@ -10,16 +10,16 @@ import (
 )
 
 type ServiceHandler interface {
-	GetService(serviceId int64) (*entity.Service, error)
-	ListServices(filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error)
+	GetService(ctx context.Context, serviceId int64) (*entity.Service, error)
+	ListServices(ctx context.Context, filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error)
 	CreateService(ctx context.Context, service *entity.Service) (*entity.Service, error)
 	UpdateService(ctx context.Context, service *entity.Service) (*entity.Service, error)
 	DeleteService(ctx context.Context, id int64) error
-	AddOwnerToService(serviceId, ownerId int64) (*entity.Service, error)
-	RemoveOwnerFromService(serviceId, ownerId int64) (*entity.Service, error)
+	AddOwnerToService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error)
+	RemoveOwnerFromService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error)
 	ListServiceCcrns(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
 	ListServiceDomains(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
 	ListServiceRegions(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
-	AddIssueRepositoryToService(int64, int64, int64) (*entity.Service, error)
-	RemoveIssueRepositoryFromService(int64, int64) (*entity.Service, error)
+	AddIssueRepositoryToService(context.Context, int64, int64, int64) (*entity.Service, error)
+	RemoveIssueRepositoryFromService(context.Context, int64, int64) (*entity.Service, error)
 }

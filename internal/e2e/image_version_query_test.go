@@ -9,7 +9,6 @@ import (
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/util"
-	util2 "github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/cloudoperators/heureka/internal/server"
 
@@ -33,7 +32,8 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 		Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
 		cfg = dbm.DbConfig()
-		cfg.Port = util2.GetRandomFreePort()
+		cfg.Port = e2e_common.GetRandomFreePort()
+		cfg.AuthzOpenFgaApiUrl = ""
 		s = e2e_common.NewRunningServer(cfg)
 	})
 
@@ -101,13 +101,14 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 		It("can query image versions", func() {
 			idsBySeverity := []string{"3", "8", "2", "7", "1", "6", "5", "4", "10", "9"}
 
-			respData := e2e_common.ExecuteGqlQueryFromFile[struct {
+			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				ImageVersions model.ImageVersionConnection `json:"ImageVersions"`
 			}](
 				cfg.Port,
 				"../api/graphql/graph/queryCollection/imageVersion/query.graphql",
 				map[string]interface{}{"first": 10, "after": ""},
 			)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.ImageVersions.TotalCount).To(Equal(10))
 			Expect(len(respData.ImageVersions.Edges)).To(Equal(10))
 
@@ -166,6 +167,50 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 			Expect(respData.ImageVersions.Counts.Low).To(BeEquivalentTo(totalVc.Low), "Total Low count matches")
 			Expect(respData.ImageVersions.Counts.None).To(BeEquivalentTo(totalVc.None), "Total None count matches")
 			Expect(respData.ImageVersions.Counts.Total).To(BeEquivalentTo(totalVc.Total), "Total count matches")
+		})
+		Context("and end of life filter presents as true", func() {
+			It("returns correct result", func() {
+				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					ImageVersions model.ImageVersionConnection `json:"ImageVersions"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/imageVersion/query.graphql",
+					map[string]any{
+						"filter": map[string]bool{
+							"endOfLife": true,
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(resp.ImageVersions.Edges)).To(Equal(5))
+
+				for _, edge := range resp.ImageVersions.Edges {
+					Expect(*edge.Node.EndOfLife).To(BeTrue())
+				}
+			})
+		})
+		Context("and end of life filter presents as false", func() {
+			It("returns correct result", func() {
+				resp, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					ImageVersions model.ImageVersionConnection `json:"ImageVersions"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/imageVersion/query.graphql",
+					map[string]any{
+						"filter": map[string]bool{
+							"endOfLife": false,
+						},
+					},
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(resp.ImageVersions.Edges)).To(Equal(5))
+
+				for _, edge := range resp.ImageVersions.Edges {
+					Expect(*edge.Node.EndOfLife).To(BeFalse())
+				}
+			})
 		})
 	})
 })

@@ -64,6 +64,115 @@ func IsValidId(id int64) bool {
 	return id > 0
 }
 
+type Row[ET any] interface {
+	FromEntity(ET)
+	ToEntity() ET
+}
+
+func (cr *ComponentRow) ToEntity() *entity.Component {
+	return lo.ToPtr(cr.AsComponent())
+}
+
+func (cr *ComponentRow) FromEntity(c *entity.Component) {
+	cr.FromComponent(c)
+}
+
+func (cir *ComponentInstanceRow) ToEntity() *entity.ComponentInstance {
+	return lo.ToPtr(cir.AsComponentInstance())
+}
+
+func (cir *ComponentInstanceRow) FromEntity(ci *entity.ComponentInstance) {
+	cir.FromComponentInstance(ci)
+}
+
+func (cvr *ComponentVersionRow) ToEntity() *entity.ComponentVersion {
+	return lo.ToPtr(cvr.AsComponentVersion())
+}
+
+func (cvr *ComponentVersionRow) FromEntity(cv *entity.ComponentVersion) {
+	cvr.FromComponentVersion(cv)
+}
+
+func (ir *IssueRow) ToEntity() *entity.Issue {
+	return lo.ToPtr(ir.AsIssue())
+}
+
+func (ir *IssueRow) FromEntity(i *entity.Issue) {
+	ir.FromIssue(i)
+}
+
+func (imr *IssueMatchRow) ToEntity() *entity.IssueMatch {
+	return lo.ToPtr(imr.AsIssueMatch())
+}
+
+func (imr *IssueMatchRow) FromEntity(im *entity.IssueMatch) {
+	imr.FromIssueMatch(im)
+}
+
+func (irr *IssueRepositoryRow) ToEntity() *entity.IssueRepository {
+	return lo.ToPtr(irr.AsIssueRepository())
+}
+
+func (irr *IssueRepositoryRow) FromEntity(ir *entity.IssueRepository) {
+	irr.FromIssueRepository(ir)
+}
+
+func (ivr *IssueVariantRow) ToEntity() *entity.IssueVariant {
+	return lo.ToPtr(ivr.AsIssueVariant())
+}
+
+func (ivr *IssueVariantRow) FromEntity(iv *entity.IssueVariant) {
+	ivr.FromIssueVariant(iv)
+}
+
+func (pr *PatchRow) ToEntity() *entity.Patch {
+	return lo.ToPtr(pr.AsPatch())
+}
+
+func (pr *PatchRow) FromEntity(p *entity.Patch) {
+	pr.FromPatch(p)
+}
+
+func (rr *RemediationRow) ToEntity() *entity.Remediation {
+	return lo.ToPtr(rr.AsRemediation())
+}
+
+func (rr *RemediationRow) FromEntity(r *entity.Remediation) {
+	rr.FromRemediation(r)
+}
+
+func (sr *ServiceRow) ToEntity() *entity.Service {
+	return lo.ToPtr(sr.AsService())
+}
+
+func (sr *ServiceRow) FromEntity(s *entity.Service) {
+	sr.FromService(s)
+}
+
+func (sivr *ServiceIssueVariantRow) ToEntity() *entity.ServiceIssueVariant {
+	return lo.ToPtr(sivr.AsServiceIssueVariantEntry())
+}
+
+func (sivr *ServiceIssueVariantRow) FromEntity(siv *entity.ServiceIssueVariant) {
+	panic("Not implemented")
+}
+
+func (sgr *SupportGroupRow) ToEntity() *entity.SupportGroup {
+	return lo.ToPtr(sgr.AsSupportGroup())
+}
+
+func (sgr *SupportGroupRow) FromEntity(sg *entity.SupportGroup) {
+	sgr.FromSupportGroup(sg)
+}
+
+func (ur *UserRow) ToEntity() *entity.User {
+	return lo.ToPtr(ur.AsUser())
+}
+
+func (ur *UserRow) FromEntity(u *entity.User) {
+	ur.FromUser(u)
+}
+
 // RowComposite is a composite type that contains all the row types for the database
 // This is used to unmarshal the database rows into the corresponding entity types in a dynamical manner
 type RowComposite struct {
@@ -83,14 +192,10 @@ type RowComposite struct {
 	*ServiceRow
 	*GetServicesByRow
 	*ServiceAggregationsRow
-	*ActivityRow
 	*UserRow
-	*EvidenceRow
 	*OwnerRow
 	*SupportGroupRow
 	*SupportGroupServiceRow
-	*ActivityHasIssueRow
-	*ActivityHasServiceRow
 	*IssueRepositoryServiceRow
 	*ServiceIssueVariantRow
 	*RatingCount
@@ -115,14 +220,10 @@ type DatabaseRow interface {
 		ServiceRow |
 		GetServicesByRow |
 		ServiceAggregationsRow |
-		ActivityRow |
 		UserRow |
-		EvidenceRow |
 		OwnerRow |
 		SupportGroupRow |
 		SupportGroupServiceRow |
-		ActivityHasIssueRow |
-		ActivityHasServiceRow |
 		IssueRepositoryServiceRow |
 		ServiceIssueVariantRow |
 		RatingCount |
@@ -170,7 +271,6 @@ func (ir *IssueRow) AsIssue() entity.Issue {
 		Description:   GetStringValue(ir.Description),
 		IssueVariants: []entity.IssueVariant{},
 		IssueMatches:  []entity.IssueMatch{},
-		Activity:      []entity.Activity{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ir.CreatedAt),
 			CreatedBy: GetInt64Value(ir.CreatedBy),
@@ -187,7 +287,6 @@ type GetIssuesByRow struct {
 }
 
 type IssueAggregationsRow struct {
-	Activities                    sql.NullInt64 `db:"agg_activities"`
 	IssueMatches                  sql.NullInt64 `db:"agg_issue_matches"`
 	AffectedServices              sql.NullInt64 `db:"agg_affected_services"`
 	ComponentVersions             sql.NullInt64 `db:"agg_component_versions"`
@@ -199,7 +298,6 @@ type IssueAggregationsRow struct {
 func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregations {
 	return entity.IssueWithAggregations{
 		IssueAggregations: entity.IssueAggregations{
-			Activities:                    lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.Activities)}),
 			IssueMatches:                  lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.IssueMatches)}),
 			AffectedServices:              lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.AffectedServices)}),
 			ComponentVersions:             lo.Max([]int64{0, GetInt64Value(ibr.IssueAggregationsRow.ComponentVersions)}),
@@ -214,7 +312,6 @@ func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregation
 			Description:   GetStringValue(ibr.IssueRow.Description),
 			IssueVariants: []entity.IssueVariant{},
 			IssueMatches:  []entity.IssueMatch{},
-			Activity:      []entity.Activity{},
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(ibr.IssueRow.CreatedAt),
 				CreatedBy: GetInt64Value(ibr.IssueRow.CreatedBy),
@@ -234,7 +331,6 @@ func (ibr *GetIssuesByRow) AsIssue() entity.Issue {
 		Description:   GetStringValue(ibr.IssueRow.Description),
 		IssueVariants: []entity.IssueVariant{},
 		IssueMatches:  []entity.IssueMatch{},
-		Activity:      []entity.Activity{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(ibr.IssueRow.CreatedAt),
 			CreatedBy: GetInt64Value(ibr.IssueRow.CreatedBy),
@@ -439,7 +535,7 @@ type IssueVariantRow struct {
 	UpdatedBy         sql.NullInt64  `db:"issuevariant_updated_by" json:"updated_by"`
 }
 
-func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) entity.IssueVariant {
+func (ivr *IssueVariantRow) AsIssueVariant() entity.IssueVariant {
 	var severity entity.Severity
 	if ivr.Vector.String == "" {
 		severity = entity.NewSeverityFromRating(entity.SeverityValues(ivr.Rating.String))
@@ -450,7 +546,7 @@ func (ivr *IssueVariantRow) AsIssueVariant(repository *entity.IssueRepository) e
 	return entity.IssueVariant{
 		Id:                GetInt64Value(ivr.Id),
 		IssueRepositoryId: GetInt64Value(ivr.IssueRepositoryId),
-		IssueRepository:   repository,
+		IssueRepository:   &entity.IssueRepository{},
 		SecondaryName:     GetStringValue(ivr.SecondaryName),
 		IssueId:           GetInt64Value(ivr.IssueId),
 		Issue:             nil,
@@ -614,9 +710,12 @@ type ComponentVersionRow struct {
 	DeletedAt    sql.NullTime   `db:"componentversion_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt    sql.NullTime   `db:"componentversion_updated_at" json:"updated_at"`
 	UpdatedBy    sql.NullInt64  `db:"componentversion_updated_by" json:"updated_by"`
+	EndOfLife    sql.NullBool   `db:"componentversion_end_of_life" json:"end_of_life"`
 }
 
 func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
+	endOfLife := GetBoolValue(cvr.EndOfLife)
+
 	return entity.ComponentVersion{
 		Id:           GetInt64Value(cvr.Id),
 		Version:      GetStringValue(cvr.Version),
@@ -631,10 +730,17 @@ func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 			UpdatedAt: GetTimeValue(cvr.UpdatedAt),
 			UpdatedBy: GetInt64Value(cvr.UpdatedBy),
 		},
+		EndOfLife: &endOfLife,
 	}
 }
 
 func (cvr *ComponentVersionRow) FromComponentVersion(cv *entity.ComponentVersion) {
+	cvr.EndOfLife = sql.NullBool{Bool: false, Valid: true}
+
+	if cv.EndOfLife != nil {
+		cvr.EndOfLife = sql.NullBool{Bool: *cv.EndOfLife, Valid: true}
+	}
+
 	cvr.Id = sql.NullInt64{Int64: cv.Id, Valid: true}
 	cvr.Version = sql.NullString{String: cv.Version, Valid: true}
 	cvr.Tag = sql.NullString{String: cv.Tag, Valid: true}
@@ -701,12 +807,11 @@ type BaseServiceRow struct {
 
 func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
 	return entity.BaseService{
-		Id:         GetInt64Value(bsr.Id),
-		CCRN:       GetStringValue(bsr.CCRN),
-		Domain:     GetStringValue(bsr.Domain),
-		Region:     GetStringValue(bsr.Region),
-		Owners:     []entity.User{},
-		Activities: []entity.Activity{},
+		Id:     GetInt64Value(bsr.Id),
+		CCRN:   GetStringValue(bsr.CCRN),
+		Domain: GetStringValue(bsr.Domain),
+		Region: GetStringValue(bsr.Region),
+		Owners: []entity.User{},
 		Metadata: entity.Metadata{
 			CreatedAt: GetTimeValue(bsr.CreatedAt),
 			CreatedBy: GetInt64Value(bsr.CreatedBy),
@@ -727,12 +832,11 @@ func (bsr *BaseServiceRow) AsService() entity.Service {
 func (sr *ServiceRow) AsService() entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
-			Id:         GetInt64Value(sr.Id),
-			CCRN:       GetStringValue(sr.CCRN),
-			Domain:     GetStringValue(sr.Domain),
-			Region:     GetStringValue(sr.Region),
-			Owners:     []entity.User{},
-			Activities: []entity.Activity{},
+			Id:     GetInt64Value(sr.Id),
+			CCRN:   GetStringValue(sr.CCRN),
+			Domain: GetStringValue(sr.Domain),
+			Region: GetStringValue(sr.Region),
+			Owners: []entity.User{},
 			Metadata: entity.Metadata{
 				CreatedAt: GetTimeValue(sr.BaseServiceRow.CreatedAt),
 				CreatedBy: GetInt64Value(sr.BaseServiceRow.CreatedBy),
@@ -779,12 +883,11 @@ func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggre
 		},
 		Service: entity.Service{
 			BaseService: entity.BaseService{
-				Id:         GetInt64Value(sbr.BaseServiceRow.Id),
-				CCRN:       GetStringValue(sbr.BaseServiceRow.CCRN),
-				Domain:     GetStringValue(sbr.BaseServiceRow.Domain),
-				Region:     GetStringValue(sbr.BaseServiceRow.Region),
-				Owners:     []entity.User{},
-				Activities: []entity.Activity{},
+				Id:     GetInt64Value(sbr.BaseServiceRow.Id),
+				CCRN:   GetStringValue(sbr.BaseServiceRow.CCRN),
+				Domain: GetStringValue(sbr.BaseServiceRow.Domain),
+				Region: GetStringValue(sbr.BaseServiceRow.Region),
+				Owners: []entity.User{},
 				Metadata: entity.Metadata{
 					CreatedAt: GetTimeValue(sbr.BaseServiceRow.CreatedAt),
 					CreatedBy: GetInt64Value(sbr.BaseServiceRow.CreatedBy),
@@ -807,42 +910,6 @@ func (sar *ServiceAggregationsRow) AsServiceAggregations() entity.ServiceAggrega
 		ComponentInstances: lo.Max([]int64{0, GetInt64Value(sar.ComponentInstances)}),
 		IssueMatches:       lo.Max([]int64{0, GetInt64Value(sar.IssueMatches)}),
 	}
-}
-
-type ActivityRow struct {
-	Id        sql.NullInt64  `db:"activity_id" json:"id"`
-	Status    sql.NullString `db:"activity_status" json:"status"`
-	CreatedAt sql.NullTime   `db:"activity_created_at" json:"created_at"`
-	CreatedBy sql.NullInt64  `db:"activity_created_by" json:"created_by"`
-	DeletedAt sql.NullTime   `db:"activity_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt sql.NullTime   `db:"activity_updated_at" json:"updated_at"`
-	UpdatedBy sql.NullInt64  `db:"activity_updated_by" json:"updated_by"`
-}
-
-func (ar *ActivityRow) AsActivity() entity.Activity {
-	return entity.Activity{
-		Id:        GetInt64Value(ar.Id),
-		Status:    entity.ActivityStatusValue(GetStringValue(ar.Status)),
-		Issues:    []entity.Issue{},
-		Evidences: []entity.Evidence{},
-		Metadata: entity.Metadata{
-			CreatedAt: GetTimeValue(ar.CreatedAt),
-			CreatedBy: GetInt64Value(ar.CreatedBy),
-			DeletedAt: GetTimeValue(ar.DeletedAt),
-			UpdatedAt: GetTimeValue(ar.UpdatedAt),
-			UpdatedBy: GetInt64Value(ar.UpdatedBy),
-		},
-	}
-}
-
-func (ar *ActivityRow) FromActivity(a *entity.Activity) {
-	ar.Id = sql.NullInt64{Int64: a.Id, Valid: true}
-	ar.Status = sql.NullString{String: a.Status.String(), Valid: true}
-	ar.CreatedAt = sql.NullTime{Time: a.CreatedAt, Valid: true}
-	ar.CreatedBy = sql.NullInt64{Int64: a.CreatedBy, Valid: true}
-	ar.DeletedAt = sql.NullTime{Time: a.DeletedAt, Valid: true}
-	ar.UpdatedAt = sql.NullTime{Time: a.UpdatedAt, Valid: true}
-	ar.UpdatedBy = sql.NullInt64{Int64: a.UpdatedBy, Valid: true}
 }
 
 type ComponentInstanceRow struct {
@@ -971,61 +1038,6 @@ func (ur *UserRow) FromUser(u *entity.User) {
 	ur.Email = sql.NullString{String: u.Email, Valid: true}
 }
 
-type EvidenceRow struct {
-	Id          sql.NullInt64  `db:"evidence_id" json:"id"`
-	Description sql.NullString `db:"evidence_description" json:"description"`
-	Type        sql.NullString `db:"evidence_type" json:"type"`
-	Vector      sql.NullString `db:"evidence_vector" json:"vector"`
-	Rating      sql.NullString `db:"evidence_rating" json:"rating"`
-	RAAEnd      sql.NullTime   `db:"evidence_raa_end" json:"raa_end"`
-	User        *UserRow       `json:"user,omitempty"`
-	UserId      sql.NullInt64  `db:"evidence_author_id"`
-	Activity    *ActivityRow   `json:"activity,omitempty"`
-	ActivityId  sql.NullInt64  `db:"evidence_activity_id"`
-	CreatedAt   sql.NullTime   `db:"evidence_created_at" json:"created_at"`
-	CreatedBy   sql.NullInt64  `db:"evidence_created_by" json:"created_by"`
-	DeletedAt   sql.NullTime   `db:"evidence_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt   sql.NullTime   `db:"evidence_updated_at" json:"updated_at"`
-	UpdatedBy   sql.NullInt64  `db:"evidence_updated_by" json:"updated_by"`
-}
-
-func (er *EvidenceRow) AsEvidence() entity.Evidence {
-	return entity.Evidence{
-		Id:          GetInt64Value(er.Id),
-		Description: GetStringValue(er.Description),
-		Type:        entity.NewEvidenceTypeValue(GetStringValue(er.Type)),
-		Severity:    entity.NewSeverity(GetStringValue(er.Vector)),
-		RaaEnd:      GetTimeValue(er.RAAEnd),
-		User:        nil,
-		UserId:      GetInt64Value(er.UserId),
-		Activity:    nil,
-		ActivityId:  GetInt64Value(er.ActivityId),
-		Metadata: entity.Metadata{
-			CreatedAt: GetTimeValue(er.CreatedAt),
-			CreatedBy: GetInt64Value(er.CreatedBy),
-			DeletedAt: GetTimeValue(er.DeletedAt),
-			UpdatedAt: GetTimeValue(er.UpdatedAt),
-			UpdatedBy: GetInt64Value(er.UpdatedBy),
-		},
-	}
-}
-
-func (er *EvidenceRow) FromEvidence(e *entity.Evidence) {
-	er.Id = sql.NullInt64{Int64: e.Id, Valid: true}
-	er.Description = sql.NullString{String: e.Description, Valid: true}
-	er.Type = sql.NullString{String: e.Type.String(), Valid: true}
-	er.Vector = sql.NullString{String: e.Severity.Cvss.Vector, Valid: true}
-	er.Rating = sql.NullString{String: e.Severity.Value, Valid: true}
-	er.RAAEnd = sql.NullTime{Time: e.RaaEnd, Valid: true}
-	er.UserId = sql.NullInt64{Int64: e.UserId, Valid: true}
-	er.ActivityId = sql.NullInt64{Int64: e.ActivityId, Valid: true}
-	er.CreatedAt = sql.NullTime{Time: e.CreatedAt, Valid: true}
-	er.CreatedBy = sql.NullInt64{Int64: e.CreatedBy, Valid: true}
-	er.DeletedAt = sql.NullTime{Time: e.DeletedAt, Valid: true}
-	er.UpdatedAt = sql.NullTime{Time: e.UpdatedAt, Valid: true}
-	er.UpdatedBy = sql.NullInt64{Int64: e.UpdatedBy, Valid: true}
-}
-
 type OwnerRow struct {
 	ServiceId sql.NullInt64 `db:"owner_service_id" json:"service_id"`
 	UserId    sql.NullInt64 `db:"owner_user_id" json:"user_id"`
@@ -1050,36 +1062,12 @@ type SupportGroupServiceRow struct {
 	UpdatedAt      sql.NullTime  `db:"supportgroupservice_updated_at" json:"updated_at"`
 }
 
-type ActivityHasIssueRow struct {
-	ActivityId sql.NullInt64 `db:"activityhasissue_activity_id" json:"activity_id"`
-	IssueId    sql.NullInt64 `db:"activityhasissue_issue_id" json:"issue_id"`
-	CreatedAt  sql.NullTime  `db:"activityhasissue_created_at" json:"created_at"`
-	DeletedAt  sql.NullTime  `db:"activityhasissue_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt  sql.NullTime  `db:"activityhasissue_updated_at" json:"updated_at"`
-}
-
-type ActivityHasServiceRow struct {
-	ActivityId sql.NullInt64 `db:"activityhasservice_activity_id" json:"activity_id"`
-	ServiceId  sql.NullInt64 `db:"activityhasservice_service_id" json:"service_id"`
-	CreatedAt  sql.NullTime  `db:"activityhasservice_created_at" json:"created_at"`
-	DeletedAt  sql.NullTime  `db:"activityhasservice_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt  sql.NullTime  `db:"activityhasservice_updated_at" json:"updated_at"`
-}
-
 type ComponentVersionIssueRow struct {
 	ComponentVersionId sql.NullInt64 `db:"componentversionissue_component_version_id" json:"component_version_id"`
 	IssueId            sql.NullInt64 `db:"componentversionissue_issue_id" json:"issue_id"`
 	CreatedAt          sql.NullTime  `db:"componentversionissue_created_at" json:"created_at"`
 	DeletedAt          sql.NullTime  `db:"componentversionissue_deleted_at" json:"deleted_at,omitempty"`
 	UpdatedAt          sql.NullTime  `db:"componentversionissue_updated_at" json:"updated_at"`
-}
-
-type IssueMatchEvidenceRow struct {
-	EvidenceId   sql.NullInt64 `db:"issuematchevidence_evidence_id" json:"evidence_id"`
-	IssueMatchId sql.NullInt64 `db:"issuematchevidence_issue_match_id" json:"issue_match_id"`
-	CreatedAt    sql.NullTime  `db:"issuematchevidence_created_at" json:"created_at"`
-	DeletedAt    sql.NullTime  `db:"issuematchevidence_deleted_at" json:"deleted_at,omitempty"`
-	UpdatedAt    sql.NullTime  `db:"issuematchevidence_updated_at" json:"updated_at"`
 }
 
 type IssueRepositoryServiceRow struct {

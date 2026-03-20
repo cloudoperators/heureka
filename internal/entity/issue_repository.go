@@ -12,6 +12,14 @@ type BaseIssueRepository struct {
 	Services      []Service      `json:"services,omitempty"`
 }
 
+func (bir *BaseIssueRepository) GetId() int64 {
+	return bir.Id
+}
+
+func (bir *BaseIssueRepository) SetId(id int64) {
+	bir.Id = id
+}
+
 type IssueRepositoryFilter struct {
 	Paginated
 	Id          []*int64          `json:"id"`
@@ -45,4 +53,9 @@ type IssueRepositoryResult struct {
 	WithCursor
 	*IssueRepositoryAggregations
 	*IssueRepository
+}
+
+type ServiceIssueVariantResult struct {
+	WithCursor
+	*ServiceIssueVariant
 }

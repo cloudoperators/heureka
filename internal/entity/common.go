@@ -4,30 +4,29 @@
 package entity
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
-	"math"
 	"time"
 
 	interutil "github.com/cloudoperators/heureka/internal/util"
-	"github.com/cloudoperators/heureka/pkg/util"
 
 	"github.com/goark/go-cvss/v3/metric"
 	"github.com/sirupsen/logrus"
 )
 
 type HeurekaEntity interface {
-	Activity |
-		ActivityAggregations |
-		ActivityHasIssue |
-		IssueVariant |
+	IssueVariant |
 		IssueVariantAggregations |
+		IssueVariantResult |
 		BaseIssueRepository |
+		ServiceIssueVariantResult |
 		IssueRepository |
 		IssueRepositoryAggregations |
+		IssueRepositoryResult |
 		ResultList |
 		ListOptions |
 		PageInfo |
-		Paginated |
 		Severity |
 		Cvss |
 		Component |
@@ -39,8 +38,6 @@ type HeurekaEntity interface {
 		ComponentVersion |
 		ComponentVersionResult |
 		ComponentVersionAggregations |
-		Evidence |
-		EvidenceAggregations |
 		BaseService |
 		Service |
 		ServiceAggregations |
@@ -52,6 +49,7 @@ type HeurekaEntity interface {
 		SupportGroupService |
 		SupportGroupUser |
 		User |
+		UserResult |
 		UserAggregations |
 		IssueWithAggregations |
 		IssueAggregations |
@@ -79,8 +77,6 @@ type HeurekaFilter interface {
 		ComponentInstanceFilter |
 		TimeFilter |
 		IssueVariantFilter |
-		ActivityFilter |
-		EvidenceFilter |
 		ComponentFilter |
 		ComponentVersionFilter |
 		IssueRepositoryFilter |
@@ -152,19 +148,16 @@ type TimeFilter struct {
 }
 
 type Paginated struct {
-	First *int   `json:"first"`
-	After *int64 `json:"from"`
-}
-
-type PaginatedX struct {
 	First *int    `json:"first"`
 	After *string `json:"from"`
 }
 
-func MaxPaginated() Paginated {
-	return Paginated{
-		First: util.Ptr(math.MaxInt),
-	}
+func (p *Paginated) GetPaginated() *Paginated {
+	return p
+}
+
+type HasPagination interface {
+	GetPaginated() *Paginated
 }
 
 type Severity struct {
@@ -274,6 +267,18 @@ func (sft StateFilterType) String() string {
 
 type Json map[string]interface{}
 
+func (j Json) Value() (driver.Value, error) {
+	if j == nil {
+		return nil, nil
+	}
+	return json.Marshal(j)
+}
+
 func (e Json) String() string {
 	return interutil.ConvertJsonToStrNoError((*map[string]interface{})(&e))
+}
+
+type Entity interface {
+	SetId(int64)
+	GetId() int64
 }

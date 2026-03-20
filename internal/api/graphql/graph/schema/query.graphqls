@@ -8,10 +8,8 @@ type Query {
     Components(filter: ComponentFilter, first: Int, after: String): ComponentConnection
     ComponentVersions(filter: ComponentVersionFilter, first: Int, after: String, orderBy: [ComponentVersionOrderBy]): ComponentVersionConnection
     ComponentInstances(filter: ComponentInstanceFilter, first: Int, after: String, orderBy: [ComponentInstanceOrderBy]): ComponentInstanceConnection
-    Activities(filter: ActivityFilter, first: Int, after: String): ActivityConnection
     IssueVariants(filter: IssueVariantFilter, first: Int, after: String): IssueVariantConnection
     IssueRepositories(filter: IssueRepositoryFilter, first: Int, after: String): IssueRepositoryConnection
-    Evidences(filter: EvidenceFilter, first: Int, after: String): EvidenceConnection
     SupportGroups(filter: SupportGroupFilter, first: Int, after: String, orderBy: [SupportGroupOrderBy]): SupportGroupConnection
     Users(filter: UserFilter, first: Int, after: String): UserConnection
     ServiceFilterValues: ServiceFilterValue

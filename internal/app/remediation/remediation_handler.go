@@ -46,7 +46,7 @@ func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter,
 	var count int64
 	var pageInfo *entity.PageInfo
 
-	common.EnsurePaginatedX(&filter.PaginatedX)
+	common.EnsurePaginated(&filter.Paginated)
 
 	res, err := cache.CallCached[[]entity.RemediationResult](
 		rh.cache,
@@ -81,7 +81,7 @@ func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter,
 				})
 				return nil, wrappedErr
 			}
-			pageInfo = common.GetPageInfoX(res, cursors, *filter.First, filter.After)
+			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
 	} else if options.ShowTotalCount {
@@ -142,9 +142,33 @@ func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"remediation": remediation,
 		})
+
 		return nil, wrappedErr
 	}
+
 	remediation.UpdatedBy = remediation.CreatedBy
+
+	if remediation.RemediatedBy == "" {
+		remediation.RemediatedBy, err = common.GetCurrentUniqueUserId(ctx)
+		if err != nil {
+			wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
+			applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, wrappedErr
+		}
+	}
+
+	remediation.RemediatedById, err = common.GetUserIdByUniqueId(ctx, rh.database, remediation.RemediatedBy)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
+		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+			"remediation": remediation,
+		})
+
+		return nil, wrappedErr
+	}
 
 	newRemediation, err := rh.database.CreateRemediation(remediation)
 	if err != nil {
