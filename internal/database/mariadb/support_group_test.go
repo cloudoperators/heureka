@@ -397,15 +397,19 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			var newServiceRow mariadb.ServiceRow
 			var newService entity.Service
 			var service *entity.Service
+			var supportGroup entity.SupportGroup
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
+
 				newServiceRow = test.NewFakeService()
 				newService = newServiceRow.AsService()
 				service, _ = db.CreateService(&newService)
-			})
-			It("can add service correctly", func() {
-				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
+				supportGroup = seedCollection.SupportGroupRows[0].AsSupportGroup()
+			})
+
+			It("can add service correctly", func() {
 				err := db.AddServiceToSupportGroup(supportGroup.Id, service.Id)
 
 				By("throwing no error", func() {
@@ -417,11 +421,24 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				}
 
 				sg, err := db.GetSupportGroups(supportGroupFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
+
 				By("returning supportGroup", func() {
 					Expect(len(sg)).To(BeEquivalentTo(1))
+				})
+			})
+
+			It("does nothing if it is already added", func() {
+				err := db.AddServiceToSupportGroup(supportGroup.Id, service.Id)
+				Expect(err).To(BeNil())
+
+				err = db.AddServiceToSupportGroup(supportGroup.Id, service.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
 				})
 			})
 		})
@@ -462,15 +479,19 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			var newUserRow mariadb.UserRow
 			var newUser entity.User
 			var user *entity.User
+			var supportGroup entity.SupportGroup
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
+
 				newUserRow = test.NewFakeUser()
 				newUser = newUserRow.AsUser()
 				user, _ = db.CreateUser(&newUser)
-			})
-			It("can add user correctly", func() {
-				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
+				supportGroup = seedCollection.SupportGroupRows[0].AsSupportGroup()
+			})
+
+			It("can add user correctly", func() {
 				err := db.AddUserToSupportGroup(supportGroup.Id, user.Id)
 
 				By("throwing no error", func() {
@@ -482,11 +503,24 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				}
 
 				sg, err := db.GetSupportGroups(supportGroupFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
+
 				By("returning supportGroup", func() {
 					Expect(len(sg)).To(BeEquivalentTo(1))
+				})
+			})
+
+			It("does nothing if it is already added", func() {
+				err := db.AddUserToSupportGroup(supportGroup.Id, user.Id)
+				Expect(err).To(BeNil())
+
+				err = db.AddUserToSupportGroup(supportGroup.Id, user.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
 				})
 			})
 		})
