@@ -174,13 +174,13 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 	defer stmt.Close()
 	res, err := stmt.Exec(item)
 	if err != nil {
-		msg := err.Error()
 		l.WithFields(
 			logrus.Fields{
 				"error": err,
-			}).Error(msg)
-		return nil, fmt.Errorf("%s", msg)
+			}).Error(err.Error())
+		return nil, err
 	}
+
 	return res, nil
 }
 

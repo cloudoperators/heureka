@@ -4,9 +4,12 @@
 package mariadb
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/go-sql-driver/mysql"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -239,9 +242,20 @@ func (s *SqlDatabase) AddServiceToSupportGroup(supportGroupId int64, serviceId i
 		"support_group_id": supportGroupId,
 	}
 
-	_, err := performExec(s, query, args, l)
+	var mysqlErr *mysql.MySQLError
 
-	return err
+	_, err := performExec(s, query, args, l)
+	if err != nil {
+		if errors.As(err, &mysqlErr) {
+			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
+				return nil
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (s *SqlDatabase) RemoveServiceFromSupportGroup(supportGroupId int64, serviceId int64) error {
@@ -289,9 +303,20 @@ func (s *SqlDatabase) AddUserToSupportGroup(supportGroupId int64, userId int64) 
 		"support_group_id": supportGroupId,
 	}
 
-	_, err := performExec(s, query, args, l)
+	var mysqlErr *mysql.MySQLError
 
-	return err
+	_, err := performExec(s, query, args, l)
+	if err != nil {
+		if errors.As(err, &mysqlErr) {
+			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
+				return nil
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (s *SqlDatabase) RemoveUserFromSupportGroup(supportGroupId int64, userId int64) error {

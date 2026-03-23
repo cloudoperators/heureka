@@ -7,6 +7,10 @@ import (
 	"fmt"
 )
 
+const (
+	ErrCodeDuplicateEntry = 1062
+)
+
 type DuplicateEntryDatabaseError struct {
 	msg string
 }
