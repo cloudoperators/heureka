@@ -66,12 +66,13 @@ The `By` field is the database column name and is defined as a constant:
 
 ```go
 var DbColumnNameMap = map[DbColumnName]string{
-	ComponentInstanceCcrn:           "componentinstance_ccrn",
-	IssuePrimaryName:                "issue_primary_name",
-	IssueMatchId:                    "issuematch_id",
-	IssueMatchRating:                "issuematch_rating",
-	IssueMatchTargetRemediationDate: "issuematch_target_remediation_date",
-	SupportGroupName:                "supportgroup_name",
+	ComponentInstanceCcrn:           	"componentinstance_ccrn",
+	IssuePrimaryName:                	"issue_primary_name",
+	IssueMatchId:                    	"issuematch_id",
+	IssueMatchRating:                	"issuematch_rating",
+	IssueEarliestTargetRemediationDate: "agg_earliest_target_remediation_date",
+	IssueMatchTargetRemediationDate: 	"issuematch_target_remediation_date",
+	SupportGroupName:                	"supportgroup_name",
 }
 ```
 

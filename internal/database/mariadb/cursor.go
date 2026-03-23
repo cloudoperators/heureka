@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 )
@@ -217,7 +218,7 @@ func WithComponentVersion(order []entity.Order, cv entity.ComponentVersion, isc 
 	}
 }
 
-func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCursor {
+func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64, earliestTargetRemediationDate time.Time) NewCursor {
 	return func(cursors *cursors) error {
 		order = GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
 		for _, o := range order {
@@ -228,6 +229,8 @@ func WithIssue(order []entity.Order, issue entity.Issue, ivRating int64) NewCurs
 				cursors.fields = append(cursors.fields, Field{Name: entity.IssuePrimaryName, Value: issue.PrimaryName, Order: o.Direction})
 			case entity.IssueVariantRating:
 				cursors.fields = append(cursors.fields, Field{Name: entity.IssueVariantRating, Value: ivRating, Order: o.Direction})
+			case entity.IssueEarliestTargetRemediationDate:
+				cursors.fields = append(cursors.fields, Field{Name: entity.IssueEarliestTargetRemediationDate, Value: earliestTargetRemediationDate, Order: o.Direction})
 			default:
 				continue
 			}
