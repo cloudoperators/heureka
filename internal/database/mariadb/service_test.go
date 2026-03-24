@@ -685,15 +685,19 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			var newOwnerRow mariadb.UserRow
 			var newOwner entity.User
 			var owner *entity.User
+			var service entity.Service
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
+
 				newOwnerRow = test.NewFakeUser()
 				newOwner = newOwnerRow.AsUser()
 				owner, _ = db.CreateUser(&newOwner)
-			})
-			It("can add owner correctly", func() {
-				service := seedCollection.ServiceRows[0].AsService()
 
+				service = seedCollection.ServiceRows[0].AsService()
+			})
+
+			It("can add owner correctly", func() {
 				err := db.AddOwnerToService(service.Id, owner.Id)
 
 				By("throwing no error", func() {
@@ -705,11 +709,24 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				}
 
 				s, err := db.GetServices(serviceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
+
 				By("returning service", func() {
 					Expect(len(s)).To(BeEquivalentTo(1))
+				})
+			})
+
+			It("does nothing if it is already added", func() {
+				err := db.AddOwnerToService(service.Id, owner.Id)
+				Expect(err).To(BeNil())
+
+				err = db.AddOwnerToService(service.Id, owner.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
 				})
 			})
 		})
@@ -750,18 +767,23 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			var newIssueRepositoryRow mariadb.IssueRepositoryRow
 			var newIssueRepository entity.IssueRepository
 			var issueRepository *entity.IssueRepository
+			var service entity.Service
 			var priority int64 = 1
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
+
 				newIssueRepositoryRow = test.NewFakeIssueRepository()
 				newIssueRepository = newIssueRepositoryRow.AsIssueRepository()
+
 				var err error
 				issueRepository, err = db.CreateIssueRepository(&newIssueRepository)
 				Expect(err).To(BeNil())
-			})
-			It("can add issue repository correctly", func() {
-				service := seedCollection.ServiceRows[0].AsService()
 
+				service = seedCollection.ServiceRows[0].AsService()
+			})
+
+			It("can add issue repository correctly", func() {
 				err := db.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
 
 				By("throwing no error", func() {
@@ -773,11 +795,24 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				}
 
 				s, err := db.GetServices(serviceFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
+
 				By("returning service", func() {
 					Expect(len(s)).To(BeEquivalentTo(1))
+				})
+			})
+
+			It("does nothing if it is already added", func() {
+				err := db.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
+				Expect(err).To(BeNil())
+
+				err = db.AddIssueRepositoryToService(service.Id, issueRepository.Id, priority)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
 				})
 			})
 		})

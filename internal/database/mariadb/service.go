@@ -4,9 +4,12 @@
 package mariadb
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/go-sql-driver/mysql"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -434,9 +437,20 @@ func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {
 		"user_id":    userId,
 	}
 
-	_, err := performExec(s, query, args, l)
+	var mysqlErr *mysql.MySQLError
 
-	return err
+	_, err := performExec(s, query, args, l)
+	if err != nil {
+		if errors.As(err, &mysqlErr) {
+			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
+				return nil
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (s *SqlDatabase) RemoveOwnerFromService(serviceId int64, userId int64) error {
@@ -487,9 +501,20 @@ func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueReposito
 		"priority":            priority,
 	}
 
-	_, err := performExec(s, query, args, l)
+	var mysqlErr *mysql.MySQLError
 
-	return err
+	_, err := performExec(s, query, args, l)
+	if err != nil {
+		if errors.As(err, &mysqlErr) {
+			if mysqlErr.Number == database.ErrCodeDuplicateEntry {
+				return nil
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRepositoryId int64) error {

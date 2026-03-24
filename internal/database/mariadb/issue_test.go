@@ -907,16 +907,21 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 			var newComponentVersionRow mariadb.ComponentVersionRow
 			var newComponentVersion entity.ComponentVersion
 			var componentVersion *entity.ComponentVersion
+			var issue entity.Issue
+
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
+
 				newComponentVersionRow = test.NewFakeComponentVersion()
 				newComponentVersionRow.ComponentId = seedCollection.ComponentRows[0].Id
 				newComponentVersion = newComponentVersionRow.AsComponentVersion()
-				componentVersion, _ = db.CreateComponentVersion(&newComponentVersion)
-			})
-			It("can add component version correctly", func() {
-				issue := seedCollection.IssueRows[0].AsIssue()
 
+				componentVersion, _ = db.CreateComponentVersion(&newComponentVersion)
+
+				issue = seedCollection.IssueRows[0].AsIssue()
+			})
+
+			It("adds component version correctly", func() {
 				err := db.AddComponentVersionToIssue(issue.Id, componentVersion.Id)
 
 				By("throwing no error", func() {
@@ -928,11 +933,24 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				}
 
 				i, err := db.GetIssues(issueFilter, nil)
+
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
+
 				By("returning issue", func() {
 					Expect(i).To(HaveLen(1))
+				})
+			})
+
+			It("does nothing if it is already added", func() {
+				err := db.AddComponentVersionToIssue(issue.Id, componentVersion.Id)
+				Expect(err).To(BeNil())
+
+				err = db.AddComponentVersionToIssue(issue.Id, componentVersion.Id)
+
+				By("throwing no error", func() {
+					Expect(err).To(BeNil())
 				})
 			})
 		})
