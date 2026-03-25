@@ -20,8 +20,14 @@ type Cache interface {
 	Invalidate(key string) error
 	IncHit()
 	IncMiss()
+	IncShared()
 	GetStat() Stat
 	LaunchRefresh(fn func())
+	GetSingleflightWrapper() SingleflightWrapper
+}
+
+type SingleflightWrapper interface {
+	Do(string, func() (any, error)) (any, error, bool)
 }
 
 func NewCache(ctx context.Context, wg *sync.WaitGroup, config interface{}) Cache {
@@ -103,13 +109,7 @@ func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn interface{
 		if err == nil {
 			c.IncHit()
 			c.LaunchRefresh(func() {
-				out := v.Call(in)
-				result, err := getReturnValues[T](out)
-				if err == nil {
-					if enc, encErr := encode(result); encErr == nil {
-						_ = c.Set(key, enc, ttl)
-					}
-				}
+				_, _ = callFn[T](c, ttl, key, v, in)
 			})
 			return val, nil
 		}
@@ -119,21 +119,7 @@ func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn interface{
 	}
 
 	c.IncMiss()
-	out := v.Call(in)
-
-	result, err := getReturnValues[T](out)
-	if err != nil {
-		return zero, fmt.Errorf("Cache (fcall): Return value error: %w", err)
-	} else if enc, encErr := encode(result); encErr == nil {
-		err = c.Set(key, enc, ttl)
-		if err != nil {
-			return zero, fmt.Errorf("Cache (set): %w", err)
-		}
-	} else {
-		return zero, fmt.Errorf("Cache (encode): %w", err)
-	}
-
-	return result, nil
+	return callFn[T](c, ttl, key, v, in)
 }
 
 func callDisabled[T any](fn interface{}, args ...interface{}) (T, error) {
@@ -144,6 +130,41 @@ func callDisabled[T any](fn interface{}, args ...interface{}) (T, error) {
 	}
 	out := v.Call(in)
 	return getReturnValues[T](out)
+}
+
+func callFn[T any](c Cache, ttl time.Duration, key string, v reflect.Value, in []reflect.Value) (T, error) {
+	var zero T
+	fnExecuted := false
+	untypedResult, err, shared := c.GetSingleflightWrapper().Do(key, func() (any, error) {
+		fnExecuted = true
+		out := v.Call(in)
+		result, err := getReturnValues[T](out)
+		if err != nil {
+			return zero, fmt.Errorf("Cache (fcall): Return value error: %w", err)
+		} else if enc, encErr := encode(result); encErr == nil {
+			err = c.Set(key, enc, ttl)
+			if err != nil {
+				return zero, fmt.Errorf("Cache (set): %w", err)
+			}
+		} else {
+			return zero, fmt.Errorf("Cache (encode): %w", err)
+		}
+		return result, nil
+	})
+
+	if shared && !fnExecuted {
+		c.IncShared()
+	}
+
+	if err != nil {
+		return zero, err
+	}
+
+	result, ok := untypedResult.(T)
+	if !ok {
+		return zero, fmt.Errorf("Cache (type): cannot cast result to expected type")
+	}
+	return result, nil
 }
 
 // encode marshals any value to a JSON string.

@@ -73,6 +73,10 @@ func (p *PausableProxy) ResumeHeldConnections() {
 	}
 }
 
+func (p *PausableProxy) GetNumberOfHeldConnections() int {
+	return len(p.heldConns)
+}
+
 func (p *PausableProxy) acceptLoop() {
 	defer p.wg.Done()
 	for {

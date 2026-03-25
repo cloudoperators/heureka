@@ -5,6 +5,7 @@ package e2e_test
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
@@ -34,6 +35,8 @@ const (
 	shortTtlTimeToWait              = 10 * time.Millisecond
 	backgroundUpdateTimeToWait      = 100 * time.Millisecond
 	backgroundUpdateStartTimeToWait = 50 * time.Millisecond
+	hangQueryTimeToWait             = 50 * time.Millisecond
+	testTimeout                     = 500 * time.Millisecond
 	noProxy                         = false
 	withProxy                       = true
 )
@@ -44,7 +47,8 @@ type cacheTest struct {
 	cfg                 util.Config
 	db                  *mariadb.SqlDatabase
 	seedCollection      *test.SeedCollection
-	lastResource        model.ComponentInstanceFilterValue
+	resources           []model.ComponentInstanceFilterValue
+	resourcesMx         sync.Mutex
 	addedSeedCollection *test.SeedCollection
 	dbProxy             *e2e_common.PausableProxy
 }
@@ -110,16 +114,46 @@ func (ct *cacheTest) testResourceIsQueried() {
 	ct.expectTestResource()
 }
 
+func (ct *cacheTest) pushLastResource(res model.ComponentInstanceFilterValue) {
+	ct.resourcesMx.Lock()
+	defer ct.resourcesMx.Unlock()
+	ct.resources = append(ct.resources, res)
+}
+
+func (ct *cacheTest) getLastResource() model.ComponentInstanceFilterValue {
+	ct.resourcesMx.Lock()
+	defer ct.resourcesMx.Unlock()
+	Expect(ct.resources).NotTo(BeEmpty())
+	return ct.resources[len(ct.resources)-1]
+}
+
 func (ct *cacheTest) expectTestResource() {
 	existingServiceCcrns := lo.Map(ct.seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
 		return s.CCRN.String
 	})
 	expectResponseVal(
-		ct.lastResource,
+		ct.getLastResource(),
 		existingServiceCcrns,
 		func(cifv model.ComponentInstanceFilterValue) []*string {
 			return cifv.ServiceCcrn.Values
 		})
+}
+
+func (ct *cacheTest) expectTestResources(n int) {
+	ct.resourcesMx.Lock()
+	defer ct.resourcesMx.Unlock()
+	Expect(ct.resources).To(HaveLen(n))
+	existingServiceCcrns := lo.Map(ct.seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
+		return s.CCRN.String
+	})
+	for _, res := range ct.resources {
+		expectResponseVal(
+			res,
+			existingServiceCcrns,
+			func(cifv model.ComponentInstanceFilterValue) []*string {
+				return cifv.ServiceCcrn.Values
+			})
+	}
 }
 
 func (ct *cacheTest) expectTestResourceAndAddedResource() {
@@ -128,7 +162,7 @@ func (ct *cacheTest) expectTestResourceAndAddedResource() {
 		return s.CCRN.String
 	})
 	expectResponseVal(
-		ct.lastResource,
+		ct.getLastResource(),
 		existingServiceCcrns,
 		func(cifv model.ComponentInstanceFilterValue) []*string {
 			return cifv.ServiceCcrn.Values
@@ -137,7 +171,7 @@ func (ct *cacheTest) expectTestResourceAndAddedResource() {
 
 func (ct *cacheTest) expectNoResource() {
 	expectResponseVal(
-		ct.lastResource,
+		ct.getLastResource(),
 		[]string{},
 		func(cifv model.ComponentInstanceFilterValue) []*string {
 			return cifv.ServiceCcrn.Values
@@ -153,16 +187,21 @@ func (ct *cacheTest) removeAllResources() {
 }
 
 func (ct *cacheTest) queryResource() {
-	ct.lastResource = queryComponentInstanceFilter(
+	ct.pushLastResource(queryComponentInstanceFilter(
 		ct.cfg.Port,
 		"../api/graphql/graph/queryCollection/componentInstanceFilter/serviceCcrn.graphqls",
-	)
+	))
 }
 
 func (ct *cacheTest) expectMissHitCounter(expectedMiss, expectedHit int64) {
 	stat := ct.server.GetApp().GetCache().GetStat()
 	Expect(stat.Miss).To(Equal(expectedMiss))
 	Expect(stat.Hit).To(Equal(expectedHit))
+}
+
+func (ct *cacheTest) expectSharedCounter(expectedShared int64) {
+	stat := ct.server.GetApp().GetCache().GetStat()
+	Expect(stat.Shared).To(Equal(expectedShared))
 }
 
 func missTest(config cacheConfig) {
@@ -378,6 +417,39 @@ func backgroundUpdateConcurrentLimitTest(config cacheConfig) {
 	ct.expectMissHitCounter(1, 7)
 }
 
+func singleflightTest(config cacheConfig) {
+	// GIVEN Cache is configured with DB proxy
+	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, withProxy)
+	defer ct.teardown()
+
+	// WHEN DB access is paused for new connections
+	ct.dbProxy.HoldNewIncomingConnections()
+
+	// AND 5 times resource is queried
+	executor := e2e_common.Execute(ct.queryResource, 5)
+
+	// AND Some time elapsed to let the query hang on connection and in singleflight
+	time.Sleep(hangQueryTimeToWait)
+
+	//THEN DB should have only one active connection
+	Expect(ct.dbProxy.GetNumberOfHeldConnections()).To(BeEquivalentTo(1))
+
+	// WHEN DB access is resumed
+	ct.dbProxy.ResumeHeldConnections()
+
+	// AND all resource queries are finished
+	Expect(e2e_common.Wait(executor, testTimeout)).To(Succeed())
+
+	// THEN expect all resources to be collected and equal
+	ct.expectTestResources(5)
+
+	// AND expect 5 misses in cache stats
+	ct.expectMissHitCounter(5, 0)
+
+	// AND expect 4 shared cache stats
+	ct.expectSharedCounter(4)
+}
+
 var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e", "Cache"), func() {
 	Describe("Check miss", func() {
 		It("Should increase miss counter when resource is queried for the first time", func() {
@@ -412,6 +484,11 @@ var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e",
 	Describe("Check background update concurrent-based limit", func() {
 		It("Should skip background updates above the concurrent limit AND execute new background updates when first background updates are over", func() {
 			backgroundUpdateConcurrentLimitTest(valkeyCacheTestConfig)
+		})
+	})
+	Describe("Check singleflight", func() {
+		It("Should access database only once when the same request is in progress", func() {
+			singleflightTest(valkeyCacheTestConfig)
 		})
 	})
 })
@@ -450,6 +527,11 @@ var _ = Describe("Using In memory cache", Label("e2e", "InMemoryCache"), Label("
 	Describe("Check background update concurrent-based limit", func() {
 		It("Should skip background updates above the concurrent limit AND execute new background updates when first background updates are over", func() {
 			backgroundUpdateConcurrentLimitTest(inMemoryCacheTestConfig)
+		})
+	})
+	Describe("Check singleflight", func() {
+		It("Should access database only once when the same request is in progress", func() {
+			singleflightTest(inMemoryCacheTestConfig)
 		})
 	})
 })
