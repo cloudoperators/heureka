@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 )
 
@@ -23,8 +24,9 @@ type CacheConfig struct {
 }
 
 type Stat struct {
-	Hit  int64
-	Miss int64
+	Hit    int64
+	Miss   int64
+	Shared int64
 }
 
 type CacheBase struct {
@@ -38,6 +40,7 @@ type CacheBase struct {
 	refreshLimiter             *rate.Limiter
 	ctx                        context.Context
 	wg                         *sync.WaitGroup
+	singleflightWrapper        singleflight.Group
 }
 
 func NewCacheBase(ctx context.Context, wg *sync.WaitGroup, config CacheConfig) *CacheBase {
@@ -100,7 +103,13 @@ func (cb *CacheBase) IncMiss() {
 	cb.stat.Miss = cb.stat.Miss + 1
 }
 
-func (cb CacheBase) GetStat() Stat {
+func (cb *CacheBase) IncShared() {
+	cb.statMu.Lock()
+	defer cb.statMu.Unlock()
+	cb.stat.Shared = cb.stat.Shared + 1
+}
+
+func (cb *CacheBase) GetStat() Stat {
 	cb.statMu.RLock()
 	defer cb.statMu.RUnlock()
 	return cb.stat
@@ -153,6 +162,10 @@ func (cb *CacheBase) LaunchRefresh(fn func()) {
 	}
 }
 
+func (cb *CacheBase) GetSingleflightWrapper() SingleflightWrapper {
+	return &cb.singleflightWrapper
+}
+
 func cacheKeyJson(fnname string, fn interface{}, args ...interface{}) (string, error) {
 	keyParts := make([]interface{}, 0, len(args)+1)
 	keyParts = append(keyParts, fnname)
@@ -184,5 +197,5 @@ func StatStr(stat Stat) string {
 	if total > 0 {
 		hmr = float32(stat.Hit) / float32(total)
 	}
-	return fmt.Sprintf("hit: %d, miss: %d, h/(h+m): %f", stat.Hit, stat.Miss, hmr)
+	return fmt.Sprintf("hit: %d, miss: %d, h/(h+m): %f [shared: %d]", stat.Hit, stat.Miss, hmr, stat.Shared)
 }
