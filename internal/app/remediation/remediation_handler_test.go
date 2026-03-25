@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/stretchr/testify/mock"
@@ -198,6 +199,7 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 	Context("with valid input", func() {
 		It("creates remediation", func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetRemediations", mock.Anything, mock.Anything).Return([]entity.RemediationResult{}, nil)
 			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).Return(&remediation, nil)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
@@ -218,6 +220,38 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 				Expect(newRemediation.RemediatedBy).To(BeEquivalentTo(remediation.RemediatedBy))
 				Expect(newRemediation.RemediatedById).To(BeEquivalentTo(remediation.RemediatedById))
 			})
+		})
+	})
+
+	Context("when a duplicate remediation exists", func() {
+		It("returns AlreadyExists error if the existing one is not expired", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			existing := remediation
+			existing.ExpirationDate = time.Now().Add(time.Hour)
+			db.On("GetRemediations", mock.Anything, mock.Anything).Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(common.NewAdminContext(), &remediation)
+
+			Expect(newRemediation).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			var appErr *appErrors.Error
+			Expect(errors.As(err, &appErr)).To(BeTrue())
+			Expect(appErr.Code).To(Equal(appErrors.AlreadyExists))
+		})
+
+		It("creates remediation if the existing one is expired", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			existing := remediation
+			existing.ExpirationDate = time.Now().Add(-time.Hour)
+			db.On("GetRemediations", mock.Anything, mock.Anything).Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).Return(&remediation, nil)
+
+			remediationHandler = rh.NewRemediationHandler(handlerContext)
+			newRemediation, err := remediationHandler.CreateRemediation(common.NewAdminContext(), &remediation)
+
+			Expect(err).To(BeNil())
+			Expect(newRemediation).ToNot(BeNil())
 		})
 	})
 })

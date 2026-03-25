@@ -170,6 +170,37 @@ func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation
 		return nil, wrappedErr
 	}
 
+	// Check for existing remediation
+	filter := &entity.RemediationFilter{
+		ServiceId: []*int64{&remediation.ServiceId},
+		IssueId:   []*int64{&remediation.IssueId},
+		State:     []entity.StateFilterType{entity.Active},
+	}
+
+	existingRemediations, err := rh.database.GetRemediations(filter, nil)
+	if err != nil {
+		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
+		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+			"remediation": remediation,
+		})
+		return nil, wrappedErr
+	}
+
+	for _, er := range existingRemediations {
+		sameComponent := (remediation.ComponentId <= 0 && er.ComponentId <= 0) || (remediation.ComponentId == er.ComponentId)
+		if sameComponent {
+			isExpired := !er.ExpirationDate.IsZero() && er.ExpirationDate.Before(time.Now())
+			if !isExpired {
+				err := appErrors.E(op, "Remediation", appErrors.AlreadyExists, "A remediation for this vulnerability is already in progress.")
+				applog.LogError(rh.logger, err, logrus.Fields{
+					"remediation":          remediation,
+					"existing_remediation": er,
+				})
+				return nil, err
+			}
+		}
+	}
+
 	newRemediation, err := rh.database.CreateRemediation(remediation)
 	if err != nil {
 		// Generic database error
