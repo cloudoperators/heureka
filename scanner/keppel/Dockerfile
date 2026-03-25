@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Create a base layer with linkerd-await from a recent release.
-FROM docker.io/curlimages/curl:latest as linkerd
+FROM docker.io/curlimages/curl:latest AS linkerd
 ARG LINKERD_AWAIT_VERSION=v0.2.9
 RUN curl -sSLo /tmp/linkerd-await https://github.com/linkerd/linkerd-await/releases/download/release%2F${LINKERD_AWAIT_VERSION}/linkerd-await-${LINKERD_AWAIT_VERSION}-amd64 && \
     chmod 755 /tmp/linkerd-await
 
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.25.4 AS builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.26 AS builder
 
 WORKDIR /go/src/github.com/cloudoperators/heureka/scanner/keppel
 ADD ./scanner/keppel .
