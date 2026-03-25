@@ -37,10 +37,8 @@ require (
 
 require (
 	github.com/Khan/genqlient v0.8.1
-	github.com/cloudoperators/heureka v0.0.0-00010101000000-000000000000
+	github.com/cloudoperators/heureka v1.54.2
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/sirupsen/logrus v1.9.4
 	k8s.io/client-go v0.34.2
 )
-
-replace github.com/cloudoperators/heureka => ../../
