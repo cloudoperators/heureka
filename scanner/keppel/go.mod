@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/Khan/genqlient v0.8.1
 	github.com/aquasecurity/trivy v0.68.0
-	github.com/cloudoperators/heureka v0.0.0-00010101000000-000000000000
+	github.com/cloudoperators/heureka v1.54.2
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -61,5 +61,3 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	k8s.io/client-go v0.34.2
 )
-
-replace github.com/cloudoperators/heureka => ../../

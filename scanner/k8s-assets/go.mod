@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/Khan/genqlient v0.8.1
-	github.com/cloudoperators/heureka v1.48.0
+	github.com/cloudoperators/heureka v1.54.2
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	k8s.io/client-go v0.34.2
@@ -77,5 +77,3 @@ require (
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/cloudoperators/heureka => ../../
