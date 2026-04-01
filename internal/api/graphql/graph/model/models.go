@@ -447,12 +447,33 @@ func NewImageVersion(componentVersion *entity.ComponentVersion) ImageVersion {
 	}
 }
 
-func NewVulnerability(issue *entity.Issue) Vulnerability {
-	return Vulnerability{
+type Vulnerability struct {
+	ID                            string                  `json:"id"`
+	Severity                      *SeverityValues         `json:"severity,omitempty"`
+	Name                          *string                 `json:"name,omitempty"`
+	SourceURL                     *string                 `json:"sourceUrl,omitempty"`
+	EarliestTargetRemediationDate *string                 `json:"earliestTargetRemediationDate,omitempty"`
+	Description                   *string                 `json:"description,omitempty"`
+	Services                      *ServiceConnection      `json:"services,omitempty"`
+	SupportGroups                 *SupportGroupConnection `json:"supportGroups,omitempty"`
+}
+
+func (v Vulnerability) IsNode() {}
+func (v Vulnerability) GetID() string {
+	return v.ID
+}
+
+func NewVulnerability(issue *entity.Issue, aggregations *entity.IssueAggregations) Vulnerability {
+	v := Vulnerability{
 		ID:          fmt.Sprintf("%d", issue.Id),
 		Name:        &issue.PrimaryName,
 		Description: &issue.Description,
 	}
+	if aggregations != nil && !aggregations.EarliestTargetRemediationDate.IsZero() {
+		date := aggregations.EarliestTargetRemediationDate.Format(time.RFC3339)
+		v.EarliestTargetRemediationDate = &date
+	}
+	return v
 }
 
 func NewIssueMatch(im *entity.IssueMatch) IssueMatch {

@@ -390,7 +390,13 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 	})
 
 	baseCiQuery := `
-        SELECT I.issue_id, SUM(CI.componentinstance_count) AS agg_affected_component_instances %s FROM Issue I
+        SELECT I.issue_id, MAX(CI_INNER.componentinstance_count) AS agg_affected_component_instances %s FROM Issue I
+		LEFT JOIN (
+			SELECT IM_INNER.issuematch_issue_id, SUM(CI_SUB.componentinstance_count) as componentinstance_count
+			FROM IssueMatch IM_INNER
+			JOIN ComponentInstance CI_SUB ON IM_INNER.issuematch_component_instance_id = CI_SUB.componentinstance_id
+			GROUP BY IM_INNER.issuematch_issue_id
+		) CI_INNER ON I.issue_id = CI_INNER.issuematch_issue_id
         %s
         %s
         GROUP BY I.issue_id %s ORDER BY %s LIMIT ?
