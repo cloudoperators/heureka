@@ -7,10 +7,10 @@ on:
         - main
     paths:
       - .github/workflows/helm-release.yaml
-      - charts/heureka
-      - scanner/k8s-assets/chart/k8s-assets-scanner
-      - scanner/keppel/chart/keppel-scanner
-      - scanner/nvd/chart/nvd-scanner
+      - charts/heureka/**
+      - scanner/k8s-assets/chart/k8s-assets-scanner/**
+      - scanner/keppel/chart/keppel-scanner/**
+      - scanner/nvd/chart/nvd-scanner/**
 
 
 permissions:
