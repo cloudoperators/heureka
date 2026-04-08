@@ -86,81 +86,128 @@ var _ = Describe("Getting IssueRepositories via API", Label("e2e", "IssueReposit
 					)
 
 					Expect(err).ToNot(HaveOccurred())
-					Expect(respData.IssueRepositories.TotalCount).To(Equal(len(seedCollection.IssueRepositoryRows)))
+					Expect(
+						respData.IssueRepositories.TotalCount,
+					).To(Equal(len(seedCollection.IssueRepositoryRows)))
 					Expect(len(respData.IssueRepositories.Edges)).To(Equal(5))
 				})
 			})
-			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-				respData := struct {
-					IssueRepositories model.IssueRepositoryConnection `json:"IssueRepositories"`
-				}{}
-				BeforeEach(func() {
-					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+			Context(
+				"and  we query to resolve levels of relations",
+				Label("directRelations.graphql"),
+				func() {
+					respData := struct {
 						IssueRepositories model.IssueRepositoryConnection `json:"IssueRepositories"`
-					}](
-						cfg.Port,
-						"../api/graphql/graph/queryCollection/issueRepository/directRelations.graphql",
-						map[string]any{
-							"filter": map[string]string{},
-							"first":  3,
-							"after":  "",
-						},
-						nil,
-					)
+					}{}
+					BeforeEach(func() {
+						resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+							IssueRepositories model.IssueRepositoryConnection `json:"IssueRepositories"`
+						}](
+							cfg.Port,
+							"../api/graphql/graph/queryCollection/issueRepository/directRelations.graphql",
+							map[string]any{
+								"filter": map[string]string{},
+								"first":  3,
+								"after":  "",
+							},
+							nil,
+						)
 
-					Expect(err).ToNot(HaveOccurred())
+						Expect(err).ToNot(HaveOccurred())
 
-					respData = resp
-				})
+						respData = resp
+					})
 
-				It("- returns the correct result count", func() {
-					Expect(respData.IssueRepositories.TotalCount).To(Equal(len(seedCollection.IssueRepositoryRows)))
-					Expect(len(respData.IssueRepositories.Edges)).To(Equal(3))
-				})
+					It("- returns the correct result count", func() {
+						Expect(
+							respData.IssueRepositories.TotalCount,
+						).To(Equal(len(seedCollection.IssueRepositoryRows)))
+						Expect(len(respData.IssueRepositories.Edges)).To(Equal(3))
+					})
 
-				It("- returns the expected content", func() {
-					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
-					// a complete verification
-					// additional checks are added based on bugs discovered during usage
+					It("- returns the expected content", func() {
+						// this just checks partial attributes to check whatever every sub-relation
+						// does resolve some reasonable data and is not doing
+						// a complete verification
+						// additional checks are added based on bugs discovered during usage
 
-					for _, ir := range respData.IssueRepositories.Edges {
-						Expect(ir.Node.ID).ToNot(BeNil(), "issueRepository has a ID set")
-						Expect(ir.Node.Name).ToNot(BeNil(), "issueRepository has a name set")
-						Expect(ir.Node.URL).ToNot(BeNil(), "issueRepository has a url set")
+						for _, ir := range respData.IssueRepositories.Edges {
+							Expect(ir.Node.ID).ToNot(BeNil(), "issueRepository has a ID set")
+							Expect(ir.Node.Name).ToNot(BeNil(), "issueRepository has a name set")
+							Expect(ir.Node.URL).ToNot(BeNil(), "issueRepository has a url set")
 
-						for _, iv := range ir.Node.IssueVariants.Edges {
-							Expect(iv.Node.ID).ToNot(BeNil(), "IssueVariant has a ID set")
-							Expect(iv.Node.SecondaryName).ToNot(BeNil(), "IssueVariant has a name set")
-							Expect(iv.Node.Description).ToNot(BeNil(), "IssueVariant has a description set")
+							for _, iv := range ir.Node.IssueVariants.Edges {
+								Expect(iv.Node.ID).ToNot(BeNil(), "IssueVariant has a ID set")
+								Expect(
+									iv.Node.SecondaryName,
+								).ToNot(BeNil(), "IssueVariant has a name set")
+								Expect(
+									iv.Node.Description,
+								).ToNot(BeNil(), "IssueVariant has a description set")
 
-							_, ivFound := lo.Find(seedCollection.IssueVariantRows, func(row mariadb.IssueVariantRow) bool {
-								return fmt.Sprintf("%d", row.Id.Int64) == iv.Node.ID && // correct issueVariant
-									fmt.Sprintf("%d", row.IssueRepositoryId.Int64) == *iv.Node.IssueRepositoryID // references correct repository
-							})
-							Expect(ivFound).To(BeTrue(), "attached issueVariant does exist and belongs to repository")
+								_, ivFound := lo.Find(
+									seedCollection.IssueVariantRows,
+									func(row mariadb.IssueVariantRow) bool {
+										return fmt.Sprintf(
+											"%d",
+											row.Id.Int64,
+										) == iv.Node.ID && // correct issueVariant
+											fmt.Sprintf(
+												"%d",
+												row.IssueRepositoryId.Int64,
+											) == *iv.Node.IssueRepositoryID // references correct repository
+									},
+								)
+								Expect(
+									ivFound,
+								).To(BeTrue(), "attached issueVariant does exist and belongs to repository")
+							}
+
+							for _, service := range ir.Node.Services.Edges {
+								Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
+								Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a name set")
+								Expect(
+									service.Priority,
+								).ToNot(BeNil(), "Service has a priority set")
+
+								_, serviceFound := lo.Find(
+									seedCollection.IssueRepositoryServiceRows,
+									func(row mariadb.IssueRepositoryServiceRow) bool {
+										return fmt.Sprintf(
+											"%d",
+											row.IssueRepositoryId.Int64,
+										) == ir.Node.ID && // correct issue repository
+											fmt.Sprintf(
+												"%d",
+												row.ServiceId.Int64,
+											) == service.Node.ID // references correct service
+									},
+								)
+								Expect(
+									serviceFound,
+								).To(BeTrue(), "attached service does exist and belongs to repository")
+							}
 						}
-
-						for _, service := range ir.Node.Services.Edges {
-							Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
-							Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a name set")
-							Expect(service.Priority).ToNot(BeNil(), "Service has a priority set")
-
-							_, serviceFound := lo.Find(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow) bool {
-								return fmt.Sprintf("%d", row.IssueRepositoryId.Int64) == ir.Node.ID && // correct issue repository
-									fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // references correct service
-							})
-							Expect(serviceFound).To(BeTrue(), "attached service does exist and belongs to repository")
-						}
-					}
-				})
-				It("- returns the expected PageInfo", func() {
-					Expect(*respData.IssueRepositories.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
-					Expect(*respData.IssueRepositories.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
-					Expect(respData.IssueRepositories.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-					Expect(len(respData.IssueRepositories.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
-					Expect(*respData.IssueRepositories.PageInfo.PageNumber).To(Equal(1), "Correct page number")
-				})
-			})
+					})
+					It("- returns the expected PageInfo", func() {
+						Expect(
+							*respData.IssueRepositories.PageInfo.HasNextPage,
+						).To(BeTrue(), "hasNextPage is set")
+						Expect(
+							*respData.IssueRepositories.PageInfo.HasPreviousPage,
+						).To(BeFalse(), "hasPreviousPage is set")
+						Expect(
+							respData.IssueRepositories.PageInfo.NextPageAfter,
+						).ToNot(BeNil(), "nextPageAfter is set")
+						Expect(
+							len(respData.IssueRepositories.PageInfo.Pages),
+						).To(Equal(2), "Correct amount of pages")
+						Expect(
+							*respData.IssueRepositories.PageInfo.PageNumber,
+						).To(Equal(1), "Correct page number")
+					})
+				},
+			)
 		})
 	})
 })

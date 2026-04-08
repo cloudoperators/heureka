@@ -14,6 +14,7 @@ func NewRunningServer(cfg util.Config) *server.Server {
 	s.NonBlockingStart()
 	err := s.GetApp().WaitPostMigrations()
 	Expect(err).Should(BeNil())
+
 	return s
 }
 

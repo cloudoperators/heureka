@@ -32,19 +32,22 @@ func NewPausableProxy(listenAddr, targetAddr string) *PausableProxy {
 
 func (p *PausableProxy) Start() error {
 	var err error
+
 	p.listener, err = net.Listen("tcp", p.listenAddr)
 	if err != nil {
 		return err
 	}
 
 	p.wg.Add(1)
+
 	go p.acceptLoop()
+
 	return nil
 }
 
 func (p *PausableProxy) Stop() {
 	close(p.stopChan)
-	p.listener.Close()
+	_ = p.listener.Close()
 	p.wg.Wait()
 }
 
@@ -69,6 +72,7 @@ func (p *PausableProxy) ResumeHeldConnections() {
 
 	for _, conn := range held {
 		p.wg.Add(1)
+
 		go p.handleConnection(conn)
 	}
 }
@@ -79,6 +83,7 @@ func (p *PausableProxy) GetNumberOfHeldConnections() int {
 
 func (p *PausableProxy) acceptLoop() {
 	defer p.wg.Done()
+
 	for {
 		conn, err := p.listener.Accept()
 		if err != nil {
@@ -88,19 +93,24 @@ func (p *PausableProxy) acceptLoop() {
 			default:
 				log.Println("Accept error:", err)
 				time.Sleep(100 * time.Millisecond)
+
 				continue
 			}
 		}
 
 		p.heldLock.Lock()
+
 		if p.holdingConnections {
 			p.heldConns = append(p.heldConns, conn)
 			p.heldLock.Unlock()
+
 			continue
 		}
+
 		p.heldLock.Unlock()
 
 		p.wg.Add(1)
+
 		go p.handleConnection(conn)
 	}
 }
@@ -111,19 +121,29 @@ func (p *PausableProxy) handleConnection(src net.Conn) {
 	dst, err := net.Dial("tcp", p.targetAddr)
 	if err != nil {
 		log.Println("Failed to connect to target:", err)
-		src.Close()
+
+		if err := src.Close(); err != nil {
+			log.Println("Failed to close src connection:", err)
+		}
+
 		return
 	}
 
 	go func() {
-		defer src.Close()
-		defer dst.Close()
-		io.Copy(dst, src)
+		defer func() {
+			_ = dst.Close()
+			_ = src.Close()
+		}()
+
+		defer io.Copy(dst, src)
 	}()
 
 	go func() {
-		defer src.Close()
-		defer dst.Close()
+		defer func() {
+			_ = dst.Close()
+			_ = src.Close()
+		}()
+
 		io.Copy(src, dst)
 	}()
 }

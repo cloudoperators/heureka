@@ -28,6 +28,7 @@ func NewIssueMatchStatusValue(s string) IssueMatchStatusValue {
 	case IssueMatchStatusValuesMitigated.String():
 		return IssueMatchStatusValuesMitigated
 	}
+
 	return IssueMatchStatusValuesNew
 }
 
@@ -44,7 +45,7 @@ type IssueMatch struct {
 	Status                IssueMatchStatusValue `json:"status"`
 	User                  *User                 `json:"user,omitempty"`
 	UserId                int64                 `json:"user_id"`
-	Severity              Severity              `json:"severity,omitempty"`
+	Severity              Severity              `json:"severity"`
 	ComponentInstance     *ComponentInstance    `json:"component_instance,omitempty"`
 	ComponentInstanceId   int64                 `json:"component_instance_id"`
 	Issue                 *Issue                `json:"issue,omitempty"`

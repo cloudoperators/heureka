@@ -13,33 +13,59 @@ import (
 var serviceIssueVariantObject = DbObject[*entity.ServiceIssueVariant]{
 	Properties: []*Property{},
 	FilterProperties: []*FilterProperty{
-		NewFilterProperty("CI.componentinstance_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.ComponentInstanceId })),
-		NewFilterProperty("I.issue_id = ?", WrapRetSlice(func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.IssueId })),
-		NewStateFilterProperty("IV.issuevariant", WrapRetState(func(filter *entity.ServiceIssueVariantFilter) []entity.StateFilterType { return filter.State })),
+		NewFilterProperty(
+			"CI.componentinstance_id = ?",
+			WrapRetSlice(
+				func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.ComponentInstanceId },
+			),
+		),
+		NewFilterProperty(
+			"I.issue_id = ?",
+			WrapRetSlice(
+				func(filter *entity.ServiceIssueVariantFilter) []*int64 { return filter.IssueId },
+			),
+		),
+		NewStateFilterProperty(
+			"IV.issuevariant",
+			WrapRetState(
+				func(filter *entity.ServiceIssueVariantFilter) []entity.StateFilterType { return filter.State },
+			),
+		),
 	},
 }
 
-func ensureServiceIssueVariantFilter(filter *entity.ServiceIssueVariantFilter) *entity.ServiceIssueVariantFilter {
+func ensureServiceIssueVariantFilter(
+	filter *entity.ServiceIssueVariantFilter,
+) *entity.ServiceIssueVariantFilter {
 	if filter == nil {
 		filter = &entity.ServiceIssueVariantFilter{}
 	}
+
 	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter *entity.ServiceIssueVariantFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildServiceIssueVariantStatement(
+	baseQuery string,
+	filter *entity.ServiceIssueVariantFilter,
+	withCursor bool,
+	order []entity.Order,
+	l *logrus.Entry,
+) (Stmt, []any, error) {
 	filter = ensureServiceIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode ServiceIssueVariant cursor: %w", err)
 	}
+
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	order = GetDefaultOrder(order, entity.ServiceIssueVariantID, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
 	filterStr := serviceIssueVariantObject.GetFilterQuery(filter)
+
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -66,15 +92,23 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(baseQuery string, filter
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
-	filterParameters := serviceIssueVariantObject.GetFilterParameters(filter, withCursor, cursorFields)
+	filterParameters := serviceIssueVariantObject.GetFilterParameters(
+		filter,
+		withCursor,
+		cursorFields,
+	)
 
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariantFilter, order []entity.Order) ([]entity.ServiceIssueVariantResult, error) {
+func (s *SqlDatabase) GetServiceIssueVariants(
+	filter *entity.ServiceIssueVariantFilter,
+	order []entity.Order,
+) ([]entity.ServiceIssueVariantResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetIssueVariants",
 	})
@@ -97,12 +131,22 @@ func (s *SqlDatabase) GetServiceIssueVariants(filter *entity.ServiceIssueVariant
 		%s ORDER BY %s LIMIT ?
     `
 
-	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(
+		baseQuery,
+		filter,
+		true,
+		order,
+		l,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,

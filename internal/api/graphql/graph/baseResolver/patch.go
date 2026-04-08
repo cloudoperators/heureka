@@ -13,7 +13,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func PatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.PatchFilter, first *int, after *string) (*model.PatchConnection, error) {
+func PatchBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.PatchFilter,
+	first *int,
+	after *string,
+) (*model.PatchConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -25,17 +31,26 @@ func PatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.Patch
 
 	ids, err := util.ConvertStrToIntSlice(filter.ID)
 	if err != nil {
-		return nil, NewResolverError("PatchBaseResolver", "Bad Request - Error while parsing filter ID")
+		return nil, NewResolverError(
+			"PatchBaseResolver",
+			"Bad Request - Error while parsing filter ID",
+		)
 	}
 
 	serviceIds, err := util.ConvertStrToIntSlice(filter.ServiceID)
 	if err != nil {
-		return nil, NewResolverError("PatchBaseResolver", "Bad Request - Error while parsing filter Service ID")
+		return nil, NewResolverError(
+			"PatchBaseResolver",
+			"Bad Request - Error while parsing filter Service ID",
+		)
 	}
 
 	componentVersionIds, err := util.ConvertStrToIntSlice(filter.ComponentVersionID)
 	if err != nil {
-		return nil, NewResolverError("PatchBaseResolver", "Bad Request - Error while parsing filter ComponentVersion ID")
+		return nil, NewResolverError(
+			"PatchBaseResolver",
+			"Bad Request - Error while parsing filter ComponentVersion ID",
+		)
 	}
 
 	f := &entity.PatchFilter{
@@ -49,12 +64,14 @@ func PatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.Patch
 	}
 
 	opt := GetListOptions(requestedFields)
+
 	patches, err := app.ListPatches(f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
 
 	edges := []*model.PatchEdge{}
+
 	for _, result := range patches.Elements {
 		ci := model.NewPatch(result.Patch)
 		edge := model.PatchEdge{

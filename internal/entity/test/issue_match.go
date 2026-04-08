@@ -12,6 +12,7 @@ import (
 func NewFakeIssueMatch() entity.IssueMatch {
 	v := test.GenerateRandomCVSS31Vector()
 	s := entity.NewSeverity(v)
+
 	return entity.IssueMatch{
 		Id:                    int64(gofakeit.Number(1, 10000000)),
 		Status:                NewRandomIssueStatus(),
@@ -34,9 +35,10 @@ func NewFakeIssueMatch() entity.IssueMatch {
 
 func NNewFakeIssueMatches(n int) []entity.IssueMatch {
 	r := make([]entity.IssueMatch, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeIssueMatch()
 	}
+
 	return r
 }
 
@@ -47,6 +49,7 @@ func NewRandomIssueStatus() entity.IssueMatchStatusValue {
 
 func NewFakeIssueMatchResult() entity.IssueMatchResult {
 	im := NewFakeIssueMatch()
+
 	return entity.IssueMatchResult{
 		IssueMatch: &im,
 	}

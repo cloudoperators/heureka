@@ -74,7 +74,10 @@ func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.
 		// Fetch services
 		services, err := db.GetServices(&entity.ServiceFilter{}, []entity.Order{})
 		if err != nil {
-			l.WithField("event-step", "GetServices").WithError(err).Error("Error while fetching services")
+			l.WithField("event-step", "GetServices").
+				WithError(err).
+				Error("Error while fetching services")
+
 			return
 		}
 
@@ -83,17 +86,23 @@ func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.
 			return
 		}
 
-		l.WithField("event-step", "AddIssueRepositoryToService").Debug("Adding Issue Repository to Services")
+		l.WithField("event-step", "AddIssueRepositoryToService").
+			Debug("Adding Issue Repository to Services")
 
 		for _, srv := range services {
 			serviceId := srv.Id
+
 			err = db.AddIssueRepositoryToService(serviceId, issueRepositoryId, defaultPrio)
 			if err != nil {
-				l.WithField("event-step", "AddIssueRepositoryToService").WithError(err).Error("Error while adding issue repository to service")
+				l.WithField("event-step", "AddIssueRepositoryToService").
+					WithError(err).
+					Error("Error while adding issue repository to service")
 			}
 		}
 	} else {
-		err := NewIssueRepositoryHandlerError("OnIssueRepositoryCreate: triggered with wrong event type")
+		err := NewIssueRepositoryHandlerError(
+			"OnIssueRepositoryCreate: triggered with wrong event type",
+		)
 		wrappedErr := appErrors.InternalError(string(op), "IssueRepository", "", err)
 		l.Error(wrappedErr)
 	}

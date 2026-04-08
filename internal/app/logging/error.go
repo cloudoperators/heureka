@@ -4,6 +4,7 @@ package logging
 
 import (
 	"errors"
+	"maps"
 
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/sirupsen/logrus"
@@ -24,22 +25,20 @@ func LogError(logger *logrus.Logger, err error, fields logrus.Fields) {
 	if appErr.Entity != "" {
 		errorFields["entity"] = appErr.Entity
 	}
+
 	if appErr.ID != "" {
 		errorFields["entity_id"] = appErr.ID
 	}
+
 	if appErr.Op != "" {
 		errorFields["operation"] = appErr.Op
 	}
 
 	// Add any additional fields from the error
-	for k, v := range appErr.Fields {
-		errorFields[k] = v
-	}
+	maps.Copy(errorFields, appErr.Fields)
 
 	// Add any passed-in fields
-	for k, v := range fields {
-		errorFields[k] = v
-	}
+	maps.Copy(errorFields, fields)
 
 	logger.WithFields(errorFields).WithError(appErr.Err).Error(appErr.Error())
 }

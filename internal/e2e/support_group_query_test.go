@@ -88,81 +88,124 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 					)
 
 					Expect(err).ToNot(HaveOccurred())
-					Expect(respData.SupportGroups.TotalCount).To(Equal(len(seedCollection.SupportGroupRows)))
+					Expect(
+						respData.SupportGroups.TotalCount,
+					).To(Equal(len(seedCollection.SupportGroupRows)))
 					Expect(len(respData.SupportGroups.Edges)).To(Equal(5))
 				})
 			})
-			Context("and  we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-				respData := struct {
-					SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
-				}{}
-				BeforeEach(func() {
-					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+			Context(
+				"and  we query to resolve levels of relations",
+				Label("directRelations.graphql"),
+				func() {
+					respData := struct {
 						SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
-					}](
-						cfg.Port,
-						"../api/graphql/graph/queryCollection/supportGroup/directRelations.graphql",
-						map[string]any{
-							"filter": map[string]string{},
-							"first":  5,
-							"after":  "",
-						},
-						nil,
-					)
+					}{}
+					BeforeEach(func() {
+						resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+							SupportGroups model.SupportGroupConnection `json:"SupportGroups"`
+						}](
+							cfg.Port,
+							"../api/graphql/graph/queryCollection/supportGroup/directRelations.graphql",
+							map[string]any{
+								"filter": map[string]string{},
+								"first":  5,
+								"after":  "",
+							},
+							nil,
+						)
 
-					Expect(err).ToNot(HaveOccurred())
+						Expect(err).ToNot(HaveOccurred())
 
-					respData = resp
-				})
+						respData = resp
+					})
 
-				It("- returns the correct result count", func() {
-					Expect(respData.SupportGroups.TotalCount).To(Equal(len(seedCollection.SupportGroupRows)))
-					Expect(len(respData.SupportGroups.Edges)).To(Equal(5))
-				})
+					It("- returns the correct result count", func() {
+						Expect(
+							respData.SupportGroups.TotalCount,
+						).To(Equal(len(seedCollection.SupportGroupRows)))
+						Expect(len(respData.SupportGroups.Edges)).To(Equal(5))
+					})
 
-				It("- returns the expected content", func() {
-					// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
-					// a complete verification
-					// additional checks are added based on bugs discovered during usage
+					It("- returns the expected content", func() {
+						// this just checks partial attributes to check whatever every sub-relation
+						// does resolve some reasonable data and is not doing
+						// a complete verification
+						// additional checks are added based on bugs discovered during usage
 
-					for _, sg := range respData.SupportGroups.Edges {
-						Expect(sg.Node.ID).ToNot(BeNil(), "supportGroup has a ID set")
-						Expect(sg.Node.Ccrn).ToNot(BeNil(), "supportGroup has a ccrn set")
+						for _, sg := range respData.SupportGroups.Edges {
+							Expect(sg.Node.ID).ToNot(BeNil(), "supportGroup has a ID set")
+							Expect(sg.Node.Ccrn).ToNot(BeNil(), "supportGroup has a ccrn set")
 
-						for _, service := range sg.Node.Services.Edges {
-							Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
-							Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a ccrn set")
+							for _, service := range sg.Node.Services.Edges {
+								Expect(service.Node.ID).ToNot(BeNil(), "Service has a ID set")
+								Expect(service.Node.Ccrn).ToNot(BeNil(), "Service has a ccrn set")
 
-							_, serviceFound := lo.Find(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow) bool {
-								return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct support group
-									fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // references correct service
-							})
-							Expect(serviceFound).To(BeTrue(), "attached service does exist and belongs to supportGroup")
+								_, serviceFound := lo.Find(
+									seedCollection.SupportGroupServiceRows,
+									func(row mariadb.SupportGroupServiceRow) bool {
+										return fmt.Sprintf(
+											"%d",
+											row.SupportGroupId.Int64,
+										) == sg.Node.ID && // correct support group
+											fmt.Sprintf(
+												"%d",
+												row.ServiceId.Int64,
+											) == service.Node.ID // references correct service
+									},
+								)
+								Expect(
+									serviceFound,
+								).To(BeTrue(), "attached service does exist and belongs to supportGroup")
+							}
+
+							for _, user := range sg.Node.Users.Edges {
+								Expect(user.Node.ID).ToNot(BeNil(), "user has a ID set")
+								Expect(user.Node.Name).ToNot(BeNil(), "user has a name set")
+								Expect(
+									user.Node.UniqueUserID,
+								).ToNot(BeNil(), "user has a uniqueUserId set")
+								Expect(user.Node.Type).ToNot(BeNil(), "user has a type set")
+
+								_, userFound := lo.Find(
+									seedCollection.SupportGroupUserRows,
+									func(row mariadb.SupportGroupUserRow) bool {
+										return fmt.Sprintf(
+											"%d",
+											row.SupportGroupId.Int64,
+										) == sg.Node.ID && // correct support group
+											fmt.Sprintf(
+												"%d",
+												row.UserId.Int64,
+											) == user.Node.ID // references correct user
+									},
+								)
+								Expect(
+									userFound,
+								).To(BeTrue(), "attached user does exist and belongs to supportGroup")
+
+							}
 						}
-
-						for _, user := range sg.Node.Users.Edges {
-							Expect(user.Node.ID).ToNot(BeNil(), "user has a ID set")
-							Expect(user.Node.Name).ToNot(BeNil(), "user has a name set")
-							Expect(user.Node.UniqueUserID).ToNot(BeNil(), "user has a uniqueUserId set")
-							Expect(user.Node.Type).ToNot(BeNil(), "user has a type set")
-
-							_, userFound := lo.Find(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow) bool {
-								return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct support group
-									fmt.Sprintf("%d", row.UserId.Int64) == user.Node.ID // references correct user
-							})
-							Expect(userFound).To(BeTrue(), "attached user does exist and belongs to supportGroup")
-
-						}
-					}
-				})
-				It("- returns the expected PageInfo", func() {
-					Expect(*respData.SupportGroups.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
-					Expect(*respData.SupportGroups.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
-					Expect(respData.SupportGroups.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-					Expect(len(respData.SupportGroups.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
-					Expect(*respData.SupportGroups.PageInfo.PageNumber).To(Equal(1), "Correct page number")
-				})
-			})
+					})
+					It("- returns the expected PageInfo", func() {
+						Expect(
+							*respData.SupportGroups.PageInfo.HasNextPage,
+						).To(BeTrue(), "hasNextPage is set")
+						Expect(
+							*respData.SupportGroups.PageInfo.HasPreviousPage,
+						).To(BeFalse(), "hasPreviousPage is set")
+						Expect(
+							respData.SupportGroups.PageInfo.NextPageAfter,
+						).ToNot(BeNil(), "nextPageAfter is set")
+						Expect(
+							len(respData.SupportGroups.PageInfo.Pages),
+						).To(Equal(2), "Correct amount of pages")
+						Expect(
+							*respData.SupportGroups.PageInfo.PageNumber,
+						).To(Equal(1), "Correct page number")
+					})
+				},
+			)
 		})
 		Context("and we use order", Label("withOrder.graphql"), func() {
 			c := collate.New(language.English)
@@ -187,12 +230,14 @@ var _ = Describe("Getting SupportGroups via API", Label("e2e", "SupportGroups"),
 				Expect(err).ToNot(HaveOccurred())
 
 				By("- returns the correct result count", func() {
-					Expect(respData.SupportGroups.TotalCount).To(Equal(len(seedCollection.SupportGroupRows)))
+					Expect(
+						respData.SupportGroups.TotalCount,
+					).To(Equal(len(seedCollection.SupportGroupRows)))
 					Expect(len(respData.SupportGroups.Edges)).To(Equal(10))
 				})
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, im := range respData.SupportGroups.Edges {
 						Expect(c.CompareString(*im.Node.Ccrn, prev)).Should(BeNumerically(">=", 0))
 						prev = *im.Node.Ccrn
@@ -363,103 +408,122 @@ var _ = Describe("Deleting SupportGroup via API", Label("e2e", "SupportGroups"),
 	})
 })
 
-var _ = Describe("Modifying Services of SupportGroup via API", Label("e2e", "SupportGroups"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
-
-	BeforeEach(func() {
-		var err error
-		db = dbm.NewTestSchemaWithoutMigration()
-		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
-		Expect(err).To(BeNil(), "Database Seeder Setup should work")
-
-		cfg = dbm.DbConfig()
-		cfg.Port = e2e_common.GetRandomFreePort()
-		cfg.AuthzOpenFgaApiUrl = ""
-		s = e2e_common.NewRunningServer(cfg)
-	})
-
-	AfterEach(func() {
-		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
-	})
-
-	When("the database has 10 entries", func() {
-		var seedCollection *test.SeedCollection
+var _ = Describe(
+	"Modifying Services of SupportGroup via API",
+	Label("e2e", "SupportGroups"),
+	func() {
+		var seeder *test.DatabaseSeeder
+		var s *server.Server
+		var cfg util.Config
+		var db *mariadb.SqlDatabase
 
 		BeforeEach(func() {
-			seedCollection = seeder.SeedDbWithNFakeData(10)
+			var err error
+			db = dbm.NewTestSchemaWithoutMigration()
+			seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+			Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+			cfg = dbm.DbConfig()
+			cfg.Port = e2e_common.GetRandomFreePort()
+			cfg.AuthzOpenFgaApiUrl = ""
+			s = e2e_common.NewRunningServer(cfg)
 		})
 
-		Context("and a mutation query is performed", func() {
-			It("adds service to supportGroup", Label("addService.graphql"), func() {
-				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
-				// find all services that are attached to the supportGroup
-				serviceIds := lo.FilterMap(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow, _ int) (int64, bool) {
-					if row.SupportGroupId.Int64 == supportGroup.Id {
-						return row.ServiceId.Int64, true
-					}
-					return 0, false
-				})
+		AfterEach(func() {
+			e2e_common.ServerTeardown(s)
+			dbm.TestTearDown(db)
+		})
 
-				// find a service that is not attached to the supportGroup
-				serviceRow, _ := lo.Find(seedCollection.ServiceRows, func(row mariadb.BaseServiceRow) bool {
-					return !lo.Contains(serviceIds, row.Id.Int64)
-				})
+		When("the database has 10 entries", func() {
+			var seedCollection *test.SeedCollection
 
-				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					SupportGroup model.SupportGroup `json:"addServiceToSupportGroup"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/supportGroup/addService.graphql",
-					map[string]any{
-						"supportGroupId": fmt.Sprintf("%d", supportGroup.Id),
-						"serviceId":      fmt.Sprintf("%d", serviceRow.Id.Int64),
-					},
-					nil,
-				)
-
-				Expect(err).ToNot(HaveOccurred())
-				_, found := lo.Find(respData.SupportGroup.Services.Edges, func(edge *model.ServiceEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", serviceRow.Id.Int64)
-				})
-
-				Expect(respData.SupportGroup.ID).To(Equal(fmt.Sprintf("%d", supportGroup.Id)))
-				Expect(found).To(BeTrue())
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
 			})
-			It("removes service from supportGroup", Label("removeService.graphql"), func() {
-				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
-				// find a service that is attached to the supportGroup
-				serviceRow, _ := lo.Find(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow) bool {
-					return row.SupportGroupId.Int64 == supportGroup.Id
+			Context("and a mutation query is performed", func() {
+				It("adds service to supportGroup", Label("addService.graphql"), func() {
+					supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
+					// find all services that are attached to the supportGroup
+					serviceIds := lo.FilterMap(
+						seedCollection.SupportGroupServiceRows,
+						func(row mariadb.SupportGroupServiceRow, _ int) (int64, bool) {
+							if row.SupportGroupId.Int64 == supportGroup.Id {
+								return row.ServiceId.Int64, true
+							}
+							return 0, false
+						},
+					)
+
+					// find a service that is not attached to the supportGroup
+					serviceRow, _ := lo.Find(
+						seedCollection.ServiceRows,
+						func(row mariadb.BaseServiceRow) bool {
+							return !lo.Contains(serviceIds, row.Id.Int64)
+						},
+					)
+
+					respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						SupportGroup model.SupportGroup `json:"addServiceToSupportGroup"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/supportGroup/addService.graphql",
+						map[string]any{
+							"supportGroupId": fmt.Sprintf("%d", supportGroup.Id),
+							"serviceId":      fmt.Sprintf("%d", serviceRow.Id.Int64),
+						},
+						nil,
+					)
+
+					Expect(err).ToNot(HaveOccurred())
+					_, found := lo.Find(
+						respData.SupportGroup.Services.Edges,
+						func(edge *model.ServiceEdge) bool {
+							return edge.Node.ID == fmt.Sprintf("%d", serviceRow.Id.Int64)
+						},
+					)
+
+					Expect(respData.SupportGroup.ID).To(Equal(fmt.Sprintf("%d", supportGroup.Id)))
+					Expect(found).To(BeTrue())
 				})
+				It("removes service from supportGroup", Label("removeService.graphql"), func() {
+					supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
-				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					SupportGroup model.SupportGroup `json:"removeServiceFromSupportGroup"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/supportGroup/removeService.graphql",
-					map[string]any{
-						"supportGroupId": fmt.Sprintf("%d", supportGroup.Id),
-						"serviceId":      fmt.Sprintf("%d", serviceRow.ServiceId.Int64),
-					},
-					nil,
-				)
+					// find a service that is attached to the supportGroup
+					serviceRow, _ := lo.Find(
+						seedCollection.SupportGroupServiceRows,
+						func(row mariadb.SupportGroupServiceRow) bool {
+							return row.SupportGroupId.Int64 == supportGroup.Id
+						},
+					)
 
-				Expect(err).ToNot(HaveOccurred())
-				_, found := lo.Find(respData.SupportGroup.Services.Edges, func(edge *model.ServiceEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", serviceRow.ServiceId.Int64)
+					respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						SupportGroup model.SupportGroup `json:"removeServiceFromSupportGroup"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/supportGroup/removeService.graphql",
+						map[string]any{
+							"supportGroupId": fmt.Sprintf("%d", supportGroup.Id),
+							"serviceId":      fmt.Sprintf("%d", serviceRow.ServiceId.Int64),
+						},
+						nil,
+					)
+
+					Expect(err).ToNot(HaveOccurred())
+					_, found := lo.Find(
+						respData.SupportGroup.Services.Edges,
+						func(edge *model.ServiceEdge) bool {
+							return edge.Node.ID == fmt.Sprintf("%d", serviceRow.ServiceId.Int64)
+						},
+					)
+
+					Expect(respData.SupportGroup.ID).To(Equal(fmt.Sprintf("%d", supportGroup.Id)))
+					Expect(found).To(BeFalse())
 				})
-
-				Expect(respData.SupportGroup.ID).To(Equal(fmt.Sprintf("%d", supportGroup.Id)))
-				Expect(found).To(BeFalse())
 			})
 		})
-	})
-})
+	},
+)
 
 var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "SupportGroups"), func() {
 	var seeder *test.DatabaseSeeder
@@ -495,12 +559,15 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 			It("adds user to supportGroup", Label("addUser.graphql"), func() {
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 				// find all users that are attached to the supportGroup
-				userIds := lo.FilterMap(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow, _ int) (int64, bool) {
-					if row.SupportGroupId.Int64 == supportGroup.Id {
-						return row.UserId.Int64, true
-					}
-					return 0, false
-				})
+				userIds := lo.FilterMap(
+					seedCollection.SupportGroupUserRows,
+					func(row mariadb.SupportGroupUserRow, _ int) (int64, bool) {
+						if row.SupportGroupId.Int64 == supportGroup.Id {
+							return row.UserId.Int64, true
+						}
+						return 0, false
+					},
+				)
 
 				// find a user that is not attached to the supportGroup
 				userRow, _ := lo.Find(seedCollection.UserRows, func(row mariadb.UserRow) bool {
@@ -521,9 +588,12 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 
 				Expect(err).ToNot(HaveOccurred())
 
-				_, found := lo.Find(respData.SupportGroup.Users.Edges, func(edge *model.UserEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", userRow.Id.Int64)
-				})
+				_, found := lo.Find(
+					respData.SupportGroup.Users.Edges,
+					func(edge *model.UserEdge) bool {
+						return edge.Node.ID == fmt.Sprintf("%d", userRow.Id.Int64)
+					},
+				)
 
 				Expect(respData.SupportGroup.ID).To(Equal(fmt.Sprintf("%d", supportGroup.Id)))
 				Expect(found).To(BeTrue())
@@ -532,9 +602,12 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 				supportGroup := seedCollection.SupportGroupRows[0].AsSupportGroup()
 
 				// find a user that is attached to the supportGroup
-				userRow, _ := lo.Find(seedCollection.SupportGroupUserRows, func(row mariadb.SupportGroupUserRow) bool {
-					return row.SupportGroupId.Int64 == supportGroup.Id
-				})
+				userRow, _ := lo.Find(
+					seedCollection.SupportGroupUserRows,
+					func(row mariadb.SupportGroupUserRow) bool {
+						return row.SupportGroupId.Int64 == supportGroup.Id
+					},
+				)
 
 				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					SupportGroup model.SupportGroup `json:"removeUserFromSupportGroup"`
@@ -550,9 +623,12 @@ var _ = Describe("Modifying Users of SupportGroup via API", Label("e2e", "Suppor
 
 				Expect(err).ToNot(HaveOccurred())
 
-				_, found := lo.Find(respData.SupportGroup.Users.Edges, func(edge *model.UserEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", userRow.UserId.Int64)
-				})
+				_, found := lo.Find(
+					respData.SupportGroup.Users.Edges,
+					func(edge *model.UserEdge) bool {
+						return edge.Node.ID == fmt.Sprintf("%d", userRow.UserId.Int64)
+					},
+				)
 
 				Expect(respData.SupportGroup.ID).To(Equal(fmt.Sprintf("%d", supportGroup.Id)))
 				Expect(found).To(BeFalse())

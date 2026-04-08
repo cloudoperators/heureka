@@ -187,9 +187,15 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.IssueMatchRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.RemediationDate.Unix()).Should(BeEquivalentTo(row.RemediationDate.Time.Unix()), "Remediation Date matches")
-									Expect(r.CreatedAt.Unix()).ShouldNot(BeEquivalentTo(row.CreatedAt.Time.Unix()), "CreatedAt got set")
-									Expect(r.UpdatedAt.Unix()).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time.Unix()), "UpdatedAt got set")
+									Expect(
+										r.RemediationDate.Unix(),
+									).Should(BeEquivalentTo(row.RemediationDate.Time.Unix()), "Remediation Date matches")
+									Expect(
+										r.CreatedAt.Unix(),
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time.Unix()), "CreatedAt got set")
+									Expect(
+										r.UpdatedAt.Unix(),
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time.Unix()), "UpdatedAt got set")
 								}
 							}
 						}
@@ -350,18 +356,30 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				})
 				It("can filter by a single support group name that does exist", func() {
 					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
-					componentInstance, _ := lo.Find(seedCollection.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow) bool {
-						return c.Id.Int64 == issueMatch.ComponentInstanceId.Int64
-					})
-					service, _ := lo.Find(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow) bool {
-						return s.Id.Int64 == componentInstance.ServiceId.Int64
-					})
-					supportGroupService, _ := lo.Find(seedCollection.SupportGroupServiceRows, func(s mariadb.SupportGroupServiceRow) bool {
-						return s.ServiceId.Int64 == service.Id.Int64
-					})
-					supportGroup, sgFound := lo.Find(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow) bool {
-						return s.Id.Int64 == supportGroupService.SupportGroupId.Int64
-					})
+					componentInstance, _ := lo.Find(
+						seedCollection.ComponentInstanceRows,
+						func(c mariadb.ComponentInstanceRow) bool {
+							return c.Id.Int64 == issueMatch.ComponentInstanceId.Int64
+						},
+					)
+					service, _ := lo.Find(
+						seedCollection.ServiceRows,
+						func(s mariadb.BaseServiceRow) bool {
+							return s.Id.Int64 == componentInstance.ServiceId.Int64
+						},
+					)
+					supportGroupService, _ := lo.Find(
+						seedCollection.SupportGroupServiceRows,
+						func(s mariadb.SupportGroupServiceRow) bool {
+							return s.ServiceId.Int64 == service.Id.Int64
+						},
+					)
+					supportGroup, sgFound := lo.Find(
+						seedCollection.SupportGroupRows,
+						func(s mariadb.SupportGroupRow) bool {
+							return s.Id.Int64 == supportGroupService.SupportGroupId.Int64
+						},
+					)
 
 					filter := &entity.IssueMatchFilter{
 						SupportGroupCCRN: []*string{&supportGroup.CCRN.String},
@@ -459,7 +477,12 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 							},
 							[]entity.Order{},
 							func(entries []entity.IssueMatchResult) string {
-								after, _ := mariadb.EncodeCursor(mariadb.WithIssueMatch([]entity.Order{}, *entries[len(entries)-1].IssueMatch))
+								after, _ := mariadb.EncodeCursor(
+									mariadb.WithIssueMatch(
+										[]entity.Order{},
+										*entries[len(entries)-1].IssueMatch,
+									),
+								)
 								return after
 							},
 							len(issueMatches),
@@ -504,7 +527,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				})
 				It("does not influence the count when pagination is applied", func() {
 					first := 1
-					var after string = ""
+					after := ""
 					filter := &entity.IssueMatchFilter{
 						Paginated: entity.Paginated{
 							First: &first,
@@ -589,14 +612,22 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					Expect(len(im)).To(BeEquivalentTo(1))
 				})
 				By("setting fields", func() {
-					Expect(im[0].Severity.Cvss.Vector).To(BeEquivalentTo(issueMatch.Severity.Cvss.Vector))
+					Expect(
+						im[0].Severity.Cvss.Vector,
+					).To(BeEquivalentTo(issueMatch.Severity.Cvss.Vector))
 					Expect(im[0].Severity.Value).To(BeEquivalentTo(issueMatch.Severity.Value))
 					Expect(im[0].Status.String()).To(BeEquivalentTo(issueMatch.Status.String()))
 					Expect(im[0].UserId).To(BeEquivalentTo(issueMatch.UserId))
 					Expect(im[0].IssueId).To(BeEquivalentTo(issueMatch.IssueId))
-					Expect(im[0].ComponentInstanceId).To(BeEquivalentTo(issueMatch.ComponentInstanceId))
-					Expect(im[0].TargetRemediationDate.Unix()).To(BeEquivalentTo(issueMatch.TargetRemediationDate.Unix()))
-					Expect(im[0].RemediationDate.Unix()).To(BeEquivalentTo(issueMatch.RemediationDate.Unix()))
+					Expect(
+						im[0].ComponentInstanceId,
+					).To(BeEquivalentTo(issueMatch.ComponentInstanceId))
+					Expect(
+						im[0].TargetRemediationDate.Unix(),
+					).To(BeEquivalentTo(issueMatch.TargetRemediationDate.Unix()))
+					Expect(
+						im[0].RemediationDate.Unix(),
+					).To(BeEquivalentTo(issueMatch.RemediationDate.Unix()))
 				})
 			})
 		})
@@ -634,14 +665,22 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					Expect(len(im)).To(BeEquivalentTo(1))
 				})
 				By("setting fields", func() {
-					Expect(im[0].Severity.Cvss.Vector).To(BeEquivalentTo(issueMatch.Severity.Cvss.Vector))
+					Expect(
+						im[0].Severity.Cvss.Vector,
+					).To(BeEquivalentTo(issueMatch.Severity.Cvss.Vector))
 					Expect(im[0].Severity.Value).To(BeEquivalentTo(issueMatch.Severity.Value))
 					Expect(im[0].Status.String()).To(BeEquivalentTo(issueMatch.Status.String()))
 					Expect(im[0].UserId).To(BeEquivalentTo(issueMatch.UserId))
 					Expect(im[0].IssueId).To(BeEquivalentTo(issueMatch.IssueId))
-					Expect(im[0].ComponentInstanceId).To(BeEquivalentTo(issueMatch.ComponentInstanceId))
-					Expect(im[0].TargetRemediationDate.Unix()).To(BeEquivalentTo(issueMatch.TargetRemediationDate.Unix()))
-					Expect(im[0].RemediationDate.Unix()).To(BeEquivalentTo(issueMatch.RemediationDate.Unix()))
+					Expect(
+						im[0].ComponentInstanceId,
+					).To(BeEquivalentTo(issueMatch.ComponentInstanceId))
+					Expect(
+						im[0].TargetRemediationDate.Unix(),
+					).To(BeEquivalentTo(issueMatch.TargetRemediationDate.Unix()))
+					Expect(
+						im[0].RemediationDate.Unix(),
+					).To(BeEquivalentTo(issueMatch.RemediationDate.Unix()))
 				})
 			})
 		})
@@ -735,8 +774,12 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by primaryName", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				issueI := seedCollection.GetIssueById(seedCollection.IssueMatchRows[i].IssueId.Int64)
-				issueJ := seedCollection.GetIssueById(seedCollection.IssueMatchRows[j].IssueId.Int64)
+				issueI := seedCollection.GetIssueById(
+					seedCollection.IssueMatchRows[i].IssueId.Int64,
+				)
+				issueJ := seedCollection.GetIssueById(
+					seedCollection.IssueMatchRows[j].IssueId.Int64,
+				)
 				return issueI.PrimaryName.String < issueJ.PrimaryName.String
 			})
 
@@ -745,7 +788,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
 					Expect(issue).ShouldNot(BeNil())
@@ -757,7 +800,9 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by targetRemediationDate", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				return seedCollection.IssueMatchRows[i].TargetRemediationDate.Time.After(seedCollection.IssueMatchRows[j].TargetRemediationDate.Time)
+				return seedCollection.IssueMatchRows[i].TargetRemediationDate.Time.After(
+					seedCollection.IssueMatchRows[j].TargetRemediationDate.Time,
+				)
 			})
 
 			order := []entity.Order{
@@ -765,7 +810,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev time.Time = time.Time{}
+				prev := time.Time{}
 				for _, r := range res {
 					Expect(r.TargetRemediationDate.After(prev)).Should(BeTrue())
 					prev = r.TargetRemediationDate
@@ -794,8 +839,12 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by component instance ccrn", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				ciI := seedCollection.GetComponentInstanceById(seedCollection.IssueMatchRows[i].ComponentInstanceId.Int64)
-				ciJ := seedCollection.GetComponentInstanceById(seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64)
+				ciI := seedCollection.GetComponentInstanceById(
+					seedCollection.IssueMatchRows[i].ComponentInstanceId.Int64,
+				)
+				ciJ := seedCollection.GetComponentInstanceById(
+					seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64,
+				)
 				return ciI.CCRN.String < ciJ.CCRN.String
 			})
 
@@ -804,7 +853,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
 					Expect(ci).ShouldNot(BeNil())
@@ -838,8 +887,12 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by primaryName", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				issueI := seedCollection.GetIssueById(seedCollection.IssueMatchRows[i].IssueId.Int64)
-				issueJ := seedCollection.GetIssueById(seedCollection.IssueMatchRows[j].IssueId.Int64)
+				issueI := seedCollection.GetIssueById(
+					seedCollection.IssueMatchRows[i].IssueId.Int64,
+				)
+				issueJ := seedCollection.GetIssueById(
+					seedCollection.IssueMatchRows[j].IssueId.Int64,
+				)
 				return issueI.PrimaryName.String > issueJ.PrimaryName.String
 			})
 
@@ -848,7 +901,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev string = "\U0010FFFF"
+				prev := "\U0010FFFF"
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
 					Expect(issue).ShouldNot(BeNil())
@@ -860,7 +913,9 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by targetRemediationDate", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				return seedCollection.IssueMatchRows[i].TargetRemediationDate.Time.Before(seedCollection.IssueMatchRows[j].TargetRemediationDate.Time)
+				return seedCollection.IssueMatchRows[i].TargetRemediationDate.Time.Before(
+					seedCollection.IssueMatchRows[j].TargetRemediationDate.Time,
+				)
 			})
 
 			order := []entity.Order{
@@ -868,7 +923,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+				prev := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				for _, r := range res {
 					Expect(r.TargetRemediationDate.Before(prev)).Should(BeTrue())
 					prev = r.TargetRemediationDate
@@ -897,8 +952,12 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by component instance ccrn", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				ciI := seedCollection.GetComponentInstanceById(seedCollection.IssueMatchRows[i].ComponentInstanceId.Int64)
-				ciJ := seedCollection.GetComponentInstanceById(seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64)
+				ciI := seedCollection.GetComponentInstanceById(
+					seedCollection.IssueMatchRows[i].ComponentInstanceId.Int64,
+				)
+				ciJ := seedCollection.GetComponentInstanceById(
+					seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64,
+				)
 				return ciI.CCRN.String > ciJ.CCRN.String
 			})
 
@@ -907,7 +966,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prev string = "\U0010FFFF"
+				prev := "\U0010FFFF"
 				for _, r := range res {
 					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
 					Expect(ci).ShouldNot(BeNil())
@@ -941,7 +1000,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+				prevTrd := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				prevPn := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
@@ -964,7 +1023,7 @@ var _ = Describe("Ordering IssueMatches", func() {
 			}
 
 			testOrder(order, func(res []entity.IssueMatchResult) {
-				var prevTrd time.Time = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+				prevTrd := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				prevPn := ""
 				for _, r := range res {
 					issue := seedCollection.GetIssueById(r.IssueId)
@@ -980,37 +1039,45 @@ var _ = Describe("Ordering IssueMatches", func() {
 			})
 		})
 
-		It("can order by asc rating and asc component instance ccrn and asc targetRemediationDate", func() {
-			order := []entity.Order{
-				{By: entity.IssueMatchRating, Direction: entity.OrderDirectionAsc},
-				{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
-				{By: entity.IssueMatchTargetRemediationDate, Direction: entity.OrderDirectionAsc},
-			}
+		It(
+			"can order by asc rating and asc component instance ccrn and asc targetRemediationDate",
+			func() {
+				order := []entity.Order{
+					{By: entity.IssueMatchRating, Direction: entity.OrderDirectionAsc},
+					{By: entity.ComponentInstanceCcrn, Direction: entity.OrderDirectionAsc},
+					{
+						By:        entity.IssueMatchTargetRemediationDate,
+						Direction: entity.OrderDirectionAsc,
+					},
+				}
 
-			testOrder(order, func(res []entity.IssueMatchResult) {
-				prevSeverity := 0
-				prevCiCcrn := ""
-				var prevTrd time.Time = time.Time{}
-				for _, r := range res {
-					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
-					if test.SeverityToNumerical(r.Severity.Value) == prevSeverity {
-						if ci.CCRN.String == prevCiCcrn {
-							Expect(r.TargetRemediationDate.After(prevTrd)).To(BeTrue())
-							prevTrd = r.TargetRemediationDate
+				testOrder(order, func(res []entity.IssueMatchResult) {
+					prevSeverity := 0
+					prevCiCcrn := ""
+					prevTrd := time.Time{}
+					for _, r := range res {
+						ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
+						if test.SeverityToNumerical(r.Severity.Value) == prevSeverity {
+							if ci.CCRN.String == prevCiCcrn {
+								Expect(r.TargetRemediationDate.After(prevTrd)).To(BeTrue())
+								prevTrd = r.TargetRemediationDate
+							} else {
+								Expect(ci.CCRN.String > prevCiCcrn).To(BeTrue())
+								prevCiCcrn = ci.CCRN.String
+								prevTrd = time.Time{}
+							}
 						} else {
-							Expect(ci.CCRN.String > prevCiCcrn).To(BeTrue())
-							prevCiCcrn = ci.CCRN.String
+							Expect(
+								test.SeverityToNumerical(r.Severity.Value) > prevSeverity,
+							).To(BeTrue())
+							prevSeverity = test.SeverityToNumerical(r.Severity.Value)
+							prevCiCcrn = ""
 							prevTrd = time.Time{}
 						}
-					} else {
-						Expect(test.SeverityToNumerical(r.Severity.Value) > prevSeverity).To(BeTrue())
-						prevSeverity = test.SeverityToNumerical(r.Severity.Value)
-						prevCiCcrn = ""
-						prevTrd = time.Time{}
 					}
-				}
-			})
-		})
+				})
+			},
+		)
 	})
 })
 
@@ -1027,15 +1094,21 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 		dbm.TestTearDown(db)
 	})
 	loadTestData := func() ([]mariadb.IssueMatchRow, []mariadb.IssueRow, []mariadb.ComponentInstanceRow, error) {
-		matches, err := test.LoadIssueMatches(test.GetTestDataPath("testdata/issue_match_cursor/issue_match.json"))
+		matches, err := test.LoadIssueMatches(
+			test.GetTestDataPath("testdata/issue_match_cursor/issue_match.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		issues, err := test.LoadIssues(test.GetTestDataPath("testdata/issue_match_cursor/issue.json"))
+		issues, err := test.LoadIssues(
+			test.GetTestDataPath("testdata/issue_match_cursor/issue.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		components, err := test.LoadComponentInstances(test.GetTestDataPath("testdata/issue_match_cursor/component_instance.json"))
+		components, err := test.LoadComponentInstances(
+			test.GetTestDataPath("testdata/issue_match_cursor/component_instance.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -1065,7 +1138,7 @@ var _ = Describe("Using the Cursor on IssueMatches", func() {
 		})
 		It("can order by primary name and target remediation date", func() {
 			filter := entity.IssueMatchFilter{
-				Id: []*int64{lo.ToPtr(int64(10))},
+				Id: []*int64{new(int64(10))},
 			}
 			order := []entity.Order{
 				{By: entity.IssuePrimaryName, Direction: entity.OrderDirectionAsc},

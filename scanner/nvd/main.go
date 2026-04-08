@@ -104,14 +104,16 @@ func processCVESConcurrently(ctx context.Context, processor *p.Processor, cves [
 					// Context cancelled!
 					return
 				case sem <- struct{}{}:
-					// Go routines will constantly try to send this empty struct to this channel. This will block until
+					// Go routines will constantly try to send this empty struct to this channel.
+					// This will block until
 					// there is a corresponding receive operation.
 				}
 			}
 		}()
 	}
 	// Process cves concurrently.
-	// processing data at a given time. Any additional Go routines will be blocked (waiting for a slot to become
+	// processing data at a given time. Any additional Go routines will be blocked (waiting for a
+	// slot to become
 	// available)
 	for _, cve := range cves {
 		wg.Add(1)
@@ -187,7 +189,12 @@ func main() {
 		today := fmt.Sprintf("%d-%02d-%02dT23:59:59.000", yearToday, monthToday, dayToday)
 
 		yearYesterday, monthYesterday, dayYesterday := t.AddDate(0, 0, -2).Date()
-		yesterday := fmt.Sprintf("%d-%02d-%02dT00:00:00.000", yearYesterday, monthYesterday, dayYesterday)
+		yesterday := fmt.Sprintf(
+			"%d-%02d-%02dT00:00:00.000",
+			yearYesterday,
+			monthYesterday,
+			dayYesterday,
+		)
 
 		scanAndProcess(scanner, processor, yesterday, today)
 	}

@@ -10,7 +10,10 @@ import (
 )
 
 type IssueRepositoryHandler interface {
-	ListIssueRepositories(*entity.IssueRepositoryFilter, *entity.ListOptions) (*entity.List[entity.IssueRepositoryResult], error)
+	ListIssueRepositories(
+		*entity.IssueRepositoryFilter,
+		*entity.ListOptions,
+	) (*entity.List[entity.IssueRepositoryResult], error)
 	CreateIssueRepository(context.Context, *entity.IssueRepository) (*entity.IssueRepository, error)
 	UpdateIssueRepository(context.Context, *entity.IssueRepository) (*entity.IssueRepository, error)
 	DeleteIssueRepository(context.Context, int64) error

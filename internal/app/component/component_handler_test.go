@@ -29,8 +29,6 @@ func TestComponentHandler(t *testing.T) {
 }
 
 var (
-	er             event.EventRegistry
-	authz          openfga.Authorization
 	handlerContext common.HandlerContext
 	cfg            *util.Config
 )
@@ -53,6 +51,7 @@ var _ = BeforeSuite(func() {
 
 func getComponentFilter() *entity.ComponentFilter {
 	cCCRN := "SomeNotExistingComponent"
+
 	return &entity.ComponentFilter{
 		Paginated: entity.Paginated{
 			First: nil,
@@ -103,44 +102,81 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
-		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-			filter.First = &pageSize
-			components := []entity.ComponentResult{}
-			for _, c := range test.NNewFakeComponentEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, c, entity.IssueSeverityCounts{}))
-				components = append(components, entity.ComponentResult{WithCursor: entity.WithCursor{Value: cursor}, Component: lo.ToPtr(c)})
-			}
+		DescribeTable(
+			"pagination information is correct",
+			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+				filter.First = &pageSize
+				components := []entity.ComponentResult{}
+				for _, c := range test.NNewFakeComponentEntities(resElements) {
+					cursor, _ := mariadb.EncodeCursor(
+						mariadb.WithComponent([]entity.Order{}, c, entity.IssueSeverityCounts{}),
+					)
+					components = append(
+						components,
+						entity.ComponentResult{
+							WithCursor: entity.WithCursor{Value: cursor},
+							Component:  new(c),
+						},
+					)
+				}
 
-			cursors := lo.Map(components, func(m entity.ComponentResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *m.Component, entity.IssueSeverityCounts{}))
-				return cursor
-			})
+				cursors := lo.Map(components, func(m entity.ComponentResult, _ int) string {
+					cursor, _ := mariadb.EncodeCursor(
+						mariadb.WithComponent(
+							[]entity.Order{},
+							*m.Component,
+							entity.IssueSeverityCounts{},
+						),
+					)
+					return cursor
+				})
 
-			var i int64 = 0
-			for len(cursors) < dbElements {
-				i++
-				component := test.NewFakeComponentEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, component, entity.IssueSeverityCounts{}))
-				cursors = append(cursors, c)
-			}
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponents", filter, []entity.Order{}).Return(components, nil)
-			db.On("GetAllComponentCursors", filter, []entity.Order{}).Return(cursors, nil)
-			componentHandler = c.NewComponentHandler(handlerContext)
-			res, err := componentHandler.ListComponents(ctx, filter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-		},
+				var i int64 = 0
+				for len(cursors) < dbElements {
+					i++
+					component := test.NewFakeComponentEntity()
+					c, _ := mariadb.EncodeCursor(
+						mariadb.WithComponent(
+							[]entity.Order{},
+							component,
+							entity.IssueSeverityCounts{},
+						),
+					)
+					cursors = append(cursors, c)
+				}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponents", filter, []entity.Order{}).Return(components, nil)
+				db.On("GetAllComponentCursors", filter, []entity.Order{}).Return(cursors, nil)
+				componentHandler = c.NewComponentHandler(handlerContext)
+				res, err := componentHandler.ListComponents(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(
+					*res.PageInfo.HasNextPage,
+				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+				Expect(
+					len(res.PageInfo.Pages),
+				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			},
 			Entry("When  pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
-			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
-			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+			Entry(
+				"When  pageSize is 10 and the database was returning 9 elements",
+				10,
+				9,
+				9,
+				false,
+			),
+			Entry(
+				"When  pageSize is 10 and the database was returning 11 elements",
+				10,
+				11,
+				10,
+				true,
+			),
 		)
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -160,7 +196,8 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 				compIds := int64(-1)
 				filter.Id = []*int64{&compIds}
 				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{}, nil)
+				db.On("GetComponents", filter, []entity.Order{}).
+					Return([]entity.ComponentResult{}, nil)
 			})
 
 			It("should return no components", func() {
@@ -172,9 +209,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 		})
 
 		Context("and the filter includes component IDs the user has access to", func() {
-			var (
-				component entity.Component
-			)
+			var component entity.Component
 
 			BeforeEach(func() {
 				userId := int64(123)
@@ -182,7 +217,8 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 				component = test.NewFakeComponentEntity()
 				filter.Id = []*int64{&component.Id}
 				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{{Component: &component}}, nil)
+				db.On("GetComponents", filter, []entity.Order{}).
+					Return([]entity.ComponentResult{{Component: &component}}, nil)
 
 				relations := []openfga.RelationInput{
 					{ // create component
@@ -210,10 +246,12 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 				res, err := componentHandler.ListComponents(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
-				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(component.CCRN)) // check that the returned component is the expected one
+				Expect(
+					res.Elements[0].CCRN,
+				).To(BeEquivalentTo(component.CCRN))
+				// check that the returned component is the expected one
 			})
 		})
-
 	})
 })
 
@@ -261,7 +299,6 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -304,7 +341,6 @@ var _ = Describe("When creating Component", Label("app", "CreateComponent"), fun
 				})
 			})
 		})
-
 	})
 })
 
@@ -341,8 +377,12 @@ var _ = Describe("When updating Component", Label("app", "UpdateComponent"), fun
 		componentHandler = c.NewComponentHandler(handlerContext)
 		component.CCRN = "NewComponent"
 		filter.Id = []*int64{&component.Id}
-		db.On("GetComponents", filter, []entity.Order{}).Return([]entity.ComponentResult{component}, nil)
-		updatedComponent, err := componentHandler.UpdateComponent(common.NewAdminContext(), component.Component)
+		db.On("GetComponents", filter, []entity.Order{}).
+			Return([]entity.ComponentResult{component}, nil)
+		updatedComponent, err := componentHandler.UpdateComponent(
+			common.NewAdminContext(),
+			component.Component,
+		)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponent.CCRN).To(BeEquivalentTo(component.CCRN))
@@ -396,7 +436,6 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -455,7 +494,9 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 						relCountBefore += len(relationsList)
 					}
 					relationsCountBefore := relCountBefore
-					Expect(relationsCountBefore).To(BeEquivalentTo(len(relations)), "all relations should exist before deletion")
+					Expect(
+						relationsCountBefore,
+					).To(BeEquivalentTo(len(relations)), "all relations should exist before deletion")
 
 					// check that relations were created
 					for _, r := range relations {
@@ -475,8 +516,12 @@ var _ = Describe("When deleting Component", Label("app", "DeleteComponent"), fun
 						relCountAfter += len(relationsList)
 					}
 					relationsCountAfter := relCountAfter
-					Expect(relationsCountAfter < relationsCountBefore).To(BeTrue(), "less relations after deletion")
-					Expect(relationsCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+					Expect(
+						relationsCountAfter < relationsCountBefore,
+					).To(BeTrue(), "less relations after deletion")
+					Expect(
+						relationsCountAfter,
+					).To(BeEquivalentTo(0), "no relations should exist after deletion")
 
 					// verify that relations were deleted
 					for _, r := range relations {

@@ -39,12 +39,17 @@ func getCountTable(filter *entity.IssueFilter) string {
 	}
 }
 
-func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.IssueSeverityCounts, error) {
+func (s *SqlDatabase) CountIssueRatings(
+	filter *entity.IssueFilter,
+) (*entity.IssueSeverityCounts, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountIssueRatings",
 	})
-	var fl []string
-	var filterParameters []any
+
+	var (
+		fl               []string
+		filterParameters []any
+	)
 
 	filter = ensureIssueFilter(filter)
 
@@ -68,12 +73,19 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 
 	if len(filter.ComponentVersionId) > 0 {
 		filterParameters = buildQueryParameters(filterParameters, filter.ComponentVersionId)
-		fl = append(fl, buildFilterQuery(filter.ComponentVersionId, "CIR.component_version_id = ?", OP_OR))
+		fl = append(
+			fl,
+			buildFilterQuery(filter.ComponentVersionId, "CIR.component_version_id = ?", OP_OR),
+		)
 	}
 
-	if len(filter.SupportGroupCCRN) > 0 && len(filter.ServiceId) == 0 && len(filter.ServiceCCRN) == 0 {
+	if len(filter.SupportGroupCCRN) > 0 && len(filter.ServiceId) == 0 &&
+		len(filter.ServiceCCRN) == 0 {
 		filterParameters = buildQueryParameters(filterParameters, filter.SupportGroupCCRN)
-		fl = append(fl, buildFilterQuery(filter.SupportGroupCCRN, "CIR.supportgroup_ccrn = ?", OP_OR))
+		fl = append(
+			fl,
+			buildFilterQuery(filter.SupportGroupCCRN, "CIR.supportgroup_ccrn = ?", OP_OR),
+		)
 	}
 
 	filterStr := combineFilterQueries(fl, OP_AND)
@@ -90,10 +102,15 @@ func (s *SqlDatabase) CountIssueRatings(filter *entity.IssueFilter) (*entity.Iss
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, fmt.Errorf("%s", msg)
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	counts, err := performListScan(
 		stmt,

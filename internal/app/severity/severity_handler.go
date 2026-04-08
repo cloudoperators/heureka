@@ -19,7 +19,10 @@ type severityHandler struct {
 	issueVariantHandler issue_variant.IssueVariantHandler
 }
 
-func NewSeverityHandler(handlerContext common.HandlerContext, ivs issue_variant.IssueVariantHandler) SeverityHandler {
+func NewSeverityHandler(
+	handlerContext common.HandlerContext,
+	ivs issue_variant.IssueVariantHandler,
+) SeverityHandler {
 	return &severityHandler{
 		database:            handlerContext.DB,
 		eventRegistry:       handlerContext.EventReg,
@@ -51,16 +54,25 @@ func (s *severityHandler) GetSeverity(filter *entity.SeverityFilter) (*entity.Se
 	}
 
 	opts := entity.ListOptions{}
-	issueVariants, err := s.issueVariantHandler.ListEffectiveIssueVariants(&issueVariantFilter, &opts)
+
+	issueVariants, err := s.issueVariantHandler.ListEffectiveIssueVariants(
+		&issueVariantFilter,
+		&opts,
+	)
 	if err != nil {
 		l.Error(err)
-		return nil, NewSeverityHandlerError("Internal error while returning effective issueVariants.")
 
+		return nil, NewSeverityHandlerError(
+			"Internal error while returning effective issueVariants.",
+		)
 	}
 
-	issueVariant := lo.MaxBy(issueVariants.Elements, func(item entity.IssueVariantResult, max entity.IssueVariantResult) bool {
-		return item.Severity.Score > max.Severity.Score
-	})
+	issueVariant := lo.MaxBy(
+		issueVariants.Elements,
+		func(item entity.IssueVariantResult, max entity.IssueVariantResult) bool {
+			return item.Severity.Score > max.Severity.Score
+		},
+	)
 
 	if issueVariant.IssueVariant == nil {
 		return nil, nil

@@ -72,87 +72,97 @@ var _ = Describe("Delete uniqueness", Ordered, Label("database", "Uniqueness"), 
 					})
 				})
 			})
-			When("Allows creating a new item with the same unique value after the previous one is soft-deleted", func() {
-				BeforeEach(func() {
-					// GIVEN Item with test unique values is created and soft-deleted
-					uut.createItem()
-					uut.expectNoError()
-					uut.deleteItem()
-					uut.expectNoError()
-				})
-				Context("Another item with test unique value is created", func() {
+			When(
+				"Allows creating a new item with the same unique value after the previous one is soft-deleted",
+				func() {
 					BeforeEach(func() {
-						// WHEN Another item with test unique value is created
+						// GIVEN Item with test unique values is created and soft-deleted
 						uut.createItem()
-					})
-					It("Creates new item and no error is returned", func() {
-						// THEN New item should be created
-						uut.expectItemCount(2)
-
-						// AND Error should be nil
 						uut.expectNoError()
-					})
-				})
-			})
-			When("Allows deletion of a new item with the same unique value after the previous one is soft-deleted", func() {
-				BeforeEach(func() {
-					// GIVEN Item with test unique value is created and soft-deleted
-					uut.createItem()
-					uut.expectNoError()
-					uut.deleteItem()
-					uut.expectNoError()
-
-					// AND Another item with test unique value is created
-					uut.createItem()
-					uut.expectNoError()
-				})
-				Context("Delete new item", func() {
-					BeforeEach(func() {
-						// WHEN New item is soft-deleted
 						uut.deleteItem()
-					})
-					It("Deletes new item and no error is returned", func() {
-						// THEN Both items should be soft-deleted
-						uut.expectItemCount(2)
-						uut.expectDeletedItemCount(2)
-
-						// AND Error should be nil
 						uut.expectNoError()
 					})
-				})
-			})
+					Context("Another item with test unique value is created", func() {
+						BeforeEach(func() {
+							// WHEN Another item with test unique value is created
+							uut.createItem()
+						})
+						It("Creates new item and no error is returned", func() {
+							// THEN New item should be created
+							uut.expectItemCount(2)
 
-			When("Allows creating a new item with the same unique value after the previous two were soft-deleted", func() {
-				BeforeEach(func() {
-					// GIVEN Item with test unique value is created and soft-deleted
-					uut.createItem()
-					uut.expectNoError()
-					uut.deleteItem()
-					uut.expectNoError()
-
-					// AND Another item with test unique value is created and soft-deleted
-					uut.createItem()
-					uut.expectNoError()
-					uut.deleteItem()
-					uut.expectNoError()
-				})
-				Context("Another item with test unique value is created", func() {
+							// AND Error should be nil
+							uut.expectNoError()
+						})
+					})
+				},
+			)
+			When(
+				"Allows deletion of a new item with the same unique value after the previous one is soft-deleted",
+				func() {
 					BeforeEach(func() {
-						// WHEN Another item with test unique value is created
+						// GIVEN Item with test unique value is created and soft-deleted
 						uut.createItem()
-					})
-					It("Creates new item and no error is returned", func() {
-						// THEN New item should be created
-						uut.expectItemCount(3)
-
-						// AND Error should be nil
+						uut.expectNoError()
+						uut.deleteItem()
 						uut.expectNoError()
 
-						// AND Database should contain two soft-deleted items with test unique value
-						uut.expectDeletedItemCount(2)
+						// AND Another item with test unique value is created
+						uut.createItem()
+						uut.expectNoError()
 					})
-				})
-			})
+					Context("Delete new item", func() {
+						BeforeEach(func() {
+							// WHEN New item is soft-deleted
+							uut.deleteItem()
+						})
+						It("Deletes new item and no error is returned", func() {
+							// THEN Both items should be soft-deleted
+							uut.expectItemCount(2)
+							uut.expectDeletedItemCount(2)
+
+							// AND Error should be nil
+							uut.expectNoError()
+						})
+					})
+				},
+			)
+
+			When(
+				"Allows creating a new item with the same unique value after the previous two were soft-deleted",
+				func() {
+					BeforeEach(func() {
+						// GIVEN Item with test unique value is created and soft-deleted
+						uut.createItem()
+						uut.expectNoError()
+						uut.deleteItem()
+						uut.expectNoError()
+
+						// AND Another item with test unique value is created and soft-deleted
+						uut.createItem()
+						uut.expectNoError()
+						uut.deleteItem()
+						uut.expectNoError()
+					})
+					Context("Another item with test unique value is created", func() {
+						BeforeEach(func() {
+							// WHEN Another item with test unique value is created
+							uut.createItem()
+						})
+						It("Creates new item and no error is returned", func() {
+							// THEN New item should be created
+							uut.expectItemCount(3)
+
+							// AND Error should be nil
+							uut.expectNoError()
+
+							// AND Database should contain two soft-deleted items with test unique
+							// value
+							uut.expectDeletedItemCount(2)
+						})
+					})
+				},
+			)
 		})
 	}
 })
@@ -184,6 +194,7 @@ type uniquenessUserTemplate struct {
 
 func (uut *uniquenessUserTemplate) setup(db *mariadb.SqlDatabase) {
 	uut.uniquenessTestItemTemplateBase.setup(db)
+
 	ur := test.NewFakeUser()
 	uut.testUser = ur.AsUser()
 }
@@ -206,17 +217,28 @@ func (uut *uniquenessUserTemplate) expectDeletedItemCount(cnt int64) {
 
 func (uut *uniquenessUserTemplate) expectDuplicationError() {
 	Expect(uut.lastErr).To(HaveOccurred())
-	Expect(uut.lastErr.Error()).To(ContainSubstring("Database entry already exists: User element already exists"))
+	Expect(
+		uut.lastErr.Error(),
+	).To(ContainSubstring("Database entry already exists: User element already exists"))
 }
 
 // -- User non-interface
 func (uut *uniquenessUserTemplate) expectUserCountForUniqueUserId(uniqueUserId string, cnt int64) {
-	uf := entity.UserFilter{UniqueUserID: []*string{&uniqueUserId}, State: []entity.StateFilterType{entity.Active, entity.Deleted}}
+	uf := entity.UserFilter{
+		UniqueUserID: []*string{&uniqueUserId},
+		State:        []entity.StateFilterType{entity.Active, entity.Deleted},
+	}
 	uut.expectUserCount(&uf, cnt)
 }
 
-func (uut *uniquenessUserTemplate) expectDeletedUserCountForUniqueUserId(uniqueUserId string, cnt int64) {
-	uf := entity.UserFilter{UniqueUserID: []*string{&uniqueUserId}, State: []entity.StateFilterType{entity.Deleted}}
+func (uut *uniquenessUserTemplate) expectDeletedUserCountForUniqueUserId(
+	uniqueUserId string,
+	cnt int64,
+) {
+	uf := entity.UserFilter{
+		UniqueUserID: []*string{&uniqueUserId},
+		State:        []entity.StateFilterType{entity.Deleted},
+	}
 	uut.expectUserCount(&uf, cnt)
 }
 
@@ -234,6 +256,7 @@ type uniquenessComponentTemplate struct {
 
 func (uct *uniquenessComponentTemplate) setup(db *mariadb.SqlDatabase) {
 	uct.uniquenessTestItemTemplateBase.setup(db)
+
 	cr := test.NewFakeComponent()
 	uct.testComponent = cr.AsComponent()
 }
@@ -256,21 +279,32 @@ func (uct *uniquenessComponentTemplate) expectDeletedItemCount(cnt int64) {
 
 func (uct *uniquenessComponentTemplate) expectDuplicationError() {
 	Expect(uct.lastErr).To(HaveOccurred())
-	Expect(uct.lastErr.Error()).To(ContainSubstring("Database entry already exists: Component element already exists"))
+	Expect(
+		uct.lastErr.Error(),
+	).To(ContainSubstring("Database entry already exists: Component element already exists"))
 }
 
 // -- Component non-interface
 func (uct *uniquenessComponentTemplate) expectComponentCountForCCRN(ccrn string, cnt int64) {
-	cf := entity.ComponentFilter{CCRN: []*string{&ccrn}, State: []entity.StateFilterType{entity.Active, entity.Deleted}}
+	cf := entity.ComponentFilter{
+		CCRN:  []*string{&ccrn},
+		State: []entity.StateFilterType{entity.Active, entity.Deleted},
+	}
 	uct.expectComponentCount(&cf, cnt)
 }
 
 func (uct *uniquenessComponentTemplate) expectDeletedComponentCountForCCRN(ccrn string, cnt int64) {
-	cf := entity.ComponentFilter{CCRN: []*string{&ccrn}, State: []entity.StateFilterType{entity.Deleted}}
+	cf := entity.ComponentFilter{
+		CCRN:  []*string{&ccrn},
+		State: []entity.StateFilterType{entity.Deleted},
+	}
 	uct.expectComponentCount(&cf, cnt)
 }
 
-func (uct *uniquenessComponentTemplate) expectComponentCount(cf *entity.ComponentFilter, cnt int64) {
+func (uct *uniquenessComponentTemplate) expectComponentCount(
+	cf *entity.ComponentFilter,
+	cnt int64,
+) {
 	componentCount, err := uct.db.CountComponents(cf)
 	Expect(err).To(BeNil())
 	Expect(componentCount).To(BeEquivalentTo(cnt))
@@ -287,6 +321,7 @@ func (ucvt *uniquenessComponentVersionTemplate) setup(db *mariadb.SqlDatabase) {
 
 	seeder, err := test.NewDatabaseSeeder(dbm.DbConfig())
 	Expect(err).To(BeNil())
+
 	components := seeder.SeedComponents(1)
 
 	cvr := test.NewFakeComponentVersion()
@@ -304,20 +339,34 @@ func (ucvt *uniquenessComponentVersionTemplate) deleteItem() {
 }
 
 func (ucvt *uniquenessComponentVersionTemplate) expectItemCount(cnt int64) {
-	ucvt.expectComponentVersionCountForVersionAndComponentId(ucvt.testComponentVersion.Version, ucvt.testComponentVersion.ComponentId, cnt)
+	ucvt.expectComponentVersionCountForVersionAndComponentId(
+		ucvt.testComponentVersion.Version,
+		ucvt.testComponentVersion.ComponentId,
+		cnt,
+	)
 }
 
 func (ucvt *uniquenessComponentVersionTemplate) expectDeletedItemCount(cnt int64) {
-	ucvt.expectDeletedComponentVersionCountForVersionAndComponentId(ucvt.testComponentVersion.Version, ucvt.testComponentVersion.ComponentId, cnt)
+	ucvt.expectDeletedComponentVersionCountForVersionAndComponentId(
+		ucvt.testComponentVersion.Version,
+		ucvt.testComponentVersion.ComponentId,
+		cnt,
+	)
 }
 
 func (ucvt *uniquenessComponentVersionTemplate) expectDuplicationError() {
 	Expect(ucvt.lastErr).To(HaveOccurred())
-	Expect(ucvt.lastErr.Error()).To(ContainSubstring("Database entry already exists: ComponentVersion element already exists"))
+	Expect(
+		ucvt.lastErr.Error(),
+	).To(ContainSubstring("Database entry already exists: ComponentVersion element already exists"))
 }
 
 // -- Component Version non-interface
-func (ucvt *uniquenessComponentVersionTemplate) expectComponentVersionCountForVersionAndComponentId(version string, componentId int64, cnt int64) {
+func (ucvt *uniquenessComponentVersionTemplate) expectComponentVersionCountForVersionAndComponentId(
+	version string,
+	componentId int64,
+	cnt int64,
+) {
 	cvf := entity.ComponentVersionFilter{
 		Version:     []*string{&version},
 		ComponentId: []*int64{&componentId},
@@ -326,7 +375,11 @@ func (ucvt *uniquenessComponentVersionTemplate) expectComponentVersionCountForVe
 	ucvt.expectComponentVersionCount(&cvf, cnt)
 }
 
-func (ucvt *uniquenessComponentVersionTemplate) expectDeletedComponentVersionCountForVersionAndComponentId(version string, componentId int64, cnt int64) {
+func (ucvt *uniquenessComponentVersionTemplate) expectDeletedComponentVersionCountForVersionAndComponentId(
+	version string,
+	componentId int64,
+	cnt int64,
+) {
 	cvf := entity.ComponentVersionFilter{
 		Version:     []*string{&version},
 		ComponentId: []*int64{&componentId},
@@ -335,7 +388,10 @@ func (ucvt *uniquenessComponentVersionTemplate) expectDeletedComponentVersionCou
 	ucvt.expectComponentVersionCount(&cvf, cnt)
 }
 
-func (ucvt *uniquenessComponentVersionTemplate) expectComponentVersionCount(cvf *entity.ComponentVersionFilter, cnt int64) {
+func (ucvt *uniquenessComponentVersionTemplate) expectComponentVersionCount(
+	cvf *entity.ComponentVersionFilter,
+	cnt int64,
+) {
 	componentVersionCount, err := ucvt.db.CountComponentVersions(cvf)
 	Expect(err).To(BeNil())
 	Expect(componentVersionCount).To(BeEquivalentTo(cnt))
@@ -349,6 +405,7 @@ type uniquenessServiceTemplate struct {
 
 func (ust *uniquenessServiceTemplate) setup(db *mariadb.SqlDatabase) {
 	ust.uniquenessTestItemTemplateBase.setup(db)
+
 	sr := test.NewFakeService()
 	ust.testService = sr.AsService()
 }
@@ -371,17 +428,25 @@ func (ust *uniquenessServiceTemplate) expectDeletedItemCount(cnt int64) {
 
 func (ust *uniquenessServiceTemplate) expectDuplicationError() {
 	Expect(ust.lastErr).To(HaveOccurred())
-	Expect(ust.lastErr.Error()).To(ContainSubstring("Database entry already exists: Service element already exists"))
+	Expect(
+		ust.lastErr.Error(),
+	).To(ContainSubstring("Database entry already exists: Service element already exists"))
 }
 
 // -- Service non-interface
 func (ust *uniquenessServiceTemplate) expectServiceCountForCCRN(ccrn string, cnt int64) {
-	sf := entity.ServiceFilter{CCRN: []*string{&ccrn}, State: []entity.StateFilterType{entity.Active, entity.Deleted}}
+	sf := entity.ServiceFilter{
+		CCRN:  []*string{&ccrn},
+		State: []entity.StateFilterType{entity.Active, entity.Deleted},
+	}
 	ust.expectServiceCount(&sf, cnt)
 }
 
 func (ust *uniquenessServiceTemplate) expectDeletedServiceCountForCCRN(ccrn string, cnt int64) {
-	sf := entity.ServiceFilter{CCRN: []*string{&ccrn}, State: []entity.StateFilterType{entity.Deleted}}
+	sf := entity.ServiceFilter{
+		CCRN:  []*string{&ccrn},
+		State: []entity.StateFilterType{entity.Deleted},
+	}
 	ust.expectServiceCount(&sf, cnt)
 }
 
@@ -402,6 +467,7 @@ func (ucit *uniquenessComponentInstanceTemplate) setup(db *mariadb.SqlDatabase) 
 
 	seeder, err := test.NewDatabaseSeeder(dbm.DbConfig())
 	Expect(err).To(BeNil())
+
 	services := seeder.SeedServices(1)
 
 	cir := test.NewFakeComponentInstance()
@@ -419,20 +485,34 @@ func (ucit *uniquenessComponentInstanceTemplate) deleteItem() {
 }
 
 func (ucit *uniquenessComponentInstanceTemplate) expectItemCount(cnt int64) {
-	ucit.expectComponentInstanceCountForCCRNAndServiceId(ucit.testComponentInstance.CCRN, ucit.testComponentInstance.ServiceId, cnt)
+	ucit.expectComponentInstanceCountForCCRNAndServiceId(
+		ucit.testComponentInstance.CCRN,
+		ucit.testComponentInstance.ServiceId,
+		cnt,
+	)
 }
 
 func (ucit *uniquenessComponentInstanceTemplate) expectDeletedItemCount(cnt int64) {
-	ucit.expectDeletedComponentInstanceCountForCCRNAndServiceId(ucit.testComponentInstance.CCRN, ucit.testComponentInstance.ServiceId, cnt)
+	ucit.expectDeletedComponentInstanceCountForCCRNAndServiceId(
+		ucit.testComponentInstance.CCRN,
+		ucit.testComponentInstance.ServiceId,
+		cnt,
+	)
 }
 
 func (ucit *uniquenessComponentInstanceTemplate) expectDuplicationError() {
 	Expect(ucit.lastErr).To(HaveOccurred())
-	Expect(ucit.lastErr.Error()).To(ContainSubstring("Database entry already exists: ComponentInstance element already exists"))
+	Expect(
+		ucit.lastErr.Error(),
+	).To(ContainSubstring("Database entry already exists: ComponentInstance element already exists"))
 }
 
 // -- Component Instance non-interface
-func (ucit *uniquenessComponentInstanceTemplate) expectComponentInstanceCountForCCRNAndServiceId(ccrn string, serviceId int64, cnt int64) {
+func (ucit *uniquenessComponentInstanceTemplate) expectComponentInstanceCountForCCRNAndServiceId(
+	ccrn string,
+	serviceId int64,
+	cnt int64,
+) {
 	cif := entity.ComponentInstanceFilter{
 		CCRN:      []*string{&ccrn},
 		ServiceId: []*int64{&serviceId},
@@ -441,7 +521,11 @@ func (ucit *uniquenessComponentInstanceTemplate) expectComponentInstanceCountFor
 	ucit.expectComponentInstanceCount(&cif, cnt)
 }
 
-func (ucit *uniquenessComponentInstanceTemplate) expectDeletedComponentInstanceCountForCCRNAndServiceId(ccrn string, serviceId int64, cnt int64) {
+func (ucit *uniquenessComponentInstanceTemplate) expectDeletedComponentInstanceCountForCCRNAndServiceId(
+	ccrn string,
+	serviceId int64,
+	cnt int64,
+) {
 	cif := entity.ComponentInstanceFilter{
 		CCRN:      []*string{&ccrn},
 		ServiceId: []*int64{&serviceId},
@@ -450,7 +534,10 @@ func (ucit *uniquenessComponentInstanceTemplate) expectDeletedComponentInstanceC
 	ucit.expectComponentInstanceCount(&cif, cnt)
 }
 
-func (ucit *uniquenessComponentInstanceTemplate) expectComponentInstanceCount(cif *entity.ComponentInstanceFilter, cnt int64) {
+func (ucit *uniquenessComponentInstanceTemplate) expectComponentInstanceCount(
+	cif *entity.ComponentInstanceFilter,
+	cnt int64,
+) {
 	componentInstanceCount, err := ucit.db.CountComponentInstances(cif)
 	Expect(err).To(BeNil())
 	Expect(componentInstanceCount).To(BeEquivalentTo(cnt))
@@ -464,6 +551,7 @@ type uniquenessIssueRepositoryTemplate struct {
 
 func (uirt *uniquenessIssueRepositoryTemplate) setup(db *mariadb.SqlDatabase) {
 	uirt.uniquenessTestItemTemplateBase.setup(db)
+
 	irr := test.NewFakeIssueRepository()
 	uirt.testIssueRepository = irr.AsIssueRepository()
 }
@@ -486,21 +574,38 @@ func (uirt *uniquenessIssueRepositoryTemplate) expectDeletedItemCount(cnt int64)
 
 func (uirt *uniquenessIssueRepositoryTemplate) expectDuplicationError() {
 	Expect(uirt.lastErr).To(HaveOccurred())
-	Expect(uirt.lastErr.Error()).To(ContainSubstring("Database entry already exists: IssueRepository element already exists"))
+	Expect(
+		uirt.lastErr.Error(),
+	).To(ContainSubstring("Database entry already exists: IssueRepository element already exists"))
 }
 
 // -- Issue Repository non-interface
-func (uirt *uniquenessIssueRepositoryTemplate) expectIssueRepositoryCountForName(name string, cnt int64) {
-	irf := entity.IssueRepositoryFilter{Name: []*string{&name}, State: []entity.StateFilterType{entity.Active, entity.Deleted}}
+func (uirt *uniquenessIssueRepositoryTemplate) expectIssueRepositoryCountForName(
+	name string,
+	cnt int64,
+) {
+	irf := entity.IssueRepositoryFilter{
+		Name:  []*string{&name},
+		State: []entity.StateFilterType{entity.Active, entity.Deleted},
+	}
 	uirt.expectIssueRepositoryCount(&irf, cnt)
 }
 
-func (uirt *uniquenessIssueRepositoryTemplate) expectDeletedIssueRepositoryCountForName(name string, cnt int64) {
-	irf := entity.IssueRepositoryFilter{Name: []*string{&name}, State: []entity.StateFilterType{entity.Deleted}}
+func (uirt *uniquenessIssueRepositoryTemplate) expectDeletedIssueRepositoryCountForName(
+	name string,
+	cnt int64,
+) {
+	irf := entity.IssueRepositoryFilter{
+		Name:  []*string{&name},
+		State: []entity.StateFilterType{entity.Deleted},
+	}
 	uirt.expectIssueRepositoryCount(&irf, cnt)
 }
 
-func (uirt *uniquenessIssueRepositoryTemplate) expectIssueRepositoryCount(irf *entity.IssueRepositoryFilter, cnt int64) {
+func (uirt *uniquenessIssueRepositoryTemplate) expectIssueRepositoryCount(
+	irf *entity.IssueRepositoryFilter,
+	cnt int64,
+) {
 	issueRepositoryCount, err := uirt.db.CountIssueRepositories(irf)
 	Expect(err).To(BeNil())
 	Expect(issueRepositoryCount).To(BeEquivalentTo(cnt))
@@ -514,6 +619,7 @@ type uniquenessIssueTemplate struct {
 
 func (uit *uniquenessIssueTemplate) setup(db *mariadb.SqlDatabase) {
 	uit.uniquenessTestItemTemplateBase.setup(db)
+
 	ir := test.NewFakeIssue()
 	uit.testIssue = ir.AsIssue()
 }
@@ -536,17 +642,28 @@ func (uit *uniquenessIssueTemplate) expectDeletedItemCount(cnt int64) {
 
 func (uit *uniquenessIssueTemplate) expectDuplicationError() {
 	Expect(uit.lastErr).To(HaveOccurred())
-	Expect(uit.lastErr.Error()).To(ContainSubstring("Database entry already exists: Issue element already exists"))
+	Expect(
+		uit.lastErr.Error(),
+	).To(ContainSubstring("Database entry already exists: Issue element already exists"))
 }
 
 // -- Issue non-interface
 func (uit *uniquenessIssueTemplate) expectIssueCountForPrimaryName(primaryName string, cnt int64) {
-	isf := entity.IssueFilter{PrimaryName: []*string{&primaryName}, State: []entity.StateFilterType{entity.Active, entity.Deleted}}
+	isf := entity.IssueFilter{
+		PrimaryName: []*string{&primaryName},
+		State:       []entity.StateFilterType{entity.Active, entity.Deleted},
+	}
 	uit.expectIssueCount(&isf, cnt)
 }
 
-func (uit *uniquenessIssueTemplate) expectDeletedIssueCountForPrimaryName(primaryName string, cnt int64) {
-	isf := entity.IssueFilter{PrimaryName: []*string{&primaryName}, State: []entity.StateFilterType{entity.Deleted}}
+func (uit *uniquenessIssueTemplate) expectDeletedIssueCountForPrimaryName(
+	primaryName string,
+	cnt int64,
+) {
+	isf := entity.IssueFilter{
+		PrimaryName: []*string{&primaryName},
+		State:       []entity.StateFilterType{entity.Deleted},
+	}
 	uit.expectIssueCount(&isf, cnt)
 }
 
@@ -593,21 +710,38 @@ func (uivt *uniquenessIssueVariantTemplate) expectDeletedItemCount(cnt int64) {
 
 func (uivt *uniquenessIssueVariantTemplate) expectDuplicationError() {
 	Expect(uivt.lastErr).To(HaveOccurred())
-	Expect(uivt.lastErr.Error()).To(ContainSubstring("Database entry already exists: IssueVariant element already exists"))
+	Expect(
+		uivt.lastErr.Error(),
+	).To(ContainSubstring("Database entry already exists: IssueVariant element already exists"))
 }
 
 // -- Issue Variant non-interface
-func (uivt *uniquenessIssueVariantTemplate) expectIssueVariantCountForSecondaryName(secondaryName string, cnt int64) {
-	ivf := entity.IssueVariantFilter{SecondaryName: []*string{&secondaryName}, State: []entity.StateFilterType{entity.Active, entity.Deleted}}
+func (uivt *uniquenessIssueVariantTemplate) expectIssueVariantCountForSecondaryName(
+	secondaryName string,
+	cnt int64,
+) {
+	ivf := entity.IssueVariantFilter{
+		SecondaryName: []*string{&secondaryName},
+		State:         []entity.StateFilterType{entity.Active, entity.Deleted},
+	}
 	uivt.expectIssueVariantCount(&ivf, cnt)
 }
 
-func (uivt *uniquenessIssueVariantTemplate) expectDeletedIssueVariantCountForSecondaryName(secondaryName string, cnt int64) {
-	ivf := entity.IssueVariantFilter{SecondaryName: []*string{&secondaryName}, State: []entity.StateFilterType{entity.Deleted}}
+func (uivt *uniquenessIssueVariantTemplate) expectDeletedIssueVariantCountForSecondaryName(
+	secondaryName string,
+	cnt int64,
+) {
+	ivf := entity.IssueVariantFilter{
+		SecondaryName: []*string{&secondaryName},
+		State:         []entity.StateFilterType{entity.Deleted},
+	}
 	uivt.expectIssueVariantCount(&ivf, cnt)
 }
 
-func (uivt *uniquenessIssueVariantTemplate) expectIssueVariantCount(ivf *entity.IssueVariantFilter, cnt int64) {
+func (uivt *uniquenessIssueVariantTemplate) expectIssueVariantCount(
+	ivf *entity.IssueVariantFilter,
+	cnt int64,
+) {
 	issueVariantCount, err := uivt.db.CountIssueVariants(ivf)
 	Expect(err).To(BeNil())
 	Expect(issueVariantCount).To(BeEquivalentTo(cnt))

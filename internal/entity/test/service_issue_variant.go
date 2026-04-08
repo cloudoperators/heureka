@@ -15,10 +15,15 @@ func NewFakeServiceIssueVariantEntity(prio int64, issueId *int64) entity.Service
 	}
 }
 
-func NNewFakeServiceIssueVariantEntity(n int, prio int64, issueId *int64) []entity.ServiceIssueVariant {
+func NNewFakeServiceIssueVariantEntity(
+	n int,
+	prio int64,
+	issueId *int64,
+) []entity.ServiceIssueVariant {
 	r := make([]entity.ServiceIssueVariant, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeServiceIssueVariantEntity(prio, issueId)
 	}
+
 	return r
 }

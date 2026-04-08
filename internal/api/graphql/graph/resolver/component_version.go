@@ -18,10 +18,15 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *componentVersionResolver) Component(ctx context.Context, obj *model.ComponentVersion) (*model.Component, error) {
+func (r *componentVersionResolver) Component(
+	ctx context.Context,
+	obj *model.ComponentVersion,
+) (*model.Component, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentID})
 	if err != nil {
-		logrus.WithField("obj", obj).Error("ComponentVersionResolver: Error while parsing childIds'")
+		logrus.WithField("obj", obj).
+			Error("ComponentVersionResolver: Error while parsing childIds'")
+
 		return nil, err
 	}
 
@@ -35,21 +40,55 @@ func (r *componentVersionResolver) Component(ctx context.Context, obj *model.Com
 		})
 }
 
-func (r *componentVersionResolver) Issues(ctx context.Context, obj *model.ComponentVersion, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy) (*model.IssueConnection, error) {
-	return baseResolver.IssueBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ComponentVersionNodeName,
-	})
+func (r *componentVersionResolver) Issues(
+	ctx context.Context,
+	obj *model.ComponentVersion,
+	filter *model.IssueFilter,
+	first *int,
+	after *string,
+	orderBy []*model.IssueOrderBy,
+) (*model.IssueConnection, error) {
+	return baseResolver.IssueBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		orderBy,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.ComponentVersionNodeName,
+		},
+	)
 }
 
-func (r *componentVersionResolver) ComponentInstances(ctx context.Context, obj *model.ComponentVersion, filter *model.ComponentInstanceFilter, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy) (*model.ComponentInstanceConnection, error) {
-	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ComponentVersionNodeName,
-	})
+func (r *componentVersionResolver) ComponentInstances(
+	ctx context.Context,
+	obj *model.ComponentVersion,
+	filter *model.ComponentInstanceFilter,
+	first *int,
+	after *string,
+	orderBy []*model.ComponentInstanceOrderBy,
+) (*model.ComponentInstanceConnection, error) {
+	return baseResolver.ComponentInstanceBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		orderBy,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.ComponentVersionNodeName,
+		},
+	)
 }
 
-func (r *componentVersionResolver) IssueCounts(ctx context.Context, obj *model.ComponentVersion, filter *model.IssueFilter) (*model.SeverityCounts, error) {
+func (r *componentVersionResolver) IssueCounts(
+	ctx context.Context,
+	obj *model.ComponentVersion,
+	filter *model.IssueFilter,
+) (*model.SeverityCounts, error) {
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ComponentVersionNodeName,

@@ -13,7 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.IssueRepository, error) {
+func SingleIssueRepositoryBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	parent *model.NodeParent,
+) (*model.IssueRepository, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -21,7 +25,10 @@ func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, par
 	}).Debug("Called SingleIssueRepositoryBaseResolver")
 
 	if parent == nil {
-		return nil, NewResolverError("SingleIssueRepositoryBaseResolver", "Bad Request - No parent provided")
+		return nil, NewResolverError(
+			"SingleIssueRepositoryBaseResolver",
+			"Bad Request - No parent provided",
+		)
 	}
 
 	f := &entity.IssueRepositoryFilter{
@@ -38,7 +45,10 @@ func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, par
 
 	// unexpected number of results (should at most be 1)
 	if len(issueRepositories.Elements) > 1 {
-		return nil, NewResolverError("SingleIssueRepositoryBaseResolver", "Internal Error - found multiple issue repositories")
+		return nil, NewResolverError(
+			"SingleIssueRepositoryBaseResolver",
+			"Internal Error - found multiple issue repositories",
+		)
 	}
 
 	// not found
@@ -46,13 +56,21 @@ func SingleIssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, par
 		return nil, nil
 	}
 
-	var irr entity.IssueRepositoryResult = issueRepositories.Elements[0]
+	irr := issueRepositories.Elements[0]
+
 	issueRepository := model.NewIssueRepository(irr.IssueRepository)
 
 	return &issueRepository, nil
 }
 
-func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueRepositoryFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueRepositoryConnection, error) {
+func IssueRepositoryBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueRepositoryFilter,
+	first *int,
+	after *string,
+	parent *model.NodeParent,
+) (*model.IssueRepositoryConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -60,12 +78,19 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 	}).Debug("Called IssueRepositoryBaseResolver")
 
 	var serviceId []*int64
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("IssueRepositoryBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("IssueRepositoryBaseResolver", "Bad Request - Error while parsing propagated ID")
+			logrus.WithField("parent", parent).
+				Error("IssueRepositoryBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, NewResolverError(
+				"IssueRepositoryBaseResolver",
+				"Bad Request - Error while parsing propagated ID",
+			)
 		}
 
 		switch parent.ParentName {
@@ -94,6 +119,7 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 	}
 
 	edges := []*model.IssueRepositoryEdge{}
+
 	for _, result := range issueRepositories.Elements {
 		ir := model.NewIssueRepository(result.IssueRepository)
 
@@ -103,7 +129,7 @@ func IssueRepositoryBaseResolver(app app.Heureka, ctx context.Context, filter *m
 		}
 
 		if lo.Contains(requestedFields, "edges.priority") {
-			p := int(result.IssueRepositoryService.Priority)
+			p := int(result.Priority)
 			edge.Priority = &p
 		}
 

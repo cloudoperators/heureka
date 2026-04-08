@@ -17,231 +17,275 @@ import (
 	"github.com/samber/lo"
 )
 
-var _ = Describe("Getting ComponentInstanceFilterValues via API", Label("e2e", "ComponentInstanceFilterValues"), func() {
-	var seeder *test.DatabaseSeeder
-	var s *server.Server
-	var cfg util.Config
-	var db *mariadb.SqlDatabase
+var _ = Describe(
+	"Getting ComponentInstanceFilterValues via API",
+	Label("e2e", "ComponentInstanceFilterValues"),
+	func() {
+		var seeder *test.DatabaseSeeder
+		var s *server.Server
+		var cfg util.Config
+		var db *mariadb.SqlDatabase
 
-	BeforeEach(func() {
-		var err error
-		db = dbm.NewTestSchemaWithoutMigration()
-		seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
-		Expect(err).To(BeNil(), "Database Seeder Setup should work")
-
-		cfg = dbm.DbConfig()
-		cfg.Port = e2e_common.GetRandomFreePort()
-		cfg.AuthzOpenFgaApiUrl = ""
-		s = e2e_common.NewRunningServer(cfg)
-	})
-
-	AfterEach(func() {
-		e2e_common.ServerTeardown(s)
-		dbm.TestTearDown(db)
-	})
-
-	When("the database is empty", func() {
-		It("returns empty resultset for ccrnFilter", func() {
-			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-				ComponentInstanceFilterValues model.ComponentInstanceFilterValue `json:"ComponentInstanceFilterValues"`
-			}](
-				cfg.Port,
-				"../api/graphql/graph/queryCollection/componentInstanceFilter/ccrn.graphqls",
-				nil,
-				nil,
-			)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(respData.ComponentInstanceFilterValues.Ccrn.Values).To(BeEmpty())
-		})
-		It("returns empty for serviceCcrns", func() {
-			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-				ComponentInstanceFilterValues model.ComponentInstanceFilterValue `json:"ComponentInstanceFilterValues"`
-			}](
-				cfg.Port,
-				"../api/graphql/graph/queryCollection/componentInstanceFilter/serviceCcrn.graphqls",
-				nil,
-				nil,
-			)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(respData.ComponentInstanceFilterValues.ServiceCcrn.Values).To(BeEmpty())
-		})
-		It("returns empty for supportGroupCcrn", func() {
-			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-				ComponentInstanceFilterValues model.ComponentInstanceFilterValue `json:"ComponentInstanceFilterValues"`
-			}](
-				cfg.Port,
-				"../api/graphql/graph/queryCollection/componentInstanceFilter/supportGroupCcrn.graphqls",
-				nil,
-				nil,
-			)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(respData.ComponentInstanceFilterValues.SupportGroupCcrn.Values).To(BeEmpty())
-		})
-	})
-
-	When("the database has 10 entries", func() {
-		var seedCollection *test.SeedCollection
 		BeforeEach(func() {
-			seedCollection = seeder.SeedDbWithNFakeData(10)
+			var err error
+			db = dbm.NewTestSchemaWithoutMigration()
+			seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
+			Expect(err).To(BeNil(), "Database Seeder Setup should work")
+
+			cfg = dbm.DbConfig()
+			cfg.Port = e2e_common.GetRandomFreePort()
+			cfg.AuthzOpenFgaApiUrl = ""
+			s = e2e_common.NewRunningServer(cfg)
 		})
-		Context("and no additional filters are present", func() {
-			It("returns correct ccrn", func() {
-				existingCcrns := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.CCRN.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
+
+		AfterEach(func() {
+			e2e_common.ServerTeardown(s)
+			dbm.TestTearDown(db)
+		})
+
+		When("the database is empty", func() {
+			It("returns empty resultset for ccrnFilter", func() {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					ComponentInstanceFilterValues model.ComponentInstanceFilterValue `json:"ComponentInstanceFilterValues"`
+				}](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentInstanceFilter/ccrn.graphqls",
-					existingCcrns,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Ccrn.Values
-					})
+					nil,
+					nil,
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respData.ComponentInstanceFilterValues.Ccrn.Values).To(BeEmpty())
 			})
-			It("returns correct supportGroupCcrns", func() {
-				existingSupportGroupCcrns := lo.Map(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow, index int) string {
-					return s.CCRN.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/supportGroupCcrn.graphqls",
-					existingSupportGroupCcrns,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.SupportGroupCcrn.Values
-					})
-			})
-			It("returns correct serviceCcrns", func() {
-				existingServiceCcrns := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
-					return s.CCRN.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
+			It("returns empty for serviceCcrns", func() {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					ComponentInstanceFilterValues model.ComponentInstanceFilterValue `json:"ComponentInstanceFilterValues"`
+				}](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentInstanceFilter/serviceCcrn.graphqls",
-					existingServiceCcrns,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.ServiceCcrn.Values
-					})
+					nil,
+					nil,
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respData.ComponentInstanceFilterValues.ServiceCcrn.Values).To(BeEmpty())
 			})
-			It("returns correct region", func() {
-				existingRegions := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Region.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
+			It("returns empty for supportGroupCcrn", func() {
+				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+					ComponentInstanceFilterValues model.ComponentInstanceFilterValue `json:"ComponentInstanceFilterValues"`
+				}](
 					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/region.graphqls",
-					existingRegions,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Region.Values
-					})
-			})
-			It("returns correct cluster", func() {
-				existingClusters := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Cluster.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/cluster.graphqls",
-					existingClusters,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Cluster.Values
-					})
-			})
-			It("returns correct namespace", func() {
-				existingNamespaces := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Namespace.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/namespace.graphqls",
-					existingNamespaces,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Namespace.Values
-					})
-			})
-			It("returns correct domain", func() {
-				existingDomains := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Domain.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/domain.graphqls",
-					existingDomains,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Domain.Values
-					})
-			})
-			It("returns correct project", func() {
-				existingProjects := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Project.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/project.graphqls",
-					existingProjects,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Project.Values
-					})
-			})
-			It("returns correct pod", func() {
-				existingPods := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Pod.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/pod.graphqls",
-					existingPods,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Pod.Values
-					})
-			})
-			It("returns correct container", func() {
-				existingContainers := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Container.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/container.graphqls",
-					existingContainers,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Container.Values
-					})
-			})
-			It("returns correct type", func() {
-				existingTypes := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Type.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/type.graphqls",
-					existingTypes,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						return cifv.Type.Values
-					})
-			})
-			It("returns correct context", func() {
-				existingContexts := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-					return cir.Context.String
-				})
-				queryComponentInstanceFilterAndExpectVal(
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstanceFilter/context.graphqls",
-					existingContexts,
-					func(cifv model.ComponentInstanceFilterValue) []*string {
-						var contextStrings []*string
-						for _, cont := range cifv.Context.Values {
-							contStr := util.ConvertJsonToStrNoError(&cont)
-							contextStrings = append(contextStrings, &contStr)
-						}
-						return contextStrings
-					})
+					"../api/graphql/graph/queryCollection/componentInstanceFilter/supportGroupCcrn.graphqls",
+					nil,
+					nil,
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respData.ComponentInstanceFilterValues.SupportGroupCcrn.Values).To(BeEmpty())
 			})
 		})
-	})
-})
 
-func queryComponentInstanceFilter(port string, gqlQueryFilePath string) model.ComponentInstanceFilterValue {
+		When("the database has 10 entries", func() {
+			var seedCollection *test.SeedCollection
+			BeforeEach(func() {
+				seedCollection = seeder.SeedDbWithNFakeData(10)
+			})
+			Context("and no additional filters are present", func() {
+				It("returns correct ccrn", func() {
+					existingCcrns := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.CCRN.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/ccrn.graphqls",
+						existingCcrns,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Ccrn.Values
+						},
+					)
+				})
+				It("returns correct supportGroupCcrns", func() {
+					existingSupportGroupCcrns := lo.Map(
+						seedCollection.SupportGroupRows,
+						func(s mariadb.SupportGroupRow, index int) string {
+							return s.CCRN.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/supportGroupCcrn.graphqls",
+						existingSupportGroupCcrns,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.SupportGroupCcrn.Values
+						},
+					)
+				})
+				It("returns correct serviceCcrns", func() {
+					existingServiceCcrns := lo.Map(
+						seedCollection.ServiceRows,
+						func(s mariadb.BaseServiceRow, index int) string {
+							return s.CCRN.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/serviceCcrn.graphqls",
+						existingServiceCcrns,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.ServiceCcrn.Values
+						},
+					)
+				})
+				It("returns correct region", func() {
+					existingRegions := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Region.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/region.graphqls",
+						existingRegions,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Region.Values
+						},
+					)
+				})
+				It("returns correct cluster", func() {
+					existingClusters := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Cluster.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/cluster.graphqls",
+						existingClusters,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Cluster.Values
+						},
+					)
+				})
+				It("returns correct namespace", func() {
+					existingNamespaces := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Namespace.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/namespace.graphqls",
+						existingNamespaces,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Namespace.Values
+						},
+					)
+				})
+				It("returns correct domain", func() {
+					existingDomains := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Domain.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/domain.graphqls",
+						existingDomains,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Domain.Values
+						},
+					)
+				})
+				It("returns correct project", func() {
+					existingProjects := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Project.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/project.graphqls",
+						existingProjects,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Project.Values
+						},
+					)
+				})
+				It("returns correct pod", func() {
+					existingPods := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Pod.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/pod.graphqls",
+						existingPods,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Pod.Values
+						})
+				})
+				It("returns correct container", func() {
+					existingContainers := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Container.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/container.graphqls",
+						existingContainers,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Container.Values
+						},
+					)
+				})
+				It("returns correct type", func() {
+					existingTypes := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Type.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/type.graphqls",
+						existingTypes,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							return cifv.Type.Values
+						},
+					)
+				})
+				It("returns correct context", func() {
+					existingContexts := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Context.String
+						},
+					)
+					queryComponentInstanceFilterAndExpectVal(
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstanceFilter/context.graphqls",
+						existingContexts,
+						func(cifv model.ComponentInstanceFilterValue) []*string {
+							var contextStrings []*string
+							for _, cont := range cifv.Context.Values {
+								contStr := util.ConvertJsonToStrNoError(&cont)
+								contextStrings = append(contextStrings, &contStr)
+							}
+							return contextStrings
+						},
+					)
+				})
+			})
+		})
+	},
+)
+
+func queryComponentInstanceFilter(
+	port string,
+	gqlQueryFilePath string,
+) model.ComponentInstanceFilterValue {
 	respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 		ComponentInstanceFilterValues model.ComponentInstanceFilterValue `json:"ComponentInstanceFilterValues"`
 	}](
@@ -255,7 +299,12 @@ func queryComponentInstanceFilter(port string, gqlQueryFilePath string) model.Co
 	return respData.ComponentInstanceFilterValues
 }
 
-func queryComponentInstanceFilterAndExpectVal(port string, gqlQueryFilePath string, expectedVal []string, getRespVal func(cifv model.ComponentInstanceFilterValue) []*string) {
+func queryComponentInstanceFilterAndExpectVal(
+	port string,
+	gqlQueryFilePath string,
+	expectedVal []string,
+	getRespVal func(cifv model.ComponentInstanceFilterValue) []*string,
+) {
 	expectResponseVal(queryComponentInstanceFilter(port, gqlQueryFilePath), expectedVal, getRespVal)
 }
 

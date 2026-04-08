@@ -90,67 +90,103 @@ var _ = Describe("Getting Components via API", Label("e2e", "Components"), func(
 				Expect(len(respData.Components.Edges)).To(Equal(5))
 			})
 		})
-		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-			respData := struct {
-				Components model.ComponentConnection `json:"Components"`
-			}{}
-			BeforeEach(func() {
-				resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Context(
+			"and we query to resolve levels of relations",
+			Label("directRelations.graphql"),
+			func() {
+				respData := struct {
 					Components model.ComponentConnection `json:"Components"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/component/directRelations.graphql",
-					map[string]any{
-						"filter": map[string]string{},
-						"first":  5,
-						"after":  "",
-					},
-					nil,
-				)
+				}{}
+				BeforeEach(func() {
+					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						Components model.ComponentConnection `json:"Components"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/component/directRelations.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
-				Expect(err).ToNot(HaveOccurred())
-				respData = resp
-			})
+					Expect(err).ToNot(HaveOccurred())
+					respData = resp
+				})
 
-			It("- returns the correct result count", func() {
-				Expect(respData.Components.TotalCount).To(Equal(len(seedCollection.ComponentRows)))
-				Expect(len(respData.Components.Edges)).To(Equal(5))
-			})
+				It("- returns the correct result count", func() {
+					Expect(
+						respData.Components.TotalCount,
+					).To(Equal(len(seedCollection.ComponentRows)))
+					Expect(len(respData.Components.Edges)).To(Equal(5))
+				})
 
-			It("- returns the expected content", func() {
-				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
-				// a complete verification
-				// additional checks are added based on bugs discovered during usage
+				It("- returns the expected content", func() {
+					// this just checks partial attributes to check whatever every sub-relation does
+					// resolve some reasonable data and is not doing
+					// a complete verification
+					// additional checks are added based on bugs discovered during usage
 
-				for _, component := range respData.Components.Edges {
-					Expect(component.Node.ID).ToNot(BeNil(), "component has a ID set")
-					Expect(component.Node.Ccrn).ToNot(BeNil(), "component has a CCRN set")
-					Expect(component.Node.Repository).ToNot(BeNil(), "component has a Repository set")
-					Expect(component.Node.Organization).ToNot(BeNil(), "component has an Organization set")
-					Expect(component.Node.URL).ToNot(BeNil(), "component has a URL set")
-					Expect(component.Node.Type).ToNot(BeNil(), "component has a Type set")
+					for _, component := range respData.Components.Edges {
+						Expect(component.Node.ID).ToNot(BeNil(), "component has a ID set")
+						Expect(component.Node.Ccrn).ToNot(BeNil(), "component has a CCRN set")
+						Expect(
+							component.Node.Repository,
+						).ToNot(BeNil(), "component has a Repository set")
+						Expect(
+							component.Node.Organization,
+						).ToNot(BeNil(), "component has an Organization set")
+						Expect(component.Node.URL).ToNot(BeNil(), "component has a URL set")
+						Expect(component.Node.Type).ToNot(BeNil(), "component has a Type set")
 
-					for _, cv := range component.Node.ComponentVersions.Edges {
-						Expect(cv.Node.ID).ToNot(BeNil(), "componentVersion has a ID set")
-						Expect(cv.Node.Version).ToNot(BeNil(), "componentVersion has a version set")
-						Expect(cv.Node.ComponentID).ToNot(BeNil(), "componentVersion has a componentId set")
+						for _, cv := range component.Node.ComponentVersions.Edges {
+							Expect(cv.Node.ID).ToNot(BeNil(), "componentVersion has a ID set")
+							Expect(
+								cv.Node.Version,
+							).ToNot(BeNil(), "componentVersion has a version set")
+							Expect(
+								cv.Node.ComponentID,
+							).ToNot(BeNil(), "componentVersion has a componentId set")
 
-						_, cvFound := lo.Find(seedCollection.ComponentVersionRows, func(row mariadb.ComponentVersionRow) bool {
-							return fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && // correct component version
-								fmt.Sprintf("%d", row.ComponentId.Int64) == component.Node.ID // belongs actually to the component
-						})
-						Expect(cvFound).To(BeTrue(), "attached componentVersion does exist and belongs to component")
+							_, cvFound := lo.Find(
+								seedCollection.ComponentVersionRows,
+								func(row mariadb.ComponentVersionRow) bool {
+									return fmt.Sprintf(
+										"%d",
+										row.Id.Int64,
+									) == cv.Node.ID && // correct component version
+										fmt.Sprintf(
+											"%d",
+											row.ComponentId.Int64,
+										) == component.Node.ID // belongs actually to the component
+								},
+							)
+							Expect(
+								cvFound,
+							).To(BeTrue(), "attached componentVersion does exist and belongs to component")
+						}
 					}
-				}
-			})
-			It("- returns the expected PageInfo", func() {
-				Expect(*respData.Components.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
-				Expect(*respData.Components.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
-				Expect(respData.Components.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-				Expect(len(respData.Components.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
-				Expect(*respData.Components.PageInfo.PageNumber).To(Equal(1), "Correct page number")
-			})
-		})
+				})
+				It("- returns the expected PageInfo", func() {
+					Expect(
+						*respData.Components.PageInfo.HasNextPage,
+					).To(BeTrue(), "hasNextPage is set")
+					Expect(
+						*respData.Components.PageInfo.HasPreviousPage,
+					).To(BeFalse(), "hasPreviousPage is set")
+					Expect(
+						respData.Components.PageInfo.NextPageAfter,
+					).ToNot(BeNil(), "nextPageAfter is set")
+					Expect(
+						len(respData.Components.PageInfo.Pages),
+					).To(Equal(2), "Correct amount of pages")
+					Expect(
+						*respData.Components.PageInfo.PageNumber,
+					).To(Equal(1), "Correct page number")
+				})
+			},
+		)
 	})
 })
 

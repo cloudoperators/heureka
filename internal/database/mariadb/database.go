@@ -38,7 +38,9 @@ func NewSqlDatabase(cfg util.Config) (*SqlDatabase, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.Exec(fmt.Sprintf("USE %s", cfg.DBName))
+
+	_, _ = db.Exec(fmt.Sprintf("USE %s", cfg.DBName))
+
 	return &SqlDatabase{
 		db:                    db,
 		defaultIssuePriority:  cfg.DefaultIssuePriority,
@@ -60,8 +62,9 @@ func (s *SqlDatabase) ConnectDB(dbName string) error {
 func (s *SqlDatabase) connectDB() error {
 	_, err := s.db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s ; USE %s", s.dbName, s.dbName))
 	if err != nil {
-		return fmt.Errorf("Could not use database '%s'. %w", s.dbName, err)
+		return fmt.Errorf("could not use database '%s'. %w", s.dbName, err)
 	}
+
 	return nil
 }
 
@@ -70,7 +73,9 @@ func (s *SqlDatabase) GrantAccess(username string, database string, host string)
 	if err != nil {
 		return err
 	}
+
 	_, err = s.db.Exec(fmt.Sprintf("GRANT ALL ON %s.* TO '%s'@'%s';", database, username, host))
+
 	return err
 }
 
@@ -86,13 +91,16 @@ func (s *SqlDatabase) GetDefaultRepositoryName() string {
 func combineFilterQueries(filterQueries []string, op string) string {
 	filterStr := ""
 	i := 0
+
 	for _, f := range filterQueries {
 		if f == "" {
 			continue
 		}
+
 		if i > 0 {
 			filterStr = fmt.Sprintf(FILTER_FORMAT_STR, filterStr, op)
 		}
+
 		filterStr = fmt.Sprintf(FILTER_FORMAT_STR, filterStr, f)
 		i += 1
 	}
@@ -107,10 +115,12 @@ func combineFilterQueries(filterQueries []string, op string) string {
 
 func buildFilterQuery[T any](filter []T, expr string, op string) string {
 	filterStr := ""
+
 	for i := range filter {
 		if i > 0 {
 			filterStr = fmt.Sprintf(FILTER_FORMAT_STR, filterStr, op)
 		}
+
 		filterStr = fmt.Sprintf(FILTER_FORMAT_STR, filterStr, expr)
 	}
 
@@ -122,16 +132,17 @@ func buildFilterQuery[T any](filter []T, expr string, op string) string {
 	return filterStr
 }
 
-func buildQueryParameters[T any](params []interface{}, filter []T) []interface{} {
+func buildQueryParameters[T any](params []any, filter []T) []any {
 	return buildQueryParametersCount(params, filter, 1)
 }
 
-func buildQueryParametersCount[T any](params []interface{}, filter []T, count int) []interface{} {
+func buildQueryParametersCount[T any](params []any, filter []T, count int) []any {
 	for _, item := range filter {
-		for i := 0; i < count; i++ {
+		for range count {
 			params = append(params, item)
 		}
 	}
+
 	return params
 }
 
@@ -148,6 +159,7 @@ func performInsert[T any](s *SqlDatabase, query string, item T, l *logrus.Entry)
 			logrus.Fields{
 				"error": err,
 			}).Error(msg)
+
 		return -1, fmt.Errorf("%s", msg)
 	}
 
@@ -168,23 +180,35 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 				"error": err,
 				"query": query,
 			}).Error(msg)
+
 		return nil, fmt.Errorf("%s", msg)
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
+
 	res, err := stmt.Exec(item)
 	if err != nil {
 		l.WithFields(
 			logrus.Fields{
 				"error": err,
 			}).Error(err.Error())
+
 		return nil, err
 	}
 
 	return res, nil
 }
 
-func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt Stmt, filterParameters []interface{}, l *logrus.Entry, listBuilder func([]E, T) []E) ([]E, error) {
+func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
+	stmt Stmt,
+	filterParameters []any,
+	l *logrus.Entry,
+	listBuilder func([]E, T) []E,
+) ([]E, error) {
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		msg := "Error while performing Query from prepared Statement"
@@ -193,13 +217,21 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt S
 				"error":      err.Error(),
 				"parameters": filterParameters,
 			}).Error(msg)
+
 		return nil, fmt.Errorf("%s", msg)
 	}
 
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
+
 	var listEntries []E
+
 	for rows.Next() {
 		var row T
+
 		err := rows.StructScan(&row)
 		if err != nil {
 			msg := "Error while scanning struct"
@@ -209,13 +241,13 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt S
 					"error":           err.Error(),
 					"returnedColumns": cols,
 				}).Error(msg)
+
 			return nil, fmt.Errorf("%s", msg)
 		}
 
 		listEntries = listBuilder(listEntries, row)
 	}
 
-	rows.Close()
 	l.WithFields(
 		logrus.Fields{
 			"count": len(listEntries),
@@ -224,7 +256,7 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](stmt S
 	return listEntries, nil
 }
 
-func performIdScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry) ([]int64, error) {
+func performIdScan(stmt Stmt, filterParameters []any, l *logrus.Entry) ([]int64, error) {
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		msg := "Error while performing query with prepared Statement"
@@ -237,11 +269,18 @@ func performIdScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry) (
 
 		return make([]int64, 0), fmt.Errorf("%s", msg)
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	var listEntries []int64
+
 	for rows.Next() {
 		var row int64
+
 		err = rows.Scan(&row)
 		if err != nil {
 			msg := "Error while scanning into in64"
@@ -251,11 +290,13 @@ func performIdScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry) (
 					"error":           err,
 					"returnedColumns": cols,
 				}).Error(msg)
+
 			return make([]int64, 0), fmt.Errorf("%s", msg)
 		}
 
 		listEntries = append(listEntries, row)
 	}
+
 	l.WithFields(
 		logrus.Fields{
 			"id_count": len(listEntries),
@@ -264,7 +305,7 @@ func performIdScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry) (
 	return listEntries, nil
 }
 
-func performCountScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry) (int64, error) {
+func performCountScan(stmt Stmt, filterParameters []any, l *logrus.Entry) (int64, error) {
 	rows, err := stmt.Queryx(filterParameters...)
 	if err != nil {
 		msg := "Error while performing query with prepared Statement"
@@ -277,10 +318,17 @@ func performCountScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry
 
 		return -1, fmt.Errorf("%s", msg)
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	rows.Next()
+
 	var row int64
+
 	err = rows.Scan(&row)
 	if err != nil {
 		msg := "Error while scanning into in64"
@@ -290,6 +338,7 @@ func performCountScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry
 				"error":           err,
 				"returnedColumns": cols,
 			}).Error(msg)
+
 		return -1, fmt.Errorf("%s", msg)
 	}
 
@@ -301,7 +350,11 @@ func performCountScan(stmt Stmt, filterParameters []interface{}, l *logrus.Entry
 	return row, nil
 }
 
-func GetDefaultOrder(order []entity.Order, by entity.OrderByField, direction entity.OrderDirection) []entity.Order {
+func GetDefaultOrder(
+	order []entity.Order,
+	by entity.OrderByField,
+	direction entity.OrderDirection,
+) []entity.Order {
 	if len(order) == 0 {
 		order = append([]entity.Order{{By: by, Direction: direction}}, order...)
 	}
@@ -315,36 +368,50 @@ func buildStateFilterQuery(state []entity.StateFilterType, prefix string) string
 		stateQueries = append(stateQueries, fmt.Sprintf("%s_deleted_at IS NULL", prefix))
 	} else {
 		for i := range state {
-			if state[i] == entity.Active {
+			switch state[i] {
+			case entity.Active:
 				stateQueries = append(stateQueries, fmt.Sprintf("%s_deleted_at IS NULL", prefix))
-			} else if state[i] == entity.Deleted {
-				stateQueries = append(stateQueries, fmt.Sprintf("%s_deleted_at IS NOT NULL", prefix))
+			case entity.Deleted:
+				stateQueries = append(
+					stateQueries,
+					fmt.Sprintf("%s_deleted_at IS NOT NULL", prefix),
+				)
 			}
 		}
 	}
+
 	return combineFilterQueries(stateQueries, OP_OR)
 }
 
 func buildJsonFilterQuery(filter []*entity.Json, column string, op string) string {
 	var conFilQueries []string
+
 	for _, conFil := range filter {
 		attrs := util.SeparateJsonAttributes(*conFil)
+
 		var queries []string
 		for _, conAttr := range attrs {
-			queries = append(queries, fmt.Sprintf("JSON_VALUE(%s, '$.%s') = ?", column, conAttr.Key))
+			queries = append(
+				queries,
+				fmt.Sprintf("JSON_VALUE(%s, '$.%s') = ?", column, conAttr.Key),
+			)
 		}
+
 		conFilQueries = append(conFilQueries, combineFilterQueries(queries, OP_AND))
 	}
+
 	return combineFilterQueries(conFilQueries, op)
 }
 
-func buildJsonQueryParameters(params []interface{}, filter []*entity.Json) []interface{} {
-	var conQueryParams []interface{}
+func buildJsonQueryParameters(params []any, filter []*entity.Json) []any {
+	var conQueryParams []any
+
 	for _, conFil := range filter {
 		attrs := util.SeparateJsonAttributes(*conFil)
 		for _, conAttr := range attrs {
 			conQueryParams = append(conQueryParams, conAttr.Attr)
 		}
 	}
+
 	return buildQueryParameters(params, conQueryParams)
 }

@@ -33,7 +33,11 @@ type Processor struct {
 }
 
 func NewProcessor(cfg Config, tag string) *Processor {
-	httpClient := util.NewRateLimitedHTTPClient(rate.Limit(cfg.HeurekaRateLimit), cfg.HeurekaRateBurst, nil)
+	httpClient := util.NewRateLimitedHTTPClient(
+		rate.Limit(cfg.HeurekaRateLimit),
+		cfg.HeurekaRateBurst,
+		nil,
+	)
 	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	return &Processor{
 		Client:              &gClient,
@@ -50,7 +54,11 @@ func (p *Processor) Setup() error {
 	queryFilter := client.IssueRepositoryFilter{
 		Name: []string{p.IssueRepositoryName},
 	}
-	listRepositoriesResp, err := client.GetIssueRepositories(context.TODO(), *p.Client, &queryFilter)
+	listRepositoriesResp, err := client.GetIssueRepositories(
+		context.TODO(),
+		*p.Client,
+		&queryFilter,
+	)
 	if err != nil {
 		return err
 	}
@@ -63,7 +71,11 @@ func (p *Processor) Setup() error {
 			Name: p.IssueRepositoryName,
 			Url:  p.IssueRepositoryUrl,
 		}
-		issueMutationResp, err := client.CreateIssueRepository(context.TODO(), *p.Client, &issueRepositoryInput)
+		issueMutationResp, err := client.CreateIssueRepository(
+			context.TODO(),
+			*p.Client,
+			&issueRepositoryInput,
+		)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -100,7 +112,11 @@ func (p *Processor) CompleteScannerRun(ctx context.Context) error {
 	return err
 }
 
-func (p *Processor) ProcessRepository(registry string, account models.Account, repository models.Repository) (*client.Component, error) {
+func (p *Processor) ProcessRepository(
+	registry string,
+	account models.Account,
+	repository models.Repository,
+) (*client.Component, error) {
 	r, err := client.CreateComponent(context.Background(), *p.Client, &client.ComponentInput{
 		Ccrn:         fmt.Sprintf("%s/%s/%s", registry, account.Name, repository.Name),
 		Organization: account.Name,
@@ -122,12 +138,19 @@ func (p *Processor) ProcessRepository(registry string, account models.Account, r
 	return component, nil
 }
 
-func (p *Processor) ProcessManifest(manifest models.Manifest, componentId string) (*client.ComponentVersion, error) {
-	r, err := client.CreateComponentVersion(context.Background(), *p.Client, &client.ComponentVersionInput{
-		Version:     manifest.Digest,
-		ComponentId: componentId,
-		EndOfLife:   manifest.VulnerabilityStatus == RottenVulnerabilityStatus,
-	})
+func (p *Processor) ProcessManifest(
+	manifest models.Manifest,
+	componentId string,
+) (*client.ComponentVersion, error) {
+	r, err := client.CreateComponentVersion(
+		context.Background(),
+		*p.Client,
+		&client.ComponentVersionInput{
+			Version:     manifest.Digest,
+			ComponentId: componentId,
+			EndOfLife:   manifest.VulnerabilityStatus == RottenVulnerabilityStatus,
+		},
+	)
 	if err != nil {
 		log.WithError(err).Error("Error while creating component")
 		return nil, err
@@ -178,13 +201,24 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 						cvssVector = vulnerability.CVSS["nvd"].V3Vector
 					}
 				}
-				_, err = p.CreateIssueVariant(vulnerability.VulnerabilityID, vulnerability.Description, issue.Id, cvssVector, vulnerability.Severity)
+				_, err = p.CreateIssueVariant(
+					vulnerability.VulnerabilityID,
+					vulnerability.Description,
+					issue.Id,
+					cvssVector,
+					vulnerability.Severity,
+				)
 				if err != nil {
 					log.Error(err)
 					continue
 				}
 			}
-			_, err = client.AddComponentVersionToIssue(context.Background(), *p.Client, issue.Id, componentVersionId)
+			_, err = client.AddComponentVersionToIssue(
+				context.Background(),
+				*p.Client,
+				issue.Id,
+				componentVersionId,
+			)
 
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -201,9 +235,14 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 	}
 
 	if report.Metadata.OS.Eosl {
-		_, err := client.UpdateComponentVersion(context.Background(), *p.Client, componentVersionId, &client.ComponentVersionInput{
-			EndOfLife: true,
-		})
+		_, err := client.UpdateComponentVersion(
+			context.Background(),
+			*p.Client,
+			componentVersionId,
+			&client.ComponentVersionInput{
+				EndOfLife: true,
+			},
+		)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"componentVersionId": componentVersionId,
@@ -215,13 +254,22 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 // GetAllComponents will fetch all available Components using pagination.
 // pageSize specifies how many object we want to fetch in a row. Then we use cursor
 // to fetch the next batch.
-func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize int) ([]*client.ComponentAggregate, error) {
+func (p *Processor) GetAllComponents(
+	filter *client.ComponentFilter,
+	pageSize int,
+) ([]*client.ComponentAggregate, error) {
 	var allComponents []*client.ComponentAggregate
 	cursor := "" // Set initial cursor to ""
 
 	for {
 		// ListComponents also returns the ComponentVersions of each Component
-		listComponentsResp, err := client.ListComponents(context.Background(), *p.Client, filter, pageSize, cursor)
+		listComponentsResp, err := client.ListComponents(
+			context.Background(),
+			*p.Client,
+			filter,
+			pageSize,
+			cursor,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("cannot list Components: %w", err)
 		}
@@ -245,9 +293,13 @@ func (p *Processor) GetAllComponents(filter *client.ComponentFilter, pageSize in
 }
 
 func (p *Processor) GetComponentVersions(componentId string) ([]*client.ComponentVersion, error) {
-	listCompVersionResp, err := client.ListComponentVersions(context.Background(), *p.Client, &client.ComponentVersionFilter{
-		ComponentId: []string{componentId},
-	})
+	listCompVersionResp, err := client.ListComponentVersions(
+		context.Background(),
+		*p.Client,
+		&client.ComponentVersionFilter{
+			ComponentId: []string{componentId},
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("cannot list ComponentVersions: %w", err)
 	}
@@ -299,7 +351,13 @@ func (p *Processor) CreateIssue(primaryName string, description string) (*client
 	return issue, nil
 }
 
-func (p *Processor) CreateIssueVariant(secondaryName string, description string, issueId string, vector string, severity string) (*client.IssueVariant, error) {
+func (p *Processor) CreateIssueVariant(
+	secondaryName string,
+	description string,
+	issueId string,
+	vector string,
+	severity string,
+) (*client.IssueVariant, error) {
 	severityValue := models.GetSeverityValue(severity)
 	r, err := client.CreateIssueVariant(context.Background(), *p.Client, &client.IssueVariantInput{
 		SecondaryName:     secondaryName,
@@ -313,7 +371,13 @@ func (p *Processor) CreateIssueVariant(secondaryName string, description string,
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("secondaryName: %s, issueId: %s, severity: %s %w", secondaryName, issueId, severity, err)
+		return nil, fmt.Errorf(
+			"secondaryName: %s, issueId: %s, severity: %s %w",
+			secondaryName,
+			issueId,
+			severity,
+			err,
+		)
 	}
 
 	issueVariant := r.GetCreateIssueVariant()

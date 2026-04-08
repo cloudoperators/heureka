@@ -13,7 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func SingleUserBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.User, error) {
+func SingleUserBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	parent *model.NodeParent,
+) (*model.User, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -38,7 +42,10 @@ func SingleUserBaseResolver(app app.Heureka, ctx context.Context, parent *model.
 
 	// unexpected number of results (should at most be 1)
 	if len(users.Elements) > 1 {
-		return nil, NewResolverError("SingleUserBaseResolver", "Internal Error - found multiple users")
+		return nil, NewResolverError(
+			"SingleUserBaseResolver",
+			"Internal Error - found multiple users",
+		)
 	}
 
 	// not found
@@ -46,27 +53,44 @@ func SingleUserBaseResolver(app app.Heureka, ctx context.Context, parent *model.
 		return nil, nil
 	}
 
-	var ur entity.UserResult = users.Elements[0]
+	ur := users.Elements[0]
+
 	user := model.NewUser(ur.User)
 
 	return &user, nil
 }
 
-func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFilter, first *int, after *string, parent *model.NodeParent) (*model.UserConnection, error) {
+func UserBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.UserFilter,
+	first *int,
+	after *string,
+	parent *model.NodeParent,
+) (*model.UserConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called UserBaseResolver")
 
-	var supportGroupId []*int64
-	var serviceId []*int64
+	var (
+		supportGroupId []*int64
+		serviceId      []*int64
+	)
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("UserBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("UserBaseResolver", "Bad Request - Error while parsing propagated ID")
+			logrus.WithField("parent", parent).
+				Error("UserBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, NewResolverError(
+				"UserBaseResolver",
+				"Bad Request - Error while parsing propagated ID",
+			)
 		}
 
 		switch parent.ParentName {
@@ -98,6 +122,7 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 	}
 
 	edges := []*model.UserEdge{}
+
 	for _, result := range users.Elements {
 		user := model.NewUser(result.User)
 		edge := model.UserEdge{
@@ -121,7 +146,11 @@ func UserBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFi
 	return &connection, nil
 }
 
-func UserNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFilter) (*model.FilterItem, error) {
+func UserNameBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.UserFilter,
+) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -159,7 +188,11 @@ func UserNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.Us
 	return &filterItem, nil
 }
 
-func UniqueUserIDBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFilter) (*model.FilterItem, error) {
+func UniqueUserIDBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.UserFilter,
+) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -197,7 +230,11 @@ func UniqueUserIDBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	return &filterItem, nil
 }
 
-func UserNameWithIdBaseResolver(app app.Heureka, ctx context.Context, filter *model.UserFilter) (*model.FilterValueItem, error) {
+func UserNameWithIdBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.UserFilter,
+) (*model.FilterValueItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,

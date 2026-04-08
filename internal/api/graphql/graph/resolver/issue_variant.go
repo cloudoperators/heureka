@@ -18,7 +18,10 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *issueVariantResolver) IssueRepository(ctx context.Context, obj *model.IssueVariant) (*model.IssueRepository, error) {
+func (r *issueVariantResolver) IssueRepository(
+	ctx context.Context,
+	obj *model.IssueVariant,
+) (*model.IssueRepository, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueRepositoryID})
 	if err != nil {
 		logrus.WithField("obj", obj).Error("IssueVariantResolver: Error while parsing childIds'")
@@ -32,7 +35,10 @@ func (r *issueVariantResolver) IssueRepository(ctx context.Context, obj *model.I
 	})
 }
 
-func (r *issueVariantResolver) Issue(ctx context.Context, obj *model.IssueVariant) (*model.Issue, error) {
+func (r *issueVariantResolver) Issue(
+	ctx context.Context,
+	obj *model.IssueVariant,
+) (*model.Issue, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueID})
 	if err != nil {
 		logrus.WithField("obj", obj).Error("IssueVariantResolver: Error while parsing childIds'")

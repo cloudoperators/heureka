@@ -47,6 +47,7 @@ func NewCacheBase(ctx context.Context, wg *sync.WaitGroup, config CacheConfig) *
 	cb := CacheBase{keyHash: config.KeyHash, ctx: ctx, wg: wg}
 	cb.initConcurrentRefreshLimit(config)
 	cb.initRateRefreshLimit(config)
+
 	return &cb
 }
 
@@ -60,7 +61,10 @@ func (cb *CacheBase) initConcurrentRefreshLimit(config CacheConfig) {
 
 func (cb *CacheBase) initRateRefreshLimit(config CacheConfig) {
 	if config.ThrottleInterval > 0 {
-		cb.refreshLimiter = rate.NewLimiter(rate.Every(config.ThrottleInterval), config.ThrottlePerInterval)
+		cb.refreshLimiter = rate.NewLimiter(
+			rate.Every(config.ThrottleInterval),
+			config.ThrottlePerInterval,
+		)
 	}
 }
 
@@ -68,16 +72,17 @@ func (cb *CacheBase) startMonitorIfNeeded(interval time.Duration) {
 	if interval <= 0 {
 		return
 	}
+
 	cb.monitorOnce.Do(func() {
 		l := logrus.New()
+
 		cb.monitorMu.Lock()
 		defer cb.monitorMu.Unlock()
 
-		cb.wg.Add(1)
-		go func() {
-			defer cb.wg.Done()
+		cb.wg.Go(func() {
 			l.Info("Monitoring started with interval: ", interval)
 			ticker := time.NewTicker(interval)
+
 			for {
 				select {
 				case <-cb.ctx.Done():
@@ -87,62 +92,67 @@ func (cb *CacheBase) startMonitorIfNeeded(interval time.Duration) {
 					l.Info(StatStr(cb.GetStat()))
 				}
 			}
-		}()
+		})
 	})
 }
 
 func (cb *CacheBase) IncHit() {
 	cb.statMu.Lock()
 	defer cb.statMu.Unlock()
+
 	cb.stat.Hit = cb.stat.Hit + 1
 }
 
 func (cb *CacheBase) IncMiss() {
 	cb.statMu.Lock()
 	defer cb.statMu.Unlock()
+
 	cb.stat.Miss = cb.stat.Miss + 1
 }
 
 func (cb *CacheBase) IncShared() {
 	cb.statMu.Lock()
 	defer cb.statMu.Unlock()
+
 	cb.stat.Shared = cb.stat.Shared + 1
 }
 
 func (cb *CacheBase) GetStat() Stat {
 	cb.statMu.RLock()
 	defer cb.statMu.RUnlock()
+
 	return cb.stat
 }
 
-func (cb CacheBase) EncodeKey(key string) string {
-	if cb.keyHash == KEY_HASH_SHA256 {
+func (cb *CacheBase) EncodeKey(key string) string {
+	switch cb.keyHash {
+	case KEY_HASH_SHA256:
 		return encodeSHA256(key)
-	} else if cb.keyHash == KEY_HASH_SHA512 {
+	case KEY_HASH_SHA512:
 		return encodeSHA512(key)
-	} else if cb.keyHash == KEY_HASH_HEX {
+	case KEY_HASH_HEX:
 		return encodeHex(key)
-	} else if cb.keyHash == KEY_HASH_NONE {
+	case KEY_HASH_NONE:
 		return key
 	}
+
 	return encodeBase64(key)
 }
 
-func (cb CacheBase) CacheKey(fnname string, fn interface{}, args ...interface{}) (string, error) {
+func (cb *CacheBase) CacheKey(fnname string, fn any, args ...any) (string, error) {
 	key, err := cacheKeyJson(fnname, fn, args...)
 	if err != nil {
-		return "", fmt.Errorf("Cache: could not create json cache key.")
+		return "", fmt.Errorf("cache: could not create json cache key")
 	}
+
 	return cb.EncodeKey(key), nil
 }
 
 func (cb *CacheBase) launchRefreshWithThrottling(fn func()) {
 	if cb.refreshLimiter == nil || cb.refreshLimiter.Allow() {
-		cb.wg.Add(1)
-		go func() {
-			defer cb.wg.Done()
+		cb.wg.Go(func() {
 			fn()
-		}()
+		})
 	}
 }
 
@@ -166,14 +176,15 @@ func (cb *CacheBase) GetSingleflightWrapper() SingleflightWrapper {
 	return &cb.singleflightWrapper
 }
 
-func cacheKeyJson(fnname string, fn interface{}, args ...interface{}) (string, error) {
-	keyParts := make([]interface{}, 0, len(args)+1)
+func cacheKeyJson(fnname string, fn any, args ...any) (string, error) {
+	keyParts := make([]any, 0, len(args)+1)
 	keyParts = append(keyParts, fnname)
 
 	for i, arg := range args {
 		if !isJSONSerializable(arg) {
 			return "", fmt.Errorf("argument %d is not JSON serializable: %T", i, arg)
 		}
+
 		keyParts = append(keyParts, arg)
 	}
 
@@ -186,16 +197,24 @@ func cacheKeyJson(fnname string, fn interface{}, args ...interface{}) (string, e
 	return string(jsonKey), nil
 }
 
-func isJSONSerializable(val interface{}) bool {
+func isJSONSerializable(val any) bool {
 	_, err := json.Marshal(val)
 	return err == nil
 }
 
 func StatStr(stat Stat) string {
 	var hmr float32
+
 	total := stat.Hit + stat.Miss
 	if total > 0 {
 		hmr = float32(stat.Hit) / float32(total)
 	}
-	return fmt.Sprintf("hit: %d, miss: %d, h/(h+m): %f [shared: %d]", stat.Hit, stat.Miss, hmr, stat.Shared)
+
+	return fmt.Sprintf(
+		"hit: %d, miss: %d, h/(h+m): %f [shared: %d]",
+		stat.Hit,
+		stat.Miss,
+		hmr,
+		stat.Shared,
+	)
 }

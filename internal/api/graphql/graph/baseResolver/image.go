@@ -16,7 +16,13 @@ import (
 // ImageBaseResolver retrieves a list of images based for a specific service.
 // It's designed for the Image List View in the UI
 // - Default ordering is by Vulnerability Count (descending) and Repository (ascending)
-func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.ImageFilter, first *int, after *string) (*model.ImageConnection, error) {
+func ImageBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ImageFilter,
+	first *int,
+	after *string,
+) (*model.ImageConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -35,12 +41,28 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 	opt := GetListOptions(requestedFields)
 	// Set default ordering
 	if lo.Contains(requestedFields, "edges.node.vulnerabilities") {
-		opt.Order = append(opt.Order, entity.Order{By: entity.CriticalCount, Direction: entity.OrderDirectionDesc})
-		opt.Order = append(opt.Order, entity.Order{By: entity.HighCount, Direction: entity.OrderDirectionDesc})
-		opt.Order = append(opt.Order, entity.Order{By: entity.MediumCount, Direction: entity.OrderDirectionDesc})
-		opt.Order = append(opt.Order, entity.Order{By: entity.LowCount, Direction: entity.OrderDirectionDesc})
-		opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: entity.OrderDirectionDesc})
+		opt.Order = append(
+			opt.Order,
+			entity.Order{By: entity.CriticalCount, Direction: entity.OrderDirectionDesc},
+		)
+		opt.Order = append(
+			opt.Order,
+			entity.Order{By: entity.HighCount, Direction: entity.OrderDirectionDesc},
+		)
+		opt.Order = append(
+			opt.Order,
+			entity.Order{By: entity.MediumCount, Direction: entity.OrderDirectionDesc},
+		)
+		opt.Order = append(
+			opt.Order,
+			entity.Order{By: entity.LowCount, Direction: entity.OrderDirectionDesc},
+		)
+		opt.Order = append(
+			opt.Order,
+			entity.Order{By: entity.NoneCount, Direction: entity.OrderDirectionDesc},
+		)
 	}
+
 	opt.Order = append(opt.Order, entity.Order{
 		By:        entity.ComponentRepository,
 		Direction: entity.OrderDirectionAsc,
@@ -52,6 +74,7 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 	}
 
 	edges := []*model.ImageEdge{}
+
 	for _, result := range components.Elements {
 		image := model.NewImage(result.Component)
 		edge := model.ImageEdge{
@@ -77,10 +100,12 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 			ServiceCCRN: filter.Service,
 			Repository:  filter.Repository,
 		}
+
 		counts, err := app.GetComponentVulnerabilityCounts(icFilter)
 		if err != nil {
 			return nil, NewResolverError("ImageBaseResolver", err.Error())
 		}
+
 		var severityCounts model.SeverityCounts
 		for _, c := range counts {
 			severityCounts.Critical += int(c.Critical)
@@ -90,6 +115,7 @@ func ImageBaseResolver(app app.Heureka, ctx context.Context, filter *model.Image
 			severityCounts.None += int(c.None)
 			severityCounts.Total += int(c.Total)
 		}
+
 		connection.Counts = &severityCounts
 	}
 

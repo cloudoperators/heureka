@@ -16,18 +16,39 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *supportGroupResolver) Users(ctx context.Context, obj *model.SupportGroup, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error) {
+func (r *supportGroupResolver) Users(
+	ctx context.Context,
+	obj *model.SupportGroup,
+	filter *model.UserFilter,
+	first *int,
+	after *string,
+) (*model.UserConnection, error) {
 	return baseResolver.UserBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.SupportGroupNodeName,
 	})
 }
 
-func (r *supportGroupResolver) Services(ctx context.Context, obj *model.SupportGroup, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
-	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.SupportGroupNodeName,
-	})
+func (r *supportGroupResolver) Services(
+	ctx context.Context,
+	obj *model.SupportGroup,
+	filter *model.ServiceFilter,
+	first *int,
+	after *string,
+	orderBy []*model.ServiceOrderBy,
+) (*model.ServiceConnection, error) {
+	return baseResolver.ServiceBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		orderBy,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.SupportGroupNodeName,
+		},
+	)
 }
 
 func (r *Resolver) SupportGroup() graph.SupportGroupResolver { return &supportGroupResolver{r} }

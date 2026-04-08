@@ -303,10 +303,12 @@ type VendorComment struct {
 }
 
 type CveFilter struct {
-	// both pubStartDate and pubEndDate are required. The maximum allowable range when using any date range parameters is 120 consecutive days.
+	// both pubStartDate and pubEndDate are required. The maximum allowable range when using any
+	// date range parameters is 120 consecutive days.
 	PubStartDate string
 	PubEndDate   string
-	//  both lastModStartDate and lastModEndDate are required. The maximum allowable range when using any date range parameters is 120 consecutive days.
+	// both lastModStartDate and lastModEndDate are required. The maximum allowable range when using
+	// any date range parameters is 120 consecutive days.
 	ModStartDate string
 	ModEndDate   string
 }

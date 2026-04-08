@@ -19,10 +19,12 @@ func (r *RateLimitedRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 	if err != nil {
 		return nil, err
 	}
+
 	base := r.Base
 	if base == nil {
 		base = http.DefaultTransport
 	}
+
 	return base.RoundTrip(req)
 }
 

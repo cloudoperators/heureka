@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: go fmt via make
+        entry: make fmt
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: go-lint
+        name: go lint via make
+        entry: make lint
+        language: system
+        types: [go]
+        pass_filenames: false

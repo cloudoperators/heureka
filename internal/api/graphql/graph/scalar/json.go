@@ -41,10 +41,12 @@ func (m *Json) UnmarshalGQL(v any) error {
 		return nil
 	case string:
 		jsonVal := util.ConvertStrToJsonNoError(&val)
-		*m = Json(*jsonVal)
 		if jsonVal == nil {
 			return fmt.Errorf("cannot unmarshal %T into Json", v)
 		}
+
+		*m = Json(*jsonVal)
+
 		return nil
 	default:
 		return fmt.Errorf("cannot unmarshal %T into Json", v)
@@ -80,6 +82,7 @@ func UnmarshalJson(v any) (map[string]any, error) {
 		if jsonVal == nil {
 			return nil, fmt.Errorf("cannot unmarshal %T into Map", v)
 		}
+
 		return *jsonVal, nil
 	default:
 		return nil, fmt.Errorf("cannot unmarshal %T into map[string]any", v)

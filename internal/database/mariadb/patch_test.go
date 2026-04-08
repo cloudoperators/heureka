@@ -70,12 +70,24 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.PatchRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.ServiceId).Should(BeEquivalentTo(row.ServiceId.Int64), "ServiceId should match")
-									Expect(r.ServiceName).Should(BeEquivalentTo(row.ServiceName.String), "ServiceName should match")
-									Expect(r.ComponentVersionId).Should(BeEquivalentTo(row.ComponentVersionId.Int64), "ComponentVersionId should match")
-									Expect(r.ComponentVersionName).Should(BeEquivalentTo(row.ComponentVersionName.String), "ComponentVersionName should match")
-									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
-									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
+									Expect(
+										r.ServiceId,
+									).Should(BeEquivalentTo(row.ServiceId.Int64), "ServiceId should match")
+									Expect(
+										r.ServiceName,
+									).Should(BeEquivalentTo(row.ServiceName.String), "ServiceName should match")
+									Expect(
+										r.ComponentVersionId,
+									).Should(BeEquivalentTo(row.ComponentVersionId.Int64), "ComponentVersionId should match")
+									Expect(
+										r.ComponentVersionName,
+									).Should(BeEquivalentTo(row.ComponentVersionName.String), "ComponentVersionName should match")
+									Expect(
+										r.CreatedAt,
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
+									Expect(
+										r.UpdatedAt,
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
 							}
 						}
@@ -137,7 +149,9 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 				})
 				It("can filter by a component version id", func() {
 					row := seedCollection.PatchRows[rand.Intn(len(seedCollection.PatchRows))]
-					filter := &entity.PatchFilter{ComponentVersionId: []*int64{&row.ComponentVersionId.Int64}}
+					filter := &entity.PatchFilter{
+						ComponentVersionId: []*int64{&row.ComponentVersionId.Int64},
+					}
 
 					entries, err := db.GetPatches(filter, nil)
 
@@ -149,13 +163,17 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					})
 					By("returning entries include the component version id", func() {
 						for _, entry := range entries {
-							Expect(entry.ComponentVersionId).To(BeEquivalentTo(row.ComponentVersionId.Int64))
+							Expect(
+								entry.ComponentVersionId,
+							).To(BeEquivalentTo(row.ComponentVersionId.Int64))
 						}
 					})
 				})
 				It("can filter by a component version name", func() {
 					row := seedCollection.PatchRows[rand.Intn(len(seedCollection.PatchRows))]
-					filter := &entity.PatchFilter{ComponentVersionName: []*string{&row.ComponentVersionName.String}}
+					filter := &entity.PatchFilter{
+						ComponentVersionName: []*string{&row.ComponentVersionName.String},
+					}
 
 					entries, err := db.GetPatches(filter, nil)
 
@@ -167,7 +185,9 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					})
 					By("returning entries include the component version name", func() {
 						for _, entry := range entries {
-							Expect(entry.ComponentVersionName).To(BeEquivalentTo(row.ComponentVersionName.String))
+							Expect(
+								entry.ComponentVersionName,
+							).To(BeEquivalentTo(row.ComponentVersionName.String))
 						}
 					})
 				})
@@ -183,7 +203,9 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.PatchResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, *entries[len(entries)-1].Patch))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithPatch([]entity.Order{}, *entries[len(entries)-1].Patch),
+							)
 							return after
 						},
 						len(seedCollection.PatchRows),

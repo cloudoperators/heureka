@@ -22,8 +22,10 @@ func TestServiceHandler(t *testing.T) {
 	RunSpecs(t, "Service Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())

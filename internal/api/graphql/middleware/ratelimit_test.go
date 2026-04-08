@@ -20,7 +20,7 @@ func TestIPRateLimiter_AllowsRequestsUnderLimit(t *testing.T) {
 	ip := "192.168.1.1"
 	l := limiter.getLimiter(ip)
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if !l.Allow() {
 			t.Errorf("Request %d should be allowed within burst", i+1)
 		}
@@ -56,6 +56,7 @@ func TestIPRateLimiter_IsolatesLimitersPerIP(t *testing.T) {
 	if !l1.Allow() {
 		t.Fatal("IP1's first request should be allowed")
 	}
+
 	if l1.Allow() {
 		t.Fatal("IP1's second request should be denied")
 	}
@@ -67,11 +68,13 @@ func TestIPRateLimiter_IsolatesLimitersPerIP(t *testing.T) {
 
 func TestIPRateLimiter_CleanupRemovesStaleEntries(t *testing.T) {
 	testStaleAfter := 100 * time.Millisecond
+
 	limiter := NewIPRateLimiter(rate.Limit(10), 1)
+
 	limiter.staleAfter = testStaleAfter
 	defer limiter.Stop()
 
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		ip := string(rune(i))
 		limiter.getLimiter(ip)
 	}
@@ -85,21 +88,25 @@ func TestIPRateLimiter_CleanupRemovesStaleEntries(t *testing.T) {
 	}
 
 	limiter.mu.Lock()
-	for i := 0; i < 50; i++ {
+
+	for i := range 50 {
 		ip := string(rune(i))
 		if client, ok := limiter.ips[ip]; ok {
 			client.lastSeen = time.Now().Add(-testStaleAfter * 2)
 		}
 	}
+
 	limiter.mu.Unlock()
 
 	limiter.mu.Lock()
+
 	for i := 50; i < 100; i++ {
 		ip := string(rune(i))
 		if client, ok := limiter.ips[ip]; ok {
 			client.lastSeen = time.Now()
 		}
 	}
+
 	limiter.mu.Unlock()
 
 	limiter.cleanup()
@@ -120,6 +127,7 @@ func TestIPRateLimiter_CleanupRemovesStaleEntries(t *testing.T) {
 	if staleExists {
 		t.Error("Expected stale IP (index 0) to be removed, but it still exists")
 	}
+
 	if !freshExists {
 		t.Error("Expected fresh IP (index 50) to remain, but it was removed")
 	}
@@ -130,6 +138,7 @@ func TestIPRateLimiter_MiddlewareReturns429(t *testing.T) {
 	defer limiter.Stop()
 
 	gin.SetMode(gin.TestMode)
+
 	router := gin.New()
 	router.Use(limiter.Middleware())
 
@@ -139,6 +148,7 @@ func TestIPRateLimiter_MiddlewareReturns429(t *testing.T) {
 
 	req1 := httptest.NewRequest("GET", "/test", nil)
 	req1.Header.Set("X-Forwarded-For", "192.168.1.1")
+
 	w1 := httptest.NewRecorder()
 	router.ServeHTTP(w1, req1)
 
@@ -148,6 +158,7 @@ func TestIPRateLimiter_MiddlewareReturns429(t *testing.T) {
 
 	req2 := httptest.NewRequest("GET", "/test", nil)
 	req2.Header.Set("X-Forwarded-For", "192.168.1.1")
+
 	w2 := httptest.NewRecorder()
 	router.ServeHTTP(w2, req2)
 
@@ -167,7 +178,7 @@ func TestIPRateLimiter_BurstBehavior(t *testing.T) {
 	ip := "192.168.1.1"
 	l := limiter.getLimiter(ip)
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		if !l.Allow() {
 			t.Fatalf("Should allow up to burst size of 5")
 		}

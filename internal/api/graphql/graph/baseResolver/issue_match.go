@@ -15,7 +15,11 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.IssueMatch, error) {
+func SingleIssueMatchBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	parent *model.NodeParent,
+) (*model.IssueMatch, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -23,7 +27,10 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 	}).Debug("Called SingleIssueMatchBaseResolver")
 
 	if parent == nil {
-		return nil, NewResolverError("SingleIssueMatchBaseResolver", "Bad Request - No parent provided")
+		return nil, NewResolverError(
+			"SingleIssueMatchBaseResolver",
+			"Bad Request - No parent provided",
+		)
 	}
 
 	f := &entity.IssueMatchFilter{
@@ -40,7 +47,10 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 
 	// unexpected number of results (should at most be 1)
 	if len(issueMatches.Elements) > 1 {
-		return nil, NewResolverError("SingleIssueMatchBaseResolver", "Internal Error - found multiple IssueMatches")
+		return nil, NewResolverError(
+			"SingleIssueMatchBaseResolver",
+			"Internal Error - found multiple IssueMatches",
+		)
 	}
 
 	// not found
@@ -48,29 +58,45 @@ func SingleIssueMatchBaseResolver(app app.Heureka, ctx context.Context, parent *
 		return nil, nil
 	}
 
-	var imr entity.IssueMatchResult = issueMatches.Elements[0]
+	imr := issueMatches.Elements[0]
+
 	issueMatch := model.NewIssueMatch(imr.IssueMatch)
 
 	return &issueMatch, nil
 }
 
-func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy, parent *model.NodeParent) (*model.IssueMatchConnection, error) {
+func IssueMatchBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueMatchFilter,
+	first *int,
+	after *string,
+	orderBy []*model.IssueMatchOrderBy,
+	parent *model.NodeParent,
+) (*model.IssueMatchConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called IssueMatchBaseResolver")
 
-	var ciId []*int64
-	var issueId []*int64
-	var serviceId []*int64
-	var imIds []*int64
-	var err error
+	var (
+		ciId      []*int64
+		issueId   []*int64
+		serviceId []*int64
+		imIds     []*int64
+		err       error
+	)
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - Error while parsing parent ID")
+			return nil, NewResolverError(
+				"IssueMatchBaseResolver",
+				"Bad Request - Error while parsing parent ID",
+			)
 		}
 
 		switch parent.ParentName {
@@ -90,31 +116,46 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	if filter.ID != nil {
 		imIds, err = util.ConvertStrToIntSlice(filter.ID)
 		if err != nil {
-			return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - unable to parse filter, the value of the filter ID is invalid")
+			return nil, NewResolverError(
+				"IssueMatchBaseResolver",
+				"Bad Request - unable to parse filter, the value of the filter ID is invalid",
+			)
 		}
 	}
 
 	if filter.ComponentInstanceID != nil {
 		ciId, err = util.ConvertStrToIntSlice(filter.ComponentInstanceID)
 		if err != nil {
-			return nil, NewResolverError("IssueMatchBaseResolver", "Bad Request - unable to parse filter, the value of the filter ComponentInstanceId is invalid")
+			return nil, NewResolverError(
+				"IssueMatchBaseResolver",
+				"Bad Request - unable to parse filter, the value of the filter ComponentInstanceId is invalid",
+			)
 		}
 	}
 
 	f := &entity.IssueMatchFilter{
-		Id:                       imIds,
-		Paginated:                entity.Paginated{First: first, After: after},
-		ServiceCCRN:              filter.ServiceCcrn,
-		Status:                   lo.Map(filter.Status, func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) }),
-		SeverityValue:            lo.Map(filter.Severity, func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) }),
-		SupportGroupCCRN:         filter.SupportGroupCcrn,
-		IssueId:                  issueId,
-		ServiceId:                serviceId,
-		ComponentInstanceId:      ciId,
-		Search:                   filter.Search,
-		ComponentCCRN:            filter.ComponentCcrn,
-		PrimaryName:              filter.PrimaryName,
-		IssueType:                lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		Id:          imIds,
+		Paginated:   entity.Paginated{First: first, After: after},
+		ServiceCCRN: filter.ServiceCcrn,
+		Status: lo.Map(
+			filter.Status,
+			func(item *model.IssueMatchStatusValues, _ int) *string { return pointer.String(item.String()) },
+		),
+		SeverityValue: lo.Map(
+			filter.Severity,
+			func(item *model.SeverityValues, _ int) *string { return pointer.String(item.String()) },
+		),
+		SupportGroupCCRN:    filter.SupportGroupCcrn,
+		IssueId:             issueId,
+		ServiceId:           serviceId,
+		ComponentInstanceId: ciId,
+		Search:              filter.Search,
+		ComponentCCRN:       filter.ComponentCcrn,
+		PrimaryName:         filter.PrimaryName,
+		IssueType: lo.Map(
+			filter.IssueType,
+			func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) },
+		),
 		ServiceOwnerUsername:     filter.ServiceOwnerUsername,
 		ServiceOwnerUniqueUserId: filter.ServiceOwnerUniqueUserID,
 		State:                    model.GetStateFilterType(filter.State),
@@ -131,6 +172,7 @@ func IssueMatchBaseResolver(app app.Heureka, ctx context.Context, filter *model.
 	}
 
 	edges := []*model.IssueMatchEdge{}
+
 	for _, result := range issueMatches.Elements {
 		im := model.NewIssueMatch(result.IssueMatch)
 		edge := model.IssueMatchEdge{

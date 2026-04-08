@@ -14,14 +14,15 @@ type Executor struct {
 	done chan struct{}
 }
 
-func Execute(fn func(), n int) Executor {
-	e := Executor{}
+func Execute(fn func(), n int) *Executor {
+	e := &Executor{}
 	e.done = make(chan struct{})
 	e.wg.Add(n)
 
-	for i := 0; i < n; i++ {
+	for range n {
 		go func() {
 			defer e.wg.Done()
+
 			fn()
 		}()
 	}
@@ -30,10 +31,11 @@ func Execute(fn func(), n int) Executor {
 		e.wg.Wait()
 		close(e.done)
 	}()
+
 	return e
 }
 
-func Wait(e Executor, timeout time.Duration) error {
+func Wait(e *Executor, timeout time.Duration) error {
 	select {
 	case <-e.done:
 		return nil

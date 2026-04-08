@@ -73,12 +73,24 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 							for _, row := range seedCollection.IssueVariantRows {
 								if r.Id == row.Id.Int64 {
 
-									Expect(r.SecondaryName).Should(BeEquivalentTo(row.SecondaryName.String), "Name matches")
-									Expect(r.Description).Should(BeEquivalentTo(row.Description.String), "Description matches")
-									Expect(r.ExternalUrl).Should(BeEquivalentTo(row.ExternalUrl.String), "ExternalUrl matches")
-									Expect(r.Severity.Cvss.Vector).Should(BeEquivalentTo(row.Vector.String), "Vector matches")
-									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
-									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
+									Expect(
+										r.SecondaryName,
+									).Should(BeEquivalentTo(row.SecondaryName.String), "Name matches")
+									Expect(
+										r.Description,
+									).Should(BeEquivalentTo(row.Description.String), "Description matches")
+									Expect(
+										r.ExternalUrl,
+									).Should(BeEquivalentTo(row.ExternalUrl.String), "ExternalUrl matches")
+									Expect(
+										r.Severity.Cvss.Vector,
+									).Should(BeEquivalentTo(row.Vector.String), "Vector matches")
+									Expect(
+										r.CreatedAt,
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
+									Expect(
+										r.UpdatedAt,
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
 							}
 						}
@@ -128,7 +140,12 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(lo.ContainsBy(entries, func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
+							Expect(
+								lo.ContainsBy(
+									entries,
+									func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id },
+								),
+							).To(BeTrue())
 						}
 					})
 				})
@@ -140,8 +157,13 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					issueId2 := rnd2.Id.Int64
 
 					issueVariants := seedCollection.GetIssueVariantsByIssueId(issueId1)
-					issueVariants = append(issueVariants, seedCollection.GetIssueVariantsByIssueId(issueId2)...)
-					issueVariants = lo.UniqBy(issueVariants, func(e mariadb.IssueVariantRow) int64 { return e.Id.Int64 })
+					issueVariants = append(
+						issueVariants,
+						seedCollection.GetIssueVariantsByIssueId(issueId2)...)
+					issueVariants = lo.UniqBy(
+						issueVariants,
+						func(e mariadb.IssueVariantRow) int64 { return e.Id.Int64 },
+					)
 					filter := &entity.IssueVariantFilter{
 						Paginated: entity.Paginated{},
 						IssueId:   []*int64{&issueId1, &issueId2},
@@ -159,7 +181,12 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(lo.ContainsBy(entries, func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
+							Expect(
+								lo.ContainsBy(
+									entries,
+									func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id },
+								),
+							).To(BeTrue())
 						}
 					})
 				})
@@ -182,7 +209,9 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(issueVariant.IssueRepositoryId).To(BeEquivalentTo(ir.IssueRepositoryId.Int64))
+							Expect(
+								issueVariant.IssueRepositoryId,
+							).To(BeEquivalentTo(ir.IssueRepositoryId.Int64))
 						}
 					})
 				})
@@ -207,7 +236,12 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(lo.ContainsBy(entries, func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
+							Expect(
+								lo.ContainsBy(
+									entries,
+									func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id },
+								),
+							).To(BeTrue())
 						}
 					})
 				})
@@ -232,7 +266,12 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 					By("returning expected elements", func() {
 						for _, issueVariant := range issueVariants {
-							Expect(lo.ContainsBy(entries, func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id })).To(BeTrue())
+							Expect(
+								lo.ContainsBy(
+									entries,
+									func(a entity.IssueVariantResult) bool { return issueVariant.Id.Int64 == a.Id },
+								),
+							).To(BeTrue())
 						}
 					})
 				})
@@ -269,7 +308,12 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.IssueVariantResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, *entries[len(entries)-1].IssueVariant))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithIssueVariant(
+									[]entity.Order{},
+									*entries[len(entries)-1].IssueVariant,
+								),
+							)
 							return after
 						},
 						len(seedCollection.IssueVariantRows),
@@ -374,7 +418,10 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 				var seedCollection *test.SeedCollection
 				BeforeEach(func() {
 					seedCollection = seeder.SeedDbWithNFakeData(10)
-					newIssueVariantRow = test.NewFakeIssueVariant(seedCollection.IssueRepositoryRows, seedCollection.IssueRows)
+					newIssueVariantRow = test.NewFakeIssueVariant(
+						seedCollection.IssueRepositoryRows,
+						seedCollection.IssueRows,
+					)
 					newIssueVariant = newIssueVariantRow.AsIssueVariant()
 				})
 				It("can insert correctly", func() {
@@ -403,9 +450,13 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Expect(iv[0].SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
 						Expect(iv[0].Description).To(BeEquivalentTo(issueVariant.Description))
 						Expect(iv[0].ExternalUrl).To(BeEquivalentTo(issueVariant.ExternalUrl))
-						Expect(iv[0].IssueRepositoryId).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
+						Expect(
+							iv[0].IssueRepositoryId,
+						).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
 						Expect(iv[0].IssueId).To(BeEquivalentTo(issueVariant.IssueId))
-						Expect(iv[0].Severity.Cvss.Vector).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
+						Expect(
+							iv[0].Severity.Cvss.Vector,
+						).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
 						Expect(iv[0].Severity.Score).To(BeEquivalentTo(issueVariant.Severity.Score))
 						Expect(iv[0].Severity.Value).To(BeEquivalentTo(issueVariant.Severity.Value))
 					})
@@ -456,9 +507,13 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Expect(iv[0].SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
 						Expect(iv[0].Description).To(BeEquivalentTo(issueVariant.Description))
 						Expect(iv[0].ExternalUrl).To(BeEquivalentTo(issueVariant.ExternalUrl))
-						Expect(iv[0].IssueRepositoryId).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
+						Expect(
+							iv[0].IssueRepositoryId,
+						).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
 						Expect(iv[0].IssueId).To(BeEquivalentTo(issueVariant.IssueId))
-						Expect(iv[0].Severity.Cvss.Vector).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
+						Expect(
+							iv[0].Severity.Cvss.Vector,
+						).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
 						Expect(iv[0].Severity.Score).To(BeEquivalentTo(issueVariant.Severity.Score))
 						Expect(iv[0].Severity.Value).To(BeEquivalentTo(issueVariant.Severity.Value))
 					})

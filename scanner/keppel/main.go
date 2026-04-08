@@ -125,7 +125,12 @@ func processConcurrently(
 				case <-ctx.Done():
 					return
 				default:
-					if err := processComponent(ctx, comp, keppelScanner, keppelProcessor); err != nil {
+					if err := processComponent(
+						ctx,
+						comp,
+						keppelScanner,
+						keppelProcessor,
+					); err != nil {
 						errors <- err
 					}
 				}
@@ -171,7 +176,12 @@ func processComponent(
 			Digest:           cv.Node.Version,
 		}
 
-		if err := HandleImageManifests(ctx, manifestInfo, keppelScanner, keppelProcessor); err != nil {
+		if err := HandleImageManifests(
+			ctx,
+			manifestInfo,
+			keppelScanner,
+			keppelProcessor,
+		); err != nil {
 			return err
 		}
 	}
@@ -186,7 +196,12 @@ func HandleImageManifests(
 ) error {
 	manifest, err := keppelScanner.GetManifest(info.Account, info.Repository, info.Digest)
 	if err != nil {
-		return fmt.Errorf("couldn't get manifest for account: %s, repository: %s: %w", info.Account, info.Repository, err)
+		return fmt.Errorf(
+			"couldn't get manifest for account: %s, repository: %s: %w",
+			info.Account,
+			info.Repository,
+			err,
+		)
 	}
 
 	// If manifest contains children, it's a multi-arch image
@@ -194,7 +209,12 @@ func HandleImageManifests(
 	if len(manifest.Children) == 0 && isVulnerabilityStatusValid(manifest.VulnerabilityStatus) {
 		trivyReport, err := keppelScanner.GetTrivyReport(info.Account, info.Repository, info.Digest)
 		if err != nil {
-			return fmt.Errorf("couldn't get trivy report for account: %s, repository: %s: %w", info.Account, info.Repository, err)
+			return fmt.Errorf(
+				"couldn't get trivy report for account: %s, repository: %s: %w",
+				info.Account,
+				info.Repository,
+				err,
+			)
 		}
 
 		if trivyReport == nil {

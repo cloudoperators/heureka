@@ -110,7 +110,11 @@ func (e *GetIssueSeverityCountsEvent) Name() event.EventName {
 
 // OnComponentVersionAttachmentToIssue is an event handler whenever a ComponentVersion
 // is attached to an Issue.
-func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event, authz openfga.Authorization) {
+func OnComponentVersionAttachmentToIssue(
+	db database.Database,
+	e event.Event,
+	authz openfga.Authorization,
+) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":   "OnComponentVersionAttachmentToIssue",
 		"payload": e,
@@ -118,12 +122,17 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event, au
 
 	if attachmentEvent, ok := e.(*AddComponentVersionToIssueEvent); ok {
 		// Get ComponentInstances
-		l.WithField("event-step", "GetComponentInstances").Debug("Get Component Instances by ComponentVersionId")
+		l.WithField("event-step", "GetComponentInstances").
+			Debug("Get Component Instances by ComponentVersionId")
+
 		componentInstances, err := db.GetComponentInstances(&entity.ComponentInstanceFilter{
 			ComponentVersionId: []*int64{&attachmentEvent.ComponentVersionID},
 		}, []entity.Order{})
 		if err != nil {
-			l.WithField("event-step", "GetComponentInstances").WithError(err).Error("Error while fetching ComponentInstances")
+			l.WithField("event-step", "GetComponentInstances").
+				WithError(err).
+				Error("Error while fetching ComponentInstances")
+
 			return
 		}
 
@@ -131,12 +140,18 @@ func OnComponentVersionAttachmentToIssue(db database.Database, e event.Event, au
 		// via GetServiceIssueVariants
 		for _, compInst := range componentInstances {
 			// Get Service Issue Variants
-			issueVariantMap, err := shared.BuildIssueVariantMap(db, &entity.ServiceIssueVariantFilter{
-				ComponentInstanceId: []*int64{&compInst.Id},
-				IssueId:             []*int64{&attachmentEvent.IssueID},
-			}, attachmentEvent.ComponentVersionID)
+			issueVariantMap, err := shared.BuildIssueVariantMap(
+				db,
+				&entity.ServiceIssueVariantFilter{
+					ComponentInstanceId: []*int64{&compInst.Id},
+					IssueId:             []*int64{&attachmentEvent.IssueID},
+				},
+				attachmentEvent.ComponentVersionID,
+			)
 			if err != nil {
-				l.WithField("event-step", "FetchIssueVariants").WithError(err).Error("Error while fetching issue variants")
+				l.WithField("event-step", "FetchIssueVariants").
+					WithError(err).
+					Error("Error while fetching issue variants")
 			}
 
 			// Create new IssueMatches
@@ -165,24 +180,34 @@ func createIssueMatches(
 		})
 
 		// Check if IssueMatches already exist
-		l.WithField("event-step", "GetIssueMatches").Debug("Fetching issue matches related to assigned Component Instance")
+		l.WithField("event-step", "GetIssueMatches").
+			Debug("Fetching issue matches related to assigned Component Instance")
+
 		issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceId},
 		}, []entity.Order{})
 		if err != nil {
-			l.WithField("event-step", "FetchIssueMatches").WithError(err).Error("Error while fetching issue matches related to assigned Component Instance")
+			l.WithField("event-step", "FetchIssueMatches").
+				WithError(err).
+				Error("Error while fetching issue matches related to assigned Component Instance")
 		}
+
 		l.WithField("issueMatchesCount", len(issue_matches))
 
 		if len(issue_matches) != 0 {
-			l.WithField("event-step", "Skipping").Debug("The issue match does already exist. Skipping")
+			l.WithField("event-step", "Skipping").
+				Debug("The issue match does already exist. Skipping")
+
 			continue
 		}
 
 		user, err := common.GetCurrentUserId(ctx, db)
 		if err != nil {
-			l.WithField("event-step", "GetCurrentUserId").WithError(err).Error("Error while getting current user ID")
+			l.WithField("event-step", "GetCurrentUserId").
+				WithError(err).
+				Error("Error while getting current user ID")
+
 			continue
 		}
 
@@ -192,18 +217,27 @@ func createIssueMatches(
 				CreatedBy: user,
 				UpdatedBy: user,
 			},
-			UserId:                user,
-			Status:                entity.IssueMatchStatusValuesNew,
-			Severity:              issueVariantMap[issueId].Severity, // we got two  simply take the first one
-			ComponentInstanceId:   componentInstanceId,
-			IssueId:               issueId,
-			TargetRemediationDate: shared.GetTargetRemediationTimeline(issueVariant.Severity, time.Now(), nil),
+			UserId:              user,
+			Status:              entity.IssueMatchStatusValuesNew,
+			Severity:            issueVariantMap[issueId].Severity, // we got two  simply take the first one
+			ComponentInstanceId: componentInstanceId,
+			IssueId:             issueId,
+			TargetRemediationDate: shared.GetTargetRemediationTimeline(
+				issueVariant.Severity,
+				time.Now(),
+				nil,
+			),
 		}
-		l.WithField("event-step", "CreateIssueMatch").WithField("issueMatch", issue_match).Debug("Creating Issue Match")
+		l.WithField("event-step", "CreateIssueMatch").
+			WithField("issueMatch", issue_match).
+			Debug("Creating Issue Match")
 
 		_, err = db.CreateIssueMatch(issue_match)
 		if err != nil {
-			l.WithField("event-step", "CreateIssueMatch").WithError(err).Error("Error while creating issue match")
+			l.WithField("event-step", "CreateIssueMatch").
+				WithError(err).
+				Error("Error while creating issue match")
+
 			continue
 		}
 	}

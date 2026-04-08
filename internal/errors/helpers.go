@@ -13,11 +13,11 @@ import (
 type Op string
 
 // E creates a new Error from the provided arguments.
-// Each argument can be an Op, a string, a Code, an error, or a map[string]interface{}.
-func E(args ...interface{}) *Error {
+// Each argument can be an Op, a string, a Code, an error, or a map[string]any.
+func E(args ...any) *Error {
 	e := &Error{
 		Code:   Unknown,
-		Fields: make(map[string]interface{}),
+		Fields: make(map[string]any),
 	}
 
 	for _, arg := range args {
@@ -43,37 +43,44 @@ func E(args ...interface{}) *Error {
 			if e.Code == Unknown {
 				e.Code = copy.Code
 			}
+
 			if e.Entity == "" {
 				e.Entity = copy.Entity
 			}
+
 			if e.ID == "" {
 				e.ID = copy.ID
 			}
+
 			if e.Op == "" {
 				e.Op = copy.Op
 			}
+
 			if e.Message == "" {
 				e.Message = copy.Message
 			}
+
 			if e.Err == nil {
 				e.Err = copy.Err
 			}
 			// Merge fields
 			for k, v := range copy.Fields {
 				if e.Fields == nil {
-					e.Fields = make(map[string]interface{})
+					e.Fields = make(map[string]any)
 				}
+
 				if _, exists := e.Fields[k]; !exists {
 					e.Fields[k] = v
 				}
 			}
 		case error:
 			e.Err = a
-		case map[string]interface{}:
+		case map[string]any:
 			for k, v := range a {
 				if e.Fields == nil {
-					e.Fields = make(map[string]interface{})
+					e.Fields = make(map[string]any)
 				}
+
 				e.Fields[k] = v
 			}
 		}
@@ -83,11 +90,11 @@ func E(args ...interface{}) *Error {
 }
 
 // Errorf creates a new Error with a formatted message
-func Errorf(code Code, format string, args ...interface{}) *Error {
+func Errorf(code Code, format string, args ...any) *Error {
 	return &Error{
 		Code:    code,
 		Message: fmt.Sprintf(format, args...),
-		Fields:  make(map[string]interface{}),
+		Fields:  make(map[string]any),
 	}
 }
 
@@ -101,7 +108,7 @@ func Wrap(err error, code Code, message string) *Error {
 		Code:    code,
 		Message: message,
 		Err:     err,
-		Fields:  make(map[string]interface{}),
+		Fields:  make(map[string]any),
 	}
 }
 
@@ -127,7 +134,7 @@ func InvalidArgumentError(op, entity, reason string) *Error {
 		Entity:  entity,
 		Code:    InvalidArgument,
 		Message: reason,
-		Fields:  make(map[string]interface{}),
+		Fields:  make(map[string]any),
 	}
 }
 
@@ -138,10 +145,10 @@ func InternalError(op, entity, id string, err error) *Error {
 
 // Is checks if an error has a specific code
 func Is(err error, code Code) bool {
-	var e *Error
-	if errors.As(err, &e) {
+	if e, ok := errors.AsType[*Error](err); ok {
 		return e.Code == code
 	}
+
 	return false
 }
 
@@ -166,9 +173,11 @@ func Match(err error, entity string, code Code) bool {
 	if !errors.As(err, &e) {
 		return false
 	}
+
 	if entity != "" && e.Entity != entity {
 		return false
 	}
+
 	return e.Code == code
 }
 

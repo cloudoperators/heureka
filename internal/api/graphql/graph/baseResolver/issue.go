@@ -18,13 +18,18 @@ import (
 
 func GetIssueListOptions(requestedFields []string) *entity.IssueListOptions {
 	listOptions := GetListOptions(requestedFields)
+
 	return &entity.IssueListOptions{
 		ListOptions:         *listOptions,
 		ShowIssueTypeCounts: lo.Contains(requestedFields, "issueTypeCounts"),
 	}
 }
 
-func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.Issue, error) {
+func SingleIssueBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	parent *model.NodeParent,
+) (*model.Issue, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -32,7 +37,14 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 	}).Debug("Called SingleIssueBaseResolver")
 
 	if parent == nil {
-		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleIssueBaseResolver"), "Issue", appErrors.InvalidArgument, "No parent provided"))
+		return nil, ToGraphQLError(
+			appErrors.E(
+				appErrors.Op("SingleIssueBaseResolver"),
+				"Issue",
+				appErrors.InvalidArgument,
+				"No parent provided",
+			),
+		)
 	}
 
 	f := &entity.IssueFilter{
@@ -48,7 +60,14 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 
 	// unexpected number of results (should at most be 1)
 	if len(issues.Elements) > 1 {
-		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleIssueBaseResolver"), "Issue", appErrors.Internal, "found multiple issues"))
+		return nil, ToGraphQLError(
+			appErrors.E(
+				appErrors.Op("SingleIssueBaseResolver"),
+				"Issue",
+				appErrors.Internal,
+				"found multiple issues",
+			),
+		)
 	}
 
 	// not found
@@ -56,28 +75,50 @@ func SingleIssueBaseResolver(app app.Heureka, ctx context.Context, parent *model
 		return nil, nil
 	}
 
-	var ir entity.IssueResult = issues.Elements[0]
+	ir := issues.Elements[0]
+
 	issue := model.NewIssueWithAggregations(&ir)
 
 	return &issue, nil
 }
 
-func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy, parent *model.NodeParent) (*model.IssueConnection, error) {
+func IssueBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueFilter,
+	first *int,
+	after *string,
+	orderBy []*model.IssueOrderBy,
+	parent *model.NodeParent,
+) (*model.IssueConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called IssueBaseResolver")
 
-	var irId []*int64
-	var cvId []*int64
-	var err error
+	var (
+		irId []*int64
+		cvId []*int64
+		err  error
+	)
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("IssueBaseResolver: Error while parsing propagated parent ID'")
-			return nil, ToGraphQLError(appErrors.E(appErrors.Op("IssueBaseResolver"), "Issue", appErrors.InvalidArgument, "Error while parsing propagated ID"))
+			logrus.WithField("parent", parent).
+				Error("IssueBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, ToGraphQLError(
+				appErrors.E(
+					appErrors.Op("IssueBaseResolver"),
+					"Issue",
+					appErrors.InvalidArgument,
+					"Error while parsing propagated ID",
+				),
+			)
 		}
 
 		switch parent.ParentName {
@@ -93,7 +134,10 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	if filter.IssueRepositoryID != nil {
 		irId, err = util.ConvertStrToIntSlice(filter.IssueRepositoryID)
 		if err != nil {
-			return nil, NewResolverError("IssueBaseResolver", "Bad Request - unable to parse filter, the value of the filter IssueRepositoryId is invalid")
+			return nil, NewResolverError(
+				"IssueBaseResolver",
+				"Bad Request - unable to parse filter, the value of the filter IssueRepositoryId is invalid",
+			)
 		}
 	}
 
@@ -103,8 +147,11 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 		SupportGroupCCRN:   filter.SupportGroupCcrn,
 		ComponentVersionId: cvId,
 		PrimaryName:        filter.PrimaryName,
-		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
-		IssueRepositoryId:  irId,
+		Type: lo.Map(
+			filter.IssueType,
+			func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) },
+		),
+		IssueRepositoryId: irId,
 
 		Search: filter.Search,
 
@@ -115,10 +162,14 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	opt := GetIssueListOptions(requestedFields)
+
 	for _, o := range orderBy {
 		if *o.By == model.IssueOrderByFieldSeverity {
 			opt.Order = append(opt.Order, o.ToOrderEntity())
-			opt.Order = append(opt.Order, entity.Order{By: entity.IssueId, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(
+				opt.Order,
+				entity.Order{By: entity.IssueId, Direction: o.Direction.ToOrderDirectionEntity()},
+			)
 		} else {
 			opt.Order = append(opt.Order, o.ToOrderEntity())
 		}
@@ -130,6 +181,7 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	}
 
 	edges := []*model.IssueEdge{}
+
 	for _, result := range issues.Elements {
 		iss := model.NewIssueWithAggregations(&result)
 		edge := model.IssueEdge{
@@ -148,7 +200,8 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	policiyViolationCount := 0
 	securityEventCount := 0
 
-	if issues.VulnerabilityCount != nil && issues.PolicyViolationCount != nil && issues.SecurityEventCount != nil {
+	if issues.VulnerabilityCount != nil && issues.PolicyViolationCount != nil &&
+		issues.SecurityEventCount != nil {
 		vulnerabilityCount = int(*issues.VulnerabilityCount)
 		policiyViolationCount = int(*issues.PolicyViolationCount)
 		securityEventCount = int(*issues.SecurityEventCount)
@@ -166,14 +219,20 @@ func IssueBaseResolver(app app.Heureka, ctx context.Context, filter *model.Issue
 	return &connection, nil
 }
 
-func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter) (*model.FilterItem, error) {
+func IssueNameBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueFilter,
+) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 	}).Debug("Called IssueNameBaseResolver")
 
-	var irId []*int64
-	var err error
+	var (
+		irId []*int64
+		err  error
+	)
 
 	if filter == nil {
 		filter = &model.IssueFilter{}
@@ -182,16 +241,22 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	if filter.IssueRepositoryID != nil {
 		irId, err = util.ConvertStrToIntSlice(filter.IssueRepositoryID)
 		if err != nil {
-			return nil, NewResolverError("IssueBaseResolver", "Bad Request - unable to parse filter, the value of the filter IssueRepositoryId is invalid")
+			return nil, NewResolverError(
+				"IssueBaseResolver",
+				"Bad Request - unable to parse filter, the value of the filter IssueRepositoryId is invalid",
+			)
 		}
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:                       entity.Paginated{},
-		ServiceCCRN:                     filter.ServiceCcrn,
-		PrimaryName:                     filter.PrimaryName,
-		SupportGroupCCRN:                filter.SupportGroupCcrn,
-		Type:                            lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		Paginated:        entity.Paginated{},
+		ServiceCCRN:      filter.ServiceCcrn,
+		PrimaryName:      filter.PrimaryName,
+		SupportGroupCCRN: filter.SupportGroupCcrn,
+		Type: lo.Map(
+			filter.IssueType,
+			func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) },
+		),
 		IssueRepositoryId:               irId,
 		Search:                          filter.Search,
 		IssueMatchStatus:                nil, //@todo Implement
@@ -221,7 +286,12 @@ func IssueNameBaseResolver(app app.Heureka, ctx context.Context, filter *model.I
 	return &filterItem, nil
 }
 
-func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueFilter, parent *model.NodeParent) (*model.SeverityCounts, error) {
+func IssueCountsBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueFilter,
+	parent *model.NodeParent,
+) (*model.SeverityCounts, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -237,21 +307,35 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	var cvIds []*int64
+
 	cvIds, err = util.ConvertStrToIntSlice(filter.ComponentVersionID)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
 
-	var serviceId []*int64
-	var componentId []*int64
+	var (
+		serviceId   []*int64
+		componentId []*int64
+	)
+
 	unique := false
+
 	if parent != nil {
 		var pid *int64
+
 		if parent.Parent != nil {
 			parentId := parent.Parent.GetID()
+
 			pid, err = ParseCursor(&parentId)
 			if err != nil {
-				return nil, ToGraphQLError(appErrors.E(appErrors.Op("IssueCountsBaseResolver"), "Issue", appErrors.InvalidArgument, "Error while parsing propagated ID"))
+				return nil, ToGraphQLError(
+					appErrors.E(
+						appErrors.Op("IssueCountsBaseResolver"),
+						"Issue",
+						appErrors.InvalidArgument,
+						"Error while parsing propagated ID",
+					),
+				)
 			}
 		}
 
@@ -268,11 +352,14 @@ func IssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}
 
 	f := &entity.IssueFilter{
-		Paginated:          entity.Paginated{},
-		ServiceCCRN:        filter.ServiceCcrn,
-		SupportGroupCCRN:   filter.SupportGroupCcrn,
-		PrimaryName:        filter.PrimaryName,
-		Type:               lo.Map(filter.IssueType, func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) }),
+		Paginated:        entity.Paginated{},
+		ServiceCCRN:      filter.ServiceCcrn,
+		SupportGroupCCRN: filter.SupportGroupCcrn,
+		PrimaryName:      filter.PrimaryName,
+		Type: lo.Map(
+			filter.IssueType,
+			func(item *model.IssueTypes, _ int) *string { return pointer.String(item.String()) },
+		),
 		Search:             filter.Search,
 		IssueRepositoryId:  irIds,
 		ComponentVersionId: cvIds,

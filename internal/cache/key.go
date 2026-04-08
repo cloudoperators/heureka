@@ -80,6 +80,7 @@ func decodeBase64(encoded string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(decodedBytes), nil
 }
 
@@ -88,5 +89,6 @@ func decodeHex(hexStr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(bytes), nil
 }

@@ -77,11 +77,21 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.ServiceRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "Name should match")
-									Expect(r.Domain).Should(BeEquivalentTo(row.Domain.String), "Domain should match")
-									Expect(r.Region).Should(BeEquivalentTo(row.Region.String), "Region should match")
-									Expect(r.BaseService.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
-									Expect(r.BaseService.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
+									Expect(
+										r.CCRN,
+									).Should(BeEquivalentTo(row.CCRN.String), "Name should match")
+									Expect(
+										r.Domain,
+									).Should(BeEquivalentTo(row.Domain.String), "Domain should match")
+									Expect(
+										r.Region,
+									).Should(BeEquivalentTo(row.Region.String), "Region should match")
+									Expect(
+										r.BaseService.CreatedAt,
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
+									Expect(
+										r.BaseService.UpdatedAt,
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
 							}
 						}
@@ -296,16 +306,23 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					imRow := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
 
 					// 1. Collect all issue matches with the same IssueId as the picked one
-					matchingIssueMatches := lo.Filter(seedCollection.IssueMatchRows, func(row mariadb.IssueMatchRow, _ int) bool {
-						return row.IssueId.Int64 == imRow.IssueId.Int64
-					})
+					matchingIssueMatches := lo.Filter(
+						seedCollection.IssueMatchRows,
+						func(row mariadb.IssueMatchRow, _ int) bool {
+							return row.IssueId.Int64 == imRow.IssueId.Int64
+						},
+					)
 
 					// 2. Collect all ComponentInstanceIds from the filtered issue matches
-					componentInstanceIds := lo.Map(matchingIssueMatches, func(row mariadb.IssueMatchRow, _ int) int64 {
-						return row.ComponentInstanceId.Int64
-					})
+					componentInstanceIds := lo.Map(
+						matchingIssueMatches,
+						func(row mariadb.IssueMatchRow, _ int) int64 {
+							return row.ComponentInstanceId.Int64
+						},
+					)
 
-					// 3. For each ComponentInstanceRow, check if its Id is in the set, and collect ServiceIds
+					// 3. For each ComponentInstanceRow, check if its Id is in the set, and collect
+					// ServiceIds
 					serviceIds := []int64{}
 					for _, ciRow := range seedCollection.ComponentInstanceRows {
 						if lo.Contains(componentInstanceIds, ciRow.Id.Int64) {
@@ -399,7 +416,13 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.ServiceResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithService([]entity.Order{}, *entries[len(entries)-1].Service, entity.IssueSeverityCounts{}))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithService(
+									[]entity.Order{},
+									*entries[len(entries)-1].Service,
+									entity.IssueSeverityCounts{},
+								),
+							)
 							return after
 						},
 						len(seedCollection.ServiceRows),
@@ -433,8 +456,12 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					for _, entryWithAggregations := range entriesWithAggregations {
 						Expect(entryWithAggregations).NotTo(
 							BeEquivalentTo(entity.ServiceAggregations{}))
-						Expect(entryWithAggregations.ServiceAggregations.ComponentInstances).To(BeEquivalentTo(0))
-						Expect(entryWithAggregations.ServiceAggregations.IssueMatches).To(BeEquivalentTo(0))
+						Expect(
+							entryWithAggregations.ServiceAggregations.ComponentInstances,
+						).To(BeEquivalentTo(0))
+						Expect(
+							entryWithAggregations.ServiceAggregations.IssueMatches,
+						).To(BeEquivalentTo(0))
 					}
 				})
 				By("returning all services", func() {
@@ -469,7 +496,8 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				// as we would need to implement for each of the aggregations a manual aggregation
 				// based on the seederCollection.
 				//
-				// This tests should therefore only get implemented in case we encourage errors in this area to test against
+				// This tests should therefore only get implemented in case we encourage errors in
+				// this area to test against
 				// possible regressions
 			})
 		})
@@ -826,7 +854,10 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				issueRepositoryServiceRow = seedCollection.IssueRepositoryServiceRows[0]
 			})
 			It("can remove issue repository correctly", func() {
-				err := db.RemoveIssueRepositoryFromService(issueRepositoryServiceRow.ServiceId.Int64, issueRepositoryServiceRow.IssueRepositoryId.Int64)
+				err := db.RemoveIssueRepositoryFromService(
+					issueRepositoryServiceRow.ServiceId.Int64,
+					issueRepositoryServiceRow.IssueRepositoryId.Int64,
+				)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -877,9 +908,12 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
 					})
 
-					existingServiceCcrns := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
-						return s.CCRN.String
-					})
+					existingServiceCcrns := lo.Map(
+						seedCollection.ServiceRows,
+						func(s mariadb.BaseServiceRow, index int) string {
+							return s.CCRN.String
+						},
+					)
 
 					By("returning the correct names", func() {
 						left, right := lo.Difference(res, existingServiceCcrns)
@@ -978,9 +1012,12 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
 					})
 
-					existingServiceDomains := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
-						return s.Domain.String
-					})
+					existingServiceDomains := lo.Map(
+						seedCollection.ServiceRows,
+						func(s mariadb.BaseServiceRow, index int) string {
+							return s.Domain.String
+						},
+					)
 
 					By("returning the correct domains", func() {
 						left, right := lo.Difference(res, existingServiceDomains)
@@ -1021,9 +1058,12 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
 					})
 
-					existingServiceRegions := lo.Map(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
-						return s.Region.String
-					})
+					existingServiceRegions := lo.Map(
+						seedCollection.ServiceRows,
+						func(s mariadb.BaseServiceRow, index int) string {
+							return s.Region.String
+						},
+					)
 
 					By("returning the correct domains", func() {
 						left, right := lo.Difference(res, existingServiceRegions)
@@ -1074,15 +1114,21 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 	}
 
 	loadTestData := func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
-		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("testdata/component_version_order/issue_variant.json"))
+		issueVariants, err := test.LoadIssueVariants(
+			test.GetTestDataPath("testdata/component_version_order/issue_variant.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("testdata/service_order/component_version_issue.json"))
+		cvIssues, err := test.LoadComponentVersionIssues(
+			test.GetTestDataPath("testdata/service_order/component_version_issue.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		componentInstances, err := test.LoadComponentInstances(test.GetTestDataPath("testdata/service_order/component_instance.json"))
+		componentInstances, err := test.LoadComponentInstances(
+			test.GetTestDataPath("testdata/service_order/component_instance.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -1176,10 +1222,10 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 			}
 
 			testOrder(order, func(res []entity.ServiceResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					Expect(c.CompareString(r.Service.CCRN, prev)).Should(BeNumerically(">=", 0))
-					prev = r.Service.CCRN
+					prev = r.CCRN
 				}
 			})
 		})
@@ -1212,10 +1258,10 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 			}
 
 			testOrder(order, func(res []entity.ServiceResult) {
-				var prev string = "\U0010FFFF"
+				prev := "\U0010FFFF"
 				for _, r := range res {
 					Expect(c.CompareString(r.Service.CCRN, prev)).Should(BeNumerically("<=", 0))
-					prev = r.Service.CCRN
+					prev = r.CCRN
 				}
 			})
 		})

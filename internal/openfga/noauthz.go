@@ -54,7 +54,9 @@ func (a *NoAuthz) UpdateRelation(r RelationInput, u RelationInput) error {
 }
 
 // ListRelations lists all relations for a given input.
-func (a *NoAuthz) ListRelations(input RelationInput) ([]client.ClientTupleKeyWithoutCondition, error) {
+func (a *NoAuthz) ListRelations(
+	input RelationInput,
+) ([]client.ClientTupleKeyWithoutCondition, error) {
 	return []client.ClientTupleKeyWithoutCondition{}, nil
 }
 
@@ -64,7 +66,11 @@ func (a *NoAuthz) ListAccessibleResources(r RelationInput) ([]AccessibleResource
 	return resources, nil
 }
 
-// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
-func (a *NoAuthz) GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType) ([]*int64, error) {
+// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can
+// access.
+func (a *NoAuthz) GetListOfAccessibleObjectIds(
+	userId UserId,
+	objectType ObjectType,
+) ([]*int64, error) {
 	return []*int64{}, nil
 }

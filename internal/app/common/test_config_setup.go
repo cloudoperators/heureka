@@ -10,7 +10,7 @@ import (
 )
 
 func GetTestConfig(authEnabled bool) *util.Config {
-	var modelFilePath = "./../../openfga/model/model.fga"
+	modelFilePath := "./../../openfga/model/model.fga"
 
 	cfg := &util.Config{
 		CurrentUser: "testuser",

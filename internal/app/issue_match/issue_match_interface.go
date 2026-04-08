@@ -10,7 +10,8 @@ import (
 )
 
 type IssueMatchHandler interface {
-	ListIssueMatches(ctx context.Context, filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error)
+	ListIssueMatches(ctx context.Context, filter *entity.IssueMatchFilter,
+		options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error)
 	GetIssueMatch(context.Context, int64) (*entity.IssueMatch, error)
 	CreateIssueMatch(context.Context, *entity.IssueMatch) (*entity.IssueMatch, error)
 	UpdateIssueMatch(context.Context, *entity.IssueMatch) (*entity.IssueMatch, error)

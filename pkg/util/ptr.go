@@ -4,8 +4,10 @@
 package util
 
 // takes abitary value and returns a pointer to the value
+//
+//go:fix inline
 func Ptr[T any](v T) *T {
-	return &v
+	return new(v)
 }
 
 // takes abitary pointer and returns value of the pointer

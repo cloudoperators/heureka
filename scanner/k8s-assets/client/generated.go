@@ -164,7 +164,7 @@ type ComponentInstanceFilter struct {
 	Pod                    []string                 `json:"pod"`
 	Container              []string                 `json:"container"`
 	Type                   []ComponentInstanceTypes `json:"type"`
-	Context                []map[string]interface{} `json:"context"`
+	Context                []map[string]any         `json:"context"`
 	SupportGroup           []string                 `json:"supportGroup"`
 	Search                 []string                 `json:"search"`
 	State                  []StateFilter            `json:"state"`
@@ -207,7 +207,7 @@ func (v *ComponentInstanceFilter) GetContainer() []string { return v.Container }
 func (v *ComponentInstanceFilter) GetType() []ComponentInstanceTypes { return v.Type }
 
 // GetContext returns ComponentInstanceFilter.Context, and is useful for accessing the field via an interface.
-func (v *ComponentInstanceFilter) GetContext() []map[string]interface{} { return v.Context }
+func (v *ComponentInstanceFilter) GetContext() []map[string]any { return v.Context }
 
 // GetSupportGroup returns ComponentInstanceFilter.SupportGroup, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceFilter) GetSupportGroup() []string { return v.SupportGroup }
@@ -234,7 +234,7 @@ type ComponentInstanceInput struct {
 	Pod                string                 `json:"pod"`
 	Container          string                 `json:"container"`
 	Type               ComponentInstanceTypes `json:"type"`
-	Context            map[string]interface{} `json:"context"`
+	Context            map[string]any         `json:"context"`
 	Uuid               string                 `json:"uuid"`
 	ParentId           string                 `json:"parentId"`
 }
@@ -276,7 +276,7 @@ func (v *ComponentInstanceInput) GetContainer() string { return v.Container }
 func (v *ComponentInstanceInput) GetType() ComponentInstanceTypes { return v.Type }
 
 // GetContext returns ComponentInstanceInput.Context, and is useful for accessing the field via an interface.
-func (v *ComponentInstanceInput) GetContext() map[string]interface{} { return v.Context }
+func (v *ComponentInstanceInput) GetContext() map[string]any { return v.Context }
 
 // GetUuid returns ComponentInstanceInput.Uuid, and is useful for accessing the field via an interface.
 func (v *ComponentInstanceInput) GetUuid() string { return v.Uuid }

@@ -39,7 +39,9 @@ func NewProvider(url string, enableLog bool) *Provider {
 	if !enableLog {
 		l.SetOutput(ioutil.Discard)
 	}
+
 	gin.DefaultWriter = l.Writer()
+
 	oidcProvider := Provider{
 		log:              l,
 		url:              url,
@@ -47,8 +49,10 @@ func NewProvider(url string, enableLog bool) *Provider {
 		clientId:         "mock-client-id",
 		authCodeNonceMap: make(map[string]string),
 	}
+
 	oidcProvider.initRsa()
 	oidcProvider.addRoutes()
+
 	return &oidcProvider
 }
 
@@ -59,6 +63,7 @@ func (p *Provider) Start() {
 
 	serverAddr := "'default'"
 	re := regexp.MustCompile(`:[0-9]+`)
+
 	matches := re.FindAllString(p.url, -1)
 	if len(matches) > 0 {
 		p.server.Addr = matches[0]
@@ -67,6 +72,7 @@ func (p *Provider) Start() {
 
 	go func() {
 		p.log.Printf("Starting OIDC provider on %s", serverAddr)
+
 		if err := p.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			p.log.Fatalf("Server failed: %v", err)
 		}
@@ -78,6 +84,7 @@ func (p *Provider) StartForeground() {
 
 	serverAddr := "'default'"
 	re := regexp.MustCompile(`:[0-9]+`)
+
 	matches := re.FindAllString(p.url, -1)
 	if len(matches) > 0 {
 		p.server.Addr = matches[0]
@@ -85,6 +92,7 @@ func (p *Provider) StartForeground() {
 	}
 
 	p.log.Printf("Starting server on %s", serverAddr)
+
 	if err := p.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		p.log.Fatalf("Server failed: %v", err)
 	}
@@ -96,11 +104,14 @@ func (p *Provider) GetRsaPrivateKey() *rsa.PrivateKey {
 
 func (p *Provider) Stop() {
 	p.log.Println("Stopping server...")
+
 	shutdownCtx, shutdownCancel := context.WithTimeout(p.ctx, 5*time.Second)
 	defer shutdownCancel()
+
 	if err := p.server.Shutdown(shutdownCtx); err != nil {
 		p.log.Fatalf("Failed to gracefully shut down server: %v", err)
 	}
+
 	p.cancel()
 	p.log.Println("Server stopped successfully")
 }
@@ -114,10 +125,12 @@ func (p *Provider) addRoutes() {
 
 func (p *Provider) initRsa() {
 	var err error
+
 	p.rsaPrivateKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		p.log.Fatalf("Failed to generate RSA private key: %v", err)
 	}
+
 	p.rsaPublicKey = jose.JSONWebKey{
 		Key:       p.rsaPrivateKey.Public(),
 		KeyID:     "mock-key-id",
@@ -131,28 +144,34 @@ func randString(nByte int) (string, error) {
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
 		return "", err
 	}
+
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 func (p *Provider) openidConfigurationHandler(c *gin.Context) {
 	p.log.Println("/.well-known/openid-configuration")
 	c.Header("Content-Type", "application/json")
-	metadata := map[string]interface{}{
+
+	metadata := map[string]any{
 		"issuer":                                p.url,
 		"authorization_endpoint":                fmt.Sprintf("%s/auth", p.url),
 		"token_endpoint":                        fmt.Sprintf("%s/token", p.url),
 		"jwks_uri":                              fmt.Sprintf("%s/jwks", p.url),
 		"id_token_signing_alg_values_supported": []string{"RS256"},
 	}
+
 	c.JSON(http.StatusOK, metadata)
 }
 
 func (p *Provider) authHandler(c *gin.Context) {
 	p.log.Println("/auth")
+
 	state := c.Query("state")
 	p.log.Println("STATE: ", state)
+
 	nonce := c.Query("nonce")
 	p.log.Println("NONCE: ", nonce)
+
 	if nonce == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "nonce is required"})
 		return
@@ -164,6 +183,7 @@ func (p *Provider) authHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "could not generate auth code"})
 		return
 	}
+
 	p.authCodeNonceMap[authCode] = nonce
 
 	redirectUri := c.Query("redirect_uri")
@@ -178,6 +198,7 @@ func (p *Provider) jwksHandler(c *gin.Context) {
 	keySet := jose.JSONWebKeySet{
 		Keys: []jose.JSONWebKey{p.rsaPublicKey},
 	}
+
 	c.Header("Content-Type", "application/json")
 	c.JSON(http.StatusOK, keySet)
 }
@@ -190,6 +211,7 @@ func (p *Provider) tokenHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
 		return
 	}
+
 	nonce, ok := p.authCodeNonceMap[code]
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})

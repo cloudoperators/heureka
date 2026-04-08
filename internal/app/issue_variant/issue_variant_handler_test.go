@@ -27,13 +27,14 @@ func TestIssueVariantHandler(t *testing.T) {
 	RunSpecs(t, "IssueVariant Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
 	er = event.NewEventRegistry(db, authz)
-
 })
 
 func issueVariantFilter() *entity.IssueVariantFilter {
@@ -96,7 +97,8 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
+			db.On("GetIssueVariants", filter, mock.Anything).
+				Return([]entity.IssueVariantResult{}, nil)
 			db.On("CountIssueVariants", filter).Return(int64(1337), nil)
 		})
 
@@ -112,160 +114,186 @@ var _ = Describe("When listing IssueVariants", Label("app", "ListIssueVariants")
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
-		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-			filter.First = &pageSize
-			ivResults := []entity.IssueVariantResult{}
+		DescribeTable(
+			"pagination information is correct",
+			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+				filter.First = &pageSize
+				ivResults := []entity.IssueVariantResult{}
 
-			for _, iv := range test.NNewFakeIssueVariants(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, iv))
-				ivResults = append(ivResults, entity.IssueVariantResult{WithCursor: entity.WithCursor{Value: cursor}, IssueVariant: lo.ToPtr(iv)})
-			}
+				for _, iv := range test.NNewFakeIssueVariants(resElements) {
+					cursor, _ := mariadb.EncodeCursor(
+						mariadb.WithIssueVariant([]entity.Order{}, iv),
+					)
+					ivResults = append(
+						ivResults,
+						entity.IssueVariantResult{
+							WithCursor:   entity.WithCursor{Value: cursor},
+							IssueVariant: new(iv),
+						},
+					)
+				}
 
-			cursors := lo.Map(ivResults, func(m entity.IssueVariantResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, *m.IssueVariant))
-				return cursor
-			})
+				cursors := lo.Map(ivResults, func(m entity.IssueVariantResult, _ int) string {
+					cursor, _ := mariadb.EncodeCursor(
+						mariadb.WithIssueVariant([]entity.Order{}, *m.IssueVariant),
+					)
+					return cursor
+				})
 
-			for i := 0; len(cursors) < dbElements; i++ {
-				iv := test.NewFakeIssueVariantEntity(nil)
-				c, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, iv))
-				cursors = append(cursors, c)
-			}
+				for i := 0; len(cursors) < dbElements; i++ {
+					iv := test.NewFakeIssueVariantEntity(nil)
+					c, _ := mariadb.EncodeCursor(mariadb.WithIssueVariant([]entity.Order{}, iv))
+					cursors = append(cursors, c)
+				}
 
-			db.On("GetIssueVariants", filter, mock.Anything).Return(ivResults, nil)
-			db.On("GetAllIssueVariantCursors", filter, mock.Anything).Return(cursors, nil)
-			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-			res, err := issueVariantHandler.ListIssueVariants(filter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-		},
+				db.On("GetIssueVariants", filter, mock.Anything).Return(ivResults, nil)
+				db.On("GetAllIssueVariantCursors", filter, mock.Anything).Return(cursors, nil)
+				issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+				res, err := issueVariantHandler.ListIssueVariants(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(
+					*res.PageInfo.HasNextPage,
+				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+				Expect(
+					len(res.PageInfo.Pages),
+				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			},
 			Entry("When pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
 			Entry("When pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
-			Entry("When pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+			Entry(
+				"When pageSize is 10 and the database was returning 11 elements",
+				10,
+				11,
+				10,
+				true,
+			),
 		)
 	})
 })
 
-var _ = Describe("When listing EffectiveIssueVariants", Label("app", "ListEffectiveIssueVariants"), func() {
-	var (
-		db                  *mocks.MockDatabase
-		issueVariantHandler iv.IssueVariantHandler
-		ivFilter            *entity.IssueVariantFilter
-		irFilter            *entity.IssueRepositoryFilter
-		options             *entity.ListOptions
-		issueVariants       []entity.IssueVariant
-		repositories        []entity.IssueRepository
-		irResults           []entity.IssueRepositoryResult
-		rs                  issue_repository.IssueRepositoryHandler
-		authz               openfga.Authorization
-		handlerContext      common.HandlerContext
-	)
+var _ = Describe(
+	"When listing EffectiveIssueVariants",
+	Label("app", "ListEffectiveIssueVariants"),
+	func() {
+		var (
+			db                  *mocks.MockDatabase
+			issueVariantHandler iv.IssueVariantHandler
+			ivFilter            *entity.IssueVariantFilter
+			irFilter            *entity.IssueRepositoryFilter
+			options             *entity.ListOptions
+			issueVariants       []entity.IssueVariant
+			repositories        []entity.IssueRepository
+			irResults           []entity.IssueRepositoryResult
+			rs                  issue_repository.IssueRepositoryHandler
+			authz               openfga.Authorization
+			handlerContext      common.HandlerContext
+		)
 
-	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
-		options = issueVariantListOptions()
-		ivFilter = issueVariantFilter()
-		irFilter = issueRepositoryFilter()
-		first := 10
-		ivFilter.First = &first
-		var after string
-		irFilter.First = &first
-		irFilter.After = &after
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
-		rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
-	})
-
-	When("having different priority", func() {
 		BeforeEach(func() {
-			issueVariants = test.NNewFakeIssueVariants(25)
-			repositories = test.NNewFakeIssueRepositories(2)
-			repositories[0].Priority = 1
-			repositories[1].Priority = 2
-			for i := range issueVariants {
-				issueVariants[i].IssueRepositoryId = repositories[i%2].Id
+			db = mocks.NewMockDatabase(GinkgoT())
+			options = issueVariantListOptions()
+			ivFilter = issueVariantFilter()
+			irFilter = issueRepositoryFilter()
+			first := 10
+			ivFilter.First = &first
+			var after string
+			irFilter.First = &first
+			irFilter.After = &after
+			handlerContext = common.HandlerContext{
+				DB:       db,
+				EventReg: er,
+				Authz:    authz,
 			}
-			irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
-				return &item.IssueRepositoryId
+			rs = issue_repository.NewIssueRepositoryHandler(handlerContext)
+		})
+
+		When("having different priority", func() {
+			BeforeEach(func() {
+				issueVariants = test.NNewFakeIssueVariants(25)
+				repositories = test.NNewFakeIssueRepositories(2)
+				repositories[0].Priority = 1
+				repositories[1].Priority = 2
+				for i := range issueVariants {
+					issueVariants[i].IssueRepositoryId = repositories[i%2].Id
+				}
+				irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
+					return &item.IssueRepositoryId
+				})
+
+				ivResults := make([]entity.IssueVariantResult, 0, len(issueVariants))
+
+				for _, iv := range issueVariants {
+					ivResults = append(ivResults, entity.IssueVariantResult{
+						IssueVariant: &iv,
+					})
+				}
+
+				irResults = make([]entity.IssueRepositoryResult, 0, len(repositories))
+
+				for _, ir := range repositories {
+					irResults = append(irResults, entity.IssueRepositoryResult{
+						IssueRepository: &ir,
+					})
+				}
+
+				db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
+				db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 			})
-
-			ivResults := make([]entity.IssueVariantResult, 0, len(issueVariants))
-
-			for _, iv := range issueVariants {
-				ivResults = append(ivResults, entity.IssueVariantResult{
-					IssueVariant: &iv,
-				})
-			}
-
-			irResults = make([]entity.IssueRepositoryResult, 0, len(repositories))
-
-			for _, ir := range repositories {
-				irResults = append(irResults, entity.IssueRepositoryResult{
-					IssueRepository: &ir,
-				})
-			}
-
-			db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
-			db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
-		})
-		It("can list advisories", func() {
-			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-			res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			for _, item := range res.Elements {
-				Expect(item.IssueRepositoryId).To(BeEquivalentTo(repositories[1].Id))
-			}
-		})
-	})
-	When("having same priority", func() {
-		BeforeEach(func() {
-			issueVariants = test.NNewFakeIssueVariants(25)
-			repositories = test.NNewFakeIssueRepositories(2)
-			repositories[0].Priority = 1
-			repositories[1].Priority = 1
-			for i := range issueVariants {
-				issueVariants[i].IssueRepositoryId = repositories[i%2].Id
-			}
-			irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
-				return &item.IssueRepositoryId
+			It("can list advisories", func() {
+				issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+				res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				for _, item := range res.Elements {
+					Expect(item.IssueRepositoryId).To(BeEquivalentTo(repositories[1].Id))
+				}
 			})
-
-			ivResults := make([]entity.IssueVariantResult, 0, len(issueVariants))
-
-			for _, iv := range issueVariants {
-				ivResults = append(ivResults, entity.IssueVariantResult{
-					IssueVariant: &iv,
-				})
-			}
-
-			irResults = make([]entity.IssueRepositoryResult, 0, len(repositories))
-
-			for _, ir := range repositories {
-				irResults = append(irResults, entity.IssueRepositoryResult{
-					IssueRepository: &ir,
-				})
-			}
-
-			db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
-			db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 		})
-		It("can list issueVariants", func() {
-			issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-			res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			ir_ids := lo.Map(res.Elements, func(item entity.IssueVariantResult, _ int) int64 {
-				return item.IssueRepositoryId
+		When("having same priority", func() {
+			BeforeEach(func() {
+				issueVariants = test.NNewFakeIssueVariants(25)
+				repositories = test.NNewFakeIssueRepositories(2)
+				repositories[0].Priority = 1
+				repositories[1].Priority = 1
+				for i := range issueVariants {
+					issueVariants[i].IssueRepositoryId = repositories[i%2].Id
+				}
+				irFilter.Id = lo.Map(issueVariants, func(item entity.IssueVariant, _ int) *int64 {
+					return &item.IssueRepositoryId
+				})
+
+				ivResults := make([]entity.IssueVariantResult, 0, len(issueVariants))
+
+				for _, iv := range issueVariants {
+					ivResults = append(ivResults, entity.IssueVariantResult{
+						IssueVariant: &iv,
+					})
+				}
+
+				irResults = make([]entity.IssueRepositoryResult, 0, len(repositories))
+
+				for _, ir := range repositories {
+					irResults = append(irResults, entity.IssueRepositoryResult{
+						IssueRepository: &ir,
+					})
+				}
+
+				db.On("GetIssueVariants", ivFilter, mock.Anything).Return(ivResults, nil)
+				db.On("GetIssueRepositories", irFilter, mock.Anything).Return(irResults, nil)
 			})
-			Expect(lo.Contains(ir_ids, irResults[0].Id)).To(BeTrue())
-			Expect(lo.Contains(ir_ids, irResults[1].Id)).To(BeTrue())
+			It("can list issueVariants", func() {
+				issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
+				res, err := issueVariantHandler.ListEffectiveIssueVariants(ivFilter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				ir_ids := lo.Map(res.Elements, func(item entity.IssueVariantResult, _ int) int64 {
+					return item.IssueRepositoryId
+				})
+				Expect(lo.Contains(ir_ids, irResults[0].Id)).To(BeTrue())
+				Expect(lo.Contains(ir_ids, irResults[1].Id)).To(BeTrue())
+			})
 		})
-	})
-})
+	},
+)
 
 var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"), func() {
 	var (
@@ -303,15 +331,22 @@ var _ = Describe("When creating IssueVariant", Label("app", "CreateIssueVariant"
 		db.On("CreateIssueVariant", &issueVariant).Return(&issueVariant, nil)
 		db.On("GetIssueVariants", filter, mock.Anything).Return([]entity.IssueVariantResult{}, nil)
 		issueVariantHandler = iv.NewIssueVariantHandler(handlerContext, rs)
-		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(common.NewAdminContext(), &issueVariant)
+		newIssueVariant, err := issueVariantHandler.CreateIssueVariant(
+			common.NewAdminContext(),
+			&issueVariant,
+		)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newIssueVariant.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
 			Expect(newIssueVariant.SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
 			Expect(newIssueVariant.Description).To(BeEquivalentTo(issueVariant.Description))
-			Expect(newIssueVariant.IssueRepositoryId).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
+			Expect(
+				newIssueVariant.IssueRepositoryId,
+			).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
 			Expect(newIssueVariant.IssueId).To(BeEquivalentTo(issueVariant.IssueId))
-			Expect(newIssueVariant.Severity.Cvss.Vector).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
+			Expect(
+				newIssueVariant.Severity.Cvss.Vector,
+			).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
 			Expect(newIssueVariant.Severity.Score).To(BeEquivalentTo(issueVariant.Severity.Score))
 			Expect(newIssueVariant.Severity.Value).To(BeEquivalentTo(issueVariant.Severity.Value))
 		})
@@ -359,16 +394,27 @@ var _ = Describe("When updating IssueVariant", Label("app", "UpdateIssueVariant"
 				IssueVariant: &issueVariant,
 			},
 		}, nil)
-		updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(common.NewAdminContext(), &issueVariant)
+		updatedIssueVariant, err := issueVariantHandler.UpdateIssueVariant(
+			common.NewAdminContext(),
+			&issueVariant,
+		)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedIssueVariant.SecondaryName).To(BeEquivalentTo(issueVariant.SecondaryName))
 			Expect(updatedIssueVariant.Description).To(BeEquivalentTo(issueVariant.Description))
-			Expect(updatedIssueVariant.IssueRepositoryId).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
+			Expect(
+				updatedIssueVariant.IssueRepositoryId,
+			).To(BeEquivalentTo(issueVariant.IssueRepositoryId))
 			Expect(updatedIssueVariant.IssueId).To(BeEquivalentTo(issueVariant.IssueId))
-			Expect(updatedIssueVariant.Severity.Cvss.Vector).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
-			Expect(updatedIssueVariant.Severity.Score).To(BeEquivalentTo(issueVariant.Severity.Score))
-			Expect(updatedIssueVariant.Severity.Value).To(BeEquivalentTo(issueVariant.Severity.Value))
+			Expect(
+				updatedIssueVariant.Severity.Cvss.Vector,
+			).To(BeEquivalentTo(issueVariant.Severity.Cvss.Vector))
+			Expect(
+				updatedIssueVariant.Severity.Score,
+			).To(BeEquivalentTo(issueVariant.Severity.Score))
+			Expect(
+				updatedIssueVariant.Severity.Value,
+			).To(BeEquivalentTo(issueVariant.Severity.Value))
 		})
 	})
 })

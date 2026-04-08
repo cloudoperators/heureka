@@ -12,24 +12,25 @@ import (
 
 // CONTAIN ALL
 
-func ContainAll(expected interface{}) types.GomegaMatcher {
+func ContainAll(expected any) types.GomegaMatcher {
 	return &containAllMatcher{
 		expected: expected,
 	}
 }
 
 type containAllMatcher struct {
-	expected interface{}
-	missing  []interface{}
+	expected any
+	missing  []any
 }
 
-func (m *containAllMatcher) Match(actual interface{}) (bool, error) {
+func (m *containAllMatcher) Match(actual any) (bool, error) {
 	actualVal := reflect.ValueOf(actual)
 	expectedVal := reflect.ValueOf(m.expected)
 
 	if actualVal.Kind() != reflect.Slice && actualVal.Kind() != reflect.Array {
 		return false, fmt.Errorf("ContainAll matcher expects a slice/array as actual")
 	}
+
 	if expectedVal.Kind() != reflect.Slice && expectedVal.Kind() != reflect.Array {
 		return false, fmt.Errorf("ContainAll matcher expects a slice/array as expected")
 	}
@@ -40,6 +41,7 @@ func (m *containAllMatcher) Match(actual interface{}) (bool, error) {
 		exp := expectedVal.Index(i).Interface()
 
 		found := false
+
 		for j := 0; j < actualVal.Len(); j++ {
 			if reflect.DeepEqual(actualVal.Index(j).Interface(), exp) {
 				found = true
@@ -55,7 +57,7 @@ func (m *containAllMatcher) Match(actual interface{}) (bool, error) {
 	return len(m.missing) == 0, nil
 }
 
-func (m *containAllMatcher) FailureMessage(actual interface{}) string {
+func (m *containAllMatcher) FailureMessage(actual any) string {
 	return fmt.Sprintf(
 		"Expected\n%v\nto contain all elements\n%v\nmissing: %v",
 		actual,
@@ -64,7 +66,7 @@ func (m *containAllMatcher) FailureMessage(actual interface{}) string {
 	)
 }
 
-func (m *containAllMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m *containAllMatcher) NegatedFailureMessage(actual any) string {
 	return fmt.Sprintf(
 		"Expected\n%v\nnot to contain all elements\n%v",
 		actual,
@@ -74,24 +76,25 @@ func (m *containAllMatcher) NegatedFailureMessage(actual interface{}) string {
 
 // CONTAIN NONE
 
-func ContainNone(forbidden interface{}) types.GomegaMatcher {
+func ContainNone(forbidden any) types.GomegaMatcher {
 	return &containNoneMatcher{
 		forbidden: forbidden,
 	}
 }
 
 type containNoneMatcher struct {
-	forbidden interface{}
-	found     []interface{}
+	forbidden any
+	found     []any
 }
 
-func (m *containNoneMatcher) Match(actual interface{}) (bool, error) {
+func (m *containNoneMatcher) Match(actual any) (bool, error) {
 	actualVal := reflect.ValueOf(actual)
 	forbiddenVal := reflect.ValueOf(m.forbidden)
 
 	if actualVal.Kind() != reflect.Slice && actualVal.Kind() != reflect.Array {
 		return false, fmt.Errorf("ContainNone matcher expects slice/array as actual")
 	}
+
 	if forbiddenVal.Kind() != reflect.Slice && forbiddenVal.Kind() != reflect.Array {
 		return false, fmt.Errorf("ContainNone matcher expects slice/array as forbidden")
 	}
@@ -112,7 +115,7 @@ func (m *containNoneMatcher) Match(actual interface{}) (bool, error) {
 	return len(m.found) == 0, nil
 }
 
-func (m *containNoneMatcher) FailureMessage(actual interface{}) string {
+func (m *containNoneMatcher) FailureMessage(actual any) string {
 	return fmt.Sprintf(
 		"Expected\n%v\nnot to contain any of\n%v\nbut found: %v",
 		actual,
@@ -121,7 +124,7 @@ func (m *containNoneMatcher) FailureMessage(actual interface{}) string {
 	)
 }
 
-func (m *containNoneMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m *containNoneMatcher) NegatedFailureMessage(actual any) string {
 	return fmt.Sprintf(
 		"Expected\n%v\nto contain at least one of\n%v",
 		actual,

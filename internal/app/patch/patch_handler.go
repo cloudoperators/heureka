@@ -38,10 +38,16 @@ func NewPatchHandler(handlerContext common.HandlerContext) PatchHandler {
 	}
 }
 
-func (ph *patchHandler) ListPatches(filter *entity.PatchFilter, options *entity.ListOptions) (*entity.List[entity.PatchResult], error) {
+func (ph *patchHandler) ListPatches(
+	filter *entity.PatchFilter,
+	options *entity.ListOptions,
+) (*entity.List[entity.PatchResult], error) {
 	op := appErrors.Op("patchHandler.ListPatches")
-	var count int64
-	var pageInfo *entity.PageInfo
+
+	var (
+		count    int64
+		pageInfo *entity.PageInfo
+	)
 
 	common.EnsurePaginated(&filter.Paginated)
 
@@ -58,6 +64,7 @@ func (ph *patchHandler) ListPatches(filter *entity.PatchFilter, options *entity.
 		applog.LogError(ph.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -76,8 +83,10 @@ func (ph *patchHandler) ListPatches(filter *entity.PatchFilter, options *entity.
 				applog.LogError(ph.logger, wrappedErr, logrus.Fields{
 					"filter": filter,
 				})
+
 				return nil, wrappedErr
 			}
+
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
@@ -94,6 +103,7 @@ func (ph *patchHandler) ListPatches(filter *entity.PatchFilter, options *entity.
 			applog.LogError(ph.logger, wrappedErr, logrus.Fields{
 				"filter": filter,
 			})
+
 			return nil, wrappedErr
 		}
 	}

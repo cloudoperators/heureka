@@ -26,14 +26,16 @@ func NewFakeComponentEntity() entity.Component {
 
 func NNewFakeComponentEntities(n int) []entity.Component {
 	r := make([]entity.Component, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeComponentEntity()
 	}
+
 	return r
 }
 
 func NewFakeComponentResult() entity.ComponentResult {
 	c := NewFakeComponentEntity()
+
 	return entity.ComponentResult{
 		Component: &c,
 	}

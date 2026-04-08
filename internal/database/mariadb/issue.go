@@ -19,31 +19,111 @@ var issueObject = DbObject[*entity.Issue]{
 	Prefix:    "issue",
 	TableName: "Issue",
 	Properties: []*Property{
-		NewProperty("issue_primary_name", WrapAccess(func(i *entity.Issue) (string, bool) { return i.PrimaryName, i.PrimaryName != "" })),
-		NewProperty("issue_type", WrapAccess(func(i *entity.Issue) (entity.IssueType, bool) { return i.Type, i.Type != "" })),
-		NewProperty("issue_description", WrapAccess(func(i *entity.Issue) (string, bool) { return i.Description, i.Description != "" })),
-		NewProperty("issue_created_by", WrapAccess(func(i *entity.Issue) (int64, bool) { return i.CreatedBy, NoUpdate })),
-		NewProperty("issue_updated_by", WrapAccess(func(i *entity.Issue) (int64, bool) { return i.UpdatedBy, i.UpdatedBy != 0 })),
+		NewProperty(
+			"issue_primary_name",
+			WrapAccess(
+				func(i *entity.Issue) (string, bool) { return i.PrimaryName, i.PrimaryName != "" },
+			),
+		),
+		NewProperty(
+			"issue_type",
+			WrapAccess(
+				func(i *entity.Issue) (entity.IssueType, bool) { return i.Type, i.Type != "" },
+			),
+		),
+		NewProperty(
+			"issue_description",
+			WrapAccess(
+				func(i *entity.Issue) (string, bool) { return i.Description, i.Description != "" },
+			),
+		),
+		NewProperty(
+			"issue_created_by",
+			WrapAccess(func(i *entity.Issue) (int64, bool) { return i.CreatedBy, NoUpdate }),
+		),
+		NewProperty(
+			"issue_updated_by",
+			WrapAccess(
+				func(i *entity.Issue) (int64, bool) { return i.UpdatedBy, i.UpdatedBy != 0 },
+			),
+		),
 	},
 	FilterProperties: []*FilterProperty{
-		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.ServiceCCRN })),
-		NewFilterProperty("CI.componentinstance_service_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ServiceId })),
-		NewFilterProperty("I.issue_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.Id })),
-		NewFilterProperty("IM.issuematch_status = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.IssueMatchStatus })),
-		NewFilterProperty("IM.issuematch_rating = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.IssueMatchSeverity })),
-		NewFilterProperty("IM.issuematch_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.IssueMatchId })),
-		NewFilterProperty("CVI.componentversionissue_component_version_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ComponentVersionId })),
-		NewFilterProperty("IV.issuevariant_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.IssueVariantId })),
-		NewFilterProperty("I.issue_type = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.Type })),
-		NewFilterProperty("I.issue_primary_name = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.PrimaryName })),
-		NewFilterProperty("IV.issuevariant_repository_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.IssueRepositoryId })),
-		NewFilterProperty("SG.supportgroup_ccrn = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.SupportGroupCCRN })),
-		NewFilterProperty("CV.componentversion_component_id = ?", WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ComponentId })),
+		NewFilterProperty(
+			"S.service_ccrn = ?",
+			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.ServiceCCRN }),
+		),
+		NewFilterProperty(
+			"CI.componentinstance_service_id = ?",
+			WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ServiceId }),
+		),
+		NewFilterProperty(
+			"I.issue_id = ?",
+			WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.Id }),
+		),
+		NewFilterProperty(
+			"IM.issuematch_status = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueFilter) []*string { return filter.IssueMatchStatus },
+			),
+		),
+		NewFilterProperty(
+			"IM.issuematch_rating = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueFilter) []*string { return filter.IssueMatchSeverity },
+			),
+		),
+		NewFilterProperty(
+			"IM.issuematch_id = ?",
+			WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.IssueMatchId }),
+		),
+		NewFilterProperty(
+			"CVI.componentversionissue_component_version_id = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueFilter) []*int64 { return filter.ComponentVersionId },
+			),
+		),
+		NewFilterProperty(
+			"IV.issuevariant_id = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueFilter) []*int64 { return filter.IssueVariantId },
+			),
+		),
+		NewFilterProperty(
+			"I.issue_type = ?",
+			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.Type }),
+		),
+		NewFilterProperty(
+			"I.issue_primary_name = ?",
+			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.PrimaryName }),
+		),
+		NewFilterProperty(
+			"IV.issuevariant_repository_id = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueFilter) []*int64 { return filter.IssueRepositoryId },
+			),
+		),
+		NewFilterProperty(
+			"SG.supportgroup_ccrn = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueFilter) []*string { return filter.SupportGroupCCRN },
+			),
+		),
+		NewFilterProperty(
+			"CV.componentversion_component_id = ?",
+			WrapRetSlice(func(filter *entity.IssueFilter) []*int64 { return filter.ComponentId }),
+		),
 		NewNFilterProperty(
 			"IV.issuevariant_secondary_name LIKE Concat('%',?,'%') OR I.issue_primary_name LIKE Concat('%',?,'%')",
 			WrapRetSlice(func(filter *entity.IssueFilter) []*string { return filter.Search }),
-			2),
-		NewStateFilterProperty("I.issue", WrapRetState(func(filter *entity.IssueFilter) []entity.StateFilterType { return filter.State })),
+			2,
+		),
+		NewStateFilterProperty(
+			"I.issue",
+			WrapRetState(
+				func(filter *entity.IssueFilter) []entity.StateFilterType { return filter.State },
+			),
+		),
 		NewCustomFilterProperty(
 			WrapBuilder(func(is []entity.IssueStatus) string {
 				if len(is) != 1 {
@@ -57,7 +137,10 @@ var issueObject = DbObject[*entity.Issue]{
 				}
 				return ""
 			}),
-			WrapRetSlice(func(filter *entity.IssueFilter) []entity.IssueStatus { return []entity.IssueStatus{filter.Status} })),
+			WrapRetSlice(
+				func(filter *entity.IssueFilter) []entity.IssueStatus { return []entity.IssueStatus{filter.Status} },
+			),
+		),
 	},
 }
 
@@ -65,36 +148,44 @@ func ensureIssueFilter(filter *entity.IssueFilter) *entity.IssueFilter {
 	if filter == nil {
 		filter = &entity.IssueFilter{}
 	}
+
 	return EnsurePagination(filter)
 }
 
 func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 	joins := ""
+
 	orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
 		return o.By == entity.IssueVariantRating
 	})
+
 	if filter.AllServices || filter.HasIssueMatches {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
-		len(filter.IssueMatchId) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 {
+		len(
+			filter.IssueMatchId,
+		) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
 		`)
 	}
 
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices {
-
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
+		len(filter.SupportGroupCCRN) > 0 ||
+		filter.AllServices {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 		`)
+
 		if len(filter.ServiceCCRN) > 0 || filter.AllServices {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
 				LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
 			`)
 		}
+
 		if len(filter.SupportGroupCCRN) > 0 {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id
@@ -108,14 +199,17 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 			LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
 		`)
 
-		if len(filter.ComponentId) > 0 && !(len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices) {
+		if len(filter.ComponentId) > 0 &&
+			(len(filter.ServiceId) <= 0 && len(filter.ServiceCCRN) <= 0 && len(filter.SupportGroupCCRN) <= 0 && !filter.AllServices) {
 			joins = fmt.Sprintf("%s\n%s", joins, `
 				LEFT JOIN ComponentVersion CV ON CVI.componentversionissue_component_version_id = CV.componentversion_id
 			`)
 		}
 	}
 
-	if len(filter.IssueRepositoryId) > 0 || len(filter.IssueVariantId) > 0 || len(filter.Search) > 0 || orderByRating {
+	if len(filter.IssueRepositoryId) > 0 || len(filter.IssueVariantId) > 0 ||
+		len(filter.Search) > 0 ||
+		orderByRating {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueVariant IV ON I.issue_id = IV.issuevariant_issue_id
 		`)
@@ -123,12 +217,21 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 
 	if filter.Status == entity.IssueStatusOpen || filter.Status == entity.IssueStatusRemediated {
 		remediationJoin := "LEFT JOIN Remediation R on R.remediation_issue_id = I.issue_id AND R.remediation_deleted_at IS NULL"
+
 		if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
-			remediationJoin = fmt.Sprintf("%s AND R.remediation_service_id = CI.componentinstance_service_id", remediationJoin)
+			remediationJoin = fmt.Sprintf(
+				"%s AND R.remediation_service_id = CI.componentinstance_service_id",
+				remediationJoin,
+			)
 		}
+
 		if len(filter.ComponentId) > 0 {
-			remediationJoin = fmt.Sprintf("%s AND R.remediation_component_id = CV.componentversion_component_id", remediationJoin)
+			remediationJoin = fmt.Sprintf(
+				"%s AND R.remediation_component_id = CV.componentversion_component_id",
+				remediationJoin,
+			)
 		}
+
 		joins = fmt.Sprintf("%s\n%s", joins, remediationJoin)
 	}
 
@@ -137,12 +240,17 @@ func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
 
 func getIssueColumns(order []entity.Order) string {
 	columns := ""
+
 	for _, o := range order {
 		switch o.By {
 		case entity.IssueVariantRating:
-			columns = fmt.Sprintf("%s, MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num", columns)
+			columns = fmt.Sprintf(
+				"%s, MAX(CAST(IV.issuevariant_rating AS UNSIGNED)) AS issuevariant_rating_num",
+				columns,
+			)
 		}
 	}
+
 	return columns
 }
 
@@ -151,25 +259,34 @@ func getIssueFilterWhereClause(filter *entity.IssueFilter) string {
 	if filterStr != "" {
 		return fmt.Sprintf("WHERE %s", filterStr)
 	}
+
 	return ""
 }
 
 func getIssueCursorQuery(filter *entity.IssueFilter, cursorFields []Field) string {
 	filterStr := issueObject.GetFilterQuery(filter)
+
 	cursorQuery := CreateCursorQuery("", cursorFields)
 	if filterStr != "" && cursorQuery != "" {
 		cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
 	}
+
 	return cursorQuery
 }
 
-func getIssueQueryWithCursor(baseQuery string, order []entity.Order, filter *entity.IssueFilter, cursorFields []Field) string {
+func getIssueQueryWithCursor(
+	baseQuery string,
+	order []entity.Order,
+	filter *entity.IssueFilter,
+	cursorFields []Field,
+) string {
 	issueColumns := getIssueColumns(order)
 	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
 	joins := getIssueJoins(filter, order)
 	whereClause := getIssueFilterWhereClause(filter)
 	issueCursor := getIssueCursorQuery(filter, cursorFields)
 	orderStr := CreateOrderString(defaultOrder)
+
 	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, issueCursor, orderStr)
 }
 
@@ -179,14 +296,20 @@ func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueF
 	joins := getIssueJoins(filter, order)
 	whereClause := getIssueFilterWhereClause(filter)
 	orderStr := CreateOrderString(defaultOrder)
+
 	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, orderStr)
 }
 
-func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueStatementWithCursor(
+	baseQuery string,
+	filter *entity.IssueFilter,
+	order []entity.Order,
+	l *logrus.Entry,
+) (Stmt, []any, error) {
 	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
-	cursorFields, err := DecodeCursor(ifilter.Paginated.After)
+	cursorFields, err := DecodeCursor(ifilter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -203,6 +326,7 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
@@ -212,11 +336,16 @@ func (s *SqlDatabase) buildIssueStatementWithCursor(baseQuery string, filter *en
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.IssueFilter, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueStatement(
+	baseQuery string,
+	filter *entity.IssueFilter,
+	order []entity.Order,
+	l *logrus.Entry,
+) (Stmt, []any, error) {
 	ifilter := ensureIssueFilter(filter)
 	l.WithFields(logrus.Fields{"filter": ifilter})
 
-	cursorFields, err := DecodeCursor(ifilter.Paginated.After)
+	cursorFields, err := DecodeCursor(ifilter.After)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -233,6 +362,7 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
@@ -242,7 +372,10 @@ func (s *SqlDatabase) buildIssueStatement(baseQuery string, filter *entity.Issue
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
+func (s *SqlDatabase) GetIssuesWithAggregations(
+	filter *entity.IssueFilter,
+	order []entity.Order,
+) ([]entity.IssueResult, error) {
 	filter = ensureIssueFilter(filter)
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
@@ -295,7 +428,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 
 	filter = ensureIssueFilter(filter)
 	joins := getIssueJoins(filter, order)
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, err
 	}
@@ -307,6 +441,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 	whereClause := getIssueFilterWhereClause(filter)
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
+
 	filterStr := issueObject.GetFilterQuery(filter)
 	if filterStr != "" && cursorQuery != "" {
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
@@ -325,15 +460,22 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, fmt.Errorf("%s", msg)
 	}
 
 	// parameters for component instance query
 	filterParameters := issueObject.GetFilterParameters(filter, true, cursorFields)
 	// parameters for agg query
-	filterParameters = append(filterParameters, issueObject.GetFilterParameters(filter, true, cursorFields)...)
+	filterParameters = append(
+		filterParameters,
+		issueObject.GetFilterParameters(filter, true, cursorFields)...)
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -348,7 +490,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 
 			var ivRating int64
 			if e.IssueVariantRow != nil {
-				ivRating = e.IssueVariantRow.RatingNumerical.Int64
+				ivRating = e.RatingNumerical.Int64
 			}
 
 			cursor, _ := EncodeCursor(WithIssue(defaultOrder, issue.Issue, ivRating))
@@ -360,6 +502,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(filter *entity.IssueFilter, orde
 				Issue:             &issue.Issue,
 				IssueAggregations: &issue.IssueAggregations,
 			}
+
 			return append(l, sr)
 		},
 	)
@@ -376,12 +519,17 @@ func (s *SqlDatabase) CountIssues(filter *entity.IssueFilter) (int64, error) {
 		%s
 		ORDER BY %s
 	`
+
 	stmt, filterParameters, err := s.buildIssueStatement(baseQuery, filter, []entity.Order{}, l)
 	if err != nil {
 		return -1, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
@@ -403,7 +551,11 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 		return nil, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	counts, err := performListScan(
 		stmt,
@@ -418,6 +570,7 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 	}
 
 	var issueTypeCounts entity.IssueTypeCounts
+
 	for _, count := range counts {
 		switch count.Value {
 		case entity.IssueTypeVulnerability.String():
@@ -432,7 +585,10 @@ func (s *SqlDatabase) CountIssueTypes(filter *entity.IssueFilter) (*entity.Issue
 	return &issueTypeCounts, nil
 }
 
-func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []entity.Order) ([]string, error) {
+func (s *SqlDatabase) GetAllIssueCursors(
+	filter *entity.IssueFilter,
+	order []entity.Order,
+) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetAllIssueCursors",
@@ -449,7 +605,11 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 		return nil, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	rows, err := performListScan(
 		stmt,
@@ -465,9 +625,10 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 
 	return lo.Map(rows, func(row RowComposite, _ int) string {
 		issue := row.IssueRow.AsIssue()
+
 		var ivRating int64
 		if row.IssueVariantRow != nil {
-			ivRating = row.IssueVariantRow.RatingNumerical.Int64
+			ivRating = row.RatingNumerical.Int64
 		}
 
 		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
@@ -476,7 +637,10 @@ func (s *SqlDatabase) GetAllIssueCursors(filter *entity.IssueFilter, order []ent
 	}), nil
 }
 
-func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order) ([]entity.IssueResult, error) {
+func (s *SqlDatabase) GetIssues(
+	filter *entity.IssueFilter,
+	order []entity.Order,
+) ([]entity.IssueResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetIssues",
 	})
@@ -495,7 +659,11 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 		return nil, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -506,7 +674,7 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 
 			var ivRating int64
 			if e.IssueVariantRow != nil {
-				ivRating = e.IssueVariantRow.RatingNumerical.Int64
+				ivRating = e.RatingNumerical.Int64
 			}
 
 			cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating))
@@ -517,6 +685,7 @@ func (s *SqlDatabase) GetIssues(filter *entity.IssueFilter, order []entity.Order
 				},
 				Issue: &issue,
 			}
+
 			return append(l, sr)
 		},
 	)
@@ -551,7 +720,7 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 		)
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"issue_id":             issueId,
 		"component_version_id": componentVersionId,
 	}
@@ -572,7 +741,10 @@ func (s *SqlDatabase) AddComponentVersionToIssue(issueId int64, componentVersion
 	return nil
 }
 
-func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVersionId int64) error {
+func (s *SqlDatabase) RemoveComponentVersionFromIssue(
+	issueId int64,
+	componentVersionId int64,
+) error {
 	l := logrus.WithFields(logrus.Fields{
 		"issueId":            issueId,
 		"componentVersionId": componentVersionId,
@@ -586,7 +758,7 @@ func (s *SqlDatabase) RemoveComponentVersionFromIssue(issueId int64, componentVe
 			AND componentversionissue_component_version_id = :component_version_id
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"issue_id":             issueId,
 		"component_version_id": componentVersionId,
 	}
@@ -608,7 +780,7 @@ func (s *SqlDatabase) RemoveAllIssuesFromComponentVersion(componentVersionId int
 			componentversionissue_component_version_id = :component_version_id
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"component_version_id": componentVersionId,
 	}
 
@@ -643,7 +815,12 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -651,18 +828,26 @@ func (s *SqlDatabase) GetIssueNames(filter *entity.IssueFilter) ([]string, error
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	issueNames := []string{}
+
 	var name string
 	for rows.Next() {
 		if err := rows.Scan(&name); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
+
 		issueNames = append(issueNames, name)
 	}
+
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err

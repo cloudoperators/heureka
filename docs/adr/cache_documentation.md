@@ -34,7 +34,7 @@ The type of cache used is determined by the following environment variables:
 ### Function Signature
 
 ```go
-CallCached(cache Cache, ttl time.Duration, name string, fn interface{}, args ...interface{}) (interface{}, error)
+CallCached(cache Cache, ttl time.Duration, name string, fn any, args ...any) (any, error)
 ```
 
 ### Parameters

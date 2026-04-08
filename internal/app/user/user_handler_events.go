@@ -106,7 +106,8 @@ func OnUserDeleteAuthz(db database.Database, e event.Event, authz openfga.Author
 		})
 
 		// Delete all tuples where user is the user
-		// includes: service, component, component verison, component instance, issue match, support group, role
+		// includes: service, component, component verison, component instance, issue match, support
+		// group, role
 		deleteInput = append(deleteInput, openfga.RelationInput{
 			UserType:   openfga.TypeUser,
 			UserId:     openfga.UserIdFromInt(deleteEvent.UserID),

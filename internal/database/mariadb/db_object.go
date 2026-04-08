@@ -43,12 +43,14 @@ func (do *DbObject[ET]) InsertQuery(entityItem ET) (string, []any, error) {
 
 func (do *DbObject[ET]) GetUpdateMap(f any) map[string]any {
 	m := make(map[string]any)
+
 	for _, v := range do.Properties {
 		val, isUpdatePresent := v.GetUpdateData(f)
 		if isUpdatePresent {
 			m[v.GetName()] = val
 		}
 	}
+
 	return m
 }
 
@@ -57,23 +59,33 @@ func (do *DbObject[ET]) GetFilterQuery(filter any) string {
 	for _, v := range do.FilterProperties {
 		fl = append(fl, v.GetQuery(filter))
 	}
+
 	return combineFilterQueries(fl, OP_AND)
 }
 
-func (do *DbObject[ET]) GetFilterParameters(filter entity.HasPagination, withCursor bool, cursorFields []Field) []any {
-	var filterParameters []interface{}
+func (do *DbObject[ET]) GetFilterParameters(
+	filter entity.HasPagination,
+	withCursor bool,
+	cursorFields []Field,
+) []any {
+	var filterParameters []any
 	for _, v := range do.FilterProperties {
 		filterParameters = v.AppendParameters(filterParameters, filter)
 	}
+
 	if withCursor {
 		paginatedX := filter.GetPaginated()
-		filterParameters = append(filterParameters, GetCursorQueryParameters(paginatedX.First, cursorFields)...)
+		filterParameters = append(
+			filterParameters,
+			GetCursorQueryParameters(paginatedX.First, cursorFields)...)
 	}
+
 	return filterParameters
 }
 
 func (do *DbObject[ET]) Create(db Db, entityItem ET) (ET, error) {
 	var zero ET
+
 	l := logrus.WithFields(logrus.Fields{
 		do.Prefix: entityItem,
 		"event":   fmt.Sprintf("database.Create%s", do.TableName),
@@ -87,12 +99,16 @@ func (do *DbObject[ET]) Create(db Db, entityItem ET) (ET, error) {
 	id, err := PerformInsertArgs(db, sqlQuery, args, l)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "Error 1062") {
-			return zero, database.NewDuplicateEntryDatabaseError(fmt.Sprintf("%s element already exists", do.TableName))
+			return zero, database.NewDuplicateEntryDatabaseError(
+				fmt.Sprintf("%s element already exists", do.TableName),
+			)
 		}
+
 		return zero, err
 	}
 
 	entityItem.SetId(id)
+
 	return entityItem, nil
 }
 
@@ -114,6 +130,7 @@ func (do *DbObject[ET]) Update(db Db, entityItem ET) error {
 	}
 
 	_, err = PerformExecArgs(db, sqlQuery, args, l)
+
 	return err
 }
 
@@ -139,6 +156,7 @@ func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
 	}
 
 	_, err = PerformExecArgs(db, sqlQuery, args, l)
+
 	return err
 }
 
@@ -198,7 +216,10 @@ func NewNFilterProperty(query string, param func(any) []any, nparam int) *Filter
 	}
 }
 
-func NewStateFilterProperty(prefix string, param func(any) []entity.StateFilterType) *FilterProperty {
+func NewStateFilterProperty(
+	prefix string,
+	param func(any) []entity.StateFilterType,
+) *FilterProperty {
 	return &FilterProperty{
 		QueryBuilder:  func(state []any) string { return buildStateFilterQuery(ToStateSlice(state), prefix) },
 		Param:         WrapRetSlice(param),
@@ -214,7 +235,10 @@ func NewJsonFilterProperty(query string, param func(any) []*entity.Json) *Filter
 	}
 }
 
-func NewCustomFilterProperty(queryBuilder func([]any) string, param func(any) []any) *FilterProperty {
+func NewCustomFilterProperty(
+	queryBuilder func([]any) string,
+	param func(any) []any,
+) *FilterProperty {
 	return &FilterProperty{
 		QueryBuilder:  queryBuilder,
 		Param:         param,
@@ -224,14 +248,15 @@ func NewCustomFilterProperty(queryBuilder func([]any) string, param func(any) []
 
 // DB helpers
 func EnsurePagination[T entity.HasPagination](filter T) T {
-	var first = 1000
-	var after = ""
+	first := 1000
+	after := ""
 
 	px := filter.GetPaginated()
 
 	if px.First == nil {
 		px.First = &first
 	}
+
 	if px.After == nil {
 		px.After = &after
 	}
@@ -267,6 +292,7 @@ func PerformInsertArgs(db Db, query string, args []any, l *logrus.Entry) (int64,
 		l.WithFields(logrus.Fields{
 			"error": err,
 		}).Error(msg)
+
 		return -1, fmt.Errorf("%s", msg)
 	}
 
@@ -286,6 +312,7 @@ func WrapAccess[T any, TRet any](access func(T) (TRet, bool)) func(any) (any, bo
 		if !ok {
 			panic(fmt.Sprintf("WrapAccess: expected %T but got %T", *new(T), val))
 		}
+
 		return access(typedVal)
 	}
 }
@@ -303,6 +330,7 @@ func WrapBuilder[T any](build func([]T) string) func([]any) string {
 					*new(T), v,
 				))
 			}
+
 			typed[i] = tv
 		}
 
@@ -324,6 +352,7 @@ func WrapRetSlice[T any, E any](fn func(T) []E) func(any) []any {
 		for i := range res {
 			out[i] = res[i]
 		}
+
 		return out
 	}
 }
@@ -339,9 +368,9 @@ func WrapRetState[T any](fn func(T) []entity.StateFilterType) func(any) []entity
 		res := fn(val)
 
 		out := make([]entity.StateFilterType, len(res))
-		for i := range res {
-			out[i] = res[i]
-		}
+
+		copy(out, res)
+
 		return out
 	}
 }
@@ -357,9 +386,8 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 		res := fn(val)
 
 		out := make([]*entity.Json, len(res))
-		for i := range res {
-			out[i] = res[i]
-		}
+		copy(out, res)
+
 		return out
 	}
 }
@@ -369,10 +397,18 @@ func ToStateSlice(in []any) []entity.StateFilterType {
 	for i := range in {
 		s, ok := in[i].(entity.StateFilterType)
 		if !ok {
-			panic(fmt.Sprintf("ToStateSlice: expected %T but got %T", new(entity.StateFilterType), in[i]))
+			panic(
+				fmt.Sprintf(
+					"ToStateSlice: expected %T but got %T",
+					new(entity.StateFilterType),
+					in[i],
+				),
+			)
 		}
+
 		out[i] = s
 	}
+
 	return out
 }
 
@@ -383,8 +419,10 @@ func ToJsonSlice(in []any) []*entity.Json {
 		if !ok {
 			panic(fmt.Sprintf("ToJsonSlice: expected %T but got %T", new(*entity.Json), in[i]))
 		}
+
 		out[i] = s
 	}
+
 	return out
 }
 
@@ -392,5 +430,6 @@ func ValueOrDefault[T any](p *T, def T) T {
 	if p == nil {
 		return def
 	}
+
 	return *p
 }

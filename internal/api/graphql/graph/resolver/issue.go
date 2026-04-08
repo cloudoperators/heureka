@@ -16,25 +16,68 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *issueResolver) IssueVariants(ctx context.Context, obj *model.Issue, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error) {
-	return baseResolver.IssueVariantBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.IssueNodeName,
-	})
+func (r *issueResolver) IssueVariants(
+	ctx context.Context,
+	obj *model.Issue,
+	filter *model.IssueVariantFilter,
+	first *int,
+	after *string,
+) (*model.IssueVariantConnection, error) {
+	return baseResolver.IssueVariantBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.IssueNodeName,
+		},
+	)
 }
 
-func (r *issueResolver) IssueMatches(ctx context.Context, obj *model.Issue, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
-	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.IssueNodeName,
-	})
+func (r *issueResolver) IssueMatches(
+	ctx context.Context,
+	obj *model.Issue,
+	filter *model.IssueMatchFilter,
+	first *int,
+	after *string,
+	orderBy []*model.IssueMatchOrderBy,
+) (*model.IssueMatchConnection, error) {
+	return baseResolver.IssueMatchBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		nil,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.IssueNodeName,
+		},
+	)
 }
 
-func (r *issueResolver) ComponentVersions(ctx context.Context, obj *model.Issue, filter *model.ComponentVersionFilter, first *int, after *string, orderBy []*model.ComponentVersionOrderBy) (*model.ComponentVersionConnection, error) {
-	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.IssueNodeName,
-	})
+func (r *issueResolver) ComponentVersions(
+	ctx context.Context,
+	obj *model.Issue,
+	filter *model.ComponentVersionFilter,
+	first *int,
+	after *string,
+	orderBy []*model.ComponentVersionOrderBy,
+) (*model.ComponentVersionConnection, error) {
+	return baseResolver.ComponentVersionBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		orderBy,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.IssueNodeName,
+		},
+	)
 }
 
 func (r *Resolver) Issue() graph.IssueResolver { return &issueResolver{r} }

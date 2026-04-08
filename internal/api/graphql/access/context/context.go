@@ -28,6 +28,7 @@ func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
 	if !ok {
 		return nil, fmt.Errorf("gin.Context has wrong type")
 	}
+
 	return gc, nil
 }
 
@@ -39,6 +40,7 @@ func ginContextSet[T any](c *gin.Context, key string, val T) {
 
 func ginContextGet(ctx context.Context, key string) (string, error) {
 	var result string
+
 	gc, err := ginContextFromContext(ctx)
 	if err != nil {
 		return result, err
@@ -48,10 +50,12 @@ func ginContextGet(ctx context.Context, key string) (string, error) {
 	if !ok {
 		return result, fmt.Errorf("could not find key: '%s' in gin.Context", key)
 	}
+
 	result, ok = v.(string)
 	if !ok {
 		return result, fmt.Errorf("invalid key type: '%T', should be string", v)
 	}
+
 	return result, nil
 }
 
@@ -60,6 +64,7 @@ func ginContextGetBool(ctx context.Context, key string) bool {
 	if err != nil {
 		return false
 	}
+
 	return gc.GetBool(key)
 }
 

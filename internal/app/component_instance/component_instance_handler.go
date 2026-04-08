@@ -57,10 +57,17 @@ func NewComponentInstanceHandler(handlerContext common.HandlerContext) Component
 	}
 }
 
-func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) (*entity.List[entity.ComponentInstanceResult], error) {
+func (ci *componentInstanceHandler) ListComponentInstances(
+	ctx context.Context,
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) (*entity.List[entity.ComponentInstanceResult], error) {
 	op := appErrors.Op("componentInstanceHandler.ListComponentInstances")
-	var count int64
-	var pageInfo *entity.PageInfo
+
+	var (
+		count    int64
+		pageInfo *entity.PageInfo
+	)
 
 	common.EnsurePaginated(&filter.Paginated)
 
@@ -71,16 +78,21 @@ func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, 
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Authorization check
-	accessibleServiceIds, err := ci.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeService)
+	accessibleServiceIds, err := ci.authz.GetListOfAccessibleObjectIds(
+		openfga.UserId(fmt.Sprint(currentUserId)),
+		openfga.TypeService,
+	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstances", "", err)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -100,6 +112,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, 
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -114,12 +127,19 @@ func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, 
 				options.Order,
 			)
 			if err != nil {
-				wrappedErr := appErrors.InternalError(string(op), "ComponentInstanceCursors", "", err)
+				wrappedErr := appErrors.InternalError(
+					string(op),
+					"ComponentInstanceCursors",
+					"",
+					err,
+				)
 				applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 					"filter": filter,
 				})
+
 				return nil, wrappedErr
 			}
+
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
@@ -136,6 +156,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, 
 			applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 				"filter": filter,
 			})
+
 			return nil, wrappedErr
 		}
 	}
@@ -155,13 +176,23 @@ func (ci *componentInstanceHandler) ListComponentInstances(ctx context.Context, 
 	return result, nil
 }
 
-func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context, componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) CreateComponentInstance(
+	ctx context.Context,
+	componentInstance *entity.ComponentInstance,
+	scannerRunUUID *string,
+) (*entity.ComponentInstance, error) {
 	op := appErrors.Op("componentInstanceHandler.CreateComponentInstance")
 
 	// Input validation - check for required fields
 	if componentInstance == nil {
-		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "component instance cannot be nil")
+		err := appErrors.E(
+			op,
+			"ComponentInstance",
+			appErrors.InvalidArgument,
+			"component instance cannot be nil",
+		)
 		applog.LogError(ci.logger, err, logrus.Fields{})
+
 		return nil, err
 	}
 
@@ -170,20 +201,30 @@ func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context,
 		applog.LogError(ci.logger, err, logrus.Fields{
 			"component_instance": componentInstance,
 		})
+
 		return nil, err
 	}
 
 	if componentInstance.ServiceId <= 0 {
-		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "valid service ID is required")
+		err := appErrors.E(
+			op,
+			"ComponentInstance",
+			appErrors.InvalidArgument,
+			"valid service ID is required",
+		)
 		applog.LogError(ci.logger, err, logrus.Fields{
 			"service_id": componentInstance.ServiceId,
 			"ccrn":       componentInstance.CCRN,
 		})
+
 		return nil, err
 	}
 
 	// Business rule validation - ParentId validation for specific types
-	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
+	if err := validateParentIdForType(
+		componentInstance.ParentId,
+		componentInstance.Type.String(),
+	); err != nil {
 		wrappedErr := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, err.Error())
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"parent_id":        componentInstance.ParentId,
@@ -191,11 +232,13 @@ func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context,
 			"ccrn":             componentInstance.CCRN,
 			"validation_error": err.Error(),
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Get current user for audit fields
 	var err error
+
 	componentInstance.CreatedBy, err = common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", "", err)
@@ -203,8 +246,10 @@ func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context,
 			"ccrn": componentInstance.CCRN,
 			"type": componentInstance.Type.String(),
 		})
+
 		return nil, wrappedErr
 	}
+
 	componentInstance.UpdatedBy = componentInstance.CreatedBy
 
 	// Create the component instance in database
@@ -213,13 +258,18 @@ func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context,
 		// Check for specific database errors
 		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
 		if errors.As(err, &duplicateEntryError) {
-			wrappedErr := appErrors.AlreadyExistsError(string(op), "ComponentInstance", componentInstance.CCRN)
+			wrappedErr := appErrors.AlreadyExistsError(
+				string(op),
+				"ComponentInstance",
+				componentInstance.CCRN,
+			)
 			applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 				"ccrn":                    componentInstance.CCRN,
 				"component_version_id":    componentInstance.ComponentVersionId,
 				"service_id":              componentInstance.ServiceId,
 				"duplicate_entry_details": duplicateEntryError.Error(),
 			})
+
 			return nil, wrappedErr
 		}
 
@@ -231,16 +281,29 @@ func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context,
 			"service_id":           componentInstance.ServiceId,
 			"type":                 componentInstance.Type.String(),
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Handle scanner run tracking if UUID provided
 	if scannerRunUUID != nil {
-		err = ci.database.CreateScannerRunComponentInstanceTracker(newComponentInstance.Id, *scannerRunUUID)
+		err = ci.database.CreateScannerRunComponentInstanceTracker(
+			newComponentInstance.Id,
+			*scannerRunUUID,
+		)
 		if err != nil {
-			// Log the error but don't fail the creation since the component instance was created successfully
-			logErr := appErrors.InternalError(string(op), "ScannerRunComponentInstanceTracker",
-				fmt.Sprintf("component_instance:%d-scanner_run:%s", newComponentInstance.Id, *scannerRunUUID), err)
+			// Log the error but don't fail the creation since the component instance was created
+			// successfully
+			logErr := appErrors.InternalError(
+				string(op),
+				"ScannerRunComponentInstanceTracker",
+				fmt.Sprintf(
+					"component_instance:%d-scanner_run:%s",
+					newComponentInstance.Id,
+					*scannerRunUUID,
+				),
+				err,
+			)
 			applog.LogError(ci.logger, logErr, logrus.Fields{
 				"component_instance_id": newComponentInstance.Id,
 				"scanner_run_uuid":      *scannerRunUUID,
@@ -258,64 +321,115 @@ func (ci *componentInstanceHandler) CreateComponentInstance(ctx context.Context,
 	return newComponentInstance, nil
 }
 
-func (ci *componentInstanceHandler) UpdateComponentInstance(ctx context.Context, componentInstance *entity.ComponentInstance, scannerRunUUID *string) (*entity.ComponentInstance, error) {
+func (ci *componentInstanceHandler) UpdateComponentInstance(
+	ctx context.Context,
+	componentInstance *entity.ComponentInstance,
+	scannerRunUUID *string,
+) (*entity.ComponentInstance, error) {
 	op := appErrors.Op("componentInstanceHandler.UpdateComponentInstance")
 
 	// Input validation
 	if componentInstance == nil {
-		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, "component instance cannot be nil")
+		err := appErrors.E(
+			op,
+			"ComponentInstance",
+			appErrors.InvalidArgument,
+			"component instance cannot be nil",
+		)
 		applog.LogError(ci.logger, err, logrus.Fields{})
+
 		return nil, err
 	}
 
 	if componentInstance.Id <= 0 {
-		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", componentInstance.Id))
+		err := appErrors.E(
+			op,
+			"ComponentInstance",
+			appErrors.InvalidArgument,
+			fmt.Sprintf("invalid ID: %d", componentInstance.Id),
+		)
 		applog.LogError(ci.logger, err, logrus.Fields{"id": componentInstance.Id})
+
 		return nil, err
 	}
 
 	// Business rule validation - ParentId validation for specific types
-	if err := validateParentIdForType(componentInstance.ParentId, componentInstance.Type.String()); err != nil {
-		wrappedErr := appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.InvalidArgument, err.Error())
+	if err := validateParentIdForType(
+		componentInstance.ParentId,
+		componentInstance.Type.String(),
+	); err != nil {
+		wrappedErr := appErrors.E(
+			op,
+			"ComponentInstance",
+			strconv.FormatInt(componentInstance.Id, 10),
+			appErrors.InvalidArgument,
+			err.Error(),
+		)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"id":               componentInstance.Id,
 			"parent_id":        componentInstance.ParentId,
 			"type":             componentInstance.Type.String(),
 			"validation_error": err.Error(),
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Get current user for audit fields
 	var err error
+
 	componentInstance.UpdatedBy, err = common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"ComponentInstance",
+			strconv.FormatInt(componentInstance.Id, 10),
+			err,
+		)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"id":   componentInstance.Id,
 			"ccrn": componentInstance.CCRN,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Update the component instance in database
 	err = ci.database.UpdateComponentInstance(componentInstance)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"ComponentInstance",
+			strconv.FormatInt(componentInstance.Id, 10),
+			err,
+		)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"id":   componentInstance.Id,
 			"ccrn": componentInstance.CCRN,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Handle scanner run tracking if UUID provided
 	if scannerRunUUID != nil {
-		err = ci.database.CreateScannerRunComponentInstanceTracker(componentInstance.Id, *scannerRunUUID)
+		err = ci.database.CreateScannerRunComponentInstanceTracker(
+			componentInstance.Id,
+			*scannerRunUUID,
+		)
 		if err != nil {
-			// Log the error but don't fail the update since the component instance was updated successfully
-			logErr := appErrors.InternalError(string(op), "ScannerRunComponentInstanceTracker",
-				fmt.Sprintf("component_instance:%d-scanner_run:%s", componentInstance.Id, *scannerRunUUID), err)
+			// Log the error but don't fail the update since the component instance was updated
+			// successfully
+			logErr := appErrors.InternalError(
+				string(op),
+				"ScannerRunComponentInstanceTracker",
+				fmt.Sprintf(
+					"component_instance:%d-scanner_run:%s",
+					componentInstance.Id,
+					*scannerRunUUID,
+				),
+				err,
+			)
 			applog.LogError(ci.logger, logErr, logrus.Fields{
 				"component_instance_id": componentInstance.Id,
 				"scanner_run_uuid":      *scannerRunUUID,
@@ -327,24 +441,45 @@ func (ci *componentInstanceHandler) UpdateComponentInstance(ctx context.Context,
 
 	// Retrieve updated component instance to return fresh data
 	lo := entity.NewListOptions()
-	componentInstanceResult, err := ci.ListComponentInstances(ctx, &entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}}, lo)
+
+	componentInstanceResult, err := ci.ListComponentInstances(
+		ctx,
+		&entity.ComponentInstanceFilter{Id: []*int64{&componentInstance.Id}},
+		lo,
+	)
 	if err != nil {
-		wrappedErr := appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.Internal, err)
+		wrappedErr := appErrors.E(
+			op,
+			"ComponentInstance",
+			strconv.FormatInt(componentInstance.Id, 10),
+			appErrors.Internal,
+			err,
+		)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"id":   componentInstance.Id,
 			"ccrn": componentInstance.CCRN,
 		})
+
 		return nil, wrappedErr
 	}
 
 	if len(componentInstanceResult.Elements) != 1 {
-		err := appErrors.E(op, "ComponentInstance", strconv.FormatInt(componentInstance.Id, 10), appErrors.Internal,
-			fmt.Sprintf("unexpected number of component instances found after update: expected 1, got %d", len(componentInstanceResult.Elements)))
+		err := appErrors.E(
+			op,
+			"ComponentInstance",
+			strconv.FormatInt(componentInstance.Id, 10),
+			appErrors.Internal,
+			fmt.Sprintf(
+				"unexpected number of component instances found after update: expected 1, got %d",
+				len(componentInstanceResult.Elements),
+			),
+		)
 		applog.LogError(ci.logger, err, logrus.Fields{
 			"id":          componentInstance.Id,
 			"found_count": len(componentInstanceResult.Elements),
 			"ccrn":        componentInstance.CCRN,
 		})
+
 		return nil, err
 	}
 
@@ -363,29 +498,47 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(ctx context.Context,
 
 	// Input validation
 	if id <= 0 {
-		err := appErrors.E(op, "ComponentInstance", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
+		err := appErrors.E(
+			op,
+			"ComponentInstance",
+			appErrors.InvalidArgument,
+			fmt.Sprintf("invalid ID: %d", id),
+		)
 		applog.LogError(ci.logger, err, logrus.Fields{"id": id})
+
 		return err
 	}
 
 	// Get current user for audit fields
 	userId, err := common.GetCurrentUserId(ctx, ci.database)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(id, 10), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"ComponentInstance",
+			strconv.FormatInt(id, 10),
+			err,
+		)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"id": id,
 		})
+
 		return wrappedErr
 	}
 
 	// Delete the component instance from database
 	err = ci.database.DeleteComponentInstance(id, userId)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "ComponentInstance", strconv.FormatInt(id, 10), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"ComponentInstance",
+			strconv.FormatInt(id, 10),
+			err,
+		)
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"id":      id,
 			"user_id": userId,
 		})
+
 		return wrappedErr
 	}
 
@@ -397,7 +550,10 @@ func (ci *componentInstanceHandler) DeleteComponentInstance(ctx context.Context,
 	return nil
 }
 
-func (ci *componentInstanceHandler) ListRegions(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListRegions(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListRegions")
 
 	regions, err := ci.database.GetRegion(filter)
@@ -406,6 +562,7 @@ func (ci *componentInstanceHandler) ListRegions(filter *entity.ComponentInstance
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -417,7 +574,10 @@ func (ci *componentInstanceHandler) ListRegions(filter *entity.ComponentInstance
 	return regions, nil
 }
 
-func (ci *componentInstanceHandler) ListCcrns(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListCcrns(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListCcrns")
 
 	ccrns, err := ci.database.GetCcrn(filter)
@@ -426,6 +586,7 @@ func (ci *componentInstanceHandler) ListCcrns(filter *entity.ComponentInstanceFi
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -437,7 +598,10 @@ func (ci *componentInstanceHandler) ListCcrns(filter *entity.ComponentInstanceFi
 	return ccrns, nil
 }
 
-func (ci *componentInstanceHandler) ListClusters(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListClusters(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListClusters")
 
 	clusters, err := ci.database.GetCluster(filter)
@@ -446,6 +610,7 @@ func (ci *componentInstanceHandler) ListClusters(filter *entity.ComponentInstanc
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -457,7 +622,10 @@ func (ci *componentInstanceHandler) ListClusters(filter *entity.ComponentInstanc
 	return clusters, nil
 }
 
-func (ci *componentInstanceHandler) ListNamespaces(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListNamespaces(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListNamespaces")
 
 	namespaces, err := ci.database.GetNamespace(filter)
@@ -466,6 +634,7 @@ func (ci *componentInstanceHandler) ListNamespaces(filter *entity.ComponentInsta
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -477,7 +646,10 @@ func (ci *componentInstanceHandler) ListNamespaces(filter *entity.ComponentInsta
 	return namespaces, nil
 }
 
-func (ci *componentInstanceHandler) ListDomains(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListDomains(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListDomains")
 
 	domains, err := ci.database.GetDomain(filter)
@@ -486,6 +658,7 @@ func (ci *componentInstanceHandler) ListDomains(filter *entity.ComponentInstance
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -497,7 +670,10 @@ func (ci *componentInstanceHandler) ListDomains(filter *entity.ComponentInstance
 	return domains, nil
 }
 
-func (ci *componentInstanceHandler) ListProjects(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListProjects(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListProjects")
 
 	projects, err := ci.database.GetProject(filter)
@@ -506,6 +682,7 @@ func (ci *componentInstanceHandler) ListProjects(filter *entity.ComponentInstanc
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -517,7 +694,10 @@ func (ci *componentInstanceHandler) ListProjects(filter *entity.ComponentInstanc
 	return projects, nil
 }
 
-func (ci *componentInstanceHandler) ListPods(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListPods(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListPods")
 
 	pods, err := ci.database.GetPod(filter)
@@ -526,6 +706,7 @@ func (ci *componentInstanceHandler) ListPods(filter *entity.ComponentInstanceFil
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -537,7 +718,10 @@ func (ci *componentInstanceHandler) ListPods(filter *entity.ComponentInstanceFil
 	return pods, nil
 }
 
-func (ci *componentInstanceHandler) ListContainers(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListContainers(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListContainers")
 
 	containers, err := ci.database.GetContainer(filter)
@@ -546,6 +730,7 @@ func (ci *componentInstanceHandler) ListContainers(filter *entity.ComponentInsta
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -557,7 +742,10 @@ func (ci *componentInstanceHandler) ListContainers(filter *entity.ComponentInsta
 	return containers, nil
 }
 
-func (ci *componentInstanceHandler) ListTypes(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListTypes(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListTypes")
 
 	types, err := ci.database.GetType(filter)
@@ -566,6 +754,7 @@ func (ci *componentInstanceHandler) ListTypes(filter *entity.ComponentInstanceFi
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -577,7 +766,10 @@ func (ci *componentInstanceHandler) ListTypes(filter *entity.ComponentInstanceFi
 	return types, nil
 }
 
-func (ci *componentInstanceHandler) ListParents(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListParents(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListParents")
 
 	parents, err := ci.database.GetComponentInstanceParent(filter)
@@ -586,6 +778,7 @@ func (ci *componentInstanceHandler) ListParents(filter *entity.ComponentInstance
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -597,7 +790,10 @@ func (ci *componentInstanceHandler) ListParents(filter *entity.ComponentInstance
 	return parents, nil
 }
 
-func (ci *componentInstanceHandler) ListContexts(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error) {
+func (ci *componentInstanceHandler) ListContexts(
+	filter *entity.ComponentInstanceFilter,
+	options *entity.ListOptions,
+) ([]string, error) {
 	op := appErrors.Op("componentInstanceHandler.ListContexts")
 
 	contexts, err := ci.database.GetContext(filter)
@@ -606,6 +802,7 @@ func (ci *componentInstanceHandler) ListContexts(filter *entity.ComponentInstanc
 		applog.LogError(ci.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -621,8 +818,12 @@ func (ci *componentInstanceHandler) ListContexts(filter *entity.ComponentInstanc
 func validateParentIdForType(parentId int64, typeStr string) error {
 	if parentId != 0 && parentId != -1 {
 		if typeStr != "RecordSet" && typeStr != "User" && typeStr != "SecurityGroupRule" {
-			return fmt.Errorf("ParentId can only be set for component instances of type 'RecordSet', 'User' or 'SecurityGroupRule', but got type '%s'", typeStr)
+			return fmt.Errorf(
+				"ParentId can only be set for component instances of type 'RecordSet', 'User' or 'SecurityGroupRule', but got type '%s'",
+				typeStr,
+			)
 		}
 	}
+
 	return nil
 }

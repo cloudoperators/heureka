@@ -53,7 +53,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 			}](
 				cfg.Port,
 				"../api/graphql/graph/queryCollection/componentInstance/minimal.graphql",
-				map[string]interface{}{
+				map[string]any{
 					"filter": map[string]string{},
 					"first":  10,
 					"after":  "",
@@ -78,7 +78,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				}](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentInstance/minimal.graphql",
-					map[string]interface{}{
+					map[string]any{
 						"filter": map[string]string{},
 						"first":  5,
 						"after":  "",
@@ -87,86 +87,124 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(respData.ComponentInstances.TotalCount).To(Equal(len(seedCollection.ComponentInstanceRows)))
+				Expect(
+					respData.ComponentInstances.TotalCount,
+				).To(Equal(len(seedCollection.ComponentInstanceRows)))
 				Expect(len(respData.ComponentInstances.Edges)).To(Equal(5))
 			})
 		})
-		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-			respData := struct {
-				ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
-			}{}
-			BeforeEach(func() {
-				resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Context(
+			"and we query to resolve levels of relations",
+			Label("directRelations.graphql"),
+			func() {
+				respData := struct {
 					ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentInstance/directRelations.graphql",
-					map[string]interface{}{
-						"filter": map[string]string{},
-						"first":  5,
-						"after":  "",
-					},
-					nil,
-				)
+				}{}
+				BeforeEach(func() {
+					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						ComponentInstances model.ComponentInstanceConnection `json:"ComponentInstances"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentInstance/directRelations.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
-				Expect(err).ToNot(HaveOccurred())
+					Expect(err).ToNot(HaveOccurred())
 
-				Expect(resp.ComponentInstances.TotalCount).To(Equal(len(seedCollection.ComponentInstanceRows)))
-				Expect(len(resp.ComponentInstances.Edges)).To(Equal(5))
+					Expect(
+						resp.ComponentInstances.TotalCount,
+					).To(Equal(len(seedCollection.ComponentInstanceRows)))
+					Expect(len(resp.ComponentInstances.Edges)).To(Equal(5))
 
-				respData = resp
-			})
-			It("- returns the expected content", func() {
-				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
-				// a complete verification
-				// additional checks are added based on bugs discovered during usage
+					respData = resp
+				})
+				It("- returns the expected content", func() {
+					// this just checks partial attributes to check whatever every sub-relation does
+					// resolve some reasonable data and is not doing
+					// a complete verification
+					// additional checks are added based on bugs discovered during usage
 
-				for _, ci := range respData.ComponentInstances.Edges {
-					Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
-					Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has a ccrn set")
-					Expect(ci.Node.Count).ToNot(BeNil(), "componentInstance has a count set")
-					Expect(ci.Node.Type).ToNot(BeNil(), "componentInstance has a type set")
+					for _, ci := range respData.ComponentInstances.Edges {
+						Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
+						Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has a ccrn set")
+						Expect(ci.Node.Count).ToNot(BeNil(), "componentInstance has a count set")
+						Expect(ci.Node.Type).ToNot(BeNil(), "componentInstance has a type set")
 
-					cv := ci.Node.ComponentVersion
-					Expect(cv.ID).ToNot(BeNil(), "componentVersion has a ID set")
-					Expect(cv.Version).ToNot(BeNil(), "componentVersion has a version set")
+						cv := ci.Node.ComponentVersion
+						Expect(cv.ID).ToNot(BeNil(), "componentVersion has a ID set")
+						Expect(cv.Version).ToNot(BeNil(), "componentVersion has a version set")
 
-					_, cvFound := lo.Find(seedCollection.ComponentVersionRows, func(row mariadb.ComponentVersionRow) bool {
-						return fmt.Sprintf("%d", row.Id.Int64) == cv.ID
-					})
-					Expect(cvFound).To(BeTrue(), "attached componentVersion does exist")
+						_, cvFound := lo.Find(
+							seedCollection.ComponentVersionRows,
+							func(row mariadb.ComponentVersionRow) bool {
+								return fmt.Sprintf("%d", row.Id.Int64) == cv.ID
+							},
+						)
+						Expect(cvFound).To(BeTrue(), "attached componentVersion does exist")
 
-					service := ci.Node.Service
-					Expect(service.ID).ToNot(BeNil(), "service has a ID set")
-					Expect(service.Ccrn).ToNot(BeNil(), "service has a name set")
+						service := ci.Node.Service
+						Expect(service.ID).ToNot(BeNil(), "service has a ID set")
+						Expect(service.Ccrn).ToNot(BeNil(), "service has a name set")
 
-					_, serviceFound := lo.Find(seedCollection.ServiceRows, func(row mariadb.BaseServiceRow) bool {
-						return fmt.Sprintf("%d", row.Id.Int64) == service.ID
-					})
-					Expect(serviceFound).To(BeTrue(), "attached service does exist")
+						_, serviceFound := lo.Find(
+							seedCollection.ServiceRows,
+							func(row mariadb.BaseServiceRow) bool {
+								return fmt.Sprintf("%d", row.Id.Int64) == service.ID
+							},
+						)
+						Expect(serviceFound).To(BeTrue(), "attached service does exist")
 
-					for _, im := range ci.Node.IssueMatches.Edges {
-						Expect(im.Node.ID).ToNot(BeNil(), "issueMatch has a ID set")
-						Expect(im.Node.Status).ToNot(BeNil(), "issueMatch has a status set")
-						Expect(im.Node.DiscoveryDate).ToNot(BeNil(), "issueMatch has a discovery date set")
-						Expect(im.Node.TargetRemediationDate).ToNot(BeNil(), "issueMatch has a target remediation date set")
+						for _, im := range ci.Node.IssueMatches.Edges {
+							Expect(im.Node.ID).ToNot(BeNil(), "issueMatch has a ID set")
+							Expect(im.Node.Status).ToNot(BeNil(), "issueMatch has a status set")
+							Expect(
+								im.Node.DiscoveryDate,
+							).ToNot(BeNil(), "issueMatch has a discovery date set")
+							Expect(
+								im.Node.TargetRemediationDate,
+							).ToNot(BeNil(), "issueMatch has a target remediation date set")
 
-						_, issueMatchFound := lo.Find(seedCollection.IssueMatchRows, func(row mariadb.IssueMatchRow) bool {
-							return fmt.Sprintf("%d", row.Id.Int64) == im.Node.ID && // ID Matches
-								fmt.Sprintf("%d", row.ComponentInstanceId.Int64) == ci.Node.ID // correct component instance attached to issue match
-						})
-						Expect(issueMatchFound).To(BeTrue(), "attached IssueMatch is correct")
+							_, issueMatchFound := lo.Find(
+								seedCollection.IssueMatchRows,
+								func(row mariadb.IssueMatchRow) bool {
+									return fmt.Sprintf(
+										"%d",
+										row.Id.Int64,
+									) == im.Node.ID && // ID Matches
+										fmt.Sprintf(
+											"%d",
+											row.ComponentInstanceId.Int64,
+										) == ci.Node.ID // correct component instance attached to issue match
+								},
+							)
+							Expect(issueMatchFound).To(BeTrue(), "attached IssueMatch is correct")
+						}
 					}
-				}
-			})
-			It("- returns the expected PageInfo", func() {
-				Expect(*respData.ComponentInstances.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
-				Expect(*respData.ComponentInstances.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
-				Expect(respData.ComponentInstances.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-				Expect(len(respData.ComponentInstances.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
-				Expect(*respData.ComponentInstances.PageInfo.PageNumber).To(Equal(1), "Correct page number")
-			})
-		})
+				})
+				It("- returns the expected PageInfo", func() {
+					Expect(
+						*respData.ComponentInstances.PageInfo.HasNextPage,
+					).To(BeTrue(), "hasNextPage is set")
+					Expect(
+						*respData.ComponentInstances.PageInfo.HasPreviousPage,
+					).To(BeFalse(), "hasPreviousPage is set")
+					Expect(
+						respData.ComponentInstances.PageInfo.NextPageAfter,
+					).ToNot(BeNil(), "nextPageAfter is set")
+					Expect(
+						len(respData.ComponentInstances.PageInfo.Pages),
+					).To(Equal(2), "Correct amount of pages")
+					Expect(
+						*respData.ComponentInstances.PageInfo.PageNumber,
+					).To(Equal(1), "Correct page number")
+				})
+			},
+		)
 		Context("and we use order", Label("withOrder.graphql"), func() {
 			c := collate.New(language.English)
 
@@ -176,7 +214,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				}](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentInstance/withOrder.graphql",
-					map[string]interface{}{
+					map[string]any{
 						"orderBy": orderBy,
 					},
 					nil,
@@ -196,9 +234,11 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
-						Expect(c.CompareString(*ci.Node.Region, prev)).Should(BeNumerically(">=", 0))
+						Expect(
+							c.CompareString(*ci.Node.Region, prev),
+						).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Region
 					}
 				})
@@ -211,9 +251,11 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
-						Expect(c.CompareString(*ci.Node.Namespace, prev)).Should(BeNumerically(">=", 0))
+						Expect(
+							c.CompareString(*ci.Node.Namespace, prev),
+						).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Namespace
 					}
 				})
@@ -226,9 +268,11 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
-						Expect(c.CompareString(*ci.Node.Cluster, prev)).Should(BeNumerically(">=", 0))
+						Expect(
+							c.CompareString(*ci.Node.Cluster, prev),
+						).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Cluster
 					}
 				})
@@ -241,9 +285,11 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
-						Expect(c.CompareString(*ci.Node.Domain, prev)).Should(BeNumerically(">=", 0))
+						Expect(
+							c.CompareString(*ci.Node.Domain, prev),
+						).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Domain
 					}
 				})
@@ -256,9 +302,11 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
-						Expect(c.CompareString(*ci.Node.Project, prev)).Should(BeNumerically(">=", 0))
+						Expect(
+							c.CompareString(*ci.Node.Project, prev),
+						).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Project
 					}
 				})
@@ -271,7 +319,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
 						Expect(c.CompareString(*ci.Node.Pod, prev)).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Pod
@@ -286,9 +334,11 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, ci := range componentInstances.Edges {
-						Expect(c.CompareString(*ci.Node.Container, prev)).Should(BeNumerically(">=", 0))
+						Expect(
+							c.CompareString(*ci.Node.Container, prev),
+						).Should(BeNumerically(">=", 0))
 						prev = *ci.Node.Container
 					}
 				})
@@ -301,7 +351,7 @@ var _ = Describe("Getting ComponentInstances via API", Label("e2e", "ComponentIn
 				Expect(err).To(BeNil(), "Error while unmarshaling")
 
 				By("- returns the expected content in order", func() {
-					var prev int = -1
+					prev := -1
 					for _, ci := range componentInstances.Edges {
 						citEntity := entity.NewComponentInstanceType(ci.Node.Type.String())
 						Expect(citEntity.Index() >= prev).Should(BeTrue())
@@ -354,22 +404,25 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 				}](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentInstance/create.graphql",
-					map[string]interface{}{
+					map[string]any{
 						"input": map[string]string{
-							"ccrn":               componentInstance.CCRN,
-							"region":             componentInstance.Region,
-							"namespace":          componentInstance.Namespace,
-							"cluster":            componentInstance.Cluster,
-							"domain":             componentInstance.Domain,
-							"project":            componentInstance.Project,
-							"pod":                componentInstance.Pod,
-							"container":          componentInstance.Container,
-							"type":               componentInstance.Type.String(),
-							"context":            componentInstance.Context.String(),
-							"uuid":               "4b6d3167-473a-4150-87b3-01da70096727",
-							"count":              fmt.Sprintf("%d", componentInstance.Count),
-							"componentVersionId": fmt.Sprintf("%d", componentInstance.ComponentVersionId),
-							"serviceId":          fmt.Sprintf("%d", componentInstance.ServiceId),
+							"ccrn":      componentInstance.CCRN,
+							"region":    componentInstance.Region,
+							"namespace": componentInstance.Namespace,
+							"cluster":   componentInstance.Cluster,
+							"domain":    componentInstance.Domain,
+							"project":   componentInstance.Project,
+							"pod":       componentInstance.Pod,
+							"container": componentInstance.Container,
+							"type":      componentInstance.Type.String(),
+							"context":   componentInstance.Context.String(),
+							"uuid":      "4b6d3167-473a-4150-87b3-01da70096727",
+							"count":     fmt.Sprintf("%d", componentInstance.Count),
+							"componentVersionId": fmt.Sprintf(
+								"%d",
+								componentInstance.ComponentVersionId,
+							),
+							"serviceId": fmt.Sprintf("%d", componentInstance.ServiceId),
 						},
 					},
 					nil,
@@ -380,8 +433,12 @@ var _ = Describe("Creating ComponentInstance via API", Label("e2e", "ComponentIn
 				Expect(*respData.ComponentInstance.Cluster).To(Equal(componentInstance.Cluster))
 				Expect(*respData.ComponentInstance.Namespace).To(Equal(componentInstance.Namespace))
 				Expect(*respData.ComponentInstance.Count).To(Equal(int(componentInstance.Count)))
-				Expect(*respData.ComponentInstance.ComponentVersionID).To(Equal(fmt.Sprintf("%d", componentInstance.ComponentVersionId)))
-				Expect(*respData.ComponentInstance.ServiceID).To(Equal(fmt.Sprintf("%d", componentInstance.ServiceId)))
+				Expect(
+					*respData.ComponentInstance.ComponentVersionID,
+				).To(Equal(fmt.Sprintf("%d", componentInstance.ComponentVersionId)))
+				Expect(
+					*respData.ComponentInstance.ServiceID,
+				).To(Equal(fmt.Sprintf("%d", componentInstance.ServiceId)))
 			})
 		})
 	})
@@ -429,7 +486,7 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 				}](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentInstance/update.graphql",
-					map[string]interface{}{
+					map[string]any{
 						"input": map[string]string{
 							"cluster":   cluster,
 							"namespace": namespace,
@@ -443,8 +500,12 @@ var _ = Describe("Updating componentInstance via API", Label("e2e", "ComponentIn
 				Expect(*respData.ComponentInstance.Cluster).To(Equal(cluster))
 				Expect(*respData.ComponentInstance.Namespace).To(Equal(namespace))
 				Expect(*respData.ComponentInstance.Count).To(Equal(int(componentInstance.Count)))
-				Expect(*respData.ComponentInstance.ComponentVersionID).To(Equal(fmt.Sprintf("%d", componentInstance.ComponentVersionId)))
-				Expect(*respData.ComponentInstance.ServiceID).To(Equal(fmt.Sprintf("%d", componentInstance.ServiceId)))
+				Expect(
+					*respData.ComponentInstance.ComponentVersionID,
+				).To(Equal(fmt.Sprintf("%d", componentInstance.ComponentVersionId)))
+				Expect(
+					*respData.ComponentInstance.ServiceID,
+				).To(Equal(fmt.Sprintf("%d", componentInstance.ServiceId)))
 			})
 		})
 	})
@@ -488,7 +549,7 @@ var _ = Describe("Deleting ComponentInstance via API", Label("e2e", "ComponentIn
 				}](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/componentInstance/delete.graphql",
-					map[string]interface{}{
+					map[string]any{
 						"id": id,
 					},
 					nil,

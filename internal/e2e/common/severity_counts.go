@@ -12,13 +12,15 @@ func CompareSeverityCounts(a model.SeverityCounts, b model.SeverityCounts) int {
 	aCounts := []int{a.Critical, a.High, a.Medium, a.Low, a.None}
 	bCounts := []int{b.Critical, b.High, b.Medium, b.Low, b.None}
 
-	for i := 0; i < len(aCounts); i++ {
+	for i := range aCounts {
 		if aCounts[i] != bCounts[i] {
 			if aCounts[i] > bCounts[i] {
 				return 1
 			}
+
 			return -1
 		}
 	}
+
 	return 0
 }

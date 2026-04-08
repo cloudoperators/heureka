@@ -111,7 +111,7 @@ func TestErrorWith(t *testing.T) {
 		Message: "not found",
 	}
 
-	fields := map[string]interface{}{
+	fields := map[string]any{
 		"issue_id":     123,
 		"service_ccrn": "ccrn:test:service:123",
 	}
@@ -127,12 +127,13 @@ func TestErrorWith(t *testing.T) {
 	if newErr.Fields["issue_id"] != 123 {
 		t.Errorf("New error should have issue_id field")
 	}
+
 	if newErr.Fields["service_ccrn"] != "ccrn:test:service:123" {
 		t.Errorf("New error should have service_ccrn field")
 	}
 
 	// Test adding to existing fields
-	moreFields := map[string]interface{}{
+	moreFields := map[string]any{
 		"severity": "high",
 	}
 

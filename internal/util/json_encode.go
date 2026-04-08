@@ -9,67 +9,74 @@ import (
 	"sort"
 )
 
-func ConvertStrToJsonNoError(jsonStr *string) *map[string]interface{} {
+func ConvertStrToJsonNoError(jsonStr *string) *map[string]any {
 	if jsonStr == nil {
 		return nil
 	}
-	var jsonResult *map[string]interface{}
+
+	var jsonResult *map[string]any
+
 	err := json.Unmarshal([]byte(*jsonStr), &jsonResult)
 	if err != nil {
 		return nil
 	}
+
 	return jsonResult
 }
 
-func ConvertJsonToStrNoError(jsonVar *map[string]interface{}) string {
+func ConvertJsonToStrNoError(jsonVar *map[string]any) string {
 	if jsonVar == nil {
 		return ""
 	}
+
 	jsonBytes, err := json.Marshal(jsonVar)
 	if err != nil {
 		return ""
 	}
+
 	jsonStr := string(jsonBytes)
+
 	return jsonStr
 }
 
-func ConvertJsonPointerToValue(jsonVar *map[string]interface{}) map[string]interface{} {
+func ConvertJsonPointerToValue(jsonVar *map[string]any) map[string]any {
 	if jsonVar == nil {
-		return map[string]interface{}{}
+		return map[string]any{}
 	}
+
 	return *jsonVar
 }
 
 type JsonAttribute struct {
 	Key  string
-	Attr interface{}
+	Attr any
 }
 
-func SeparateJsonAttributes(jsonVar map[string]interface{}) []JsonAttribute {
+func SeparateJsonAttributes(jsonVar map[string]any) []JsonAttribute {
 	return separateJsonAttributesRecursive(jsonVar, "")
 }
 
-func separateJsonAttributesRecursive(jsonVar interface{}, prefix string) []JsonAttribute {
+func separateJsonAttributesRecursive(jsonVar any, prefix string) []JsonAttribute {
 	attributes := []JsonAttribute{}
 
 	switch v := jsonVar.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		var mapKeys []string
 		for k := range v {
 			mapKeys = append(mapKeys, k)
 		}
+
 		sort.Strings(mapKeys)
 
 		for _, k := range mapKeys {
-			var fullKey string
-			if prefix == "" {
-				fullKey = k
-			} else {
+			fullKey := k
+			if prefix != "" {
 				fullKey = fmt.Sprintf("%s.%s", prefix, k)
 			}
+
 			attributes = append(attributes, separateJsonAttributesRecursive(v[k], fullKey)...)
 		}
-	case []interface{}:
+	case []any:
 		for i, item := range v {
 			fullKey := fmt.Sprintf("%s[%d]", prefix, i)
 			attributes = append(attributes, separateJsonAttributesRecursive(item, fullKey)...)

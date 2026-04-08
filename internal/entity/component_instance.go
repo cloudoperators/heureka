@@ -82,6 +82,7 @@ func NewComponentInstanceType(s string) ComponentInstanceType {
 	case ComponentInstanceTypeProjectConfiguration.String():
 		return ComponentInstanceTypeProjectConfiguration
 	}
+
 	return ComponentInstanceTypeUnknown
 }
 

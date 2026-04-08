@@ -17,11 +17,11 @@ func (qdb *QuietDb) Close() error {
 	return qdb.db.Close()
 }
 
-func (qdb *QuietDb) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (qdb *QuietDb) Exec(query string, args ...any) (sql.Result, error) {
 	return qdb.db.Exec(query, args...)
 }
 
-func (qdb *QuietDb) Get(dest interface{}, query string, args ...interface{}) error {
+func (qdb *QuietDb) Get(dest any, query string, args ...any) error {
 	return qdb.db.Get(dest, query, args...)
 }
 
@@ -37,14 +37,14 @@ func (qdb *QuietDb) Preparex(query string) (Stmt, error) {
 	return qdb.db.Preparex(query)
 }
 
-func (qdb *QuietDb) Select(dest interface{}, query string, args ...interface{}) error {
+func (qdb *QuietDb) Select(dest any, query string, args ...any) error {
 	return qdb.db.Select(dest, query, args...)
 }
 
-func (qdb *QuietDb) Query(query string, args ...interface{}) (SqlRows, error) {
+func (qdb *QuietDb) Query(query string, args ...any) (SqlRows, error) {
 	return qdb.db.Query(query, args...)
 }
 
-func (qdb *QuietDb) QueryRow(query string, args ...interface{}) *sql.Row {
+func (qdb *QuietDb) QueryRow(query string, args ...any) *sql.Row {
 	return qdb.db.QueryRow(query, args...)
 }

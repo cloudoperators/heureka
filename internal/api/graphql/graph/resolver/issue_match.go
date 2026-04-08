@@ -18,7 +18,13 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *issueMatchResolver) EffectiveIssueVariants(ctx context.Context, obj *model.IssueMatch, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error) {
+func (r *issueMatchResolver) EffectiveIssueVariants(
+	ctx context.Context,
+	obj *model.IssueMatch,
+	filter *model.IssueVariantFilter,
+	first *int,
+	after *string,
+) (*model.IssueVariantConnection, error) {
 	return baseResolver.EffectiveIssueVariantBaseResolver(
 		r.App,
 		ctx,
@@ -31,7 +37,10 @@ func (r *issueMatchResolver) EffectiveIssueVariants(ctx context.Context, obj *mo
 		})
 }
 
-func (r *issueMatchResolver) Issue(ctx context.Context, obj *model.IssueMatch) (*model.Issue, error) {
+func (r *issueMatchResolver) Issue(
+	ctx context.Context,
+	obj *model.IssueMatch,
+) (*model.Issue, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.IssueID})
 	if err != nil {
 		logrus.WithField("obj", obj).Error("IssueMatchResolver: Error while parsing childIds'")
@@ -48,7 +57,10 @@ func (r *issueMatchResolver) Issue(ctx context.Context, obj *model.IssueMatch) (
 		})
 }
 
-func (r *issueMatchResolver) ComponentInstance(ctx context.Context, obj *model.IssueMatch) (*model.ComponentInstance, error) {
+func (r *issueMatchResolver) ComponentInstance(
+	ctx context.Context,
+	obj *model.IssueMatch,
+) (*model.ComponentInstance, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentInstanceID})
 	if err != nil {
 		logrus.WithField("obj", obj).Error("IssueMatchResolver: Error while parsing childIds'")

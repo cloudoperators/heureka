@@ -13,7 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.Component, error) {
+func SingleComponentBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	parent *model.NodeParent,
+) (*model.Component, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -21,7 +25,10 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 	}).Debug("Called SingleComponentBaseResolver")
 
 	if parent == nil {
-		return nil, NewResolverError("SingleComponentBaseResolver", "Bad Request - No parent provided")
+		return nil, NewResolverError(
+			"SingleComponentBaseResolver",
+			"Bad Request - No parent provided",
+		)
 	}
 
 	f := &entity.ComponentFilter{
@@ -38,7 +45,10 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 
 	// unexpected number of results (should at most be 1)
 	if len(components.Elements) > 1 {
-		return nil, NewResolverError("SingleComponentBaseResolver", "Internal Error - found multiple components")
+		return nil, NewResolverError(
+			"SingleComponentBaseResolver",
+			"Internal Error - found multiple components",
+		)
 	}
 
 	// not found
@@ -46,13 +56,21 @@ func SingleComponentBaseResolver(app app.Heureka, ctx context.Context, parent *m
 		return nil, nil
 	}
 
-	var cr entity.ComponentResult = components.Elements[0]
+	cr := components.Elements[0]
+
 	component := model.NewComponent(cr.Component)
 
 	return &component, nil
 }
 
-func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter, first *int, after *string, parent *model.NodeParent) (*model.ComponentConnection, error) {
+func ComponentBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentFilter,
+	first *int,
+	after *string,
+	parent *model.NodeParent,
+) (*model.ComponentConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -77,6 +95,7 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	}
 
 	edges := []*model.ComponentEdge{}
+
 	for _, result := range components.Elements {
 		c := model.NewComponent(result.Component)
 		edge := model.ComponentEdge{
@@ -100,7 +119,11 @@ func ComponentBaseResolver(app app.Heureka, ctx context.Context, filter *model.C
 	return &connection, nil
 }
 
-func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter) (*model.FilterItem, error) {
+func ComponentCcrnBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentFilter,
+) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -136,7 +159,12 @@ func ComponentCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *mod
 	return &filterItem, nil
 }
 
-func ComponentIssueCountsBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentFilter, parent *model.NodeParent) (*model.SeverityCounts, error) {
+func ComponentIssueCountsBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentFilter,
+	parent *model.NodeParent,
+) (*model.SeverityCounts, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -146,15 +174,27 @@ func ComponentIssueCountsBaseResolver(app app.Heureka, ctx context.Context, filt
 		filter = &model.ComponentFilter{}
 	}
 
-	var componentId []*int64
-	var err error
+	var (
+		componentId []*int64
+		err         error
+	)
+
 	if parent != nil {
 		var pid *int64
+
 		if parent.Parent != nil {
 			parentId := parent.Parent.GetID()
+
 			pid, err = ParseCursor(&parentId)
 			if err != nil {
-				return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentIssueCountsBaseResolver"), "Issue", appErrors.InvalidArgument, "Error while parsing propagated ID"))
+				return nil, ToGraphQLError(
+					appErrors.E(
+						appErrors.Op("ComponentIssueCountsBaseResolver"),
+						"Issue",
+						appErrors.InvalidArgument,
+						"Error while parsing propagated ID",
+					),
+				)
 			}
 		}
 
@@ -170,6 +210,7 @@ func ComponentIssueCountsBaseResolver(app app.Heureka, ctx context.Context, filt
 	}
 
 	var severityCounts model.SeverityCounts
+
 	counts, err := app.GetComponentVulnerabilityCounts(f)
 	if err != nil {
 		return nil, ToGraphQLError(err)

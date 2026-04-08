@@ -152,28 +152,37 @@ func OnServiceCreate(db database.Database, e event.Event, authz openfga.Authoriz
 	})
 
 	if createEvent, ok := e.(*CreateServiceEvent); ok {
-		serviceId := createEvent.Service.Id
 		l.WithField("event-step", "GetIssueRepository").Debug("Fetching Issue Repository by name")
+
+		serviceId := createEvent.Service.Id
 
 		// Fetch IssueRepositories
 		issueRepositories, err := db.GetIssueRepositories(&entity.IssueRepositoryFilter{
 			Name: []*string{&defaultRepoName},
 		}, []entity.Order{})
 		if err != nil {
-			l.WithField("event-step", "GetIssueRepository").WithError(err).Error("Error while fetching issue repository by name")
+			l.WithField("event-step", "GetIssueRepository").
+				WithError(err).
+				Error("Error while fetching issue repository by name")
+
 			return
 		}
 
 		if len(issueRepositories) == 0 {
-			l.WithField("event-step", "GetIssueRepository").Error("No Issue Repository found by name")
+			l.WithField("event-step", "GetIssueRepository").
+				Error("No Issue Repository found by name")
+
 			return
 		}
 
-		l.WithField("event-step", "AddIssueRepositoryToService").Debug("Adding Issue Repository to Service")
+		l.WithField("event-step", "AddIssueRepositoryToService").
+			Debug("Adding Issue Repository to Service")
 
 		err = db.AddIssueRepositoryToService(serviceId, issueRepositories[0].Id, defaultPrio)
 		if err != nil {
-			l.WithField("event-step", "AddIssueRepositoryToService").WithError(err).Error("Error while adding issue repository to service")
+			l.WithField("event-step", "AddIssueRepositoryToService").
+				WithError(err).
+				Error("Error while adding issue repository to service")
 		}
 	} else {
 		err := NewServiceHandlerError("OnServiceCreate: triggered with wrong event type")
@@ -306,6 +315,7 @@ func OnRemoveOwnerFromService(db database.Database, e event.Event, authz openfga
 			ObjectId:   openfga.ObjectIdFromInt(removeEvent.ServiceID),
 			Relation:   openfga.RelOwner,
 		}
+
 		err := authz.RemoveRelation(rel)
 		if err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Service", "", err)

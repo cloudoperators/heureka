@@ -13,7 +13,7 @@ import (
 )
 
 type ValkeyCache struct {
-	CacheBase
+	*CacheBase
 	client valkey.Client
 }
 
@@ -26,8 +26,13 @@ type ValkeyCacheConfig struct {
 	Db         int
 }
 
-func NewValkeyCache(ctx context.Context, wg *sync.WaitGroup, config ValkeyCacheConfig) *ValkeyCache {
+func NewValkeyCache(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	config ValkeyCacheConfig,
+) *ValkeyCache {
 	cacheBase := NewCacheBase(ctx, wg, config.CacheConfig)
+
 	valkeyClient, err := valkey.NewClient(valkey.ClientOption{
 		InitAddress: []string{config.Url},
 		Username:    config.Username,
@@ -40,10 +45,12 @@ func NewValkeyCache(ctx context.Context, wg *sync.WaitGroup, config ValkeyCacheC
 			"component": "cache",
 			"error":     err,
 		}).Fatal("Failed to initialize Valkey cache")
+
 		return nil
 	}
+
 	valkeyCache := &ValkeyCache{
-		CacheBase: *cacheBase,
+		CacheBase: cacheBase,
 		client:    valkeyClient,
 	}
 
@@ -59,9 +66,11 @@ func (vc *ValkeyCache) Get(key string) (string, bool, error) {
 	if err == valkey.Nil {
 		return "", false, nil // miss
 	}
+
 	if err != nil {
 		return "", false, err
 	}
+
 	return val, true, nil
 }
 

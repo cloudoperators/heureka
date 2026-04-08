@@ -18,17 +18,56 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 	Prefix:    "supportgroup",
 	TableName: "SupportGroup",
 	Properties: []*Property{
-		NewProperty("supportgroup_ccrn", WrapAccess(func(sg *entity.SupportGroup) (string, bool) { return sg.CCRN, sg.CCRN != "" })),
-		NewProperty("supportgroup_created_by", WrapAccess(func(sg *entity.SupportGroup) (int64, bool) { return sg.CreatedBy, NoUpdate })),
-		NewProperty("supportgroup_updated_by", WrapAccess(func(sg *entity.SupportGroup) (int64, bool) { return sg.UpdatedBy, sg.UpdatedBy != 0 })),
+		NewProperty(
+			"supportgroup_ccrn",
+			WrapAccess(
+				func(sg *entity.SupportGroup) (string, bool) { return sg.CCRN, sg.CCRN != "" },
+			),
+		),
+		NewProperty(
+			"supportgroup_created_by",
+			WrapAccess(
+				func(sg *entity.SupportGroup) (int64, bool) { return sg.CreatedBy, NoUpdate },
+			),
+		),
+		NewProperty(
+			"supportgroup_updated_by",
+			WrapAccess(
+				func(sg *entity.SupportGroup) (int64, bool) { return sg.UpdatedBy, sg.UpdatedBy != 0 },
+			),
+		),
 	},
 	FilterProperties: []*FilterProperty{
-		NewFilterProperty("SG.supportgroup_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.Id })),
-		NewFilterProperty("SGS.supportgroupservice_service_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.ServiceId })),
-		NewFilterProperty("SG.supportgroup_ccrn = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*string { return filter.CCRN })),
-		NewFilterProperty("SGU.supportgroupuser_user_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.UserId })),
-		NewFilterProperty("IM.issuematch_issue_id = ?", WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.IssueId })),
-		NewStateFilterProperty("SG.supportgroup", WrapRetState(func(filter *entity.SupportGroupFilter) []entity.StateFilterType { return filter.State })),
+		NewFilterProperty(
+			"SG.supportgroup_id = ?",
+			WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.Id }),
+		),
+		NewFilterProperty(
+			"SGS.supportgroupservice_service_id = ?",
+			WrapRetSlice(
+				func(filter *entity.SupportGroupFilter) []*int64 { return filter.ServiceId },
+			),
+		),
+		NewFilterProperty(
+			"SG.supportgroup_ccrn = ?",
+			WrapRetSlice(func(filter *entity.SupportGroupFilter) []*string { return filter.CCRN }),
+		),
+		NewFilterProperty(
+			"SGU.supportgroupuser_user_id = ?",
+			WrapRetSlice(func(filter *entity.SupportGroupFilter) []*int64 { return filter.UserId }),
+		),
+		NewFilterProperty(
+			"IM.issuematch_issue_id = ?",
+			WrapRetSlice(
+				func(filter *entity.SupportGroupFilter) []*int64 { return filter.IssueId },
+			),
+		),
+		NewStateFilterProperty(
+			"SG.supportgroup",
+			WrapRetState(
+				func(filter *entity.SupportGroupFilter) []entity.StateFilterType { return filter.State },
+			),
+		),
 	},
 }
 
@@ -45,11 +84,13 @@ func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) st
 			`)
 		}
 	}
+
 	if len(filter.UserId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, ` 
 				INNER JOIN SupportGroupUser SGU on SG.supportgroup_id = SGU.supportgroupuser_support_group_id
 		`)
 	}
+
 	return joins
 }
 
@@ -57,24 +98,34 @@ func ensureSupportGroupFilter(filter *entity.SupportGroupFilter) *entity.Support
 	if filter == nil {
 		filter = &entity.SupportGroupFilter{}
 	}
+
 	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entity.SupportGroupFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildSupportGroupStatement(
+	baseQuery string,
+	filter *entity.SupportGroupFilter,
+	withCursor bool,
+	order []entity.Order,
+	l *logrus.Entry,
+) (Stmt, []any, error) {
 	var query string
+
 	filter = ensureSupportGroupFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	cursorQuery := CreateCursorQuery("", cursorFields)
 	order = GetDefaultOrder(order, entity.SupportGroupId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 	joins := s.getSupportGroupJoins(filter)
 
 	filterStr := supportGroupObject.GetFilterQuery(filter)
+
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -101,6 +152,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
@@ -109,7 +161,10 @@ func (s *SqlDatabase) buildSupportGroupStatement(baseQuery string, filter *entit
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetAllSupportGroupCursors(filter *entity.SupportGroupFilter, order []entity.Order) ([]string, error) {
+func (s *SqlDatabase) GetAllSupportGroupCursors(
+	filter *entity.SupportGroupFilter,
+	order []entity.Order,
+) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetAllSupportGroupCursors",
@@ -122,6 +177,7 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(filter *entity.SupportGroupFilte
     `
 
 	filter = ensureSupportGroupFilter(filter)
+
 	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, err
@@ -148,7 +204,10 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(filter *entity.SupportGroupFilte
 	}), nil
 }
 
-func (s *SqlDatabase) GetSupportGroups(filter *entity.SupportGroupFilter, order []entity.Order) ([]entity.SupportGroupResult, error) {
+func (s *SqlDatabase) GetSupportGroups(
+	filter *entity.SupportGroupFilter,
+	order []entity.Order,
+) ([]entity.SupportGroupResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetSupportGroups",
 	})
@@ -166,7 +225,11 @@ func (s *SqlDatabase) GetSupportGroups(filter *entity.SupportGroupFilter, order 
 		return nil, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -182,6 +245,7 @@ func (s *SqlDatabase) GetSupportGroups(filter *entity.SupportGroupFilter, order 
 				},
 				SupportGroup: &sg,
 			}
+
 			return append(l, sgr)
 		},
 	)
@@ -198,17 +262,30 @@ func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int
 		%s
 		ORDER BY %s
 	`
-	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, []entity.Order{}, l)
+
+	stmt, filterParameters, err := s.buildSupportGroupStatement(
+		baseQuery,
+		filter,
+		false,
+		[]entity.Order{},
+		l,
+	)
 	if err != nil {
 		return -1, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) CreateSupportGroup(supportGroup *entity.SupportGroup) (*entity.SupportGroup, error) {
+func (s *SqlDatabase) CreateSupportGroup(
+	supportGroup *entity.SupportGroup,
+) (*entity.SupportGroup, error) {
 	return supportGroupObject.Create(s.db, supportGroup)
 }
 
@@ -237,7 +314,7 @@ func (s *SqlDatabase) AddServiceToSupportGroup(supportGroupId int64, serviceId i
 		)
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"service_id":       serviceId,
 		"support_group_id": supportGroupId,
 	}
@@ -271,7 +348,7 @@ func (s *SqlDatabase) RemoveServiceFromSupportGroup(supportGroupId int64, servic
 		AND supportgroupservice_support_group_id = :support_group_id
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"service_id":       serviceId,
 		"support_group_id": supportGroupId,
 	}
@@ -298,7 +375,7 @@ func (s *SqlDatabase) AddUserToSupportGroup(supportGroupId int64, userId int64) 
 		)
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"user_id":          userId,
 		"support_group_id": supportGroupId,
 	}
@@ -332,7 +409,7 @@ func (s *SqlDatabase) RemoveUserFromSupportGroup(supportGroupId int64, userId in
 		AND supportgroupuser_support_group_id = :support_group_id
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"user_id":          userId,
 		"support_group_id": supportGroupId,
 	}
@@ -371,7 +448,12 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -379,18 +461,26 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	supportGroupCcrns := []string{}
+
 	var ccrn string
 	for rows.Next() {
 		if err := rows.Scan(&ccrn); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
+
 		supportGroupCcrns = append(supportGroupCcrns, ccrn)
 	}
+
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err

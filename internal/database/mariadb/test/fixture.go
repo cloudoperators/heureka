@@ -48,6 +48,7 @@ func (s *SeedCollection) GetComponentInstanceById(id int64) *mariadb.ComponentIn
 			return &ci
 		}
 	}
+
 	return nil
 }
 
@@ -57,50 +58,70 @@ func (s *SeedCollection) GetIssueById(id int64) *mariadb.IssueRow {
 			return &issue
 		}
 	}
+
 	return nil
 }
 
 func (s *SeedCollection) GetIssueVariantsByIssueId(id int64) []mariadb.IssueVariantRow {
 	var r []mariadb.IssueVariantRow
+
 	for _, iv := range s.IssueVariantRows {
 		if iv.IssueId.Int64 == id {
 			r = append(r, iv)
 		}
 	}
+
 	return r
 }
 
-func (s *SeedCollection) GetIssueMatchesByServiceOwner(owner mariadb.OwnerRow) []mariadb.IssueMatchRow {
+func (s *SeedCollection) GetIssueMatchesByServiceOwner(
+	owner mariadb.OwnerRow,
+) []mariadb.IssueMatchRow {
 	serviceIds := lo.FilterMap(s.OwnerRows, func(o mariadb.OwnerRow, _ int) (int64, bool) {
 		return o.ServiceId.Int64, o.UserId.Int64 == owner.UserId.Int64
 	})
 
-	ciIds := lo.FilterMap(s.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
-		return c.Id.Int64, lo.Contains(serviceIds, c.ServiceId.Int64)
-	})
+	ciIds := lo.FilterMap(
+		s.ComponentInstanceRows,
+		func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
+			return c.Id.Int64, lo.Contains(serviceIds, c.ServiceId.Int64)
+		},
+	)
 
 	return lo.Filter(s.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) bool {
 		return lo.Contains(ciIds, im.ComponentInstanceId.Int64)
 	})
 }
 
-func (s *SeedCollection) GetIssueVariantsByService(service *mariadb.BaseServiceRow) []mariadb.IssueVariantRow {
+func (s *SeedCollection) GetIssueVariantsByService(
+	service *mariadb.BaseServiceRow,
+) []mariadb.IssueVariantRow {
 	var issueVariants []mariadb.IssueVariantRow
+
 	for _, irs := range s.IssueRepositoryServiceRows {
 		if irs.ServiceId.Valid && service.Id.Valid && irs.ServiceId.Int64 == service.Id.Int64 {
 			for _, iv := range s.IssueVariantRows {
-				if iv.IssueRepositoryId.Valid && irs.IssueRepositoryId.Int64 == iv.IssueRepositoryId.Int64 {
+				if iv.IssueRepositoryId.Valid &&
+					irs.IssueRepositoryId.Int64 == iv.IssueRepositoryId.Int64 {
 					issueVariants = append(issueVariants, iv)
 				}
 			}
 		}
 	}
-	issueVariants = lo.UniqBy(issueVariants, func(a mariadb.IssueVariantRow) int64 { return a.Id.Int64 })
+
+	issueVariants = lo.UniqBy(
+		issueVariants,
+		func(a mariadb.IssueVariantRow) int64 { return a.Id.Int64 },
+	)
+
 	return issueVariants
 }
 
-func (s *SeedCollection) GetIssueVariantsByIssueMatch(im *mariadb.IssueMatchRow) []mariadb.IssueVariantRow {
+func (s *SeedCollection) GetIssueVariantsByIssueMatch(
+	im *mariadb.IssueMatchRow,
+) []mariadb.IssueVariantRow {
 	var issueVariants []mariadb.IssueVariantRow
+
 	for _, i := range s.IssueRows {
 		if im.IssueId.Int64 == i.Id.Int64 {
 			for _, iv := range s.IssueVariantRows {
@@ -110,16 +131,23 @@ func (s *SeedCollection) GetIssueVariantsByIssueMatch(im *mariadb.IssueMatchRow)
 			}
 		}
 	}
-	issueVariants = lo.UniqBy(issueVariants, func(iv mariadb.IssueVariantRow) int64 { return iv.Id.Int64 })
+
+	issueVariants = lo.UniqBy(
+		issueVariants,
+		func(iv mariadb.IssueVariantRow) int64 { return iv.Id.Int64 },
+	)
+
 	return issueVariants
 }
 
 func (s *SeedCollection) GetIssueByService(service *mariadb.BaseServiceRow) []mariadb.IssueRow {
 	var issues []mariadb.IssueRow
+
 	for _, ci := range s.ComponentInstanceRows {
 		if ci.ServiceId.Valid && service.Id.Valid && ci.ServiceId.Int64 == service.Id.Int64 {
 			for _, im := range s.IssueMatchRows {
-				if im.ComponentInstanceId.Valid && ci.Id.Valid && im.ComponentInstanceId.Int64 == ci.Id.Int64 {
+				if im.ComponentInstanceId.Valid && ci.Id.Valid &&
+					im.ComponentInstanceId.Int64 == ci.Id.Int64 {
 					for _, i := range s.IssueRows {
 						if i.Id.Valid && im.IssueId.Valid && i.Id.Int64 == im.IssueId.Int64 {
 							issues = append(issues, i)
@@ -131,24 +159,32 @@ func (s *SeedCollection) GetIssueByService(service *mariadb.BaseServiceRow) []ma
 	}
 
 	issues = lo.UniqBy(issues, func(i mariadb.IssueRow) int64 { return i.Id.Int64 })
+
 	return issues
 }
 
-func (s *SeedCollection) GetComponentInstanceByIssueMatches(im []mariadb.IssueMatchRow) ([]mariadb.ComponentInstanceRow, []*int64) {
+func (s *SeedCollection) GetComponentInstanceByIssueMatches(
+	im []mariadb.IssueMatchRow,
+) ([]mariadb.ComponentInstanceRow, []*int64) {
 	ids := make([]*int64, len(im))
+
 	var expectedComponentInstances []mariadb.ComponentInstanceRow
+
 	for i, row := range im {
 		x := row.ComponentInstanceId.Int64
+
 		ci, found := lo.Find(s.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow) bool {
 			return cir.Id.Int64 == x
 		})
-		if found && lo.ContainsBy(expectedComponentInstances, func(c mariadb.ComponentInstanceRow) bool {
-			return c.Id.Int64 == ci.Id.Int64
-		}) {
+		if found &&
+			lo.ContainsBy(expectedComponentInstances, func(c mariadb.ComponentInstanceRow) bool {
+				return c.Id.Int64 == ci.Id.Int64
+			}) {
 			expectedComponentInstances = append(expectedComponentInstances, ci)
 			ids[i] = &x
 		}
 	}
+
 	return expectedComponentInstances, ids
 }
 
@@ -156,8 +192,11 @@ func (s *SeedCollection) GetComponentInstance() mariadb.ComponentInstanceRow {
 	return s.ComponentInstanceRows[0]
 }
 
-func (s *SeedCollection) GetComponentInstanceWithPredicateVal(predicate func(picked, iter mariadb.ComponentInstanceRow) (string, bool)) (mariadb.ComponentInstanceRow, []string) {
+func (s *SeedCollection) GetComponentInstanceWithPredicateVal(
+	predicate func(picked, iter mariadb.ComponentInstanceRow) (string, bool),
+) (mariadb.ComponentInstanceRow, []string) {
 	picked := s.ComponentInstanceRows[0]
+
 	return picked, lo.FilterMap(
 		s.ComponentInstanceRows,
 		func(iter mariadb.ComponentInstanceRow, _ int) (string, bool) {
@@ -166,33 +205,43 @@ func (s *SeedCollection) GetComponentInstanceWithPredicateVal(predicate func(pic
 	)
 }
 
-func (s *SeedCollection) GetComponentInstanceVal(predicate func(cir mariadb.ComponentInstanceRow) string) []string {
+func (s *SeedCollection) GetComponentInstanceVal(
+	predicate func(cir mariadb.ComponentInstanceRow) string,
+) []string {
 	return lo.Map(s.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow, _ int) string {
 		return predicate(cir)
 	})
 }
 
 func (s *SeedCollection) GetValidComponentInstanceRows() []mariadb.ComponentInstanceRow {
-	var valid []mariadb.ComponentInstanceRow
-	var added []int64
+	var (
+		valid []mariadb.ComponentInstanceRow
+		added []int64
+	)
+
 	for _, ci := range s.ComponentInstanceRows {
 		if ci.Id.Valid && !lo.Contains(added, ci.Id.Int64) {
 			added = append(added, ci.Id.Int64)
 			valid = append(valid, ci)
 		}
 	}
+
 	return valid
 }
 
 func (s *SeedCollection) GetValidIssueMatchRows() []mariadb.IssueMatchRow {
-	var valid []mariadb.IssueMatchRow
-	var added []int64
+	var (
+		valid []mariadb.IssueMatchRow
+		added []int64
+	)
+
 	for _, r := range s.IssueMatchRows {
 		if r.Id.Valid && !lo.Contains(added, r.Id.Int64) {
 			added = append(added, r.Id.Int64)
 			valid = append(valid, r)
 		}
 	}
+
 	return valid
 }
 
@@ -212,7 +261,7 @@ func NewDatabaseSeeder(cfg util.Config) (*DatabaseSeeder, error) {
 }
 
 func (s *DatabaseSeeder) CloseDbConnection() {
-	s.db.Close()
+	_ = s.db.Close()
 }
 
 // Generate a random CVSS 3.1 vector
@@ -265,6 +314,7 @@ func GenerateRandomCVSS31Vector() string {
 	baseVector = append(baseVector, "I:"+iValues[rand.Intn(len(iValues))])
 	// Availability (A)
 	baseVector = append(baseVector, "A:"+aValues[rand.Intn(len(aValues))])
+
 	var temporalVector []string
 	// Temporal (E)
 	temporalVector = append(temporalVector, "E:"+emValues[rand.Intn(len(emValues))])
@@ -272,6 +322,7 @@ func GenerateRandomCVSS31Vector() string {
 	temporalVector = append(temporalVector, "RL:"+rlValues[rand.Intn(len(rlValues))])
 	// Temporal (RC)
 	temporalVector = append(temporalVector, "RC:"+rcValues[rand.Intn(len(rcValues))])
+
 	var environmentalVector []string
 	// Environmental (CR)
 	environmentalVector = append(environmentalVector, "CR:"+crValues[rand.Intn(len(crValues))])
@@ -300,10 +351,13 @@ func GenerateRandomCVSS31Vector() string {
 	if rand.Intn(2) == 0 {
 		baseVector = append(baseVector, temporalVector...)
 	}
+
 	if rand.Intn(2) == 0 {
 		baseVector = append(baseVector, environmentalVector...)
 	}
+
 	url := strings.Join(baseVector, "/")
+
 	return url
 }
 
@@ -404,6 +458,7 @@ func (s *DatabaseSeeder) SeedDbForNestedIssueVariantTest() *SeedCollection {
 	issueVariants := s.SeedIssueVariants(100, repos, issues)
 	issueMatches := s.SeedIssueMatches(1, issues, componentInstances, users)
 	issueRepositoryServices := s.SeedIssueRepositoryServices(len(repos), services, repos)
+
 	return &SeedCollection{
 		IssueVariantRows:           issueVariants,
 		IssueRepositoryRows:        repos,
@@ -430,23 +485,38 @@ func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
 	components := s.SeedComponents(2)
 	componentVersions := s.SeedComponentVersions(10, components)
 	services := s.SeedServices(5)
-	issueVariants, err := LoadIssueVariants(GetTestDataPath("../testdata/component_version_order/issue_variant.json"))
+
+	issueVariants, err := LoadIssueVariants(
+		GetTestDataPath("../testdata/component_version_order/issue_variant.json"),
+	)
 	if err != nil {
 		return nil, err
 	}
-	cvIssueRows, err := LoadComponentVersionIssues(GetTestDataPath("../testdata/service_order/component_version_issue.json"))
+
+	cvIssueRows, err := LoadComponentVersionIssues(
+		GetTestDataPath("../testdata/service_order/component_version_issue.json"),
+	)
 	if err != nil {
 		return nil, err
 	}
-	componentInstances, err := LoadComponentInstances(GetTestDataPath("../testdata/service_order/component_instance.json"))
+
+	componentInstances, err := LoadComponentInstances(
+		GetTestDataPath("../testdata/service_order/component_instance.json"),
+	)
 	if err != nil {
 		return nil, err
 	}
-	issueMatches, err := LoadIssueMatches(GetTestDataPath("../testdata/service_order/issue_match.json"))
+
+	issueMatches, err := LoadIssueMatches(
+		GetTestDataPath("../testdata/service_order/issue_match.json"),
+	)
 	if err != nil {
 		return nil, err
 	}
-	supportGroupServices, err := LoadSupportGroupServices(GetTestDataPath("../testdata/issue_counts/support_group_service.json"))
+
+	supportGroupServices, err := LoadSupportGroupServices(
+		GetTestDataPath("../testdata/issue_counts/support_group_service.json"),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -458,30 +528,35 @@ func (s *DatabaseSeeder) SeedForIssueCounts() (*SeedCollection, error) {
 			return nil, err
 		}
 	}
+
 	for _, cvi := range cvIssueRows {
 		_, err := s.InsertFakeComponentVersionIssue(cvi)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	for _, ci := range componentInstances {
 		_, err := s.InsertFakeComponentInstance(ci)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	for _, im := range issueMatches {
 		_, err := s.InsertFakeIssueMatch(im)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	for _, sgs := range supportGroupServices {
 		_, err := s.InsertFakeSupportGroupService(sgs)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	return &SeedCollection{
 		IssueVariantRows:           issueVariants,
 		IssueRepositoryRows:        issueRepositories,
@@ -513,28 +588,41 @@ func (s *DatabaseSeeder) SeedIssueRepositories() []mariadb.BaseIssueRepositoryRo
 	}
 	repos := make([]mariadb.BaseIssueRepositoryRow, len(variants))
 	i := 0
+
 	for _, name := range variants {
 		row := mariadb.BaseIssueRepositoryRow{
-			Name:      sql.NullString{String: fmt.Sprintf("%s-%s", name, gofakeit.UUID()), Valid: true},
+			Name: sql.NullString{
+				String: fmt.Sprintf("%s-%s", name, gofakeit.UUID()),
+				Valid:  true,
+			},
 			Url:       sql.NullString{String: gofakeit.URL(), Valid: true},
 			CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 			UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 		}
+
 		id, err := s.InsertFakeBaseIssueRepository(row)
 		if err != nil {
 			logrus.WithField("seed_type", "IssueRepository").Debug(err)
 			continue
 		}
+
 		row.Id = sql.NullInt64{Int64: id, Valid: true}
 		repos[i] = row
 		i = i + 1
 	}
+
 	return repos
 }
 
-func (s *DatabaseSeeder) SeedIssueMatches(num int, issues []mariadb.IssueRow, componentInstances []mariadb.ComponentInstanceRow, users []mariadb.UserRow) []mariadb.IssueMatchRow {
+func (s *DatabaseSeeder) SeedIssueMatches(
+	num int,
+	issues []mariadb.IssueRow,
+	componentInstances []mariadb.ComponentInstanceRow,
+	users []mariadb.UserRow,
+) []mariadb.IssueMatchRow {
 	var issueMatches []mariadb.IssueMatchRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		im := NewFakeIssueMatch()
 
 		randomUserIndex := rand.Intn(len(users))
@@ -557,13 +645,16 @@ func (s *DatabaseSeeder) SeedIssueMatches(num int, issues []mariadb.IssueRow, co
 			issueMatches = append(issueMatches, im)
 		}
 	}
+
 	return issueMatches
 }
 
 func (s *DatabaseSeeder) SeedIssues(num int) []mariadb.IssueRow {
 	var issues []mariadb.IssueRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		issue := NewFakeIssue()
+
 		iId, err := s.InsertFakeIssue(issue)
 		if err != nil {
 			logrus.WithField("seed_type", "Issues").Debug(err)
@@ -572,29 +663,41 @@ func (s *DatabaseSeeder) SeedIssues(num int) []mariadb.IssueRow {
 			issues = append(issues, issue)
 		}
 	}
+
 	return issues
 }
 
 func (s *DatabaseSeeder) SeedVulnerabilities(num int) []mariadb.IssueRow {
 	var issues []mariadb.IssueRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		issue := NewFakeIssue()
 		issue.Type = sql.NullString{String: string(entity.IssueTypeVulnerability), Valid: true}
+
 		iId, err := s.InsertFakeIssue(issue)
 		if err != nil {
 			logrus.WithField("seed_type", "Issues").Debug(err)
-		} else {
-			issue.Id = sql.NullInt64{Int64: iId, Valid: true}
-			issues = append(issues, issue)
+
+			continue
 		}
+
+		issue.Id = sql.NullInt64{Int64: iId, Valid: true}
+		issues = append(issues, issue)
 	}
+
 	return issues
 }
 
-func (s *DatabaseSeeder) SeedIssueVariants(num int, repos []mariadb.BaseIssueRepositoryRow, issues []mariadb.IssueRow) []mariadb.IssueVariantRow {
+func (s *DatabaseSeeder) SeedIssueVariants(
+	num int,
+	repos []mariadb.BaseIssueRepositoryRow,
+	issues []mariadb.IssueRow,
+) []mariadb.IssueVariantRow {
 	var variants []mariadb.IssueVariantRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		variant := NewFakeIssueVariant(repos, issues)
+
 		variantId, err := s.InsertFakeIssueVariant(variant)
 		if err != nil {
 			logrus.WithField("seed_type", "IssueVariants").Debug(err)
@@ -603,13 +706,16 @@ func (s *DatabaseSeeder) SeedIssueVariants(num int, repos []mariadb.BaseIssueRep
 			variants = append(variants, variant)
 		}
 	}
+
 	return variants
 }
 
 func (s *DatabaseSeeder) SeedSupportGroups(num int) []mariadb.SupportGroupRow {
 	var supportGroups []mariadb.SupportGroupRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		supportGroup := NewFakeSupportGroup()
+
 		supportGroupId, err := s.InsertFakeSupportGroup(supportGroup)
 		if err != nil {
 			logrus.WithField("seed_type", "SupportGroups").Debug(err)
@@ -618,12 +724,18 @@ func (s *DatabaseSeeder) SeedSupportGroups(num int) []mariadb.SupportGroupRow {
 			supportGroups = append(supportGroups, supportGroup)
 		}
 	}
+
 	return supportGroups
 }
 
-func (s *DatabaseSeeder) SeedSupportGroupServices(num int, services []mariadb.BaseServiceRow, supportGroups []mariadb.SupportGroupRow) []mariadb.SupportGroupServiceRow {
+func (s *DatabaseSeeder) SeedSupportGroupServices(
+	num int,
+	services []mariadb.BaseServiceRow,
+	supportGroups []mariadb.SupportGroupRow,
+) []mariadb.SupportGroupServiceRow {
 	var rows []mariadb.SupportGroupServiceRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		sgs := NewFakeSupportGroupService()
 		randomSIndex := rand.Intn(len(services))
 		service := services[randomSIndex]
@@ -631,6 +743,7 @@ func (s *DatabaseSeeder) SeedSupportGroupServices(num int, services []mariadb.Ba
 		randomSGIndex := rand.Intn(len(supportGroups))
 		sg := supportGroups[randomSGIndex]
 		sgs.SupportGroupId = sg.Id
+
 		_, err := s.InsertFakeSupportGroupService(sgs)
 		if err != nil {
 			logrus.WithField("seed_type", "SupportGroupServices").Debug(err)
@@ -638,12 +751,18 @@ func (s *DatabaseSeeder) SeedSupportGroupServices(num int, services []mariadb.Ba
 			rows = append(rows, sgs)
 		}
 	}
+
 	return rows
 }
 
-func (s *DatabaseSeeder) SeedSupportGroupUsers(num int, users []mariadb.UserRow, supportGroups []mariadb.SupportGroupRow) []mariadb.SupportGroupUserRow {
+func (s *DatabaseSeeder) SeedSupportGroupUsers(
+	num int,
+	users []mariadb.UserRow,
+	supportGroups []mariadb.SupportGroupRow,
+) []mariadb.SupportGroupUserRow {
 	var rows []mariadb.SupportGroupUserRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		sgu := NewFakeSupportGroupUser()
 		randomUIndex := rand.Intn(len(users))
 		user := users[randomUIndex]
@@ -651,6 +770,7 @@ func (s *DatabaseSeeder) SeedSupportGroupUsers(num int, users []mariadb.UserRow,
 		randomSGIndex := rand.Intn(len(supportGroups))
 		sg := supportGroups[randomSGIndex]
 		sgu.SupportGroupId = sg.Id
+
 		_, err := s.InsertFakeSupportGroupUser(sgu)
 		if err != nil {
 			logrus.WithField("seed_type", "SupportGroupUsers").Debug(err)
@@ -658,13 +778,16 @@ func (s *DatabaseSeeder) SeedSupportGroupUsers(num int, users []mariadb.UserRow,
 			rows = append(rows, sgu)
 		}
 	}
+
 	return rows
 }
 
 func (s *DatabaseSeeder) SeedServices(num int) []mariadb.BaseServiceRow {
 	var services []mariadb.BaseServiceRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		service := NewFakeBaseService()
+
 		serviceId, err := s.InsertFakeBaseService(service)
 		if err != nil {
 			fmt.Printf("Service error: %e", err)
@@ -674,48 +797,63 @@ func (s *DatabaseSeeder) SeedServices(num int) []mariadb.BaseServiceRow {
 			services = append(services, service)
 		}
 	}
+
 	return services
 }
 
 func (s *DatabaseSeeder) SeedComponents(num int) []mariadb.ComponentRow {
 	var components []mariadb.ComponentRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		component := NewFakeComponent()
+
 		componentId, err := s.InsertFakeComponent(component)
 		if err != nil {
 			logrus.WithField("seed_type", "Components").Debug(err)
-		} else {
-			component.Id = sql.NullInt64{Int64: componentId, Valid: true}
-			components = append(components, component)
+			continue
 		}
 
+		component.Id = sql.NullInt64{Int64: componentId, Valid: true}
+		components = append(components, component)
 	}
+
 	return components
 }
 
-func (s *DatabaseSeeder) SeedComponentVersions(num int, components []mariadb.ComponentRow) []mariadb.ComponentVersionRow {
+func (s *DatabaseSeeder) SeedComponentVersions(
+	num int,
+	components []mariadb.ComponentRow,
+) []mariadb.ComponentVersionRow {
 	var componentVersions []mariadb.ComponentVersionRow
-	for i := 0; i < num; i++ {
+
+	for i := range num {
 		componentVersion := NewFakeComponentVersion()
 		randomIndex := rand.Intn(len(components))
 		component := components[randomIndex]
 		componentVersion.ComponentId = component.Id
 		componentVersion.EndOfLife = sql.NullBool{Bool: []bool{true, false}[i%2], Valid: true}
+
 		componentVersionId, err := s.InsertFakeComponentVersion(componentVersion)
 		if err != nil {
 			logrus.WithField("seed_type", "ComponentVersions").Debug(err)
-		} else {
-			componentVersion.Id = sql.NullInt64{Int64: componentVersionId, Valid: true}
-			componentVersions = append(componentVersions, componentVersion)
+			continue
 		}
 
+		componentVersion.Id = sql.NullInt64{Int64: componentVersionId, Valid: true}
+		componentVersions = append(componentVersions, componentVersion)
 	}
+
 	return componentVersions
 }
 
-func (s *DatabaseSeeder) SeedComponentInstances(num int, componentVersions []mariadb.ComponentVersionRow, services []mariadb.BaseServiceRow) []mariadb.ComponentInstanceRow {
+func (s *DatabaseSeeder) SeedComponentInstances(
+	num int,
+	componentVersions []mariadb.ComponentVersionRow,
+	services []mariadb.BaseServiceRow,
+) []mariadb.ComponentInstanceRow {
 	var componentInstances []mariadb.ComponentInstanceRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		componentInstance := NewFakeComponentInstance()
 		randomCvIndex := rand.Intn(len(componentVersions))
 		componentVersion := componentVersions[randomCvIndex]
@@ -723,21 +861,27 @@ func (s *DatabaseSeeder) SeedComponentInstances(num int, componentVersions []mar
 		randomSIndex := rand.Intn(len(services))
 		service := services[randomSIndex]
 		componentInstance.ServiceId = service.Id
+
 		componentInstanceId, err := s.InsertFakeComponentInstance(componentInstance)
 		if err != nil {
 			logrus.WithField("seed_type", "ComponentInstances").Debug(err)
-		} else {
-			componentInstance.Id = sql.NullInt64{Int64: componentInstanceId, Valid: true}
-			componentInstances = append(componentInstances, componentInstance)
+
+			continue
 		}
+
+		componentInstance.Id = sql.NullInt64{Int64: componentInstanceId, Valid: true}
+		componentInstances = append(componentInstances, componentInstance)
 	}
+
 	return componentInstances
 }
 
 func (s *DatabaseSeeder) SeedUsers(num int) []mariadb.UserRow {
 	var users []mariadb.UserRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		user := NewFakeUser()
+
 		userId, err := s.InsertFakeUser(user)
 		if err != nil {
 			logrus.WithField("seed_type", "Users").Debug(err)
@@ -746,12 +890,18 @@ func (s *DatabaseSeeder) SeedUsers(num int) []mariadb.UserRow {
 			users = append(users, user)
 		}
 	}
+
 	return users
 }
 
-func (s *DatabaseSeeder) SeedOwners(num int, services []mariadb.BaseServiceRow, users []mariadb.UserRow) []mariadb.OwnerRow {
+func (s *DatabaseSeeder) SeedOwners(
+	num int,
+	services []mariadb.BaseServiceRow,
+	users []mariadb.UserRow,
+) []mariadb.OwnerRow {
 	var owners []mariadb.OwnerRow
-	for i := 0; i < num; i++ {
+
+	for range num {
 		owner := NewFakeOwner()
 		randomSIndex := rand.Intn(len(services))
 		service := services[randomSIndex]
@@ -759,6 +909,7 @@ func (s *DatabaseSeeder) SeedOwners(num int, services []mariadb.BaseServiceRow, 
 		randomUIndex := rand.Intn(len(users))
 		user := users[randomUIndex]
 		owner.UserId = user.Id
+
 		_, err := s.InsertFakeOwner(owner)
 		if err != nil {
 			logrus.WithField("seed_type", "Owners").Debug(err)
@@ -766,12 +917,17 @@ func (s *DatabaseSeeder) SeedOwners(num int, services []mariadb.BaseServiceRow, 
 			owners = append(owners, owner)
 		}
 	}
+
 	return owners
 }
 
-func (s *DatabaseSeeder) SeedComponentVersionIssues(num int, componentVersions []mariadb.ComponentVersionRow, issues []mariadb.IssueRow) []mariadb.ComponentVersionIssueRow {
+func (s *DatabaseSeeder) SeedComponentVersionIssues(
+	num int,
+	componentVersions []mariadb.ComponentVersionRow,
+	issues []mariadb.IssueRow,
+) []mariadb.ComponentVersionIssueRow {
 	cviList := make([]mariadb.ComponentVersionIssueRow, num)
-	for i := 0; i < num; i++ {
+	for i := range num {
 		cvi := NewFakeComponentVersionIssue()
 		randomIIndex := rand.Intn(len(issues))
 		issue := issues[randomIIndex]
@@ -779,6 +935,7 @@ func (s *DatabaseSeeder) SeedComponentVersionIssues(num int, componentVersions [
 		randomCIndex := rand.Intn(len(componentVersions))
 		componentVersion := componentVersions[randomCIndex]
 		cvi.ComponentVersionId = componentVersion.Id
+
 		_, err := s.InsertFakeComponentVersionIssue(cvi)
 		if err != nil {
 			logrus.WithField("seed_type", "ComponentVersionIssues").Debug(err)
@@ -786,12 +943,18 @@ func (s *DatabaseSeeder) SeedComponentVersionIssues(num int, componentVersions [
 			cviList[i] = cvi
 		}
 	}
+
 	return cviList
 }
 
-func (s *DatabaseSeeder) SeedIssueRepositoryServices(num int, services []mariadb.BaseServiceRow, issueRepositories []mariadb.BaseIssueRepositoryRow) []mariadb.IssueRepositoryServiceRow {
+func (s *DatabaseSeeder) SeedIssueRepositoryServices(
+	num int,
+	services []mariadb.BaseServiceRow,
+	issueRepositories []mariadb.BaseIssueRepositoryRow,
+) []mariadb.IssueRepositoryServiceRow {
 	var rows []mariadb.IssueRepositoryServiceRow
-	for i := 0; i < num; i++ {
+
+	for i := range num {
 		irs := NewFakeIssueRepositoryService()
 		irs.Priority = sql.NullInt64{Int64: int64(i), Valid: true}
 		randomSIndex := rand.Intn(len(services))
@@ -800,6 +963,7 @@ func (s *DatabaseSeeder) SeedIssueRepositoryServices(num int, services []mariadb
 		randomIRIndex := rand.Intn(len(issueRepositories))
 		ir := issueRepositories[randomIRIndex]
 		irs.IssueRepositoryId = ir.Id
+
 		_, err := s.InsertFakeIssueRepositoryService(irs)
 		if err != nil {
 			logrus.WithField("seed_type", "IssueRepositoryServices").Debug(err)
@@ -807,47 +971,71 @@ func (s *DatabaseSeeder) SeedIssueRepositoryServices(num int, services []mariadb
 			rows = append(rows, irs)
 		}
 	}
+
 	return rows
 }
 
-func (s *DatabaseSeeder) SeedRemediations(num int, services []mariadb.BaseServiceRow, components []mariadb.ComponentRow, issues []mariadb.IssueRow) []mariadb.RemediationRow {
+func (s *DatabaseSeeder) SeedRemediations(
+	num int,
+	services []mariadb.BaseServiceRow,
+	components []mariadb.ComponentRow,
+	issues []mariadb.IssueRow,
+) []mariadb.RemediationRow {
 	var rows []mariadb.RemediationRow
-	for i := 0; i < num; i++ {
+
+	for i := range num {
 		service := services[rand.Intn(len(services))]
 		issue := issues[rand.Intn(len(issues))]
 		component := components[rand.Intn(len(components))]
 		severity := gofakeit.RandomString(entity.AllSeverityValuesString)
 		// does not check if relation exists
 		r := mariadb.RemediationRow{
-			Description:     sql.NullString{String: gofakeit.Sentence(10), Valid: true},
-			Severity:        sql.NullString{String: severity, Valid: true},
-			RemediationDate: sql.NullTime{Time: time.Now().AddDate(0, 0, rand.Intn(30)), Valid: true},
-			ExpirationDate:  sql.NullTime{Time: time.Now().AddDate(0, 1, rand.Intn(30)), Valid: true},
-			Type:            sql.NullString{String: entity.AllRemediationTypes[i%len(entity.AllRemediationTypes)], Valid: true},
-			ServiceId:       service.Id,
-			Service:         service.CCRN,
-			ComponentId:     component.Id,
-			Component:       component.CCRN,
-			IssueId:         issue.Id,
-			Issue:           issue.PrimaryName,
-			RemediatedBy:    sql.NullString{String: gofakeit.Name(), Valid: true},
-			RemediatedById:  sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-			CreatedBy:       sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-			UpdatedBy:       sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+			Description: sql.NullString{String: gofakeit.Sentence(10), Valid: true},
+			Severity:    sql.NullString{String: severity, Valid: true},
+			RemediationDate: sql.NullTime{
+				Time:  time.Now().AddDate(0, 0, rand.Intn(30)),
+				Valid: true,
+			},
+			ExpirationDate: sql.NullTime{
+				Time:  time.Now().AddDate(0, 1, rand.Intn(30)),
+				Valid: true,
+			},
+			Type: sql.NullString{
+				String: entity.AllRemediationTypes[i%len(entity.AllRemediationTypes)],
+				Valid:  true,
+			},
+			ServiceId:      service.Id,
+			Service:        service.CCRN,
+			ComponentId:    component.Id,
+			Component:      component.CCRN,
+			IssueId:        issue.Id,
+			Issue:          issue.PrimaryName,
+			RemediatedBy:   sql.NullString{String: gofakeit.Name(), Valid: true},
+			RemediatedById: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+			CreatedBy:      sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+			UpdatedBy:      sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 		}
+
 		id, err := s.InsertFakeRemediation(r)
-		r.Id = sql.NullInt64{Int64: id, Valid: true}
 		if err != nil {
 			logrus.WithField("seed_type", "Remediations").Debug(err)
 		}
+
+		r.Id = sql.NullInt64{Int64: id, Valid: true}
 		rows = append(rows, r)
 	}
+
 	return rows
 }
 
-func (s *DatabaseSeeder) SeedPatches(num int, services []mariadb.BaseServiceRow, componentVersions []mariadb.ComponentVersionRow) []mariadb.PatchRow {
+func (s *DatabaseSeeder) SeedPatches(
+	num int,
+	services []mariadb.BaseServiceRow,
+	componentVersions []mariadb.ComponentVersionRow,
+) []mariadb.PatchRow {
 	var rows []mariadb.PatchRow
-	for i := 0; i < num; i++ {
+
+	for i := range num {
 		service := services[i%len(services)]
 		componentVersion := componentVersions[i%len(componentVersions)]
 		// does not check if relation exists
@@ -859,13 +1047,17 @@ func (s *DatabaseSeeder) SeedPatches(num int, services []mariadb.BaseServiceRow,
 			CreatedBy:            sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 			UpdatedBy:            sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 		}
+
 		id, err := s.InsertFakePatch(p)
-		p.Id = sql.NullInt64{Int64: id, Valid: true}
 		if err != nil {
 			logrus.WithField("seed_type", "Patch").Debug(err)
 		}
+
+		p.Id = sql.NullInt64{Int64: id, Valid: true}
+
 		rows = append(rows, p)
 	}
+
 	return rows
 }
 
@@ -884,10 +1076,13 @@ func (s *DatabaseSeeder) InsertFakeIssue(issue mariadb.IssueRow) (int64, error) 
 			:issue_created_by,
 			:issue_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, issue)
 }
 
-func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVariantRow) (int64, error) {
+func (s *DatabaseSeeder) InsertFakeIssueVariant(
+	issueVariant mariadb.IssueVariantRow,
+) (int64, error) {
 	query := `
 		INSERT INTO IssueVariant (
 			issuevariant_secondary_name,
@@ -910,10 +1105,13 @@ func (s *DatabaseSeeder) InsertFakeIssueVariant(issueVariant mariadb.IssueVarian
 			:issuevariant_created_by,
 			:issuevariant_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, issueVariant)
 }
 
-func (s *DatabaseSeeder) InsertFakeBaseIssueRepository(irr mariadb.BaseIssueRepositoryRow) (int64, error) {
+func (s *DatabaseSeeder) InsertFakeBaseIssueRepository(
+	irr mariadb.BaseIssueRepositoryRow,
+) (int64, error) {
 	query := `
 		INSERT INTO IssueRepository (
 			issuerepository_name, 
@@ -926,6 +1124,7 @@ func (s *DatabaseSeeder) InsertFakeBaseIssueRepository(irr mariadb.BaseIssueRepo
 			:issuerepository_created_by,
 			:issuerepository_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, irr)
 }
 
@@ -954,10 +1153,13 @@ func (s *DatabaseSeeder) InsertFakeIssueMatch(im mariadb.IssueMatchRow) (int64, 
 			:issuematch_created_by,
 			:issuematch_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, im)
 }
 
-func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanceRow) (int64, error) {
+func (s *DatabaseSeeder) InsertFakeComponentInstance(
+	ci mariadb.ComponentInstanceRow,
+) (int64, error) {
 	query := `
 		INSERT INTO ComponentInstance (
 			componentinstance_ccrn,
@@ -994,6 +1196,7 @@ func (s *DatabaseSeeder) InsertFakeComponentInstance(ci mariadb.ComponentInstanc
 			:componentinstance_created_by,
 			:componentinstance_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, ci)
 }
 
@@ -1012,6 +1215,7 @@ func (s *DatabaseSeeder) InsertFakeBaseService(service mariadb.BaseServiceRow) (
 			:service_created_by,
 			:service_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, service)
 }
 
@@ -1026,6 +1230,7 @@ func (s *DatabaseSeeder) InsertFakeSupportGroup(sg mariadb.SupportGroupRow) (int
 			:supportgroup_created_by,
 			:supportgroup_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, sg)
 }
 
@@ -1048,6 +1253,7 @@ func (s *DatabaseSeeder) InsertFakeComponent(component mariadb.ComponentRow) (in
 			:component_created_by,
 			:component_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, component)
 }
 
@@ -1072,6 +1278,7 @@ func (s *DatabaseSeeder) InsertFakeComponentVersion(cv mariadb.ComponentVersionR
 			:componentversion_updated_by,
 			:componentversion_end_of_life
 		)`
+
 	return s.ExecPreparedNamed(query, cv)
 }
 
@@ -1092,6 +1299,7 @@ func (s *DatabaseSeeder) InsertFakeUser(user mariadb.UserRow) (int64, error) {
 			:user_created_by,
 			:user_updated_by
 		)`
+
 	return s.ExecPreparedNamed(query, user)
 }
 
@@ -1104,10 +1312,13 @@ func (s *DatabaseSeeder) InsertFakeOwner(owner mariadb.OwnerRow) (int64, error) 
 			:owner_service_id,
 			:owner_user_id
 		)`
+
 	return s.ExecPreparedNamed(query, owner)
 }
 
-func (s *DatabaseSeeder) InsertFakeSupportGroupUser(sgu mariadb.SupportGroupUserRow) (int64, error) {
+func (s *DatabaseSeeder) InsertFakeSupportGroupUser(
+	sgu mariadb.SupportGroupUserRow,
+) (int64, error) {
 	query := `
 		INSERT INTO SupportGroupUser (
 			supportgroupuser_user_id,
@@ -1116,10 +1327,13 @@ func (s *DatabaseSeeder) InsertFakeSupportGroupUser(sgu mariadb.SupportGroupUser
 			:supportgroupuser_user_id,
 			:supportgroupuser_support_group_id
 		)`
+
 	return s.ExecPreparedNamed(query, sgu)
 }
 
-func (s *DatabaseSeeder) InsertFakeSupportGroupService(sgs mariadb.SupportGroupServiceRow) (int64, error) {
+func (s *DatabaseSeeder) InsertFakeSupportGroupService(
+	sgs mariadb.SupportGroupServiceRow,
+) (int64, error) {
 	query := `
 		INSERT INTO SupportGroupService (
 			supportgroupservice_service_id,
@@ -1128,10 +1342,13 @@ func (s *DatabaseSeeder) InsertFakeSupportGroupService(sgs mariadb.SupportGroupS
 			:supportgroupservice_service_id,
 			:supportgroupservice_support_group_id
 		)`
+
 	return s.ExecPreparedNamed(query, sgs)
 }
 
-func (s *DatabaseSeeder) InsertFakeComponentVersionIssue(cvi mariadb.ComponentVersionIssueRow) (int64, error) {
+func (s *DatabaseSeeder) InsertFakeComponentVersionIssue(
+	cvi mariadb.ComponentVersionIssueRow,
+) (int64, error) {
 	query := `
 		INSERT INTO ComponentVersionIssue (
 			componentversionissue_component_version_id,
@@ -1140,10 +1357,13 @@ func (s *DatabaseSeeder) InsertFakeComponentVersionIssue(cvi mariadb.ComponentVe
 			:componentversionissue_component_version_id,
 			:componentversionissue_issue_id
 		)`
+
 	return s.ExecPreparedNamed(query, cvi)
 }
 
-func (s *DatabaseSeeder) InsertFakeIssueRepositoryService(sgs mariadb.IssueRepositoryServiceRow) (int64, error) {
+func (s *DatabaseSeeder) InsertFakeIssueRepositoryService(
+	sgs mariadb.IssueRepositoryServiceRow,
+) (int64, error) {
 	query := `
 		INSERT INTO IssueRepositoryService (
 			issuerepositoryservice_service_id,
@@ -1154,6 +1374,7 @@ func (s *DatabaseSeeder) InsertFakeIssueRepositoryService(sgs mariadb.IssueRepos
 			:issuerepositoryservice_issue_repository_id,
 			:issuerepositoryservice_priority
 		)`
+
 	return s.ExecPreparedNamed(query, sgs)
 }
 
@@ -1193,6 +1414,7 @@ func (s *DatabaseSeeder) InsertFakeRemediation(r mariadb.RemediationRow) (int64,
 			:remediation_updated_by
 		)
 	`
+
 	return s.ExecPreparedNamed(query, r)
 }
 
@@ -1216,6 +1438,7 @@ func (s *DatabaseSeeder) InsertFakePatch(p mariadb.PatchRow) (int64, error) {
 			:patch_updated_by
 		)
 	`
+
 	return s.ExecPreparedNamed(query, p)
 }
 
@@ -1224,7 +1447,12 @@ func (s *DatabaseSeeder) ExecPreparedNamed(query string, obj any) (int64, error)
 	if err != nil {
 		return 0, err
 	}
-	defer stmt.Close()
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	res, err := stmt.Exec(obj)
 	if err != nil {
@@ -1235,6 +1463,7 @@ func (s *DatabaseSeeder) ExecPreparedNamed(query string, obj any) (int64, error)
 	if err != nil {
 		return 0, err
 	}
+
 	return lastId, nil
 }
 
@@ -1242,8 +1471,12 @@ func NewFakeIssueMatch() mariadb.IssueMatchRow {
 	v := GenerateRandomCVSS31Vector()
 	cvss, _ := metric.NewEnvironmental().Decode(v)
 	rating := cvss.Severity().String()
+
 	return mariadb.IssueMatchRow{
-		Status:                sql.NullString{String: gofakeit.RandomString(entity.AllIssueMatchStatusValues), Valid: true},
+		Status: sql.NullString{
+			String: gofakeit.RandomString(entity.AllIssueMatchStatusValues),
+			Valid:  true,
+		},
 		Vector:                sql.NullString{String: v, Valid: true},
 		Rating:                sql.NullString{String: rating, Valid: true},
 		RemediationDate:       sql.NullTime{Time: gofakeit.Date(), Valid: true},
@@ -1255,29 +1488,49 @@ func NewFakeIssueMatch() mariadb.IssueMatchRow {
 
 func NewFakeIssue() mariadb.IssueRow {
 	return mariadb.IssueRow{
-		PrimaryName: sql.NullString{String: fmt.Sprintf("CVE-%d-%d", gofakeit.Year(), gofakeit.Number(100, 9999999)), Valid: true},
+		PrimaryName: sql.NullString{
+			String: fmt.Sprintf("CVE-%d-%d", gofakeit.Year(), gofakeit.Number(100, 9999999)),
+			Valid:  true,
+		},
 		Description: sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
-		Type:        sql.NullString{String: gofakeit.RandomString(entity.AllIssueTypes), Valid: true},
-		CreatedBy:   sql.NullInt64{Int64: util.SystemUserId, Valid: true},
-		UpdatedBy:   sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		Type: sql.NullString{
+			String: gofakeit.RandomString(entity.AllIssueTypes),
+			Valid:  true,
+		},
+		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
+		UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 	}
 }
 
-func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.IssueRow) mariadb.IssueVariantRow {
+func NewFakeIssueVariant(
+	repos []mariadb.BaseIssueRepositoryRow,
+	disc []mariadb.IssueRow,
+) mariadb.IssueVariantRow {
 	variants := []string{"GHSA", "RHSA", "VMSA"}
 	v := GenerateRandomCVSS31Vector()
 	cvss, _ := metric.NewEnvironmental().Decode(v)
+
 	rating := cvss.Severity().String()
 	if rating == "" {
 		rating = "None"
 	}
+
 	externalUrl := gofakeit.URL()
+
 	return mariadb.IssueVariantRow{
-		SecondaryName: sql.NullString{String: fmt.Sprintf("%s-%d-%d", gofakeit.RandomString(variants), gofakeit.Year(), gofakeit.Number(1000, 9999999)), Valid: true},
-		Description:   sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
-		Vector:        sql.NullString{String: v, Valid: true},
-		Rating:        sql.NullString{String: rating, Valid: true},
-		ExternalUrl:   sql.NullString{String: externalUrl, Valid: true},
+		SecondaryName: sql.NullString{
+			String: fmt.Sprintf(
+				"%s-%d-%d",
+				gofakeit.RandomString(variants),
+				gofakeit.Year(),
+				gofakeit.Number(1000, 9999999),
+			),
+			Valid: true,
+		},
+		Description: sql.NullString{String: gofakeit.HackerPhrase(), Valid: true},
+		Vector:      sql.NullString{String: v, Valid: true},
+		Rating:      sql.NullString{String: rating, Valid: true},
+		ExternalUrl: sql.NullString{String: externalUrl, Valid: true},
 		IssueRepositoryId: sql.NullInt64{
 			Int64: repos[rand.Intn(len(repos))].Id.Int64,
 			Valid: true,
@@ -1294,7 +1547,10 @@ func NewFakeIssueVariant(repos []mariadb.BaseIssueRepositoryRow, disc []mariadb.
 func NewFakeIssueRepository() mariadb.IssueRepositoryRow {
 	return mariadb.IssueRepositoryRow{
 		BaseIssueRepositoryRow: mariadb.BaseIssueRepositoryRow{
-			Name:      sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+			Name: sql.NullString{
+				String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()),
+				Valid:  true,
+			},
 			Url:       sql.NullString{String: gofakeit.URL(), Valid: true},
 			CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 			UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
@@ -1305,7 +1561,10 @@ func NewFakeIssueRepository() mariadb.IssueRepositoryRow {
 func NewFakeBaseService() mariadb.BaseServiceRow {
 	ccrn := fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID())
 	domain := strings.ToLower(gofakeit.SongName())
-	region := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"})
+	region := gofakeit.RandomString(
+		[]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"},
+	)
+
 	return mariadb.BaseServiceRow{
 		CCRN:      sql.NullString{String: ccrn, Valid: true},
 		Domain:    sql.NullString{String: domain, Valid: true},
@@ -1318,6 +1577,7 @@ func NewFakeBaseService() mariadb.BaseServiceRow {
 func NewFakeService() mariadb.ServiceRow {
 	baseServiceRow := NewFakeBaseService()
 	issueServiceRow := NewFakeIssueRepositoryService()
+
 	return mariadb.ServiceRow{
 		BaseServiceRow:            baseServiceRow,
 		IssueRepositoryServiceRow: issueServiceRow,
@@ -1326,7 +1586,10 @@ func NewFakeService() mariadb.ServiceRow {
 
 func NewFakeSupportGroup() mariadb.SupportGroupRow {
 	return mariadb.SupportGroupRow{
-		CCRN:      sql.NullString{String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()), Valid: true},
+		CCRN: sql.NullString{
+			String: fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID()),
+			Valid:  true,
+		},
 		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 		UpdatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
 	}
@@ -1335,6 +1598,7 @@ func NewFakeSupportGroup() mariadb.SupportGroupRow {
 func NewFakeComponent() mariadb.ComponentRow {
 	types := []string{"containerImage", "virtualMachineImage", "repository"}
 	ccrn := fmt.Sprintf("%s-%s", gofakeit.AppName(), gofakeit.UUID())
+
 	return mariadb.ComponentRow{
 		CCRN:         sql.NullString{String: ccrn, Valid: true},
 		Type:         sql.NullString{String: gofakeit.RandomString(types), Valid: true},
@@ -1359,7 +1623,11 @@ func NewFakeComponentVersion() mariadb.ComponentVersionRow {
 }
 
 func GenerateFakeCcrn(cluster string, namespace string) string {
-	return fmt.Sprintf("ccrn: apiVersion=k8s-registry.ccrn.sap.cloud/v1, kind=container, cluster=%s, namespace=%s, name=audit-logger-xe9mtzmq8l-cmbp6", cluster, namespace)
+	return fmt.Sprintf(
+		"ccrn: apiVersion=k8s-registry.ccrn.sap.cloud/v1, kind=container, cluster=%s, namespace=%s, name=audit-logger-xe9mtzmq8l-cmbp6",
+		cluster,
+		namespace,
+	)
 }
 
 func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
@@ -1367,9 +1635,36 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 	if n < 0 {
 		n = n * -1
 	}
-	region := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"})
-	cluster := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1", "a-test-de-1", "a-test-de-2", "a-test-us-1", "a-test-jp-2", "a-test-jp-1", "v-test-de-1", "v-test-de-2", "v-test-us-1", "v-test-jp-2", "v-test-jp-1", "s-test-de-1", "s-test-de-2", "s-test-us-1", "s-test-jp-2", "s-test-jp-1"})
-	// make lower case to avoid conflicts in different lexicographical ordering between sql and golang due to collation
+
+	region := gofakeit.RandomString(
+		[]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"},
+	)
+	cluster := gofakeit.RandomString(
+		[]string{
+			"test-de-1",
+			"test-de-2",
+			"test-us-1",
+			"test-jp-2",
+			"test-jp-1",
+			"a-test-de-1",
+			"a-test-de-2",
+			"a-test-us-1",
+			"a-test-jp-2",
+			"a-test-jp-1",
+			"v-test-de-1",
+			"v-test-de-2",
+			"v-test-us-1",
+			"v-test-jp-2",
+			"v-test-jp-1",
+			"s-test-de-1",
+			"s-test-de-2",
+			"s-test-us-1",
+			"s-test-jp-2",
+			"s-test-jp-1",
+		},
+	)
+	// make lower case to avoid conflicts in different lexicographical ordering between sql and
+	// golang due to collation
 	namespace := strings.ToLower(gofakeit.ProductName())
 	domain := strings.ToLower(gofakeit.SongName())
 	project := strings.ToLower(gofakeit.BeerName())
@@ -1381,6 +1676,7 @@ func NewFakeComponentInstance() mariadb.ComponentInstanceRow {
 		"remove_unused_base_images": gofakeit.Bool(),
 		"my_ip":                     gofakeit.IPv4Address(),
 	}
+
 	return mariadb.ComponentInstanceRow{
 		CCRN:      sql.NullString{String: GenerateFakeCcrn(cluster, namespace), Valid: true},
 		Region:    sql.NullString{String: region, Valid: true},
@@ -1407,11 +1703,13 @@ func getNextUserType() int64 {
 	} else {
 		nextUserType = entity.HumanUserType
 	}
+
 	return int64(userType)
 }
 
 func NewFakeUser() mariadb.UserRow {
 	uniqueUserId := fmt.Sprintf("I%d", gofakeit.IntRange(100000, 999999))
+
 	return mariadb.UserRow{
 		Name:         sql.NullString{String: gofakeit.Name(), Valid: true},
 		UniqueUserID: sql.NullString{String: uniqueUserId, Valid: true},
@@ -1444,6 +1742,7 @@ func NewFakeIssueRepositoryService() mariadb.IssueRepositoryServiceRow {
 
 func NewFakeRemediation() mariadb.RemediationRow {
 	severity := gofakeit.RandomString(entity.AllSeverityValuesString)
+
 	return mariadb.RemediationRow{
 		Description:     sql.NullString{String: gofakeit.Sentence(10), Valid: true},
 		Severity:        sql.NullString{String: severity, Valid: true},
@@ -1490,6 +1789,7 @@ func (s *DatabaseSeeder) SeedRealSupportGroups() map[string]mariadb.SupportGroup
 		supportGroup := mariadb.SupportGroupRow{
 			CCRN: sql.NullString{String: sg, Valid: true},
 		}
+
 		supportGroupId, err := s.InsertFakeSupportGroup(supportGroup)
 		if err != nil {
 			logrus.WithField("seed_type", "SupportGroups").Debug(err)
@@ -1566,6 +1866,7 @@ func (s *DatabaseSeeder) SeedRealServices() map[string]mariadb.BaseServiceRow {
 		service := mariadb.BaseServiceRow{
 			CCRN: sql.NullString{String: sv, Valid: true},
 		}
+
 		serviceId, err := s.InsertFakeBaseService(service)
 		if err != nil {
 			logrus.WithField("seed_type", "Services").Debug(err)
@@ -1578,7 +1879,10 @@ func (s *DatabaseSeeder) SeedRealServices() map[string]mariadb.BaseServiceRow {
 	return services
 }
 
-func (s *DatabaseSeeder) SeedRealSupportGroupService(services map[string]mariadb.BaseServiceRow, supportGroups map[string]mariadb.SupportGroupRow) []mariadb.SupportGroupServiceRow {
+func (s *DatabaseSeeder) SeedRealSupportGroupService(
+	services map[string]mariadb.BaseServiceRow,
+	supportGroups map[string]mariadb.SupportGroupRow,
+) []mariadb.SupportGroupServiceRow {
 	sgs := []mariadb.SupportGroupServiceRow{}
 	mapping := map[string]string{
 		"aci":          "observability",
@@ -1646,9 +1950,10 @@ func (s *DatabaseSeeder) SeedRealSupportGroupService(services map[string]mariadb
 			SupportGroupId: sql.NullInt64{Int64: supportGroups[sg].Id.Int64, Valid: true},
 			ServiceId:      sql.NullInt64{Int64: services[service].Id.Int64, Valid: true},
 		}
-		s.InsertFakeSupportGroupService(sgsr)
+		_, _ = s.InsertFakeSupportGroupService(sgsr)
 		sgs = append(sgs, sgsr)
 	}
+
 	return sgs
 }
 
@@ -1661,18 +1966,30 @@ func (s *DatabaseSeeder) Clear() error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	var table string
 	for rows.Next() {
 		if err := rows.Scan(&table); err != nil {
 			return err
 		}
-		_, err := s.db.Exec(fmt.Sprintf("SET FOREIGN_KEY_CHECKS = 0;TRUNCATE TABLE `%s`; SET FOREIGN_KEY_CHECKS = 1", table))
+
+		_, err := s.db.Exec(
+			fmt.Sprintf(
+				"SET FOREIGN_KEY_CHECKS = 0;TRUNCATE TABLE `%s`; SET FOREIGN_KEY_CHECKS = 1",
+				table,
+			),
+		)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -1680,6 +1997,7 @@ func (s *DatabaseSeeder) RefreshServiceIssueCounters() error {
 	_, err := s.db.Exec(`
 		CALL refresh_mvServiceIssueCounts_proc();
 	`)
+
 	return err
 }
 
@@ -1693,6 +2011,7 @@ func (s *DatabaseSeeder) RefreshCountIssueRatings() error {
 		CALL refresh_mvCountIssueRatingsServiceId_proc();
 		CALL refresh_mvCountIssueRatingsOther_proc();
 	`)
+
 	return err
 }
 
@@ -1701,5 +2020,6 @@ func (s *DatabaseSeeder) RefreshComponentVulnerabilityCounts() error {
 		CALL refresh_mvSingleComponentByServiceVulnerabilityCounts_proc();
 		CALL refresh_mvAllComponentsByServiceVulnerabilityCounts_proc();
 	`)
+
 	return err
 }

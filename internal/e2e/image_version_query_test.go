@@ -43,11 +43,19 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 	})
 
 	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
-		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
+		issueVariants, err := test.LoadIssueVariants(
+			test.GetTestDataPath(
+				"../database/mariadb/testdata/component_version_order/issue_variant.json",
+			),
+		)
 		if err != nil {
 			return nil, nil, err
 		}
-		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/component_version_issue.json"))
+		cvIssues, err := test.LoadComponentVersionIssues(
+			test.GetTestDataPath(
+				"../database/mariadb/testdata/component_version_order/component_version_issue.json",
+			),
+		)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -84,9 +92,13 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 				Expect(err).To(BeNil())
 				im := test.NewFakeIssueMatch()
 				im.IssueId = cvi.IssueId
-				im.Status = sql.NullString{String: entity.IssueMatchStatusValuesNew.String(), Valid: true}
+				im.Status = sql.NullString{
+					String: entity.IssueMatchStatusValuesNew.String(),
+					Valid:  true,
+				}
 				im.UserId = sql.NullInt64{Int64: 1, Valid: true}
-				// im.Rating = sql.NullString{String: entity.IssueMatchRatingValuesVulnerable.String(), Valid: true}
+				// im.Rating = sql.NullString{String:
+				// entity.IssueMatchRatingValuesVulnerable.String(), Valid: true}
 				issueVariant := issueVariantByIssueId[cvi.IssueId.Int64]
 				im.Rating = sql.NullString{String: issueVariant.Rating.String, Valid: true}
 				im.Vector = sql.NullString{String: "", Valid: true}
@@ -106,7 +118,7 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 			}](
 				cfg.Port,
 				"../api/graphql/graph/queryCollection/imageVersion/query.graphql",
-				map[string]interface{}{"first": 10, "after": ""},
+				map[string]any{"first": 10, "after": ""},
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(respData.ImageVersions.TotalCount).To(Equal(10))
@@ -120,8 +132,12 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 				Expect(iv.Tag).ToNot(BeNil(), "ImageVersion has tag set")
 				Expect(iv.Repository).ToNot(BeNil(), "ImageVersion has repository set")
 				Expect(iv.Version).ToNot(BeNil(), "ImageVersion has version set")
-				Expect(len(iv.Vulnerabilities.Edges)).To(BeNumerically(">", 0), "ImageVersion has vulnerabilities")
-				Expect(len(iv.Occurences.Edges)).To(BeNumerically(">", 0), "ImageVersion has occurences")
+				Expect(
+					len(iv.Vulnerabilities.Edges),
+				).To(BeNumerically(">", 0), "ImageVersion has vulnerabilities")
+				Expect(
+					len(iv.Occurences.Edges),
+				).To(BeNumerically(">", 0), "ImageVersion has occurences")
 
 				vc := entity.IssueSeverityCounts{}
 				for _, vulnerability := range iv.Vulnerabilities.Edges {
@@ -147,12 +163,22 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 					vc.Total++
 					totalVc.Total++
 				}
-				Expect(iv.VulnerabilityCounts.Critical).To(BeEquivalentTo(vc.Critical), "Critical count matches")
-				Expect(iv.VulnerabilityCounts.High).To(BeEquivalentTo(vc.High), "High count matches")
-				Expect(iv.VulnerabilityCounts.Medium).To(BeEquivalentTo(vc.Medium), "Medium count matches")
+				Expect(
+					iv.VulnerabilityCounts.Critical,
+				).To(BeEquivalentTo(vc.Critical), "Critical count matches")
+				Expect(
+					iv.VulnerabilityCounts.High,
+				).To(BeEquivalentTo(vc.High), "High count matches")
+				Expect(
+					iv.VulnerabilityCounts.Medium,
+				).To(BeEquivalentTo(vc.Medium), "Medium count matches")
 				Expect(iv.VulnerabilityCounts.Low).To(BeEquivalentTo(vc.Low), "Low count matches")
-				Expect(iv.VulnerabilityCounts.None).To(BeEquivalentTo(vc.None), "None count matches")
-				Expect(iv.VulnerabilityCounts.Total).To(BeEquivalentTo(vc.Total), "Total count matches")
+				Expect(
+					iv.VulnerabilityCounts.None,
+				).To(BeEquivalentTo(vc.None), "None count matches")
+				Expect(
+					iv.VulnerabilityCounts.Total,
+				).To(BeEquivalentTo(vc.Total), "Total count matches")
 
 				for _, o := range iv.Occurences.Edges {
 					Expect(o.Node.ID).ToNot(BeNil(), "occurence has a ID set")
@@ -161,12 +187,24 @@ var _ = Describe("Getting ImageVersions via API", Label("e2e", "ImageVersions"),
 					Expect(*o.Node.ComponentVersionID).To(BeEquivalentTo(iv.ID))
 				}
 			}
-			Expect(respData.ImageVersions.Counts.Critical).To(BeEquivalentTo(totalVc.Critical), "Total Critical count matches")
-			Expect(respData.ImageVersions.Counts.High).To(BeEquivalentTo(totalVc.High), "Total High count matches")
-			Expect(respData.ImageVersions.Counts.Medium).To(BeEquivalentTo(totalVc.Medium), "Total Medium count matches")
-			Expect(respData.ImageVersions.Counts.Low).To(BeEquivalentTo(totalVc.Low), "Total Low count matches")
-			Expect(respData.ImageVersions.Counts.None).To(BeEquivalentTo(totalVc.None), "Total None count matches")
-			Expect(respData.ImageVersions.Counts.Total).To(BeEquivalentTo(totalVc.Total), "Total count matches")
+			Expect(
+				respData.ImageVersions.Counts.Critical,
+			).To(BeEquivalentTo(totalVc.Critical), "Total Critical count matches")
+			Expect(
+				respData.ImageVersions.Counts.High,
+			).To(BeEquivalentTo(totalVc.High), "Total High count matches")
+			Expect(
+				respData.ImageVersions.Counts.Medium,
+			).To(BeEquivalentTo(totalVc.Medium), "Total Medium count matches")
+			Expect(
+				respData.ImageVersions.Counts.Low,
+			).To(BeEquivalentTo(totalVc.Low), "Total Low count matches")
+			Expect(
+				respData.ImageVersions.Counts.None,
+			).To(BeEquivalentTo(totalVc.None), "Total None count matches")
+			Expect(
+				respData.ImageVersions.Counts.Total,
+			).To(BeEquivalentTo(totalVc.Total), "Total count matches")
 		})
 		Context("and end of life filter presents as true", func() {
 			It("returns correct result", func() {

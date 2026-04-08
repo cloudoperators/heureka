@@ -11,4 +11,4 @@ package: client
 use_struct_references: true
 bindings:
   Json:
-    type: "map[string]interface{}"
+    type: "map[string]any"

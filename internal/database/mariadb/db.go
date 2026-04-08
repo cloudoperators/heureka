@@ -12,12 +12,12 @@ import (
 
 type Stmt interface {
 	Close() error
-	Queryx(args ...interface{}) (*sqlx.Rows, error)
+	Queryx(args ...any) (*sqlx.Rows, error)
 }
 
 type NamedStmt interface {
 	Close() error
-	Exec(arg interface{}) (sql.Result, error)
+	Exec(arg any) (sql.Result, error)
 }
 
 type SqlRows interface {
@@ -29,14 +29,14 @@ type SqlRows interface {
 
 type Db interface {
 	Close() error
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Get(dest interface{}, query string, args ...interface{}) error
+	Exec(query string, args ...any) (sql.Result, error)
+	Get(dest any, query string, args ...any) error
 	GetDbInstance() *sql.DB
 	Preparex(query string) (Stmt, error)
 	PrepareNamed(query string) (NamedStmt, error)
-	Select(dest interface{}, query string, args ...interface{}) error
-	Query(query string, args ...interface{}) (SqlRows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
+	Select(dest any, query string, args ...any) error
+	Query(query string, args ...any) (SqlRows, error)
+	QueryRow(query string, args ...any) *sql.Row
 }
 
 func NewDb(cfg util.Config) (Db, error) {
@@ -44,8 +44,10 @@ func NewDb(cfg util.Config) (Db, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.DBTrace == true {
+
+	if cfg.DBTrace {
 		return &TraceDb{db: db}, nil
 	}
+
 	return &QuietDb{db: db}, nil
 }

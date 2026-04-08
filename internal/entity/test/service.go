@@ -13,10 +13,12 @@ import (
 func NewFakeServiceEntity() entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
-			Id:           int64(gofakeit.Number(1, 10000000)),
-			CCRN:         gofakeit.Name(),
-			Domain:       strings.ToLower(gofakeit.SongName()),
-			Region:       gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"}),
+			Id:     int64(gofakeit.Number(1, 10000000)),
+			CCRN:   gofakeit.Name(),
+			Domain: strings.ToLower(gofakeit.SongName()),
+			Region: gofakeit.RandomString(
+				[]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"},
+			),
 			SupportGroup: nil,
 			Owners:       nil,
 			Metadata: entity.Metadata{
@@ -40,22 +42,25 @@ func NewFakeServiceWithAggregationsEntity() entity.ServiceWithAggregations {
 
 func NNewFakeServiceEntitiesWithAggregations(n int) []entity.ServiceWithAggregations {
 	r := make([]entity.ServiceWithAggregations, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeServiceWithAggregationsEntity()
 	}
+
 	return r
 }
 
 func NNewFakeServiceEntities(n int) []entity.Service {
 	r := make([]entity.Service, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeServiceEntity()
 	}
+
 	return r
 }
 
 func NewFakeServiceResult() entity.ServiceResult {
 	service := NewFakeServiceEntity()
+
 	return entity.ServiceResult{
 		Service: &service,
 	}

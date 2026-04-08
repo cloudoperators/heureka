@@ -16,14 +16,34 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *issueRepositoryResolver) IssueVariants(ctx context.Context, obj *model.IssueRepository, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error) {
-	return baseResolver.IssueVariantBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.IssueRepositoryNodeName,
-	})
+func (r *issueRepositoryResolver) IssueVariants(
+	ctx context.Context,
+	obj *model.IssueRepository,
+	filter *model.IssueVariantFilter,
+	first *int,
+	after *string,
+) (*model.IssueVariantConnection, error) {
+	return baseResolver.IssueVariantBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.IssueRepositoryNodeName,
+		},
+	)
 }
 
-func (r *issueRepositoryResolver) Services(ctx context.Context, obj *model.IssueRepository, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
+func (r *issueRepositoryResolver) Services(
+	ctx context.Context,
+	obj *model.IssueRepository,
+	filter *model.ServiceFilter,
+	first *int,
+	after *string,
+	orderBy []*model.ServiceOrderBy,
+) (*model.ServiceConnection, error) {
 	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy,
 		&model.NodeParent{
 			Parent:     obj,

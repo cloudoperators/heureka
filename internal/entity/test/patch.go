@@ -25,14 +25,16 @@ func NewFakePatchEntity() entity.Patch {
 
 func NNewFakePatches(n int) []entity.Patch {
 	p := make([]entity.Patch, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p[i] = NewFakePatchEntity()
 	}
+
 	return p
 }
 
 func NewFakePatchResult() entity.PatchResult {
 	patch := NewFakePatchEntity()
+
 	return entity.PatchResult{
 		Patch: &patch,
 	}

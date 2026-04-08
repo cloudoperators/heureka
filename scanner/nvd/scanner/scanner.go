@@ -177,7 +177,12 @@ func (s *Scanner) GetCVEs(filter models.CveFilter) ([]models.CveItem, error) {
 }
 
 func (s *Scanner) createUrl(filter models.CveFilter, startIndex int) string {
-	url := fmt.Sprintf("%s?resultsPerPage=%s&startIndex=%d", s.BaseURL, s.ResultsPerPage, startIndex)
+	url := fmt.Sprintf(
+		"%s?resultsPerPage=%s&startIndex=%d",
+		s.BaseURL,
+		s.ResultsPerPage,
+		startIndex,
+	)
 	if filter.PubStartDate != "" {
 		url += "&pubStartDate=" + filter.PubStartDate
 	}

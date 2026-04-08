@@ -30,8 +30,6 @@ func TestComponentVersionHandler(t *testing.T) {
 }
 
 var (
-	er             event.EventRegistry
-	authz          openfga.Authorization
 	handlerContext common.HandlerContext
 	cfg            *util.Config
 )
@@ -82,7 +80,8 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		BeforeEach(func() {
 			options.ShowTotalCount = true
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
+			db.On("GetComponentVersions", filter, []entity.Order{}).
+				Return([]entity.ComponentVersionResult{}, nil)
 			db.On("CountComponentVersions", filter).Return(int64(1337), nil)
 		})
 
@@ -98,39 +97,86 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
-		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-			filter.First = &pageSize
-			componentVersions := []entity.ComponentVersionResult{}
-			for _, cv := range test.NNewFakeComponentVersionEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, cv, entity.IssueSeverityCounts{}))
-				componentVersions = append(componentVersions, entity.ComponentVersionResult{WithCursor: entity.WithCursor{Value: cursor}, ComponentVersion: lo.ToPtr(cv)})
-			}
+		DescribeTable(
+			"pagination information is correct",
+			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+				filter.First = &pageSize
+				componentVersions := []entity.ComponentVersionResult{}
+				for _, cv := range test.NNewFakeComponentVersionEntities(resElements) {
+					cursor, _ := mariadb.EncodeCursor(
+						mariadb.WithComponentVersion(
+							[]entity.Order{},
+							cv,
+							entity.IssueSeverityCounts{},
+						),
+					)
+					componentVersions = append(
+						componentVersions,
+						entity.ComponentVersionResult{
+							WithCursor:       entity.WithCursor{Value: cursor},
+							ComponentVersion: new(cv),
+						},
+					)
+				}
 
-			cursors := lo.Map(componentVersions, func(m entity.ComponentVersionResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *m.ComponentVersion, entity.IssueSeverityCounts{}))
-				return cursor
-			})
+				cursors := lo.Map(
+					componentVersions,
+					func(m entity.ComponentVersionResult, _ int) string {
+						cursor, _ := mariadb.EncodeCursor(
+							mariadb.WithComponentVersion(
+								[]entity.Order{},
+								*m.ComponentVersion,
+								entity.IssueSeverityCounts{},
+							),
+						)
+						return cursor
+					},
+				)
 
-			var i int64 = 0
-			for len(cursors) < dbElements {
-				i++
-				componentVersion := test.NewFakeComponentVersionEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, componentVersion, entity.IssueSeverityCounts{}))
-				cursors = append(cursors, c)
-			}
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", filter, []entity.Order{}).Return(componentVersions, nil)
-			db.On("GetAllComponentVersionCursors", filter, []entity.Order{}).Return(cursors, nil)
-			cvHandler = cv.NewComponentVersionHandler(handlerContext)
-			res, err := cvHandler.ListComponentVersions(ctx, filter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-		},
+				var i int64 = 0
+				for len(cursors) < dbElements {
+					i++
+					componentVersion := test.NewFakeComponentVersionEntity()
+					c, _ := mariadb.EncodeCursor(
+						mariadb.WithComponentVersion(
+							[]entity.Order{},
+							componentVersion,
+							entity.IssueSeverityCounts{},
+						),
+					)
+					cursors = append(cursors, c)
+				}
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentVersions", filter, []entity.Order{}).
+					Return(componentVersions, nil)
+				db.On("GetAllComponentVersionCursors", filter, []entity.Order{}).
+					Return(cursors, nil)
+				cvHandler = cv.NewComponentVersionHandler(handlerContext)
+				res, err := cvHandler.ListComponentVersions(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(
+					*res.PageInfo.HasNextPage,
+				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+				Expect(
+					len(res.PageInfo.Pages),
+				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			},
 			Entry("When  pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
-			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
-			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+			Entry(
+				"When  pageSize is 10 and the database was returning 9 elements",
+				10,
+				9,
+				9,
+				false,
+			),
+			Entry(
+				"When  pageSize is 10 and the database was returning 11 elements",
+				10,
+				11,
+				10,
+				true,
+			),
 		)
 	})
 	When("filtering by tag", func() {
@@ -148,9 +194,11 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 			// Mock database calls
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", tagFilter, []entity.Order{}).Return(componentVersions, nil)
+			db.On("GetComponentVersions", tagFilter, []entity.Order{}).
+				Return(componentVersions, nil)
 			if options.ShowTotalCount {
-				db.On("CountComponentVersions", tagFilter).Return(int64(len(componentVersions)), nil)
+				db.On("CountComponentVersions", tagFilter).
+					Return(int64(len(componentVersions)), nil)
 			}
 
 			// Execute the handler
@@ -182,9 +230,11 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 			// Mock database calls
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", repoFilter, []entity.Order{}).Return(componentVersions, nil)
+			db.On("GetComponentVersions", repoFilter, []entity.Order{}).
+				Return(componentVersions, nil)
 			if options.ShowTotalCount {
-				db.On("CountComponentVersions", repoFilter).Return(int64(len(componentVersions)), nil)
+				db.On("CountComponentVersions", repoFilter).
+					Return(int64(len(componentVersions)), nil)
 			}
 
 			// Execute the handler
@@ -216,9 +266,11 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 
 			// Mock database calls
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetComponentVersions", orgFilter, []entity.Order{}).Return(componentVersions, nil)
+			db.On("GetComponentVersions", orgFilter, []entity.Order{}).
+				Return(componentVersions, nil)
 			if options.ShowTotalCount {
-				db.On("CountComponentVersions", orgFilter).Return(int64(len(componentVersions)), nil)
+				db.On("CountComponentVersions", orgFilter).
+					Return(int64(len(componentVersions)), nil)
 			}
 
 			// Execute the handler
@@ -237,7 +289,6 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -257,7 +308,8 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 				compIds := int64(-1)
 				filter.ComponentId = []*int64{&compIds}
 				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
+				db.On("GetComponentVersions", filter, []entity.Order{}).
+					Return([]entity.ComponentVersionResult{}, nil)
 			})
 
 			It("should return no component versions", func() {
@@ -268,57 +320,61 @@ var _ = Describe("When listing ComponentVersions", Label("app", "ListComponentVe
 			})
 		})
 
-		Context("and the filter includes a component ID that has component versions related to it", func() {
-			var (
-				componentVersion entity.ComponentVersion
-			)
+		Context(
+			"and the filter includes a component ID that has component versions related to it",
+			func() {
+				var componentVersion entity.ComponentVersion
 
-			BeforeEach(func() {
-				compId := int64(111)
-				userId := int64(123)
-				systemUserId := int64(1)
-				filter.ComponentId = []*int64{&compId}
-				componentVersion = test.NewFakeComponentVersionEntity()
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{{ComponentVersion: &componentVersion}}, nil)
+				BeforeEach(func() {
+					compId := int64(111)
+					userId := int64(123)
+					systemUserId := int64(1)
+					filter.ComponentId = []*int64{&compId}
+					componentVersion = test.NewFakeComponentVersionEntity()
+					db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+					db.On("GetComponentVersions", filter, []entity.Order{}).
+						Return([]entity.ComponentVersionResult{{ComponentVersion: &componentVersion}}, nil)
 
-				relations := []openfga.RelationInput{
-					{ // create component
-						UserType:   openfga.TypeRole,
-						UserId:     openfga.UserIdFromInt(systemUserId),
-						Relation:   openfga.RelRole,
-						ObjectType: openfga.TypeComponent,
-						ObjectId:   openfga.ObjectIdFromInt(compId),
-					},
-					{ // create component version
-						UserType:   openfga.TypeRole,
-						UserId:     openfga.UserIdFromInt(systemUserId),
-						Relation:   openfga.RelRole,
-						ObjectType: openfga.TypeComponentVersion,
-						ObjectId:   openfga.ObjectIdFromInt(componentVersion.Id),
-					},
-					{ // give user read permission to component
-						UserType:   openfga.TypeUser,
-						UserId:     openfga.UserIdFromInt(userId),
-						Relation:   openfga.RelCanView,
-						ObjectType: openfga.TypeComponent,
-						ObjectId:   openfga.ObjectIdFromInt(compId),
-					},
-				}
+					relations := []openfga.RelationInput{
+						{ // create component
+							UserType:   openfga.TypeRole,
+							UserId:     openfga.UserIdFromInt(systemUserId),
+							Relation:   openfga.RelRole,
+							ObjectType: openfga.TypeComponent,
+							ObjectId:   openfga.ObjectIdFromInt(compId),
+						},
+						{ // create component version
+							UserType:   openfga.TypeRole,
+							UserId:     openfga.UserIdFromInt(systemUserId),
+							Relation:   openfga.RelRole,
+							ObjectType: openfga.TypeComponentVersion,
+							ObjectId:   openfga.ObjectIdFromInt(componentVersion.Id),
+						},
+						{ // give user read permission to component
+							UserType:   openfga.TypeUser,
+							UserId:     openfga.UserIdFromInt(userId),
+							Relation:   openfga.RelCanView,
+							ObjectType: openfga.TypeComponent,
+							ObjectId:   openfga.ObjectIdFromInt(compId),
+						},
+					}
 
-				err := handlerContext.Authz.AddRelationBulk(relations)
-				Expect(err).To(BeNil(), "no error should be thrown when adding relations")
-			})
+					err := handlerContext.Authz.AddRelationBulk(relations)
+					Expect(err).To(BeNil(), "no error should be thrown when adding relations")
+				})
 
-			It("should return the expected component versions in the result", func() {
-				cvHandler = cv.NewComponentVersionHandler(handlerContext)
-				res, err := cvHandler.ListComponentVersions(ctx, filter, options)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
-				Expect(res.Elements[0].ComponentVersion.Id).To(BeEquivalentTo(componentVersion.Id)) // check that the returned component version is the expected one
-			})
-		})
-
+				It("should return the expected component versions in the result", func() {
+					cvHandler = cv.NewComponentVersionHandler(handlerContext)
+					res, err := cvHandler.ListComponentVersions(ctx, filter, options)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
+					Expect(
+						res.Elements[0].ComponentVersion.Id,
+					).To(BeEquivalentTo(componentVersion.Id))
+					// check that the returned component version is the expected one
+				})
+			},
+		)
 	})
 })
 
@@ -345,7 +401,10 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("CreateComponentVersion", &componentVersion).Return(&componentVersion, nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
-		newComponentVersion, err := componenVersionService.CreateComponentVersion(common.NewAdminContext(), &componentVersion)
+		newComponentVersion, err := componenVersionService.CreateComponentVersion(
+			common.NewAdminContext(),
+			&componentVersion,
+		)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newComponentVersion.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -356,7 +415,6 @@ var _ = Describe("When creating ComponentVersion", Label("app", "CreateComponent
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -437,18 +495,23 @@ var _ = Describe("When updating ComponentVersion", Label("app", "UpdateComponent
 		componentVersion.Version = "7.3.3.1"
 		componentVersion.Tag = "updated-tag"
 		filter.Id = []*int64{&componentVersion.Id}
-		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{componentVersion}, nil)
-		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(common.NewAdminContext(), componentVersion.ComponentVersion)
+		db.On("GetComponentVersions", filter, []entity.Order{}).
+			Return([]entity.ComponentVersionResult{componentVersion}, nil)
+		updatedComponentVersion, err := componenVersionService.UpdateComponentVersion(
+			common.NewAdminContext(),
+			componentVersion.ComponentVersion,
+		)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedComponentVersion.Version).To(BeEquivalentTo(componentVersion.Version))
-			Expect(updatedComponentVersion.ComponentId).To(BeEquivalentTo(componentVersion.ComponentId))
+			Expect(
+				updatedComponentVersion.ComponentId,
+			).To(BeEquivalentTo(componentVersion.ComponentId))
 			Expect(updatedComponentVersion.Tag).To(BeEquivalentTo(componentVersion.Tag))
 		})
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -545,7 +608,8 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteComponentVersion", id, mock.Anything).Return(nil)
 		componenVersionService = cv.NewComponentVersionHandler(handlerContext)
-		db.On("GetComponentVersions", filter, []entity.Order{}).Return([]entity.ComponentVersionResult{}, nil)
+		db.On("GetComponentVersions", filter, []entity.Order{}).
+			Return([]entity.ComponentVersionResult{}, nil)
 		err := componenVersionService.DeleteComponentVersion(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -557,7 +621,6 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -623,7 +686,9 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 						Expect(err).To(BeNil(), "no error should be thrown")
 						relCountBefore += len(relations)
 					}
-					Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
+					Expect(
+						relCountBefore,
+					).To(Equal(len(relations)), "all relations should exist before deletion")
 
 					// check that relations were created
 					for _, r := range relations {
@@ -643,8 +708,12 @@ var _ = Describe("When deleting ComponentVersion", Label("app", "DeleteComponent
 						Expect(err).To(BeNil(), "no error should be thrown")
 						relCountAfter += len(relations)
 					}
-					Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
-					Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+					Expect(
+						relCountAfter < relCountBefore,
+					).To(BeTrue(), "less relations after deletion")
+					Expect(
+						relCountAfter,
+					).To(BeEquivalentTo(0), "no relations should exist after deletion")
 
 					// verify that relations were deleted
 					for _, r := range relations {

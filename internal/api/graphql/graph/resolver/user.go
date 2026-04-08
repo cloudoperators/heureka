@@ -16,18 +16,48 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *userResolver) SupportGroups(ctx context.Context, obj *model.User, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy) (*model.SupportGroupConnection, error) {
-	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.UserNodeName,
-	})
+func (r *userResolver) SupportGroups(
+	ctx context.Context,
+	obj *model.User,
+	filter *model.SupportGroupFilter,
+	first *int,
+	after *string,
+	orderBy []*model.SupportGroupOrderBy,
+) (*model.SupportGroupConnection, error) {
+	return baseResolver.SupportGroupBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		orderBy,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.UserNodeName,
+		},
+	)
 }
 
-func (r *userResolver) Services(ctx context.Context, obj *model.User, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
-	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.UserNodeName,
-	})
+func (r *userResolver) Services(
+	ctx context.Context,
+	obj *model.User,
+	filter *model.ServiceFilter,
+	first *int,
+	after *string,
+	orderBy []*model.ServiceOrderBy,
+) (*model.ServiceConnection, error) {
+	return baseResolver.ServiceBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		orderBy,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.UserNodeName,
+		},
+	)
 }
 
 func (r *Resolver) User() graph.UserResolver { return &userResolver{r} }

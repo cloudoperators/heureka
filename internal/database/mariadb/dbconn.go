@@ -30,9 +30,23 @@ func buildRootDSN(cfg util.Config) string {
 
 func buildDSN(user string, pass string, cfg util.Config) string {
 	if cfg.DBAddress == "/var/run/mysqld/mysqld.sock" {
-		return fmt.Sprintf("%s:%s@unix(%s)/%s?multiStatements=true&parseTime=true", user, pass, cfg.DBAddress, cfg.DBName)
+		return fmt.Sprintf(
+			"%s:%s@unix(%s)/%s?multiStatements=true&parseTime=true",
+			user,
+			pass,
+			cfg.DBAddress,
+			cfg.DBName,
+		)
 	}
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true", user, pass, cfg.DBAddress, cfg.DBPort, cfg.DBName)
+
+	return fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?multiStatements=true&parseTime=true",
+		user,
+		pass,
+		cfg.DBAddress,
+		cfg.DBPort,
+		cfg.DBName,
+	)
 }
 
 func Connect(cfg util.Config) (*sqlx.DB, error) {
@@ -45,5 +59,6 @@ func Connect(cfg util.Config) (*sqlx.DB, error) {
 	db.SetConnMaxLifetime(time.Second * 5)
 	db.SetMaxIdleConns(cfg.DBMaxIdleConnections)
 	db.SetMaxOpenConns(cfg.DBMaxOpenConnections)
+
 	return db, nil
 }

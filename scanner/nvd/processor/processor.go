@@ -26,7 +26,11 @@ type Processor struct {
 
 // NewProcessor
 func NewProcessor(cfg Config) *Processor {
-	httpClient := util.NewRateLimitedHTTPClient(rate.Limit(cfg.HeurekaRateLimit), cfg.HeurekaRateBurst, nil)
+	httpClient := util.NewRateLimitedHTTPClient(
+		rate.Limit(cfg.HeurekaRateLimit),
+		cfg.HeurekaRateBurst,
+		nil,
+	)
 	httpClient.Timeout = time.Duration(10) * time.Second
 	return &Processor{
 		GraphqlClient:       graphql.NewClient(cfg.HeurekaUrl, httpClient),
@@ -41,7 +45,11 @@ func (p *Processor) Setup() error {
 	queryFilter := client.IssueRepositoryFilter{
 		Name: []string{p.IssueRepositoryName},
 	}
-	listRepositoriesResp, err := client.GetIssueRepositories(context.TODO(), p.GraphqlClient, &queryFilter)
+	listRepositoriesResp, err := client.GetIssueRepositories(
+		context.TODO(),
+		p.GraphqlClient,
+		&queryFilter,
+	)
 	if err != nil {
 		return err
 	}
@@ -54,7 +62,11 @@ func (p *Processor) Setup() error {
 			Name: p.IssueRepositoryName,
 			Url:  p.IssueRepositoryUrl,
 		}
-		issueMutationResp, err := client.CreateIssueRepository(context.TODO(), p.GraphqlClient, &issueRepositoryInput)
+		issueMutationResp, err := client.CreateIssueRepository(
+			context.TODO(),
+			p.GraphqlClient,
+			&issueRepositoryInput,
+		)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
@@ -112,7 +124,11 @@ func (p *Processor) Process(cve *models.Cve) error {
 			Rating: "None",
 		},
 	}
-	variantMutationResp, err := client.CreateIssueVariant(context.TODO(), p.GraphqlClient, &issueVariantInput)
+	variantMutationResp, err := client.CreateIssueVariant(
+		context.TODO(),
+		p.GraphqlClient,
+		&issueVariantInput,
+	)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,

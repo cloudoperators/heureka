@@ -11,20 +11,21 @@ import (
 )
 
 type Config struct {
-	HeurekaUrl            string  `envconfig:"HEUREKA_URL" required:"true" json:"-"`
-	ClusterName           string  `envconfig:"HEUREKA_CLUSTER_NAME" required:"true" json:"-"`
-	RegionName            string  `envconfig:"HEUREKA_CLUSTER_REGION" required:"true" json:"-"`
-	ConfigPath            string  `envconfig:"CONFIG_PATH" default:"/etc/config" required:"true"`
+	HeurekaUrl            string  `envconfig:"HEUREKA_URL"             required:"true" json:"-"`
+	ClusterName           string  `envconfig:"HEUREKA_CLUSTER_NAME"    required:"true" json:"-"`
+	RegionName            string  `envconfig:"HEUREKA_CLUSTER_REGION"  required:"true" json:"-"`
+	ConfigPath            string  `envconfig:"CONFIG_PATH"             required:"true"          default:"/etc/config"`
 	DefaultKeppelRegistry string  `envconfig:"DEFAULT_KEPPEL_REGISTRY" required:"true"`
-	HeurekaRateLimit      float64 `envconfig:"HEUREKA_RATE_LIMIT" default:"100.0" json:"-"`
-	HeurekaRateBurst      int     `envconfig:"HEUREKA_RATE_BURST" default:"100" json:"-"`
+	HeurekaRateLimit      float64 `envconfig:"HEUREKA_RATE_LIMIT"                      json:"-" default:"100.0"`
+	HeurekaRateBurst      int     `envconfig:"HEUREKA_RATE_BURST"                      json:"-" default:"100"`
 }
 
 func (c *Config) LoadAdvancedConfig() (*AdvancedConfig, error) {
 	return NewAdvancedConfig(c.ConfigPath)
 }
 
-// AdvancedConfig Represents the ConfigMap object in the Kubernetes API that is mounted to the scanner pod its loaded from
+// AdvancedConfig Represents the ConfigMap object in the Kubernetes API that is mounted to the
+// scanner pod its loaded from
 // the Config.ConfigPath. This is a non-requred configuration for additional configurations
 // if the file is not found the config is initialized as empty
 type AdvancedConfig struct {
@@ -40,7 +41,8 @@ type SideCar struct {
 	SupportGroup  string `yaml:"support_group"`
 }
 
-// SideCarMap returns a map of sidecar containers to their respective service re-mapping configurations. Its lazy initialized
+// SideCarMap returns a map of sidecar containers to their respective service re-mapping
+// configurations. Its lazy initialized
 func (c *AdvancedConfig) SideCarMap() map[string]SideCar {
 	if (c.sideCarMap == nil || len(c.sideCarMap) == 0) && len(c.SideCars) > 0 {
 		c.sideCarMap = make(map[string]SideCar)
@@ -61,7 +63,10 @@ func (c *AdvancedConfig) GetSideCar(containerName string) (SideCar, bool) {
 // NewAdvancedConfig creates a new AdvancedConfig object from a file path
 func NewAdvancedConfig(path string) (*AdvancedConfig, error) {
 	cfg := &AdvancedConfig{
-		SideCars: make([]SideCar, 0), // Initialize the SideCars slice to avoid nil pointer dereference
+		SideCars: make(
+			[]SideCar,
+			0,
+		), // Initialize the SideCars slice to avoid nil pointer dereference
 	}
 
 	b, err := os.ReadFile(path)

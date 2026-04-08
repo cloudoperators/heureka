@@ -34,10 +34,12 @@ type TestServer struct {
 
 func NewTestServer(auth *middleware.Auth, enableLog bool) *TestServer {
 	port := util2.GetRandomFreePort()
+
 	log := logrus.New()
 	if !enableLog {
 		log.SetOutput(ioutil.Discard)
 	}
+
 	return &TestServer{
 		port: port,
 		auth: auth,

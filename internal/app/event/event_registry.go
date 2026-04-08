@@ -9,7 +9,6 @@ import (
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/openfga"
-	"github.com/cloudoperators/heureka/internal/util"
 )
 
 type EventHandler interface {
@@ -36,7 +35,6 @@ type eventRegistry struct {
 	mu          sync.Mutex
 	workerCount int
 	authz       openfga.Authorization
-	cfg         *util.Config
 }
 
 func (er *eventRegistry) RegisterEventHandler(event EventName, handler EventHandler) {
@@ -46,6 +44,7 @@ func (er *eventRegistry) RegisterEventHandler(event EventName, handler EventHand
 	if er.handlers == nil {
 		er.handlers = make(map[EventName][]EventHandler)
 	}
+
 	er.handlers[event] = append(er.handlers[event], handler)
 }
 
@@ -66,10 +65,9 @@ func (er *eventRegistry) PushEvent(event Event) {
 			// Event successfully pushed to the channel
 		default:
 			// Channel is definitely full, increase its size
-			newCap := cap(er.ch) * 2
-			if newCap < 1024 {
-				newCap = 1024 // Set a reasonable minimum for large batches
-			}
+			newCap := max(cap(er.ch)*2,
+				// Set a reasonable minimum for large batches
+				1024)
 
 			newCh := make(chan Event, newCap)
 
@@ -108,6 +106,7 @@ func (er *eventRegistry) Run(ctx context.Context) {
 	// Start workers
 	for i := 0; i < er.workerCount; i++ {
 		er.wg.Add(1)
+
 		go er.worker(ctx)
 	}
 
@@ -123,6 +122,7 @@ func (er *eventRegistry) Run(ctx context.Context) {
 
 func (er *eventRegistry) worker(ctx context.Context) {
 	defer er.wg.Done()
+
 	for {
 		select {
 		case <-ctx.Done():

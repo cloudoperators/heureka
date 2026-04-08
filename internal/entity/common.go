@@ -136,7 +136,7 @@ type Page struct {
 	PageCount  *int    `json:"page_count,omitempty"`
 }
 
-type List[T interface{}] struct {
+type List[T any] struct {
 	TotalCount *int64
 	PageInfo   *PageInfo
 	Elements   []T
@@ -178,6 +178,7 @@ func NewSeverityFromRating(rating SeverityValues) Severity {
 	// https://nvd.nist.gov/vuln-metrics/cvss
 	// They are the lower bounds of the CVSS Score ranges that correlate to each given Rating
 	score := 0.0
+
 	switch rating {
 	case SeverityValuesLow:
 		score = 0.1
@@ -205,18 +206,28 @@ func NewSeverity(url string) Severity {
 	severity := "unknown"
 	score := 0.0
 	cvss := Cvss{}
+
 	if ev != nil {
 		severity = ev.Severity().String()
 		score = ev.Score()
+
 		var externalUrl string
+
 		switch ev.Ver {
 		case metric.V3_0:
-			externalUrl = fmt.Sprintf("https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.0", url)
+			externalUrl = fmt.Sprintf(
+				"https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.0",
+				url,
+			)
 		case metric.V3_1:
-			externalUrl = fmt.Sprintf("https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.1", url)
+			externalUrl = fmt.Sprintf(
+				"https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=%s&version=3.1",
+				url,
+			)
 		case metric.VUnknown:
 			externalUrl = ""
 		}
+
 		cvss = Cvss{
 			Vector:        url,
 			ExternalUrl:   externalUrl,
@@ -246,7 +257,7 @@ type Metadata struct {
 	CreatedBy int64     `json:"created_by"`
 	UpdatedAt time.Time `json:"updated_at"`
 	UpdatedBy int64     `json:"updated_by"`
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
+	DeletedAt time.Time `json:"deleted_at"`
 }
 
 type StateFilterType int
@@ -265,17 +276,18 @@ func (sft StateFilterType) String() string {
 	return StateFilterTypeMap[sft]
 }
 
-type Json map[string]interface{}
+type Json map[string]any
 
 func (j Json) Value() (driver.Value, error) {
 	if j == nil {
 		return nil, nil
 	}
+
 	return json.Marshal(j)
 }
 
-func (e Json) String() string {
-	return interutil.ConvertJsonToStrNoError((*map[string]interface{})(&e))
+func (j Json) String() string {
+	return interutil.ConvertJsonToStrNoError((*map[string]any)(&j))
 }
 
 type Entity interface {

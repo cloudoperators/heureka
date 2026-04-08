@@ -55,7 +55,12 @@ func init() {
 	log.SetLevel(level)
 }
 
-func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Processor, namespace string) WorkerResult {
+func processNamespace(
+	ctx context.Context,
+	s *scanner.Scanner,
+	p *processor.Processor,
+	namespace string,
+) WorkerResult {
 	result := WorkerResult{Namespace: namespace}
 
 	pods, err := s.GetPodsByNamespace(namespace, metav1.ListOptions{})
@@ -96,7 +101,12 @@ func processNamespace(ctx context.Context, s *scanner.Scanner, p *processor.Proc
 	return result
 }
 
-func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.Processor, namespaces []v1.Namespace) (bool, error) {
+func processConcurrently(
+	ctx context.Context,
+	s *scanner.Scanner,
+	p *processor.Processor,
+	namespaces []v1.Namespace,
+) (bool, error) {
 	var err error
 	success := true
 
@@ -117,15 +127,17 @@ func processConcurrently(ctx context.Context, s *scanner.Scanner, p *processor.P
 					// Context cancelled!
 					return
 				case sem <- struct{}{}:
-					// Go routines will constantly try to send this empty struct to this channel. This will block until
+					// Go routines will constantly try to send this empty struct to this channel.
+					// This will block until
 					// there is a corresponding receive operation.
 				}
 			}
 		}()
 	}
 
-	// Process namespaces concurrently (in own Go routine). There can be only "maxConcurrency" worker go routines
-	// processing data at a given time. Any additional Go routines will be blocked (waiting for a slot to become
+	// Process namespaces concurrently (in own Go routine). There can be only "maxConcurrency"
+	// worker go routines processing data at a given time. Any additional Go routines will be
+	// blocked (waiting for a slot to become
 	// available)
 	for _, ns := range namespaces {
 		wg.Add(1)
@@ -172,7 +184,11 @@ func main() {
 		}).Warn("Couldn't initialize scanner config")
 	}
 
-	kubeConfig, err := kubeconfig.GetKubeConfig(scannerCfg.KubeconfigType, scannerCfg.KubeConfigPath, scannerCfg.KubeconfigContext)
+	kubeConfig, err := kubeconfig.GetKubeConfig(
+		scannerCfg.KubeconfigType,
+		scannerCfg.KubeConfigPath,
+		scannerCfg.KubeconfigContext,
+	)
 	if err != nil {
 		log.WithError(err).Fatal("couldn't load kubeConfig")
 	}

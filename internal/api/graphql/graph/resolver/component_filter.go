@@ -16,12 +16,18 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *componentFilterValueResolver) ComponentCcrn(ctx context.Context, obj *model.ComponentFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
+func (r *componentFilterValueResolver) ComponentCcrn(
+	ctx context.Context,
+	obj *model.ComponentFilterValue,
+	filter *model.ComponentFilter,
+) (*model.FilterItem, error) {
 	item, err := baseResolver.ComponentCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
+
 	item.FilterName = &baseResolver.ComponentInstanceFilterComponentCcrn
+
 	return item, err
 }
 

@@ -49,7 +49,7 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 			}](
 				cfg.Port,
 				"../api/graphql/graph/queryCollection/patch/query.graphql",
-				map[string]interface{}{
+				map[string]any{
 					"filter": map[string]string{},
 					"first":  10,
 					"after":  "",
@@ -73,7 +73,7 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 				respData, err := e2e_common.ExecuteGqlQueryFromFile[patchRespDataType](
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/patch/query.graphql",
-					map[string]interface{}{
+					map[string]any{
 						"filter": map[string]string{},
 						"first":  5,
 						"after":  "",
@@ -84,8 +84,12 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 				Expect(len(respData.Patches.Edges)).To(Equal(5))
 				//- returns the expected PageInfo
 				Expect(*respData.Patches.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
-				Expect(*respData.Patches.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
-				Expect(respData.Patches.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
+				Expect(
+					*respData.Patches.PageInfo.HasPreviousPage,
+				).To(BeFalse(), "hasPreviousPage is set")
+				Expect(
+					respData.Patches.PageInfo.NextPageAfter,
+				).ToNot(BeNil(), "nextPageAfter is set")
 				Expect(len(respData.Patches.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
 				Expect(*respData.Patches.PageInfo.PageNumber).To(Equal(1), "Correct page number")
 				//- returns the expected content
@@ -93,12 +97,19 @@ var _ = Describe("Getting Patches via API", Label("e2e", "Patches"), func() {
 					Expect(patch.Node.ID).ToNot(BeNil(), "patch has ID set")
 					Expect(patch.Node.ServiceID).ToNot(BeNil(), "patch has Service ID set")
 					Expect(patch.Node.ServiceName).ToNot(BeNil(), "patch has Service Name set")
-					Expect(patch.Node.ComponentVersionID).ToNot(BeNil(), "patch has Component Version ID set")
-					Expect(patch.Node.ComponentVersionName).ToNot(BeNil(), "patch has Component Version Name set")
+					Expect(
+						patch.Node.ComponentVersionID,
+					).ToNot(BeNil(), "patch has Component Version ID set")
+					Expect(
+						patch.Node.ComponentVersionName,
+					).ToNot(BeNil(), "patch has Component Version Name set")
 
-					_, patchFound := lo.Find(seedCollection.PatchRows, func(row mariadb.PatchRow) bool {
-						return fmt.Sprintf("%d", row.Id.Int64) == patch.Node.ID
-					})
+					_, patchFound := lo.Find(
+						seedCollection.PatchRows,
+						func(row mariadb.PatchRow) bool {
+							return fmt.Sprintf("%d", row.Id.Int64) == patch.Node.ID
+						},
+					)
 					Expect(patchFound).To(BeTrue(), "patch exists in seeded data")
 				}
 			})

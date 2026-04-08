@@ -13,7 +13,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *model.ImageVersionFilter, first *int, after *string, parent *model.NodeParent) (*model.ImageVersionConnection, error) {
+func ImageVersionBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ImageVersionFilter,
+	first *int,
+	after *string,
+	parent *model.NodeParent,
+) (*model.ImageVersionConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -24,15 +31,24 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		filter = &model.ImageVersionFilter{}
 	}
 
-	var issueId []*int64
-	var componentId []*int64
-	var err error
+	var (
+		issueId     []*int64
+		componentId []*int64
+		err         error
+	)
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("ImageVersionBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("ImageVersionBaseResolver", "Bad Request - Error while parsing propagated ID")
+			logrus.WithField("parent", parent).
+				Error("ImageVersionBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, NewResolverError(
+				"ImageVersionBaseResolver",
+				"Bad Request - Error while parsing propagated ID",
+			)
 		}
 
 		switch parent.ParentName {
@@ -53,12 +69,30 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	opt := GetListOptions(requestedFields)
-	opt.Order = append(opt.Order, entity.Order{By: entity.CriticalCount, Direction: entity.OrderDirectionDesc})
-	opt.Order = append(opt.Order, entity.Order{By: entity.HighCount, Direction: entity.OrderDirectionDesc})
-	opt.Order = append(opt.Order, entity.Order{By: entity.MediumCount, Direction: entity.OrderDirectionDesc})
-	opt.Order = append(opt.Order, entity.Order{By: entity.LowCount, Direction: entity.OrderDirectionDesc})
-	opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: entity.OrderDirectionDesc})
-	opt.Order = append(opt.Order, entity.Order{By: entity.ComponentVersionRepository, Direction: entity.OrderDirectionAsc})
+	opt.Order = append(
+		opt.Order,
+		entity.Order{By: entity.CriticalCount, Direction: entity.OrderDirectionDesc},
+	)
+	opt.Order = append(
+		opt.Order,
+		entity.Order{By: entity.HighCount, Direction: entity.OrderDirectionDesc},
+	)
+	opt.Order = append(
+		opt.Order,
+		entity.Order{By: entity.MediumCount, Direction: entity.OrderDirectionDesc},
+	)
+	opt.Order = append(
+		opt.Order,
+		entity.Order{By: entity.LowCount, Direction: entity.OrderDirectionDesc},
+	)
+	opt.Order = append(
+		opt.Order,
+		entity.Order{By: entity.NoneCount, Direction: entity.OrderDirectionDesc},
+	)
+	opt.Order = append(
+		opt.Order,
+		entity.Order{By: entity.ComponentVersionRepository, Direction: entity.OrderDirectionAsc},
+	)
 
 	componentVersions, err := app.ListComponentVersions(ctx, f, opt)
 	if err != nil {
@@ -66,6 +100,7 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	edges := []*model.ImageVersionEdge{}
+
 	for _, result := range componentVersions.Elements {
 		iv := model.NewImageVersion(result.ComponentVersion)
 		edge := model.ImageVersionEdge{
@@ -87,9 +122,12 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	if lo.Contains(requestedFields, "counts") {
-		cvIds := lo.Map(componentVersions.Elements, func(e entity.ComponentVersionResult, _ int) *int64 {
-			return &e.ComponentVersion.Id
-		})
+		cvIds := lo.Map(
+			componentVersions.Elements,
+			func(e entity.ComponentVersionResult, _ int) *int64 {
+				return &e.Id
+			},
+		)
 
 		icFilter := &entity.IssueFilter{
 			ServiceCCRN:        filter.Service,
@@ -102,6 +140,7 @@ func ImageVersionBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 		}
 
 		var severityCounts model.SeverityCounts
+
 		severityCounts.Critical = int(counts.Critical)
 		severityCounts.High = int(counts.High)
 		severityCounts.Medium = int(counts.Medium)

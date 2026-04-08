@@ -15,26 +15,70 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 	Prefix:    "issuerepository",
 	TableName: "IssueRepository",
 	Properties: []*Property{
-		NewProperty("issuerepository_name", WrapAccess(func(ir *entity.IssueRepository) (string, bool) { return ir.Name, ir.Name != "" })),
-		NewProperty("issuerepository_url", WrapAccess(func(ir *entity.IssueRepository) (string, bool) { return ir.Url, ir.Url != "" })),
-		NewProperty("issuerepository_created_by", WrapAccess(func(ir *entity.IssueRepository) (int64, bool) { return ir.BaseIssueRepository.CreatedBy, NoUpdate })),
-		NewProperty("issuerepository_updated_by", WrapAccess(func(ir *entity.IssueRepository) (int64, bool) {
-			return ir.BaseIssueRepository.UpdatedBy, ir.BaseIssueRepository.UpdatedBy != 0
-		})),
+		NewProperty(
+			"issuerepository_name",
+			WrapAccess(
+				func(ir *entity.IssueRepository) (string, bool) { return ir.Name, ir.Name != "" },
+			),
+		),
+		NewProperty(
+			"issuerepository_url",
+			WrapAccess(
+				func(ir *entity.IssueRepository) (string, bool) { return ir.Url, ir.Url != "" },
+			),
+		),
+		NewProperty(
+			"issuerepository_created_by",
+			WrapAccess(
+				func(ir *entity.IssueRepository) (int64, bool) { return ir.BaseIssueRepository.CreatedBy, NoUpdate },
+			),
+		),
+		NewProperty(
+			"issuerepository_updated_by",
+			WrapAccess(func(ir *entity.IssueRepository) (int64, bool) {
+				return ir.BaseIssueRepository.UpdatedBy, ir.BaseIssueRepository.UpdatedBy != 0
+			}),
+		),
 	},
 	FilterProperties: []*FilterProperty{
-		NewFilterProperty("IR.issuerepository_name = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*string { return filter.Name })),
-		NewFilterProperty("IR.issuerepository_id = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.Id })),
-		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*string { return filter.ServiceCCRN })),
-		NewFilterProperty("IRS.issuerepositoryservice_service_id = ?", WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.ServiceId })),
-		NewStateFilterProperty("IR.issuerepository", WrapRetState(func(filter *entity.IssueRepositoryFilter) []entity.StateFilterType { return filter.State })),
+		NewFilterProperty(
+			"IR.issuerepository_name = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueRepositoryFilter) []*string { return filter.Name },
+			),
+		),
+		NewFilterProperty(
+			"IR.issuerepository_id = ?",
+			WrapRetSlice(func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.Id }),
+		),
+		NewFilterProperty(
+			"S.service_ccrn = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueRepositoryFilter) []*string { return filter.ServiceCCRN },
+			),
+		),
+		NewFilterProperty(
+			"IRS.issuerepositoryservice_service_id = ?",
+			WrapRetSlice(
+				func(filter *entity.IssueRepositoryFilter) []*int64 { return filter.ServiceId },
+			),
+		),
+		NewStateFilterProperty(
+			"IR.issuerepository",
+			WrapRetState(
+				func(filter *entity.IssueRepositoryFilter) []entity.StateFilterType { return filter.State },
+			),
+		),
 	},
 }
 
-func ensureIssueRepositoryFilter(filter *entity.IssueRepositoryFilter) *entity.IssueRepositoryFilter {
+func ensureIssueRepositoryFilter(
+	filter *entity.IssueRepositoryFilter,
+) *entity.IssueRepositoryFilter {
 	if filter == nil {
 		filter = &entity.IssueRepositoryFilter{}
 	}
+
 	return EnsurePagination(filter)
 }
 
@@ -45,21 +89,29 @@ func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilt
 			LEFT JOIN IssueRepositoryService IRS on IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id
 		`)
 	}
+
 	if len(filter.ServiceCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN Service S on S.service_id = IRS.issuerepositoryservice_service_id
 		`)
 	}
+
 	return joins
 }
 
-func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *entity.IssueRepositoryFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildIssueRepositoryStatement(
+	baseQuery string,
+	filter *entity.IssueRepositoryFilter,
+	withCursor bool,
+	order []entity.Order,
+	l *logrus.Entry,
+) (Stmt, []any, error) {
 	filter = ensureIssueRepositoryFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	joins := s.getIssueRepositoryJoins(filter)
 
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode IssueRepository cursor: %w", err)
 	}
@@ -70,6 +122,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 	orderStr := CreateOrderString(order)
 
 	filterStr := issueRepositoryObject.GetFilterQuery(filter)
+
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -95,6 +148,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, nil, fmt.Errorf("failed to prepare IssueRepository statement: %w", err)
 	}
 
@@ -103,7 +157,10 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(baseQuery string, filter *en
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetAllIssueRepositoryCursors(filter *entity.IssueRepositoryFilter, order []entity.Order) ([]string, error) {
+func (s *SqlDatabase) GetAllIssueRepositoryCursors(
+	filter *entity.IssueRepositoryFilter,
+	order []entity.Order,
+) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetAllIssueRepositoryCursors",
@@ -116,10 +173,18 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(filter *entity.IssueRepositor
 	`
 
 	filter = ensureIssueRepositoryFilter(filter)
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, order, l)
+
+	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
+		baseQuery,
+		filter,
+		false,
+		order,
+		l,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build IssueRepository cursor query: %w", err)
 	}
+
 	defer func() {
 		if err := stmt.Close(); err != nil {
 			l.Warnf("error while close statement: %s", err.Error())
@@ -147,7 +212,10 @@ func (s *SqlDatabase) GetAllIssueRepositoryCursors(filter *entity.IssueRepositor
 	}), nil
 }
 
-func (s *SqlDatabase) GetIssueRepositories(filter *entity.IssueRepositoryFilter, order []entity.Order) ([]entity.IssueRepositoryResult, error) {
+func (s *SqlDatabase) GetIssueRepositories(
+	filter *entity.IssueRepositoryFilter,
+	order []entity.Order,
+) ([]entity.IssueRepositoryResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetIssueRepositories",
 	})
@@ -161,10 +229,17 @@ func (s *SqlDatabase) GetIssueRepositories(filter *entity.IssueRepositoryFilter,
 
 	filter = ensureIssueRepositoryFilter(filter)
 
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
+		baseQuery,
+		filter,
+		true,
+		order,
+		l,
+	)
 	if err != nil {
 		return nil, err
 	}
+
 	defer func() {
 		if err := stmt.Close(); err != nil {
 			l.Warnf("error while close statement: %s", err.Error())
@@ -202,17 +277,30 @@ func (s *SqlDatabase) CountIssueRepositories(filter *entity.IssueRepositoryFilte
 		%s
 		ORDER BY %s
 	`
-	stmt, filterParameters, err := s.buildIssueRepositoryStatement(baseQuery, filter, false, []entity.Order{}, l)
+
+	stmt, filterParameters, err := s.buildIssueRepositoryStatement(
+		baseQuery,
+		filter,
+		false,
+		[]entity.Order{},
+		l,
+	)
 	if err != nil {
 		return -1, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) CreateIssueRepository(issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+func (s *SqlDatabase) CreateIssueRepository(
+	issueRepository *entity.IssueRepository,
+) (*entity.IssueRepository, error) {
 	return issueRepositoryObject.Create(s.db, issueRepository)
 }
 

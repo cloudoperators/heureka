@@ -56,9 +56,15 @@ func (e *ComponentVersionHandlerError) Error() string {
 	return e.message
 }
 
-func (cv *componentVersionHandler) ListComponentVersions(ctx context.Context, filter *entity.ComponentVersionFilter, options *entity.ListOptions) (*entity.List[entity.ComponentVersionResult], error) {
-	var count int64
-	var pageInfo *entity.PageInfo
+func (cv *componentVersionHandler) ListComponentVersions(
+	ctx context.Context,
+	filter *entity.ComponentVersionFilter,
+	options *entity.ListOptions,
+) (*entity.List[entity.ComponentVersionResult], error) {
+	var (
+		count    int64
+		pageInfo *entity.PageInfo
+	)
 
 	op := appErrors.Op("componentVersionHandler.ListComponentVersions")
 
@@ -71,21 +77,29 @@ func (cv *componentVersionHandler) ListComponentVersions(ctx context.Context, fi
 		applog.LogError(cv.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Authorization check
-	accessibleComponentIds, err := cv.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeComponent)
+	accessibleComponentIds, err := cv.authz.GetListOfAccessibleObjectIds(
+		openfga.UserId(fmt.Sprint(currentUserId)),
+		openfga.TypeComponent,
+	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "ComponentVersions", "", err)
 		applog.LogError(cv.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Update the filter.ComponentId based on accessibleComponentIds
-	filter.ComponentId = common.CombineFilterWithAccessibleIds(filter.ComponentId, accessibleComponentIds)
+	filter.ComponentId = common.CombineFilterWithAccessibleIds(
+		filter.ComponentId,
+		accessibleComponentIds,
+	)
 
 	res, err := cache.CallCached[[]entity.ComponentVersionResult](
 		cv.cache,
@@ -100,6 +114,7 @@ func (cv *componentVersionHandler) ListComponentVersions(ctx context.Context, fi
 		applog.LogError(cv.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -118,8 +133,10 @@ func (cv *componentVersionHandler) ListComponentVersions(ctx context.Context, fi
 				applog.LogError(cv.logger, wrappedErr, logrus.Fields{
 					"filter": filter,
 				})
+
 				return nil, wrappedErr
 			}
+
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
@@ -136,6 +153,7 @@ func (cv *componentVersionHandler) ListComponentVersions(ctx context.Context, fi
 			applog.LogError(cv.logger, wrappedErr, logrus.Fields{
 				"filter": filter,
 			})
+
 			return nil, wrappedErr
 		}
 	}
@@ -155,28 +173,40 @@ func (cv *componentVersionHandler) ListComponentVersions(ctx context.Context, fi
 	return ret, nil
 }
 
-func (cv *componentVersionHandler) CreateComponentVersion(ctx context.Context, componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
+func (cv *componentVersionHandler) CreateComponentVersion(
+	ctx context.Context,
+	componentVersion *entity.ComponentVersion,
+) (*entity.ComponentVersion, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateComponentVersionEventName,
 		"object": componentVersion,
 	})
 
 	var err error
+
 	componentVersion.CreatedBy, err = common.GetCurrentUserId(ctx, cv.database)
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion (GetUserId).")
+
+		return nil, NewComponentVersionHandlerError(
+			"Internal error while creating componentVersion (GetUserId).",
+		)
 	}
+
 	componentVersion.UpdatedBy = componentVersion.CreatedBy
 
 	newComponent, err := cv.database.CreateComponentVersion(componentVersion)
 	if err != nil {
 		l.Error(err)
+
 		duplicateEntryError := &database.DuplicateEntryDatabaseError{}
 		if errors.As(err, &duplicateEntryError) {
 			return nil, NewComponentVersionHandlerError("Entry already Exists")
 		}
-		return nil, NewComponentVersionHandlerError("Internal error while creating componentVersion.")
+
+		return nil, NewComponentVersionHandlerError(
+			"Internal error while creating componentVersion.",
+		)
 	}
 
 	cv.eventRegistry.PushEvent(&CreateComponentVersionEvent{
@@ -186,34 +216,53 @@ func (cv *componentVersionHandler) CreateComponentVersion(ctx context.Context, c
 	return newComponent, nil
 }
 
-func (cv *componentVersionHandler) UpdateComponentVersion(ctx context.Context, componentVersion *entity.ComponentVersion) (*entity.ComponentVersion, error) {
+func (cv *componentVersionHandler) UpdateComponentVersion(
+	ctx context.Context,
+	componentVersion *entity.ComponentVersion,
+) (*entity.ComponentVersion, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateComponentVersionEventName,
 		"object": componentVersion,
 	})
 
 	var err error
+
 	componentVersion.UpdatedBy, err = common.GetCurrentUserId(ctx, cv.database)
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentVersionHandlerError("Internal error while updating componentVersion (GetUserId).")
+
+		return nil, NewComponentVersionHandlerError(
+			"Internal error while updating componentVersion (GetUserId).",
+		)
 	}
 
 	err = cv.database.UpdateComponentVersion(componentVersion)
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentVersionHandlerError("Internal error while updating componentVersion.")
+
+		return nil, NewComponentVersionHandlerError(
+			"Internal error while updating componentVersion.",
+		)
 	}
 
 	lo := entity.NewListOptions()
-	componentVersionResult, err := cv.ListComponentVersions(ctx, &entity.ComponentVersionFilter{Id: []*int64{&componentVersion.Id}}, lo)
+
+	componentVersionResult, err := cv.ListComponentVersions(
+		ctx,
+		&entity.ComponentVersionFilter{Id: []*int64{&componentVersion.Id}},
+		lo,
+	)
 	if err != nil {
 		l.Error(err)
-		return nil, NewComponentVersionHandlerError("Internal error while retrieving updated componentVersion.")
+
+		return nil, NewComponentVersionHandlerError(
+			"Internal error while retrieving updated componentVersion.",
+		)
 	}
 
 	if len(componentVersionResult.Elements) != 1 {
 		l.Error(err)
+
 		return nil, NewComponentVersionHandlerError("Multiple componentVersions found.")
 	}
 
@@ -233,7 +282,10 @@ func (cv *componentVersionHandler) DeleteComponentVersion(ctx context.Context, i
 	userId, err := common.GetCurrentUserId(ctx, cv.database)
 	if err != nil {
 		l.Error(err)
-		return NewComponentVersionHandlerError("Internal error while deleting componentVersion (GetUserId).")
+
+		return NewComponentVersionHandlerError(
+			"Internal error while deleting componentVersion (GetUserId).",
+		)
 	}
 
 	err = cv.database.DeleteComponentVersion(id, userId)

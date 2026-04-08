@@ -28,8 +28,10 @@ func TestSeverityHandler(t *testing.T) {
 	RunSpecs(t, "Severity Service Test Suite")
 }
 
-var er event.EventRegistry
-var authz openfga.Authorization
+var (
+	er    event.EventRegistry
+	authz openfga.Authorization
+)
 
 var _ = BeforeSuite(func() {
 	db := mocks.NewMockDatabase(GinkgoT())
@@ -121,7 +123,9 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
-				Expect(severity.Score).To(BeEquivalentTo(maxSeverityScore), "severity score is correct.")
+				Expect(
+					severity.Score,
+				).To(BeEquivalentTo(maxSeverityScore), "severity score is correct.")
 			})
 		})
 		When("lower priority issueVariant has highest score", func() {
@@ -135,7 +139,9 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
-				Expect(severity.Score).To(BeEquivalentTo(maxSeverityScore-1), "severity score is correct.")
+				Expect(
+					severity.Score,
+				).To(BeEquivalentTo(maxSeverityScore-1), "severity score is correct.")
 			})
 		})
 	})
@@ -182,7 +188,9 @@ var _ = Describe("When get Severity", Label("app", "GetSeverity"), func() {
 				severity, err := severityHandler.GetSeverity(sFilter)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(severity).ToNot((BeNil()), "severity should exist.")
-				Expect(severity.Score).To(BeEquivalentTo(maxSeverityScore), "severity score ist correct.")
+				Expect(
+					severity.Score,
+				).To(BeEquivalentTo(maxSeverityScore), "severity score ist correct.")
 			})
 		})
 	})

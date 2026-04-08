@@ -10,8 +10,14 @@ import (
 )
 
 type IssueVariantHandler interface {
-	ListIssueVariants(*entity.IssueVariantFilter, *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error)
-	ListEffectiveIssueVariants(*entity.IssueVariantFilter, *entity.ListOptions) (*entity.List[entity.IssueVariantResult], error)
+	ListIssueVariants(
+		*entity.IssueVariantFilter,
+		*entity.ListOptions,
+	) (*entity.List[entity.IssueVariantResult], error)
+	ListEffectiveIssueVariants(
+		*entity.IssueVariantFilter,
+		*entity.ListOptions,
+	) (*entity.List[entity.IssueVariantResult], error)
 	CreateIssueVariant(context.Context, *entity.IssueVariant) (*entity.IssueVariant, error)
 	UpdateIssueVariant(context.Context, *entity.IssueVariant) (*entity.IssueVariant, error)
 	DeleteIssueVariant(context.Context, int64) error

@@ -35,7 +35,10 @@ type issueMatchHandler struct {
 	severityHandler severity.SeverityHandler
 }
 
-func NewIssueMatchHandler(handlerContext common.HandlerContext, ss severity.SeverityHandler) IssueMatchHandler {
+func NewIssueMatchHandler(
+	handlerContext common.HandlerContext,
+	ss severity.SeverityHandler,
+) IssueMatchHandler {
 	return &issueMatchHandler{
 		database:        handlerContext.DB,
 		eventRegistry:   handlerContext.EventReg,
@@ -58,16 +61,25 @@ func (e *IssueMatchHandlerError) Error() string {
 	return e.message
 }
 
-func (im *issueMatchHandler) GetIssueMatch(ctx context.Context, issueMatchId int64) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) GetIssueMatch(
+	ctx context.Context,
+	issueMatchId int64,
+) (*entity.IssueMatch, error) {
 	op := appErrors.Op("issueMatchHandler.GetIssueMatch")
 
 	// get current user id
 	currentUserId, err := common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "IssueMatches", fmt.Sprint(issueMatchId), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"IssueMatches",
+			fmt.Sprint(issueMatchId),
+			err,
+		)
 		applog.LogError(im.logger, wrappedErr, logrus.Fields{
 			"issueMatchId": issueMatchId,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -80,37 +92,62 @@ func (im *issueMatchHandler) GetIssueMatch(ctx context.Context, issueMatchId int
 		ObjectId:   openfga.ObjectId(fmt.Sprint(issueMatchId)),
 	})
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "IssueMatches", fmt.Sprint(issueMatchId), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"IssueMatches",
+			fmt.Sprint(issueMatchId),
+			err,
+		)
 		applog.LogError(im.logger, wrappedErr, logrus.Fields{
 			"issueMatchId": issueMatchId,
 		})
+
 		return nil, wrappedErr
 	}
+
 	if !hasPermission {
-		wrappedErr := appErrors.PermissionDeniedError(string(op), "IssueMatch", fmt.Sprint(issueMatchId))
+		wrappedErr := appErrors.PermissionDeniedError(
+			string(op),
+			"IssueMatch",
+			fmt.Sprint(issueMatchId),
+		)
 		applog.LogError(im.logger, wrappedErr, logrus.Fields{
 			"issueMatchId": issueMatchId,
 			"userId":       currentUserId,
 		})
+
 		return nil, wrappedErr
 	}
 
 	issueMatchFilter := entity.IssueMatchFilter{Id: []*int64{&issueMatchId}}
 	options := entity.ListOptions{Order: []entity.Order{}}
+
 	issueMatches, err := im.ListIssueMatches(ctx, &issueMatchFilter, &options)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "IssueMatches", fmt.Sprint(issueMatchId), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"IssueMatches",
+			fmt.Sprint(issueMatchId),
+			err,
+		)
 		applog.LogError(im.logger, wrappedErr, logrus.Fields{
 			"issueMatchId": issueMatchId,
 		})
+
 		return nil, wrappedErr
 	}
 
 	if len(issueMatches.Elements) != 1 {
-		wrappedErr := appErrors.InternalError(string(op), "IssueMatches", fmt.Sprint(issueMatchId), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"IssueMatches",
+			fmt.Sprint(issueMatchId),
+			err,
+		)
 		applog.LogError(im.logger, wrappedErr, logrus.Fields{
 			"issueMatchId": issueMatchId,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -122,9 +159,15 @@ func (im *issueMatchHandler) GetIssueMatch(ctx context.Context, issueMatchId int
 	return issueMatches.Elements[0].IssueMatch, nil
 }
 
-func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entity.IssueMatchFilter, options *entity.ListOptions) (*entity.List[entity.IssueMatchResult], error) {
-	var count int64
-	var pageInfo *entity.PageInfo
+func (im *issueMatchHandler) ListIssueMatches(
+	ctx context.Context,
+	filter *entity.IssueMatchFilter,
+	options *entity.ListOptions,
+) (*entity.List[entity.IssueMatchResult], error) {
+	var (
+		count    int64
+		pageInfo *entity.PageInfo
+	)
 
 	op := appErrors.Op("issueMatchHandler.ListIssueMatches")
 
@@ -137,21 +180,29 @@ func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entit
 		applog.LogError(im.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Authorization check
-	accessibleCompInstIds, err := im.authz.GetListOfAccessibleObjectIds(openfga.UserId(fmt.Sprint(currentUserId)), openfga.TypeComponentInstance)
+	accessibleCompInstIds, err := im.authz.GetListOfAccessibleObjectIds(
+		openfga.UserId(fmt.Sprint(currentUserId)),
+		openfga.TypeComponentInstance,
+	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "IssueMatches", "", err)
 		applog.LogError(im.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Update the filter.ComponentInstanceId based on accessibleCompInstIds
-	filter.ComponentInstanceId = common.CombineFilterWithAccessibleIds(filter.ComponentInstanceId, accessibleCompInstIds)
+	filter.ComponentInstanceId = common.CombineFilterWithAccessibleIds(
+		filter.ComponentInstanceId,
+		accessibleCompInstIds,
+	)
 
 	res, err := cache.CallCached[[]entity.IssueMatchResult](
 		im.cache,
@@ -166,6 +217,7 @@ func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entit
 		applog.LogError(im.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -184,8 +236,10 @@ func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entit
 				applog.LogError(im.logger, wrappedErr, logrus.Fields{
 					"filter": filter,
 				})
+
 				return nil, wrappedErr
 			}
+
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
@@ -202,6 +256,7 @@ func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entit
 			applog.LogError(im.logger, wrappedErr, logrus.Fields{
 				"filter": filter,
 			})
+
 			return nil, wrappedErr
 		}
 	}
@@ -221,18 +276,26 @@ func (im *issueMatchHandler) ListIssueMatches(ctx context.Context, filter *entit
 	return ret, nil
 }
 
-func (im *issueMatchHandler) CreateIssueMatch(ctx context.Context, issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) CreateIssueMatch(
+	ctx context.Context,
+	issueMatch *entity.IssueMatch,
+) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  CreateIssueMatchEventName,
 		"object": issueMatch,
 	})
 
 	var err error
+
 	issueMatch.CreatedBy, err = common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueMatchHandlerError("Internal error while creating issueMatch (GetUserId).")
+
+		return nil, NewIssueMatchHandlerError(
+			"Internal error while creating issueMatch (GetUserId).",
+		)
 	}
+
 	issueMatch.UpdatedBy = issueMatch.CreatedBy
 
 	severityFilter := &entity.SeverityFilter{
@@ -261,17 +324,24 @@ func (im *issueMatchHandler) CreateIssueMatch(ctx context.Context, issueMatch *e
 	return newIssueMatch, nil
 }
 
-func (im *issueMatchHandler) UpdateIssueMatch(ctx context.Context, issueMatch *entity.IssueMatch) (*entity.IssueMatch, error) {
+func (im *issueMatchHandler) UpdateIssueMatch(
+	ctx context.Context,
+	issueMatch *entity.IssueMatch,
+) (*entity.IssueMatch, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueMatchEventName,
 		"object": issueMatch,
 	})
 
 	var err error
+
 	issueMatch.UpdatedBy, err = common.GetCurrentUserId(ctx, im.database)
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueMatchHandlerError("Internal error while updating issueMatch (GetUserId).")
+
+		return nil, NewIssueMatchHandlerError(
+			"Internal error while updating issueMatch (GetUserId).",
+		)
 	}
 
 	err = im.database.UpdateIssueMatch(issueMatch)

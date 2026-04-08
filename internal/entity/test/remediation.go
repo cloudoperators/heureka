@@ -11,6 +11,7 @@ import (
 func NewFakeRemediationEntity() entity.Remediation {
 	t := gofakeit.RandomString(entity.AllRemediationTypes)
 	s := gofakeit.RandomString(entity.AllSeverityValuesString)
+
 	return entity.Remediation{
 		Id:              int64(gofakeit.Number(1, 10000000)),
 		Description:     gofakeit.Sentence(10),
@@ -36,14 +37,16 @@ func NewFakeRemediationEntity() entity.Remediation {
 
 func NNewFakeRemediations(n int) []entity.Remediation {
 	r := make([]entity.Remediation, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeRemediationEntity()
 	}
+
 	return r
 }
 
 func NewFakeRemediationResult() entity.RemediationResult {
 	remediation := NewFakeRemediationEntity()
+
 	return entity.RemediationResult{
 		Remediation: &remediation,
 	}

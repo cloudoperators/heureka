@@ -62,11 +62,20 @@ var (
 	inMemoryCacheTestConfig = cacheConfig{}
 )
 
-func newCacheTest(valkeyUrl string, ttl time.Duration, maxDbConcurrentRefreshes int, throttleIntervalMSec int64, throttlePerInterval int, proxy bool) *cacheTest {
+func newCacheTest(
+	valkeyUrl string,
+	ttl time.Duration,
+	maxDbConcurrentRefreshes int,
+	throttleIntervalMSec int64,
+	throttlePerInterval int,
+	proxy bool,
+) *cacheTest {
 	var ct cacheTest
+
 	ct.db = dbm.NewTestSchemaWithoutMigration()
 
 	var err error
+
 	ct.seeder, err = test.NewDatabaseSeeder(dbm.DbConfig())
 	Expect(err).To(BeNil(), "Database Seeder Setup should work")
 
@@ -88,15 +97,20 @@ func newCacheTest(valkeyUrl string, ttl time.Duration, maxDbConcurrentRefreshes 
 	ct.seedCollection = ct.seeder.SeedDbWithNFakeData(testResourceCount)
 
 	service.CacheTtlGetServiceAttrs = ttl
+
 	return &ct
 }
 
 func (ct *cacheTest) startDbProxy() {
 	dbPort := ct.cfg.DBPort
 	dbProxyPort := e2e_common.GetRandomFreePort()
-	ct.dbProxy = e2e_common.NewPausableProxy(fmt.Sprintf("localhost:%s", dbProxyPort), fmt.Sprintf("localhost:%s", dbPort))
+	ct.dbProxy = e2e_common.NewPausableProxy(
+		fmt.Sprintf("localhost:%s", dbProxyPort),
+		fmt.Sprintf("localhost:%s", dbPort),
+	)
 	err := ct.dbProxy.Start()
 	Expect(err).To(BeNil(), "Could not start DB proxy")
+
 	ct.cfg.DBPort = dbProxyPort
 	ct.cfg.DBMaxIdleConnections = 0
 }
@@ -104,6 +118,7 @@ func (ct *cacheTest) startDbProxy() {
 func (ct *cacheTest) teardown() {
 	e2e_common.ServerTeardown(ct.server)
 	dbm.TestTearDown(ct.db)
+
 	if ct.dbProxy != nil {
 		ct.dbProxy.Stop()
 	}
@@ -117,20 +132,26 @@ func (ct *cacheTest) testResourceIsQueried() {
 func (ct *cacheTest) pushLastResource(res model.ComponentInstanceFilterValue) {
 	ct.resourcesMx.Lock()
 	defer ct.resourcesMx.Unlock()
+
 	ct.resources = append(ct.resources, res)
 }
 
 func (ct *cacheTest) getLastResource() model.ComponentInstanceFilterValue {
 	ct.resourcesMx.Lock()
 	defer ct.resourcesMx.Unlock()
+
 	Expect(ct.resources).NotTo(BeEmpty())
+
 	return ct.resources[len(ct.resources)-1]
 }
 
 func (ct *cacheTest) expectTestResource() {
-	existingServiceCcrns := lo.Map(ct.seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
-		return s.CCRN.String
-	})
+	existingServiceCcrns := lo.Map(
+		ct.seedCollection.ServiceRows,
+		func(s mariadb.BaseServiceRow, index int) string {
+			return s.CCRN.String
+		},
+	)
 	expectResponseVal(
 		ct.getLastResource(),
 		existingServiceCcrns,
@@ -142,10 +163,16 @@ func (ct *cacheTest) expectTestResource() {
 func (ct *cacheTest) expectTestResources(n int) {
 	ct.resourcesMx.Lock()
 	defer ct.resourcesMx.Unlock()
+
 	Expect(ct.resources).To(HaveLen(n))
-	existingServiceCcrns := lo.Map(ct.seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, index int) string {
-		return s.CCRN.String
-	})
+
+	existingServiceCcrns := lo.Map(
+		ct.seedCollection.ServiceRows,
+		func(s mariadb.BaseServiceRow, index int) string {
+			return s.CCRN.String
+		},
+	)
+
 	for _, res := range ct.resources {
 		expectResponseVal(
 			res,
@@ -158,9 +185,12 @@ func (ct *cacheTest) expectTestResources(n int) {
 
 func (ct *cacheTest) expectTestResourceAndAddedResource() {
 	Expect(len(ct.addedSeedCollection.ServiceRows)).To(Equal(addResourceCount))
-	existingServiceCcrns := lo.Map(append(ct.seedCollection.ServiceRows, ct.addedSeedCollection.ServiceRows...), func(s mariadb.BaseServiceRow, index int) string {
-		return s.CCRN.String
-	})
+	existingServiceCcrns := lo.Map(
+		append(ct.seedCollection.ServiceRows, ct.addedSeedCollection.ServiceRows...),
+		func(s mariadb.BaseServiceRow, index int) string {
+			return s.CCRN.String
+		},
+	)
 	expectResponseVal(
 		ct.getLastResource(),
 		existingServiceCcrns,
@@ -206,7 +236,14 @@ func (ct *cacheTest) expectSharedCounter(expectedShared int64) {
 
 func missTest(config cacheConfig) {
 	// GIVEN Cache is configured
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
+	ct := newCacheTest(
+		config.valkeyUrl,
+		defaultTtl,
+		noConcurrentLimit,
+		noThrottleIntervalMSec,
+		noThrottlePerInterval,
+		noProxy,
+	)
 	defer ct.teardown()
 
 	// WHEN Test resource is queried for the first time
@@ -218,7 +255,14 @@ func missTest(config cacheConfig) {
 
 func hitTest(config cacheConfig) {
 	// GIVEN Cache is configured
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
+	ct := newCacheTest(
+		config.valkeyUrl,
+		defaultTtl,
+		noConcurrentLimit,
+		noThrottleIntervalMSec,
+		noThrottlePerInterval,
+		noProxy,
+	)
 	defer ct.teardown()
 
 	// AND Cache contains test resource
@@ -233,7 +277,14 @@ func hitTest(config cacheConfig) {
 
 func expiredTest(config cacheConfig) {
 	// GIVEN Cache is configured with short TTL
-	ct := newCacheTest(config.valkeyUrl, ttl1Millisecond, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
+	ct := newCacheTest(
+		config.valkeyUrl,
+		ttl1Millisecond,
+		noConcurrentLimit,
+		noThrottleIntervalMSec,
+		noThrottlePerInterval,
+		noProxy,
+	)
 	defer ct.teardown()
 
 	// AND Test resource is queried for the first time
@@ -251,7 +302,14 @@ func expiredTest(config cacheConfig) {
 
 func backgroundUpdateTest(config cacheConfig) {
 	// GIVEN Cache is configured
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, noProxy)
+	ct := newCacheTest(
+		config.valkeyUrl,
+		defaultTtl,
+		noConcurrentLimit,
+		noThrottleIntervalMSec,
+		noThrottlePerInterval,
+		noProxy,
+	)
 	defer ct.teardown()
 
 	// AND Test resource is queried for the first time
@@ -286,7 +344,8 @@ func backgroundUpdateRateBasedLimitTest(config cacheConfig) {
 	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, 1000, 2, noProxy)
 	defer ct.teardown()
 
-	// AND Three times resource is queried to update cache with test resource on miss and exhaust the limit of background updates
+	// AND Three times resource is queried to update cache with test resource on miss and exhaust
+	// the limit of background updates
 	ct.queryResource()
 	ct.queryResource()
 	ct.queryResource()
@@ -340,7 +399,14 @@ func backgroundUpdateConcurrentLimitTest(config cacheConfig) {
 	// -- Skip background update above the limit
 
 	// GIVEN Cache is configured with DB proxy and with background update concurrent limit set to 2
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, 2, noThrottleIntervalMSec, noThrottlePerInterval, withProxy)
+	ct := newCacheTest(
+		config.valkeyUrl,
+		defaultTtl,
+		2,
+		noThrottleIntervalMSec,
+		noThrottlePerInterval,
+		withProxy,
+	)
 	defer ct.teardown()
 
 	// AND Resource is queried to update cache with test resource on miss
@@ -419,7 +485,14 @@ func backgroundUpdateConcurrentLimitTest(config cacheConfig) {
 
 func singleflightTest(config cacheConfig) {
 	// GIVEN Cache is configured with DB proxy
-	ct := newCacheTest(config.valkeyUrl, defaultTtl, noConcurrentLimit, noThrottleIntervalMSec, noThrottlePerInterval, withProxy)
+	ct := newCacheTest(
+		config.valkeyUrl,
+		defaultTtl,
+		noConcurrentLimit,
+		noThrottleIntervalMSec,
+		noThrottlePerInterval,
+		withProxy,
+	)
 	defer ct.teardown()
 
 	// WHEN DB access is paused for new connections
@@ -431,7 +504,7 @@ func singleflightTest(config cacheConfig) {
 	// AND Some time elapsed to let the query hang on connection and in singleflight
 	time.Sleep(hangQueryTimeToWait)
 
-	//THEN DB should have only one active connection
+	// THEN DB should have only one active connection
 	Expect(ct.dbProxy.GetNumberOfHeldConnections()).To(BeEquivalentTo(1))
 
 	// WHEN DB access is resumed
@@ -458,15 +531,21 @@ var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e",
 	})
 
 	Describe("Check hit", func() {
-		It("Should increase hit counter when the same resource is queried for the second time", func() {
-			hitTest(valkeyCacheTestConfig)
-		})
+		It(
+			"Should increase hit counter when the same resource is queried for the second time",
+			func() {
+				hitTest(valkeyCacheTestConfig)
+			},
+		)
 	})
 
 	Describe("Check expired", func() {
-		It("Should increase miss counter when the same resource is queried after TTL duration", func() {
-			expiredTest(valkeyCacheTestConfig)
-		})
+		It(
+			"Should increase miss counter when the same resource is queried after TTL duration",
+			func() {
+				expiredTest(valkeyCacheTestConfig)
+			},
+		)
 	})
 
 	Describe("Check background update", func() {
@@ -476,15 +555,21 @@ var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e",
 	})
 
 	Describe("Check background update rate-based limit", func() {
-		It("Should skip background updates above the rate limit AND execute new background updates after interval", func() {
-			backgroundUpdateRateBasedLimitTest(valkeyCacheTestConfig)
-		})
+		It(
+			"Should skip background updates above the rate limit AND execute new background updates after interval",
+			func() {
+				backgroundUpdateRateBasedLimitTest(valkeyCacheTestConfig)
+			},
+		)
 	})
 
 	Describe("Check background update concurrent-based limit", func() {
-		It("Should skip background updates above the concurrent limit AND execute new background updates when first background updates are over", func() {
-			backgroundUpdateConcurrentLimitTest(valkeyCacheTestConfig)
-		})
+		It(
+			"Should skip background updates above the concurrent limit AND execute new background updates when first background updates are over",
+			func() {
+				backgroundUpdateConcurrentLimitTest(valkeyCacheTestConfig)
+			},
+		)
 	})
 	Describe("Check singleflight", func() {
 		It("Should access database only once when the same request is in progress", func() {
@@ -493,45 +578,65 @@ var _ = Describe("Using Valkey cache", Label("e2e", "ValkeyCache"), Label("e2e",
 	})
 })
 
-var _ = Describe("Using In memory cache", Label("e2e", "InMemoryCache"), Label("e2e", "Cache"), func() {
-	Describe("Check miss", func() {
-		It("Should increase miss counter when resource is queried for the first time", func() {
-			missTest(inMemoryCacheTestConfig)
+var _ = Describe(
+	"Using In memory cache",
+	Label("e2e", "InMemoryCache"),
+	Label("e2e", "Cache"),
+	func() {
+		Describe("Check miss", func() {
+			It("Should increase miss counter when resource is queried for the first time", func() {
+				missTest(inMemoryCacheTestConfig)
+			})
 		})
-	})
 
-	Describe("Check hit", func() {
-		It("Should increase hit counter when the same resource is queried for the second time", func() {
-			hitTest(inMemoryCacheTestConfig)
+		Describe("Check hit", func() {
+			It(
+				"Should increase hit counter when the same resource is queried for the second time",
+				func() {
+					hitTest(inMemoryCacheTestConfig)
+				},
+			)
 		})
-	})
 
-	Describe("Check expired", func() {
-		It("Should increase miss counter when the same resource is queried after TTL duration", func() {
-			expiredTest(inMemoryCacheTestConfig)
+		Describe("Check expired", func() {
+			It(
+				"Should increase miss counter when the same resource is queried after TTL duration",
+				func() {
+					expiredTest(inMemoryCacheTestConfig)
+				},
+			)
 		})
-	})
 
-	Describe("Check background update", func() {
-		It("Should update resource in background on hit so next hit will show new data", func() {
-			backgroundUpdateTest(inMemoryCacheTestConfig)
+		Describe("Check background update", func() {
+			It(
+				"Should update resource in background on hit so next hit will show new data",
+				func() {
+					backgroundUpdateTest(inMemoryCacheTestConfig)
+				},
+			)
 		})
-	})
 
-	Describe("Check background update rate-based limit", func() {
-		It("Should skip background updates above the rate limit AND execute new background updates after interval", func() {
-			backgroundUpdateRateBasedLimitTest(inMemoryCacheTestConfig)
+		Describe("Check background update rate-based limit", func() {
+			It(
+				"Should skip background updates above the rate limit AND execute new background updates after interval",
+				func() {
+					backgroundUpdateRateBasedLimitTest(inMemoryCacheTestConfig)
+				},
+			)
 		})
-	})
 
-	Describe("Check background update concurrent-based limit", func() {
-		It("Should skip background updates above the concurrent limit AND execute new background updates when first background updates are over", func() {
-			backgroundUpdateConcurrentLimitTest(inMemoryCacheTestConfig)
+		Describe("Check background update concurrent-based limit", func() {
+			It(
+				"Should skip background updates above the concurrent limit AND execute new background updates when first background updates are over",
+				func() {
+					backgroundUpdateConcurrentLimitTest(inMemoryCacheTestConfig)
+				},
+			)
 		})
-	})
-	Describe("Check singleflight", func() {
-		It("Should access database only once when the same request is in progress", func() {
-			singleflightTest(inMemoryCacheTestConfig)
+		Describe("Check singleflight", func() {
+			It("Should access database only once when the same request is in progress", func() {
+				singleflightTest(inMemoryCacheTestConfig)
+			})
 		})
-	})
-})
+	},
+)

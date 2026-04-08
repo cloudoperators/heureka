@@ -5,6 +5,7 @@ package errors
 
 import (
 	stdErrors "errors"
+	"maps"
 	"strings"
 )
 
@@ -29,7 +30,7 @@ type Error struct {
 	Err error
 
 	// Fields contains additional structured metadata about the error
-	Fields map[string]interface{}
+	Fields map[string]any
 }
 
 // Error implements the error interface
@@ -45,6 +46,7 @@ func (e *Error) Error() string {
 		if e.ID != "" {
 			entity += "(" + e.ID + ")"
 		}
+
 		parts = append(parts, entity)
 	}
 
@@ -80,26 +82,22 @@ func (e *Error) Unwrap() error {
 }
 
 // With adds additional context fields to the error
-func (e *Error) With(fields map[string]interface{}) *Error {
+func (e *Error) With(fields map[string]any) *Error {
 	// Create a copy of the error
 	result := *e
 
 	// Initialize fields if nil
 	if result.Fields == nil {
-		result.Fields = make(map[string]interface{})
+		result.Fields = make(map[string]any)
 	} else {
 		// Create a new fields map with existing values
-		newFields := make(map[string]interface{}, len(e.Fields)+len(fields))
-		for k, v := range e.Fields {
-			newFields[k] = v
-		}
+		newFields := make(map[string]any, len(e.Fields)+len(fields))
+		maps.Copy(newFields, e.Fields)
 		result.Fields = newFields
 	}
 
 	// Add new fields
-	for k, v := range fields {
-		result.Fields[k] = v
-	}
+	maps.Copy(result.Fields, fields)
 
 	return &result
 }
@@ -121,7 +119,7 @@ func (e *Error) Is(target error) bool {
 }
 
 // As implements the errors.As interface for error type conversion
-func (e *Error) As(target interface{}) bool {
+func (e *Error) As(target any) bool {
 	// If target is an *Error pointer, set it to the current error
 	if t, ok := target.(**Error); ok {
 		*t = e
