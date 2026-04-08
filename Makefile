@@ -2,11 +2,12 @@ SERVER_IMAGE    := ghcr.io/cloudoperators/heureka
 VERSION  ?= $(shell git log -1 --pretty=format:"%H")
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
-
 SHELL=/bin/bash
-MIGRATIONS_DIR=internal/database/mariadb/migrations/
+MIGRATIONS_DIR ?=internal/database/mariadb/migrations/
+BASE_REF ?= main
 
-.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db fmt compose-prepare compose-up compose-down compose-restart compose-build check-call-cached check-migration-files
+.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db fmt compose-prepare compose-up compose-down compose-restart compose-build check-call-cached check-migration-files \
+migration-change-detected migration-test-conditional migration-test
 
 # Source the .env file to use the env vars with make
 -include .env
@@ -122,7 +123,38 @@ install-migrate:
 	go install -tags 'heureka-migration' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 create-migration:
-	@(test -v MIGRATION_NAME && migrate create -ext sql -dir internal/database/mariadb/migrations ${MIGRATION_NAME}) || echo MIGRATION_NAME not specified >&2
+	@(test -v MIGRATION_NAME && migrate create -ext sql -dir ${MIGRATIONS_DIR} ${MIGRATION_NAME}) || echo MIGRATION_NAME not specified >&2
+
+MARIADB_PASSWORD ?= my_password
+MARIADB_USER ?= root
+MARIADB_HOST ?= 127.0.0.1
+MARIADB_PORT ?= 3306
+MARIADB_CMD ?= mariadb -h ${MARIADB_HOST} -P ${MARIADB_PORT} -u ${MARIADB_USER} -p'${MARIADB_PASSWORD}'
+MARIADB_TEST_SCHEMA ?= heurekaTestSchema
+
+migration-change-detected:
+	@if git diff --quiet origin/${BASE_REF} -- ${MIGRATIONS_DIR}; then \
+		exit 1; \
+	else \
+		exit 0; \
+	fi
+
+migration-test-conditional:
+	@if git diff --quiet origin/${BASE_REF} -- ${MIGRATIONS_DIR}; then \
+		echo "No migration changes detected. Skipping."; \
+		exit 0; \
+	else \
+		@echo "Migration changes detected. Running tests..."; \
+		$(MAKE) migration-test; \
+	fi
+
+migration-test:
+	$(MARIADB_CMD) -e "DROP SCHEMA IF EXISTS ${MARIADB_TEST_SCHEMA};"
+	$(MARIADB_CMD) -e "CREATE SCHEMA ${MARIADB_TEST_SCHEMA};"
+	migrate -path ${MIGRATIONS_DIR} \
+	  -database "mysql://${MARIADB_USER}:${MARIADB_PASSWORD}@tcp(${MARIADB_HOST}:${MARIADB_PORT})/${MARIADB_TEST_SCHEMA}" up
+	migrate -path ${MIGRATIONS_DIR} \
+	  -database "mysql://${MARIADB_USER}:${MARIADB_PASSWORD}@tcp(${MARIADB_HOST}:${MARIADB_PORT})/${MARIADB_TEST_SCHEMA}" down -all
 
 check-call-cached:
 	go generate ./internal/cache
@@ -133,8 +165,8 @@ check-call-cached:
 # if smart commit was not found, check for modification of any migration file existing in main branch
 # NOTE: new files created in your branch will not be checked for modification/creation
 check-migration-files:
-	@git log origin/main..HEAD --pretty=%B | grep -Eq "[!]changeexistingmigration" || \
-	(comm -12 <(git diff --name-only origin/main...HEAD | grep '^$(MIGRATIONS_DIR)' | sort) <(git ls-tree -r --name-only origin/main | grep '^$(MIGRATIONS_DIR)' | sort) | grep -q . && { echo "Forbidden change detected!"; exit 1; } || echo "No forbidden changes.")
+	@git log origin/$(BASE_REF)..HEAD --pretty=%B | grep -Eq "[!]changeexistingmigration" || \
+	(comm -12 <(git diff --name-only origin/${BASE_REF}...HEAD | grep '^$(MIGRATIONS_DIR)' | sort) <(git ls-tree -r --name-only origin/main | grep '^$(MIGRATIONS_DIR)' | sort) | grep -q . && { echo "Forbidden change detected!"; exit 1; } || echo "No forbidden changes.")
 
 ui-up:
 	$(DOCKER_COMPOSE) --profile ui up -d
