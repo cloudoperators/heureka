@@ -22,7 +22,11 @@ func localKubeConfig() *rest.Config {
 	// path to kubeconfig
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", path.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		kubeconfig = flag.String(
+			"kubeconfig",
+			path.Join(home, ".kube", "config"),
+			"(optional) absolute path to the kubeconfig file",
+		)
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
@@ -40,7 +44,17 @@ func localKubeConfig() *rest.Config {
 func oidcBasedConfig() *rest.Config {
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		// replace path with a kubeconfig that has a valid oidc token for your cluster
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: path.Join(homedir.HomeDir(), "Library", "Application Support", "SAPCC", "u8s", ".kube", "config")},
+		&clientcmd.ClientConfigLoadingRules{
+			ExplicitPath: path.Join(
+				homedir.HomeDir(),
+				"Library",
+				"Application Support",
+				"SAPCC",
+				"u8s",
+				".kube",
+				"config",
+			),
+		},
 		// replace with the context you want to use
 		&clientcmd.ConfigOverrides{CurrentContext: "qa-de-1"},
 	).ClientConfig()
@@ -86,11 +100,29 @@ func main() {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Namespace", "Pod Name", "Container Name", "Image", "Container Ready", "Pod Status"})
+	t.AppendHeader(
+		table.Row{
+			"Namespace",
+			"Pod Name",
+			"Container Name",
+			"Image",
+			"Container Ready",
+			"Pod Status",
+		},
+	)
 	t.SetStyle(table.StyleColoredDark)
 	for _, pod := range pods.Items {
 		for _, containerS := range pod.Status.ContainerStatuses {
-			t.AppendRow([]interface{}{pod.Namespace, pod.Name, containerS.Name, containerS.Image, containerS.Ready, pod.Status.Phase})
+			t.AppendRow(
+				[]any{
+					pod.Namespace,
+					pod.Name,
+					containerS.Name,
+					containerS.Image,
+					containerS.Ready,
+					pod.Status.Phase,
+				},
+			)
 		}
 	}
 

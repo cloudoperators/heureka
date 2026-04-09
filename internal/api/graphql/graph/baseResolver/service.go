@@ -13,7 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.Service, error) {
+func SingleServiceBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	parent *model.NodeParent,
+) (*model.Service, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -21,7 +25,10 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 	}).Debug("Called SingleServiceBaseResolver")
 
 	if parent == nil {
-		return nil, NewResolverError("SingleServiceBaseResolver", "Bad Request - No parent provided")
+		return nil, NewResolverError(
+			"SingleServiceBaseResolver",
+			"Bad Request - No parent provided",
+		)
 	}
 
 	f := &entity.ServiceFilter{
@@ -38,7 +45,10 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 
 	// unexpected number of results (should at most be 1)
 	if len(services.Elements) > 1 {
-		return nil, NewResolverError("SingleServiceBaseResolver", "Internal Error - found multiple services")
+		return nil, NewResolverError(
+			"SingleServiceBaseResolver",
+			"Internal Error - found multiple services",
+		)
 	}
 
 	// not found
@@ -46,29 +56,47 @@ func SingleServiceBaseResolver(app app.Heureka, ctx context.Context, parent *mod
 		return nil, nil
 	}
 
-	var sr entity.ServiceResult = services.Elements[0]
+	sr := services.Elements[0]
+
 	service := model.NewService(sr.Service)
 
 	return &service, nil
 }
 
-func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy, parent *model.NodeParent) (*model.ServiceConnection, error) {
+func ServiceBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ServiceFilter,
+	first *int,
+	after *string,
+	orderBy []*model.ServiceOrderBy,
+	parent *model.NodeParent,
+) (*model.ServiceConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called ServiceBaseResolver")
 
-	var irId []*int64
-	var sgId []*int64
-	var ownerId []*int64
-	var issueId []*int64
+	var (
+		irId    []*int64
+		sgId    []*int64
+		ownerId []*int64
+		issueId []*int64
+	)
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("ServiceBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("ServiceBaseResolver", "Bad Request - Error while parsing propagated ID")
+			logrus.WithField("parent", parent).
+				Error("ServiceBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, NewResolverError(
+				"ServiceBaseResolver",
+				"Bad Request - Error while parsing propagated ID",
+			)
 		}
 
 		switch parent.ParentName {
@@ -103,14 +131,39 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	}
 
 	opt := GetListOptions(requestedFields)
+
 	for _, o := range orderBy {
 		if *o.By == model.ServiceOrderByFieldSeverity {
-			opt.Order = append(opt.Order, entity.Order{By: entity.CriticalCount, Direction: o.Direction.ToOrderDirectionEntity()})
-			opt.Order = append(opt.Order, entity.Order{By: entity.HighCount, Direction: o.Direction.ToOrderDirectionEntity()})
-			opt.Order = append(opt.Order, entity.Order{By: entity.MediumCount, Direction: o.Direction.ToOrderDirectionEntity()})
-			opt.Order = append(opt.Order, entity.Order{By: entity.LowCount, Direction: o.Direction.ToOrderDirectionEntity()})
-			opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: o.Direction.ToOrderDirectionEntity()})
-			opt.Order = append(opt.Order, entity.Order{By: entity.ServiceId, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(
+				opt.Order,
+				entity.Order{
+					By:        entity.CriticalCount,
+					Direction: o.Direction.ToOrderDirectionEntity(),
+				},
+			)
+			opt.Order = append(
+				opt.Order,
+				entity.Order{By: entity.HighCount, Direction: o.Direction.ToOrderDirectionEntity()},
+			)
+			opt.Order = append(
+				opt.Order,
+				entity.Order{
+					By:        entity.MediumCount,
+					Direction: o.Direction.ToOrderDirectionEntity(),
+				},
+			)
+			opt.Order = append(
+				opt.Order,
+				entity.Order{By: entity.LowCount, Direction: o.Direction.ToOrderDirectionEntity()},
+			)
+			opt.Order = append(
+				opt.Order,
+				entity.Order{By: entity.NoneCount, Direction: o.Direction.ToOrderDirectionEntity()},
+			)
+			opt.Order = append(
+				opt.Order,
+				entity.Order{By: entity.ServiceId, Direction: o.Direction.ToOrderDirectionEntity()},
+			)
 		} else {
 			opt.Order = append(opt.Order, o.ToOrderEntity())
 		}
@@ -122,6 +175,7 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 	}
 
 	edges := []*model.ServiceEdge{}
+
 	for _, result := range services.Elements {
 		s := model.NewServiceWithAggregations(&result)
 		edge := model.ServiceEdge{
@@ -155,27 +209,41 @@ func ServiceBaseResolver(app app.Heureka, ctx context.Context, filter *model.Ser
 		if f.CCRN != nil {
 			icFilter.ServiceCcrn = f.CCRN
 		} else {
-			icFilter.AllServices = lo.ToPtr(true)
+			icFilter.AllServices = new(true)
 		}
+
 		severityCounts, err := IssueCountsBaseResolver(app, ctx, icFilter, nil)
 		if err != nil {
 			return nil, NewResolverError("ServiceBaseResolver", err.Error())
 		}
+
 		connection.IssueCounts = severityCounts
 	}
 
 	return &connection, nil
 }
 
-func ServiceCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
+func ServiceCcrnBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ServiceFilter,
+) (*model.FilterItem, error) {
 	return ServiceFilterBaseResolver(app.ListServiceCcrns, ctx, filter, &FilterDisplayServiceCcrn)
 }
 
-func ServiceDomainBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
+func ServiceDomainBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ServiceFilter,
+) (*model.FilterItem, error) {
 	return ServiceFilterBaseResolver(app.ListServiceDomains, ctx, filter, &FilterDisplayDomain)
 }
 
-func ServiceRegionBaseResolver(app app.Heureka, ctx context.Context, filter *model.ServiceFilter) (*model.FilterItem, error) {
+func ServiceRegionBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ServiceFilter,
+) (*model.FilterItem, error) {
 	return ServiceFilterBaseResolver(app.ListServiceRegions, ctx, filter, &FilterDisplayRegion)
 }
 

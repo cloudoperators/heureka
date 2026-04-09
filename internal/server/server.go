@@ -82,9 +82,10 @@ func NewServer(cfg util.Config) *Server {
 	// kill -2 is syscall.SIGINT
 	// kill -9 is syscall. SIGKILL but can't be catch, so don't need add it
 	signal.Notify(s.sigs, syscall.SIGINT, syscall.SIGTERM)
+
 	go func() {
 		sig := <-s.sigs
-		logrus.Warn("Received signal: '%s'. Starting server shutdown.", sig)
+		logrus.Warn(fmt.Sprintf("Received signal: '%s'. Starting server shutdown.", sig))
 		cancel()
 	}()
 
@@ -155,7 +156,7 @@ func (s *Server) homeHandler(c *gin.Context) {
 }
 
 func (s *Server) infoHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, map[string]interface{}{"configuration": s.config})
+	c.JSON(http.StatusOK, map[string]any{"configuration": s.config})
 }
 
 func (s *Server) statusHandler(c *gin.Context) {
@@ -186,16 +187,20 @@ func (s *Server) NonBlockingStart() {
 
 func (s *Server) BlockingStop() {
 	s.shutdownFunc()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	if err := s.nonBlockingSrv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
 	}
+
 	if err := s.graphQLAPI.App.Shutdown(); err != nil {
 		log.Fatalf("Error while shuting down Heureka App: %s", err)
 	}
+
 	done := make(chan struct{})
+
 	go func() {
 		s.wg.Wait()
 		close(done)

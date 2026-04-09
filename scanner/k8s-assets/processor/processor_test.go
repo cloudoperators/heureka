@@ -64,7 +64,11 @@ var _ = Describe("Processor", func() {
 
 				uniqueContainers := p.CollectUniqueContainers(podReplicaSet)
 				Expect(uniqueContainers).To(HaveLen(3))
-				containerNames := []string{uniqueContainers[0].Name, uniqueContainers[1].Name, uniqueContainers[2].Name}
+				containerNames := []string{
+					uniqueContainers[0].Name,
+					uniqueContainers[1].Name,
+					uniqueContainers[2].Name,
+				}
 				Expect(containerNames).To(ConsistOf("container1", "container2", "container3"))
 
 				// Check counts
@@ -181,7 +185,11 @@ var _ = Describe("Processor", func() {
 			})
 
 			It("should handle when all containers across all pods are identical", func() {
-				container := scanner.ContainerInfo{Name: "container", Image: "image", ImageHash: "hash"}
+				container := scanner.ContainerInfo{
+					Name:      "container",
+					Image:     "image",
+					ImageHash: "hash",
+				}
 				podReplicaSet := scanner.PodSet{
 					GenerateName: "all-identical",
 					Pods: []scanner.PodInfo{

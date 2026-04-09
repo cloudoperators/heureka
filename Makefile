@@ -6,7 +6,7 @@ ARCH := $(shell go env GOARCH)
 SHELL=/bin/bash
 MIGRATIONS_DIR=internal/database/mariadb/migrations/
 
-.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db fmt compose-prepare compose-up compose-down compose-restart compose-build check-call-cached check-migration-files
+.PHONY: all test doc gqlgen mockery test-all test-e2e test-app test-db lint fmt pre-commit-prepare compose-prepare compose-up compose-down compose-restart compose-build check-call-cached check-migration-files
 
 # Source the .env file to use the env vars with make
 -include .env
@@ -99,8 +99,50 @@ test-db: gqlgen install-build-dependencies
 install-gofumpt:
 	go install mvdan.cc/gofumpt@latest
 
-fmt:
+install-golines:
+	go install github.com/golangci/golines@latest
+
+fmt: install-gofumpt install-golines
 	gofumpt -l -w .
+	golines -m 140 -l -w .
+
+install-golangci-lint:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0	
+
+lint: install-golangci-lint
+	golangci-lint run
+
+install-pre-commit:
+	@echo "Checking pre-commit installation..."
+
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		echo "pre-commit already installed"; \
+	else \
+		echo "Installing pre-commit..."; \
+		if [ "$$(uname)" = "Darwin" ]; then \
+			if command -v brew >/dev/null 2>&1; then \
+				brew install pre-commit; \
+			else \
+				pip3 install pre-commit; \
+			fi; \
+		elif [ "$$(uname)" = "Linux" ]; then \
+			if command -v pip3 >/dev/null 2>&1; then \
+				pip3 install pre-commit; \
+			else \
+				echo "pip3 not found, please install Python/pip"; \
+				exit 1; \
+			fi; \
+		elif echo "$$(uname)" | grep -qi "mingw\\|msys\\|cygwin"; then \
+			pip install pre-commit; \
+		else \
+			echo "Unknown OS, please install pre-commit manually"; \
+			exit 1; \
+		fi; \
+	fi
+
+pre-commit-prepare: install-pre-commit
+	pre-commit install
+	pre-commit install --hook-type pre-push
 
 DOCKER_COMPOSE := docker-compose -f docker-compose.yaml
 DOCKER_COMPOSE_SERVICES := heureka-app heureka-db valkey

@@ -17,23 +17,45 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *imageVersionResolver) Occurences(ctx context.Context, obj *model.ImageVersion, first *int, after *string) (*model.ComponentInstanceConnection, error) {
+func (r *imageVersionResolver) Occurences(
+	ctx context.Context,
+	obj *model.ImageVersion,
+	first *int,
+	after *string,
+) (*model.ComponentInstanceConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
+
 	ivFilter := rootCtx.Args["filter"].(*model.ImageVersionFilter)
 	if ivFilter == nil {
 		ivFilter = &model.ImageVersionFilter{}
 	}
+
 	filter := &model.ComponentInstanceFilter{
 		ServiceCcrn:            ivFilter.Service,
 		ComponentVersionDigest: ivFilter.Version,
 	}
-	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, filter, first, after, nil, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ComponentVersionNodeName,
-	})
+
+	return baseResolver.ComponentInstanceBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		nil,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.ComponentVersionNodeName,
+		},
+	)
 }
 
-func (r *imageVersionResolver) Vulnerabilities(ctx context.Context, obj *model.ImageVersion, first *int, after *string, filter *model.VulnerabilityFilter) (*model.VulnerabilityConnection, error) {
+func (r *imageVersionResolver) Vulnerabilities(
+	ctx context.Context,
+	obj *model.ImageVersion,
+	first *int,
+	after *string,
+	filter *model.VulnerabilityFilter,
+) (*model.VulnerabilityConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	ivFilter := rootCtx.Args["filter"].(*model.ImageVersionFilter)
 
@@ -47,22 +69,32 @@ func (r *imageVersionResolver) Vulnerabilities(ctx context.Context, obj *model.I
 
 	filter.Service = append(filter.Service, ivFilter.Service...)
 
-	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ImageVersionNodeName,
-	})
+	return baseResolver.VulnerabilityBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.ImageVersionNodeName,
+		},
+	)
 }
 
 func (r *imageVersionResolver) VulnerabilityCounts(ctx context.Context, obj *model.ImageVersion) (*model.SeverityCounts, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
+
 	ivFilter := rootCtx.Args["filter"].(*model.ImageVersionFilter)
 	if ivFilter == nil {
 		ivFilter = &model.ImageVersionFilter{}
 	}
+
 	filter := &model.IssueFilter{
 		ServiceCcrn:        ivFilter.Service,
 		ComponentVersionID: []*string{&obj.ID},
 	}
+
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ImageVersionNodeName,

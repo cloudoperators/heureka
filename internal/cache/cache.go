@@ -14,7 +14,7 @@ import (
 )
 
 type Cache interface {
-	CacheKey(fnname string, fn interface{}, args ...interface{}) (string, error)
+	CacheKey(fnname string, fn any, args ...any) (string, error)
 	Get(key string) (string, bool, error)
 	Set(key string, value string, ttl time.Duration) error
 	Invalidate(key string) error
@@ -30,47 +30,57 @@ type SingleflightWrapper interface {
 	Do(string, func() (any, error)) (any, error, bool)
 }
 
-func NewCache(ctx context.Context, wg *sync.WaitGroup, config interface{}) Cache {
+func NewCache(ctx context.Context, wg *sync.WaitGroup, config any) Cache {
 	switch c := config.(type) {
 	case InMemoryCacheConfig:
 		return NewInMemoryCache(ctx, wg, c)
 	case ValkeyCacheConfig:
 		return NewValkeyCache(ctx, wg, c)
 	}
+
 	return nil
 }
 
-func getCallParameters(fn interface{}, args ...interface{}) (reflect.Value, []reflect.Value, error) {
+func getCallParameters(fn any, args ...any) (reflect.Value, []reflect.Value, error) {
 	v := reflect.ValueOf(fn)
 	if v.Kind() != reflect.Func {
-		return reflect.Value{}, []reflect.Value{}, errors.New("Expected function parameter is not a function")
+		return reflect.Value{}, []reflect.Value{}, errors.New(
+			"expected function parameter is not a function",
+		)
 	}
 
 	if len(args) != v.Type().NumIn() {
-		return reflect.Value{}, []reflect.Value{}, errors.New("Incorrect number of arguments for the function")
+		return reflect.Value{}, []reflect.Value{}, errors.New(
+			"incorrect number of arguments for the function",
+		)
 	}
 
 	in := make([]reflect.Value, len(args))
 	for i, arg := range args {
 		argVal := reflect.ValueOf(arg)
 		if !argVal.Type().AssignableTo(v.Type().In(i)) {
-			return reflect.Value{}, []reflect.Value{}, fmt.Errorf("Argument %d has incorrect type", i)
+			return reflect.Value{}, []reflect.Value{}, fmt.Errorf(
+				"argument %d has incorrect type",
+				i,
+			)
 		}
+
 		in[i] = argVal
 	}
+
 	return v, in, nil
 }
 
 func getReturnValues[T any](out []reflect.Value) (T, error) {
 	var zero T
 	if len(out) != 2 {
-		return zero, fmt.Errorf("Function call returned incorrect number of values")
+		return zero, fmt.Errorf("function call returned incorrect number of values")
 	}
 
 	// Assert first return to T
 	result, ok := out[0].Interface().(T)
 	if !ok {
-		return zero, fmt.Errorf("Type assertion to %T failed", zero)
+		return zero, fmt.Errorf("type assertion to %T failed", zero)
 	}
 
 	// Assert second return to error
@@ -78,30 +88,34 @@ func getReturnValues[T any](out []reflect.Value) (T, error) {
 	if errInterface != nil {
 		err, ok := errInterface.(error)
 		if !ok {
-			return zero, errors.New("Second return value is not an error")
+			return zero, errors.New("second return value is not an error")
 		}
-		return zero, fmt.Errorf("Execution failed: %w", err)
+
+		return zero, fmt.Errorf("execution failed: %w", err)
 	}
+
 	return result, nil
 }
 
-func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn interface{}, args ...interface{}) (T, error) {
+func CallCached[T any](c Cache, ttl time.Duration, fnname string, fn any, args ...any) (T, error) {
 	if c == nil {
 		return callDisabled[T](fn, args...)
 	}
+
 	return callEnabled[T](c, ttl, fnname, fn, args...)
 }
 
-func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn interface{}, args ...interface{}) (T, error) {
+func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn any, args ...any) (T, error) {
 	var zero T
+
 	v, in, err := getCallParameters(fn, args...)
 	if err != nil {
-		return zero, fmt.Errorf("Cache (param): Get call parameters failed: %w", err)
+		return zero, fmt.Errorf("cache (param): Get call parameters failed: %w", err)
 	}
 
 	key, err := c.CacheKey(fnname, fn, args...)
 	if err != nil {
-		return zero, fmt.Errorf("Cache (key): Could not create cache key.")
+		return zero, fmt.Errorf("cache (key): Could not create cache key")
 	}
 
 	if s, ok, err := c.Get(key); err == nil && ok {
@@ -111,44 +125,59 @@ func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn interface{
 			c.LaunchRefresh(func() {
 				_, _ = callFn[T](c, ttl, key, v, in)
 			})
+
 			return val, nil
 		}
+
 		_ = c.Invalidate(key) // poison-pill protection
 	} else if err != nil {
-		return zero, fmt.Errorf("Cache (get): %w", err)
+		return zero, fmt.Errorf("cache (get): %w", err)
 	}
 
 	c.IncMiss()
+
 	return callFn[T](c, ttl, key, v, in)
 }
 
-func callDisabled[T any](fn interface{}, args ...interface{}) (T, error) {
+func callDisabled[T any](fn any, args ...any) (T, error) {
 	var zero T
+
 	v, in, err := getCallParameters(fn, args...)
 	if err != nil {
-		return zero, fmt.Errorf("NoCache (param): Get call parameters failed: %w", err)
+		return zero, fmt.Errorf("noCache (param): Get call parameters failed: %w", err)
 	}
+
 	out := v.Call(in)
+
 	return getReturnValues[T](out)
 }
 
-func callFn[T any](c Cache, ttl time.Duration, key string, v reflect.Value, in []reflect.Value) (T, error) {
+func callFn[T any](
+	c Cache,
+	ttl time.Duration,
+	key string,
+	v reflect.Value,
+	in []reflect.Value,
+) (T, error) {
 	var zero T
+
 	fnExecuted := false
 	untypedResult, err, shared := c.GetSingleflightWrapper().Do(key, func() (any, error) {
 		fnExecuted = true
 		out := v.Call(in)
+
 		result, err := getReturnValues[T](out)
 		if err != nil {
-			return zero, fmt.Errorf("Cache (fcall): Return value error: %w", err)
+			return zero, fmt.Errorf("cache (fcall): Return value error: %w", err)
 		} else if enc, encErr := encode(result); encErr == nil {
 			err = c.Set(key, enc, ttl)
 			if err != nil {
-				return zero, fmt.Errorf("Cache (set): %w", err)
+				return zero, fmt.Errorf("cache (set): %w", err)
 			}
 		} else {
-			return zero, fmt.Errorf("Cache (encode): %w", err)
+			return zero, fmt.Errorf("cache (encode): %w", err)
 		}
+
 		return result, nil
 	})
 
@@ -162,8 +191,9 @@ func callFn[T any](c Cache, ttl time.Duration, key string, v reflect.Value, in [
 
 	result, ok := untypedResult.(T)
 	if !ok {
-		return zero, fmt.Errorf("Cache (type): cannot cast result to expected type")
+		return zero, fmt.Errorf("cache (type): cannot cast result to expected type")
 	}
+
 	return result, nil
 }
 
@@ -173,26 +203,31 @@ func encode[T any](v T) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("encode: %w", err)
 	}
+
 	return string(b), nil
 }
 
 // decode unmarshals a JSON string back into a value of type T.
 func decode[T any](s string) (T, error) {
 	var v T
+
 	err := json.Unmarshal([]byte(s), &v)
 	if err != nil {
 		return v, fmt.Errorf("decode: %w", err)
 	}
+
 	return v, nil
 }
 
 func DecodeKey(key string, keyHash KeyHashType) (string, error) {
-	if keyHash == KEY_HASH_BASE64 {
+	switch keyHash {
+	case KEY_HASH_BASE64:
 		return decodeBase64(key)
-	} else if keyHash == KEY_HASH_HEX {
+	case KEY_HASH_HEX:
 		return decodeHex(key)
-	} else if keyHash == KEY_HASH_NONE {
+	case KEY_HASH_NONE:
 		return key, nil
 	}
-	return "", fmt.Errorf("Cache: Key hash '%s' could not be decoded", keyHash.String())
+
+	return "", fmt.Errorf("cache: Key hash '%s' could not be decoded", keyHash.String())
 }

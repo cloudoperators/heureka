@@ -26,6 +26,7 @@ func CombineFilterWithAccessibleIds(filterIds []*int64, accessibleIds []*int64) 
 			filterIds = accessibleIds
 		}
 	}
+
 	return filterIds
 }
 
@@ -33,26 +34,33 @@ func CombineFilterWithAccessibleIds(filterIds []*int64, accessibleIds []*int64) 
 // Example: slice1 = [1, 2, 3], slice2 = [2, 3, 4] => returns [2, 3]
 func getIntersectionOfIdSlices(slice1 []*int64, slice2 []*int64) []*int64 {
 	set := make(map[int64]struct{})
+
 	for _, v := range slice1 {
 		if v == nil {
 			continue
 		}
+
 		set[*v] = struct{}{}
 	}
 
 	var intersection []*int64
+
 	for _, v := range slice2 {
 		if v == nil {
 			continue
 		}
+
 		if _, found := set[*v]; found {
 			intersection = append(intersection, v)
 		}
 	}
+
 	return intersection
 }
 
 // Int64Ptr returns a pointer to the given int64 value.
+//
+//go:fix inline
 func Int64Ptr(i int64) *int64 {
-	return &i
+	return new(i)
 }

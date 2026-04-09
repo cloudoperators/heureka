@@ -27,7 +27,13 @@ func ScannerRunTagFilterValues(app app.Heureka, ctx context.Context) ([]*string,
 	return res, nil
 }
 
-func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) (*model.ScannerRunConnection, error) {
+func ScannerRuns(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ScannerRunFilter,
+	first *int,
+	after *string,
+) (*model.ScannerRunConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	listOptions := GetListOptions(requestedFields)
 
@@ -69,6 +75,7 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 	}
 
 	hasNext := false
+
 	if first == nil {
 		first = pointer.Int(0)
 	}
@@ -80,6 +87,7 @@ func ScannerRuns(app app.Heureka, ctx context.Context, filter *model.ScannerRunF
 	if after == nil {
 		after = pointer.String("")
 	}
+
 	hasPrevious := len(*after) > 0
 
 	var edges []*model.ScannerRunEdge

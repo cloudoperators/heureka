@@ -18,7 +18,13 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *issueMatchResolver) EffectiveIssueVariants(ctx context.Context, obj *model.IssueMatch, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error) {
+func (r *issueMatchResolver) EffectiveIssueVariants(
+	ctx context.Context,
+	obj *model.IssueMatch,
+	filter *model.IssueVariantFilter,
+	first *int,
+	after *string,
+) (*model.IssueVariantConnection, error) {
 	return baseResolver.EffectiveIssueVariantBaseResolver(
 		r.App,
 		ctx,

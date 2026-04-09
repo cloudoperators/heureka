@@ -89,7 +89,9 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		var eventHandled int64
 
 		handler := func(db database.Database, e Event, authz openfga.Authorization) {
-			time.Sleep(2 * time.Millisecond) //important to ensure that the events are shortly blocking and force channel resizing
+			time.Sleep(
+				2 * time.Millisecond,
+			) // important to ensure that the events are shortly blocking and force channel resizing
 			atomic.AddInt64(&eventHandled, 1)
 		}
 
@@ -97,12 +99,10 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		er.RegisterEventHandler("concurrent_test", EventHandlerFunc(handler))
 
 		var wg sync.WaitGroup
-		for i := 0; i < numEvents; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range numEvents {
+			wg.Go(func() {
 				er.PushEvent(NewTestEvent("concurrent_test"))
-			}()
+			})
 		}
 
 		wg.Wait()
@@ -116,8 +116,13 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		for {
 			select {
 			case <-deadline:
-				Fail(fmt.Sprintf("Timeout waiting for events to be processed. Processed: %d, Expected: %d",
-					atomic.LoadInt64(&eventHandled), numEvents))
+				Fail(
+					fmt.Sprintf(
+						"Timeout waiting for events to be processed. Processed: %d, Expected: %d",
+						atomic.LoadInt64(&eventHandled),
+						numEvents,
+					),
+				)
 				return
 			case <-ticker.C:
 				if atomic.LoadInt64(&eventHandled) == int64(numEvents) {
@@ -140,21 +145,25 @@ var _ = Describe("EventRegistry", Label("app", "event", "EventRegistry"), func()
 		er.RegisterEventHandler("overflow_test", EventHandlerFunc(handler))
 
 		// Push events
-		for i := 0; i < numEvents; i++ {
+		for range numEvents {
 			er.PushEvent(NewTestEvent("overflow_test"))
 		}
 
 		// Wait for all events to be processed
 		// All go routines should be finished after 10s
 		timeout := time.After(10 * time.Second)
-		for {
+		for atomic.LoadInt64(&eventHandled) != int64(numEvents) {
 			// Check for what's expected (all go routines have incremented the counter)
-			if atomic.LoadInt64(&eventHandled) == int64(numEvents) {
-				break
-			}
+
 			select {
 			case <-timeout:
-				Fail(fmt.Sprintf("Timeout waiting for events to be processed. Processed: %d, Expected: %d", atomic.LoadInt64(&eventHandled), numEvents))
+				Fail(
+					fmt.Sprintf(
+						"Timeout waiting for events to be processed. Processed: %d, Expected: %d",
+						atomic.LoadInt64(&eventHandled),
+						numEvents,
+					),
+				)
 			default:
 				time.Sleep(50 * time.Millisecond)
 			}

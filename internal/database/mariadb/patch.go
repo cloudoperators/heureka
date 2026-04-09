@@ -14,12 +14,36 @@ import (
 var patchObject = DbObject[*entity.Patch]{
 	Properties: []*Property{},
 	FilterProperties: []*FilterProperty{
-		NewFilterProperty("P.patch_id = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.Id })),
-		NewFilterProperty("P.patch_service_id = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.ServiceId })),
-		NewFilterProperty("P.patch_service_name = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*string { return filter.ServiceName })),
-		NewFilterProperty("P.patch_component_version_id = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.ComponentVersionId })),
-		NewFilterProperty("P.patch_component_version_name = ?", WrapRetSlice(func(filter *entity.PatchFilter) []*string { return filter.ComponentVersionName })),
-		NewStateFilterProperty("P.patch", WrapRetState(func(filter *entity.PatchFilter) []entity.StateFilterType { return filter.State })),
+		NewFilterProperty(
+			"P.patch_id = ?",
+			WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.Id }),
+		),
+		NewFilterProperty(
+			"P.patch_service_id = ?",
+			WrapRetSlice(func(filter *entity.PatchFilter) []*int64 { return filter.ServiceId }),
+		),
+		NewFilterProperty(
+			"P.patch_service_name = ?",
+			WrapRetSlice(func(filter *entity.PatchFilter) []*string { return filter.ServiceName }),
+		),
+		NewFilterProperty(
+			"P.patch_component_version_id = ?",
+			WrapRetSlice(
+				func(filter *entity.PatchFilter) []*int64 { return filter.ComponentVersionId },
+			),
+		),
+		NewFilterProperty(
+			"P.patch_component_version_name = ?",
+			WrapRetSlice(
+				func(filter *entity.PatchFilter) []*string { return filter.ComponentVersionName },
+			),
+		),
+		NewStateFilterProperty(
+			"P.patch",
+			WrapRetState(
+				func(filter *entity.PatchFilter) []entity.StateFilterType { return filter.State },
+			),
+		),
 	},
 }
 
@@ -27,23 +51,32 @@ func ensurePatchFilter(filter *entity.PatchFilter) *entity.PatchFilter {
 	if filter == nil {
 		filter = &entity.PatchFilter{}
 	}
+
 	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) buildPatchStatement(baseQuery string, filter *entity.PatchFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildPatchStatement(
+	baseQuery string,
+	filter *entity.PatchFilter,
+	withCursor bool,
+	order []entity.Order,
+	l *logrus.Entry,
+) (Stmt, []any, error) {
 	filter = ensurePatchFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode Patch cursor: %w", err)
 	}
+
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	order = GetDefaultOrder(order, entity.PatchId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 
 	filterStr := patchObject.GetFilterQuery(filter)
+
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -69,6 +102,7 @@ func (s *SqlDatabase) buildPatchStatement(baseQuery string, filter *entity.Patch
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, nil, fmt.Errorf("failed to prepare Patch statement: %w", err)
 	}
 
@@ -77,7 +111,10 @@ func (s *SqlDatabase) buildPatchStatement(baseQuery string, filter *entity.Patch
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetPatches(filter *entity.PatchFilter, order []entity.Order) ([]entity.PatchResult, error) {
+func (s *SqlDatabase) GetPatches(
+	filter *entity.PatchFilter,
+	order []entity.Order,
+) ([]entity.PatchResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"order":  order,
@@ -96,7 +133,11 @@ func (s *SqlDatabase) GetPatches(filter *entity.PatchFilter, order []entity.Orde
 		return nil, fmt.Errorf("failed to build Patch query: %w", err)
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	results, err := performListScan(
 		stmt,
@@ -112,6 +153,7 @@ func (s *SqlDatabase) GetPatches(filter *entity.PatchFilter, order []entity.Orde
 				},
 				Patch: &p,
 			}
+
 			return append(l, pr)
 		},
 	)
@@ -133,12 +175,23 @@ func (s *SqlDatabase) CountPatches(filter *entity.PatchFilter) (int64, error) {
 		%s
         ORDER BY %s
 	`
-	stmt, filterParameters, err := s.buildPatchStatement(baseQuery, filter, false, []entity.Order{}, l)
+
+	stmt, filterParameters, err := s.buildPatchStatement(
+		baseQuery,
+		filter,
+		false,
+		[]entity.Order{},
+		l,
+	)
 	if err != nil {
 		return -1, fmt.Errorf("failed to build Patch count query: %w", err)
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	count, err := performCountScan(stmt, filterParameters, l)
 	if err != nil {
@@ -148,7 +201,10 @@ func (s *SqlDatabase) CountPatches(filter *entity.PatchFilter) (int64, error) {
 	return count, nil
 }
 
-func (s *SqlDatabase) GetAllPatchCursors(filter *entity.PatchFilter, order []entity.Order) ([]string, error) {
+func (s *SqlDatabase) GetAllPatchCursors(
+	filter *entity.PatchFilter,
+	order []entity.Order,
+) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetAllPatchCursors",
@@ -160,12 +216,17 @@ func (s *SqlDatabase) GetAllPatchCursors(filter *entity.PatchFilter, order []ent
     `
 
 	filter = ensurePatchFilter(filter)
+
 	stmt, filterParameters, err := s.buildPatchStatement(baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch cursor query: %w", err)
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	rows, err := performListScan(
 		stmt,

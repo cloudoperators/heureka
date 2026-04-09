@@ -11,7 +11,6 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue"
-	appIssue "github.com/cloudoperators/heureka/internal/app/issue"
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	appErrors "github.com/cloudoperators/heureka/internal/errors"
 	"github.com/cloudoperators/heureka/internal/openfga"
@@ -88,7 +87,9 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 			// Verify it's our structured error with correct code
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument), "should be InvalidArgument error")
+			Expect(
+				appErr.Code,
+			).To(Equal(appErrors.InvalidArgument), "should be InvalidArgument error")
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
 			Expect(appErr.Op).To(Equal("issueHandler.GetIssue"), "should include operation")
 		})
@@ -101,7 +102,9 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-			Expect(appErr.Code).To(Equal(appErrors.InvalidArgument), "should be InvalidArgument error")
+			Expect(
+				appErr.Code,
+			).To(Equal(appErrors.InvalidArgument), "should be InvalidArgument error")
 		})
 	})
 
@@ -127,7 +130,8 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 		It("should return Internal error wrapping the database error", func() {
 			// Setup mock to return database error
 			dbError := errors.New("database connection failed")
-			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, dbError)
+			db.On("GetIssues", mock.Anything, []entity.Order{}).
+				Return([]entity.IssueResult{}, dbError)
 
 			result, err := issueHandler.GetIssue(123)
 
@@ -154,6 +158,7 @@ func getIssueFilter() *entity.IssueFilter {
 
 func getIssueListOptions() *entity.IssueListOptions {
 	listOptions := entity.NewListOptions()
+
 	return &entity.IssueListOptions{
 		ListOptions:         *listOptions,
 		ShowIssueTypeCounts: false,
@@ -209,39 +214,59 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
-		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-			filter.First = &pageSize
-			issues := []entity.IssueResult{}
-			for _, i := range test.NNewFakeIssueEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0))
-				issues = append(issues, entity.IssueResult{WithCursor: entity.WithCursor{Value: cursor}, Issue: lo.ToPtr(i)})
-			}
+		DescribeTable(
+			"pagination information is correct",
+			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+				filter.First = &pageSize
+				issues := []entity.IssueResult{}
+				for _, i := range test.NNewFakeIssueEntities(resElements) {
+					cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, i, 0))
+					issues = append(
+						issues,
+						entity.IssueResult{
+							WithCursor: entity.WithCursor{Value: cursor},
+							Issue:      new(i),
+						},
+					)
+				}
 
-			cursors := lo.Map(issues, func(ir entity.IssueResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0))
-				return cursor
-			})
+				cursors := lo.Map(issues, func(ir entity.IssueResult, _ int) string {
+					cursor, _ := mariadb.EncodeCursor(
+						mariadb.WithIssue([]entity.Order{}, *ir.Issue, 0),
+					)
+					return cursor
+				})
 
-			var i int64 = 0
-			for len(cursors) < dbElements {
-				i++
-				issue := test.NewFakeIssueEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0))
-				cursors = append(cursors, c)
-			}
-			db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
-			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
-			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
-			issueHandler = appIssue.NewIssueHandler(handlerContext)
-			res, err := issueHandler.ListIssues(filter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-		},
+				var i int64 = 0
+				for len(cursors) < dbElements {
+					i++
+					issue := test.NewFakeIssueEntity()
+					c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0))
+					cursors = append(cursors, c)
+				}
+				db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
+				db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
+				db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
+				issueHandler = issue.NewIssueHandler(handlerContext)
+				res, err := issueHandler.ListIssues(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(
+					*res.PageInfo.HasNextPage,
+				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+				Expect(
+					len(res.PageInfo.Pages),
+				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			},
 			Entry("When pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
 			Entry("When pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
-			Entry("When pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+			Entry(
+				"When pageSize is 10 and the database was returning 11 elements",
+				10,
+				11,
+				10,
+				true,
+			),
 		)
 	})
 
@@ -251,7 +276,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the given filter does not have any matches in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).
+					Return([]entity.IssueResult{}, nil)
 			})
 
 			It("should return an empty result", func() {
@@ -263,7 +289,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return(test.NNewFakeIssueResultsWithAggregations(10), nil)
+				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).
+					Return(test.NNewFakeIssueResultsWithAggregations(10), nil)
 			})
 			It("should return the expected issues in the result", func() {
 				issueHandler = issue.NewIssueHandler(handlerContext)
@@ -274,7 +301,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).Return([]entity.IssueResult{}, errors.New("database error"))
+				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).
+					Return([]entity.IssueResult{}, errors.New("database error"))
 			})
 
 			It("should return the expected issues in the result", func() {
@@ -311,7 +339,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssues", filter, []entity.Order{}).Return(test.NNewFakeIssueResults(15), nil)
+				db.On("GetIssues", filter, []entity.Order{}).
+					Return(test.NNewFakeIssueResults(15), nil)
 			})
 			It("should return the expected issues in the result", func() {
 				issueHandler = issue.NewIssueHandler(handlerContext)
@@ -323,7 +352,8 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, errors.New("database error"))
+				db.On("GetIssues", filter, []entity.Order{}).
+					Return([]entity.IssueResult{}, errors.New("database error"))
 			})
 
 			It("should return the expected issues in the result", func() {
@@ -345,7 +375,7 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 	Context("when GetAllIssueCursors fails", func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
-			filter.First = lo.ToPtr(10)
+			filter.First = new(10)
 		})
 
 		It("should return Internal error", func() {
@@ -387,7 +417,9 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
-			Expect(appErr.Entity).To(Equal("IssueTypeCounts"), "should reference IssueTypeCounts entity")
+			Expect(
+				appErr.Entity,
+			).To(Equal("IssueTypeCounts"), "should reference IssueTypeCounts entity")
 			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
 			Expect(appErr.Op).To(Equal("issueHandler.ListIssues"), "should include operation")
 		})
@@ -459,7 +491,9 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 			Expect(appErr.Entity).To(Equal("IssueNames"), "should reference IssueNames entity")
 			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
 			Expect(appErr.Op).To(Equal("issueHandler.ListIssueNames"), "should include operation")
-			Expect(appErr.Err.Error()).To(ContainSubstring("database connection failed"), "should contain original error message")
+			Expect(
+				appErr.Err.Error(),
+			).To(ContainSubstring("database connection failed"), "should contain original error message")
 		})
 	})
 })
@@ -535,9 +569,14 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
 			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
-			Expect(appErr.Message).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
-			// The GetCurrentUserId function wraps the original error, so we need to check the wrapped error message
-			Expect(appErr.Err.Error()).To(ContainSubstring("user database connection failed"), "should wrap original error")
+			Expect(
+				appErr.Message,
+			).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
+			// The GetCurrentUserId function wraps the original error, so we need to check the
+			// wrapped error message
+			Expect(
+				appErr.Err.Error(),
+			).To(ContainSubstring("user database connection failed"), "should wrap original error")
 		})
 	})
 
@@ -547,7 +586,8 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
 			// Mock ListIssues failure
 			listError := errors.New("database query failed")
-			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, listError)
+			db.On("GetIssues", mock.Anything, []entity.Order{}).
+				Return([]entity.IssueResult{}, listError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
@@ -560,7 +600,9 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
 			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
-			Expect(appErr.Message).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
+			Expect(
+				appErr.Message,
+			).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
 		})
 	})
 
@@ -586,9 +628,13 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
 			Expect(appErr.Code).To(Equal(appErrors.AlreadyExists), "should be AlreadyExists error")
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
-			Expect(appErr.ID).To(Equal(issueEntity.PrimaryName), "should include primary name as ID")
+			Expect(
+				appErr.ID,
+			).To(Equal(issueEntity.PrimaryName), "should include primary name as ID")
 			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
-			Expect(appErr.Message).To(Equal("already exists"), "should have standard AlreadyExists message")
+			Expect(
+				appErr.Message,
+			).To(Equal("already exists"), "should have standard AlreadyExists message")
 		})
 	})
 
@@ -600,7 +646,8 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			// Mock database creation failure
 			dbError := errors.New("constraint violation")
-			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).Return((*entity.Issue)(nil), dbError)
+			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).
+				Return((*entity.Issue)(nil), dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
@@ -613,7 +660,9 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
 			Expect(appErr.Op).To(Equal("issueHandler.CreateIssue"), "should include operation")
-			Expect(appErr.Message).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
+			Expect(
+				appErr.Message,
+			).To(BeEmpty(), "Internal errors from InternalError helper don't set custom messages")
 			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
 		})
 	})
@@ -651,12 +700,16 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
 			db.On("UpdateIssue", issueResult.Issue).Return(nil)
 			filter.Id = []*int64{&issueResult.Issue.Id}
-			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{issueResult}, nil)
+			db.On("GetIssues", filter, []entity.Order{}).
+				Return([]entity.IssueResult{issueResult}, nil)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			issueResult.Issue.Description = "New Description"
 
-			updatedIssue, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
+			updatedIssue, err := issueHandler.UpdateIssue(
+				common.NewAdminContext(),
+				issueResult.Issue,
+			)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(updatedIssue).ToNot(BeNil(), "updated issue should be returned")
@@ -681,7 +734,9 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
-			Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
+			Expect(
+				appErr.ID,
+			).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
 			Expect(appErr.Op).To(Equal("issueHandler.UpdateIssue"), "should include operation")
 		})
 	})
@@ -704,7 +759,9 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
-			Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
+			Expect(
+				appErr.ID,
+			).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
 			Expect(appErr.Op).To(Equal("issueHandler.UpdateIssue"), "should include operation")
 			Expect(appErr.Err).To(Equal(dbError), "should wrap original error")
 		})
@@ -717,7 +774,8 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			db.On("UpdateIssue", issueResult.Issue).Return(nil)
 			// Mock ListIssues failure
 			listError := errors.New("database query failed")
-			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, listError)
+			db.On("GetIssues", mock.Anything, []entity.Order{}).
+				Return([]entity.IssueResult{}, listError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			result, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
@@ -729,7 +787,9 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
 			Expect(appErr.Entity).To(Equal("Issue"), "should reference Issue entity")
-			Expect(appErr.ID).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
+			Expect(
+				appErr.ID,
+			).To(Equal(strconv.FormatInt(issueResult.Issue.Id, 10)), "should include issue ID")
 			Expect(appErr.Op).To(Equal("issueHandler.UpdateIssue"), "should include operation")
 		})
 	})
@@ -744,9 +804,9 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 		updatedIssue, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
-			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issueResult.Issue.PrimaryName))
+			Expect(updatedIssue.PrimaryName).To(BeEquivalentTo(issueResult.PrimaryName))
 			Expect(updatedIssue.Description).To(BeEquivalentTo(issueResult.Issue.Description))
-			Expect(updatedIssue.Type.String()).To(BeEquivalentTo(issueResult.Issue.Type.String()))
+			Expect(updatedIssue.Type.String()).To(BeEquivalentTo(issueResult.Type.String()))
 		})
 	})
 })
@@ -843,125 +903,150 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 	})
 })
 
-var _ = Describe("When modifying relationship of ComponentVersion and Issue", Label("app", "ComponentVersionIssueRelationship"), func() {
-	var (
-		db               *mocks.MockDatabase
-		issueHandler     issue.IssueHandler
-		issueResult      entity.IssueResult
-		componentVersion entity.ComponentVersion
-		handlerContext   common.HandlerContext
-	)
+var _ = Describe(
+	"When modifying relationship of ComponentVersion and Issue",
+	Label("app", "ComponentVersionIssueRelationship"),
+	func() {
+		var (
+			db               *mocks.MockDatabase
+			issueHandler     issue.IssueHandler
+			issueResult      entity.IssueResult
+			componentVersion entity.ComponentVersion
+			handlerContext   common.HandlerContext
+		)
 
-	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
-		issueResult = test.NewFakeIssueResult()
-		componentVersion = test.NewFakeComponentVersionEntity()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
-	})
-
-	It("adds componentVersion to issueEntity", func() {
-		db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
-		db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
-		issueHandler = issue.NewIssueHandler(handlerContext)
-		issue, err := issueHandler.AddComponentVersionToIssue(issueResult.Issue.Id, componentVersion.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
-	})
-
-	It("removes componentVersion from issueEntity", func() {
-		db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).Return(nil)
-		db.On("GetIssues", mock.Anything, mock.Anything).Return([]entity.IssueResult{issueResult}, nil)
-		issueHandler = issue.NewIssueHandler(handlerContext)
-		issue, err := issueHandler.RemoveComponentVersionFromIssue(issueResult.Issue.Id, componentVersion.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
-	})
-})
-
-var _ = Describe("When getting Issue Severity Counts", Label("app", "GetIssueSeverityCounts"), func() {
-	var (
-		db             *mocks.MockDatabase
-		issueHandler   issue.IssueHandler
-		filter         *entity.IssueFilter
-		handlerContext common.HandlerContext
-	)
-
-	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
-		filter = getIssueFilter()
-		handlerContext = common.HandlerContext{
-			DB:       db,
-			EventReg: er,
-			Authz:    authz,
-		}
-	})
-
-	Context("with valid input", func() {
-		It("returns issue severity counts successfully", func() {
-			expectedCounts := &entity.IssueSeverityCounts{
-				Critical: 10,
-				High:     25,
-				Medium:   50,
-				Low:      15,
+		BeforeEach(func() {
+			db = mocks.NewMockDatabase(GinkgoT())
+			issueResult = test.NewFakeIssueResult()
+			componentVersion = test.NewFakeComponentVersionEntity()
+			handlerContext = common.HandlerContext{
+				DB:       db,
+				EventReg: er,
+				Authz:    authz,
 			}
-			db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
-
-			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.GetIssueSeverityCounts(filter)
-
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(result).ToNot(BeNil(), "result should be returned")
-			Expect(result).To(Equal(expectedCounts), "should return expected severity counts")
-			Expect(result.Critical).To(Equal(int64(10)), "should return correct critical count")
-			Expect(result.High).To(Equal(int64(25)), "should return correct high count")
-			Expect(result.Medium).To(Equal(int64(50)), "should return correct medium count")
-			Expect(result.Low).To(Equal(int64(15)), "should return correct low count")
 		})
 
-		It("returns zero counts when no issues found", func() {
-			expectedCounts := &entity.IssueSeverityCounts{
-				Critical: 0,
-				High:     0,
-				Medium:   0,
-				Low:      0,
+		It("adds componentVersion to issueEntity", func() {
+			db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).
+				Return(nil)
+			db.On("GetIssues", mock.Anything, mock.Anything).
+				Return([]entity.IssueResult{issueResult}, nil)
+			issueHandler = issue.NewIssueHandler(handlerContext)
+			issue, err := issueHandler.AddComponentVersionToIssue(
+				issueResult.Issue.Id,
+				componentVersion.Id,
+			)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
+		})
+
+		It("removes componentVersion from issueEntity", func() {
+			db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).
+				Return(nil)
+			db.On("GetIssues", mock.Anything, mock.Anything).
+				Return([]entity.IssueResult{issueResult}, nil)
+			issueHandler = issue.NewIssueHandler(handlerContext)
+			issue, err := issueHandler.RemoveComponentVersionFromIssue(
+				issueResult.Issue.Id,
+				componentVersion.Id,
+			)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(issue).NotTo(BeNil(), "issueEntity should be returned")
+		})
+	},
+)
+
+var _ = Describe(
+	"When getting Issue Severity Counts",
+	Label("app", "GetIssueSeverityCounts"),
+	func() {
+		var (
+			db             *mocks.MockDatabase
+			issueHandler   issue.IssueHandler
+			filter         *entity.IssueFilter
+			handlerContext common.HandlerContext
+		)
+
+		BeforeEach(func() {
+			db = mocks.NewMockDatabase(GinkgoT())
+			filter = getIssueFilter()
+			handlerContext = common.HandlerContext{
+				DB:       db,
+				EventReg: er,
+				Authz:    authz,
 			}
-			db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
-
-			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.GetIssueSeverityCounts(filter)
-
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(result).ToNot(BeNil(), "result should be returned")
-			Expect(result.Critical).To(Equal(int64(0)), "should return zero critical count")
-			Expect(result.High).To(Equal(int64(0)), "should return zero high count")
-			Expect(result.Medium).To(Equal(int64(0)), "should return zero medium count")
-			Expect(result.Low).To(Equal(int64(0)), "should return zero low count")
 		})
-	})
 
-	Context("when database operation fails", func() {
-		It("should return Internal error", func() {
-			// Mock database error
-			dbError := errors.New("database aggregation failed")
-			db.On("CountIssueRatings", filter).Return((*entity.IssueSeverityCounts)(nil), dbError)
+		Context("with valid input", func() {
+			It("returns issue severity counts successfully", func() {
+				expectedCounts := &entity.IssueSeverityCounts{
+					Critical: 10,
+					High:     25,
+					Medium:   50,
+					Low:      15,
+				}
+				db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
 
-			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.GetIssueSeverityCounts(filter)
+				issueHandler = issue.NewIssueHandler(handlerContext)
+				result, err := issueHandler.GetIssueSeverityCounts(filter)
 
-			Expect(result).To(BeNil(), "no result should be returned")
-			Expect(err).ToNot(BeNil(), "error should be returned")
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).ToNot(BeNil(), "result should be returned")
+				Expect(result).To(Equal(expectedCounts), "should return expected severity counts")
+				Expect(result.Critical).To(Equal(int64(10)), "should return correct critical count")
+				Expect(result.High).To(Equal(int64(25)), "should return correct high count")
+				Expect(result.Medium).To(Equal(int64(50)), "should return correct medium count")
+				Expect(result.Low).To(Equal(int64(15)), "should return correct low count")
+			})
 
-			var appErr *appErrors.Error
-			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
-			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
-			Expect(appErr.Entity).To(Equal("IssueSeverityCounts"), "should reference IssueSeverityCounts entity")
-			Expect(appErr.ID).To(Equal(""), "should have empty ID for aggregation operation")
-			Expect(appErr.Op).To(Equal("issueHandler.GetIssueSeverityCounts"), "should include operation")
-			Expect(appErr.Err.Error()).To(ContainSubstring(dbError.Error()), "should contain original error message")
+			It("returns zero counts when no issues found", func() {
+				expectedCounts := &entity.IssueSeverityCounts{
+					Critical: 0,
+					High:     0,
+					Medium:   0,
+					Low:      0,
+				}
+				db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
+
+				issueHandler = issue.NewIssueHandler(handlerContext)
+				result, err := issueHandler.GetIssueSeverityCounts(filter)
+
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(result).ToNot(BeNil(), "result should be returned")
+				Expect(result.Critical).To(Equal(int64(0)), "should return zero critical count")
+				Expect(result.High).To(Equal(int64(0)), "should return zero high count")
+				Expect(result.Medium).To(Equal(int64(0)), "should return zero medium count")
+				Expect(result.Low).To(Equal(int64(0)), "should return zero low count")
+			})
 		})
-	})
-})
+
+		Context("when database operation fails", func() {
+			It("should return Internal error", func() {
+				// Mock database error
+				dbError := errors.New("database aggregation failed")
+				db.On("CountIssueRatings", filter).
+					Return((*entity.IssueSeverityCounts)(nil), dbError)
+
+				issueHandler = issue.NewIssueHandler(handlerContext)
+				result, err := issueHandler.GetIssueSeverityCounts(filter)
+
+				Expect(result).To(BeNil(), "no result should be returned")
+				Expect(err).ToNot(BeNil(), "error should be returned")
+
+				var appErr *appErrors.Error
+				Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
+				Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
+				Expect(
+					appErr.Entity,
+				).To(Equal("IssueSeverityCounts"), "should reference IssueSeverityCounts entity")
+				Expect(appErr.ID).To(Equal(""), "should have empty ID for aggregation operation")
+				Expect(
+					appErr.Op,
+				).To(Equal("issueHandler.GetIssueSeverityCounts"), "should include operation")
+				Expect(
+					appErr.Err.Error(),
+				).To(ContainSubstring(dbError.Error()), "should contain original error message")
+			})
+		})
+	},
+)

@@ -21,6 +21,7 @@ func TestMariadb(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	util.SetEnvVars(fmt.Sprintf("%s/%s", projectDir, ".test.env"))
 
 	RegisterFailHandler(Fail)

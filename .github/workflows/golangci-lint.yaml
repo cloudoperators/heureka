@@ -1,0 +1,38 @@
+name: golangci-lint
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  golangci-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Install Ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo
+
+      - name: Install Mockery
+        run: go install github.com/vektra/mockery/v2@v2.53.5
+
+      - name: Install golangci-lint
+        run: make install-golangci-lint
+
+      - name: Generate Mockery code
+        run: make mockery
+
+      - name: Generate Gqlgen code
+        run: make gqlgen
+
+      - name: Run golangci-lint
+        run: make lint

@@ -29,8 +29,6 @@ func TestSupportGroupHandler(t *testing.T) {
 }
 
 var (
-	er             event.EventRegistry
-	authz          openfga.Authorization
 	handlerContext common.HandlerContext
 	cfg            *util.Config
 )
@@ -98,46 +96,65 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
-		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-			filter.First = &pageSize
-			var supportGroups []entity.SupportGroupResult
-			for _, sg := range test.NNewFakeSupportGroupEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithSupportGroup(order, sg))
-				supportGroups = append(supportGroups, entity.SupportGroupResult{
-					WithCursor:   entity.WithCursor{Value: cursor},
-					SupportGroup: &sg,
+		DescribeTable(
+			"pagination information is correct",
+			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+				filter.First = &pageSize
+				var supportGroups []entity.SupportGroupResult
+				for _, sg := range test.NNewFakeSupportGroupEntities(resElements) {
+					cursor, _ := mariadb.EncodeCursor(mariadb.WithSupportGroup(order, sg))
+					supportGroups = append(supportGroups, entity.SupportGroupResult{
+						WithCursor:   entity.WithCursor{Value: cursor},
+						SupportGroup: &sg,
+					})
+				}
+
+				cursors := lo.Map(supportGroups, func(s entity.SupportGroupResult, _ int) string {
+					return s.Value
 				})
-			}
 
-			cursors := lo.Map(supportGroups, func(s entity.SupportGroupResult, _ int) string {
-				return s.Value
-			})
-
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			var i int64 = 0
-			for len(cursors) < dbElements {
-				i++
-				supportGroup := test.NewFakeSupportGroupEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithSupportGroup([]entity.Order{}, supportGroup))
-				cursors = append(cursors, c)
-			}
-			db.On("GetSupportGroups", filter, order).Return(supportGroups, nil)
-			db.On("GetAllSupportGroupCursors", filter, order).Return(cursors, nil)
-			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-			res, err := supportGroupHandler.ListSupportGroups(ctx, filter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-		},
+				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				var i int64 = 0
+				for len(cursors) < dbElements {
+					i++
+					supportGroup := test.NewFakeSupportGroupEntity()
+					c, _ := mariadb.EncodeCursor(
+						mariadb.WithSupportGroup([]entity.Order{}, supportGroup),
+					)
+					cursors = append(cursors, c)
+				}
+				db.On("GetSupportGroups", filter, order).Return(supportGroups, nil)
+				db.On("GetAllSupportGroupCursors", filter, order).Return(cursors, nil)
+				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+				res, err := supportGroupHandler.ListSupportGroups(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(
+					*res.PageInfo.HasNextPage,
+				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+				Expect(
+					len(res.PageInfo.Pages),
+				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			},
 			Entry("When  pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
-			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
-			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+			Entry(
+				"When  pageSize is 10 and the database was returning 9 elements",
+				10,
+				9,
+				9,
+				false,
+			),
+			Entry(
+				"When  pageSize is 10 and the database was returning 11 elements",
+				10,
+				11,
+				10,
+				true,
+			),
 		)
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -157,7 +174,8 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				sgIds := int64(-1)
 				filter.Id = []*int64{&sgIds}
 				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetSupportGroups", filter, []entity.Order{}).Return([]entity.SupportGroupResult{}, nil)
+				db.On("GetSupportGroups", filter, []entity.Order{}).
+					Return([]entity.SupportGroupResult{}, nil)
 			})
 
 			It("should return no support groups", func() {
@@ -169,9 +187,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 		})
 
 		Context("and the filter includes a support group Id that the user has access to", func() {
-			var (
-				supportGroup entity.SupportGroup
-			)
+			var supportGroup entity.SupportGroup
 
 			BeforeEach(func() {
 				userId := int64(123)
@@ -179,7 +195,8 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				supportGroup = test.NewFakeSupportGroupEntity()
 				filter.Id = []*int64{&supportGroup.Id}
 				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetSupportGroups", filter, []entity.Order{}).Return([]entity.SupportGroupResult{{SupportGroup: &supportGroup}}, nil)
+				db.On("GetSupportGroups", filter, []entity.Order{}).
+					Return([]entity.SupportGroupResult{{SupportGroup: &supportGroup}}, nil)
 
 				relations := []openfga.RelationInput{
 					{ // create support group
@@ -207,10 +224,12 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				res, err := supportGroupHandler.ListSupportGroups(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
-				Expect(res.Elements[0].CCRN).To(BeEquivalentTo(supportGroup.CCRN)) // check that the returned support group is the expected one
+				Expect(
+					res.Elements[0].CCRN,
+				).To(BeEquivalentTo(supportGroup.CCRN))
+				// check that the returned support group is the expected one
 			})
 		})
-
 	})
 })
 
@@ -250,7 +269,10 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
 		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(common.NewAdminContext(), &supportGroup)
+		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(
+			common.NewAdminContext(),
+			&supportGroup,
+		)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		Expect(newSupportGroup.Id).NotTo(BeEquivalentTo(0))
 		By("setting fields", func() {
@@ -259,7 +281,6 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -340,8 +361,12 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		supportGroup.CCRN = "Team Alone"
 		filter.Id = []*int64{&supportGroup.Id}
-		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(common.NewAdminContext(), supportGroup.SupportGroup)
+		db.On("GetSupportGroups", filter, order).
+			Return([]entity.SupportGroupResult{supportGroup}, nil)
+		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(
+			common.NewAdminContext(),
+			supportGroup.SupportGroup,
+		)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
 			Expect(updatedSupportGroup.CCRN).To(BeEquivalentTo(supportGroup.CCRN))
@@ -397,7 +422,6 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -464,7 +488,9 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 						Expect(err).To(BeNil(), "no error should be thrown")
 						relCountBefore += len(relations)
 					}
-					Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
+					Expect(
+						relCountBefore,
+					).To(Equal(len(relations)), "all relations should exist before deletion")
 
 					// check that relations were created
 					for _, r := range relations {
@@ -484,8 +510,12 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 						Expect(err).To(BeNil(), "no error should be thrown")
 						relCountAfter += len(relations)
 					}
-					Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
-					Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+					Expect(
+						relCountAfter < relCountBefore,
+					).To(BeTrue(), "less relations after deletion")
+					Expect(
+						relCountAfter,
+					).To(BeEquivalentTo(0), "no relations should exist after deletion")
 
 					// verify that relations were deleted
 					for _, r := range relations {
@@ -499,263 +529,289 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	})
 })
 
-var _ = Describe("When modifying relationship of Service and SupportGroup", Label("app", "ServiceSupportGroupRelationship"), func() {
-	var (
-		er                  event.EventRegistry
-		db                  *mocks.MockDatabase
-		supportGroupHandler sg.SupportGroupHandler
-		service             entity.Service
-		supportGroup        entity.SupportGroupResult
-		filter              *entity.SupportGroupFilter
-		order               []entity.Order
-		ctx                 context.Context
-	)
-
-	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
-		service = test.NewFakeServiceEntity()
-		supportGroup = test.NewFakeSupportGroupResult()
-		order = []entity.Order{}
-		first := 10
-		after := ""
-		filter = &entity.SupportGroupFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			Id: []*int64{&supportGroup.Id},
-		}
-		er = event.NewEventRegistry(db, handlerContext.Authz)
-		handlerContext.DB = db
-		handlerContext.EventReg = er
-		ctx = common.NewAdminContext()
-	})
-
-	It("adds service to supportGroup", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
-		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-		supportGroup, err := supportGroupHandler.AddServiceToSupportGroup(ctx, supportGroup.Id, service.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
-	})
-
-	It("removes service from supportGroup", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
-		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-		supportGroup, err := supportGroupHandler.RemoveServiceFromSupportGroup(ctx, supportGroup.Id, service.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
-	})
-
-	Context("when authz is enabled", func() {
+var _ = Describe(
+	"When modifying relationship of Service and SupportGroup",
+	Label("app", "ServiceSupportGroupRelationship"),
+	func() {
+		var (
+			er                  event.EventRegistry
+			db                  *mocks.MockDatabase
+			supportGroupHandler sg.SupportGroupHandler
+			service             entity.Service
+			supportGroup        entity.SupportGroupResult
+			filter              *entity.SupportGroupFilter
+			order               []entity.Order
+			ctx                 context.Context
+		)
 
 		BeforeEach(func() {
-			authEnabled := true
-			cfg = common.GetTestConfig(authEnabled)
-			enableLogs := false
-			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			db = mocks.NewMockDatabase(GinkgoT())
+			service = test.NewFakeServiceEntity()
+			supportGroup = test.NewFakeSupportGroupResult()
+			order = []entity.Order{}
+			first := 10
+			after := ""
+			filter = &entity.SupportGroupFilter{
+				Paginated: entity.Paginated{
+					First: &first,
+					After: &after,
+				},
+				Id: []*int64{&supportGroup.Id},
+			}
+			er = event.NewEventRegistry(db, handlerContext.Authz)
+			handlerContext.DB = db
+			handlerContext.EventReg = er
+			ctx = common.NewAdminContext()
 		})
 
-		AfterEach(func() {
-			// Reset authz to disabled after finishing tests
-			authEnabled := false
-			cfg = common.GetTestConfig(authEnabled)
-			enableLogs := false
-			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		It("adds service to supportGroup", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
+			db.On("GetSupportGroups", filter, order).
+				Return([]entity.SupportGroupResult{supportGroup}, nil)
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+			supportGroup, err := supportGroupHandler.AddServiceToSupportGroup(
+				ctx,
+				supportGroup.Id,
+				service.Id,
+			)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 		})
 
-		Context("when handling an AddServiceToSupportGroupEvent", func() {
-			It("should add the service-supportGroup relation tuple in openfga", func() {
-				sgFake := test.NewFakeSupportGroupResult()
-				serviceFake := test.NewFakeServiceEntity()
-				addEvent := &sg.AddServiceToSupportGroupEvent{
-					SupportGroupID: sgFake.Id,
-					ServiceID:      serviceFake.Id,
-				}
-				supportGroupId := openfga.UserIdFromInt(addEvent.SupportGroupID)
-				serviceId := openfga.ObjectIdFromInt(addEvent.ServiceID)
+		It("removes service from supportGroup", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
+			db.On("GetSupportGroups", filter, order).
+				Return([]entity.SupportGroupResult{supportGroup}, nil)
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+			supportGroup, err := supportGroupHandler.RemoveServiceFromSupportGroup(
+				ctx,
+				supportGroup.Id,
+				service.Id,
+			)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
+		})
 
-				rel := openfga.RelationInput{
-					UserType:   openfga.TypeSupportGroup,
-					UserId:     supportGroupId,
-					ObjectType: openfga.TypeService,
-					ObjectId:   serviceId,
-					Relation:   openfga.RelSupportGroup,
-				}
+		Context("when authz is enabled", func() {
+			BeforeEach(func() {
+				authEnabled := true
+				cfg = common.GetTestConfig(authEnabled)
+				enableLogs := false
+				handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			})
 
-				var event event.Event = addEvent
-				sg.OnAddServiceToSupportGroup(db, event, handlerContext.Authz)
+			AfterEach(func() {
+				// Reset authz to disabled after finishing tests
+				authEnabled := false
+				cfg = common.GetTestConfig(authEnabled)
+				enableLogs := false
+				handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			})
 
-				remaining, err := handlerContext.Authz.ListRelations(rel)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(remaining).NotTo(BeEmpty(), "relation should exist after addition")
+			Context("when handling an AddServiceToSupportGroupEvent", func() {
+				It("should add the service-supportGroup relation tuple in openfga", func() {
+					sgFake := test.NewFakeSupportGroupResult()
+					serviceFake := test.NewFakeServiceEntity()
+					addEvent := &sg.AddServiceToSupportGroupEvent{
+						SupportGroupID: sgFake.Id,
+						ServiceID:      serviceFake.Id,
+					}
+					supportGroupId := openfga.UserIdFromInt(addEvent.SupportGroupID)
+					serviceId := openfga.ObjectIdFromInt(addEvent.ServiceID)
+
+					rel := openfga.RelationInput{
+						UserType:   openfga.TypeSupportGroup,
+						UserId:     supportGroupId,
+						ObjectType: openfga.TypeService,
+						ObjectId:   serviceId,
+						Relation:   openfga.RelSupportGroup,
+					}
+
+					var event event.Event = addEvent
+					sg.OnAddServiceToSupportGroup(db, event, handlerContext.Authz)
+
+					remaining, err := handlerContext.Authz.ListRelations(rel)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(remaining).NotTo(BeEmpty(), "relation should exist after addition")
+				})
+			})
+
+			Context("when handling a RemoveServiceFromSupportGroupEvent", func() {
+				It("should remove the service-supportGroup relation tuple in openfga", func() {
+					sgFake := test.NewFakeSupportGroupResult()
+					serviceFake := test.NewFakeServiceEntity()
+					removeEvent := &sg.RemoveServiceFromSupportGroupEvent{
+						SupportGroupID: sgFake.Id,
+						ServiceID:      serviceFake.Id,
+					}
+					supportGroupId := openfga.UserIdFromInt(removeEvent.SupportGroupID)
+					serviceId := openfga.ObjectIdFromInt(removeEvent.ServiceID)
+
+					rel := openfga.RelationInput{
+						UserType:   openfga.TypeSupportGroup,
+						UserId:     supportGroupId,
+						ObjectType: openfga.TypeService,
+						ObjectId:   serviceId,
+						Relation:   openfga.TypeSupportGroup,
+					}
+
+					handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{rel})
+
+					var event event.Event = removeEvent
+					sg.OnRemoveServiceFromSupportGroup(db, event, handlerContext.Authz)
+
+					remaining, err := handlerContext.Authz.ListRelations(rel)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
+				})
 			})
 		})
+	},
+)
 
-		Context("when handling a RemoveServiceFromSupportGroupEvent", func() {
-			It("should remove the service-supportGroup relation tuple in openfga", func() {
-				sgFake := test.NewFakeSupportGroupResult()
-				serviceFake := test.NewFakeServiceEntity()
-				removeEvent := &sg.RemoveServiceFromSupportGroupEvent{
-					SupportGroupID: sgFake.Id,
-					ServiceID:      serviceFake.Id,
-				}
-				supportGroupId := openfga.UserIdFromInt(removeEvent.SupportGroupID)
-				serviceId := openfga.ObjectIdFromInt(removeEvent.ServiceID)
-
-				rel := openfga.RelationInput{
-					UserType:   openfga.TypeSupportGroup,
-					UserId:     supportGroupId,
-					ObjectType: openfga.TypeService,
-					ObjectId:   serviceId,
-					Relation:   openfga.TypeSupportGroup,
-				}
-
-				handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{rel})
-
-				var event event.Event = removeEvent
-				sg.OnRemoveServiceFromSupportGroup(db, event, handlerContext.Authz)
-
-				remaining, err := handlerContext.Authz.ListRelations(rel)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
-			})
-		})
-	})
-})
-
-var _ = Describe("When modifying relationship of User and SupportGroup", Label("app", "UserSupportGroupRelationship"), func() {
-	var (
-		er                  event.EventRegistry
-		db                  *mocks.MockDatabase
-		supportGroupHandler sg.SupportGroupHandler
-		user                entity.User
-		supportGroup        entity.SupportGroupResult
-		filter              *entity.SupportGroupFilter
-		order               []entity.Order
-		ctx                 context.Context
-	)
-
-	BeforeEach(func() {
-		db = mocks.NewMockDatabase(GinkgoT())
-		user = test.NewFakeUserEntity()
-		supportGroup = test.NewFakeSupportGroupResult()
-		first := 10
-		after := ""
-		order = []entity.Order{}
-		filter = &entity.SupportGroupFilter{
-			Paginated: entity.Paginated{
-				First: &first,
-				After: &after,
-			},
-			Id: []*int64{&supportGroup.Id},
-		}
-		ctx = common.NewAdminContext()
-		er = event.NewEventRegistry(db, handlerContext.Authz)
-		handlerContext.DB = db
-		handlerContext.EventReg = er
-	})
-
-	It("adds user to supportGroup", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
-		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-		supportGroup, err := supportGroupHandler.AddUserToSupportGroup(ctx, supportGroup.Id, user.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
-	})
-
-	It("removes user from supportGroup", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
-		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{supportGroup}, nil)
-		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-		supportGroup, err := supportGroupHandler.RemoveUserFromSupportGroup(ctx, supportGroup.Id, user.Id)
-		Expect(err).To(BeNil(), "no error should be thrown")
-		Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
-	})
-
-	Context("when authz is enabled", func() {
+var _ = Describe(
+	"When modifying relationship of User and SupportGroup",
+	Label("app", "UserSupportGroupRelationship"),
+	func() {
+		var (
+			er                  event.EventRegistry
+			db                  *mocks.MockDatabase
+			supportGroupHandler sg.SupportGroupHandler
+			user                entity.User
+			supportGroup        entity.SupportGroupResult
+			filter              *entity.SupportGroupFilter
+			order               []entity.Order
+			ctx                 context.Context
+		)
 
 		BeforeEach(func() {
-			authEnabled := true
-			cfg = common.GetTestConfig(authEnabled)
-			enableLogs := false
-			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			db = mocks.NewMockDatabase(GinkgoT())
+			user = test.NewFakeUserEntity()
+			supportGroup = test.NewFakeSupportGroupResult()
+			first := 10
+			after := ""
+			order = []entity.Order{}
+			filter = &entity.SupportGroupFilter{
+				Paginated: entity.Paginated{
+					First: &first,
+					After: &after,
+				},
+				Id: []*int64{&supportGroup.Id},
+			}
+			ctx = common.NewAdminContext()
+			er = event.NewEventRegistry(db, handlerContext.Authz)
+			handlerContext.DB = db
+			handlerContext.EventReg = er
 		})
 
-		AfterEach(func() {
-			// Reset authz to disabled after finishing tests
-			authEnabled := false
-			cfg = common.GetTestConfig(authEnabled)
-			enableLogs := false
-			handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+		It("adds user to supportGroup", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
+			db.On("GetSupportGroups", filter, order).
+				Return([]entity.SupportGroupResult{supportGroup}, nil)
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+			supportGroup, err := supportGroupHandler.AddUserToSupportGroup(
+				ctx,
+				supportGroup.Id,
+				user.Id,
+			)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
 		})
 
-		Context("when handling an AddUserToSupportGroupEvent", func() {
-			It("should add the user-supportGroup relation tuple in openfga", func() {
-				sgFake := test.NewFakeSupportGroupResult()
-				userFake := test.NewFakeUserEntity()
-				addEvent := &sg.AddUserToSupportGroupEvent{
-					SupportGroupID: sgFake.Id,
-					UserID:         userFake.Id,
-				}
-				supportGroupId := openfga.ObjectIdFromInt(addEvent.SupportGroupID)
-				userId := openfga.UserIdFromInt(addEvent.UserID)
+		It("removes user from supportGroup", func() {
+			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
+			db.On("GetSupportGroups", filter, order).
+				Return([]entity.SupportGroupResult{supportGroup}, nil)
+			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
+			supportGroup, err := supportGroupHandler.RemoveUserFromSupportGroup(
+				ctx,
+				supportGroup.Id,
+				user.Id,
+			)
+			Expect(err).To(BeNil(), "no error should be thrown")
+			Expect(supportGroup).NotTo(BeNil(), "supportGroup should be returned")
+		})
 
-				rel := openfga.RelationInput{
-					UserType:   openfga.TypeUser,
-					UserId:     userId,
-					ObjectType: openfga.TypeSupportGroup,
-					ObjectId:   supportGroupId,
-					Relation:   openfga.RelMember,
-				}
+		Context("when authz is enabled", func() {
+			BeforeEach(func() {
+				authEnabled := true
+				cfg = common.GetTestConfig(authEnabled)
+				enableLogs := false
+				handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			})
 
-				var event event.Event = addEvent
-				sg.OnAddUserToSupportGroup(db, event, handlerContext.Authz)
+			AfterEach(func() {
+				// Reset authz to disabled after finishing tests
+				authEnabled := false
+				cfg = common.GetTestConfig(authEnabled)
+				enableLogs := false
+				handlerContext.Authz = openfga.NewAuthorizationHandler(cfg, enableLogs)
+			})
 
-				remaining, err := handlerContext.Authz.ListRelations(rel)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(remaining).NotTo(BeEmpty(), "relation should exist after addition")
+			Context("when handling an AddUserToSupportGroupEvent", func() {
+				It("should add the user-supportGroup relation tuple in openfga", func() {
+					sgFake := test.NewFakeSupportGroupResult()
+					userFake := test.NewFakeUserEntity()
+					addEvent := &sg.AddUserToSupportGroupEvent{
+						SupportGroupID: sgFake.Id,
+						UserID:         userFake.Id,
+					}
+					supportGroupId := openfga.ObjectIdFromInt(addEvent.SupportGroupID)
+					userId := openfga.UserIdFromInt(addEvent.UserID)
+
+					rel := openfga.RelationInput{
+						UserType:   openfga.TypeUser,
+						UserId:     userId,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   supportGroupId,
+						Relation:   openfga.RelMember,
+					}
+
+					var event event.Event = addEvent
+					sg.OnAddUserToSupportGroup(db, event, handlerContext.Authz)
+
+					remaining, err := handlerContext.Authz.ListRelations(rel)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(remaining).NotTo(BeEmpty(), "relation should exist after addition")
+				})
+			})
+
+			Context("when handling a RemoveUserFromSupportGroupEvent", func() {
+				It("should remove the user-supportGroup relation tuple in openfga", func() {
+					sgFake := test.NewFakeSupportGroupResult()
+					userFake := test.NewFakeUserEntity()
+					removeEvent := &sg.RemoveUserFromSupportGroupEvent{
+						SupportGroupID: sgFake.Id,
+						UserID:         userFake.Id,
+					}
+					supportGroupId := openfga.ObjectIdFromInt(removeEvent.SupportGroupID)
+					userId := openfga.UserIdFromInt(removeEvent.UserID)
+
+					rel := openfga.RelationInput{
+						UserType:   openfga.TypeUser,
+						UserId:     userId,
+						ObjectType: openfga.TypeSupportGroup,
+						ObjectId:   supportGroupId,
+						Relation:   openfga.RelMember,
+					}
+					// Bulk add instead of single add
+					handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{rel})
+
+					var event event.Event = removeEvent
+					sg.OnRemoveUserFromSupportGroup(db, event, handlerContext.Authz)
+
+					remaining, err := handlerContext.Authz.ListRelations(rel)
+					Expect(err).To(BeNil(), "no error should be thrown")
+					Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
+				})
 			})
 		})
-
-		Context("when handling a RemoveUserFromSupportGroupEvent", func() {
-			It("should remove the user-supportGroup relation tuple in openfga", func() {
-				sgFake := test.NewFakeSupportGroupResult()
-				userFake := test.NewFakeUserEntity()
-				removeEvent := &sg.RemoveUserFromSupportGroupEvent{
-					SupportGroupID: sgFake.Id,
-					UserID:         userFake.Id,
-				}
-				supportGroupId := openfga.ObjectIdFromInt(removeEvent.SupportGroupID)
-				userId := openfga.UserIdFromInt(removeEvent.UserID)
-
-				rel := openfga.RelationInput{
-					UserType:   openfga.TypeUser,
-					UserId:     userId,
-					ObjectType: openfga.TypeSupportGroup,
-					ObjectId:   supportGroupId,
-					Relation:   openfga.RelMember,
-				}
-				// Bulk add instead of single add
-				handlerContext.Authz.AddRelationBulk([]openfga.RelationInput{rel})
-
-				var event event.Event = removeEvent
-				sg.OnRemoveUserFromSupportGroup(db, event, handlerContext.Authz)
-
-				remaining, err := handlerContext.Authz.ListRelations(rel)
-				Expect(err).To(BeNil(), "no error should be thrown")
-				Expect(remaining).To(BeEmpty(), "relation should not exist after removal")
-			})
-		})
-	})
-})
+	},
+)
 
 var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGroupCcrns"), func() {
 	var (

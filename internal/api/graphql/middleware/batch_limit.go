@@ -22,7 +22,9 @@ func NewBatchLimiter(batchLimit int) BatchLimiter {
 func (m *BatchLimiter) Middleware() func(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
 	return func(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
 		if len(graphql.GetOperationContext(ctx).Operation.SelectionSet) > m.batchLimit {
-			return graphql.OneShot(graphql.ErrorResponse(ctx, "the limit for sending batches has been exceeded"))
+			return graphql.OneShot(
+				graphql.ErrorResponse(ctx, "the limit for sending batches has been exceeded"),
+			)
 		}
 
 		return next(ctx)

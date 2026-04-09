@@ -68,7 +68,7 @@ func (ts *TraceStmt) Close() error {
 	return ts.stmt.Close()
 }
 
-func (ts *TraceStmt) Queryx(args ...interface{}) (*sqlx.Rows, error) {
+func (ts *TraceStmt) Queryx(args ...any) (*sqlx.Rows, error) {
 	return ts.stmt.Queryx(args...)
 }
 
@@ -83,7 +83,7 @@ func (tns *TraceNamedStmt) Close() error {
 	return tns.namedStmt.Close()
 }
 
-func (tns *TraceNamedStmt) Exec(arg interface{}) (sql.Result, error) {
+func (tns *TraceNamedStmt) Exec(arg any) (sql.Result, error) {
 	return tns.namedStmt.Exec(arg)
 }
 
@@ -96,12 +96,12 @@ func (tdb *TraceDb) Close() error {
 	return tdb.db.Close()
 }
 
-func (tdb *TraceDb) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (tdb *TraceDb) Exec(query string, args ...any) (sql.Result, error) {
 	defer NewTrace("Exec", query).exitTrace()
 	return tdb.db.Exec(query, args...)
 }
 
-func (tdb *TraceDb) Get(dest interface{}, query string, args ...interface{}) error {
+func (tdb *TraceDb) Get(dest any, query string, args ...any) error {
 	defer NewTrace("Get", query).exitTrace()
 	return tdb.db.Get(dest, query, args...)
 }
@@ -112,40 +112,46 @@ func (tdb *TraceDb) GetDbInstance() *sql.DB {
 
 func (tdb *TraceDb) PrepareNamed(query string) (NamedStmt, error) {
 	trace := NewTrace("PrepareNamed", query)
+
 	namedStmt, err := tdb.db.PrepareNamed(query)
 	if err != nil {
 		trace.errorTrace()
 		return namedStmt, err
 	}
+
 	return &TraceNamedStmt{namedStmt: namedStmt, trace: trace}, nil
 }
 
 func (tdb *TraceDb) Preparex(query string) (Stmt, error) {
 	trace := NewTrace("Preparex", query)
+
 	stmt, err := tdb.db.Preparex(query)
 	if err != nil {
 		trace.errorTrace()
 		return stmt, err
 	}
+
 	return &TraceStmt{stmt: stmt, trace: trace}, nil
 }
 
-func (tdb *TraceDb) Select(dest interface{}, query string, args ...interface{}) error {
+func (tdb *TraceDb) Select(dest any, query string, args ...any) error {
 	defer NewTrace("Select", query).exitTrace()
 	return tdb.db.Select(dest, query, args...)
 }
 
-func (tdb *TraceDb) Query(query string, args ...interface{}) (SqlRows, error) {
+func (tdb *TraceDb) Query(query string, args ...any) (SqlRows, error) {
 	trace := NewTrace("Query", query)
+
 	sqlRows, err := tdb.db.Query(query, args...)
 	if err != nil {
 		trace.errorTrace()
 		return sqlRows, err
 	}
+
 	return &TraceSqlRows{rows: sqlRows, trace: trace}, nil
 }
 
-func (tdb *TraceDb) QueryRow(query string, args ...interface{}) *sql.Row {
+func (tdb *TraceDb) QueryRow(query string, args ...any) *sql.Row {
 	defer NewTrace("QueryRow", query).exitTrace()
 	return tdb.db.QueryRow(query, args...)
 }

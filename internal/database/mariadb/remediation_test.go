@@ -74,19 +74,45 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.RemediationRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.Description).Should(BeEquivalentTo(row.Description.String), "Description should match")
-									Expect(r.Service).Should(BeEquivalentTo(row.Service.String), "Service should match")
-									Expect(r.ServiceId).Should(BeEquivalentTo(row.ServiceId.Int64), "ServiceId should match")
-									Expect(r.Component).Should(BeEquivalentTo(row.Component.String), "Component should match")
-									Expect(r.ComponentId).Should(BeEquivalentTo(row.ComponentId.Int64), "ComponentId should match")
-									Expect(r.Issue).Should(BeEquivalentTo(row.Issue.String), "Issue should match")
-									Expect(r.IssueId).Should(BeEquivalentTo(row.IssueId.Int64), "IssueId should match")
-									Expect(r.RemediationDate).ShouldNot(BeEquivalentTo(row.RemediationDate.Time), "RemediationDate matches")
-									Expect(r.ExpirationDate).ShouldNot(BeEquivalentTo(row.ExpirationDate.Time), "ExpirationDate matches")
-									Expect(r.RemediatedBy).Should(BeEquivalentTo(row.RemediatedBy.String), "RemediatedBy should match")
-									Expect(r.RemediatedById).Should(BeEquivalentTo(row.RemediatedById.Int64), "RemediatedBy should match")
-									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
-									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
+									Expect(
+										r.Description,
+									).Should(BeEquivalentTo(row.Description.String), "Description should match")
+									Expect(
+										r.Service,
+									).Should(BeEquivalentTo(row.Service.String), "Service should match")
+									Expect(
+										r.ServiceId,
+									).Should(BeEquivalentTo(row.ServiceId.Int64), "ServiceId should match")
+									Expect(
+										r.Component,
+									).Should(BeEquivalentTo(row.Component.String), "Component should match")
+									Expect(
+										r.ComponentId,
+									).Should(BeEquivalentTo(row.ComponentId.Int64), "ComponentId should match")
+									Expect(
+										r.Issue,
+									).Should(BeEquivalentTo(row.Issue.String), "Issue should match")
+									Expect(
+										r.IssueId,
+									).Should(BeEquivalentTo(row.IssueId.Int64), "IssueId should match")
+									Expect(
+										r.RemediationDate,
+									).ShouldNot(BeEquivalentTo(row.RemediationDate.Time), "RemediationDate matches")
+									Expect(
+										r.ExpirationDate,
+									).ShouldNot(BeEquivalentTo(row.ExpirationDate.Time), "ExpirationDate matches")
+									Expect(
+										r.RemediatedBy,
+									).Should(BeEquivalentTo(row.RemediatedBy.String), "RemediatedBy should match")
+									Expect(
+										r.RemediatedById,
+									).Should(BeEquivalentTo(row.RemediatedById.Int64), "RemediatedBy should match")
+									Expect(
+										r.CreatedAt,
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
+									Expect(
+										r.UpdatedAt,
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
 							}
 						}
@@ -182,7 +208,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				})
 				It("can filter by a single component id", func() {
 					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
-					filter := &entity.RemediationFilter{ComponentId: []*int64{&row.ComponentId.Int64}}
+					filter := &entity.RemediationFilter{
+						ComponentId: []*int64{&row.ComponentId.Int64},
+					}
 
 					entries, err := db.GetRemediations(filter, nil)
 
@@ -268,7 +296,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 
 					By("returning entries include the type", func() {
 						for _, entry := range entries {
-							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeFalsePositive.String()))
+							Expect(
+								entry.Type,
+							).To(BeEquivalentTo(entity.RemediationTypeFalsePositive.String()))
 						}
 					})
 				})
@@ -288,7 +318,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 
 					By("returning entries include the type", func() {
 						for _, entry := range entries {
-							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeRiskAccepted.String()))
+							Expect(
+								entry.Type,
+							).To(BeEquivalentTo(entity.RemediationTypeRiskAccepted.String()))
 						}
 					})
 				})
@@ -308,7 +340,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 
 					By("returning entries include the type", func() {
 						for _, entry := range entries {
-							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeMitigation.String()))
+							Expect(
+								entry.Type,
+							).To(BeEquivalentTo(entity.RemediationTypeMitigation.String()))
 						}
 					})
 				})
@@ -328,7 +362,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 
 					By("returning entries include the type", func() {
 						for _, entry := range entries {
-							Expect(entry.Type).To(BeEquivalentTo(entity.RemediationTypeRescore.String()))
+							Expect(
+								entry.Type,
+							).To(BeEquivalentTo(entity.RemediationTypeRescore.String()))
 						}
 					})
 				})
@@ -351,7 +387,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 
 					ids := []int64{}
 					for _, entry := range entries {
-						ids = append(ids, entry.Remediation.Id)
+						ids = append(ids, entry.Id)
 					}
 
 					By("throwing no error", func() {
@@ -378,7 +414,12 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.RemediationResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithRemediation([]entity.Order{}, *entries[len(entries)-1].Remediation))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithRemediation(
+									[]entity.Order{},
+									*entries[len(entries)-1].Remediation,
+								),
+							)
 							return after
 						},
 						len(seedCollection.RemediationRows),
@@ -406,7 +447,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			dbm.TestTearDown(db)
 		})
 		It("orders by vulnerability asc", func() {
-			order := []entity.Order{{By: entity.RemediationIssue, Direction: entity.OrderDirectionAsc}}
+			order := []entity.Order{
+				{By: entity.RemediationIssue, Direction: entity.OrderDirectionAsc},
+			}
 			entries, err := db.GetRemediations(nil, order)
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
@@ -420,7 +463,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			}
 		})
 		It("orders by severity desc", func() {
-			order := []entity.Order{{By: entity.RemediationSeverity, Direction: entity.OrderDirectionDesc}}
+			order := []entity.Order{
+				{By: entity.RemediationSeverity, Direction: entity.OrderDirectionDesc},
+			}
 			entries, err := db.GetRemediations(nil, order)
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
@@ -434,7 +479,9 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			}
 		})
 		It("orders by expiration asc", func() {
-			order := []entity.Order{{By: entity.RemediationExpirationDate, Direction: entity.OrderDirectionAsc}}
+			order := []entity.Order{
+				{By: entity.RemediationExpirationDate, Direction: entity.OrderDirectionAsc},
+			}
 			entries, err := db.GetRemediations(nil, order)
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
@@ -513,7 +560,10 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			BeforeEach(func() {
 				seeder.SeedDbWithNFakeData(10)
 				newRemediationRow = mariadb.RemediationRow{
-					Type:            sql.NullString{String: entity.RemediationTypeFalsePositive.String(), Valid: true},
+					Type: sql.NullString{
+						String: entity.RemediationTypeFalsePositive.String(),
+						Valid:  true,
+					},
 					ExpirationDate:  sql.NullTime{Time: time.Now(), Valid: true},
 					RemediationDate: sql.NullTime{Time: time.Now(), Valid: true},
 					Severity:        sql.NullString{String: "Medium", Valid: true},

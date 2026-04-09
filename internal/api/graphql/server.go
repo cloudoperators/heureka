@@ -35,11 +35,15 @@ func NewGraphQLAPI(a app.Heureka, cfg util.Config) *GraphQLAPI {
 		App:          a,
 		auth:         middleware.NewAuth(&cfg, true),
 		batchLimiter: gqlmiddleware.NewBatchLimiter(cfg.GQLBatchLimit),
-		rateLimiter:  gqlmiddleware.NewIPRateLimiter(rate.Limit(cfg.GQLHttpRateLimit), cfg.GQLHttpRateBurst),
+		rateLimiter: gqlmiddleware.NewIPRateLimiter(
+			rate.Limit(cfg.GQLHttpRateLimit),
+			cfg.GQLHttpRateBurst,
+		),
 	}
 
 	return &graphQLAPI
 }
+
 func (g *GraphQLAPI) CreateEndpoints(router *gin.Engine) {
 	router.Use(g.rateLimiter.Middleware())
 	router.Use(g.auth.Middleware())

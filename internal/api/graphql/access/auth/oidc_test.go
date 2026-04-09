@@ -27,50 +27,75 @@ const (
 	enableOidcServerLog     = false
 )
 
-var _ = Describe("Pass OIDC token data via context when using OIDC auth middleware", Label("api", "OidcAuthorization"), func() {
-	var oidcProvider *oidc.Provider
-	var testServer *test.TestServer
-	var oidcTokenStringHandler func(j *test.Jwt) string
+var _ = Describe(
+	"Pass OIDC token data via context when using OIDC auth middleware",
+	Label("api", "OidcAuthorization"),
+	func() {
+		var oidcProvider *oidc.Provider
+		var testServer *test.TestServer
+		var oidcTokenStringHandler func(j *test.Jwt) string
 
-	BeforeEach(func() {
-		oidcProviderUrl := fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
-		oidcProvider = oidc.NewProvider(oidcProviderUrl, enableOidcProviderLog)
-		oidcProvider.Start()
-
-		a := middleware.NewAuth(&util.Config{AuthOidcUrl: oidcProviderUrl, AuthOidcClientId: clientId}, enableOidcMiddlewareLog)
-		testServer = test.NewTestServer(a, enableOidcServerLog)
-		testServer.StartInBackground()
-
-		oidcTokenStringHandler = test.CreateOidcTokenStringHandler(oidcProviderUrl, clientId, testOidcUserName)
-	})
-
-	AfterEach(func() {
-		testServer.Stop()
-		oidcProvider.Stop()
-	})
-
-	When("User access api through OIDC token auth middleware with valid token", func() {
 		BeforeEach(func() {
-			token := test.GenerateJwtWithRsaSignature(oidcTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
-			resp := test.SendGetRequest(testServer.EndpointUrl(), map[string]string{"Authorization": test.WithBearer(token)})
-			Expect(resp.StatusCode).To(Equal(200))
-		})
-		It("Should be able to access user name from request context", func() {
-			name, err := context.UserNameFromContext(testServer.Context())
-			Expect(err).To(BeNil())
-			Expect(name).To(BeEquivalentTo(testOidcUserName))
-		})
-	})
+			oidcProviderUrl := fmt.Sprintf("http://localhost:%s", util2.GetRandomFreePort())
+			oidcProvider = oidc.NewProvider(oidcProviderUrl, enableOidcProviderLog)
+			oidcProvider.Start()
 
-	When("User access api through OIDC token auth middleware with invalid token", func() {
-		BeforeEach(func() {
-			token := test.GenerateJwtWithRsaSignature(test.InvalidTokenStringHandler, oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
-			resp := test.SendGetRequest(testServer.EndpointUrl(), map[string]string{"Authorization": test.WithBearer(token)})
-			Expect(resp.StatusCode).To(Equal(401))
+			a := middleware.NewAuth(
+				&util.Config{AuthOidcUrl: oidcProviderUrl, AuthOidcClientId: clientId},
+				enableOidcMiddlewareLog,
+			)
+			testServer = test.NewTestServer(a, enableOidcServerLog)
+			testServer.StartInBackground()
+
+			oidcTokenStringHandler = test.CreateOidcTokenStringHandler(
+				oidcProviderUrl,
+				clientId,
+				testOidcUserName,
+			)
 		})
-		It("Should not store gin context in request context", func() {
-			_, err := context.UserNameFromContext(testServer.Context())
-			Expect(err).ShouldNot(BeNil())
+
+		AfterEach(func() {
+			testServer.Stop()
+			oidcProvider.Stop()
 		})
-	})
-})
+
+		When("User access api through OIDC token auth middleware with valid token", func() {
+			BeforeEach(func() {
+				token := test.GenerateJwtWithRsaSignature(
+					oidcTokenStringHandler,
+					oidcProvider.GetRsaPrivateKey(),
+					1*time.Hour,
+				)
+				resp := test.SendGetRequest(
+					testServer.EndpointUrl(),
+					map[string]string{"Authorization": test.WithBearer(token)},
+				)
+				Expect(resp.StatusCode).To(Equal(200))
+			})
+			It("Should be able to access user name from request context", func() {
+				name, err := context.UserNameFromContext(testServer.Context())
+				Expect(err).To(BeNil())
+				Expect(name).To(BeEquivalentTo(testOidcUserName))
+			})
+		})
+
+		When("User access api through OIDC token auth middleware with invalid token", func() {
+			BeforeEach(func() {
+				token := test.GenerateJwtWithRsaSignature(
+					test.InvalidTokenStringHandler,
+					oidcProvider.GetRsaPrivateKey(),
+					1*time.Hour,
+				)
+				resp := test.SendGetRequest(
+					testServer.EndpointUrl(),
+					map[string]string{"Authorization": test.WithBearer(token)},
+				)
+				Expect(resp.StatusCode).To(Equal(401))
+			})
+			It("Should not store gin context in request context", func() {
+				_, err := context.UserNameFromContext(testServer.Context())
+				Expect(err).ShouldNot(BeNil())
+			})
+		})
+	},
+)

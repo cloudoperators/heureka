@@ -11,5 +11,6 @@ func EnsureListOptions(options *entity.ListOptions) *entity.ListOptions {
 			Order: []entity.Order{},
 		}
 	}
+
 	return options
 }

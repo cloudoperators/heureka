@@ -79,38 +79,62 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
-		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-			filter.First = &pageSize
-			patches := []entity.PatchResult{}
-			for _, patch := range test.NNewFakePatches(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
-				patches = append(patches, entity.PatchResult{WithCursor: entity.WithCursor{Value: cursor}, Patch: lo.ToPtr(patch)})
-			}
+		DescribeTable(
+			"pagination information is correct",
+			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+				filter.First = &pageSize
+				patches := []entity.PatchResult{}
+				for _, patch := range test.NNewFakePatches(resElements) {
+					cursor, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
+					patches = append(
+						patches,
+						entity.PatchResult{
+							WithCursor: entity.WithCursor{Value: cursor},
+							Patch:      new(patch),
+						},
+					)
+				}
 
-			cursors := lo.Map(patches, func(m entity.PatchResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, *m.Patch))
-				return cursor
-			})
+				cursors := lo.Map(patches, func(m entity.PatchResult, _ int) string {
+					cursor, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, *m.Patch))
+					return cursor
+				})
 
-			var i int64 = 0
-			for len(cursors) < dbElements {
-				i++
-				patch := test.NewFakePatchEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
-				cursors = append(cursors, c)
-			}
-			db.On("GetPatches", filter, []entity.Order{}).Return(patches, nil)
-			db.On("GetAllPatchCursors", filter, []entity.Order{}).Return(cursors, nil)
-			patchHandler = ph.NewPatchHandler(handlerContext)
-			res, err := patchHandler.ListPatches(filter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-		},
+				var i int64 = 0
+				for len(cursors) < dbElements {
+					i++
+					patch := test.NewFakePatchEntity()
+					c, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
+					cursors = append(cursors, c)
+				}
+				db.On("GetPatches", filter, []entity.Order{}).Return(patches, nil)
+				db.On("GetAllPatchCursors", filter, []entity.Order{}).Return(cursors, nil)
+				patchHandler = ph.NewPatchHandler(handlerContext)
+				res, err := patchHandler.ListPatches(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(
+					*res.PageInfo.HasNextPage,
+				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+				Expect(
+					len(res.PageInfo.Pages),
+				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			},
 			Entry("When  pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
-			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
-			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+			Entry(
+				"When  pageSize is 10 and the database was returning 9 elements",
+				10,
+				9,
+				9,
+				false,
+			),
+			Entry(
+				"When  pageSize is 10 and the database was returning 11 elements",
+				10,
+				11,
+				10,
+				true,
+			),
 		)
 	})
 	Context("when GetPatches fails", func() {
@@ -132,13 +156,15 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 			Expect(appErr.Entity).To(Equal("Patches"), "should reference Patches entity")
 			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
 			Expect(appErr.Op).To(Equal("patchHandler.ListPatches"), "should include operation")
-			Expect(appErr.Err.Error()).To(ContainSubstring("database connection failed"), "should contain original error message")
+			Expect(
+				appErr.Err.Error(),
+			).To(ContainSubstring("database connection failed"), "should contain original error message")
 		})
 	})
 	Context("when GetAllPatchCursors fails", func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
-			filter.First = lo.ToPtr(10)
+			filter.First = new(10)
 		})
 
 		It("should return Internal error", func() {
@@ -147,7 +173,7 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 				cursor, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
 				patches = append(patches, entity.PatchResult{
 					WithCursor: entity.WithCursor{Value: cursor},
-					Patch:      lo.ToPtr(patch),
+					Patch:      new(patch),
 				})
 			}
 

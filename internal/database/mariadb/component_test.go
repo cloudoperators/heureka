@@ -37,12 +37,19 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		testGetComponents := func(filter *entity.ComponentFilter, order []entity.Order, expectedComponents []mariadb.ComponentRow, check func(entries []entity.ComponentResult)) {
 			res, err := db.GetComponents(filter, order)
 			Expect(err).To(BeNil(), "GetComponents should not error")
-			Expect(len(res)).To(BeEquivalentTo(len(expectedComponents)), "GetComponents should return expected number of components")
+			Expect(
+				len(res),
+			).To(BeEquivalentTo(len(expectedComponents)), "GetComponents should return expected number of components")
 			check(res)
 		}
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				testGetComponents(nil, []entity.Order{}, []mariadb.ComponentRow{}, func(entries []entity.ComponentResult) {})
+				testGetComponents(
+					nil,
+					[]entity.Order{},
+					[]mariadb.ComponentRow{},
+					func(entries []entity.ComponentResult) {},
+				)
 			})
 		})
 		Context("and we have 10 components in the database", func() {
@@ -55,100 +62,179 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					testGetComponents(nil, []entity.Order{}, seedCollection.ComponentRows, func(entries []entity.ComponentResult) {
-						var prev int64 = 0
-						for _, r := range entries {
-							Expect(r.Id > prev).Should(BeTrue())
-							prev = r.Id
-							for _, row := range seedCollection.ComponentRows {
-								if r.Id == row.Id.Int64 {
-									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "CCRN should match")
-									Expect(r.Repository).Should(BeEquivalentTo(row.Repository.String), "Repository should match")
-									Expect(r.Organization).Should(BeEquivalentTo(row.Organization.String), "Organization should match")
-									Expect(r.Url).Should(BeEquivalentTo(row.Url.String), "Url should match")
-									Expect(r.Type).Should(BeEquivalentTo(row.Type.String), "Type should match")
+					testGetComponents(
+						nil,
+						[]entity.Order{},
+						seedCollection.ComponentRows,
+						func(entries []entity.ComponentResult) {
+							var prev int64 = 0
+							for _, r := range entries {
+								Expect(r.Id > prev).Should(BeTrue())
+								prev = r.Id
+								for _, row := range seedCollection.ComponentRows {
+									if r.Id == row.Id.Int64 {
+										Expect(
+											r.CCRN,
+										).Should(BeEquivalentTo(row.CCRN.String), "CCRN should match")
+										Expect(
+											r.Repository,
+										).Should(BeEquivalentTo(row.Repository.String), "Repository should match")
+										Expect(
+											r.Organization,
+										).Should(BeEquivalentTo(row.Organization.String), "Organization should match")
+										Expect(
+											r.Url,
+										).Should(BeEquivalentTo(row.Url.String), "Url should match")
+										Expect(
+											r.Type,
+										).Should(BeEquivalentTo(row.Type.String), "Type should match")
+									}
 								}
 							}
-						}
-					})
+						},
+					)
 				})
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single id", func() {
 					filter := &entity.ComponentFilter{Id: []*int64{&randomComponent.Id.Int64}}
-					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{randomComponent}, func(entries []entity.ComponentResult) {
-						for _, entry := range entries {
-							Expect(entry.Id).To(BeEquivalentTo(randomComponent.Id.Int64))
-						}
-					})
+					testGetComponents(
+						filter,
+						[]entity.Order{},
+						[]mariadb.ComponentRow{randomComponent},
+						func(entries []entity.ComponentResult) {
+							for _, entry := range entries {
+								Expect(entry.Id).To(BeEquivalentTo(randomComponent.Id.Int64))
+							}
+						},
+					)
 				})
 				It("can filter by a single repository", func() {
-					filter := &entity.ComponentFilter{Repository: []*string{&randomComponent.Repository.String}}
-					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{randomComponent}, func(entries []entity.ComponentResult) {
-						for _, entry := range entries {
-							Expect(entry.Repository).To(BeEquivalentTo(randomComponent.Repository.String))
-						}
-					})
+					filter := &entity.ComponentFilter{
+						Repository: []*string{&randomComponent.Repository.String},
+					}
+					testGetComponents(
+						filter,
+						[]entity.Order{},
+						[]mariadb.ComponentRow{randomComponent},
+						func(entries []entity.ComponentResult) {
+							for _, entry := range entries {
+								Expect(
+									entry.Repository,
+								).To(BeEquivalentTo(randomComponent.Repository.String))
+							}
+						},
+					)
 				})
 				It("can filter by a single organization", func() {
-					filter := &entity.ComponentFilter{Organization: []*string{&randomComponent.Organization.String}}
-					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{randomComponent}, func(entries []entity.ComponentResult) {
-						for _, entry := range entries {
-							Expect(entry.Organization).To(BeEquivalentTo(randomComponent.Organization.String))
-						}
-					})
+					filter := &entity.ComponentFilter{
+						Organization: []*string{&randomComponent.Organization.String},
+					}
+					testGetComponents(
+						filter,
+						[]entity.Order{},
+						[]mariadb.ComponentRow{randomComponent},
+						func(entries []entity.ComponentResult) {
+							for _, entry := range entries {
+								Expect(
+									entry.Organization,
+								).To(BeEquivalentTo(randomComponent.Organization.String))
+							}
+						},
+					)
 				})
 				It("can filter by a single ccrn", func() {
 					filter := &entity.ComponentFilter{CCRN: []*string{&randomComponent.CCRN.String}}
-					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{randomComponent}, func(entries []entity.ComponentResult) {
-						for _, entry := range entries {
-							Expect(entry.CCRN).To(BeEquivalentTo(randomComponent.CCRN.String))
-						}
-					})
+					testGetComponents(
+						filter,
+						[]entity.Order{},
+						[]mariadb.ComponentRow{randomComponent},
+						func(entries []entity.ComponentResult) {
+							for _, entry := range entries {
+								Expect(entry.CCRN).To(BeEquivalentTo(randomComponent.CCRN.String))
+							}
+						},
+					)
 				})
 				It("can filter by a random non existing component ccrn", func() {
 					nonExistingCCRN := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.ComponentFilter{CCRN: []*string{&nonExistingCCRN}}
-					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{}, func(entries []entity.ComponentResult) {})
+					testGetComponents(
+						filter,
+						[]entity.Order{},
+						[]mariadb.ComponentRow{},
+						func(entries []entity.ComponentResult) {},
+					)
 				})
 				It("can filter by all existing component ccrns", func() {
-					allCCRNs := lo.Map(seedCollection.ComponentRows, func(c mariadb.ComponentRow, _ int) *string {
-						return &c.CCRN.String
-					})
+					allCCRNs := lo.Map(
+						seedCollection.ComponentRows,
+						func(c mariadb.ComponentRow, _ int) *string {
+							return &c.CCRN.String
+						},
+					)
 					filter := &entity.ComponentFilter{CCRN: allCCRNs}
-					testGetComponents(filter, []entity.Order{}, seedCollection.ComponentRows, func(entries []entity.ComponentResult) {})
+					testGetComponents(
+						filter,
+						[]entity.Order{},
+						seedCollection.ComponentRows,
+						func(entries []entity.ComponentResult) {},
+					)
 				})
 				It("can filter by a single service ccrn", func() {
 					serviceRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
 
-					cvIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow, _ int) (int64, bool) {
-						return cir.ComponentVersionId.Int64, cir.ServiceId.Int64 == serviceRow.Id.Int64
-					})
+					cvIds := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(cir mariadb.ComponentInstanceRow, _ int) (int64, bool) {
+							return cir.ComponentVersionId.Int64, cir.ServiceId.Int64 == serviceRow.Id.Int64
+						},
+					)
 
-					componentIds := lo.FilterMap(seedCollection.ComponentVersionRows, func(cvr mariadb.ComponentVersionRow, _ int) (int64, bool) {
-						return cvr.ComponentId.Int64, lo.Contains(cvIds, cvr.Id.Int64)
-					})
+					componentIds := lo.FilterMap(
+						seedCollection.ComponentVersionRows,
+						func(cvr mariadb.ComponentVersionRow, _ int) (int64, bool) {
+							return cvr.ComponentId.Int64, lo.Contains(cvIds, cvr.Id.Int64)
+						},
+					)
 
-					components := lo.Filter(seedCollection.ComponentRows, func(cr mariadb.ComponentRow, _ int) bool {
-						return lo.Contains(componentIds, cr.Id.Int64)
-					})
+					components := lo.Filter(
+						seedCollection.ComponentRows,
+						func(cr mariadb.ComponentRow, _ int) bool {
+							return lo.Contains(componentIds, cr.Id.Int64)
+						},
+					)
 
-					filter := &entity.ComponentFilter{ServiceCCRN: []*string{&serviceRow.CCRN.String}}
+					filter := &entity.ComponentFilter{
+						ServiceCCRN: []*string{&serviceRow.CCRN.String},
+					}
 
-					testGetComponents(filter, []entity.Order{}, components, func(entries []entity.ComponentResult) {
-						for _, entry := range entries {
-							Expect(lo.Contains(componentIds, entry.Id)).To(BeTrue())
-						}
-					})
+					testGetComponents(
+						filter,
+						[]entity.Order{},
+						components,
+						func(entries []entity.ComponentResult) {
+							for _, entry := range entries {
+								Expect(lo.Contains(componentIds, entry.Id)).To(BeTrue())
+							}
+						},
+					)
 				})
 				It("can filter by a single component repository", func() {
-					filter := &entity.ComponentFilter{Repository: []*string{&randomComponent.Repository.String}}
+					filter := &entity.ComponentFilter{
+						Repository: []*string{&randomComponent.Repository.String},
+					}
 
-					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{randomComponent}, func(entries []entity.ComponentResult) {
-						for _, entry := range entries {
-							Expect(entry.Id).To(BeEquivalentTo(randomComponent.Id.Int64))
-						}
-					})
+					testGetComponents(
+						filter,
+						[]entity.Order{},
+						[]mariadb.ComponentRow{randomComponent},
+						func(entries []entity.ComponentResult) {
+							for _, entry := range entries {
+								Expect(entry.Id).To(BeEquivalentTo(randomComponent.Id.Int64))
+							}
+						},
+					)
 				})
 			})
 			Context("and using pagination", func() {
@@ -162,7 +248,13 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.ComponentResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithComponent([]entity.Order{}, *entries[len(entries)-1].Component, entity.IssueSeverityCounts{}))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithComponent(
+									[]entity.Order{},
+									*entries[len(entries)-1].Component,
+									entity.IssueSeverityCounts{},
+								),
+							)
 							return after
 						},
 						len(seedCollection.ComponentRows),
@@ -182,7 +274,9 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 		testCountComponents := func(filter *entity.ComponentFilter, expectedCount int) {
 			c, err := db.CountComponents(filter)
 			Expect(err).To(BeNil(), "CountComponents should not error")
-			Expect(c).To(BeEquivalentTo(expectedCount), "CountComponents should return expected count")
+			Expect(
+				c,
+			).To(BeEquivalentTo(expectedCount), "CountComponents should return expected count")
 		}
 
 		Context("and the database is empty", func() {
@@ -221,9 +315,12 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 
 			Context("and using a filter", func() {
 				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
-					components := lo.Filter(seedCollection.ComponentRows, func(cr mariadb.ComponentRow, _ int) bool {
-						return cr.CCRN.String == randomComponent.CCRN.String
-					})
+					components := lo.Filter(
+						seedCollection.ComponentRows,
+						func(cr mariadb.ComponentRow, _ int) bool {
+							return cr.CCRN.String == randomComponent.CCRN.String
+						},
+					)
 
 					filter := &entity.ComponentFilter{
 						Paginated: entity.Paginated{
@@ -433,23 +530,33 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 	}
 
 	loadTestData := func() ([]mariadb.ComponentVersionRow, []mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
-		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("testdata/component_version_order/issue_variant.json"))
+		issueVariants, err := test.LoadIssueVariants(
+			test.GetTestDataPath("testdata/component_version_order/issue_variant.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
-		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("testdata/component_order/component_version_issue.json"))
+		cvIssues, err := test.LoadComponentVersionIssues(
+			test.GetTestDataPath("testdata/component_order/component_version_issue.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
-		componentInstances, err := test.LoadComponentInstances(test.GetTestDataPath("testdata/service_order/component_instance.json"))
+		componentInstances, err := test.LoadComponentInstances(
+			test.GetTestDataPath("testdata/service_order/component_instance.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
-		issueMatches, err := test.LoadIssueMatches(test.GetTestDataPath("testdata/component_order/issue_match.json"))
+		issueMatches, err := test.LoadIssueMatches(
+			test.GetTestDataPath("testdata/component_order/issue_match.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
-		componentVersions, err := test.LoadComponentVersions(test.GetTestDataPath("testdata/component_order/component_version.json"))
+		componentVersions, err := test.LoadComponentVersions(
+			test.GetTestDataPath("testdata/component_order/component_version.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
@@ -460,7 +567,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 		var componentFilter *entity.ComponentFilter
 		BeforeEach(func() {
 			seeder.SeedIssueRepositories()
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				issue := test.NewFakeIssue()
 				issue.Type.String = entity.IssueTypeVulnerability.String()
 				seeder.InsertFakeIssue(issue)
@@ -560,7 +667,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 			}
 
 			testOrder(order, func(res []entity.ComponentResult) {
-				var prev string = ""
+				prev := ""
 				for _, r := range res {
 					Expect(c.CompareString(r.Repository, prev)).Should(BeNumerically(">=", 0))
 					prev = r.Repository
@@ -596,7 +703,7 @@ var _ = Describe("Ordering Components", Label("ComponentOrdering"), func() {
 			}
 
 			testOrder(order, func(res []entity.ComponentResult) {
-				var prev string = "\U0010FFFF"
+				prev := "\U0010FFFF"
 				for _, r := range res {
 					Expect(c.CompareString(r.Repository, prev)).Should(BeNumerically("<=", 0))
 					prev = r.Repository

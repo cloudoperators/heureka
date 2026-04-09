@@ -13,22 +13,39 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy, parent *model.NodeParent) (*model.SupportGroupConnection, error) {
+func SupportGroupBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.SupportGroupFilter,
+	first *int,
+	after *string,
+	orderBy []*model.SupportGroupOrderBy,
+	parent *model.NodeParent,
+) (*model.SupportGroupConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called SupportGroupBaseResolver")
 
-	var serviceId []*int64
-	var userId []*int64
-	var issueId []*int64
+	var (
+		serviceId []*int64
+		userId    []*int64
+		issueId   []*int64
+	)
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("SupportGroupBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("SupportGroupBaseResolver", "Bad Request - Error while parsing propagated ID")
+			logrus.WithField("parent", parent).
+				Error("SupportGroupBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, NewResolverError(
+				"SupportGroupBaseResolver",
+				"Bad Request - Error while parsing propagated ID",
+			)
 		}
 
 		switch parent.ParentName {
@@ -65,6 +82,7 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	edges := []*model.SupportGroupEdge{}
+
 	for _, result := range supportGroups.Elements {
 		sg := model.NewSupportGroup(result.SupportGroup)
 		edge := model.SupportGroupEdge{
@@ -88,23 +106,34 @@ func SupportGroupBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	return &connection, nil
 }
 
-func SupportGroupCcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+func SupportGroupCcrnBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.SupportGroupFilter,
+) (*model.FilterItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 	}).Debug("Called SupportGroupCcrnBaseResolver")
+
 	var err error
 
 	if filter == nil {
 		filter = &model.SupportGroupFilter{}
 	}
+
 	var userIds []*int64
 
 	if len(filter.UserIds) > 0 {
 		userIds, err = util.ConvertStrToIntSlice(filter.UserIds)
 		if err != nil {
-			logrus.WithField("Filter", filter).Error("SupportGroupCcrnBaseResolver: Error while parsing 'UserIds'")
-			return nil, NewResolverError("SupportGroupCcrnBaseResolver", "Bad Request - unable to parse 'UserIds'")
+			logrus.WithField("Filter", filter).
+				Error("SupportGroupCcrnBaseResolver: Error while parsing 'UserIds'")
+
+			return nil, NewResolverError(
+				"SupportGroupCcrnBaseResolver",
+				"Bad Request - unable to parse 'UserIds'",
+			)
 		}
 	}
 

@@ -59,7 +59,9 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 
 					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentInstanceRows)))
+						Expect(
+							len(res),
+						).Should(BeIdenticalTo(len(seedCollection.ComponentInstanceRows)))
 					})
 
 					By("returning the correct order", func() {
@@ -76,19 +78,45 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						for _, r := range res {
 							for _, row := range seedCollection.ComponentInstanceRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "CCRN matches")
-									Expect(r.Region).Should(BeEquivalentTo(row.Region.String), "Region matches")
-									Expect(r.Cluster).Should(BeEquivalentTo(row.Cluster.String), "Cluster matches")
-									Expect(r.Namespace).Should(BeEquivalentTo(row.Namespace.String), "Namespace matches")
-									Expect(r.Domain).Should(BeEquivalentTo(row.Domain.String), "Domain matches")
-									Expect(r.Project).Should(BeEquivalentTo(row.Project.String), "Project matches")
-									Expect(r.Pod).Should(BeEquivalentTo(row.Pod.String), "Pod matches")
-									Expect(r.Container).Should(BeEquivalentTo(row.Container.String), "Container matches")
-									Expect(r.Type.String()).Should(BeEquivalentTo(row.Type.String), "Type matches")
-									Expect((*map[string]interface{})(r.Context)).To(BeEquivalentTo(util.ConvertStrToJsonNoError(&row.Context.String)), "Context matches")
-									Expect(r.Count).Should(BeEquivalentTo(row.Count.Int16), "Count matches")
-									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
-									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
+									Expect(
+										r.CCRN,
+									).Should(BeEquivalentTo(row.CCRN.String), "CCRN matches")
+									Expect(
+										r.Region,
+									).Should(BeEquivalentTo(row.Region.String), "Region matches")
+									Expect(
+										r.Cluster,
+									).Should(BeEquivalentTo(row.Cluster.String), "Cluster matches")
+									Expect(
+										r.Namespace,
+									).Should(BeEquivalentTo(row.Namespace.String), "Namespace matches")
+									Expect(
+										r.Domain,
+									).Should(BeEquivalentTo(row.Domain.String), "Domain matches")
+									Expect(
+										r.Project,
+									).Should(BeEquivalentTo(row.Project.String), "Project matches")
+									Expect(
+										r.Pod,
+									).Should(BeEquivalentTo(row.Pod.String), "Pod matches")
+									Expect(
+										r.Container,
+									).Should(BeEquivalentTo(row.Container.String), "Container matches")
+									Expect(
+										r.Type.String(),
+									).Should(BeEquivalentTo(row.Type.String), "Type matches")
+									Expect(
+										(*map[string]any)(r.Context),
+									).To(BeEquivalentTo(util.ConvertStrToJsonNoError(&row.Context.String)), "Context matches")
+									Expect(
+										r.Count,
+									).Should(BeEquivalentTo(row.Count.Int16), "Count matches")
+									Expect(
+										r.CreatedAt,
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
+									Expect(
+										r.UpdatedAt,
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
 							}
 						}
@@ -181,15 +209,20 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 					By("returning expected elements", func() {
 						for i := range entries {
-							Expect(entries[i].ComponentVersionId).To(BeEquivalentTo(cir.ComponentVersionId.Int64))
+							Expect(
+								entries[i].ComponentVersionId,
+							).To(BeEquivalentTo(cir.ComponentVersionId.Int64))
 						}
 					})
 				})
 				It("can filter by a single component version version that does exist", func() {
 					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
-					cvr, _ := lo.Find(seedCollection.ComponentVersionRows, func(cv mariadb.ComponentVersionRow) bool {
-						return cv.Id.Int64 == cir.ComponentVersionId.Int64
-					})
+					cvr, _ := lo.Find(
+						seedCollection.ComponentVersionRows,
+						func(cv mariadb.ComponentVersionRow) bool {
+							return cv.Id.Int64 == cir.ComponentVersionId.Int64
+						},
+					)
 
 					filter := &entity.ComponentInstanceFilter{
 						Paginated:               entity.Paginated{},
@@ -208,12 +241,16 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 					By("returning expected elements", func() {
 						for i := range entries {
-							Expect(entries[i].ComponentVersionId).To(BeEquivalentTo(cir.ComponentVersionId.Int64))
+							Expect(
+								entries[i].ComponentVersionId,
+							).To(BeEquivalentTo(cir.ComponentVersionId.Int64))
 						}
 					})
 				})
 				It("can filter by all existing issue match ids ", func() {
-					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(seedCollection.IssueMatchRows)
+					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(
+						seedCollection.IssueMatchRows,
+					)
 					filter := &entity.ComponentInstanceFilter{IssueMatchId: ids}
 
 					entries, err := db.GetComponentInstances(filter, nil)
@@ -238,7 +275,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						},
 						[]entity.Order{},
 						func(entries []entity.ComponentInstanceResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithComponentInstance([]entity.Order{}, *entries[len(entries)-1].ComponentInstance))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithComponentInstance(
+									[]entity.Order{},
+									*entries[len(entries)-1].ComponentInstance,
+								),
+							)
 							return after
 						},
 						len(seedCollection.ComponentInstanceRows),
@@ -310,26 +352,30 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 			})
 			Context("and using a filter", func() {
-				DescribeTable("does return totalCount of applied filter", func(pageSize int, filterMatches int) {
-					imCol := seedCollection.IssueMatchRows[:filterMatches]
-					expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(imCol)
+				DescribeTable(
+					"does return totalCount of applied filter",
+					func(pageSize int, filterMatches int) {
+						imCol := seedCollection.IssueMatchRows[:filterMatches]
+						expectedComponentInstances, ids := seedCollection.GetComponentInstanceByIssueMatches(
+							imCol,
+						)
 
-					filter := &entity.ComponentInstanceFilter{
-						Paginated: entity.Paginated{
-							First: &pageSize,
-							After: nil,
-						},
-						IssueMatchId: ids,
-					}
-					entries, err := db.CountComponentInstances(filter)
-					By("throwing no error", func() {
-						Expect(err).To(BeNil())
-					})
-					By("returning the correct count", func() {
-						Expect(entries).To(BeEquivalentTo(len(expectedComponentInstances)))
-					})
-					Expect(err).To(BeNil(), "No error should be thrown")
-				},
+						filter := &entity.ComponentInstanceFilter{
+							Paginated: entity.Paginated{
+								First: &pageSize,
+								After: nil,
+							},
+							IssueMatchId: ids,
+						}
+						entries, err := db.CountComponentInstances(filter)
+						By("throwing no error", func() {
+							Expect(err).To(BeNil())
+						})
+						By("returning the correct count", func() {
+							Expect(entries).To(BeEquivalentTo(len(expectedComponentInstances)))
+						})
+						Expect(err).To(BeNil(), "No error should be thrown")
+					},
 					Entry("when pageSize is 1 and it has 13 elements", 1, 13),
 					Entry("when pageSize is 20 and it has 5 elements", 20, 5),
 					Entry("when pageSize is 100 and it has 100 elements", 100, 100),
@@ -367,18 +413,36 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				By("setting fields", func() {
 					Expect(componentInstance.CCRN).To(BeEquivalentTo(newComponentInstance.CCRN))
 					Expect(componentInstance.Region).To(BeEquivalentTo(newComponentInstance.Region))
-					Expect(componentInstance.Cluster).To(BeEquivalentTo(newComponentInstance.Cluster))
-					Expect(componentInstance.Namespace).To(BeEquivalentTo(newComponentInstance.Namespace))
+					Expect(
+						componentInstance.Cluster,
+					).To(BeEquivalentTo(newComponentInstance.Cluster))
+					Expect(
+						componentInstance.Namespace,
+					).To(BeEquivalentTo(newComponentInstance.Namespace))
 					Expect(componentInstance.Domain).To(BeEquivalentTo(newComponentInstance.Domain))
-					Expect(componentInstance.Project).To(BeEquivalentTo(newComponentInstance.Project))
+					Expect(
+						componentInstance.Project,
+					).To(BeEquivalentTo(newComponentInstance.Project))
 					Expect(componentInstance.Pod).To(BeEquivalentTo(newComponentInstance.Pod))
-					Expect(componentInstance.Container).To(BeEquivalentTo(newComponentInstance.Container))
-					Expect(componentInstance.Type.String()).To(BeEquivalentTo(newComponentInstance.Type.String()))
-					Expect(componentInstance.Context).To(BeEquivalentTo(newComponentInstance.Context))
+					Expect(
+						componentInstance.Container,
+					).To(BeEquivalentTo(newComponentInstance.Container))
+					Expect(
+						componentInstance.Type.String(),
+					).To(BeEquivalentTo(newComponentInstance.Type.String()))
+					Expect(
+						componentInstance.Context,
+					).To(BeEquivalentTo(newComponentInstance.Context))
 					Expect(componentInstance.Count).To(BeEquivalentTo(newComponentInstance.Count))
-					Expect(componentInstance.ComponentVersionId).To(BeEquivalentTo(newComponentInstance.ComponentVersionId))
-					Expect(componentInstance.ServiceId).To(BeEquivalentTo(newComponentInstance.ServiceId))
-					Expect(componentInstance.ParentId).To(BeEquivalentTo(newComponentInstance.ParentId))
+					Expect(
+						componentInstance.ComponentVersionId,
+					).To(BeEquivalentTo(newComponentInstance.ComponentVersionId))
+					Expect(
+						componentInstance.ServiceId,
+					).To(BeEquivalentTo(newComponentInstance.ServiceId))
+					Expect(
+						componentInstance.ParentId,
+					).To(BeEquivalentTo(newComponentInstance.ParentId))
 				})
 			})
 			It("can insert correctly (without ParentID)", func() {
@@ -394,17 +458,33 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				By("setting fields", func() {
 					Expect(componentInstance.CCRN).To(BeEquivalentTo(newComponentInstance.CCRN))
 					Expect(componentInstance.Region).To(BeEquivalentTo(newComponentInstance.Region))
-					Expect(componentInstance.Cluster).To(BeEquivalentTo(newComponentInstance.Cluster))
-					Expect(componentInstance.Namespace).To(BeEquivalentTo(newComponentInstance.Namespace))
+					Expect(
+						componentInstance.Cluster,
+					).To(BeEquivalentTo(newComponentInstance.Cluster))
+					Expect(
+						componentInstance.Namespace,
+					).To(BeEquivalentTo(newComponentInstance.Namespace))
 					Expect(componentInstance.Domain).To(BeEquivalentTo(newComponentInstance.Domain))
-					Expect(componentInstance.Project).To(BeEquivalentTo(newComponentInstance.Project))
+					Expect(
+						componentInstance.Project,
+					).To(BeEquivalentTo(newComponentInstance.Project))
 					Expect(componentInstance.Pod).To(BeEquivalentTo(newComponentInstance.Pod))
-					Expect(componentInstance.Container).To(BeEquivalentTo(newComponentInstance.Container))
-					Expect(componentInstance.Type.String()).To(BeEquivalentTo(newComponentInstance.Type.String()))
+					Expect(
+						componentInstance.Container,
+					).To(BeEquivalentTo(newComponentInstance.Container))
+					Expect(
+						componentInstance.Type.String(),
+					).To(BeEquivalentTo(newComponentInstance.Type.String()))
 					Expect(componentInstance.Count).To(BeEquivalentTo(newComponentInstance.Count))
-					Expect(componentInstance.ComponentVersionId).To(BeEquivalentTo(newComponentInstance.ComponentVersionId))
-					Expect(componentInstance.ServiceId).To(BeEquivalentTo(newComponentInstance.ServiceId))
-					Expect(componentInstance.ParentId).To(BeEquivalentTo(newComponentInstance.ParentId))
+					Expect(
+						componentInstance.ComponentVersionId,
+					).To(BeEquivalentTo(newComponentInstance.ComponentVersionId))
+					Expect(
+						componentInstance.ServiceId,
+					).To(BeEquivalentTo(newComponentInstance.ServiceId))
+					Expect(
+						componentInstance.ParentId,
+					).To(BeEquivalentTo(newComponentInstance.ParentId))
 				})
 			})
 		})
@@ -448,7 +528,9 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Type.String()).To(BeEquivalentTo(componentInstance.Type.String()))
 					Expect(ci[0].Context).To(BeEquivalentTo(componentInstance.Context))
 					Expect(ci[0].Count).To(BeEquivalentTo(componentInstance.Count))
-					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(componentInstance.ComponentVersionId))
+					Expect(
+						ci[0].ComponentVersionId,
+					).To(BeEquivalentTo(componentInstance.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(componentInstance.ServiceId))
 					Expect(ci[0].ParentId).To(BeEquivalentTo(componentInstance.ParentId))
 				})
@@ -487,10 +569,16 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Expect(ci[0].Project).To(BeEquivalentTo(newComponentInstanceValues.Project))
 					Expect(ci[0].Pod).To(BeEquivalentTo(newComponentInstanceValues.Pod))
 					Expect(ci[0].Container).To(BeEquivalentTo(newComponentInstanceValues.Container))
-					Expect(ci[0].Type.String()).To(BeEquivalentTo(newComponentInstanceValues.Type.String()))
-					Expect(ci[0].Context.String()).To(BeEquivalentTo(newComponentInstanceValues.Context.String()))
+					Expect(
+						ci[0].Type.String(),
+					).To(BeEquivalentTo(newComponentInstanceValues.Type.String()))
+					Expect(
+						ci[0].Context.String(),
+					).To(BeEquivalentTo(newComponentInstanceValues.Context.String()))
 					Expect(ci[0].Count).To(BeEquivalentTo(newComponentInstanceValues.Count))
-					Expect(ci[0].ComponentVersionId).To(BeEquivalentTo(newComponentInstanceValues.ComponentVersionId))
+					Expect(
+						ci[0].ComponentVersionId,
+					).To(BeEquivalentTo(newComponentInstanceValues.ComponentVersionId))
 					Expect(ci[0].ServiceId).To(BeEquivalentTo(newComponentInstanceValues.ServiceId))
 					Expect(ci[0].ParentId).To(BeEquivalentTo(newComponentInstanceValues.ParentId))
 				})
@@ -548,7 +636,9 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 
 				By("returning the correct number of results", func() {
-					Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentInstanceRows)))
+					Expect(
+						len(res),
+					).Should(BeIdenticalTo(len(seedCollection.ComponentInstanceRows)))
 				})
 
 				By("returning the correct order", func() {
@@ -558,9 +648,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedCcrns := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.CCRN.String
-					})
+					expectedCcrns := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.CCRN.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetCcrn, expectedCcrns)
 				})
 			})
@@ -573,14 +665,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						[]string{cir.CCRN.String},
 					)
 				})
-				It("and using notexisting value returns an empty list when no CCRN match the filter", func() {
-					notexistentCcrn := "NotexistentCCRN"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{CCRN: []*string{&notexistentCcrn}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no CCRN match the filter",
+					func() {
+						notexistentCcrn := "NotexistentCCRN"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{CCRN: []*string{&notexistentCcrn}},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Region filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
@@ -595,14 +690,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Region match the filter", func() {
-					notexistentRegion := "NotexistentRegion"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{CCRN: []*string{&notexistentRegion}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Region match the filter",
+					func() {
+						notexistentRegion := "NotexistentRegion"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{CCRN: []*string{&notexistentRegion}},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Cluster filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
@@ -617,14 +715,19 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Cluster match the filter", func() {
-					notexistentCluster := "NotexistentCluster"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Cluster: []*string{&notexistentCluster}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Cluster match the filter",
+					func() {
+						notexistentCluster := "NotexistentCluster"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{
+								Cluster: []*string{&notexistentCluster},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Namespace filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
@@ -635,18 +738,25 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Namespace: []*string{&cir.Namespace.String}},
+						&entity.ComponentInstanceFilter{
+							Namespace: []*string{&cir.Namespace.String},
+						},
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Namespace match the filter", func() {
-					notexistentNamespace := "NotexistentNamespace"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Namespace: []*string{&notexistentNamespace}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Namespace match the filter",
+					func() {
+						notexistentNamespace := "NotexistentNamespace"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{
+								Namespace: []*string{&notexistentNamespace},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Domain filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
@@ -661,14 +771,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Domain match the filter", func() {
-					notexistentDomain := "NotexistentDomain"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Domain: []*string{&notexistentDomain}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Domain match the filter",
+					func() {
+						notexistentDomain := "NotexistentDomain"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{Domain: []*string{&notexistentDomain}},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Project filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
@@ -683,14 +796,19 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Project match the filter", func() {
-					notexistentProject := "NotexistentProject"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Project: []*string{&notexistentProject}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Project match the filter",
+					func() {
+						notexistentProject := "NotexistentProject"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{
+								Project: []*string{&notexistentProject},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Pod filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
@@ -705,14 +823,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Pod match the filter", func() {
-					notexistentPod := "NotexistentPod"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Pod: []*string{&notexistentPod}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Pod match the filter",
+					func() {
+						notexistentPod := "NotexistentPod"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{Pod: []*string{&notexistentPod}},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Container filter", func() {
 				It("using existing value can fetch the filtered items correctly", func() {
@@ -723,18 +844,25 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Container: []*string{&cir.Container.String}},
+						&entity.ComponentInstanceFilter{
+							Container: []*string{&cir.Container.String},
+						},
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Container match the filter", func() {
-					notexistentContainer := "NotexistentContainer"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Container: []*string{&notexistentContainer}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Container match the filter",
+					func() {
+						notexistentContainer := "NotexistentContainer"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{
+								Container: []*string{&notexistentContainer},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Type filter", func() {
 				It("using existing value can fetch the filterd items correctly", func() {
@@ -749,14 +877,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Type match the filter", func() {
-					notexistentType := "NotexistentType"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Type: []*string{&notexistentType}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Type match the filter",
+					func() {
+						notexistentType := "NotexistentType"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{Type: []*string{&notexistentType}},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using a Context filter", func() {
 				It("using existing value can fetch the filterd items correctly", func() {
@@ -778,7 +909,8 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						func(picked, iter mariadb.ComponentInstanceRow) (string, bool) {
 							iterContext := *util.ConvertStrToJsonNoError(&iter.Context.String)
 							pickedContext := *util.ConvertStrToJsonNoError(&picked.Context.String)
-							return iter.CCRN.String, iterContext["my_ip"] == pickedContext["my_ip"] && iterContext["remove_unused_base_images"] == pickedContext["remove_unused_base_images"]
+							return iter.CCRN.String, iterContext["my_ip"] == pickedContext["my_ip"] &&
+								iterContext["remove_unused_base_images"] == pickedContext["remove_unused_base_images"]
 						},
 					)
 					cirContext := *util.ConvertStrToJsonNoError(&cir.Context.String)
@@ -791,67 +923,86 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedCcrns,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Type match the filter", func() {
-					notexistentContextAttr := map[string]interface{}{
-						"not_real": "value",
-					}
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{Context: []*entity.Json{(*entity.Json)(&notexistentContextAttr)}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Type match the filter",
+					func() {
+						notexistentContextAttr := map[string]any{
+							"not_real": "value",
+						}
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{
+								Context: []*entity.Json{(*entity.Json)(&notexistentContextAttr)},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using multiple filter attributes", func() {
-				It("using existing values of CCRN attributes can fetch the filtered items correctly", func() {
-					cir, expectedCcrns := seedCollection.GetComponentInstanceWithPredicateVal(
-						func(picked, iter mariadb.ComponentInstanceRow) (string, bool) {
-							return iter.CCRN.String, iter.Pod.String == picked.Pod.String &&
-								iter.Container.String == picked.Container.String &&
-								iter.Type.String == picked.Type.String &&
-								iter.Context.String == picked.Context.String &&
-								iter.Project.String == picked.Project.String &&
-								iter.Domain.String == picked.Domain.String &&
-								iter.Namespace.String == picked.Namespace.String &&
-								iter.Cluster.String == picked.Cluster.String &&
-								iter.Region.String == picked.Region.String
-						},
-					)
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{
-							Region:    []*string{&cir.Region.String},
-							Cluster:   []*string{&cir.Cluster.String},
-							Namespace: []*string{&cir.Namespace.String},
-							Domain:    []*string{&cir.Domain.String},
-							Project:   []*string{&cir.Project.String},
-							Pod:       []*string{&cir.Pod.String},
-							Container: []*string{&cir.Container.String},
-							Type:      []*string{&cir.Type.String},
-							Context:   []*entity.Json{(*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String))},
-						},
-						expectedCcrns,
-					)
-				})
-				It("using one notexisting value of all CCRN attributes returns an empty list", func() {
-					cir := seedCollection.GetComponentInstance()
-					notexistentProject := "NotexistentProject"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCcrn,
-						&entity.ComponentInstanceFilter{
-							Region:    []*string{&cir.Region.String},
-							Cluster:   []*string{&cir.Cluster.String},
-							Namespace: []*string{&cir.Namespace.String},
-							Domain:    []*string{&cir.Domain.String},
-							Project:   []*string{&notexistentProject},
-							Pod:       []*string{&cir.Pod.String},
-							Container: []*string{&cir.Container.String},
-							Type:      []*string{&cir.Type.String},
-							Context:   []*entity.Json{(*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String))},
-						},
-						[]string{},
-					)
-				})
+				It(
+					"using existing values of CCRN attributes can fetch the filtered items correctly",
+					func() {
+						cir, expectedCcrns := seedCollection.GetComponentInstanceWithPredicateVal(
+							func(picked, iter mariadb.ComponentInstanceRow) (string, bool) {
+								return iter.CCRN.String, iter.Pod.String == picked.Pod.String &&
+									iter.Container.String == picked.Container.String &&
+									iter.Type.String == picked.Type.String &&
+									iter.Context.String == picked.Context.String &&
+									iter.Project.String == picked.Project.String &&
+									iter.Domain.String == picked.Domain.String &&
+									iter.Namespace.String == picked.Namespace.String &&
+									iter.Cluster.String == picked.Cluster.String &&
+									iter.Region.String == picked.Region.String
+							},
+						)
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{
+								Region:    []*string{&cir.Region.String},
+								Cluster:   []*string{&cir.Cluster.String},
+								Namespace: []*string{&cir.Namespace.String},
+								Domain:    []*string{&cir.Domain.String},
+								Project:   []*string{&cir.Project.String},
+								Pod:       []*string{&cir.Pod.String},
+								Container: []*string{&cir.Container.String},
+								Type:      []*string{&cir.Type.String},
+								Context: []*entity.Json{
+									(*entity.Json)(
+										util.ConvertStrToJsonNoError(&cir.Context.String),
+									),
+								},
+							},
+							expectedCcrns,
+						)
+					},
+				)
+				It(
+					"using one notexisting value of all CCRN attributes returns an empty list",
+					func() {
+						cir := seedCollection.GetComponentInstance()
+						notexistentProject := "NotexistentProject"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCcrn,
+							&entity.ComponentInstanceFilter{
+								Region:    []*string{&cir.Region.String},
+								Cluster:   []*string{&cir.Cluster.String},
+								Namespace: []*string{&cir.Namespace.String},
+								Domain:    []*string{&cir.Domain.String},
+								Project:   []*string{&notexistentProject},
+								Pod:       []*string{&cir.Pod.String},
+								Container: []*string{&cir.Container.String},
+								Type:      []*string{&cir.Type.String},
+								Context: []*entity.Json{
+									(*entity.Json)(
+										util.ConvertStrToJsonNoError(&cir.Context.String),
+									),
+								},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 			Context("and using asc order", func() {
 				c := collate.New(language.English)
@@ -866,7 +1017,9 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						for i, r := range res {
-							Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentInstanceRows[i].Id.Int64))
+							Expect(
+								r.Id,
+							).Should(BeEquivalentTo(seedCollection.ComponentInstanceRows[i].Id.Int64))
 						}
 					})
 				})
@@ -876,10 +1029,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.CCRN, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.CCRN
+							Expect(
+								c.CompareString(r.ComponentInstance.CCRN, prev),
+							).Should(BeNumerically(">=", 0))
+							prev = r.CCRN
 						}
 					})
 				})
@@ -889,23 +1044,30 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Region, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Region
+							Expect(
+								c.CompareString(r.ComponentInstance.Region, prev),
+							).Should(BeNumerically(">=", 0))
+							prev = r.Region
 						}
 					})
 				})
 				It("can order by namespace", func() {
 					order := []entity.Order{
-						{By: entity.ComponentInstanceNamespace, Direction: entity.OrderDirectionAsc},
+						{
+							By:        entity.ComponentInstanceNamespace,
+							Direction: entity.OrderDirectionAsc,
+						},
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Namespace, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Namespace
+							Expect(
+								c.CompareString(r.ComponentInstance.Namespace, prev),
+							).Should(BeNumerically(">=", 0))
+							prev = r.Namespace
 						}
 					})
 				})
@@ -915,10 +1077,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Cluster, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Cluster
+							Expect(
+								c.CompareString(r.ComponentInstance.Cluster, prev),
+							).Should(BeNumerically(">=", 0))
+							prev = r.Cluster
 						}
 					})
 				})
@@ -928,10 +1092,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Domain, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Domain
+							Expect(
+								c.CompareString(r.ComponentInstance.Domain, prev),
+							).Should(BeNumerically(">=", 0))
+							prev = r.Domain
 						}
 					})
 				})
@@ -941,10 +1107,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Project, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Project
+							Expect(
+								c.CompareString(r.ComponentInstance.Project, prev),
+							).Should(BeNumerically(">=", 0))
+							prev = r.Project
 						}
 					})
 				})
@@ -954,36 +1122,46 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Pod, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Pod
+							Expect(
+								c.CompareString(r.ComponentInstance.Pod, prev),
+							).Should(BeNumerically(">=", 0))
+							prev = r.Pod
 						}
 					})
 				})
 				It("can order by container", func() {
 					order := []entity.Order{
-						{By: entity.ComponentInstanceContainer, Direction: entity.OrderDirectionAsc},
+						{
+							By:        entity.ComponentInstanceContainer,
+							Direction: entity.OrderDirectionAsc,
+						},
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = ""
+						prev := ""
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Container, prev)).Should(BeNumerically(">=", 0))
-							prev = r.ComponentInstance.Container
+							Expect(
+								c.CompareString(r.ComponentInstance.Container, prev),
+							).Should(BeNumerically(">=", 0))
+							prev = r.Container
 						}
 					})
 				})
 				It("can order by type", func() {
 					order := []entity.Order{
-						{By: entity.ComponentInstanceTypeOrder, Direction: entity.OrderDirectionAsc},
+						{
+							By:        entity.ComponentInstanceTypeOrder,
+							Direction: entity.OrderDirectionAsc,
+						},
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev int = -1
+						prev := -1
 						for _, r := range res {
 							Expect(r.ComponentInstance.Type.Index() >= prev).Should(BeTrue())
-							prev = r.ComponentInstance.Type.Index()
+							prev = r.Type.Index()
 						}
 					})
 				})
@@ -1001,7 +1179,9 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
 						for i, r := range res {
-							Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentInstanceRows[i].Id.Int64))
+							Expect(
+								r.Id,
+							).Should(BeEquivalentTo(seedCollection.ComponentInstanceRows[i].Id.Int64))
 						}
 					})
 				})
@@ -1011,10 +1191,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := "\U0010FFFF"
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.CCRN, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.CCRN
+							Expect(
+								c.CompareString(r.ComponentInstance.CCRN, prev),
+							).Should(BeNumerically("<=", 0))
+							prev = r.CCRN
 						}
 					})
 				})
@@ -1024,23 +1206,30 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := "\U0010FFFF"
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Region, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Region
+							Expect(
+								c.CompareString(r.ComponentInstance.Region, prev),
+							).Should(BeNumerically("<=", 0))
+							prev = r.Region
 						}
 					})
 				})
 				It("can order by namespace", func() {
 					order := []entity.Order{
-						{By: entity.ComponentInstanceNamespace, Direction: entity.OrderDirectionDesc},
+						{
+							By:        entity.ComponentInstanceNamespace,
+							Direction: entity.OrderDirectionDesc,
+						},
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := "\U0010FFFF"
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Namespace, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Namespace
+							Expect(
+								c.CompareString(r.ComponentInstance.Namespace, prev),
+							).Should(BeNumerically("<=", 0))
+							prev = r.Namespace
 						}
 					})
 				})
@@ -1050,10 +1239,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := "\U0010FFFF"
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Cluster, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Cluster
+							Expect(
+								c.CompareString(r.ComponentInstance.Cluster, prev),
+							).Should(BeNumerically("<=", 0))
+							prev = r.Cluster
 						}
 					})
 				})
@@ -1063,10 +1254,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := "\U0010FFFF"
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Domain, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Domain
+							Expect(
+								c.CompareString(r.ComponentInstance.Domain, prev),
+							).Should(BeNumerically("<=", 0))
+							prev = r.Domain
 						}
 					})
 				})
@@ -1076,10 +1269,12 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := "\U0010FFFF"
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Project, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Project
+							Expect(
+								c.CompareString(r.ComponentInstance.Project, prev),
+							).Should(BeNumerically("<=", 0))
+							prev = r.Project
 						}
 					})
 				})
@@ -1089,36 +1284,46 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := "\U0010FFFF"
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Pod, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Pod
+							Expect(
+								c.CompareString(r.ComponentInstance.Pod, prev),
+							).Should(BeNumerically("<=", 0))
+							prev = r.Pod
 						}
 					})
 				})
 				It("can order by container", func() {
 					order := []entity.Order{
-						{By: entity.ComponentInstanceContainer, Direction: entity.OrderDirectionDesc},
+						{
+							By:        entity.ComponentInstanceContainer,
+							Direction: entity.OrderDirectionDesc,
+						},
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev string = "\U0010FFFF"
+						prev := "\U0010FFFF"
 						for _, r := range res {
-							Expect(c.CompareString(r.ComponentInstance.Container, prev)).Should(BeNumerically("<=", 0))
-							prev = r.ComponentInstance.Container
+							Expect(
+								c.CompareString(r.ComponentInstance.Container, prev),
+							).Should(BeNumerically("<=", 0))
+							prev = r.Container
 						}
 					})
 				})
 				It("can order by type", func() {
 					order := []entity.Order{
-						{By: entity.ComponentInstanceTypeOrder, Direction: entity.OrderDirectionDesc},
+						{
+							By:        entity.ComponentInstanceTypeOrder,
+							Direction: entity.OrderDirectionDesc,
+						},
 					}
 
 					testOrder(order, func(res []entity.ComponentInstanceResult) {
-						var prev int = math.MaxInt
+						prev := math.MaxInt
 						for _, r := range res {
 							Expect(r.ComponentInstance.Type.Index() <= prev).Should(BeTrue())
-							prev = r.ComponentInstance.Type.Index()
+							prev = r.Type.Index()
 						}
 					})
 				})
@@ -1139,9 +1344,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedRegions := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Region.String
-					})
+					expectedRegions := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Region.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetRegion, expectedRegions)
 				})
 			})
@@ -1158,14 +1365,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedRegions,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Region match the filter", func() {
-					notexistentRegion := "NotexistentRegion"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetRegion,
-						&entity.ComponentInstanceFilter{Region: []*string{&notexistentRegion}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Region match the filter",
+					func() {
+						notexistentRegion := "NotexistentRegion"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetRegion,
+							&entity.ComponentInstanceFilter{Region: []*string{&notexistentRegion}},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
@@ -1183,9 +1393,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedClusters := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Cluster.String
-					})
+					expectedClusters := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Cluster.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetCluster, expectedClusters)
 				})
 			})
@@ -1198,18 +1410,25 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetCluster,
-						&entity.ComponentInstanceFilter{Namespace: []*string{&cir.Namespace.String}},
+						&entity.ComponentInstanceFilter{
+							Namespace: []*string{&cir.Namespace.String},
+						},
 						expectedClusters,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Cluster match the filter", func() {
-					notexistentCluster := "NotexistentCluster"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetCluster,
-						&entity.ComponentInstanceFilter{Cluster: []*string{&notexistentCluster}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Cluster match the filter",
+					func() {
+						notexistentCluster := "NotexistentCluster"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetCluster,
+							&entity.ComponentInstanceFilter{
+								Cluster: []*string{&notexistentCluster},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
@@ -1227,9 +1446,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedNamespaces := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Namespace.String
-					})
+					expectedNamespaces := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Namespace.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetNamespace, expectedNamespaces)
 				})
 			})
@@ -1246,14 +1467,19 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedNamespaces,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Namespace match the filter", func() {
-					notexistentNamespace := "NotexistentNamespace"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetNamespace,
-						&entity.ComponentInstanceFilter{Namespace: []*string{&notexistentNamespace}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Namespace match the filter",
+					func() {
+						notexistentNamespace := "NotexistentNamespace"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetNamespace,
+							&entity.ComponentInstanceFilter{
+								Namespace: []*string{&notexistentNamespace},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
@@ -1271,9 +1497,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedDomains := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Domain.String
-					})
+					expectedDomains := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Domain.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetDomain, expectedDomains)
 				})
 			})
@@ -1290,14 +1518,17 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedDomains,
 					)
 				})
-				It("and using notexisting value returns an empty list when no Domain match the filter", func() {
-					notexistentDomain := "NotexistentDomain"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetDomain,
-						&entity.ComponentInstanceFilter{Domain: []*string{&notexistentDomain}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value returns an empty list when no Domain match the filter",
+					func() {
+						notexistentDomain := "NotexistentDomain"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetDomain,
+							&entity.ComponentInstanceFilter{Domain: []*string{&notexistentDomain}},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
@@ -1315,9 +1546,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedProjects := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Project.String
-					})
+					expectedProjects := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Project.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetProject, expectedProjects)
 				})
 			})
@@ -1334,14 +1567,19 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedProjects,
 					)
 				})
-				It("and using notexisting value filter returns an empty list when no Project match the filter", func() {
-					notexistentProject := "NotexistentProject"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetProject,
-						&entity.ComponentInstanceFilter{Project: []*string{&notexistentProject}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value filter returns an empty list when no Project match the filter",
+					func() {
+						notexistentProject := "NotexistentProject"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetProject,
+							&entity.ComponentInstanceFilter{
+								Project: []*string{&notexistentProject},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
@@ -1359,9 +1597,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedPods := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Pod.String
-					})
+					expectedPods := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Pod.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetPod, expectedPods)
 				})
 			})
@@ -1374,18 +1614,23 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetPod,
-						&entity.ComponentInstanceFilter{Container: []*string{&cir.Container.String}},
+						&entity.ComponentInstanceFilter{
+							Container: []*string{&cir.Container.String},
+						},
 						expectedPods,
 					)
 				})
-				It("and using notexisting value filter returns an empty list when no Pod match the filter", func() {
-					notexistentPod := "NotexistentPod"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetPod,
-						&entity.ComponentInstanceFilter{Pod: []*string{&notexistentPod}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value filter returns an empty list when no Pod match the filter",
+					func() {
+						notexistentPod := "NotexistentPod"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetPod,
+							&entity.ComponentInstanceFilter{Pod: []*string{&notexistentPod}},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
@@ -1403,9 +1648,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedContainers := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Container.String
-					})
+					expectedContainers := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Container.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetContainer, expectedContainers)
 				})
 			})
@@ -1422,14 +1669,19 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedContainers,
 					)
 				})
-				It("and using notexisting value filter returns an empty list when no Container match the filter", func() {
-					notexistentContainer := "NotexistentContainer"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetContainer,
-						&entity.ComponentInstanceFilter{Container: []*string{&notexistentContainer}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value filter returns an empty list when no Container match the filter",
+					func() {
+						notexistentContainer := "NotexistentContainer"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetContainer,
+							&entity.ComponentInstanceFilter{
+								Container: []*string{&notexistentContainer},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
@@ -1447,9 +1699,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedTypes := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Type.String
-					})
+					expectedTypes := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Type.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetType, expectedTypes)
 				})
 			})
@@ -1462,18 +1716,25 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 					issueComponentInstanceAttrFilterWithExpect(
 						db.GetType,
-						&entity.ComponentInstanceFilter{Context: []*entity.Json{(*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String))}},
+						&entity.ComponentInstanceFilter{
+							Context: []*entity.Json{
+								(*entity.Json)(util.ConvertStrToJsonNoError(&cir.Context.String)),
+							},
+						},
 						expectedTypes,
 					)
 				})
-				It("and using notexisting value filter returns an empty list when no Type match the filter", func() {
-					notexistentType := "NotexistentType"
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetType,
-						&entity.ComponentInstanceFilter{Type: []*string{&notexistentType}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value filter returns an empty list when no Type match the filter",
+					func() {
+						notexistentType := "NotexistentType"
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetType,
+							&entity.ComponentInstanceFilter{Type: []*string{&notexistentType}},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
@@ -1492,9 +1753,11 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					expectedContexts := seedCollection.GetComponentInstanceVal(func(cir mariadb.ComponentInstanceRow) string {
-						return cir.Context.String
-					})
+					expectedContexts := seedCollection.GetComponentInstanceVal(
+						func(cir mariadb.ComponentInstanceRow) string {
+							return cir.Context.String
+						},
+					)
 					canFetchComponentInstanceQueryItems(db.GetContext, expectedContexts)
 				})
 			})
@@ -1511,24 +1774,33 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						expectedContexts,
 					)
 				})
-				It("and using notexisting value filter returns an empty list when no Context match the filter", func() {
-					notexistentContext := entity.Json{"not_real": "value"}
-					issueComponentInstanceAttrFilterWithExpect(
-						db.GetContext,
-						&entity.ComponentInstanceFilter{Context: []*entity.Json{&notexistentContext}},
-						[]string{},
-					)
-				})
+				It(
+					"and using notexisting value filter returns an empty list when no Context match the filter",
+					func() {
+						notexistentContext := entity.Json{"not_real": "value"}
+						issueComponentInstanceAttrFilterWithExpect(
+							db.GetContext,
+							&entity.ComponentInstanceFilter{
+								Context: []*entity.Json{&notexistentContext},
+							},
+							[]string{},
+						)
+					},
+				)
 			})
 		})
 	})
 })
 
-func canPerformComponentInstanceQuery[T any](getFunc func(filter *entity.ComponentInstanceFilter) ([]T, error)) {
+func canPerformComponentInstanceQuery[T any](
+	getFunc func(filter *entity.ComponentInstanceFilter) ([]T, error),
+) {
 	res, err := getFunc(nil)
+
 	By("throwing no error", func() {
 		Expect(err).To(BeNil())
 	})
+
 	By("returning an empty list", func() {
 		Expect(res).To(BeEmpty())
 	})
@@ -1561,6 +1833,7 @@ func issueComponentInstanceAttrFilterWithExpect(
 	expectedAttrVal []string,
 ) {
 	res, err := getAttrFunc(cifilter)
+
 	By("throwing no error", func() {
 		Expect(err).Should(BeNil())
 	})

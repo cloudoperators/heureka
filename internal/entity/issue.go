@@ -33,6 +33,7 @@ func NewIssueType(s string) IssueType {
 	case IssueTypeSecurityEvent.String():
 		return IssueTypeSecurityEvent
 	}
+
 	return IssueTypeVulnerability
 }
 

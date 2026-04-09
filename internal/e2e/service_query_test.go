@@ -117,121 +117,198 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 						ciCount += *ciEdge.Node.Count
 					}
 					Expect(serviceEdge.Node.ObjectMetadata.IssueMatchCount).To(Equal(imCount))
-					Expect(serviceEdge.Node.ObjectMetadata.ComponentInstanceCount).To(Equal(ciCount))
+					Expect(
+						serviceEdge.Node.ObjectMetadata.ComponentInstanceCount,
+					).To(Equal(ciCount))
 				}
 			})
 		})
-		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-			respData := struct {
-				Services model.ServiceConnection `json:"Services"`
-			}{}
-			BeforeEach(func() {
-				resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Context(
+			"and we query to resolve levels of relations",
+			Label("directRelations.graphql"),
+			func() {
+				respData := struct {
 					Services model.ServiceConnection `json:"Services"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/service/directRelations.graphql",
-					map[string]any{
-						"filter": map[string]string{},
-						"first":  5,
-						"after":  "",
-					},
-					nil,
-				)
+				}{}
+				BeforeEach(func() {
+					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						Services model.ServiceConnection `json:"Services"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/service/directRelations.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
-				Expect(err).ToNot(HaveOccurred())
+					Expect(err).ToNot(HaveOccurred())
 
-				respData = resp
-			})
+					respData = resp
+				})
 
-			It("- returns the correct result count", func() {
-				Expect(respData.Services.TotalCount).To(Equal(len(seedCollection.ServiceRows)))
-				Expect(len(respData.Services.Edges)).To(Equal(5))
-			})
+				It("- returns the correct result count", func() {
+					Expect(respData.Services.TotalCount).To(Equal(len(seedCollection.ServiceRows)))
+					Expect(len(respData.Services.Edges)).To(Equal(5))
+				})
 
-			It("- returns the expected content", func() {
-				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
-				// a complete verification
-				// additional checks are added based on bugs discovered during usage
+				It("- returns the expected content", func() {
+					// this just checks partial attributes to check whatever every sub-relation does
+					// resolve some reasonable data and is not doing
+					// a complete verification
+					// additional checks are added based on bugs discovered during usage
 
-				for _, service := range respData.Services.Edges {
-					for _, owner := range service.Node.Owners.Edges {
-						Expect(owner.Node.ID).ToNot(BeNil(), "owner has a ID set")
-						Expect(owner.Node.Name).ToNot(BeNil(), "owner has a name set")
-						Expect(owner.Node.UniqueUserID).ToNot(BeNil(), "owner has a uniqueUserId set")
-						Expect(owner.Node.Type).ToNot(BeNil(), "owner has a type set")
+					for _, service := range respData.Services.Edges {
+						for _, owner := range service.Node.Owners.Edges {
+							Expect(owner.Node.ID).ToNot(BeNil(), "owner has a ID set")
+							Expect(owner.Node.Name).ToNot(BeNil(), "owner has a name set")
+							Expect(
+								owner.Node.UniqueUserID,
+							).ToNot(BeNil(), "owner has a uniqueUserId set")
+							Expect(owner.Node.Type).ToNot(BeNil(), "owner has a type set")
 
-						_, ownerFound := lo.Find(seedCollection.OwnerRows, func(row mariadb.OwnerRow) bool {
-							return fmt.Sprintf("%d", row.UserId.Int64) == owner.Node.ID && // correct owner
-								fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // belongs actually to the service
-						})
-						Expect(ownerFound).To(BeTrue(), "attached owner does exist and belongs to service")
+							_, ownerFound := lo.Find(
+								seedCollection.OwnerRows,
+								func(row mariadb.OwnerRow) bool {
+									return fmt.Sprintf(
+										"%d",
+										row.UserId.Int64,
+									) == owner.Node.ID && // correct owner
+										fmt.Sprintf(
+											"%d",
+											row.ServiceId.Int64,
+										) == service.Node.ID // belongs actually to the service
+								},
+							)
+							Expect(
+								ownerFound,
+							).To(BeTrue(), "attached owner does exist and belongs to service")
+						}
+
+						for _, sg := range service.Node.SupportGroups.Edges {
+							Expect(sg.Node.ID).ToNot(BeNil(), "supportGroup has a ID set")
+							Expect(sg.Node.Ccrn).ToNot(BeNil(), "supportGroup has a ccrn set")
+
+							_, sgFound := lo.Find(
+								seedCollection.SupportGroupServiceRows,
+								func(row mariadb.SupportGroupServiceRow) bool {
+									return fmt.Sprintf(
+										"%d",
+										row.SupportGroupId.Int64,
+									) == sg.Node.ID && // correct sg
+										fmt.Sprintf(
+											"%d",
+											row.ServiceId.Int64,
+										) == service.Node.ID // belongs actually to the service
+								},
+							)
+							Expect(
+								sgFound,
+							).To(BeTrue(), "attached supportGroup does exist and belongs to service")
+						}
+
+						for _, ir := range service.Node.IssueRepositories.Edges {
+							Expect(ir.Node.ID).ToNot(BeNil(), "issueRepository has a ID set")
+							Expect(ir.Node.Name).ToNot(BeNil(), "issueRepository has a name set")
+							Expect(ir.Node.URL).ToNot(BeNil(), "issueRepository has a url set")
+							Expect(ir.Priority).ToNot(BeNil(), "issueRepository has a priority set")
+
+							_, irFound := lo.Find(
+								seedCollection.IssueRepositoryServiceRows,
+								func(row mariadb.IssueRepositoryServiceRow) bool {
+									return fmt.Sprintf(
+										"%d",
+										row.IssueRepositoryId.Int64,
+									) == ir.Node.ID && // correct ar
+										fmt.Sprintf(
+											"%d",
+											row.ServiceId.Int64,
+										) == service.Node.ID // belongs actually to the service
+								},
+							)
+							Expect(
+								irFound,
+							).To(BeTrue(), "attached issueRepository does exist and belongs to service")
+						}
+
+						for _, ci := range service.Node.ComponentInstances.Edges {
+							Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
+							Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has a ccrn set")
+							Expect(
+								ci.Node.Count,
+							).ToNot(BeNil(), "componentInstance has a count set")
+
+							_, ciFound := lo.Find(
+								seedCollection.ComponentInstanceRows,
+								func(row mariadb.ComponentInstanceRow) bool {
+									return fmt.Sprintf("%d", row.Id.Int64) == ci.Node.ID &&
+										row.CCRN.String == *ci.Node.Ccrn &&
+										int(row.Count.Int16) == *ci.Node.Count
+								},
+							)
+							Expect(
+								ciFound,
+							).To(BeTrue(), "attached componentInstance does exist and belongs to service")
+						}
+
+						for _, im := range service.Node.IssueMatches.Edges {
+							Expect(im.Node.ID).ToNot(BeNil(), "issueMatch has a ID set")
+							Expect(im.Node.Status).ToNot(BeNil(), "issueMatch has a status set")
+							Expect(
+								im.Node.RemediationDate,
+							).ToNot(BeNil(), "issueMatch has a remediationDate set")
+							Expect(
+								im.Node.DiscoveryDate,
+							).ToNot(BeNil(), "issueMatch has a discoveryDate set")
+							Expect(
+								im.Node.TargetRemediationDate,
+							).ToNot(BeNil(), "issueMatch has a targetRemediationDate set")
+						}
+
+						for _, remediation := range service.Node.Remediations.Edges {
+							Expect(remediation.Node.ID).ToNot(BeNil(), "remediation has a ID set")
+							Expect(
+								remediation.Node.Description,
+							).ToNot(BeNil(), "remediation has a description set")
+							Expect(
+								remediation.Node.Service,
+							).ToNot(BeNil(), "remediation has a service set")
+							Expect(
+								remediation.Node.Vulnerability,
+							).ToNot(BeNil(), "remediation has a vulnerability set")
+							Expect(
+								remediation.Node.RemediationDate,
+							).ToNot(BeNil(), "remediation has a remediation date set")
+							Expect(
+								remediation.Node.ExpirationDate,
+							).ToNot(BeNil(), "remediation has a expiration date set")
+							Expect(
+								remediation.Node.RemediatedBy,
+							).ToNot(BeNil(), "remediation has a remediated bby set")
+						}
 					}
-
-					for _, sg := range service.Node.SupportGroups.Edges {
-						Expect(sg.Node.ID).ToNot(BeNil(), "supportGroup has a ID set")
-						Expect(sg.Node.Ccrn).ToNot(BeNil(), "supportGroup has a ccrn set")
-
-						_, sgFound := lo.Find(seedCollection.SupportGroupServiceRows, func(row mariadb.SupportGroupServiceRow) bool {
-							return fmt.Sprintf("%d", row.SupportGroupId.Int64) == sg.Node.ID && // correct sg
-								fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // belongs actually to the service
-						})
-						Expect(sgFound).To(BeTrue(), "attached supportGroup does exist and belongs to service")
-					}
-
-					for _, ir := range service.Node.IssueRepositories.Edges {
-						Expect(ir.Node.ID).ToNot(BeNil(), "issueRepository has a ID set")
-						Expect(ir.Node.Name).ToNot(BeNil(), "issueRepository has a name set")
-						Expect(ir.Node.URL).ToNot(BeNil(), "issueRepository has a url set")
-						Expect(ir.Priority).ToNot(BeNil(), "issueRepository has a priority set")
-
-						_, irFound := lo.Find(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow) bool {
-							return fmt.Sprintf("%d", row.IssueRepositoryId.Int64) == ir.Node.ID && // correct ar
-								fmt.Sprintf("%d", row.ServiceId.Int64) == service.Node.ID // belongs actually to the service
-						})
-						Expect(irFound).To(BeTrue(), "attached issueRepository does exist and belongs to service")
-					}
-
-					for _, ci := range service.Node.ComponentInstances.Edges {
-						Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
-						Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has a ccrn set")
-						Expect(ci.Node.Count).ToNot(BeNil(), "componentInstance has a count set")
-
-						_, ciFound := lo.Find(seedCollection.ComponentInstanceRows, func(row mariadb.ComponentInstanceRow) bool {
-							return fmt.Sprintf("%d", row.Id.Int64) == ci.Node.ID &&
-								row.CCRN.String == *ci.Node.Ccrn &&
-								int(row.Count.Int16) == *ci.Node.Count
-						})
-						Expect(ciFound).To(BeTrue(), "attached componentInstance does exist and belongs to service")
-					}
-
-					for _, im := range service.Node.IssueMatches.Edges {
-						Expect(im.Node.ID).ToNot(BeNil(), "issueMatch has a ID set")
-						Expect(im.Node.Status).ToNot(BeNil(), "issueMatch has a status set")
-						Expect(im.Node.RemediationDate).ToNot(BeNil(), "issueMatch has a remediationDate set")
-						Expect(im.Node.DiscoveryDate).ToNot(BeNil(), "issueMatch has a discoveryDate set")
-						Expect(im.Node.TargetRemediationDate).ToNot(BeNil(), "issueMatch has a targetRemediationDate set")
-					}
-
-					for _, remediation := range service.Node.Remediations.Edges {
-						Expect(remediation.Node.ID).ToNot(BeNil(), "remediation has a ID set")
-						Expect(remediation.Node.Description).ToNot(BeNil(), "remediation has a description set")
-						Expect(remediation.Node.Service).ToNot(BeNil(), "remediation has a service set")
-						Expect(remediation.Node.Vulnerability).ToNot(BeNil(), "remediation has a vulnerability set")
-						Expect(remediation.Node.RemediationDate).ToNot(BeNil(), "remediation has a remediation date set")
-						Expect(remediation.Node.ExpirationDate).ToNot(BeNil(), "remediation has a expiration date set")
-						Expect(remediation.Node.RemediatedBy).ToNot(BeNil(), "remediation has a remediated bby set")
-					}
-				}
-			})
-			It("- returns the expected PageInfo", func() {
-				Expect(*respData.Services.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
-				Expect(*respData.Services.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
-				Expect(respData.Services.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-				Expect(len(respData.Services.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
-				Expect(*respData.Services.PageInfo.PageNumber).To(Equal(1), "Correct page number")
-			})
-		})
+				})
+				It("- returns the expected PageInfo", func() {
+					Expect(
+						*respData.Services.PageInfo.HasNextPage,
+					).To(BeTrue(), "hasNextPage is set")
+					Expect(
+						*respData.Services.PageInfo.HasPreviousPage,
+					).To(BeFalse(), "hasPreviousPage is set")
+					Expect(
+						respData.Services.PageInfo.NextPageAfter,
+					).ToNot(BeNil(), "nextPageAfter is set")
+					Expect(
+						len(respData.Services.PageInfo.Pages),
+					).To(Equal(2), "Correct amount of pages")
+					Expect(
+						*respData.Services.PageInfo.PageNumber,
+					).To(Equal(1), "Correct page number")
+				})
+			},
+		)
 		Context("and we use order", Label("withOrder.graphql"), func() {
 			c := collate.New(language.English)
 
@@ -260,7 +337,7 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 				})
 
 				By("- returns the expected content in order", func() {
-					var prev string = ""
+					prev := ""
 					for _, im := range respData.Services.Edges {
 						Expect(c.CompareString(*im.Node.Ccrn, prev)).Should(BeNumerically(">=", 0))
 						prev = *im.Node.Ccrn
@@ -270,19 +347,33 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		})
 	})
 	loadTestData := func() ([]mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
-		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
+		issueVariants, err := test.LoadIssueVariants(
+			test.GetTestDataPath(
+				"../database/mariadb/testdata/component_version_order/issue_variant.json",
+			),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
-		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("../database/mariadb/testdata/service_order/component_version_issue.json"))
+		cvIssues, err := test.LoadComponentVersionIssues(
+			test.GetTestDataPath(
+				"../database/mariadb/testdata/service_order/component_version_issue.json",
+			),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
-		componentInstances, err := test.LoadComponentInstances(test.GetTestDataPath("../database/mariadb/testdata/service_order/component_instance.json"))
+		componentInstances, err := test.LoadComponentInstances(
+			test.GetTestDataPath(
+				"../database/mariadb/testdata/service_order/component_instance.json",
+			),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
-		issueMatches, err := test.LoadIssueMatches(test.GetTestDataPath("../database/mariadb/testdata/service_order/issue_match.json"))
+		issueMatches, err := test.LoadIssueMatches(
+			test.GetTestDataPath("../database/mariadb/testdata/service_order/issue_match.json"),
+		)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
@@ -553,12 +644,15 @@ var _ = Describe("Modifying Owner of Service via API", Label("e2e", "Services"),
 		Context("and a mutation query is performed", func() {
 			It("adds owner to service", Label("addOwner.graphql"), func() {
 				service := seedCollection.ServiceRows[0].AsService()
-				ownerIds := lo.FilterMap(seedCollection.OwnerRows, func(row mariadb.OwnerRow, _ int) (int64, bool) {
-					if row.ServiceId.Int64 == service.Id {
-						return row.UserId.Int64, true
-					}
-					return 0, false
-				})
+				ownerIds := lo.FilterMap(
+					seedCollection.OwnerRows,
+					func(row mariadb.OwnerRow, _ int) (int64, bool) {
+						if row.ServiceId.Int64 == service.Id {
+							return row.UserId.Int64, true
+						}
+						return 0, false
+					},
+				)
 
 				ownerRow, _ := lo.Find(seedCollection.UserRows, func(row mariadb.UserRow) bool {
 					return !lo.Contains(ownerIds, row.Id.Int64)
@@ -653,16 +747,22 @@ var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "S
 			It("adds issueRepository to service", Label("addIssueRepository.graphql"), func() {
 				service := seedCollection.ServiceRows[0].AsService()
 				// find all issueRepositories that are attached to the service
-				issueRepositoryIds := lo.FilterMap(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow, _ int) (int64, bool) {
-					if row.ServiceId.Int64 == service.Id {
-						return row.IssueRepositoryId.Int64, true
-					}
-					return 0, false
-				})
+				issueRepositoryIds := lo.FilterMap(
+					seedCollection.IssueRepositoryServiceRows,
+					func(row mariadb.IssueRepositoryServiceRow, _ int) (int64, bool) {
+						if row.ServiceId.Int64 == service.Id {
+							return row.IssueRepositoryId.Int64, true
+						}
+						return 0, false
+					},
+				)
 				// find an issueRepository that is not attached to the service
-				issueRepositoryRow, _ := lo.Find(seedCollection.IssueRepositoryRows, func(row mariadb.BaseIssueRepositoryRow) bool {
-					return !lo.Contains(issueRepositoryIds, row.Id.Int64)
-				})
+				issueRepositoryRow, _ := lo.Find(
+					seedCollection.IssueRepositoryRows,
+					func(row mariadb.BaseIssueRepositoryRow) bool {
+						return !lo.Contains(issueRepositoryIds, row.Id.Int64)
+					},
+				)
 
 				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
 					Service model.Service `json:"addIssueRepositoryToService"`
@@ -679,42 +779,61 @@ var _ = Describe("Modifying IssueRepository of Service via API", Label("e2e", "S
 
 				Expect(err).ToNot(HaveOccurred())
 
-				_, found := lo.Find(respData.Service.IssueRepositories.Edges, func(edge *model.IssueRepositoryEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", issueRepositoryRow.Id.Int64)
-				})
+				_, found := lo.Find(
+					respData.Service.IssueRepositories.Edges,
+					func(edge *model.IssueRepositoryEdge) bool {
+						return edge.Node.ID == fmt.Sprintf("%d", issueRepositoryRow.Id.Int64)
+					},
+				)
 
 				Expect(respData.Service.ID).To(Equal(fmt.Sprintf("%d", service.Id)))
 				Expect(found).To(BeTrue())
 			})
-			It("removes issueRepository from service", Label("removeIssueRepository.graphql"), func() {
-				service := seedCollection.ServiceRows[0].AsService()
+			It(
+				"removes issueRepository from service",
+				Label("removeIssueRepository.graphql"),
+				func() {
+					service := seedCollection.ServiceRows[0].AsService()
 
-				// find an issueRepository that is attached to the service
-				issueRepositoryRow, _ := lo.Find(seedCollection.IssueRepositoryServiceRows, func(row mariadb.IssueRepositoryServiceRow) bool {
-					return row.ServiceId.Int64 == service.Id
-				})
+					// find an issueRepository that is attached to the service
+					issueRepositoryRow, _ := lo.Find(
+						seedCollection.IssueRepositoryServiceRows,
+						func(row mariadb.IssueRepositoryServiceRow) bool {
+							return row.ServiceId.Int64 == service.Id
+						},
+					)
 
-				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
-					Service model.Service `json:"removeIssueRepositoryFromService"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/service/removeIssueRepository.graphql",
-					map[string]any{
-						"serviceId":         fmt.Sprintf("%d", service.Id),
-						"issueRepositoryId": fmt.Sprintf("%d", issueRepositoryRow.IssueRepositoryId.Int64),
-					},
-					nil,
-				)
+					respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						Service model.Service `json:"removeIssueRepositoryFromService"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/service/removeIssueRepository.graphql",
+						map[string]any{
+							"serviceId": fmt.Sprintf("%d", service.Id),
+							"issueRepositoryId": fmt.Sprintf(
+								"%d",
+								issueRepositoryRow.IssueRepositoryId.Int64,
+							),
+						},
+						nil,
+					)
 
-				Expect(err).ToNot(HaveOccurred())
+					Expect(err).ToNot(HaveOccurred())
 
-				_, found := lo.Find(respData.Service.IssueRepositories.Edges, func(edge *model.IssueRepositoryEdge) bool {
-					return edge.Node.ID == fmt.Sprintf("%d", issueRepositoryRow.IssueRepositoryId.Int64)
-				})
+					_, found := lo.Find(
+						respData.Service.IssueRepositories.Edges,
+						func(edge *model.IssueRepositoryEdge) bool {
+							return edge.Node.ID == fmt.Sprintf(
+								"%d",
+								issueRepositoryRow.IssueRepositoryId.Int64,
+							)
+						},
+					)
 
-				Expect(respData.Service.ID).To(Equal(fmt.Sprintf("%d", service.Id)))
-				Expect(found).To(BeFalse())
-			})
+					Expect(respData.Service.ID).To(Equal(fmt.Sprintf("%d", service.Id)))
+					Expect(found).To(BeFalse())
+				},
+			)
 		})
 	})
 })

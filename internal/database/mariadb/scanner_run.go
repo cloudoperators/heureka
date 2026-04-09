@@ -80,14 +80,13 @@ func (s *SqlDatabase) FailScannerRun(uuid string, message string) (bool, error) 
 										?)`
 
 	_, err := s.db.Exec(updateScannerRunQuery, uuid)
-
 	if err != nil {
 		return false, err
-	} else {
-		_, err = s.db.Exec(insertScannerRunErrorQuery, uuid, message)
-		if err != nil {
-			return false, err
-		}
+	}
+
+	_, err = s.db.Exec(insertScannerRunErrorQuery, uuid, message)
+	if err != nil {
+		return false, err
 	}
 
 	return true, nil
@@ -100,12 +99,14 @@ func (s *SqlDatabase) ScannerRunByUUID(uuid string) (*entity.ScannerRun, error) 
 			  WHERE scannerrun_uuid = ?`
 
 	srr := ScannerRunRow{}
+
 	err := s.db.Get(&srr, query, uuid)
 	if err != nil {
 		return nil, err
 	}
 
 	sr := srr.AsScannerRun()
+
 	return &sr, nil
 }
 
@@ -116,17 +117,36 @@ func (s *SqlDatabase) GetScannerRuns(filter *entity.ScannerRunFilter) ([]entity.
 		SELECT * FROM ScannerRun
     `
 	queryArgs, baseQuery := applyScannerRunFilter(baseQuery, filter)
+
 	rows, err := s.db.Query(baseQuery, queryArgs...)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
+
 	result := []entity.ScannerRun{}
 
 	for rows.Next() {
 		srr := ScannerRunRow{}
-		err = rows.Scan(&srr.RunID, &srr.UUID, &srr.Tag, &srr.StartRun, &srr.EndRun, &srr.IsCompleted, &srr.CreatedAt, &srr.CreatedBy, &srr.DeletedAt, &srr.UpdatedAt, &srr.UpdatedBy)
+
+		err = rows.Scan(
+			&srr.RunID,
+			&srr.UUID,
+			&srr.Tag,
+			&srr.StartRun,
+			&srr.EndRun,
+			&srr.IsCompleted,
+			&srr.CreatedAt,
+			&srr.CreatedBy,
+			&srr.DeletedAt,
+			&srr.UpdatedAt,
+			&srr.UpdatedBy,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -144,6 +164,7 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 
 	for i := 0; filter.Tag != nil && i < len(filter.Tag); i++ {
 		baseQuery += " scannerrun_tag = ?"
+
 		queryArgs = append(queryArgs, filter.Tag[i])
 		if i < len(filter.Tag)-1 {
 			baseQuery += " OR"
@@ -154,6 +175,7 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 		if len(filter.Tag) > 0 {
 			baseQuery += " AND"
 		}
+
 		baseQuery += " scannerrun_is_completed = TRUE"
 	}
 
@@ -163,6 +185,7 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 
 	if filter.After != nil {
 		baseQuery += " scannerrun_run_id > ?"
+
 		queryArgs = append(queryArgs, *filter.After)
 	}
 
@@ -170,6 +193,7 @@ func applyScannerRunFilter(baseQuery string, filter *entity.ScannerRunFilter) ([
 
 	queryArgs = append(queryArgs, *filter.First)
 	baseQuery += " LIMIT ?"
+
 	return queryArgs, baseQuery
 }
 
@@ -177,6 +201,7 @@ func ensureScannerRunFilter(filter *entity.ScannerRunFilter) *entity.ScannerRunF
 	if filter == nil {
 		filter = &entity.ScannerRunFilter{}
 	}
+
 	return EnsurePagination(filter)
 }
 
@@ -190,12 +215,17 @@ func (s *SqlDatabase) GetScannerRunTags() ([]string, error) {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
+
 	res := []string{}
 
 	for rows.Next() {
-
 		var tag string
+
 		err = rows.Scan(&tag)
 		if err != nil {
 			return nil, err
@@ -220,7 +250,9 @@ func (s *SqlDatabase) CountScannerRuns(filter *entity.ScannerRunFilter) (int, er
 
 	var res int
 
-	row.Scan(&res)
+	if err := row.Scan(&res); err != nil {
+		return -1, err
+	}
 
 	return res, nil
 }

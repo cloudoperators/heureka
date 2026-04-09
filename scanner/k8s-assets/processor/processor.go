@@ -69,7 +69,8 @@ type UniqueContainerInfo struct {
 
 func (c CCRN) String() string {
 	// actual CCRN template as per the CCRN spec of k8s_regsitry
-	// Reference: https://github.wdf.sap.corp/PlusOne/resource-name/blob/main/ccrn-chart/templates/crds/k8s_registry/container.yaml
+	// Reference:
+	// https://github.wdf.sap.corp/PlusOne/resource-name/blob/main/ccrn-chart/templates/crds/k8s_registry/container.yaml
 	ccrnTemplate := `ccrn: apiVersion=k8s-registry.ccrn.sap.cloud/v1, kind=container, cluster={{.Cluster}}, namespace={{.Namespace}}, pod={{.Pod}}, name={{.Container}}`
 
 	tmpl, err := template.New("ccrn").Parse(ccrnTemplate)
@@ -87,7 +88,11 @@ func (c CCRN) String() string {
 }
 
 func NewProcessor(cfg Config, tag string) *Processor {
-	httpClient := util.NewRateLimitedHTTPClient(rate.Limit(cfg.HeurekaRateLimit), cfg.HeurekaRateBurst, nil)
+	httpClient := util.NewRateLimitedHTTPClient(
+		rate.Limit(cfg.HeurekaRateLimit),
+		cfg.HeurekaRateBurst,
+		nil,
+	)
 	gClient := graphql.NewClient(cfg.HeurekaUrl, httpClient)
 	advCfg, err := cfg.LoadAdvancedConfig()
 	if err != nil {
@@ -103,7 +108,10 @@ func NewProcessor(cfg Config, tag string) *Processor {
 }
 
 // ProcessService creates a service and processes all its pods
-func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.ServiceInfo) (string, error) {
+func (p *Processor) ProcessService(
+	ctx context.Context,
+	serviceInfo scanner.ServiceInfo,
+) (string, error) {
 	var serviceId string
 
 	if serviceInfo.CCRN == "" {
@@ -148,11 +156,21 @@ func (p *Processor) ProcessService(ctx context.Context, serviceInfo scanner.Serv
 		createSupportGroupInput := &client.SupportGroupInput{
 			Ccrn: serviceInfo.SupportGroup,
 		}
-		createSupportGroupResp, err := client.CreateSupportGroup(ctx, *p.Client, createSupportGroupInput)
+		createSupportGroupResp, err := client.CreateSupportGroup(
+			ctx,
+			*p.Client,
+			createSupportGroupInput,
+		)
 		if err != nil {
-			return "", fmt.Errorf("failed to create SupportGroup %s: %w", serviceInfo.SupportGroup, err)
+			return "", fmt.Errorf(
+				"failed to create SupportGroup %s: %w",
+				serviceInfo.SupportGroup,
+				err,
+			)
 		} else if createSupportGroupResp.CreateSupportGroup == nil {
-			return "", fmt.Errorf("failed to create SupportGroup as CreateSupportGroup response is nil")
+			return "", fmt.Errorf(
+				"failed to create SupportGroup as CreateSupportGroup response is nil",
+			)
 		} else {
 			supportGroupId = createSupportGroupResp.CreateSupportGroup.Id
 		}
@@ -179,14 +197,19 @@ func (p *Processor) getComponent(ctx context.Context, componentCcrn string) (str
 		return "", fmt.Errorf("Couldn't list components")
 	}
 
-	if listComponentResp != nil && listComponentResp.Components != nil && listComponentResp.Components.TotalCount > 0 && len(listComponentResp.Components.Edges) > 0 {
+	if listComponentResp != nil && listComponentResp.Components != nil &&
+		listComponentResp.Components.TotalCount > 0 &&
+		len(listComponentResp.Components.Edges) > 0 {
 		return listComponentResp.Components.Edges[0].Node.Id, nil
 	}
 
 	return "", fmt.Errorf("Component not found.")
 }
 
-func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.ServiceInfo) (string, error) {
+func (p *Processor) getSupportGroup(
+	ctx context.Context,
+	serviceInfo scanner.ServiceInfo,
+) (string, error) {
 	var supportGroupId string
 
 	listSupportGroupsFilter := client.SupportGroupFilter{
@@ -198,7 +221,9 @@ func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.Ser
 	}
 
 	// Return the first item
-	if listSupportGroupsResp != nil && listSupportGroupsResp.SupportGroups != nil && listSupportGroupsResp.SupportGroups.TotalCount > 0 && len(listSupportGroupsResp.SupportGroups.Edges) > 0 {
+	if listSupportGroupsResp != nil && listSupportGroupsResp.SupportGroups != nil &&
+		listSupportGroupsResp.SupportGroups.TotalCount > 0 &&
+		len(listSupportGroupsResp.SupportGroups.Edges) > 0 {
 		supportGroupId = listSupportGroupsResp.SupportGroups.Edges[0].Node.Id
 	} else {
 		return "", fmt.Errorf("ListSupportGroups returned no SupportGroupID")
@@ -208,7 +233,10 @@ func (p *Processor) getSupportGroup(ctx context.Context, serviceInfo scanner.Ser
 }
 
 // getService returns (if any) a ServiceID
-func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceInfo) (string, error) {
+func (p *Processor) getService(
+	ctx context.Context,
+	serviceInfo scanner.ServiceInfo,
+) (string, error) {
 	listServicesFilter := client.ServiceFilter{
 		ServiceCcrn: []string{serviceInfo.CCRN},
 	}
@@ -218,7 +246,9 @@ func (p *Processor) getService(ctx context.Context, serviceInfo scanner.ServiceI
 	}
 
 	// Return the first item
-	if listServicesResp != nil && listServicesResp.Services != nil && listServicesResp.Services.TotalCount > 0 && len(listServicesResp.Services.Edges) > 0 {
+	if listServicesResp != nil && listServicesResp.Services != nil &&
+		listServicesResp.Services.TotalCount > 0 &&
+		len(listServicesResp.Services.Edges) > 0 {
 		return listServicesResp.Services.Edges[0].Node.Id, nil
 	}
 
@@ -270,12 +300,28 @@ func (p *Processor) CollectUniqueContainers(podReplicaSet scanner.PodSet) []Uniq
 	return result
 }
 
-func (p *Processor) ProcessPodReplicaSet(ctx context.Context, namespace string, serviceID string, podReplicaSet scanner.PodSet) error {
+func (p *Processor) ProcessPodReplicaSet(
+	ctx context.Context,
+	namespace string,
+	serviceID string,
+	podReplicaSet scanner.PodSet,
+) error {
 	uniqueContainers := p.CollectUniqueContainers(podReplicaSet)
 
 	for _, containerInfo := range uniqueContainers {
-		if err := p.ProcessContainer(ctx, namespace, serviceID, podReplicaSet.GenerateName, containerInfo); err != nil {
-			return fmt.Errorf("failed to process container %s in pod replica set %s: %w", containerInfo.Name, podReplicaSet.GenerateName, err)
+		if err := p.ProcessContainer(
+			ctx,
+			namespace,
+			serviceID,
+			podReplicaSet.GenerateName,
+			containerInfo,
+		); err != nil {
+			return fmt.Errorf(
+				"failed to process container %s in pod replica set %s: %w",
+				containerInfo.Name,
+				podReplicaSet.GenerateName,
+				err,
+			)
 		}
 	}
 	return nil
@@ -291,24 +337,34 @@ func (p *Processor) getComponentInstance(ctx context.Context, ccrn string) (stri
 		return "", fmt.Errorf("Couldn't list ComponentInstances")
 	}
 
-	if listComponentInstancesResp != nil && listComponentInstancesResp.ComponentInstances != nil && len(listComponentInstancesResp.ComponentInstances.Edges) > 0 {
+	if listComponentInstancesResp != nil && listComponentInstancesResp.ComponentInstances != nil &&
+		len(listComponentInstancesResp.ComponentInstances.Edges) > 0 {
 		return listComponentInstancesResp.ComponentInstances.Edges[0].Node.Id, nil
 	}
 
 	return "", fmt.Errorf("ListComponentInstances returned no ComponentInstance objects")
 }
 
-func (p *Processor) getComponentVersion(ctx context.Context, image string, version string) (string, error) {
+func (p *Processor) getComponentVersion(
+	ctx context.Context,
+	image string,
+	version string,
+) (string, error) {
 	listComponentVersionFilter := client.ComponentVersionFilter{
 		ComponentCcrn: []string{image},
 		Version:       []string{version},
 	}
-	listCompoVersResp, err := client.ListComponentVersions(ctx, *p.Client, &listComponentVersionFilter)
+	listCompoVersResp, err := client.ListComponentVersions(
+		ctx,
+		*p.Client,
+		&listComponentVersionFilter,
+	)
 	if err != nil {
 		return "", fmt.Errorf("Couldn't list ComponentVersion")
 	}
 
-	if listCompoVersResp != nil && listCompoVersResp.ComponentVersions != nil && listCompoVersResp.ComponentVersions.TotalCount > 0 {
+	if listCompoVersResp != nil && listCompoVersResp.ComponentVersions != nil &&
+		listCompoVersResp.ComponentVersions.TotalCount > 0 {
 		return listCompoVersResp.ComponentVersions.Edges[0].Node.Id, nil
 	}
 
@@ -377,7 +433,8 @@ func (p *Processor) ProcessContainer(
 	//
 
 	// Check if we have everything we need
-	if len(containerInfo.ImageRegistry) == 0 || len(containerInfo.ImageAccount) == 0 || len(containerInfo.ImageRepository) == 0 {
+	if len(containerInfo.ImageRegistry) == 0 || len(containerInfo.ImageAccount) == 0 ||
+		len(containerInfo.ImageRepository) == 0 {
 		return fmt.Errorf("cannot create Component (one or more containerInfo fields are empty)")
 	}
 
@@ -386,7 +443,12 @@ func (p *Processor) ProcessContainer(
 		containerInfo.ImageRegistry = p.config.DefaultKeppelRegistry
 	}
 
-	componentCcrn := fmt.Sprintf("%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository)
+	componentCcrn := fmt.Sprintf(
+		"%s/%s/%s",
+		containerInfo.ImageRegistry,
+		containerInfo.ImageAccount,
+		containerInfo.ImageRepository,
+	)
 
 	componentId, err := p.getComponent(ctx, componentCcrn)
 	if err != nil {
@@ -394,8 +456,13 @@ func (p *Processor) ProcessContainer(
 			Ccrn:         componentCcrn,
 			Repository:   containerInfo.ImageRepository,
 			Organization: containerInfo.ImageAccount,
-			Url:          fmt.Sprintf("https://%s/%s/%s", containerInfo.ImageRegistry, containerInfo.ImageAccount, containerInfo.ImageRepository),
-			Type:         client.ComponentTypeValuesContainerimage,
+			Url: fmt.Sprintf(
+				"https://%s/%s/%s",
+				containerInfo.ImageRegistry,
+				containerInfo.ImageAccount,
+				containerInfo.ImageRepository,
+			),
+			Type: client.ComponentTypeValuesContainerimage,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create Component. %w", err)
@@ -479,7 +546,10 @@ func (p *Processor) ProcessContainer(
 }
 
 // createComponent creates a new Component
-func (p *Processor) createComponent(ctx context.Context, input *client.ComponentInput) (string, error) {
+func (p *Processor) createComponent(
+	ctx context.Context,
+	input *client.ComponentInput,
+) (string, error) {
 	createComponentResp, err := client.CreateComponent(ctx, *p.Client, input)
 
 	if err != nil {
@@ -511,11 +581,17 @@ func (p *Processor) createComponentVersion(
 		Repository:   repository,
 		Organization: organization,
 	}
-	createCompVersionResp, err := client.CreateComponentVersion(ctx, *p.Client, componentVersionInput)
+	createCompVersionResp, err := client.CreateComponentVersion(
+		ctx,
+		*p.Client,
+		componentVersionInput,
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to create ComponentVersion: %w", err)
 	} else if createCompVersionResp.CreateComponentVersion == nil {
-		return "", fmt.Errorf("failed to create ComponentVersion as CreateComponentVersion response is nil")
+		return "", fmt.Errorf(
+			"failed to create ComponentVersion as CreateComponentVersion response is nil",
+		)
 	}
 
 	log.WithFields(log.Fields{
@@ -529,12 +605,17 @@ func (p *Processor) createComponentVersion(
 }
 
 // createComponentInstance creates a new ComponentInstance
-func (p *Processor) createComponentInstance(ctx context.Context, input *client.ComponentInstanceInput) (string, error) {
+func (p *Processor) createComponentInstance(
+	ctx context.Context,
+	input *client.ComponentInstanceInput,
+) (string, error) {
 	createCompInstResp, err := client.CreateComponentInstance(ctx, *p.Client, input)
 	if err != nil {
 		return "", fmt.Errorf("failed to create ComponentInstance: %w", err)
 	} else if createCompInstResp.CreateComponentInstance == nil {
-		return "", fmt.Errorf("failed to create ComponentInstance as CreateComponentInstance response is nil")
+		return "", fmt.Errorf(
+			"failed to create ComponentInstance as CreateComponentInstance response is nil",
+		)
 	}
 
 	log.WithFields(log.Fields{
@@ -544,12 +625,18 @@ func (p *Processor) createComponentInstance(ctx context.Context, input *client.C
 	return createCompInstResp.CreateComponentInstance.Id, nil
 }
 
-func (p *Processor) updateComponentInstance(ctx context.Context, id string, input *client.ComponentInstanceInput) (string, error) {
+func (p *Processor) updateComponentInstance(
+	ctx context.Context,
+	id string,
+	input *client.ComponentInstanceInput,
+) (string, error) {
 	updateCompInstResp, err := client.UpdateComponentInstance(ctx, *p.Client, id, input)
 	if err != nil {
 		return "", fmt.Errorf("failed to update ComponentInstance: %w", err)
 	} else if updateCompInstResp.UpdateComponentInstance == nil {
-		return "", fmt.Errorf("failed to update ComponentInstance as CreateComponentInstance response is nil")
+		return "", fmt.Errorf(
+			"failed to update ComponentInstance as CreateComponentInstance response is nil",
+		)
 	}
 
 	log.WithFields(log.Fields{

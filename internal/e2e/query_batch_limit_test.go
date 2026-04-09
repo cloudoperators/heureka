@@ -88,7 +88,9 @@ var _ = Describe("Getting data via API", Label("e2e", "Batch Limiting"), func() 
 			}](cfg.Port, queryWithBatchLimitExceeded, nil)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("the limit for sending batches has been exceeded"))
+			Expect(
+				err.Error(),
+			).To(ContainSubstring("the limit for sending batches has been exceeded"))
 		})
 	})
 

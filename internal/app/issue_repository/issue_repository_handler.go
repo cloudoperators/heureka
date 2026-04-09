@@ -47,8 +47,11 @@ func (e *IssueRepositoryHandlerError) Error() string {
 	return e.message
 }
 
-func (ir *issueRepositoryHandler) getIssueRepositoryResults(filter *entity.IssueRepositoryFilter) ([]entity.IssueRepositoryResult, error) {
+func (ir *issueRepositoryHandler) getIssueRepositoryResults(
+	filter *entity.IssueRepositoryFilter,
+) ([]entity.IssueRepositoryResult, error) {
 	var irResults []entity.IssueRepositoryResult
+
 	irResults, err := cache.CallCached[[]entity.IssueRepositoryResult](
 		ir.cache,
 		CacheTtlGetIssueRepository,
@@ -64,11 +67,17 @@ func (ir *issueRepositoryHandler) getIssueRepositoryResults(filter *entity.Issue
 	return irResults, nil
 }
 
-func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepositoryFilter, options *entity.ListOptions) (*entity.List[entity.IssueRepositoryResult], error) {
-	var count int64
-	var pageInfo *entity.PageInfo
+func (ir *issueRepositoryHandler) ListIssueRepositories(
+	filter *entity.IssueRepositoryFilter,
+	options *entity.ListOptions,
+) (*entity.List[entity.IssueRepositoryResult], error) {
+	var (
+		count    int64
+		pageInfo *entity.PageInfo
+	)
 
 	common.EnsurePaginated(&filter.Paginated)
+
 	l := logrus.WithFields(logrus.Fields{
 		"event":  ListIssueRepositoriesEventName,
 		"filter": filter,
@@ -92,7 +101,9 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 			if err != nil {
 				l.Error(err)
 
-				return nil, NewIssueRepositoryHandlerError("Error while getting IssueRepository cursors")
+				return nil, NewIssueRepositoryHandlerError(
+					"Error while getting IssueRepository cursors",
+				)
 			}
 
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
@@ -102,7 +113,10 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 		count, err = ir.database.CountIssueRepositories(filter)
 		if err != nil {
 			l.Error(err)
-			return nil, NewIssueRepositoryHandlerError("Error while total count of IssueRepositories")
+
+			return nil, NewIssueRepositoryHandlerError(
+				"Error while total count of IssueRepositories",
+			)
 		}
 	}
 
@@ -112,12 +126,17 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(filter *entity.IssueRepo
 		Elements:   res,
 	}
 
-	ir.eventRegistry.PushEvent(&ListIssueRepositoriesEvent{Filter: filter, Options: options, Results: ret})
+	ir.eventRegistry.PushEvent(
+		&ListIssueRepositoriesEvent{Filter: filter, Options: options, Results: ret},
+	)
 
 	return ret, nil
 }
 
-func (ir *issueRepositoryHandler) CreateIssueRepository(ctx context.Context, issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+func (ir *issueRepositoryHandler) CreateIssueRepository(
+	ctx context.Context,
+	issueRepository *entity.IssueRepository,
+) (*entity.IssueRepository, error) {
 	f := &entity.IssueRepositoryFilter{
 		Name: []*string{&issueRepository.Name},
 	}
@@ -129,11 +148,16 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(ctx context.Context, iss
 	})
 
 	var err error
+
 	issueRepository.BaseIssueRepository.CreatedBy, err = common.GetCurrentUserId(ctx, ir.database)
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueRepositoryHandlerError("Internal error while creating issueRepository (GetUserId).")
+
+		return nil, NewIssueRepositoryHandlerError(
+			"Internal error while creating issueRepository (GetUserId).",
+		)
 	}
+
 	issueRepository.BaseIssueRepository.UpdatedBy = issueRepository.BaseIssueRepository.CreatedBy
 
 	issueRepositories, err := ir.ListIssueRepositories(f, &entity.ListOptions{})
@@ -144,7 +168,10 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(ctx context.Context, iss
 
 	if len(issueRepositories.Elements) > 0 {
 		l.Error(err)
-		return nil, NewIssueRepositoryHandlerError(fmt.Sprintf("Duplicated entry %s for name.", issueRepository.Name))
+
+		return nil, NewIssueRepositoryHandlerError(
+			fmt.Sprintf("Duplicated entry %s for name.", issueRepository.Name),
+		)
 	}
 
 	newIssueRepository, err := ir.database.CreateIssueRepository(issueRepository)
@@ -158,17 +185,24 @@ func (ir *issueRepositoryHandler) CreateIssueRepository(ctx context.Context, iss
 	return newIssueRepository, nil
 }
 
-func (ir *issueRepositoryHandler) UpdateIssueRepository(ctx context.Context, issueRepository *entity.IssueRepository) (*entity.IssueRepository, error) {
+func (ir *issueRepositoryHandler) UpdateIssueRepository(
+	ctx context.Context,
+	issueRepository *entity.IssueRepository,
+) (*entity.IssueRepository, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  UpdateIssueRepositoryEventName,
 		"object": issueRepository,
 	})
 
 	var err error
+
 	issueRepository.BaseIssueRepository.UpdatedBy, err = common.GetCurrentUserId(ctx, ir.database)
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository (GetUserId).")
+
+		return nil, NewIssueRepositoryHandlerError(
+			"Internal error while updating issueRepository (GetUserId).",
+		)
 	}
 
 	err = ir.database.UpdateIssueRepository(issueRepository)
@@ -177,10 +211,16 @@ func (ir *issueRepositoryHandler) UpdateIssueRepository(ctx context.Context, iss
 		return nil, NewIssueRepositoryHandlerError("Internal error while updating issueRepository.")
 	}
 
-	issueRepositoryResult, err := ir.ListIssueRepositories(&entity.IssueRepositoryFilter{Id: []*int64{&issueRepository.Id}}, &entity.ListOptions{})
+	issueRepositoryResult, err := ir.ListIssueRepositories(
+		&entity.IssueRepositoryFilter{Id: []*int64{&issueRepository.Id}},
+		&entity.ListOptions{},
+	)
 	if err != nil {
 		l.Error(err)
-		return nil, NewIssueRepositoryHandlerError("Internal error while retrieving updated issueRepository.")
+
+		return nil, NewIssueRepositoryHandlerError(
+			"Internal error while retrieving updated issueRepository.",
+		)
 	}
 
 	if len(issueRepositoryResult.Elements) != 1 {
@@ -202,7 +242,10 @@ func (ir *issueRepositoryHandler) DeleteIssueRepository(ctx context.Context, id 
 	userId, err := common.GetCurrentUserId(ctx, ir.database)
 	if err != nil {
 		l.Error(err)
-		return NewIssueRepositoryHandlerError("Internal error while deleting issueRepository (GetUserId).")
+
+		return NewIssueRepositoryHandlerError(
+			"Internal error while deleting issueRepository (GetUserId).",
+		)
 	}
 
 	err = ir.database.DeleteIssueRepository(id, userId)

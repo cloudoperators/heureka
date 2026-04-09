@@ -15,7 +15,15 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model.RemediationFilter, first *int, after *string, orderBy []*model.RemediationOrderBy, parent *model.NodeParent) (*model.RemediationConnection, error) {
+func RemediationBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.RemediationFilter,
+	first *int,
+	after *string,
+	orderBy []*model.RemediationOrderBy,
+	parent *model.NodeParent,
+) (*model.RemediationConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -23,12 +31,23 @@ func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	}).Debug("Called RemediationBaseResolver")
 
 	var serviceId []*int64
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("RemediationBaseResolver: Error while parsing propagated parent ID'")
-			return nil, ToGraphQLError(appErrors.E(appErrors.Op("RemediationBaseResolver"), "Remediation", appErrors.InvalidArgument, "Error while parsing propagated ID"))
+			logrus.WithField("parent", parent).
+				Error("RemediationBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, ToGraphQLError(
+				appErrors.E(
+					appErrors.Op("RemediationBaseResolver"),
+					"Remediation",
+					appErrors.InvalidArgument,
+					"Error while parsing propagated ID",
+				),
+			)
 		}
 
 		switch parent.ParentName {
@@ -46,7 +65,10 @@ func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model
 		Service:   filter.Service,
 		Component: filter.Image,
 		Issue:     filter.Vulnerability,
-		Type:      lo.Map(filter.Type, func(item *model.RemediationTypeValues, _ int) *string { return pointer.String(item.String()) }),
+		Type: lo.Map(
+			filter.Type,
+			func(item *model.RemediationTypeValues, _ int) *string { return pointer.String(item.String()) },
+		),
 		ServiceId: serviceId,
 		State:     model.GetStateFilterType(filter.State),
 		Search:    filter.Search,
@@ -55,14 +77,19 @@ func RemediationBaseResolver(app app.Heureka, ctx context.Context, filter *model
 	opt := GetListOptions(requestedFields)
 	for _, o := range orderBy {
 		opt.Order = append(opt.Order, o.ToOrderEntity())
-		opt.Order = append(opt.Order, entity.Order{By: entity.RemediationId, Direction: o.Direction.ToOrderDirectionEntity()})
+		opt.Order = append(
+			opt.Order,
+			entity.Order{By: entity.RemediationId, Direction: o.Direction.ToOrderDirectionEntity()},
+		)
 	}
+
 	remediations, err := app.ListRemediations(f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
 
 	edges := []*model.RemediationEdge{}
+
 	for _, result := range remediations.Elements {
 		ci := model.NewRemediation(result.Remediation)
 		edge := model.RemediationEdge{

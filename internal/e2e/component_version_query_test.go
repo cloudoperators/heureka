@@ -85,7 +85,9 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 				)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(respData.ComponentVersions.TotalCount).To(Equal(len(seedCollection.ComponentVersionRows)))
+				Expect(
+					respData.ComponentVersions.TotalCount,
+				).To(Equal(len(seedCollection.ComponentVersionRows)))
 				Expect(len(respData.ComponentVersions.Edges)).To(Equal(5))
 			})
 		})
@@ -131,100 +133,136 @@ var _ = Describe("Getting ComponentVersions via API", Label("e2e", "ComponentVer
 				}
 			})
 		})
-		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-			respData := struct {
-				ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
-			}{}
-			BeforeEach(func() {
-				resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Context(
+			"and we query to resolve levels of relations",
+			Label("directRelations.graphql"),
+			func() {
+				respData := struct {
 					ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/componentVersion/directRelations.graphql",
-					map[string]any{
-						"filter": map[string]string{},
-						"first":  5,
-						"after":  "",
-					},
-					nil,
-				)
+				}{}
+				BeforeEach(func() {
+					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						ComponentVersions model.ComponentVersionConnection `json:"ComponentVersions"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/componentVersion/directRelations.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
-				Expect(err).ToNot(HaveOccurred())
-				respData = resp
-			})
+					Expect(err).ToNot(HaveOccurred())
+					respData = resp
+				})
 
-			It("- returns the correct result count", func() {
-				Expect(respData.ComponentVersions.TotalCount).To(Equal(len(seedCollection.ComponentVersionRows)))
-				Expect(len(respData.ComponentVersions.Edges)).To(Equal(5))
-			})
+				It("- returns the correct result count", func() {
+					Expect(
+						respData.ComponentVersions.TotalCount,
+					).To(Equal(len(seedCollection.ComponentVersionRows)))
+					Expect(len(respData.ComponentVersions.Edges)).To(Equal(5))
+				})
 
-			It("- returns the expected content", func() {
-				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
-				// a complete verification
-				// additional checks are added based on bugs discovered during usage
+				It("- returns the expected content", func() {
+					// this just checks partial attributes to check whatever every sub-relation does
+					// resolve some reasonable data and is not doing
+					// a complete verification
+					// additional checks are added based on bugs discovered during usage
 
-				for _, cv := range respData.ComponentVersions.Edges {
-					for _, issue := range cv.Node.Issues.Edges {
-						Expect(issue.Node.ID).ToNot(BeNil(), "issue has a ID set")
-						Expect(issue.Node.LastModified).ToNot(BeNil(), "issue has lastModified set")
+					for _, cv := range respData.ComponentVersions.Edges {
+						for _, issue := range cv.Node.Issues.Edges {
+							Expect(issue.Node.ID).ToNot(BeNil(), "issue has a ID set")
+							Expect(
+								issue.Node.LastModified,
+							).ToNot(BeNil(), "issue has lastModified set")
 
-						_, issueFound := lo.Find(seedCollection.ComponentVersionIssueRows, func(row mariadb.ComponentVersionIssueRow) bool {
-							return fmt.Sprintf("%d", row.IssueId.Int64) == issue.Node.ID && // correct issue
-								fmt.Sprintf("%d", row.ComponentVersionId.Int64) == cv.Node.ID // belongs actually to the componentVersion
-						})
-						Expect(issueFound).To(BeTrue(), "attached issue does exist and belongs to componentVersion")
-					}
+							_, issueFound := lo.Find(
+								seedCollection.ComponentVersionIssueRows,
+								func(row mariadb.ComponentVersionIssueRow) bool {
+									return fmt.Sprintf(
+										"%d",
+										row.IssueId.Int64,
+									) == issue.Node.ID && // correct issue
+										fmt.Sprintf(
+											"%d",
+											row.ComponentVersionId.Int64,
+										) == cv.Node.ID // belongs actually to the componentVersion
+								},
+							)
+							Expect(
+								issueFound,
+							).To(BeTrue(), "attached issue does exist and belongs to componentVersion")
+						}
 
-					for _, ci := range cv.Node.ComponentInstances.Edges {
-						Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
-						Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has ccrn set")
+						for _, ci := range cv.Node.ComponentInstances.Edges {
+							Expect(ci.Node.ID).ToNot(BeNil(), "componentInstance has a ID set")
+							Expect(ci.Node.Ccrn).ToNot(BeNil(), "componentInstance has ccrn set")
 
-						Expect(*ci.Node.ComponentVersionID).To(BeEquivalentTo(cv.Node.ID))
+							Expect(*ci.Node.ComponentVersionID).To(BeEquivalentTo(cv.Node.ID))
 
-					}
+						}
 
-					if cv.Node.Component != nil {
-						Expect(cv.Node.Component.ID).ToNot(BeNil(), "component has a ID set")
-						Expect(cv.Node.Component.Ccrn).ToNot(BeNil(), "component has a ccrn set")
-						Expect(cv.Node.Component.Type).ToNot(BeNil(), "component has a type set")
-					}
+						if cv.Node.Component != nil {
+							Expect(cv.Node.Component.ID).ToNot(BeNil(), "component has a ID set")
+							Expect(
+								cv.Node.Component.Ccrn,
+							).ToNot(BeNil(), "component has a ccrn set")
+							Expect(
+								cv.Node.Component.Type,
+							).ToNot(BeNil(), "component has a type set")
+						}
 
-					if cv.Node.Tag != nil {
-						// If there's a tag value in the database, verify it matches
-						for _, row := range seedCollection.ComponentVersionRows {
-							if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Tag.Valid {
-								Expect(*cv.Node.Tag).To(Equal(row.Tag.String))
+						if cv.Node.Tag != nil {
+							// If there's a tag value in the database, verify it matches
+							for _, row := range seedCollection.ComponentVersionRows {
+								if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Tag.Valid {
+									Expect(*cv.Node.Tag).To(Equal(row.Tag.String))
+								}
+							}
+						}
+
+						if cv.Node.Repository != nil {
+							// If there's a repository value in the database, verify it matches
+							for _, row := range seedCollection.ComponentVersionRows {
+								if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID &&
+									row.Repository.Valid {
+									Expect(*cv.Node.Repository).To(Equal(row.Repository.String))
+								}
+							}
+						}
+
+						if cv.Node.Organization != nil {
+							// If there's an organization value in the database, verify it matches
+							for _, row := range seedCollection.ComponentVersionRows {
+								if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID &&
+									row.Organization.Valid {
+									Expect(*cv.Node.Organization).To(Equal(row.Organization.String))
+								}
 							}
 						}
 					}
-
-					if cv.Node.Repository != nil {
-						// If there's a repository value in the database, verify it matches
-						for _, row := range seedCollection.ComponentVersionRows {
-							if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Repository.Valid {
-								Expect(*cv.Node.Repository).To(Equal(row.Repository.String))
-							}
-						}
-					}
-
-					if cv.Node.Organization != nil {
-						// If there's an organization value in the database, verify it matches
-						for _, row := range seedCollection.ComponentVersionRows {
-							if fmt.Sprintf("%d", row.Id.Int64) == cv.Node.ID && row.Organization.Valid {
-								Expect(*cv.Node.Organization).To(Equal(row.Organization.String))
-							}
-						}
-					}
-				}
-			})
-			It("- returns the expected PageInfo", func() {
-				Expect(*respData.ComponentVersions.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
-				Expect(*respData.ComponentVersions.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
-				Expect(respData.ComponentVersions.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-				Expect(len(respData.ComponentVersions.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
-				Expect(*respData.ComponentVersions.PageInfo.PageNumber).To(Equal(1), "Correct page number")
-			})
-		})
+				})
+				It("- returns the expected PageInfo", func() {
+					Expect(
+						*respData.ComponentVersions.PageInfo.HasNextPage,
+					).To(BeTrue(), "hasNextPage is set")
+					Expect(
+						*respData.ComponentVersions.PageInfo.HasPreviousPage,
+					).To(BeFalse(), "hasPreviousPage is set")
+					Expect(
+						respData.ComponentVersions.PageInfo.NextPageAfter,
+					).ToNot(BeNil(), "nextPageAfter is set")
+					Expect(
+						len(respData.ComponentVersions.PageInfo.Pages),
+					).To(Equal(2), "Correct amount of pages")
+					Expect(
+						*respData.ComponentVersions.PageInfo.PageNumber,
+					).To(Equal(1), "Correct page number")
+				})
+			},
+		)
 	})
 })
 
@@ -252,11 +290,19 @@ var _ = Describe("Ordering ComponentVersion via API", Label("e2e", "ComponentVer
 	})
 
 	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
-		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
+		issueVariants, err := test.LoadIssueVariants(
+			test.GetTestDataPath(
+				"../database/mariadb/testdata/component_version_order/issue_variant.json",
+			),
+		)
 		if err != nil {
 			return nil, nil, err
 		}
-		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/component_version_issue.json"))
+		cvIssues, err := test.LoadComponentVersionIssues(
+			test.GetTestDataPath(
+				"../database/mariadb/testdata/component_version_order/component_version_issue.json",
+			),
+		)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -371,7 +417,9 @@ var _ = Describe("Creating ComponentVersion via API", Label("e2e", "ComponentVer
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.ComponentVersion.Version).To(Equal(componentVersion.Version))
-				Expect(*respData.ComponentVersion.ComponentID).To(Equal(fmt.Sprintf("%d", componentId)))
+				Expect(
+					*respData.ComponentVersion.ComponentID,
+				).To(Equal(fmt.Sprintf("%d", componentId)))
 				Expect(*respData.ComponentVersion.Tag).To(Equal(testTag))
 			})
 		})

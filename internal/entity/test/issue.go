@@ -13,6 +13,7 @@ import (
 func NewFakeIssueEntity() entity.Issue {
 	t := gofakeit.RandomString(entity.AllIssueTypes)
 	primaryName := fmt.Sprintf("CVE-%d-%d", gofakeit.Year(), gofakeit.Number(100, 9999999))
+
 	return entity.Issue{
 		Id:                int64(gofakeit.Number(1, 10000000)),
 		PrimaryName:       primaryName,
@@ -45,22 +46,25 @@ func NewFakeIssueWithAggregationsEntity() entity.IssueWithAggregations {
 
 func NNewFakeIssueEntitiesWithAggregations(n int) []entity.IssueWithAggregations {
 	r := make([]entity.IssueWithAggregations, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeIssueWithAggregationsEntity()
 	}
+
 	return r
 }
 
 func NNewFakeIssueEntities(n int) []entity.Issue {
 	r := make([]entity.Issue, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeIssueEntity()
 	}
+
 	return r
 }
 
 func NewFakeIssueResult() entity.IssueResult {
 	issue := NewFakeIssueEntity()
+
 	return entity.IssueResult{
 		Issue: &issue,
 	}
@@ -68,14 +72,16 @@ func NewFakeIssueResult() entity.IssueResult {
 
 func NNewFakeIssueResults(n int) []entity.IssueResult {
 	r := make([]entity.IssueResult, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeIssueResult()
 	}
+
 	return r
 }
 
 func NewFakeIssueResultWithAggregations() entity.IssueResult {
 	issue := NewFakeIssueWithAggregationsEntity()
+
 	return entity.IssueResult{
 		Issue:             &issue.Issue,
 		IssueAggregations: &issue.IssueAggregations,
@@ -84,8 +90,9 @@ func NewFakeIssueResultWithAggregations() entity.IssueResult {
 
 func NNewFakeIssueResultsWithAggregations(n int) []entity.IssueResult {
 	r := make([]entity.IssueResult, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeIssueResultWithAggregations()
 	}
+
 	return r
 }

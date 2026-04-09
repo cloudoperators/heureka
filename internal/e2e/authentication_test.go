@@ -28,76 +28,96 @@ import (
 
 const defaultTestFakeDataItems = 10
 
-var _ = Describe("Creating issue value via API using OIDC authentication", Label("e2e", "Authentication"), func() {
-	var authTest *authenticationTest
-	var testUser entity.User
-	var issue entity.Issue
+var _ = Describe(
+	"Creating issue value via API using OIDC authentication",
+	Label("e2e", "Authentication"),
+	func() {
+		var authTest *authenticationTest
+		var testUser entity.User
+		var issue entity.Issue
 
-	BeforeEach(func() {
-		authTest = newAuthenticationTest()
-		testUser = authTest.getTestUser()
-		issue = testentity.NewFakeIssueEntity()
-	})
-
-	AfterEach(func() {
-		authTest.teardown()
-	})
-
-	When("user creates issue", func() {
-		It("assign authenticated user in CreatedBy and UpdatedBy fields", func() {
-			issueResponse := authTest.createIssueByUser(issue, testUser)
-			Expect(*issueResponse.Metadata.CreatedBy).To(Equal(strconv.FormatInt(testUser.Id, 10)))
-			Expect(*issueResponse.Metadata.UpdatedBy).To(Equal(strconv.FormatInt(testUser.Id, 10)))
+		BeforeEach(func() {
+			authTest = newAuthenticationTest()
+			testUser = authTest.getTestUser()
+			issue = testentity.NewFakeIssueEntity()
 		})
-	})
-})
 
-var _ = Describe("Updating issue value via API using OIDC authentication", Label("e2e", "Authentication"), func() {
-	var authTest *authenticationTest
-	var testUser entity.User
-	var issue entity.Issue
-
-	BeforeEach(func() {
-		authTest = newAuthenticationTest()
-		testUser = authTest.getTestUser()
-		issue = authTest.getTestIssueCreatedByAndUpdatedBySystemUser()
-	})
-
-	AfterEach(func() {
-		authTest.teardown()
-	})
-
-	When("user updates issue", func() {
-		It("assign authenticated user in UpdatedBy field", func() {
-			issueResponse := authTest.updateIssueByUser(issue, testUser)
-			Expect(*issueResponse.Metadata.UpdatedBy).To(Equal(strconv.FormatInt(testUser.Id, 10)))
+		AfterEach(func() {
+			authTest.teardown()
 		})
-	})
-})
 
-var _ = Describe("Deleting issue value via API using OIDC authentication", Label("e2e", "Authentication"), func() {
-	var authTest *authenticationTest
-	var testUser entity.User
-	var issue entity.Issue
-
-	BeforeEach(func() {
-		authTest = newAuthenticationTest()
-		testUser = authTest.getTestUser()
-		issue = authTest.getTestIssueCreatedByAndUpdatedBySystemUser()
-	})
-
-	AfterEach(func() {
-		authTest.teardown()
-	})
-
-	When("user deletes issue", func() {
-		It("assign authenticated user in UpdatedBy field", func() {
-			issueId := authTest.deleteIssueByUser(issue, testUser)
-			issueResponse := authTest.getDeletedIssue(issueId, testUser)
-			Expect(*issueResponse.Metadata.UpdatedBy).To(Equal(strconv.FormatInt(testUser.Id, 10)))
+		When("user creates issue", func() {
+			It("assign authenticated user in CreatedBy and UpdatedBy fields", func() {
+				issueResponse := authTest.createIssueByUser(issue, testUser)
+				Expect(
+					*issueResponse.Metadata.CreatedBy,
+				).To(Equal(strconv.FormatInt(testUser.Id, 10)))
+				Expect(
+					*issueResponse.Metadata.UpdatedBy,
+				).To(Equal(strconv.FormatInt(testUser.Id, 10)))
+			})
 		})
-	})
-})
+	},
+)
+
+var _ = Describe(
+	"Updating issue value via API using OIDC authentication",
+	Label("e2e", "Authentication"),
+	func() {
+		var authTest *authenticationTest
+		var testUser entity.User
+		var issue entity.Issue
+
+		BeforeEach(func() {
+			authTest = newAuthenticationTest()
+			testUser = authTest.getTestUser()
+			issue = authTest.getTestIssueCreatedByAndUpdatedBySystemUser()
+		})
+
+		AfterEach(func() {
+			authTest.teardown()
+		})
+
+		When("user updates issue", func() {
+			It("assign authenticated user in UpdatedBy field", func() {
+				issueResponse := authTest.updateIssueByUser(issue, testUser)
+				Expect(
+					*issueResponse.Metadata.UpdatedBy,
+				).To(Equal(strconv.FormatInt(testUser.Id, 10)))
+			})
+		})
+	},
+)
+
+var _ = Describe(
+	"Deleting issue value via API using OIDC authentication",
+	Label("e2e", "Authentication"),
+	func() {
+		var authTest *authenticationTest
+		var testUser entity.User
+		var issue entity.Issue
+
+		BeforeEach(func() {
+			authTest = newAuthenticationTest()
+			testUser = authTest.getTestUser()
+			issue = authTest.getTestIssueCreatedByAndUpdatedBySystemUser()
+		})
+
+		AfterEach(func() {
+			authTest.teardown()
+		})
+
+		When("user deletes issue", func() {
+			It("assign authenticated user in UpdatedBy field", func() {
+				issueId := authTest.deleteIssueByUser(issue, testUser)
+				issueResponse := authTest.getDeletedIssue(issueId, testUser)
+				Expect(
+					*issueResponse.Metadata.UpdatedBy,
+				).To(Equal(strconv.FormatInt(testUser.Id, 10)))
+			})
+		})
+	},
+)
 
 type authenticationTest struct {
 	cfg            util.Config
@@ -139,6 +159,7 @@ func newAuthenticationTest() *authenticationTest {
 func (at *authenticationTest) getTestUser() entity.User {
 	user := at.seedCollection.UserRows[0].AsUser()
 	Expect(user.Id).To(Not(Equal(util.SystemUserId)))
+
 	return user
 }
 
@@ -146,6 +167,7 @@ func (at *authenticationTest) getTestIssueCreatedByAndUpdatedBySystemUser() enti
 	issue := at.seedCollection.IssueRows[0].AsIssue()
 	Expect(issue.Metadata.CreatedBy).To(Equal(util.SystemUserId))
 	Expect(issue.Metadata.UpdatedBy).To(Equal(util.SystemUserId))
+
 	return issue
 }
 
@@ -161,8 +183,8 @@ func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.
 	}](
 		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_create.graphql",
-		map[string]interface{}{
-			"input": map[string]interface{}{
+		map[string]any{
+			"input": map[string]any{
 				"primaryName": issue.PrimaryName,
 				"description": issue.Description,
 				"type":        issue.Type.String(),
@@ -174,6 +196,7 @@ func (at *authenticationTest) createIssueByUser(issue entity.Issue, user entity.
 	Expect(*respData.Issue.PrimaryName).To(Equal(issue.PrimaryName))
 	Expect(*respData.Issue.Description).To(Equal(issue.Description))
 	Expect(respData.Issue.Type.String()).To(Equal(issue.Type.String()))
+
 	return respData.Issue
 }
 
@@ -184,7 +207,7 @@ func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.
 	}](
 		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_update.graphql",
-		map[string]interface{}{
+		map[string]any{
 			"id":    strconv.FormatInt(issue.Id, 10),
 			"input": map[string]string{"description": issue.Description},
 		},
@@ -193,6 +216,7 @@ func (at *authenticationTest) updateIssueByUser(issue entity.Issue, user entity.
 	Expect(err).ToNot(HaveOccurred())
 	Expect(*respData.Issue.Description).To(Equal(issue.Description))
 	Expect(*respData.Issue.Metadata.CreatedBy).To(Equal(strconv.FormatInt(util.SystemUserId, 10)))
+
 	return respData.Issue
 }
 
@@ -202,13 +226,14 @@ func (at *authenticationTest) deleteIssueByUser(issue entity.Issue, user entity.
 	}](
 		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_delete.graphql",
-		map[string]interface{}{
+		map[string]any{
 			"id": strconv.FormatInt(issue.Id, 10),
 		},
 		at.getHeaders(user))
 
 	Expect(err).ToNot(HaveOccurred())
 	Expect(respData.Id).To(Equal(strconv.FormatInt(issue.Id, 10)))
+
 	return respData.Id
 }
 
@@ -218,27 +243,41 @@ func (at *authenticationTest) getDeletedIssue(issueId string, user entity.User) 
 	}](
 		at.cfg.Port,
 		"../api/graphql/graph/queryCollection/authentication/issue_get.graphql",
-		map[string]interface{}{
+		map[string]any{
 			"filter": map[string]string{"state": "Deleted"},
 			"first":  defaultTestFakeDataItems,
 			"after":  "",
 		},
 		at.getHeaders(user))
 
-	item, ok := lo.Find(respData.Issues.Edges, func(e *model.IssueEdge) bool { return e.Node.ID == issueId })
+	item, ok := lo.Find(
+		respData.Issues.Edges,
+		func(e *model.IssueEdge) bool { return e.Node.ID == issueId },
+	)
 	Expect(ok).To(BeTrue(), "issue id '%s' not found in deleted items")
 	Expect(err).ToNot(HaveOccurred())
+
 	return *item.Node
 }
 
 func (at *authenticationTest) getHeaders(user entity.User) map[string]string {
 	headers := e2e_common.GqlStandardHeaders
 	headers["Authorization"] = at.getAuthenticationHeaderForUser(user)
+
 	return headers
 }
 
 func (at *authenticationTest) getAuthenticationHeaderForUser(user entity.User) string {
-	oidcTokenStringHandler := access_test.CreateOidcTokenStringHandler(at.cfg.AuthOidcUrl, at.cfg.AuthOidcClientId, user.UniqueUserID)
-	token := access_test.GenerateJwtWithRsaSignature(oidcTokenStringHandler, at.oidcProvider.GetRsaPrivateKey(), 1*time.Hour)
+	oidcTokenStringHandler := access_test.CreateOidcTokenStringHandler(
+		at.cfg.AuthOidcUrl,
+		at.cfg.AuthOidcClientId,
+		user.UniqueUserID,
+	)
+	token := access_test.GenerateJwtWithRsaSignature(
+		oidcTokenStringHandler,
+		at.oidcProvider.GetRsaPrivateKey(),
+		1*time.Hour,
+	)
+
 	return access_test.WithBearer(token)
 }

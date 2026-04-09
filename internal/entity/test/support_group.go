@@ -22,14 +22,16 @@ func NewFakeSupportGroupEntity() entity.SupportGroup {
 
 func NNewFakeSupportGroupEntities(n int) []entity.SupportGroup {
 	r := make([]entity.SupportGroup, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeSupportGroupEntity()
 	}
+
 	return r
 }
 
 func NewFakeSupportGroupResult() entity.SupportGroupResult {
 	supportGroup := NewFakeSupportGroupEntity()
+
 	return entity.SupportGroupResult{
 		SupportGroup: &supportGroup,
 	}

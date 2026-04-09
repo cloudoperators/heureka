@@ -28,8 +28,10 @@ type IPRateLimiter struct {
 	staleAfter time.Duration
 }
 
-const cleanupInterval = 1 * time.Minute
-const staleAfter = 5 * time.Minute
+const (
+	cleanupInterval = 1 * time.Minute
+	staleAfter      = 5 * time.Minute
+)
 
 func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	i := &IPRateLimiter{
@@ -42,6 +44,7 @@ func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	}
 
 	i.wg.Add(1)
+
 	go i.cleanupRoutine()
 
 	return i
@@ -81,6 +84,7 @@ func (i *IPRateLimiter) Middleware() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"error": "Too many requests",
 			})
+
 			return
 		}
 

@@ -11,8 +11,9 @@ import (
 func RequestWithBackoff(requestFunction func() error) error {
 	if err := requestFunction(); err != nil {
 		if strings.Contains(err.Error(), "connect: connection refused") {
-			for i := 0; i < 5; i++ {
+			for range 5 {
 				time.Sleep(1 * time.Second)
+
 				if err := requestFunction(); err != nil {
 					return err
 				}
@@ -21,5 +22,6 @@ func RequestWithBackoff(requestFunction func() error) error {
 			return err
 		}
 	}
+
 	return nil
 }

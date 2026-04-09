@@ -12,9 +12,9 @@ import (
 
 // GraphQLError represents a standard GraphQL error response
 type GraphQLError struct {
-	Message    string                 `json:"message"`
-	Path       []interface{}          `json:"path,omitempty"`
-	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	Message    string         `json:"message"`
+	Path       []any          `json:"path,omitempty"`
+	Extensions map[string]any `json:"extensions,omitempty"`
 }
 
 // Error implements the error interface
@@ -38,7 +38,7 @@ const (
 func NewGraphQLError(message string, code string) *GraphQLError {
 	return &GraphQLError{
 		Message: message,
-		Extensions: map[string]interface{}{
+		Extensions: map[string]any{
 			"code": code,
 		},
 	}
@@ -56,7 +56,7 @@ func ToGraphQLError(err error) *GraphQLError {
 		// Handle non-app errors
 		return &GraphQLError{
 			Message: "An unexpected error occurred",
-			Extensions: map[string]interface{}{
+			Extensions: map[string]any{
 				"code": ErrorCodeInternal,
 			},
 		}
@@ -69,7 +69,7 @@ func ToGraphQLError(err error) *GraphQLError {
 	// Create GraphQL error with extensions
 	gqlErr := &GraphQLError{
 		Message: message,
-		Extensions: map[string]interface{}{
+		Extensions: map[string]any{
 			"code": code,
 		},
 	}

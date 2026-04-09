@@ -153,11 +153,21 @@ var _ = Describe("User", Label("database", "User"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.UserRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.Name).Should(BeEquivalentTo(row.Name.String), "Name matches")
-									Expect(r.UniqueUserID).Should(BeEquivalentTo(row.UniqueUserID.String), "Unique User ID matches")
-									Expect(r.Type).Should(BeEquivalentTo(row.Type.Int64), "Type matches")
-									Expect(r.CreatedAt.Unix()).ShouldNot(BeEquivalentTo(row.CreatedAt.Time.Unix()), "CreatedAt got set")
-									Expect(r.UpdatedAt.Unix()).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time.Unix()), "UpdatedAt got set")
+									Expect(
+										r.Name,
+									).Should(BeEquivalentTo(row.Name.String), "Name matches")
+									Expect(
+										r.UniqueUserID,
+									).Should(BeEquivalentTo(row.UniqueUserID.String), "Unique User ID matches")
+									Expect(
+										r.Type,
+									).Should(BeEquivalentTo(row.Type.Int64), "Type matches")
+									Expect(
+										r.CreatedAt.Unix(),
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time.Unix()), "CreatedAt got set")
+									Expect(
+										r.UpdatedAt.Unix(),
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time.Unix()), "UpdatedAt got set")
 								}
 							}
 						}
@@ -282,7 +292,9 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 				})
 				It("can filter by user type", func() {
-					humanUserTypeFilter := &entity.UserFilter{Type: []entity.UserType{entity.HumanUserType}}
+					humanUserTypeFilter := &entity.UserFilter{
+						Type: []entity.UserType{entity.HumanUserType},
+					}
 					humanUserEntries, cErr := db.GetUsers(humanUserTypeFilter)
 					By("throwing no error when filtering human user type", func() {
 						Expect(cErr).To(BeNil())
@@ -296,7 +308,9 @@ var _ = Describe("User", Label("database", "User"), func() {
 						}
 					})
 
-					technicalUserTypeFilter := &entity.UserFilter{Type: []entity.UserType{entity.TechnicalUserType}}
+					technicalUserTypeFilter := &entity.UserFilter{
+						Type: []entity.UserType{entity.TechnicalUserType},
+					}
 					technicalUserEntries, tErr := db.GetUsers(technicalUserTypeFilter)
 					By("throwing no error when filtering technical user type", func() {
 						Expect(tErr).To(BeNil())
@@ -310,9 +324,16 @@ var _ = Describe("User", Label("database", "User"), func() {
 						}
 					})
 
-					By("number of human and technical user types should match number of all users", func() {
-						Expect(e2e_common.SubtractSystemUsers(len(humanUserEntries) + len(technicalUserEntries))).To(BeEquivalentTo(len(seedCollection.UserRows)))
-					})
+					By(
+						"number of human and technical user types should match number of all users",
+						func() {
+							Expect(
+								e2e_common.SubtractSystemUsers(
+									len(humanUserEntries) + len(technicalUserEntries),
+								),
+							).To(BeEquivalentTo(len(seedCollection.UserRows)))
+						},
+					)
 				})
 			})
 		})
@@ -580,9 +601,12 @@ var _ = Describe("User", Label("database", "User"), func() {
 						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ServiceRows)))
 					})
 
-					existingUserNames := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
-						return s.Name.String
-					})
+					existingUserNames := lo.Map(
+						seedCollection.UserRows,
+						func(s mariadb.UserRow, index int) string {
+							return s.Name.String
+						},
+					)
 
 					By("returning the correct names", func() {
 						left, right := lo.Difference(res, existingUserNames)
@@ -683,9 +707,12 @@ var _ = Describe("User", Label("database", "User"), func() {
 						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.UserRows)))
 					})
 
-					existingUniqueUserID := lo.Map(seedCollection.UserRows, func(s mariadb.UserRow, index int) string {
-						return s.UniqueUserID.String
-					})
+					existingUniqueUserID := lo.Map(
+						seedCollection.UserRows,
+						func(s mariadb.UserRow, index int) string {
+							return s.UniqueUserID.String
+						},
+					)
 
 					By("returning the correct UniqueUserID", func() {
 						left, right := lo.Difference(res, existingUniqueUserID)

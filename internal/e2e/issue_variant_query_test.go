@@ -85,79 +85,114 @@ var _ = Describe("Getting IssueVariants via API", Label("e2e", "IssueVariants"),
 				)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(respData.IssueVariants.TotalCount).To(Equal(len(seedCollection.IssueVariantRows)))
+				Expect(
+					respData.IssueVariants.TotalCount,
+				).To(Equal(len(seedCollection.IssueVariantRows)))
 				Expect(len(respData.IssueVariants.Edges)).To(Equal(5))
 			})
 		})
-		Context("and we query to resolve levels of relations", Label("directRelations.graphql"), func() {
-			respData := struct {
-				IssueVariants model.IssueVariantConnection `json:"IssueVariants"`
-			}{}
-			BeforeEach(func() {
-				resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+		Context(
+			"and we query to resolve levels of relations",
+			Label("directRelations.graphql"),
+			func() {
+				respData := struct {
 					IssueVariants model.IssueVariantConnection `json:"IssueVariants"`
-				}](
-					cfg.Port,
-					"../api/graphql/graph/queryCollection/issueVariant/directRelations.graphql",
-					map[string]any{
-						"filter": map[string]string{},
-						"first":  5,
-						"after":  "",
-					},
-					nil,
-				)
+				}{}
+				BeforeEach(func() {
+					resp, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+						IssueVariants model.IssueVariantConnection `json:"IssueVariants"`
+					}](
+						cfg.Port,
+						"../api/graphql/graph/queryCollection/issueVariant/directRelations.graphql",
+						map[string]any{
+							"filter": map[string]string{},
+							"first":  5,
+							"after":  "",
+						},
+						nil,
+					)
 
-				Expect(err).ToNot(HaveOccurred())
+					Expect(err).ToNot(HaveOccurred())
 
-				respData = resp
-			})
+					respData = resp
+				})
 
-			It("- returns the correct result count", func() {
-				Expect(respData.IssueVariants.TotalCount).To(Equal(len(seedCollection.IssueVariantRows)))
-				Expect(len(respData.IssueVariants.Edges)).To(Equal(5))
-			})
+				It("- returns the correct result count", func() {
+					Expect(
+						respData.IssueVariants.TotalCount,
+					).To(Equal(len(seedCollection.IssueVariantRows)))
+					Expect(len(respData.IssueVariants.Edges)).To(Equal(5))
+				})
 
-			It("- returns the expected content", func() {
-				// this just checks partial attributes to check whatever every sub-relation does resolve some reasonable data and is not doing
-				// a complete verification
-				// additional checks are added based on bugs discovered during usage
+				It("- returns the expected content", func() {
+					// this just checks partial attributes to check whatever every sub-relation does
+					// resolve some reasonable data and is not doing
+					// a complete verification
+					// additional checks are added based on bugs discovered during usage
 
-				for _, issueVariant := range respData.IssueVariants.Edges {
-					Expect(issueVariant.Node.ID).ToNot(BeNil(), "issueVariant has a ID set")
-					Expect(issueVariant.Node.SecondaryName).ToNot(BeNil(), "issueVariant has a name set")
-					Expect(issueVariant.Node.Description).ToNot(BeNil(), "issueVariant has a description set")
-					Expect(issueVariant.Node.ExternalURL).ToNot(BeNil(), "issueVariant has an external url set")
-					Expect(issueVariant.Node.Severity.Value).ToNot(BeNil(), "issueVariant has a severity value set")
-					Expect(issueVariant.Node.Severity.Score).ToNot(BeNil(), "issueVariant has a severity score set")
+					for _, issueVariant := range respData.IssueVariants.Edges {
+						Expect(issueVariant.Node.ID).ToNot(BeNil(), "issueVariant has a ID set")
+						Expect(
+							issueVariant.Node.SecondaryName,
+						).ToNot(BeNil(), "issueVariant has a name set")
+						Expect(
+							issueVariant.Node.Description,
+						).ToNot(BeNil(), "issueVariant has a description set")
+						Expect(
+							issueVariant.Node.ExternalURL,
+						).ToNot(BeNil(), "issueVariant has an external url set")
+						Expect(
+							issueVariant.Node.Severity.Value,
+						).ToNot(BeNil(), "issueVariant has a severity value set")
+						Expect(
+							issueVariant.Node.Severity.Score,
+						).ToNot(BeNil(), "issueVariant has a severity score set")
 
-					issue := issueVariant.Node.Issue
-					Expect(issue.ID).ToNot(BeNil(), "issue has a ID set")
-					Expect(issue.LastModified).ToNot(BeNil(), "issue has a lastModified set")
+						issue := issueVariant.Node.Issue
+						Expect(issue.ID).ToNot(BeNil(), "issue has a ID set")
+						Expect(issue.LastModified).ToNot(BeNil(), "issue has a lastModified set")
 
-					_, issueFound := lo.Find(seedCollection.IssueRows, func(row mariadb.IssueRow) bool {
-						return fmt.Sprintf("%d", row.Id.Int64) == issue.ID
-					})
-					Expect(issueFound).To(BeTrue(), "attached issue does exist")
+						_, issueFound := lo.Find(
+							seedCollection.IssueRows,
+							func(row mariadb.IssueRow) bool {
+								return fmt.Sprintf("%d", row.Id.Int64) == issue.ID
+							},
+						)
+						Expect(issueFound).To(BeTrue(), "attached issue does exist")
 
-					ir := issueVariant.Node.IssueRepository
-					Expect(ir.ID).ToNot(BeNil(), "issueRepository has a ID set")
-					Expect(ir.Name).ToNot(BeNil(), "issueRepository has a name set")
-					Expect(ir.URL).ToNot(BeNil(), "issueRepository has a url set")
+						ir := issueVariant.Node.IssueRepository
+						Expect(ir.ID).ToNot(BeNil(), "issueRepository has a ID set")
+						Expect(ir.Name).ToNot(BeNil(), "issueRepository has a name set")
+						Expect(ir.URL).ToNot(BeNil(), "issueRepository has a url set")
 
-					_, irFound := lo.Find(seedCollection.IssueRepositoryRows, func(row mariadb.BaseIssueRepositoryRow) bool {
-						return fmt.Sprintf("%d", row.Id.Int64) == ir.ID
-					})
-					Expect(irFound).To(BeTrue(), "attached issueRepository does exist")
-				}
-			})
-			It("- returns the expected PageInfo", func() {
-				Expect(*respData.IssueVariants.PageInfo.HasNextPage).To(BeTrue(), "hasNextPage is set")
-				Expect(*respData.IssueVariants.PageInfo.HasPreviousPage).To(BeFalse(), "hasPreviousPage is set")
-				Expect(respData.IssueVariants.PageInfo.NextPageAfter).ToNot(BeNil(), "nextPageAfter is set")
-				Expect(len(respData.IssueVariants.PageInfo.Pages)).To(Equal(2), "Correct amount of pages")
-				Expect(*respData.IssueVariants.PageInfo.PageNumber).To(Equal(1), "Correct page number")
-			})
-		})
+						_, irFound := lo.Find(
+							seedCollection.IssueRepositoryRows,
+							func(row mariadb.BaseIssueRepositoryRow) bool {
+								return fmt.Sprintf("%d", row.Id.Int64) == ir.ID
+							},
+						)
+						Expect(irFound).To(BeTrue(), "attached issueRepository does exist")
+					}
+				})
+				It("- returns the expected PageInfo", func() {
+					Expect(
+						*respData.IssueVariants.PageInfo.HasNextPage,
+					).To(BeTrue(), "hasNextPage is set")
+					Expect(
+						*respData.IssueVariants.PageInfo.HasPreviousPage,
+					).To(BeFalse(), "hasPreviousPage is set")
+					Expect(
+						respData.IssueVariants.PageInfo.NextPageAfter,
+					).ToNot(BeNil(), "nextPageAfter is set")
+					Expect(
+						len(respData.IssueVariants.PageInfo.Pages),
+					).To(Equal(2), "Correct amount of pages")
+					Expect(
+						*respData.IssueVariants.PageInfo.PageNumber,
+					).To(Equal(1), "Correct page number")
+				})
+			},
+		)
 	})
 })
 
@@ -202,7 +237,7 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/issueVariant/create.graphql",
 					map[string]any{
-						"input": map[string]interface{}{
+						"input": map[string]any{
 							"secondaryName":     issueVariant.SecondaryName,
 							"description":       issueVariant.Description,
 							"issueRepositoryId": fmt.Sprintf("%d", issueVariant.IssueRepositoryId),
@@ -218,9 +253,15 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.IssueVariant.SecondaryName).To(Equal(issueVariant.SecondaryName))
 				Expect(*respData.IssueVariant.Description).To(Equal(issueVariant.Description))
-				Expect(*respData.IssueVariant.IssueRepositoryID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)))
-				Expect(*respData.IssueVariant.IssueID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueId)))
-				Expect(*respData.IssueVariant.Severity.Cvss.Vector).To(Equal(issueVariant.Severity.Cvss.Vector))
+				Expect(
+					*respData.IssueVariant.IssueRepositoryID,
+				).To(Equal(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)))
+				Expect(
+					*respData.IssueVariant.IssueID,
+				).To(Equal(fmt.Sprintf("%d", issueVariant.IssueId)))
+				Expect(
+					*respData.IssueVariant.Severity.Cvss.Vector,
+				).To(Equal(issueVariant.Severity.Cvss.Vector))
 			})
 			It("creates new issueVariant with Rating", func() {
 				respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
@@ -229,7 +270,7 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 					cfg.Port,
 					"../api/graphql/graph/queryCollection/issueVariant/createWithRating.graphql",
 					map[string]any{
-						"input": map[string]interface{}{
+						"input": map[string]any{
 							"secondaryName":     issueVariant.SecondaryName,
 							"description":       issueVariant.Description,
 							"externalUrl":       issueVariant.ExternalUrl,
@@ -247,9 +288,15 @@ var _ = Describe("Creating IssueVariant via API", Label("e2e", "IssueVariants"),
 				Expect(*respData.IssueVariant.SecondaryName).To(Equal(issueVariant.SecondaryName))
 				Expect(*respData.IssueVariant.Description).To(Equal(issueVariant.Description))
 				Expect(*respData.IssueVariant.ExternalURL).To(Equal(issueVariant.ExternalUrl))
-				Expect(*respData.IssueVariant.IssueRepositoryID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)))
-				Expect(*respData.IssueVariant.IssueID).To(Equal(fmt.Sprintf("%d", issueVariant.IssueId)))
-				Expect(string(*respData.IssueVariant.Severity.Value)).To(Equal(issueVariant.Severity.Value))
+				Expect(
+					*respData.IssueVariant.IssueRepositoryID,
+				).To(Equal(fmt.Sprintf("%d", issueVariant.IssueRepositoryId)))
+				Expect(
+					*respData.IssueVariant.IssueID,
+				).To(Equal(fmt.Sprintf("%d", issueVariant.IssueId)))
+				Expect(
+					string(*respData.IssueVariant.Severity.Value),
+				).To(Equal(issueVariant.Severity.Value))
 			})
 		})
 	})
@@ -298,7 +345,7 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 					"../api/graphql/graph/queryCollection/issueVariant/update.graphql",
 					map[string]any{
 						"id": fmt.Sprintf("%d", issueVariant.Id),
-						"input": map[string]interface{}{
+						"input": map[string]any{
 							"secondaryName": issueVariant.SecondaryName,
 							"externalUrl":   issueVariant.ExternalUrl,
 						},
@@ -323,7 +370,7 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 					"../api/graphql/graph/queryCollection/issueVariant/update.graphql",
 					map[string]any{
 						"id": fmt.Sprintf("%d", issueVariant.Id),
-						"input": map[string]interface{}{
+						"input": map[string]any{
 							"severity": model.SeverityInput{
 								Rating: &newRating,
 							},
@@ -333,8 +380,11 @@ var _ = Describe("Updating issueVariant via API", Label("e2e", "IssueVariants"),
 				)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(string(*respData.IssueVariant.Severity.Value)).To(Equal(issueVariant.Severity.Value))
-				if respData.IssueVariant.Severity.Cvss != nil && respData.IssueVariant.Severity.Cvss.Vector != nil {
+				Expect(
+					string(*respData.IssueVariant.Severity.Value),
+				).To(Equal(issueVariant.Severity.Value))
+				if respData.IssueVariant.Severity.Cvss != nil &&
+					respData.IssueVariant.Severity.Cvss.Vector != nil {
 					Expect(string(*respData.IssueVariant.Severity.Cvss.Vector)).To(BeEmpty())
 				}
 			})

@@ -42,6 +42,7 @@ func IssueMatchStatusValue(s string) IssueMatchStatusValues {
 	case IssueMatchStatusValuesMitigated.String():
 		return IssueMatchStatusValuesMitigated
 	}
+
 	return IssueMatchStatusValuesNew
 }
 
@@ -58,7 +59,8 @@ func SeverityValue(s string) (SeverityValues, error) {
 	case SeverityValuesCritical.String():
 		return SeverityValuesCritical, nil
 	}
-	return SeverityValuesNone, fmt.Errorf("Invalid SeverityValues provided: %s", s)
+
+	return SeverityValuesNone, fmt.Errorf("invalid SeverityValues provided: %s", s)
 }
 
 func ComponentTypeValue(s string) (ComponentTypeValues, error) {
@@ -70,7 +72,8 @@ func ComponentTypeValue(s string) (ComponentTypeValues, error) {
 	case ComponentTypeValuesVirtualMachineImage.String():
 		return ComponentTypeValuesVirtualMachineImage, nil
 	}
-	return "unknown", fmt.Errorf("Invalid ComponentTypeValues provided: %s", s)
+
+	return "unknown", fmt.Errorf("invalid ComponentTypeValues provided: %s", s)
 }
 
 func ComponentInstanceType(s string) (ComponentInstanceTypes, error) {
@@ -100,5 +103,6 @@ func ComponentInstanceType(s string) (ComponentInstanceTypes, error) {
 	case ComponentInstanceTypesProjectConfiguration.String():
 		return ComponentInstanceTypesProjectConfiguration, nil
 	}
-	return "unknown", fmt.Errorf("Invalid ComponentInstanceType provided: %s", s)
+
+	return "unknown", fmt.Errorf("invalid ComponentInstanceType provided: %s", s)
 }

@@ -12,9 +12,33 @@ import (
 )
 
 func NewFakeComponentInstanceEntity() entity.ComponentInstance {
-	region := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"})
-	cluster := gofakeit.RandomString([]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1", "a-test-de-1", "a-test-de-2", "a-test-us-1", "a-test-jp-2", "a-test-jp-1", "v-test-de-1", "v-test-de-2", "v-test-us-1", "v-test-jp-2", "v-test-jp-1", "s-test-de-1", "s-test-de-2", "s-test-us-1", "s-test-jp-2", "s-test-jp-1"})
-	// make lower case to avoid conflicts in different lexicographical ordering between sql and golang due to collation
+	region := gofakeit.RandomString(
+		[]string{"test-de-1", "test-de-2", "test-us-1", "test-jp-2", "test-jp-1"},
+	)
+	cluster := gofakeit.RandomString([]string{
+		"test-de-1",
+		"test-de-2",
+		"test-us-1",
+		"test-jp-2",
+		"test-jp-1",
+		"a-test-de-1",
+		"a-test-de-2",
+		"a-test-us-1",
+		"a-test-jp-2",
+		"a-test-jp-1",
+		"v-test-de-1",
+		"v-test-de-2",
+		"v-test-us-1",
+		"v-test-jp-2",
+		"v-test-jp-1",
+		"s-test-de-1",
+		"s-test-de-2",
+		"s-test-us-1",
+		"s-test-jp-2",
+		"s-test-jp-1",
+	})
+	// make lower case to avoid conflicts in different lexicographical ordering between sql and
+	// golang due to collation
 	namespace := strings.ToLower(gofakeit.ProductName())
 	domain := strings.ToLower(gofakeit.SongName())
 	project := strings.ToLower(gofakeit.BeerName())
@@ -26,6 +50,7 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 		"remove_unused_base_images": gofakeit.Bool(),
 		"my_ip":                     gofakeit.IPv4Address(),
 	}
+
 	return entity.ComponentInstance{
 		Id:                 int64(gofakeit.Number(1, 10000000)),
 		CCRN:               test.GenerateFakeCcrn(cluster, namespace),
@@ -54,14 +79,16 @@ func NewFakeComponentInstanceEntity() entity.ComponentInstance {
 
 func NNewFakeComponentInstances(n int) []entity.ComponentInstance {
 	r := make([]entity.ComponentInstance, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeComponentInstanceEntity()
 	}
+
 	return r
 }
 
 func NewFakeComponentInstanceResult() entity.ComponentInstanceResult {
 	componentInstance := NewFakeComponentInstanceEntity()
+
 	return entity.ComponentInstanceResult{
 		ComponentInstance: &componentInstance,
 	}

@@ -13,10 +13,10 @@ import (
 )
 
 type envLogConfig struct {
-	PrettyPrint string `envconfig:"LOG_PRETTY_PRINT" default:"false" json:"log_pretty_print"`
-	Format      string `envconfig:"LOG_FORMAT" default:"json" json:"log_format"`
-	Location    string `envconfig:"LOG_LOCATION" default:"stdout" json:"log_location"`
-	LogLevel    string `envconfig:"LOG_LEVEL" default:"debug" json:"log_level"`
+	PrettyPrint string `envconfig:"LOG_PRETTY_PRINT" default:"false"  json:"log_pretty_print"`
+	Format      string `envconfig:"LOG_FORMAT"       default:"json"   json:"log_format"`
+	Location    string `envconfig:"LOG_LOCATION"     default:"stdout" json:"log_location"`
+	LogLevel    string `envconfig:"LOG_LEVEL"        default:"debug"  json:"log_level"`
 }
 
 type LogConfig struct {
@@ -62,10 +62,19 @@ func (l *LogConfig) SetWriter(v string) {
 	default:
 		f, err := os.OpenFile("/var/log/heureka.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
 		if err != nil {
-			logrus.Warn(fmt.Sprintf("Error while creating log io.Writer for file: %s, Using default: %s", v, "stdout"))
+			logrus.Warn(
+				fmt.Sprintf(
+					"Error while creating log io.Writer for file: %s, Using default: %s",
+					v,
+					"stdout",
+				),
+			)
+
 			l.Writer = os.Stdout
 		}
-		defer f.Close()
+
+		defer func() { _ = f.Close() }()
+
 		l.Writer = f
 	}
 }
@@ -88,12 +97,14 @@ func (l *LogConfig) SetLogLevel(v string) {
 		l.LogLevel = logrus.TraceLevel
 	default:
 		logrus.Warn(fmt.Sprintf("Unkown LOG_LEVEL defined: %s, Using default: %s", v, "debug"))
+
 		l.LogLevel = logrus.DebugLevel
 	}
 }
 
 func GetLogConfig() *LogConfig {
 	var envCfg envLogConfig
+
 	err := envconfig.Process("logConfig", &envCfg)
 	if err != nil {
 		logrus.Fatal(fmt.Sprintf("Failure while reading env config for log configuration: %s", err))

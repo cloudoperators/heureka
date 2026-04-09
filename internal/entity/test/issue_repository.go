@@ -28,8 +28,9 @@ func NewFakeIssueRepositoryEntity() entity.IssueRepository {
 
 func NNewFakeIssueRepositories(n int) []entity.IssueRepository {
 	r := make([]entity.IssueRepository, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeIssueRepositoryEntity()
 	}
+
 	return r
 }

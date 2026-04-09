@@ -25,12 +25,19 @@ func (p *Profiler) Start() {
 		return
 	}
 
-	log.Printf("[Profiler]: Starting profiler. Results will be collected in '%s'. Stop app/container and copy results to browse perf data.", p.filepath)
+	log.Printf(
+		"[Profiler]: Starting profiler. Results will be collected in '%s'. Stop app/container and copy results to browse perf data.",
+		p.filepath,
+	)
+
 	var err error
+
 	p.file, err = os.Create(p.filepath)
 	if err != nil {
 		p.file = nil
-		log.Print(fmt.Errorf("[Profiler]: Could not create profiler file '%s': %w", p.filepath, err))
+		log.Print(
+			fmt.Errorf("[Profiler]: Could not create profiler file '%s': %w", p.filepath, err),
+		)
 	} else if err := pprof.StartCPUProfile(p.file); err != nil {
 		p.cleanup()
 		log.Print(fmt.Errorf("[Profiler]: Could not start profiler: %w", err))
@@ -46,6 +53,6 @@ func (p *Profiler) Stop() {
 }
 
 func (p *Profiler) cleanup() {
-	p.file.Close()
+	_ = p.file.Close()
 	p.file = nil
 }

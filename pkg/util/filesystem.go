@@ -11,12 +11,17 @@ import (
 	"strings"
 )
 
-func SetEnvVars(f string) error {
+func SetEnvVars(f string) (setEnvVarsErr error) {
 	file, err := os.Open(f)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+
+	defer func() {
+		if err := file.Close(); err != nil && setEnvVarsErr == nil {
+			setEnvVarsErr = err
+		}
+	}()
 	// Create a map to store the environment variables
 	envVars := make(map[string]string)
 	// Read the file line by line
@@ -40,10 +45,14 @@ func SetEnvVars(f string) error {
 	if err := scanner.Err(); err != nil {
 		return err
 	}
+
 	// Set the environment variables
 	for key, value := range envVars {
-		os.Setenv(key, value)
+		if err := os.Setenv(key, value); err != nil {
+			return err
+		}
 	}
+
 	return err
 }
 
@@ -51,10 +60,11 @@ func GetProjectRoot() (string, error) {
 	// Get the current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("Error:", err)
+		return "", fmt.Errorf("error: %w", err)
 	}
 	// Find the project root directory by traversing up the directory tree
 	projectRoot := findProjectRoot(cwd)
+
 	return projectRoot, nil
 }
 
@@ -71,7 +81,9 @@ func findProjectRoot(cwd string) string {
 		if parent == cwd {
 			break
 		}
+
 		cwd = parent
 	}
+
 	return ""
 }

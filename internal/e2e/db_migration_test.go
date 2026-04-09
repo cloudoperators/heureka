@@ -46,6 +46,7 @@ func MergeToMapFS(sources ...fs.FS) (fstest.MapFS, error) {
 			if err != nil {
 				return err
 			}
+
 			if d.IsDir() {
 				return nil
 			}
@@ -58,6 +59,7 @@ func MergeToMapFS(sources ...fs.FS) (fstest.MapFS, error) {
 			// Ensure everything goes under "migrations/"
 			key := path.Join("migrations", path.Base(p))
 			merged[key] = &fstest.MapFile{Data: data}
+
 			return nil
 		})
 		if err != nil {
@@ -87,7 +89,11 @@ func addDbMvTestTableMigration() {
 }
 
 func addDbMvTestTableAndAddPostMigrationMigration() {
-	mapFS, err := MergeToMapFS(mariadb.MigrationFs, migrationMvTestTableMigrationFiles, migrationAddPostMigrationMigrationFiles)
+	mapFS, err := MergeToMapFS(
+		mariadb.MigrationFs,
+		migrationMvTestTableMigrationFiles,
+		migrationAddPostMigrationMigrationFiles,
+	)
 	Expect(err).To(BeNil())
 	setDbTestMigration(&mapFS)
 }
@@ -96,6 +102,7 @@ func extractVersion(filename string) string {
 	re := regexp.MustCompile(`^(\d+)_`)
 	match := re.FindStringSubmatch(filename)
 	Expect(len(match) >= 2).To(BeTrue())
+
 	return match[1]
 }
 
@@ -103,6 +110,7 @@ func getFirstMigrationVersionFromFiles(files *embed.FS) string {
 	entries, err := fs.ReadDir(files, "migrations")
 	Expect(err).To(BeNil())
 	Expect(len(entries) >= 1).To(BeTrue())
+
 	return extractVersion(entries[0].Name())
 }
 
@@ -123,6 +131,7 @@ func (dbmt *DbMigrationTest) tableExists(tableName string) bool {
 	defer db.Close()
 
 	var exists bool
+
 	query := `
         SELECT COUNT(*) > 0
         FROM information_schema.tables
@@ -131,10 +140,27 @@ func (dbmt *DbMigrationTest) tableExists(tableName string) bool {
 	err := db.Get(&exists, query, tableName)
 	Expect(err).To(BeNil())
 
-	rows, err := db.Queryx(`SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()`)
+	rows, err := db.Queryx(
+		`SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()`,
+	)
 	for rows.Next() {
 		var name string
+
 		_ = rows.Scan(&name)
+	}
+
+	if err != nil {
+		msg := "Error while checking if table exists"
+
+		dbmt.dbConnect().Close()
+		Expect(err).To(BeNil(), msg)
+	}
+
+	if rows.Err() != nil {
+		msg := "Error while iterating over tables"
+
+		dbmt.dbConnect().Close()
+		Expect(rows.Err()).To(BeNil(), msg)
 	}
 
 	return exists
@@ -145,9 +171,12 @@ func (dbmt *DbMigrationTest) countRows(tableName string) int {
 	defer db.Close()
 
 	query := fmt.Sprintf("SELECT COUNT(*) FROM `%s`", tableName)
+
 	var count int
+
 	err := db.Get(&count, query)
 	Expect(err).To(BeNil())
+
 	return count
 }
 
@@ -227,6 +256,7 @@ func (dbmt *DbMigrationTest) dbExpectRows(tablename string, rows int) {
 func (dbmt *DbMigrationTest) dbConnect() *sqlx.DB {
 	sx, err := mariadb.Connect(dbmt.cfg)
 	Expect(err).To(BeNil())
+
 	return sx
 }
 
@@ -320,20 +350,28 @@ var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrat
 	})
 })
 
-var _ = Describe("Proceeding migration on heureka startup", Label("e2e", "Migrations"), Label("e2e", "PostMigration"), func() {
-	var migrationTest DbMigrationTest
-	BeforeEach(func() {
-		migrationTest.setup()
-	})
-	AfterEach(func() {
-		migrationTest.teardown()
-	})
-	When("creating app with mvTestTable migration applied and append procedure to post migration migration to be applied", func() {
-		It("executes post migration procedure after successful migration", func() {
-			migrationTest.dbVersionIsMvTestTable()
-			migrationTest.createHeurekaServer()
-			waitForPostMigration()
-			migrationTest.dbShouldContainPostMigrationProcedureData()
+var _ = Describe(
+	"Proceeding migration on heureka startup",
+	Label("e2e", "Migrations"),
+	Label("e2e", "PostMigration"),
+	func() {
+		var migrationTest DbMigrationTest
+		BeforeEach(func() {
+			migrationTest.setup()
 		})
-	})
-})
+		AfterEach(func() {
+			migrationTest.teardown()
+		})
+		When(
+			"creating app with mvTestTable migration applied and append procedure to post migration migration to be applied",
+			func() {
+				It("executes post migration procedure after successful migration", func() {
+					migrationTest.dbVersionIsMvTestTable()
+					migrationTest.createHeurekaServer()
+					waitForPostMigration()
+					migrationTest.dbShouldContainPostMigrationProcedureData()
+				})
+			},
+		)
+	},
+)

@@ -10,7 +10,10 @@ import (
 )
 
 type RemediationHandler interface {
-	ListRemediations(*entity.RemediationFilter, *entity.ListOptions) (*entity.List[entity.RemediationResult], error)
+	ListRemediations(
+		*entity.RemediationFilter,
+		*entity.ListOptions,
+	) (*entity.List[entity.RemediationResult], error)
 	CreateRemediation(context.Context, *entity.Remediation) (*entity.Remediation, error)
 	UpdateRemediation(context.Context, *entity.Remediation) (*entity.Remediation, error)
 	DeleteRemediation(context.Context, int64) error

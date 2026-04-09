@@ -35,6 +35,7 @@ func (srh *scannerRunHandler) CreateScannerRun(sr *entity.ScannerRun) (bool, err
 	}
 
 	srh.eventRegistry.PushEvent(&CreateScannerRunEvent{sr})
+
 	return true, nil
 }
 
@@ -46,20 +47,26 @@ func (srh *scannerRunHandler) CompleteScannerRun(uuid string) (bool, error) {
 
 	// Trigger autopatch whenever a scanner run has completed successfully
 	if _, err := srh.database.Autopatch(); err != nil {
-		return false, &ScannerRunHandlerError{msg: "Error executing autopatch in CompleteScannerRun"}
+		return false, &ScannerRunHandlerError{
+			msg: "Error executing autopatch in CompleteScannerRun",
+		}
 	}
 
 	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{successfulRun: true})
+
 	return true, nil
 }
 
 func (srh *scannerRunHandler) FailScannerRun(uuid string, message string) (bool, error) {
 	_, err := srh.database.FailScannerRun(uuid, message)
 	if err != nil {
-		return false, &ScannerRunHandlerError{msg: fmt.Sprintf("Error updating scanner run: %v", err)}
+		return false, &ScannerRunHandlerError{
+			msg: fmt.Sprintf("Error updating scanner run: %v", err),
+		}
 	}
 
 	srh.eventRegistry.PushEvent(&UpdateScannerRunEvent{successfulRun: false})
+
 	return true, nil
 }
 
@@ -78,7 +85,10 @@ func (srh *scannerRunHandler) GetScannerRunTags() ([]string, error) {
 	return res, nil
 }
 
-func (srh *scannerRunHandler) GetScannerRuns(filter *entity.ScannerRunFilter, listOptions *entity.ListOptions) ([]entity.ScannerRun, error) {
+func (srh *scannerRunHandler) GetScannerRuns(
+	filter *entity.ScannerRunFilter,
+	listOptions *entity.ListOptions,
+) ([]entity.ScannerRun, error) {
 	var res []entity.ScannerRun
 
 	res, err := srh.database.GetScannerRuns(filter)

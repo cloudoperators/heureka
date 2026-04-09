@@ -21,7 +21,9 @@ import (
 func (r *componentInstanceResolver) ComponentVersion(ctx context.Context, obj *model.ComponentInstance) (*model.ComponentVersion, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentVersionID})
 	if err != nil {
-		logrus.WithField("obj", obj).Error("ComponentInstanceResolver: Error while parsing childIds'")
+		logrus.WithField("obj", obj).
+			Error("ComponentInstanceResolver: Error while parsing childIds'")
+
 		return nil, err
 	}
 
@@ -32,17 +34,33 @@ func (r *componentInstanceResolver) ComponentVersion(ctx context.Context, obj *m
 	})
 }
 
-func (r *componentInstanceResolver) IssueMatches(ctx context.Context, obj *model.ComponentInstance, filter *model.IssueMatchFilter, first *int, after *string) (*model.IssueMatchConnection, error) {
-	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, nil, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ComponentInstanceNodeName,
-	})
+func (r *componentInstanceResolver) IssueMatches(
+	ctx context.Context,
+	obj *model.ComponentInstance,
+	filter *model.IssueMatchFilter,
+	first *int,
+	after *string,
+) (*model.IssueMatchConnection, error) {
+	return baseResolver.IssueMatchBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		nil,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.ComponentInstanceNodeName,
+		},
+	)
 }
 
 func (r *componentInstanceResolver) Service(ctx context.Context, obj *model.ComponentInstance) (*model.Service, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ServiceID})
 	if err != nil {
-		logrus.WithField("obj", obj).Error("ComponentInstanceResolver: Error while parsing childIds'")
+		logrus.WithField("obj", obj).
+			Error("ComponentInstanceResolver: Error while parsing childIds'")
+
 		return nil, err
 	}
 
@@ -56,7 +74,9 @@ func (r *componentInstanceResolver) Service(ctx context.Context, obj *model.Comp
 func (r *componentInstanceResolver) Parent(ctx context.Context, obj *model.ComponentInstance) (*model.ComponentInstance, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ParentID})
 	if err != nil {
-		logrus.WithField("obj", obj).Error("ComponentInstanceResolver: Error while parsing childIds'")
+		logrus.WithField("obj", obj).
+			Error("ComponentInstanceResolver: Error while parsing childIds'")
+
 		return nil, err
 	}
 

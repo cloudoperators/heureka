@@ -40,11 +40,13 @@ func verifyError(methodName string, e error) error {
 func getAuthTokenFromHeader(header string, c *gin.Context) (string, error) {
 	authHeader := c.GetHeader(header)
 	if authHeader == "" {
-		return "", fmt.Errorf("No authorization header")
+		return "", fmt.Errorf("no authorization header")
 	}
+
 	if len(authHeader) < (len("Bearer ")+1) || !strings.Contains(authHeader, "Bearer ") {
-		return "", fmt.Errorf("Invalid authorization header")
+		return "", fmt.Errorf("invalid authorization header")
 	}
+
 	return strings.Split(authHeader, "Bearer ")[1], nil
 }
 
@@ -53,5 +55,6 @@ func GetHostname() string {
 	if err != nil {
 		return "localhost"
 	}
+
 	return hostname
 }

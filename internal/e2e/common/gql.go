@@ -58,11 +58,18 @@ func executeGql[T any](client *graphql.Client, req *graphql.Request) (T, error) 
 	return result, err
 }
 
-func ExecuteGqlQueryFromFile[T any](port string, queryFilePath string, vars map[string]any) (T, error) {
+func ExecuteGqlQueryFromFile[T any](
+	port string,
+	queryFilePath string,
+	vars map[string]any,
+) (T, error) {
 	return ExecuteGqlQueryFromFileWithHeaders[T](port, queryFilePath, vars, GqlStandardHeaders)
 }
 
-func ExecuteGqlQueryFromFileWithHeaders[T any](port string, queryFilePath string, vars map[string]any,
+func ExecuteGqlQueryFromFileWithHeaders[T any](
+	port string,
+	queryFilePath string,
+	vars map[string]any,
 	headers map[string]string,
 ) (T, error) {
 	b, err := os.ReadFile(queryFilePath)

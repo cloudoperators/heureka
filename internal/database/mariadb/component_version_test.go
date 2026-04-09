@@ -56,7 +56,9 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 
 					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.ComponentVersionRows)))
+						Expect(
+							len(res),
+						).Should(BeIdenticalTo(len(seedCollection.ComponentVersionRows)))
 					})
 
 					By("returning the correct order", func() {
@@ -73,10 +75,18 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						for _, r := range res {
 							for _, row := range seedCollection.ComponentVersionRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.Version).Should(BeEquivalentTo(row.Version.String), "Name should match")
-									Expect(r.Tag).Should(BeEquivalentTo(row.Tag.String), "Tag matches")
-									Expect(r.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
-									Expect(r.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
+									Expect(
+										r.Version,
+									).Should(BeEquivalentTo(row.Version.String), "Name should match")
+									Expect(
+										r.Tag,
+									).Should(BeEquivalentTo(row.Tag.String), "Tag matches")
+									Expect(
+										r.CreatedAt,
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
+									Expect(
+										r.UpdatedAt,
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
 							}
 						}
@@ -111,7 +121,10 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					componentVersionIds := []int64{}
 					for _, cvvRow := range seedCollection.ComponentVersionIssueRows {
 						if cvvRow.IssueId.Int64 == issueRow.Id.Int64 {
-							componentVersionIds = append(componentVersionIds, cvvRow.ComponentVersionId.Int64)
+							componentVersionIds = append(
+								componentVersionIds,
+								cvvRow.ComponentVersionId.Int64,
+							)
 						}
 					}
 
@@ -141,7 +154,9 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						}
 					}
 
-					filter := &entity.ComponentVersionFilter{ComponentId: []*int64{&componentRow.Id.Int64}}
+					filter := &entity.ComponentVersionFilter{
+						ComponentId: []*int64{&componentRow.Id.Int64},
+					}
 
 					entries, err := db.GetComponentVersions(filter, nil)
 
@@ -291,7 +306,9 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 				It("can filter by a repository", func() {
 					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
-					filter := &entity.ComponentVersionFilter{Repository: []*string{&cv.Repository.String}}
+					filter := &entity.ComponentVersionFilter{
+						Repository: []*string{&cv.Repository.String},
+					}
 					entries, err := db.GetComponentVersions(filter, nil)
 
 					By("throwing no error", func() {
@@ -307,7 +324,9 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 				It("can filter by an organization", func() {
 					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
-					filter := &entity.ComponentVersionFilter{Organization: []*string{&cv.Organization.String}}
+					filter := &entity.ComponentVersionFilter{
+						Organization: []*string{&cv.Organization.String},
+					}
 					entries, err := db.GetComponentVersions(filter, nil)
 
 					By("throwing no error", func() {
@@ -373,7 +392,13 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						},
 						[]entity.Order{},
 						func(entries []entity.ComponentVersionResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithComponentVersion([]entity.Order{}, *entries[len(entries)-1].ComponentVersion, entity.IssueSeverityCounts{}))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithComponentVersion(
+									[]entity.Order{},
+									*entries[len(entries)-1].ComponentVersion,
+									entity.IssueSeverityCounts{},
+								),
+							)
 							return after
 						},
 						len(seedCollection.ComponentVersionRows),
@@ -554,56 +579,70 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 				})
 
-				It("can update tag correctly", Label("UpdateComponentVersion", "GetComponentVersions"), func() {
-					// Get an existing component version to update
-					componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
+				It(
+					"can update tag correctly",
+					Label("UpdateComponentVersion", "GetComponentVersions"),
+					func() {
+						// Get an existing component version to update
+						componentVersion := seedCollection.ComponentVersionRows[0].AsComponentVersion()
 
-					// Store the original values for comparison
-					originalId := componentVersion.Id
-					originalVersion := componentVersion.Version
-					originalComponentId := componentVersion.ComponentId
+						// Store the original values for comparison
+						originalId := componentVersion.Id
+						originalVersion := componentVersion.Version
+						originalComponentId := componentVersion.ComponentId
 
-					// Set a unique updated tag value
-					updatedTag := "updated-tag-" + fmt.Sprintf("%d", rand.Int())
-					componentVersion.Tag = updatedTag
+						// Set a unique updated tag value
+						updatedTag := "updated-tag-" + fmt.Sprintf("%d", rand.Int())
+						componentVersion.Tag = updatedTag
 
-					// Perform the update
-					err := db.UpdateComponentVersion(&componentVersion)
+						// Perform the update
+						err := db.UpdateComponentVersion(&componentVersion)
 
-					By("throwing no error during update", func() {
-						Expect(err).To(BeNil())
-					})
+						By("throwing no error during update", func() {
+							Expect(err).To(BeNil())
+						})
 
-					// Retrieve all component versions and find our updated one manually
-					// This avoids relying on the filter functionality
-					allVersions, err := db.GetComponentVersions(nil, nil)
+						// Retrieve all component versions and find our updated one manually
+						// This avoids relying on the filter functionality
+						allVersions, err := db.GetComponentVersions(nil, nil)
 
-					By("throwing no error during retrieval", func() {
-						Expect(err).To(BeNil())
-					})
+						By("throwing no error during retrieval", func() {
+							Expect(err).To(BeNil())
+						})
 
-					By("being able to find the updated version", func() {
-						found := false
-						var updatedCV entity.ComponentVersion
+						By("being able to find the updated version", func() {
+							found := false
+							var updatedCV entity.ComponentVersion
 
-						for _, cv := range allVersions {
-							if cv.Id == originalId {
-								found = true
-								updatedCV = *cv.ComponentVersion
-								break
+							for _, cv := range allVersions {
+								if cv.Id == originalId {
+									found = true
+									updatedCV = *cv.ComponentVersion
+									break
+								}
 							}
-						}
 
-						Expect(found).To(BeTrue(), "Updated component version should be retrievable")
+							Expect(
+								found,
+							).To(BeTrue(), "Updated component version should be retrievable")
 
-						if found {
-							Expect(updatedCV.Tag).To(BeEquivalentTo(updatedTag), "Tag should be updated")
-							Expect(updatedCV.Id).To(BeEquivalentTo(originalId), "ID should be preserved")
-							Expect(updatedCV.Version).To(BeEquivalentTo(originalVersion), "Version should be preserved")
-							Expect(updatedCV.ComponentId).To(BeEquivalentTo(originalComponentId), "ComponentId should be preserved")
-						}
-					})
-				})
+							if found {
+								Expect(
+									updatedCV.Tag,
+								).To(BeEquivalentTo(updatedTag), "Tag should be updated")
+								Expect(
+									updatedCV.Id,
+								).To(BeEquivalentTo(originalId), "ID should be preserved")
+								Expect(
+									updatedCV.Version,
+								).To(BeEquivalentTo(originalVersion), "Version should be preserved")
+								Expect(
+									updatedCV.ComponentId,
+								).To(BeEquivalentTo(originalComponentId), "ComponentId should be preserved")
+							}
+						})
+					},
+				)
 			})
 		})
 	})
@@ -644,11 +683,15 @@ var _ = Describe("Ordering ComponentVersions", func() {
 	}
 
 	loadTestData := func() ([]mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, error) {
-		issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("testdata/component_version_order/issue_variant.json"))
+		issueVariants, err := test.LoadIssueVariants(
+			test.GetTestDataPath("testdata/component_version_order/issue_variant.json"),
+		)
 		if err != nil {
 			return nil, nil, err
 		}
-		cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("testdata/component_version_order/component_version_issue.json"))
+		cvIssues, err := test.LoadComponentVersionIssues(
+			test.GetTestDataPath("testdata/component_version_order/component_version_issue.json"),
+		)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -733,7 +776,9 @@ var _ = Describe("Ordering ComponentVersions", func() {
 
 			testOrder(order, func(res []entity.ComponentVersionResult) {
 				for i, r := range res {
-					Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
+					Expect(
+						r.Id,
+					).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
 				}
 			})
 		})
@@ -749,7 +794,9 @@ var _ = Describe("Ordering ComponentVersions", func() {
 
 			testOrder(order, func(res []entity.ComponentVersionResult) {
 				for i, r := range res {
-					Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
+					Expect(
+						r.Id,
+					).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
 				}
 			})
 		})
@@ -771,7 +818,9 @@ var _ = Describe("Ordering ComponentVersions", func() {
 
 			testOrder(order, func(res []entity.ComponentVersionResult) {
 				for i, r := range res {
-					Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
+					Expect(
+						r.Id,
+					).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
 				}
 			})
 		})
@@ -787,7 +836,9 @@ var _ = Describe("Ordering ComponentVersions", func() {
 
 			testOrder(order, func(res []entity.ComponentVersionResult) {
 				for i, r := range res {
-					Expect(r.Id).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
+					Expect(
+						r.Id,
+					).Should(BeEquivalentTo(seedCollection.ComponentVersionRows[i].Id.Int64))
 				}
 			})
 		})

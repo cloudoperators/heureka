@@ -16,39 +16,63 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *issueMatchFilterValueResolver) PrimaryName(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.IssueFilter) (*model.FilterItem, error) {
+func (r *issueMatchFilterValueResolver) PrimaryName(
+	ctx context.Context,
+	obj *model.IssueMatchFilterValue,
+	filter *model.IssueFilter,
+) (*model.FilterItem, error) {
 	item, err := baseResolver.IssueNameBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
+
 	item.FilterName = &baseResolver.IssueMatchFilterPrimaryName
+
 	return item, nil
 }
 
-func (r *issueMatchFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
+func (r *issueMatchFilterValueResolver) ServiceCcrn(
+	ctx context.Context,
+	obj *model.IssueMatchFilterValue,
+	filter *model.ServiceFilter,
+) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
+
 	item.FilterName = &baseResolver.IssueMatchFilterServiceCcrn
+
 	return item, nil
 }
 
-func (r *issueMatchFilterValueResolver) ComponentCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.ComponentFilter) (*model.FilterItem, error) {
+func (r *issueMatchFilterValueResolver) ComponentCcrn(
+	ctx context.Context,
+	obj *model.IssueMatchFilterValue,
+	filter *model.ComponentFilter,
+) (*model.FilterItem, error) {
 	item, err := baseResolver.ComponentCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
+
 	item.FilterName = &baseResolver.IssueMatchFilterComponentCcrn
+
 	return item, nil
 }
 
-func (r *issueMatchFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.IssueMatchFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
+func (r *issueMatchFilterValueResolver) SupportGroupCcrn(
+	ctx context.Context,
+	obj *model.IssueMatchFilterValue,
+	filter *model.SupportGroupFilter,
+) (*model.FilterItem, error) {
 	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
 	}
+
 	item.FilterName = &baseResolver.IssueMatchFilterSupportGroupCcrn
+
 	return item, nil
 }
 

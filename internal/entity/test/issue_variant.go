@@ -20,6 +20,7 @@ func NewFakeIssueVariantEntity(issue *int64) entity.IssueVariant {
 
 	vector := test.GenerateRandomCVSS31Vector()
 	severity := entity.NewSeverity(vector)
+
 	return entity.IssueVariant{
 		Id:                int64(gofakeit.Number(1, 10000000)),
 		SecondaryName:     gofakeit.Noun(),
@@ -39,8 +40,9 @@ func NewFakeIssueVariantEntity(issue *int64) entity.IssueVariant {
 
 func NNewFakeIssueVariants(n int) []entity.IssueVariant {
 	r := make([]entity.IssueVariant, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeIssueVariantEntity(nil)
 	}
+
 	return r
 }

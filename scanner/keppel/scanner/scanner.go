@@ -174,7 +174,11 @@ func (s *Scanner) ListRepositories(account string) ([]models.Repository, error) 
 }
 
 // GetManifest returns a single manifest including child manifests from the image registry
-func (s *Scanner) GetManifest(account string, repository string, digest string) (models.Manifest, error) {
+func (s *Scanner) GetManifest(
+	account string,
+	repository string,
+	digest string,
+) (models.Manifest, error) {
 	var manifest models.Manifest
 	url := fmt.Sprintf("%s/v2/%s/%s/manifests/%s", s.KeppelBaseUrl, account, repository, digest)
 	body, headers, err := s.sendRequest(url, s.AuthToken)
@@ -184,7 +188,12 @@ func (s *Scanner) GetManifest(account string, repository string, digest string) 
 
 	var manifestResponse models.ManifestResponse
 	if err = json.Unmarshal(body, &manifestResponse); err != nil {
-		return manifest, fmt.Errorf("couldn't unmarshal body into a manifest response. url: %s, body: %s err: %w", url, body, err)
+		return manifest, fmt.Errorf(
+			"couldn't unmarshal body into a manifest response. url: %s, body: %s err: %w",
+			url,
+			body,
+			err,
+		)
 	}
 
 	manifest.VulnerabilityStatus = headers.Get("X-Keppel-Vulnerability-Status")
@@ -205,8 +214,18 @@ func (s *Scanner) GetManifest(account string, repository string, digest string) 
 	return manifest, nil
 }
 
-func (s *Scanner) GetTrivyReport(account string, repository string, manifest string) (*models.TrivyReport, error) {
-	url := fmt.Sprintf("%s/keppel/v1/accounts/%s/repositories/%s/_manifests/%s/trivy_report", s.KeppelBaseUrl, account, repository, manifest)
+func (s *Scanner) GetTrivyReport(
+	account string,
+	repository string,
+	manifest string,
+) (*models.TrivyReport, error) {
+	url := fmt.Sprintf(
+		"%s/keppel/v1/accounts/%s/repositories/%s/_manifests/%s/trivy_report",
+		s.KeppelBaseUrl,
+		account,
+		repository,
+		manifest,
+	)
 
 	body, _, err := s.sendRequest(url, s.AuthToken)
 	if err != nil {
@@ -223,7 +242,12 @@ func (s *Scanner) GetTrivyReport(account string, repository string, manifest str
 			return nil, fmt.Errorf("trivy report not found for url: %s: %w", url, err)
 		}
 
-		return nil, fmt.Errorf("couldn't unmarshal body into a trivy report response. url: %s, body: %s err: %w", url, body, err)
+		return nil, fmt.Errorf(
+			"couldn't unmarshal body into a trivy report response. url: %s, body: %s err: %w",
+			url,
+			body,
+			err,
+		)
 	}
 
 	return &trivyReport, nil
@@ -241,7 +265,9 @@ func (s *Scanner) ExtractImageInfo(image string) (ImageInfo, error) {
 	// Split the remaining string by '/'
 	parts := strings.Split(imageAndTag[0], "/")
 	if len(parts) < 3 {
-		return ImageInfo{}, fmt.Errorf("invalid image string format: at least registry, account and repository required")
+		return ImageInfo{}, fmt.Errorf(
+			"invalid image string format: at least registry, account and repository required",
+		)
 	}
 
 	info := ImageInfo{
@@ -283,8 +309,10 @@ func (s *Scanner) sendRequest(url string, token string) ([]byte, http.Header, er
 		// Retry on any error except for 401, 403, 404, 405 status codes
 		func(err error) bool {
 			if httpErr, ok := err.(*models.HTTPError); ok {
-				return httpErr.StatusCode != http.StatusNotFound && httpErr.StatusCode != http.StatusMethodNotAllowed &&
-					httpErr.StatusCode != http.StatusUnauthorized && httpErr.StatusCode != http.StatusForbidden
+				return httpErr.StatusCode != http.StatusNotFound &&
+					httpErr.StatusCode != http.StatusMethodNotAllowed &&
+					httpErr.StatusCode != http.StatusUnauthorized &&
+					httpErr.StatusCode != http.StatusForbidden
 			}
 			return true
 		},

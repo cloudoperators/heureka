@@ -27,6 +27,7 @@ func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntit
 	pageSize int,
 ) {
 	quotient, remainder := elementCount/pageSize, elementCount%pageSize
+
 	expectedPages := quotient
 	if remainder > 0 {
 		expectedPages = expectedPages + 1
@@ -42,11 +43,16 @@ func TestPaginationOfListWithOrder[F entity.HeurekaFilter, E entity.HeurekaEntit
 			Expect(len(entries)).To(BeEquivalentTo(remainder), "on the last page we expect")
 		} else {
 			if pageSize > elementCount {
-				Expect(len(entries)).To(BeEquivalentTo(elementCount), "on a page with a higher pageSize then element count we expect")
+				Expect(
+					len(entries),
+				).To(BeEquivalentTo(elementCount), "on a page with a higher pageSize then element count we expect")
 			} else {
-				Expect(len(entries)).To(BeEquivalentTo(pageSize), "on a normal page we expect the element count to be equal to the page size")
+				Expect(
+					len(entries),
+				).To(BeEquivalentTo(pageSize), "on a normal page we expect the element count to be equal to the page size")
 			}
 		}
+
 		afterS = getAfterFunction(entries)
 	}
 }
@@ -59,6 +65,7 @@ func TestPaginationOfList[F entity.HeurekaFilter, E entity.HeurekaEntity](
 	pageSize int,
 ) {
 	quotient, remainder := elementCount/pageSize, elementCount%pageSize
+
 	expectedPages := quotient
 	if remainder > 0 {
 		expectedPages = expectedPages + 1
@@ -74,13 +81,17 @@ func TestPaginationOfList[F entity.HeurekaFilter, E entity.HeurekaEntity](
 			Expect(len(entries)).To(BeEquivalentTo(remainder), "on the last page we expect")
 		} else {
 			if pageSize > elementCount {
-				Expect(len(entries)).To(BeEquivalentTo(elementCount), "on a page with a higher pageSize then element count we expect")
+				Expect(
+					len(entries),
+				).To(BeEquivalentTo(elementCount), "on a page with a higher pageSize then element count we expect")
 			} else {
-				Expect(len(entries)).To(BeEquivalentTo(pageSize), "on a normal page we expect the element count to be equal to the page size")
+				Expect(
+					len(entries),
+				).To(BeEquivalentTo(pageSize), "on a normal page we expect the element count to be equal to the page size")
 			}
 		}
-		after = getAfterFunction(entries)
 
+		after = getAfterFunction(entries)
 	}
 }
 
@@ -131,6 +142,7 @@ func LoadIssueMatches(filename string) ([]mariadb.IssueMatchRow, error) {
 		IssueID               int64     `json:"issue_id"`
 		TargetRemediationDate time.Time `json:"target_remediation_date"`
 	}
+
 	var tempMatches []tempIssueMatch
 	if err := json.Unmarshal(data, &tempMatches); err != nil {
 		return nil, err
@@ -148,6 +160,7 @@ func LoadIssueMatches(filename string) ([]mariadb.IssueMatchRow, error) {
 			TargetRemediationDate: sql.NullTime{Time: tm.TargetRemediationDate, Valid: true},
 		}
 	}
+
 	return matches, nil
 }
 
@@ -157,15 +170,18 @@ func LoadIssues(filename string) ([]mariadb.IssueRow, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	type tempIssue struct {
 		Type        string `json:"type"`
 		PrimaryName string `json:"primary_name"`
 		Description string `json:"description"`
 	}
+
 	var tempIssues []tempIssue
 	if err := json.Unmarshal(data, &tempIssues); err != nil {
 		return nil, err
 	}
+
 	issues := make([]mariadb.IssueRow, len(tempIssues))
 	for i, ti := range tempIssues {
 		issues[i] = mariadb.IssueRow{
@@ -174,6 +190,7 @@ func LoadIssues(filename string) ([]mariadb.IssueRow, error) {
 			Description: sql.NullString{String: ti.Description, Valid: true},
 		}
 	}
+
 	return issues, nil
 }
 
@@ -183,6 +200,7 @@ func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, er
 	if err != nil {
 		return nil, err
 	}
+
 	type tempComponentInstance struct {
 		CCRN               string `json:"ccrn"`
 		Count              int16  `json:"count"`
@@ -190,10 +208,12 @@ func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, er
 		ServiceID          int64  `json:"service_id"`
 		Type               string `json:"type"`
 	}
+
 	var tempComponents []tempComponentInstance
 	if err := json.Unmarshal(data, &tempComponents); err != nil {
 		return nil, err
 	}
+
 	components := make([]mariadb.ComponentInstanceRow, len(tempComponents))
 	for i, tc := range tempComponents {
 		components[i] = mariadb.ComponentInstanceRow{
@@ -204,6 +224,7 @@ func LoadComponentInstances(filename string) ([]mariadb.ComponentInstanceRow, er
 			Type:               sql.NullString{String: tc.Type, Valid: true},
 		}
 	}
+
 	return components, nil
 }
 
@@ -212,6 +233,7 @@ func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, erro
 	if err != nil {
 		return nil, err
 	}
+
 	type tempComponentVersion struct {
 		Version      string `json:"version"`
 		ComponentID  int64  `json:"component_id"`
@@ -220,10 +242,12 @@ func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, erro
 		Organization string `json:"organization"`
 		EndOfLife    bool   `json:"end_of_life"`
 	}
+
 	var tempComponents []tempComponentVersion
 	if err := json.Unmarshal(data, &tempComponents); err != nil {
 		return nil, err
 	}
+
 	components := make([]mariadb.ComponentVersionRow, len(tempComponents))
 	for i, tc := range tempComponents {
 		components[i] = mariadb.ComponentVersionRow{
@@ -235,6 +259,7 @@ func LoadComponentVersions(filename string) ([]mariadb.ComponentVersionRow, erro
 			EndOfLife:    sql.NullBool{Bool: tc.EndOfLife, Valid: true},
 		}
 	}
+
 	return components, nil
 }
 
@@ -243,6 +268,7 @@ func LoadIssueVariants(filename string) ([]mariadb.IssueVariantRow, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	type tempIssueVariant struct {
 		IssueId           int64  `json:"issue_id"`
 		IssueRepositoryId int64  `json:"issue_repository_id"`
@@ -250,10 +276,12 @@ func LoadIssueVariants(filename string) ([]mariadb.IssueVariantRow, error) {
 		SecondaryName     string `json:"secondary_name"`
 		Description       string `json:"description"`
 	}
+
 	var tempIssueVariants []tempIssueVariant
 	if err := json.Unmarshal(data, &tempIssueVariants); err != nil {
 		return nil, err
 	}
+
 	issueVariants := make([]mariadb.IssueVariantRow, len(tempIssueVariants))
 	for i, tiv := range tempIssueVariants {
 		issueVariants[i] = mariadb.IssueVariantRow{
@@ -264,6 +292,7 @@ func LoadIssueVariants(filename string) ([]mariadb.IssueVariantRow, error) {
 			Description:       sql.NullString{String: tiv.Description, Valid: true},
 		}
 	}
+
 	return issueVariants, nil
 }
 
@@ -272,21 +301,28 @@ func LoadComponentVersionIssues(filename string) ([]mariadb.ComponentVersionIssu
 	if err != nil {
 		return nil, err
 	}
+
 	type tempComponentVersionIssue struct {
 		IssueId            int64 `json:"issue_id"`
 		ComponentVersionId int64 `json:"component_version_id"`
 	}
+
 	var tempComponentVersionIssues []tempComponentVersionIssue
 	if err := json.Unmarshal(data, &tempComponentVersionIssues); err != nil {
 		return nil, err
 	}
-	componentVersionIssues := make([]mariadb.ComponentVersionIssueRow, len(tempComponentVersionIssues))
+
+	componentVersionIssues := make(
+		[]mariadb.ComponentVersionIssueRow,
+		len(tempComponentVersionIssues),
+	)
 	for i, tcvi := range tempComponentVersionIssues {
 		componentVersionIssues[i] = mariadb.ComponentVersionIssueRow{
 			IssueId:            sql.NullInt64{Int64: tcvi.IssueId, Valid: true},
 			ComponentVersionId: sql.NullInt64{Int64: tcvi.ComponentVersionId, Valid: true},
 		}
 	}
+
 	return componentVersionIssues, nil
 }
 
@@ -295,14 +331,17 @@ func LoadSupportGroupServices(filename string) ([]mariadb.SupportGroupServiceRow
 	if err != nil {
 		return nil, err
 	}
+
 	type tempSupportGroupService struct {
 		ServiceId      int64 `json:"service_id"`
 		SupportGroupId int64 `json:"support_group_id"`
 	}
+
 	var tempSupportGroupServices []tempSupportGroupService
 	if err := json.Unmarshal(data, &tempSupportGroupServices); err != nil {
 		return nil, err
 	}
+
 	supportGroupServices := make([]mariadb.SupportGroupServiceRow, len(tempSupportGroupServices))
 	for i, tsgs := range tempSupportGroupServices {
 		supportGroupServices[i] = mariadb.SupportGroupServiceRow{
@@ -310,10 +349,14 @@ func LoadSupportGroupServices(filename string) ([]mariadb.SupportGroupServiceRow
 			SupportGroupId: sql.NullInt64{Int64: tsgs.SupportGroupId, Valid: true},
 		}
 	}
+
 	return supportGroupServices, nil
 }
 
-func loadIssueCountsFromFile(filename string, idKey string) (map[string]entity.IssueSeverityCounts, error) {
+func loadIssueCountsFromFile(
+	filename string,
+	idKey string,
+) (map[string]entity.IssueSeverityCounts, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -344,7 +387,9 @@ func LoadServiceIssueCounts(filename string) (map[string]entity.IssueSeverityCou
 	return loadIssueCountsFromFile(filename, "service_id")
 }
 
-func LoadComponentVersionIssueCounts(filename string) (map[string]entity.IssueSeverityCounts, error) {
+func LoadComponentVersionIssueCounts(
+	filename string,
+) (map[string]entity.IssueSeverityCounts, error) {
 	return loadIssueCountsFromFile(filename, "component_version_id")
 }
 
@@ -354,6 +399,7 @@ func LoadSupportGroupIssueCounts(filename string) (map[string]entity.IssueSeveri
 
 func LoadIssueCounts(filename string) (entity.IssueSeverityCounts, error) {
 	data, err := os.ReadFile(filename)
+
 	var issueCounts entity.IssueSeverityCounts
 	if err != nil {
 		return issueCounts, err

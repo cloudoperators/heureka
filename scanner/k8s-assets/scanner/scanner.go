@@ -79,7 +79,9 @@ func NewScanner(kubeConfig *rest.Config, clientSet *kubernetes.Clientset, cfg Co
 
 // GetNamespaces fetches all available namespaces for a cluster
 func (s *Scanner) GetNamespaces(listOptions metav1.ListOptions) ([]v1.Namespace, error) {
-	namespaces, err := s.ClientSet.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+	namespaces, err := s.ClientSet.CoreV1().
+		Namespaces().
+		List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("couldn't list namespaces: %w", err)
 	}
@@ -263,7 +265,10 @@ func (s *Scanner) GetServiceInfo(podInfo PodInfo) ServiceInfo {
 }
 
 // GetPodsByNamespace returns a list of pods for a given namespace
-func (s *Scanner) GetPodsByNamespace(namespace string, listOptions metav1.ListOptions) ([]v1.Pod, error) {
+func (s *Scanner) GetPodsByNamespace(
+	namespace string,
+	listOptions metav1.ListOptions,
+) ([]v1.Pod, error) {
 	pods, err := s.ClientSet.CoreV1().Pods(namespace).List(context.Background(), listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't list pods: %w", err)

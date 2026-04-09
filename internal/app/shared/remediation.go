@@ -30,12 +30,17 @@ var DefaultRemediationConfig = RemediationTimelineConfig{
 
 // GetTargetRemediationTimeline calculates the target remediation date based on severity
 // and creation date. It uses the DefaultRemediationConfig if no custom config is provided.
-func GetTargetRemediationTimeline(severity entity.Severity, creationDate time.Time, config *RemediationTimelineConfig) time.Time {
+func GetTargetRemediationTimeline(
+	severity entity.Severity,
+	creationDate time.Time,
+	config *RemediationTimelineConfig,
+) time.Time {
 	if config == nil {
 		config = &DefaultRemediationConfig
 	}
 
 	var days int
+
 	switch entity.SeverityValues(severity.Value) {
 	case entity.SeverityValuesLow:
 		days = config.LowDays

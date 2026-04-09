@@ -41,10 +41,16 @@ func NewRemediationHandler(handlerContext common.HandlerContext) RemediationHand
 	}
 }
 
-func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter, options *entity.ListOptions) (*entity.List[entity.RemediationResult], error) {
+func (rh *remediationHandler) ListRemediations(
+	filter *entity.RemediationFilter,
+	options *entity.ListOptions,
+) (*entity.List[entity.RemediationResult], error) {
 	op := appErrors.Op("remediationHandler.ListRemediations")
-	var count int64
-	var pageInfo *entity.PageInfo
+
+	var (
+		count    int64
+		pageInfo *entity.PageInfo
+	)
 
 	common.EnsurePaginated(&filter.Paginated)
 
@@ -61,6 +67,7 @@ func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter,
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"filter": filter,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -79,8 +86,10 @@ func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter,
 				applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 					"filter": filter,
 				})
+
 				return nil, wrappedErr
 			}
+
 			pageInfo = common.GetPageInfo(res, cursors, *filter.First, filter.After)
 			count = int64(len(cursors))
 		}
@@ -97,6 +106,7 @@ func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter,
 			applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 				"filter": filter,
 			})
+
 			return nil, wrappedErr
 		}
 	}
@@ -116,13 +126,22 @@ func (rh *remediationHandler) ListRemediations(filter *entity.RemediationFilter,
 	return result, nil
 }
 
-func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation *entity.Remediation) (*entity.Remediation, error) {
+func (rh *remediationHandler) CreateRemediation(
+	ctx context.Context,
+	remediation *entity.Remediation,
+) (*entity.Remediation, error) {
 	op := appErrors.Op("remediationHandler.CreateRemediation")
 
 	// Input validation - check for required fields
 	if remediation == nil {
-		err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "remediation cannot be nil")
+		err := appErrors.E(
+			op,
+			"Remediation",
+			appErrors.InvalidArgument,
+			"remediation cannot be nil",
+		)
 		applog.LogError(rh.logger, err, logrus.Fields{})
+
 		return nil, err
 	}
 
@@ -131,11 +150,13 @@ func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation
 		applog.LogError(rh.logger, err, logrus.Fields{
 			"remediation": remediation,
 		})
+
 		return nil, err
 	}
 
 	// Get current user for audit fields
 	var err error
+
 	remediation.CreatedBy, err = common.GetCurrentUserId(ctx, rh.database)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
@@ -160,7 +181,11 @@ func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation
 		}
 	}
 
-	remediation.RemediatedById, err = common.GetUserIdByUniqueId(ctx, rh.database, remediation.RemediatedBy)
+	remediation.RemediatedById, err = common.GetUserIdByUniqueId(
+		ctx,
+		rh.database,
+		remediation.RemediatedBy,
+	)
 	if err != nil {
 		wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
@@ -183,19 +208,27 @@ func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"remediation": remediation,
 		})
+
 		return nil, wrappedErr
 	}
 
 	for _, er := range existingRemediations {
-		sameComponent := (remediation.ComponentId <= 0 && er.ComponentId <= 0) || (remediation.ComponentId == er.ComponentId)
+		sameComponent := (remediation.ComponentId <= 0 && er.ComponentId <= 0) ||
+			(remediation.ComponentId == er.ComponentId)
 		if sameComponent {
 			isExpired := !er.ExpirationDate.IsZero() && er.ExpirationDate.Before(time.Now())
 			if !isExpired {
-				err := appErrors.E(op, "Remediation", appErrors.AlreadyExists, "A remediation for this vulnerability is already in progress.")
+				err := appErrors.E(
+					op,
+					"Remediation",
+					appErrors.AlreadyExists,
+					"A remediation for this vulnerability is already in progress.",
+				)
 				applog.LogError(rh.logger, err, logrus.Fields{
 					"remediation":          remediation,
 					"existing_remediation": er,
 				})
+
 				return nil, err
 			}
 		}
@@ -208,6 +241,7 @@ func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"remediation": remediation,
 		})
+
 		return nil, wrappedErr
 	}
 
@@ -218,61 +252,109 @@ func (rh *remediationHandler) CreateRemediation(ctx context.Context, remediation
 	return newRemediation, nil
 }
 
-func (rh *remediationHandler) UpdateRemediation(ctx context.Context, remediation *entity.Remediation) (*entity.Remediation, error) {
+func (rh *remediationHandler) UpdateRemediation(
+	ctx context.Context,
+	remediation *entity.Remediation,
+) (*entity.Remediation, error) {
 	op := appErrors.Op("remediationHandler.UpdateRemediation")
 
 	// Input validation
 	if remediation == nil {
-		err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "remediation cannot be nil")
+		err := appErrors.E(
+			op,
+			"Remediation",
+			appErrors.InvalidArgument,
+			"remediation cannot be nil",
+		)
 		applog.LogError(rh.logger, err, logrus.Fields{})
+
 		return nil, err
 	}
 
 	if remediation.Id <= 0 {
-		err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", remediation.Id))
+		err := appErrors.E(
+			op,
+			"Remediation",
+			appErrors.InvalidArgument,
+			fmt.Sprintf("invalid ID: %d", remediation.Id),
+		)
 		applog.LogError(rh.logger, err, logrus.Fields{"id": remediation.Id})
+
 		return nil, err
 	}
 
 	// Get current user for audit fields
 	var err error
+
 	remediation.UpdatedBy, err = common.GetCurrentUserId(ctx, rh.database)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", strconv.FormatInt(remediation.Id, 10), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			err,
+		)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"remediation": remediation,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Update the component instance in database
 	err = rh.database.UpdateRemediation(remediation)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", strconv.FormatInt(remediation.Id, 10), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			err,
+		)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"remediation": remediation,
 		})
+
 		return nil, wrappedErr
 	}
 
 	// Retrieve updated component instance to return fresh data
 	lo := entity.NewListOptions()
-	remediationResult, err := rh.ListRemediations(&entity.RemediationFilter{Id: []*int64{&remediation.Id}}, lo)
+
+	remediationResult, err := rh.ListRemediations(
+		&entity.RemediationFilter{Id: []*int64{&remediation.Id}},
+		lo,
+	)
 	if err != nil {
-		wrappedErr := appErrors.E(op, "Remediation", strconv.FormatInt(remediation.Id, 10), appErrors.Internal, err)
+		wrappedErr := appErrors.E(
+			op,
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			appErrors.Internal,
+			err,
+		)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"remediation": remediation,
 		})
+
 		return nil, wrappedErr
 	}
 
 	if len(remediationResult.Elements) != 1 {
-		err := appErrors.E(op, "Remediation", strconv.FormatInt(remediation.Id, 10), appErrors.Internal,
-			fmt.Sprintf("unexpected number of remediations found after update: expected 1, got %d", len(remediationResult.Elements)))
+		err := appErrors.E(
+			op,
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			appErrors.Internal,
+			fmt.Sprintf(
+				"unexpected number of remediations found after update: expected 1, got %d",
+				len(remediationResult.Elements),
+			),
+		)
 		applog.LogError(rh.logger, err, logrus.Fields{
 			"id":          remediation.Id,
 			"found_count": len(remediationResult.Elements),
 		})
+
 		return nil, err
 	}
 
@@ -290,28 +372,46 @@ func (rh *remediationHandler) DeleteRemediation(ctx context.Context, id int64) e
 
 	// Input validation
 	if id <= 0 {
-		err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, fmt.Sprintf("invalid ID: %d", id))
+		err := appErrors.E(
+			op,
+			"Remediation",
+			appErrors.InvalidArgument,
+			fmt.Sprintf("invalid ID: %d", id),
+		)
 		applog.LogError(rh.logger, err, logrus.Fields{"id": id})
+
 		return err
 	}
 
 	// Get current user for audit fields
 	userId, err := common.GetCurrentUserId(ctx, rh.database)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", strconv.FormatInt(id, 10), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"Remediation",
+			strconv.FormatInt(id, 10),
+			err,
+		)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"id": id,
 		})
+
 		return wrappedErr
 	}
 
 	err = rh.database.DeleteRemediation(id, userId)
 	if err != nil {
-		wrappedErr := appErrors.InternalError(string(op), "Remediation", strconv.FormatInt(id, 10), err)
+		wrappedErr := appErrors.InternalError(
+			string(op),
+			"Remediation",
+			strconv.FormatInt(id, 10),
+			err,
+		)
 		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 			"id":      id,
 			"user_id": userId,
 		})
+
 		return wrappedErr
 	}
 

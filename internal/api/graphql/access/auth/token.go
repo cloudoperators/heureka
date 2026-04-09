@@ -25,6 +25,7 @@ func NewTokenAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 		l.Info("Initializing Token auth")
 		return &TokenAuthMethod{logger: l, secret: []byte(cfg.AuthTokenSecret)}
 	}
+
 	return nil
 }
 
@@ -49,39 +50,47 @@ func (tam TokenAuthMethod) Verify(c *gin.Context) error {
 		return err
 	}
 
-	authctx.UserNameToContext(c, claims.RegisteredClaims.Subject)
+	authctx.UserNameToContext(c, claims.Subject)
 
 	return nil
 }
 
 func (tam TokenAuthMethod) parseTokenWithClaims(tokenString string) (*TokenClaims, error) {
 	claims := &TokenClaims{}
+
 	token, err := jwt.ParseWithClaims(tokenString, claims, tam.parse)
 	if err != nil {
 		tam.logger.Error("JWT parsing error: ", err)
-		err = verifyError(tokenAuthMethodName, fmt.Errorf("Token parsing error"))
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("token parsing error"))
 	} else if !token.Valid {
 		tam.logger.Error("Invalid token")
-		err = verifyError(tokenAuthMethodName, fmt.Errorf("Invalid token"))
+
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("invalid token"))
 	}
+
 	return claims, err
 }
 
 func (tam TokenAuthMethod) verifyTokenExpiration(tc *TokenClaims) error {
 	var err error
+
 	if tc.ExpiresAt == nil {
 		tam.logger.Error("Missing ExpiresAt in token claims")
-		err = verifyError(tokenAuthMethodName, fmt.Errorf("Missing ExpiresAt in token claims"))
+
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("missing ExpiresAt in token claims"))
 	} else if tc.ExpiresAt.Before(time.Now()) {
 		tam.logger.Warn("Expired token")
-		err = verifyError(tokenAuthMethodName, fmt.Errorf("Expired token"))
+
+		err = verifyError(tokenAuthMethodName, fmt.Errorf("expired token"))
 	}
+
 	return err
 }
 
-func (tam *TokenAuthMethod) parse(token *jwt.Token) (interface{}, error) {
+func (tam *TokenAuthMethod) parse(token *jwt.Token) (any, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-		return nil, fmt.Errorf("Invalid JWT parse method")
+		return nil, fmt.Errorf("invalid JWT parse method")
 	}
+
 	return tam.secret, nil
 }

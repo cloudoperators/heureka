@@ -28,14 +28,16 @@ func NewFakeComponentVersionEntity() entity.ComponentVersion {
 
 func NNewFakeComponentVersionEntities(n int) []entity.ComponentVersion {
 	r := make([]entity.ComponentVersion, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeComponentVersionEntity()
 	}
+
 	return r
 }
 
 func NewFakeComponentVersionResult() entity.ComponentVersionResult {
 	componentVersion := NewFakeComponentVersionEntity()
+
 	return entity.ComponentVersionResult{
 		ComponentVersion: &componentVersion,
 	}
@@ -43,8 +45,9 @@ func NewFakeComponentVersionResult() entity.ComponentVersionResult {
 
 func NNewFakeComponentVersionResults(n int) []entity.ComponentVersionResult {
 	r := make([]entity.ComponentVersionResult, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = NewFakeComponentVersionResult()
 	}
+
 	return r
 }

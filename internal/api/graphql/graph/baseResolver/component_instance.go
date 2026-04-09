@@ -16,7 +16,11 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.ComponentInstance, error) {
+func SingleComponentInstanceBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	parent *model.NodeParent,
+) (*model.ComponentInstance, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -24,7 +28,14 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 	}).Debug("Called SingleComponentInstanceBaseResolver")
 
 	if parent == nil {
-		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleComponentInstanceBaseResolver"), "ComponentInstance", appErrors.InvalidArgument, "No parent provided"))
+		return nil, ToGraphQLError(
+			appErrors.E(
+				appErrors.Op("SingleComponentInstanceBaseResolver"),
+				"ComponentInstance",
+				appErrors.InvalidArgument,
+				"No parent provided",
+			),
+		)
 	}
 
 	f := &entity.ComponentInstanceFilter{
@@ -40,7 +51,14 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 
 	// unexpected number of results (should at most be 1)
 	if len(componentInstances.Elements) > 1 {
-		return nil, ToGraphQLError(appErrors.E(appErrors.Op("SingleComponentInstanceBaseResolver"), "ComponentInstance", appErrors.Internal, "found multiple component instances"))
+		return nil, ToGraphQLError(
+			appErrors.E(
+				appErrors.Op("SingleComponentInstanceBaseResolver"),
+				"ComponentInstance",
+				appErrors.Internal,
+				"found multiple component instances",
+			),
+		)
 	}
 
 	// not found
@@ -48,28 +66,50 @@ func SingleComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, p
 		return nil, nil
 	}
 
-	var cir entity.ComponentInstanceResult = componentInstances.Elements[0]
+	cir := componentInstances.Elements[0]
+
 	componentInstance := model.NewComponentInstance(cir.ComponentInstance)
 
 	return &componentInstance, nil
 }
 
-func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy, parent *model.NodeParent) (*model.ComponentInstanceConnection, error) {
+func ComponentInstanceBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+	first *int,
+	after *string,
+	orderBy []*model.ComponentInstanceOrderBy,
+	parent *model.NodeParent,
+) (*model.ComponentInstanceConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called ComponentInstanceBaseResolver")
 
-	var imId []*int64
-	var serviceId []*int64
-	var componentVersionId []*int64
+	var (
+		imId               []*int64
+		serviceId          []*int64
+		componentVersionId []*int64
+	)
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("ComponentInstanceBaseResolver: Error while parsing propagated parent ID'")
-			return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentInstanceBaseResolver"), "ComponentInstance", appErrors.InvalidArgument, "Error while parsing propagated ID"))
+			logrus.WithField("parent", parent).
+				Error("ComponentInstanceBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, ToGraphQLError(
+				appErrors.E(
+					appErrors.Op("ComponentInstanceBaseResolver"),
+					"ComponentInstance",
+					appErrors.InvalidArgument,
+					"Error while parsing propagated ID",
+				),
+			)
 		}
 
 		switch parent.ParentName {
@@ -88,20 +128,30 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 
 	parentIds, err := util.ConvertStrToIntSlice(filter.ParentID)
 	if err != nil {
-		return nil, ToGraphQLError(appErrors.E(appErrors.Op("ComponentInstanceBaseResolver"), "ComponentInstance", appErrors.InvalidArgument, "Invalid ParentID filter"))
+		return nil, ToGraphQLError(
+			appErrors.E(
+				appErrors.Op("ComponentInstanceBaseResolver"),
+				"ComponentInstance",
+				appErrors.InvalidArgument,
+				"Invalid ParentID filter",
+			),
+		)
 	}
 
 	f := &entity.ComponentInstanceFilter{
-		Paginated:               entity.Paginated{First: first, After: after},
-		CCRN:                    filter.Ccrn,
-		Region:                  filter.Region,
-		Cluster:                 filter.Cluster,
-		Namespace:               filter.Namespace,
-		Domain:                  filter.Domain,
-		Project:                 filter.Project,
-		Pod:                     filter.Pod,
-		Container:               filter.Container,
-		Type:                    lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
+		Paginated: entity.Paginated{First: first, After: after},
+		CCRN:      filter.Ccrn,
+		Region:    filter.Region,
+		Cluster:   filter.Cluster,
+		Namespace: filter.Namespace,
+		Domain:    filter.Domain,
+		Project:   filter.Project,
+		Pod:       filter.Pod,
+		Container: filter.Container,
+		Type: lo.Map(
+			filter.Type,
+			func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) },
+		),
 		IssueMatchId:            imId,
 		ServiceId:               serviceId,
 		ServiceCcrn:             filter.ServiceCcrn,
@@ -123,12 +173,14 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	}
 
 	edges := []*model.ComponentInstanceEdge{}
+
 	for _, result := range componentInstances.Elements {
 		ci := model.NewComponentInstance(result.ComponentInstance)
 		edge := model.ComponentInstanceEdge{
 			Node:   &ci,
 			Cursor: result.Cursor(),
 		}
+
 		edges = append(edges, &edge)
 	}
 
@@ -146,51 +198,115 @@ func ComponentInstanceBaseResolver(app app.Heureka, ctx context.Context, filter 
 	return &connection, nil
 }
 
-func CcrnBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+func CcrnBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListCcrns, ctx, filter, &FilterDisplayCcrn)
 }
 
-func RegionBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+func RegionBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListRegions, ctx, filter, &FilterDisplayRegion)
 }
 
-func ClusterBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+func ClusterBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListClusters, ctx, filter, &FilterDisplayCluster)
 }
 
-func NamespaceBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
-	return ComponentInstanceFilterBaseResolver(app.ListNamespaces, ctx, filter, &FilterDisplayNamespace)
+func NamespaceBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(
+		app.ListNamespaces,
+		ctx,
+		filter,
+		&FilterDisplayNamespace,
+	)
 }
 
-func DomainBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+func DomainBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListDomains, ctx, filter, &FilterDisplayDomain)
 }
 
-func ProjectBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+func ProjectBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListProjects, ctx, filter, &FilterDisplayProject)
 }
 
-func PodBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
+func PodBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
 	return ComponentInstanceFilterBaseResolver(app.ListPods, ctx, filter, &FilterDisplayPod)
 }
 
-func ContainerBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
-	return ComponentInstanceFilterBaseResolver(app.ListContainers, ctx, filter, &FilterDisplayContainer)
+func ContainerBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(
+		app.ListContainers,
+		ctx,
+		filter,
+		&FilterDisplayContainer,
+	)
 }
 
-func TypeBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
-	return ComponentInstanceFilterBaseResolver(app.ListTypes, ctx, filter, &FilterDisplayComponentInstanceType)
+func TypeBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(
+		app.ListTypes,
+		ctx,
+		filter,
+		&FilterDisplayComponentInstanceType,
+	)
 }
 
-func ParentBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
-	return ComponentInstanceFilterBaseResolver(app.ListParents, ctx, filter, &ComponentInstanceFilterParentId)
+func ParentBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterItem, error) {
+	return ComponentInstanceFilterBaseResolver(
+		app.ListParents,
+		ctx,
+		filter,
+		&ComponentInstanceFilterParentId,
+	)
 }
 
-func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.ComponentInstanceFilter) (*model.FilterJSONItem, error) {
+func ContextBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.ComponentInstanceFilter,
+) (*model.FilterJSONItem, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called ComponentInstanceFilterBaseResolver (%s)", filter)
+	}).Debugf("Called ComponentInstanceFilterBaseResolver (%v)", filter)
 
 	if filter == nil {
 		filter = &model.ComponentInstanceFilter{}
@@ -210,10 +326,13 @@ func ContextBaseResolver(app app.Heureka, ctx context.Context, filter *model.Com
 		Project:   filter.Project,
 		Pod:       filter.Pod,
 		Container: filter.Container,
-		Type:      lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
-		Context:   contextFilters,
-		Search:    filter.Search,
-		State:     model.GetStateFilterType(filter.State),
+		Type: lo.Map(
+			filter.Type,
+			func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) },
+		),
+		Context: contextFilters,
+		Search:  filter.Search,
+		State:   model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)
@@ -246,7 +365,7 @@ func ComponentInstanceFilterBaseResolver(
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
-	}).Debug("Called ComponentInstanceFilterBaseResolver (%s)", filterDisplay)
+	}).Debugf("Called ComponentInstanceFilterBaseResolver (%v)", filterDisplay)
 
 	if filter == nil {
 		filter = &model.ComponentInstanceFilter{}
@@ -261,9 +380,12 @@ func ComponentInstanceFilterBaseResolver(
 		Project:   filter.Project,
 		Pod:       filter.Pod,
 		Container: filter.Container,
-		Type:      lo.Map(filter.Type, func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) }),
-		Search:    filter.Search,
-		State:     model.GetStateFilterType(filter.State),
+		Type: lo.Map(
+			filter.Type,
+			func(item *model.ComponentInstanceTypes, _ int) *string { return pointer.String(item.String()) },
+		),
+		Search: filter.Search,
+		State:  model.GetStateFilterType(filter.State),
 	}
 
 	opt := GetListOptions(requestedFields)

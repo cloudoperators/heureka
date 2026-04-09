@@ -54,6 +54,7 @@ var _ = BeforeSuite(func() {
 
 func getUserFilter() *entity.UserFilter {
 	userName := "SomeNotExistingUserName"
+
 	return &entity.UserFilter{
 		Paginated: entity.Paginated{
 			First: nil,
@@ -109,48 +110,72 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 			options.ShowPageInfo = true
 		})
 
-		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-			authFilter := &entity.UserFilter{UniqueUserID: []*string{&systemUserUniqueUserId}}
+		DescribeTable(
+			"pagination information is correct",
+			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+				authFilter := &entity.UserFilter{UniqueUserID: []*string{&systemUserUniqueUserId}}
 
-			filter.First = &pageSize
-			users := []entity.UserResult{}
+				filter.First = &pageSize
+				users := []entity.UserResult{}
 
-			for _, user := range test.NNewFakeUserEntities(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, user))
-				users = append(users, entity.UserResult{WithCursor: entity.WithCursor{Value: cursor}, User: lo.ToPtr(user)})
-			}
+				for _, user := range test.NNewFakeUserEntities(resElements) {
+					cursor, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, user))
+					users = append(
+						users,
+						entity.UserResult{
+							WithCursor: entity.WithCursor{Value: cursor},
+							User:       new(user),
+						},
+					)
+				}
 
-			cursors := lo.Map(users, func(m entity.UserResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, *m.User))
-				return cursor
-			})
+				cursors := lo.Map(users, func(m entity.UserResult, _ int) string {
+					cursor, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, *m.User))
+					return cursor
+				})
 
-			for i := 0; len(cursors) < dbElements; i++ {
-				user := test.NewFakeUserEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, user))
-				cursors = append(cursors, c)
-			}
+				for i := 0; len(cursors) < dbElements; i++ {
+					user := test.NewFakeUserEntity()
+					c, _ := mariadb.EncodeCursor(mariadb.WithUser([]entity.Order{}, user))
+					cursors = append(cursors, c)
+				}
 
-			db.On("GetUsers", filter).Return(users, nil)
-			db.On("GetAllUserCursors", filter, []entity.Order{}).Return(cursors, nil)
-			db.On("GetAllUserIds", authFilter).Return([]int64{}, nil)
-			// db.On("GetAllUserIds", filter).Return(lo.Map(users, func(m entity.UserResult, _ int) int64 { return m.User.Id }), nil)
+				db.On("GetUsers", filter).Return(users, nil)
+				db.On("GetAllUserCursors", filter, []entity.Order{}).Return(cursors, nil)
+				db.On("GetAllUserIds", authFilter).Return([]int64{}, nil)
+				// db.On("GetAllUserIds", filter).Return(lo.Map(users, func(m entity.UserResult, _
+				// int) int64 { return m.User.Id }), nil)
 
-			userHandler = u.NewUserHandler(handlerContext)
-			res, err := userHandler.ListUsers(ctx, filter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-		},
+				userHandler = u.NewUserHandler(handlerContext)
+				res, err := userHandler.ListUsers(ctx, filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(
+					*res.PageInfo.HasNextPage,
+				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+				Expect(
+					len(res.PageInfo.Pages),
+				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			},
 			Entry("When  pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
-			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
-			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+			Entry(
+				"When  pageSize is 10 and the database was returning 9 elements",
+				10,
+				9,
+				9,
+				false,
+			),
+			Entry(
+				"When  pageSize is 10 and the database was returning 11 elements",
+				10,
+				11,
+				10,
+				true,
+			),
 		)
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -182,9 +207,7 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 		})
 
 		Context("and the filter includes a support group Id that has users related to it", func() {
-			var (
-				user entity.User
-			)
+			var user entity.User
 
 			BeforeEach(func() {
 				sgId := int64(111)
@@ -220,10 +243,12 @@ var _ = Describe("When listing Users", Label("app", "ListUsers"), func() {
 				res, err := userHandler.ListUsers(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(1), "return 1 result")
-				Expect(res.Elements[0].UniqueUserID).To(BeEquivalentTo(user.UniqueUserID)) // check that the returned user is the expected one
+				Expect(
+					res.Elements[0].UniqueUserID,
+				).To(BeEquivalentTo(user.UniqueUserID))
+				// check that the returned user is the expected one
 			})
 		})
-
 	})
 })
 
@@ -362,7 +387,6 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 	})
 
 	Context("when authz is enabled", func() {
-
 		BeforeEach(func() {
 			authEnabled := true
 			cfg = common.GetTestConfig(authEnabled)
@@ -450,7 +474,9 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 						Expect(err).To(BeNil(), "no error should be thrown")
 						relCountBefore += len(relations)
 					}
-					Expect(relCountBefore).To(Equal(len(relations)), "all relations should exist before deletion")
+					Expect(
+						relCountBefore,
+					).To(Equal(len(relations)), "all relations should exist before deletion")
 
 					// check that relations were created
 					for _, r := range relations {
@@ -470,8 +496,12 @@ var _ = Describe("When deleting User", Label("app", "DeleteUser"), func() {
 						Expect(err).To(BeNil(), "no error should be thrown")
 						relCountAfter += len(relations)
 					}
-					Expect(relCountAfter < relCountBefore).To(BeTrue(), "less relations after deletion")
-					Expect(relCountAfter).To(BeEquivalentTo(0), "no relations should exist after deletion")
+					Expect(
+						relCountAfter < relCountBefore,
+					).To(BeTrue(), "less relations after deletion")
+					Expect(
+						relCountAfter,
+					).To(BeEquivalentTo(0), "no relations should exist after deletion")
 
 					// verify that relations were deleted
 					for _, r := range relations {

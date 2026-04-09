@@ -16,7 +16,13 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *serviceResolver) Owners(ctx context.Context, obj *model.Service, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error) {
+func (r *serviceResolver) Owners(
+	ctx context.Context,
+	obj *model.Service,
+	filter *model.UserFilter,
+	first *int,
+	after *string,
+) (*model.UserConnection, error) {
 	return baseResolver.UserBaseResolver(r.App, ctx, filter, first, after,
 		&model.NodeParent{
 			Parent:     obj,
@@ -24,7 +30,14 @@ func (r *serviceResolver) Owners(ctx context.Context, obj *model.Service, filter
 		})
 }
 
-func (r *serviceResolver) SupportGroups(ctx context.Context, obj *model.Service, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy) (*model.SupportGroupConnection, error) {
+func (r *serviceResolver) SupportGroups(
+	ctx context.Context,
+	obj *model.Service,
+	filter *model.SupportGroupFilter,
+	first *int,
+	after *string,
+	orderBy []*model.SupportGroupOrderBy,
+) (*model.SupportGroupConnection, error) {
 	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, orderBy,
 		&model.NodeParent{
 			Parent:     obj,
@@ -32,7 +45,13 @@ func (r *serviceResolver) SupportGroups(ctx context.Context, obj *model.Service,
 		})
 }
 
-func (r *serviceResolver) IssueRepositories(ctx context.Context, obj *model.Service, filter *model.IssueRepositoryFilter, first *int, after *string) (*model.IssueRepositoryConnection, error) {
+func (r *serviceResolver) IssueRepositories(
+	ctx context.Context,
+	obj *model.Service,
+	filter *model.IssueRepositoryFilter,
+	first *int,
+	after *string,
+) (*model.IssueRepositoryConnection, error) {
 	return baseResolver.IssueRepositoryBaseResolver(r.App, ctx, filter, first, after,
 		&model.NodeParent{
 			Parent:     obj,
@@ -40,7 +59,14 @@ func (r *serviceResolver) IssueRepositories(ctx context.Context, obj *model.Serv
 		})
 }
 
-func (r *serviceResolver) ComponentInstances(ctx context.Context, obj *model.Service, filter *model.ComponentInstanceFilter, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy) (*model.ComponentInstanceConnection, error) {
+func (r *serviceResolver) ComponentInstances(
+	ctx context.Context,
+	obj *model.Service,
+	filter *model.ComponentInstanceFilter,
+	first *int,
+	after *string,
+	orderBy []*model.ComponentInstanceOrderBy,
+) (*model.ComponentInstanceConnection, error) {
 	return baseResolver.ComponentInstanceBaseResolver(r.App, ctx, filter, first, after, orderBy,
 		&model.NodeParent{
 			Parent:     obj,
@@ -48,18 +74,48 @@ func (r *serviceResolver) ComponentInstances(ctx context.Context, obj *model.Ser
 		})
 }
 
-func (r *serviceResolver) IssueMatches(ctx context.Context, obj *model.Service, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
-	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ServiceNodeName,
-	})
+func (r *serviceResolver) IssueMatches(
+	ctx context.Context,
+	obj *model.Service,
+	filter *model.IssueMatchFilter,
+	first *int,
+	after *string,
+	orderBy []*model.IssueMatchOrderBy,
+) (*model.IssueMatchConnection, error) {
+	return baseResolver.IssueMatchBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		orderBy,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.ServiceNodeName,
+		},
+	)
 }
 
-func (r *serviceResolver) Remediations(ctx context.Context, obj *model.Service, filter *model.RemediationFilter, first *int, after *string, orderBy []*model.RemediationOrderBy) (*model.RemediationConnection, error) {
-	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, orderBy, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ServiceNodeName,
-	})
+func (r *serviceResolver) Remediations(
+	ctx context.Context,
+	obj *model.Service,
+	filter *model.RemediationFilter,
+	first *int,
+	after *string,
+	orderBy []*model.RemediationOrderBy,
+) (*model.RemediationConnection, error) {
+	return baseResolver.RemediationBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		orderBy,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.ServiceNodeName,
+		},
+	)
 }
 
 func (r *serviceResolver) IssueCounts(ctx context.Context, obj *model.Service, filter *model.IssueFilter) (*model.SeverityCounts, error) {

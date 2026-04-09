@@ -18,26 +18,94 @@ var serviceObject = DbObject[*entity.Service]{
 	Prefix:    "service",
 	TableName: "Service",
 	Properties: []*Property{
-		NewProperty("service_ccrn", WrapAccess(func(s *entity.Service) (string, bool) { return s.CCRN, s.CCRN != "" })),
-		NewProperty("service_domain", WrapAccess(func(s *entity.Service) (string, bool) { return s.Domain, s.Domain != "" })),
-		NewProperty("service_region", WrapAccess(func(s *entity.Service) (string, bool) { return s.Region, s.Region != "" })),
-		NewProperty("service_created_by", WrapAccess(func(s *entity.Service) (int64, bool) { return s.BaseService.CreatedBy, NoUpdate })),
-		NewProperty("service_updated_by", WrapAccess(func(s *entity.Service) (int64, bool) { return s.BaseService.UpdatedBy, s.BaseService.UpdatedBy != 0 })),
+		NewProperty(
+			"service_ccrn",
+			WrapAccess(func(s *entity.Service) (string, bool) { return s.CCRN, s.CCRN != "" }),
+		),
+		NewProperty(
+			"service_domain",
+			WrapAccess(func(s *entity.Service) (string, bool) { return s.Domain, s.Domain != "" }),
+		),
+		NewProperty(
+			"service_region",
+			WrapAccess(func(s *entity.Service) (string, bool) { return s.Region, s.Region != "" }),
+		),
+		NewProperty(
+			"service_created_by",
+			WrapAccess(
+				func(s *entity.Service) (int64, bool) { return s.BaseService.CreatedBy, NoUpdate },
+			),
+		),
+		NewProperty(
+			"service_updated_by",
+			WrapAccess(
+				func(s *entity.Service) (int64, bool) { return s.BaseService.UpdatedBy, s.BaseService.UpdatedBy != 0 },
+			),
+		),
 	},
 	FilterProperties: []*FilterProperty{
-		NewFilterProperty("S.service_ccrn = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.CCRN })),
-		NewFilterProperty("S.service_domain = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Domain })),
-		NewFilterProperty("S.service_region = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Region })),
-		NewFilterProperty("S.service_id = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.Id })),
-		NewFilterProperty("SG.supportgroup_ccrn = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.SupportGroupCCRN })),
-		NewFilterProperty("U.user_name = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.OwnerName })),
-		NewFilterProperty("IM.issuematch_issue_id = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.IssueId })),
-		NewFilterProperty("CI.componentinstance_id = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.ComponentInstanceId })),
-		NewFilterProperty("IRS.issuerepositoryservice_issue_repository_id = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.IssueRepositoryId })),
-		NewFilterProperty("SGS.supportgroupservice_support_group_id = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.SupportGroupId })),
-		NewFilterProperty("O.owner_user_id = ?", WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.OwnerId })),
-		NewFilterProperty("S.service_ccrn LIKE Concat('%',?,'%')", WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Search })),
-		NewStateFilterProperty("S.service", WrapRetState(func(filter *entity.ServiceFilter) []entity.StateFilterType { return filter.State })),
+		NewFilterProperty(
+			"S.service_ccrn = ?",
+			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.CCRN }),
+		),
+		NewFilterProperty(
+			"S.service_domain = ?",
+			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Domain }),
+		),
+		NewFilterProperty(
+			"S.service_region = ?",
+			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Region }),
+		),
+		NewFilterProperty(
+			"S.service_id = ?",
+			WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.Id }),
+		),
+		NewFilterProperty(
+			"SG.supportgroup_ccrn = ?",
+			WrapRetSlice(
+				func(filter *entity.ServiceFilter) []*string { return filter.SupportGroupCCRN },
+			),
+		),
+		NewFilterProperty(
+			"U.user_name = ?",
+			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.OwnerName }),
+		),
+		NewFilterProperty(
+			"IM.issuematch_issue_id = ?",
+			WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.IssueId }),
+		),
+		NewFilterProperty(
+			"CI.componentinstance_id = ?",
+			WrapRetSlice(
+				func(filter *entity.ServiceFilter) []*int64 { return filter.ComponentInstanceId },
+			),
+		),
+		NewFilterProperty(
+			"IRS.issuerepositoryservice_issue_repository_id = ?",
+			WrapRetSlice(
+				func(filter *entity.ServiceFilter) []*int64 { return filter.IssueRepositoryId },
+			),
+		),
+		NewFilterProperty(
+			"SGS.supportgroupservice_support_group_id = ?",
+			WrapRetSlice(
+				func(filter *entity.ServiceFilter) []*int64 { return filter.SupportGroupId },
+			),
+		),
+		NewFilterProperty(
+			"O.owner_user_id = ?",
+			WrapRetSlice(func(filter *entity.ServiceFilter) []*int64 { return filter.OwnerId }),
+		),
+		NewFilterProperty(
+			"S.service_ccrn LIKE Concat('%',?,'%')",
+			WrapRetSlice(func(filter *entity.ServiceFilter) []*string { return filter.Search }),
+		),
+		NewStateFilterProperty(
+			"S.service",
+			WrapRetState(
+				func(filter *entity.ServiceFilter) []entity.StateFilterType { return filter.State },
+			),
+		),
 	},
 }
 
@@ -45,34 +113,43 @@ func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {
 	if filter == nil {
 		filter = &entity.ServiceFilter{}
 	}
+
 	return EnsurePagination(filter)
 }
 
 func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []entity.Order) string {
 	joins := ""
 	orderByCount := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
+		return o.By == entity.CriticalCount || o.By == entity.HighCount ||
+			o.By == entity.MediumCount ||
+			o.By == entity.LowCount ||
+			o.By == entity.NoneCount
 	})
+
 	if len(filter.OwnerName) > 0 || len(filter.OwnerId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN Owner O on S.service_id = O.owner_service_id
 		`)
 	}
+
 	if len(filter.OwnerName) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN User U on U.user_id = O.owner_user_id
 		`)
 	}
+
 	if len(filter.SupportGroupCCRN) > 0 || len(filter.SupportGroupId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
 		`)
 	}
+
 	if len(filter.SupportGroupCCRN) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
 		`)
 	}
+
 	if len(filter.ComponentInstanceId) > 0 || len(filter.IssueId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
@@ -84,16 +161,19 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []enti
 			`)
 		}
 	}
+
 	if len(filter.IssueRepositoryId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
 		`)
 	}
+
 	if orderByCount {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN mvServiceIssueCounts SIC ON S.service_id = SIC.service_id
 		`)
 	}
+
 	return joins
 }
 
@@ -102,6 +182,7 @@ func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []en
 	if len(filter.IssueRepositoryId) > 0 {
 		columns = fmt.Sprintf("%s, %s", columns, "IRS.*")
 	}
+
 	for _, o := range order {
 		switch o.By {
 		case entity.CriticalCount:
@@ -116,18 +197,27 @@ func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []en
 			columns = fmt.Sprintf("%s, SIC.none_count", columns)
 		}
 	}
+
 	return columns
 }
 
-func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.ServiceFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []interface{}, error) {
+func (s *SqlDatabase) buildServiceStatement(
+	baseQuery string,
+	filter *entity.ServiceFilter,
+	withCursor bool,
+	order []entity.Order,
+	l *logrus.Entry,
+) (Stmt, []any, error) {
 	var query string
+
 	filter = ensureServiceFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
@@ -135,6 +225,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 	joins := s.getServiceJoins(filter, order)
 
 	filterStr := serviceObject.GetFilterQuery(filter)
+
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -161,6 +252,7 @@ func (s *SqlDatabase) buildServiceStatement(baseQuery string, filter *entity.Ser
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, nil, fmt.Errorf("%s", msg)
 	}
 
@@ -181,17 +273,31 @@ func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error)
 		%s
         ORDER BY %s
 	`
-	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, []entity.Order{}, l)
+
+	stmt, filterParameters, err := s.buildServiceStatement(
+		baseQuery,
+		filter,
+		false,
+		[]entity.Order{},
+		l,
+	)
 	if err != nil {
 		return -1, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.Order) ([]entity.ServiceResult, error) {
+func (s *SqlDatabase) GetServices(
+	filter *entity.ServiceFilter,
+	order []entity.Order,
+) ([]entity.ServiceResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetServices",
 	})
@@ -212,7 +318,11 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.O
 		return nil, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -236,12 +346,16 @@ func (s *SqlDatabase) GetServices(filter *entity.ServiceFilter, order []entity.O
 				},
 				Service: &s,
 			}
+
 			return append(l, sr)
 		},
 	)
 }
 
-func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, order []entity.Order) ([]entity.ServiceResult, error) {
+func (s *SqlDatabase) GetServicesWithAggregations(
+	filter *entity.ServiceFilter,
+	order []entity.Order,
+) ([]entity.ServiceResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetServicesWithAggregations",
 	})
@@ -262,12 +376,29 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
     `
 
 	orderBySeverity := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
+		return o.By == entity.CriticalCount || o.By == entity.HighCount ||
+			o.By == entity.MediumCount ||
+			o.By == entity.LowCount ||
+			o.By == entity.NoneCount
 	})
 
 	if !orderBySeverity {
-		baseImQuery = fmt.Sprintf(baseImQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
-		baseCiQuery = fmt.Sprintf(baseCiQuery, "%s", "%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id", "%s", "%s", "%s")
+		baseImQuery = fmt.Sprintf(
+			baseImQuery,
+			"%s",
+			"%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id",
+			"%s",
+			"%s",
+			"%s",
+		)
+		baseCiQuery = fmt.Sprintf(
+			baseCiQuery,
+			"%s",
+			"%s LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id",
+			"%s",
+			"%s",
+			"%s",
+		)
 	}
 
 	baseQuery := `
@@ -286,13 +417,16 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 	orderStr := CreateOrderString(order)
 	joins := s.getServiceJoins(filter, order)
 	columns := s.getServiceColumns(filter, order)
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, err
 	}
+
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	filterStr := serviceObject.GetFilterQuery(filter)
+
 	whereClause := ""
 	if filterStr != "" || cursorQuery != "" {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -315,15 +449,22 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, fmt.Errorf("%s", msg)
 	}
 
 	// parameters for issue match query
 	filterParameters := serviceObject.GetFilterParameters(filter, true, cursorFields)
 	// parameters for component instance query
-	filterParameters = append(filterParameters, serviceObject.GetFilterParameters(filter, true, cursorFields)...)
+	filterParameters = append(
+		filterParameters,
+		serviceObject.GetFilterParameters(filter, true, cursorFields)...)
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -334,6 +475,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 				BaseService: e.AsBaseService(),
 			}
 			aggregations := e.AsServiceAggregations()
+
 			var isc entity.IssueSeverityCounts
 			if e.RatingCount != nil {
 				isc = e.AsIssueSeverityCounts()
@@ -348,12 +490,16 @@ func (s *SqlDatabase) GetServicesWithAggregations(filter *entity.ServiceFilter, 
 				Service:             &service,
 				ServiceAggregations: &aggregations,
 			}
+
 			return append(l, sr)
 		},
 	)
 }
 
-func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order []entity.Order) ([]string, error) {
+func (s *SqlDatabase) GetAllServiceCursors(
+	filter *entity.ServiceFilter,
+	order []entity.Order,
+) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetAllServiceCursors",
@@ -368,12 +514,17 @@ func (s *SqlDatabase) GetAllServiceCursors(filter *entity.ServiceFilter, order [
 	filter = ensureServiceFilter(filter)
 	columns := s.getServiceColumns(filter, order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
+
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	rows, err := performListScan(
 		stmt,
@@ -432,7 +583,7 @@ func (s *SqlDatabase) AddOwnerToService(serviceId int64, userId int64) error {
 		)
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"service_id": serviceId,
 		"user_id":    userId,
 	}
@@ -466,7 +617,7 @@ func (s *SqlDatabase) RemoveOwnerFromService(serviceId int64, userId int64) erro
 		AND owner_user_id = :user_id
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"service_id": serviceId,
 		"user_id":    userId,
 	}
@@ -476,7 +627,11 @@ func (s *SqlDatabase) RemoveOwnerFromService(serviceId int64, userId int64) erro
 	return err
 }
 
-func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueRepositoryId int64, priority int64) error {
+func (s *SqlDatabase) AddIssueRepositoryToService(
+	serviceId int64,
+	issueRepositoryId int64,
+	priority int64,
+) error {
 	l := logrus.WithFields(logrus.Fields{
 		"serviceId":         serviceId,
 		"issueRepositoryId": issueRepositoryId,
@@ -495,7 +650,7 @@ func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueReposito
 		)
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"service_id":          serviceId,
 		"issue_repository_id": issueRepositoryId,
 		"priority":            priority,
@@ -517,7 +672,10 @@ func (s *SqlDatabase) AddIssueRepositoryToService(serviceId int64, issueReposito
 	return nil
 }
 
-func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRepositoryId int64) error {
+func (s *SqlDatabase) RemoveIssueRepositoryFromService(
+	serviceId int64,
+	issueRepositoryId int64,
+) error {
 	l := logrus.WithFields(logrus.Fields{
 		"serviceId":         serviceId,
 		"issueRepositoryId": issueRepositoryId,
@@ -530,7 +688,7 @@ func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRep
 		AND issuerepositoryservice_issue_repository_id = :issue_repository_id
 	`
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"service_id":          serviceId,
 		"issue_repository_id": issueRepositoryId,
 	}
@@ -540,7 +698,10 @@ func (s *SqlDatabase) RemoveIssueRepositoryFromService(serviceId int64, issueRep
 	return err
 }
 
-func (s *SqlDatabase) getServiceAttr(attrName string, filter *entity.ServiceFilter) ([]string, error) {
+func (s *SqlDatabase) getServiceAttr(
+	attrName string,
+	filter *entity.ServiceFilter,
+) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.getServiceAttr",
@@ -567,7 +728,12 @@ func (s *SqlDatabase) getServiceAttr(attrName string, filter *entity.ServiceFilt
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -575,18 +741,26 @@ func (s *SqlDatabase) getServiceAttr(attrName string, filter *entity.ServiceFilt
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	serviceAttrs := []string{}
+
 	var attrVal string
 	for rows.Next() {
 		if err := rows.Scan(&attrVal); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
+
 		serviceAttrs = append(serviceAttrs, attrVal)
 	}
+
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
@@ -600,6 +774,7 @@ func (s *SqlDatabase) GetServiceCcrns(filter *entity.ServiceFilter) ([]string, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Service ccrns: %w", err)
 	}
+
 	return ccrns, nil
 }
 
@@ -608,6 +783,7 @@ func (s *SqlDatabase) GetServiceDomains(filter *entity.ServiceFilter) ([]string,
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Service domains: %w", err)
 	}
+
 	return domains, nil
 }
 
@@ -616,5 +792,6 @@ func (s *SqlDatabase) GetServiceRegions(filter *entity.ServiceFilter) ([]string,
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Service regions: %w", err)
 	}
+
 	return regions, nil
 }

@@ -15,22 +15,70 @@ var userObject = DbObject[*entity.User]{
 	Prefix:    "user",
 	TableName: "User",
 	Properties: []*Property{
-		NewProperty("user_name", WrapAccess(func(u *entity.User) (string, bool) { return u.Name, u.Name != "" })),
-		NewProperty("user_unique_user_id", WrapAccess(func(u *entity.User) (string, bool) { return u.UniqueUserID, u.UniqueUserID != "" })),
-		NewProperty("user_type", WrapAccess(func(u *entity.User) (entity.UserType, bool) { return u.Type, u.Type != entity.InvalidUserType })),
-		NewProperty("user_email", WrapAccess(func(u *entity.User) (string, bool) { return u.Email, u.Email != "" })),
-		NewProperty("user_created_by", WrapAccess(func(u *entity.User) (int64, bool) { return u.CreatedBy, NoUpdate })),
-		NewProperty("user_updated_by", WrapAccess(func(u *entity.User) (int64, bool) { return u.UpdatedBy, u.UpdatedBy != 0 })),
+		NewProperty(
+			"user_name",
+			WrapAccess(func(u *entity.User) (string, bool) { return u.Name, u.Name != "" }),
+		),
+		NewProperty(
+			"user_unique_user_id",
+			WrapAccess(
+				func(u *entity.User) (string, bool) { return u.UniqueUserID, u.UniqueUserID != "" },
+			),
+		),
+		NewProperty(
+			"user_type",
+			WrapAccess(
+				func(u *entity.User) (entity.UserType, bool) { return u.Type, u.Type != entity.InvalidUserType },
+			),
+		),
+		NewProperty(
+			"user_email",
+			WrapAccess(func(u *entity.User) (string, bool) { return u.Email, u.Email != "" }),
+		),
+		NewProperty(
+			"user_created_by",
+			WrapAccess(func(u *entity.User) (int64, bool) { return u.CreatedBy, NoUpdate }),
+		),
+		NewProperty(
+			"user_updated_by",
+			WrapAccess(func(u *entity.User) (int64, bool) { return u.UpdatedBy, u.UpdatedBy != 0 }),
+		),
 	},
 	FilterProperties: []*FilterProperty{
-		NewFilterProperty("U.user_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.Id })),
-		NewFilterProperty("U.user_name = ?", WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.Name })),
-		NewFilterProperty("U.user_unique_user_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.UniqueUserID })),
-		NewFilterProperty("U.user_type = ?", WrapRetSlice(func(filter *entity.UserFilter) []entity.UserType { return filter.Type })),
-		NewFilterProperty("U.user_email = ?", WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.Email })),
-		NewFilterProperty("SGU.supportgroupuser_support_group_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.SupportGroupId })),
-		NewFilterProperty("O.owner_service_id = ?", WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.ServiceId })),
-		NewStateFilterProperty("U.user", WrapRetState(func(filter *entity.UserFilter) []entity.StateFilterType { return filter.State })),
+		NewFilterProperty(
+			"U.user_id = ?",
+			WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.Id }),
+		),
+		NewFilterProperty(
+			"U.user_name = ?",
+			WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.Name }),
+		),
+		NewFilterProperty(
+			"U.user_unique_user_id = ?",
+			WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.UniqueUserID }),
+		),
+		NewFilterProperty(
+			"U.user_type = ?",
+			WrapRetSlice(func(filter *entity.UserFilter) []entity.UserType { return filter.Type }),
+		),
+		NewFilterProperty(
+			"U.user_email = ?",
+			WrapRetSlice(func(filter *entity.UserFilter) []*string { return filter.Email }),
+		),
+		NewFilterProperty(
+			"SGU.supportgroupuser_support_group_id = ?",
+			WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.SupportGroupId }),
+		),
+		NewFilterProperty(
+			"O.owner_service_id = ?",
+			WrapRetSlice(func(filter *entity.UserFilter) []*int64 { return filter.ServiceId }),
+		),
+		NewStateFilterProperty(
+			"U.user",
+			WrapRetState(
+				func(filter *entity.UserFilter) []entity.StateFilterType { return filter.State },
+			),
+		),
 	},
 }
 
@@ -38,6 +86,7 @@ func ensureUserFilter(filter *entity.UserFilter) *entity.UserFilter {
 	if filter == nil {
 		return &entity.UserFilter{}
 	}
+
 	return EnsurePagination(filter)
 }
 
@@ -48,20 +97,29 @@ func (s *SqlDatabase) getUserJoins(filter *entity.UserFilter) string {
 			LEFT JOIN SupportGroupUser SGU on U.user_id = SGU.supportgroupuser_user_id
 		`)
 	}
+
 	if len(filter.ServiceId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN Owner O on O.owner_user_id = U.user_id
 		`)
 	}
+
 	return joins
 }
 
-func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFilter, withCursor bool, order []entity.Order, l *logrus.Entry) (Stmt, []any, error) {
+func (s *SqlDatabase) buildUserStatement(
+	baseQuery string,
+	filter *entity.UserFilter,
+	withCursor bool,
+	order []entity.Order,
+	l *logrus.Entry,
+) (Stmt, []any, error) {
 	filter = ensureUserFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
 	joins := s.getUserJoins(filter)
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode User cursor: %w", err)
 	}
@@ -72,6 +130,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 	orderStr := CreateOrderString(order)
 
 	filterStr := userObject.GetFilterQuery(filter)
+
 	whereClause := ""
 	if filterStr != "" || withCursor {
 		whereClause = fmt.Sprintf("WHERE %s", filterStr)
@@ -97,6 +156,7 @@ func (s *SqlDatabase) buildUserStatement(baseQuery string, filter *entity.UserFi
 				"query": query,
 				"stmt":  stmt,
 			}).Error(msg)
+
 		return nil, nil, fmt.Errorf("failed to prepare User statement: %w", err)
 	}
 
@@ -117,17 +177,30 @@ func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) 
 	 	GROUP BY U.user_id ORDER BY %s
     `
 
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildUserStatement(
+		baseQuery,
+		filter,
+		false,
+		[]entity.Order{},
+		l,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performIdScan(stmt, filterParameters, l)
 }
 
-func (s *SqlDatabase) GetAllUserCursors(filter *entity.UserFilter, order []entity.Order) ([]string, error) {
+func (s *SqlDatabase) GetAllUserCursors(
+	filter *entity.UserFilter,
+	order []entity.Order,
+) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetAllUserCursors",
@@ -140,10 +213,12 @@ func (s *SqlDatabase) GetAllUserCursors(filter *entity.UserFilter, order []entit
 	`
 
 	filter = ensureUserFilter(filter)
+
 	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build User cursor query: %w", err)
 	}
+
 	defer func() {
 		if err := stmt.Close(); err != nil {
 			l.Warnf("error while close statement: %s", err.Error())
@@ -185,11 +260,22 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.UserResult, 
 
 	filter = ensureUserFilter(filter)
 
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, true, []entity.Order{}, l)
+	stmt, filterParameters, err := s.buildUserStatement(
+		baseQuery,
+		filter,
+		true,
+		[]entity.Order{},
+		l,
+	)
 	if err != nil {
 		return nil, err
 	}
-	defer stmt.Close()
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performListScan(
 		stmt,
@@ -222,12 +308,23 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 		%s
 		ORDER BY %s
 	`
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, []entity.Order{}, l)
+
+	stmt, filterParameters, err := s.buildUserStatement(
+		baseQuery,
+		filter,
+		false,
+		[]entity.Order{},
+		l,
+	)
 	if err != nil {
 		return -1, err
 	}
 
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	return performCountScan(stmt, filterParameters, l)
 }
@@ -270,7 +367,12 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -278,18 +380,26 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	userNames := []string{}
+
 	var name string
 	for rows.Next() {
 		if err := rows.Scan(&name); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
+
 		userNames = append(userNames, name)
 	}
+
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err
@@ -324,7 +434,12 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
 		l.Error("Error preparing statement: ", err)
 		return nil, err
 	}
-	defer stmt.Close()
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			logrus.Warnf("error during close stmt: %s", err)
+		}
+	}()
 
 	// Execute the query
 	rows, err := stmt.Queryx(filterParameters...)
@@ -332,18 +447,26 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
 		l.Error("Error executing query: ", err)
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logrus.Warnf("error during close rows: %s", err)
+		}
+	}()
 
 	// Collect the results
 	uniqueUserID := []string{}
+
 	var name string
 	for rows.Next() {
 		if err := rows.Scan(&name); err != nil {
 			l.Error("Error scanning row: ", err)
 			continue
 		}
+
 		uniqueUserID = append(uniqueUserID, name)
 	}
+
 	if err = rows.Err(); err != nil {
 		l.Error("Row iteration error: ", err)
 		return nil, err

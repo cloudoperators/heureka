@@ -21,7 +21,7 @@ func GenerateRandomString(length int, cs *string) string {
 	// Calculate the maximum index in the charset
 	maxIndex := big.NewInt(int64(len(charset)))
 	// Generate random bytes and map them to characters in the charset
-	for i := 0; i < length; i++ {
+	for i := range length {
 		randomIndex, _ := cr.Int(cr.Reader, maxIndex)
 		randomBytes[i] = charset[randomIndex.Int64()]
 	}

@@ -68,7 +68,8 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetRemediations", filter, []entity.Order{}).Return([]entity.RemediationResult{}, nil)
+			db.On("GetRemediations", filter, []entity.Order{}).
+				Return([]entity.RemediationResult{}, nil)
 			db.On("CountRemediations", filter).Return(int64(1337), nil)
 		})
 
@@ -84,38 +85,68 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 		BeforeEach(func() {
 			options.ShowPageInfo = true
 		})
-		DescribeTable("pagination information is correct", func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
-			filter.First = &pageSize
-			remediations := []entity.RemediationResult{}
-			for _, remediation := range test.NNewFakeRemediations(resElements) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithRemediation([]entity.Order{}, remediation))
-				remediations = append(remediations, entity.RemediationResult{WithCursor: entity.WithCursor{Value: cursor}, Remediation: lo.ToPtr(remediation)})
-			}
+		DescribeTable(
+			"pagination information is correct",
+			func(pageSize int, dbElements int, resElements int, hasNextPage bool) {
+				filter.First = &pageSize
+				remediations := []entity.RemediationResult{}
+				for _, remediation := range test.NNewFakeRemediations(resElements) {
+					cursor, _ := mariadb.EncodeCursor(
+						mariadb.WithRemediation([]entity.Order{}, remediation),
+					)
+					remediations = append(
+						remediations,
+						entity.RemediationResult{
+							WithCursor:  entity.WithCursor{Value: cursor},
+							Remediation: new(remediation),
+						},
+					)
+				}
 
-			cursors := lo.Map(remediations, func(m entity.RemediationResult, _ int) string {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithRemediation([]entity.Order{}, *m.Remediation))
-				return cursor
-			})
+				cursors := lo.Map(remediations, func(m entity.RemediationResult, _ int) string {
+					cursor, _ := mariadb.EncodeCursor(
+						mariadb.WithRemediation([]entity.Order{}, *m.Remediation),
+					)
+					return cursor
+				})
 
-			var i int64 = 0
-			for len(cursors) < dbElements {
-				i++
-				remediation := test.NewFakeRemediationEntity()
-				c, _ := mariadb.EncodeCursor(mariadb.WithRemediation([]entity.Order{}, remediation))
-				cursors = append(cursors, c)
-			}
-			db.On("GetRemediations", filter, []entity.Order{}).Return(remediations, nil)
-			db.On("GetAllRemediationCursors", filter, []entity.Order{}).Return(cursors, nil)
-			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			res, err := remediationHandler.ListRemediations(filter, options)
-			Expect(err).To(BeNil(), "no error should be thrown")
-			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
-			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
-		},
+				var i int64 = 0
+				for len(cursors) < dbElements {
+					i++
+					remediation := test.NewFakeRemediationEntity()
+					c, _ := mariadb.EncodeCursor(
+						mariadb.WithRemediation([]entity.Order{}, remediation),
+					)
+					cursors = append(cursors, c)
+				}
+				db.On("GetRemediations", filter, []entity.Order{}).Return(remediations, nil)
+				db.On("GetAllRemediationCursors", filter, []entity.Order{}).Return(cursors, nil)
+				remediationHandler = rh.NewRemediationHandler(handlerContext)
+				res, err := remediationHandler.ListRemediations(filter, options)
+				Expect(err).To(BeNil(), "no error should be thrown")
+				Expect(
+					*res.PageInfo.HasNextPage,
+				).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
+				Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
+				Expect(
+					len(res.PageInfo.Pages),
+				).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			},
 			Entry("When  pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
-			Entry("When  pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
-			Entry("When  pageSize is 10 and the database was returning 11 elements", 10, 11, 10, true),
+			Entry(
+				"When  pageSize is 10 and the database was returning 9 elements",
+				10,
+				9,
+				9,
+				false,
+			),
+			Entry(
+				"When  pageSize is 10 and the database was returning 11 elements",
+				10,
+				11,
+				10,
+				true,
+			),
 		)
 	})
 
@@ -123,7 +154,8 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 		It("should return Internal error", func() {
 			// Mock database error
 			dbError := errors.New("database connection failed")
-			db.On("GetRemediations", filter, []entity.Order{}).Return([]entity.RemediationResult{}, dbError)
+			db.On("GetRemediations", filter, []entity.Order{}).
+				Return([]entity.RemediationResult{}, dbError)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
 			result, err := remediationHandler.ListRemediations(filter, options)
@@ -137,30 +169,37 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
 			Expect(appErr.Entity).To(Equal("Remediations"), "should reference Remediations entity")
 			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
-			Expect(appErr.Op).To(Equal("remediationHandler.ListRemediations"), "should include operation")
-			Expect(appErr.Err.Error()).To(ContainSubstring("database connection failed"), "should contain original error message")
+			Expect(
+				appErr.Op,
+			).To(Equal("remediationHandler.ListRemediations"), "should include operation")
+			Expect(
+				appErr.Err.Error(),
+			).To(ContainSubstring("database connection failed"), "should contain original error message")
 		})
 	})
 
 	Context("when GetAllRemediationCursors fails", func() {
 		BeforeEach(func() {
 			options.ShowPageInfo = true
-			filter.First = lo.ToPtr(10)
+			filter.First = new(10)
 		})
 
 		It("should return Internal error", func() {
 			remediations := []entity.RemediationResult{}
 			for _, remediation := range test.NNewFakeRemediations(5) {
-				cursor, _ := mariadb.EncodeCursor(mariadb.WithRemediation([]entity.Order{}, remediation))
+				cursor, _ := mariadb.EncodeCursor(
+					mariadb.WithRemediation([]entity.Order{}, remediation),
+				)
 				remediations = append(remediations, entity.RemediationResult{
 					WithCursor:  entity.WithCursor{Value: cursor},
-					Remediation: lo.ToPtr(remediation),
+					Remediation: new(remediation),
 				})
 			}
 
 			db.On("GetRemediations", filter, []entity.Order{}).Return(remediations, nil)
 			cursorsError := errors.New("cursor database error")
-			db.On("GetAllRemediationCursors", filter, []entity.Order{}).Return([]string{}, cursorsError)
+			db.On("GetAllRemediationCursors", filter, []entity.Order{}).
+				Return([]string{}, cursorsError)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
 			result, err := remediationHandler.ListRemediations(filter, options)
@@ -171,9 +210,13 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 			var appErr *appErrors.Error
 			Expect(errors.As(err, &appErr)).To(BeTrue(), "should be application error")
 			Expect(appErr.Code).To(Equal(appErrors.Internal), "should be Internal error")
-			Expect(appErr.Entity).To(Equal("RemediationCursors"), "should reference RemediationCursors entity")
+			Expect(
+				appErr.Entity,
+			).To(Equal("RemediationCursors"), "should reference RemediationCursors entity")
 			Expect(appErr.ID).To(Equal(""), "should have empty ID for list operation")
-			Expect(appErr.Op).To(Equal("remediationHandler.ListRemediations"), "should include operation")
+			Expect(
+				appErr.Op,
+			).To(Equal("remediationHandler.ListRemediations"), "should include operation")
 		})
 	})
 })
@@ -199,18 +242,25 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 	Context("with valid input", func() {
 		It("creates remediation", func() {
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
-			db.On("GetRemediations", mock.Anything, mock.Anything).Return([]entity.RemediationResult{}, nil)
-			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).Return(&remediation, nil)
+			db.On("GetRemediations", mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{}, nil)
+			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
+				Return(&remediation, nil)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			newRemediation, err := remediationHandler.CreateRemediation(common.NewAdminContext(), &remediation)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(newRemediation.Id).NotTo(BeEquivalentTo(0))
 			By("setting fields", func() {
 				Expect(newRemediation.Description).To(BeEquivalentTo(remediation.Description))
 				Expect(newRemediation.Type).To(BeEquivalentTo(remediation.Type))
 				Expect(newRemediation.ExpirationDate).To(BeEquivalentTo(remediation.ExpirationDate))
-				Expect(newRemediation.RemediationDate).To(BeEquivalentTo(remediation.RemediationDate))
+				Expect(
+					newRemediation.RemediationDate,
+				).To(BeEquivalentTo(remediation.RemediationDate))
 				Expect(newRemediation.Service).To(BeEquivalentTo(remediation.Service))
 				Expect(newRemediation.ServiceId).To(BeEquivalentTo(remediation.ServiceId))
 				Expect(newRemediation.Component).To(BeEquivalentTo(remediation.Component))
@@ -228,10 +278,14 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(time.Hour)
-			db.On("GetRemediations", mock.Anything, mock.Anything).Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+			db.On("GetRemediations", mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			newRemediation, err := remediationHandler.CreateRemediation(common.NewAdminContext(), &remediation)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
 
 			Expect(newRemediation).To(BeNil())
 			Expect(err).ToNot(BeNil())
@@ -244,11 +298,16 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(-time.Hour)
-			db.On("GetRemediations", mock.Anything, mock.Anything).Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
-			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).Return(&remediation, nil)
+			db.On("GetRemediations", mock.Anything, mock.Anything).
+				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
+			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
+				Return(&remediation, nil)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			newRemediation, err := remediationHandler.CreateRemediation(common.NewAdminContext(), &remediation)
+			newRemediation, err := remediationHandler.CreateRemediation(
+				common.NewAdminContext(),
+				&remediation,
+			)
 
 			Expect(err).To(BeNil())
 			Expect(newRemediation).ToNot(BeNil())
@@ -292,8 +351,12 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 			remediation.Component = "Updated Component"
 			remediation.Issue = "Updated Issue"
 			filter.Id = []*int64{&remediation.Id}
-			db.On("GetRemediations", filter, []entity.Order{}).Return([]entity.RemediationResult{remediation}, nil)
-			updatedRemediation, err := remediationHandler.UpdateRemediation(common.NewAdminContext(), remediation.Remediation)
+			db.On("GetRemediations", filter, []entity.Order{}).
+				Return([]entity.RemediationResult{remediation}, nil)
+			updatedRemediation, err := remediationHandler.UpdateRemediation(
+				common.NewAdminContext(),
+				remediation.Remediation,
+			)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			By("setting fields", func() {
 				Expect(updatedRemediation.Description).To(BeEquivalentTo(remediation.Description))
@@ -337,7 +400,8 @@ var _ = Describe("When deleting Remediation", Label("app", "DeleteRemediation"),
 			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
 			db.On("DeleteRemediation", id, int64(123)).Return(nil)
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			db.On("GetRemediations", filter, []entity.Order{}).Return([]entity.RemediationResult{}, nil)
+			db.On("GetRemediations", filter, []entity.Order{}).
+				Return([]entity.RemediationResult{}, nil)
 			err := remediationHandler.DeleteRemediation(common.NewAdminContext(), id)
 			Expect(err).To(BeNil(), "no error should be thrown")
 

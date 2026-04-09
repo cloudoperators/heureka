@@ -88,7 +88,8 @@ type Authorization interface {
 	ListRelations(filters RelationInput) ([]client.ClientTupleKeyWithoutCondition, error)
 	// ListAccessibleResources returns a list of resource Ids that the user can access.
 	ListAccessibleResources(r RelationInput) ([]AccessibleResource, error)
-	// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can access.
+	// GetListOfAccessibleObjectIds returns a list of object Ids of a given type that the user can
+	// access.
 	GetListOfAccessibleObjectIds(userId UserId, objectType ObjectType) ([]*int64, error)
 }
 
@@ -107,5 +108,6 @@ func newLogger(enableLog bool) *logrus.Logger {
 	if !enableLog {
 		l.SetOutput(ioutil.Discard)
 	}
+
 	return l
 }

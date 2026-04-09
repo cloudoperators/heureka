@@ -111,12 +111,24 @@ func OrderDirectionStr(dir entity.OrderDirection) string {
 
 func CreateOrderString(order []entity.Order) string {
 	orderStr := ""
+
 	for i, o := range order {
 		if i > 0 {
-			orderStr = fmt.Sprintf("%s, %s %s", orderStr, ColumnName(o.By), OrderDirectionStr(o.Direction))
+			orderStr = fmt.Sprintf(
+				"%s, %s %s",
+				orderStr,
+				ColumnName(o.By),
+				OrderDirectionStr(o.Direction),
+			)
 		} else {
-			orderStr = fmt.Sprintf("%s %s %s", orderStr, ColumnName(o.By), OrderDirectionStr(o.Direction))
+			orderStr = fmt.Sprintf(
+				"%s %s %s",
+				orderStr,
+				ColumnName(o.By),
+				OrderDirectionStr(o.Direction),
+			)
 		}
 	}
+
 	return orderStr
 }

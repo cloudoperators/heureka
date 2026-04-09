@@ -10,7 +10,11 @@ import (
 )
 
 type SupportGroupHandler interface {
-	ListSupportGroups(context.Context, *entity.SupportGroupFilter, *entity.ListOptions) (*entity.List[entity.SupportGroupResult], error)
+	ListSupportGroups(
+		context.Context,
+		*entity.SupportGroupFilter,
+		*entity.ListOptions,
+	) (*entity.List[entity.SupportGroupResult], error)
 	GetSupportGroup(context.Context, int64) (*entity.SupportGroup, error)
 	CreateSupportGroup(context.Context, *entity.SupportGroup) (*entity.SupportGroup, error)
 	UpdateSupportGroup(context.Context, *entity.SupportGroup) (*entity.SupportGroup, error)

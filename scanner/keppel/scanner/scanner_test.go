@@ -113,7 +113,9 @@ var _ = Describe("Scanner", func() {
 		Context("with edge cases", func() {
 			When("image has multiple colons", func() {
 				It("should use the first colon for tag separation", func() {
-					info, err := testScanner.ExtractImageInfo("registry.example.com/account/org/repo:tag:extra")
+					info, err := testScanner.ExtractImageInfo(
+						"registry.example.com/account/org/repo:tag:extra",
+					)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(info).To(Equal(scanner.ImageInfo{
 						Registry:   "registry.example.com",

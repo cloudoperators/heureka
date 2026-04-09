@@ -18,7 +18,12 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *imageResolver) Versions(ctx context.Context, obj *model.Image, first *int, after *string) (*model.ComponentVersionConnection, error) {
+func (r *imageResolver) Versions(
+	ctx context.Context,
+	obj *model.Image,
+	first *int,
+	after *string,
+) (*model.ComponentVersionConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
 	filter := &model.ComponentVersionFilter{
@@ -35,6 +40,7 @@ func (r *imageResolver) Versions(ctx context.Context, obj *model.Image, first *i
 			Direction: lo.ToPtr(model.OrderDirectionAsc),
 		},
 	}
+
 	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, orderBy,
 		&model.NodeParent{
 			Parent:     obj,
@@ -49,23 +55,40 @@ func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Imag
 		ServiceCcrn: imageFilter.Service,
 		Repository:  imageFilter.Repository,
 	}
+
 	return baseResolver.ComponentIssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ImageNodeName,
 	})
 }
 
-func (r *imageResolver) Vulnerabilities(ctx context.Context, obj *model.Image, first *int, after *string, filter *model.VulnerabilityFilter) (*model.VulnerabilityConnection, error) {
+func (r *imageResolver) Vulnerabilities(
+	ctx context.Context,
+	obj *model.Image,
+	first *int,
+	after *string,
+	filter *model.VulnerabilityFilter,
+) (*model.VulnerabilityConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
+
 	if filter == nil {
 		filter = &model.VulnerabilityFilter{}
 	}
+
 	filter.Service = append(filter.Service, imageFilter.Service...)
-	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after, &model.NodeParent{
-		Parent:     obj,
-		ParentName: model.ImageNodeName,
-	})
+
+	return baseResolver.VulnerabilityBaseResolver(
+		r.App,
+		ctx,
+		filter,
+		first,
+		after,
+		&model.NodeParent{
+			Parent:     obj,
+			ParentName: model.ImageNodeName,
+		},
+	)
 }
 
 func (r *Resolver) Image() graph.ImageResolver { return &imageResolver{r} }

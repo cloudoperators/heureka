@@ -11,7 +11,11 @@ import (
 
 type ServiceHandler interface {
 	GetService(ctx context.Context, serviceId int64) (*entity.Service, error)
-	ListServices(ctx context.Context, filter *entity.ServiceFilter, options *entity.ListOptions) (*entity.List[entity.ServiceResult], error)
+	ListServices(
+		ctx context.Context,
+		filter *entity.ServiceFilter,
+		options *entity.ListOptions,
+	) (*entity.List[entity.ServiceResult], error)
 	CreateService(ctx context.Context, service *entity.Service) (*entity.Service, error)
 	UpdateService(ctx context.Context, service *entity.Service) (*entity.Service, error)
 	DeleteService(ctx context.Context, id int64) error

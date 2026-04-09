@@ -37,62 +37,81 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 		BeforeEach(func() {
 			imgTest.seed10Entries()
 		})
-		It("returns the expected content and the expected PageInfo when filtered using service", func() {
-			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
-				Images model.ImageConnection `json:"Images"`
-			}](
-				imgTest.port,
-				"../api/graphql/graph/queryCollection/image/query.graphql",
-				map[string]interface{}{
-					"filter": map[string]any{
-						"service": lo.Map(imgTest.services, func(item mariadb.BaseServiceRow, index int) string { return item.CCRN.String }),
+		It(
+			"returns the expected content and the expected PageInfo when filtered using service",
+			func() {
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Images model.ImageConnection `json:"Images"`
+				}](
+					imgTest.port,
+					"../api/graphql/graph/queryCollection/image/query.graphql",
+					map[string]any{
+						"filter": map[string]any{
+							"service": lo.Map(
+								imgTest.services,
+								func(item mariadb.BaseServiceRow, index int) string { return item.CCRN.String },
+							),
+						},
+						"first": 3,
+						"after": "",
+					})
+
+				expectRespDataCounts(respData.Images, 5, 3)
+				expectRespImagesFilledAndInOrder(&respData.Images)
+				expectPageInfoTwoPagesBeingOnFirst(respData.Images.PageInfo)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
+			},
+		)
+		It(
+			"returns the expected content and the expected PageInfo when filtered using repository",
+			func() {
+				service := imgTest.services[0]
+				componentInstances := lo.Filter(
+					imgTest.componentInstances,
+					func(ci mariadb.ComponentInstanceRow, _ int) bool {
+						return ci.ServiceId.Int64 == service.Id.Int64
 					},
-					"first": 3,
-					"after": "",
-				})
-
-			expectRespDataCounts(respData.Images, 5, 3)
-			expectRespImagesFilledAndInOrder(&respData.Images)
-			expectPageInfoTwoPagesBeingOnFirst(respData.Images.PageInfo)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
-		})
-		It("returns the expected content and the expected PageInfo when filtered using repository", func() {
-			service := imgTest.services[0]
-			componentInstances := lo.Filter(imgTest.componentInstances, func(ci mariadb.ComponentInstanceRow, _ int) bool {
-				return ci.ServiceId.Int64 == service.Id.Int64
-			})
-			componentVersion, found := lo.Find(imgTest.componentVersions, func(cv mariadb.ComponentVersionRow) bool {
-				return cv.Id.Int64 == componentInstances[0].ComponentVersionId.Int64
-			})
-			Expect(found).To(BeTrue(), "ComponentVersion for ComponentInstance should be found")
-			component, foundComp := lo.Find(imgTest.components, func(c mariadb.ComponentRow) bool {
-				return c.Id.Int64 == componentVersion.ComponentId.Int64
-			})
-			Expect(foundComp).To(BeTrue(), "Component for ComponentVersion should be found")
-			// test data is setup so that first two component versions (having each one critical vulnerability)
-			// belong to first service and first component
-			counts := model.SeverityCounts{Critical: 2, Total: 2}
-
-			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
-				Images model.ImageConnection `json:"Images"`
-			}](
-				imgTest.port,
-				"../api/graphql/graph/queryCollection/image/query.graphql",
-				map[string]interface{}{
-					"filter": map[string]any{
-						"repository": []string{component.Repository.String},
-						"service":    []string{service.CCRN.String},
+				)
+				componentVersion, found := lo.Find(
+					imgTest.componentVersions,
+					func(cv mariadb.ComponentVersionRow) bool {
+						return cv.Id.Int64 == componentInstances[0].ComponentVersionId.Int64
 					},
-					"first": 3,
-					"after": "",
-				})
+				)
+				Expect(found).To(BeTrue(), "ComponentVersion for ComponentInstance should be found")
+				component, foundComp := lo.Find(
+					imgTest.components,
+					func(c mariadb.ComponentRow) bool {
+						return c.Id.Int64 == componentVersion.ComponentId.Int64
+					},
+				)
+				Expect(foundComp).To(BeTrue(), "Component for ComponentVersion should be found")
+				// test data is setup so that first two component versions (having each one critical
+				// vulnerability)
+				// belong to first service and first component
+				counts := model.SeverityCounts{Critical: 2, Total: 2}
 
-			expectRespDataCounts(respData.Images, 1, 1)
-			expectRespImagesFilledAndInOrder(&respData.Images)
-			Expect(*respData.Images.Counts).To(Equal(counts))
-			Expect(err).ToNot(HaveOccurred())
-		})
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Images model.ImageConnection `json:"Images"`
+				}](
+					imgTest.port,
+					"../api/graphql/graph/queryCollection/image/query.graphql",
+					map[string]any{
+						"filter": map[string]any{
+							"repository": []string{component.Repository.String},
+							"service":    []string{service.CCRN.String},
+						},
+						"first": 3,
+						"after": "",
+					})
+
+				expectRespDataCounts(respData.Images, 1, 1)
+				expectRespImagesFilledAndInOrder(&respData.Images)
+				Expect(*respData.Images.Counts).To(Equal(counts))
+				Expect(err).ToNot(HaveOccurred())
+			},
+		)
 	})
 })
 
@@ -137,11 +156,13 @@ func (it *imageTest) teardown() {
 
 func (it *imageTest) seed10Entries() {
 	it.seeder.SeedIssueRepositories()
-	for i := 0; i < 10; i++ {
+
+	for range 10 {
 		issue := test.NewFakeIssue()
 		issue.Type.String = entity.IssueTypeVulnerability.String()
 		it.seeder.InsertFakeIssue(issue)
 	}
+
 	it.components = it.seeder.SeedComponents(5)
 	it.services = it.seeder.SeedServices(5)
 
@@ -149,11 +170,14 @@ func (it *imageTest) seed10Entries() {
 	it.componentVersions = componentVersions
 	it.componentInstances = componentInstances
 	it.componentVersionIssues = componentVersionIssues
+
 	Expect(err).To(BeNil())
+
 	// Important: the order need to be preserved
 	for _, iv := range issueVariants {
 		_, err := it.seeder.InsertFakeIssueVariant(iv)
 		Expect(err).To(BeNil())
+
 		switch iv.Rating.String {
 		case entity.SeverityValuesCritical.String():
 			it.counts.Critical++
@@ -166,51 +190,78 @@ func (it *imageTest) seed10Entries() {
 		case entity.SeverityValuesMedium.String():
 			it.counts.None++
 		}
+
 		it.counts.Total++
 	}
+
 	for i, cv := range it.componentVersions {
 		id, err := it.seeder.InsertFakeComponentVersion(cv)
 		it.componentVersions[i].Id.Int64 = id
+
 		Expect(err).To(BeNil())
 	}
+
 	for _, cvi := range componentVersionIssues {
 		_, err := it.seeder.InsertFakeComponentVersionIssue(cvi)
 		Expect(err).To(BeNil())
 	}
+
 	for i, ci := range componentInstances {
 		id, err := it.seeder.InsertFakeComponentInstance(ci)
 		it.componentInstances[i].Id.Int64 = id
+
 		Expect(err).To(BeNil())
 	}
+
 	for _, im := range issueMatches {
 		_, err := it.seeder.InsertFakeIssueMatch(im)
 		Expect(err).To(BeNil())
 	}
+
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
 }
 
 func loadTestData() ([]mariadb.ComponentVersionRow, []mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
-	issueVariants, err := test.LoadIssueVariants(test.GetTestDataPath("../database/mariadb/testdata/component_version_order/issue_variant.json"))
+	issueVariants, err := test.LoadIssueVariants(
+		test.GetTestDataPath(
+			"../database/mariadb/testdata/component_version_order/issue_variant.json",
+		),
+	)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
-	cvIssues, err := test.LoadComponentVersionIssues(test.GetTestDataPath("../database/mariadb/testdata/component_order/component_version_issue.json"))
+
+	cvIssues, err := test.LoadComponentVersionIssues(
+		test.GetTestDataPath(
+			"../database/mariadb/testdata/component_order/component_version_issue.json",
+		),
+	)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
-	componentInstances, err := test.LoadComponentInstances(test.GetTestDataPath("../database/mariadb/testdata/service_order/component_instance.json"))
+
+	componentInstances, err := test.LoadComponentInstances(
+		test.GetTestDataPath("../database/mariadb/testdata/service_order/component_instance.json"),
+	)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
-	issueMatches, err := test.LoadIssueMatches(test.GetTestDataPath("../database/mariadb/testdata/component_order/issue_match.json"))
+
+	issueMatches, err := test.LoadIssueMatches(
+		test.GetTestDataPath("../database/mariadb/testdata/component_order/issue_match.json"),
+	)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
-	componentVersions, err := test.LoadComponentVersions(test.GetTestDataPath("../database/mariadb/testdata/component_order/component_version.json"))
+
+	componentVersions, err := test.LoadComponentVersions(
+		test.GetTestDataPath("../database/mariadb/testdata/component_order/component_version.json"),
+	)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
+
 	return componentVersions, componentInstances, issueVariants, cvIssues, issueMatches, nil
 }
 
@@ -224,16 +275,19 @@ type SeverityCountsMatcher struct {
 	expected model.SeverityCounts
 }
 
-func (m *SeverityCountsMatcher) Match(actual interface{}) (bool, error) {
+func (m *SeverityCountsMatcher) Match(actual any) (bool, error) {
 	a, ok := actual.(model.SeverityCounts)
 	if !ok {
-		return false, fmt.Errorf("EqualCounts matcher expects a model.SeverityCounts, got %T", actual)
+		return false, fmt.Errorf(
+			"EqualCounts matcher expects a model.SeverityCounts, got %T",
+			actual,
+		)
 	}
 
 	return a == m.expected, nil
 }
 
-func (m *SeverityCountsMatcher) FailureMessage(actual interface{}) string {
+func (m *SeverityCountsMatcher) FailureMessage(actual any) string {
 	a := actual.(model.SeverityCounts)
 
 	return fmt.Sprintf(
@@ -242,7 +296,7 @@ func (m *SeverityCountsMatcher) FailureMessage(actual interface{}) string {
 	)
 }
 
-func (m *SeverityCountsMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m *SeverityCountsMatcher) NegatedFailureMessage(actual any) string {
 	a := actual.(model.SeverityCounts)
 
 	return fmt.Sprintf(
@@ -260,12 +314,22 @@ func expectPageInfoTwoPagesBeingOnFirst(pi *model.PageInfo) {
 }
 
 func expectRespImagesFilledAndInOrder(images *model.ImageConnection) {
-	prevSeverity := model.SeverityCounts{Critical: 9999, High: 9999, Medium: 9999, Low: 9999, None: 9999, Total: 9999}
+	prevSeverity := model.SeverityCounts{
+		Critical: 9999,
+		High:     9999,
+		Medium:   9999,
+		Low:      9999,
+		None:     9999,
+		Total:    9999,
+	}
+
 	for _, image := range images.Edges {
 		Expect(image.Node.Repository).ToNot(BeNil(), "image has a repository set")
 		Expect(image.Node.ImageRegistryURL).ToNot(BeNil(), "image has a registry url set")
 
-		Expect(e2e_common.CompareSeverityCounts(*image.Node.VulnerabilityCounts, prevSeverity)).To(BeNumerically("<=", 0), "severity is in descending order")
+		Expect(
+			e2e_common.CompareSeverityCounts(*image.Node.VulnerabilityCounts, prevSeverity),
+		).To(BeNumerically("<=", 0), "severity is in descending order")
 		prevSeverity = *image.Node.VulnerabilityCounts
 
 		for _, version := range image.Node.Versions.Edges {
@@ -275,9 +339,15 @@ func expectRespImagesFilledAndInOrder(images *model.ImageConnection) {
 		for _, vulnerability := range image.Node.Vulnerabilities.Edges {
 			Expect(vulnerability.Node.Severity).ToNot(BeNil(), "vulnerability has a severity set")
 			Expect(vulnerability.Node.Name).ToNot(BeNil(), "vulnerability has a name set")
-			Expect(vulnerability.Node.SourceURL).ToNot(BeNil(), "vulnerability has a source url set")
-			Expect(vulnerability.Node.EarliestTargetRemediationDate).ToNot(BeNil(), "vulnerability has a earliest target remediation date set")
-			Expect(vulnerability.Node.Description).ToNot(BeNil(), "vulnerability has a description set")
+			Expect(
+				vulnerability.Node.SourceURL,
+			).ToNot(BeNil(), "vulnerability has a source url set")
+			Expect(
+				vulnerability.Node.EarliestTargetRemediationDate,
+			).ToNot(BeNil(), "vulnerability has a earliest target remediation date set")
+			Expect(
+				vulnerability.Node.Description,
+			).ToNot(BeNil(), "vulnerability has a description set")
 		}
 	}
 }

@@ -129,61 +129,94 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 
 	testNoActiveRemediation := func() {
 		It("returns the correct count for component version issues", func() {
-			severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
+			severityCounts, err := test.LoadComponentVersionIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_component_version.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			testComponentVersions(severityCounts)
 		})
-		It("returns the correct count for component version issues with service ccrn filter", func() {
-			severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
-			Expect(err).To(BeNil())
-			for _, cvi := range seedCollection.ComponentVersionIssueRows {
-				cvId := cvi.ComponentVersionId.Int64
-				filter := &entity.IssueFilter{
-					ComponentVersionId: []*int64{&cvId},
+		It(
+			"returns the correct count for component version issues with service ccrn filter",
+			func() {
+				severityCounts, err := test.LoadComponentVersionIssueCounts(
+					test.GetTestDataPath(
+						"../mariadb/testdata/issue_counts/issue_counts_per_component_version.json",
+					),
+				)
+				Expect(err).To(BeNil())
+				for _, cvi := range seedCollection.ComponentVersionIssueRows {
+					cvId := cvi.ComponentVersionId.Int64
+					filter := &entity.IssueFilter{
+						ComponentVersionId: []*int64{&cvId},
+					}
+
+					serviceIds := lo.FilterMap(
+						seedCollection.ComponentInstanceRows,
+						func(s mariadb.ComponentInstanceRow, _ int) (*int64, bool) {
+							if s.ComponentVersionId.Int64 == cvId {
+								return &s.ServiceId.Int64, true
+							}
+							return nil, false
+						},
+					)
+
+					serviceCcrns := lo.FilterMap(
+						seedCollection.ServiceRows,
+						func(s mariadb.BaseServiceRow, _ int) (*string, bool) {
+							if lo.Contains(serviceIds, &s.Id.Int64) {
+								return &s.CCRN.String, true
+							}
+							return nil, false
+						},
+					)
+
+					filter.ServiceCCRN = serviceCcrns
+
+					strId := fmt.Sprintf("%d", cvId)
+
+					testIssueSeverityCount(filter, severityCounts[strId])
 				}
-
-				serviceIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(s mariadb.ComponentInstanceRow, _ int) (*int64, bool) {
-					if s.ComponentVersionId.Int64 == cvId {
-						return &s.ServiceId.Int64, true
-					}
-					return nil, false
-				})
-
-				serviceCcrns := lo.FilterMap(seedCollection.ServiceRows, func(s mariadb.BaseServiceRow, _ int) (*string, bool) {
-					if lo.Contains(serviceIds, &s.Id.Int64) {
-						return &s.CCRN.String, true
-					}
-					return nil, false
-				})
-
-				filter.ServiceCCRN = serviceCcrns
-
-				strId := fmt.Sprintf("%d", cvId)
-
-				testIssueSeverityCount(filter, severityCounts[strId])
-			}
-		})
+			},
+		)
 		It("returns the correct count for services", func() {
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+			severityCounts, err := test.LoadServiceIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			testServices(severityCounts)
 		})
 		It("returns the correct count for supportgroup", func() {
-			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+			severityCounts, err := test.LoadSupportGroupIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_support_group.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			testSupportGroups(severityCounts)
 		})
 		It("return the total count for all services with support group filter", func() {
-			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+			severityCounts, err := test.LoadSupportGroupIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_support_group.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			testServicesTotalCountWithSupportGroup(severityCounts)
 		})
 		It("return the total count for all services unique filter", func() {
-			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+			severityCounts, err := test.LoadSupportGroupIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_support_group.json",
+				),
+			)
 			Expect(err).To(BeNil())
 			totalCounts := entity.IssueSeverityCounts{}
 			for _, count := range severityCounts {
@@ -195,13 +228,20 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 				totalCounts.Total += count.Total
 			}
 
-			iv := test.NewFakeIssueVariant(seedCollection.IssueRepositoryRows, seedCollection.IssueRows)
+			iv := test.NewFakeIssueVariant(
+				seedCollection.IssueRepositoryRows,
+				seedCollection.IssueRows,
+			)
 			seeder.InsertFakeIssueVariant(iv)
 
 			testServicesTotalCountWithUnique(totalCounts)
 		})
 		It("return the total count for all services without support group filter", func() {
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+			severityCounts, err := test.LoadServiceIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			totalCount := entity.IssueSeverityCounts{}
@@ -217,26 +257,40 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			testServicesTotalCount(totalCount)
 		})
 		It("can filter by service ccrn", func() {
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+			severityCounts, err := test.LoadServiceIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			testServices(severityCounts)
 		})
 		It("can filter by support group ccrn and service ccrn", func() {
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+			severityCounts, err := test.LoadServiceIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			for _, service := range seedCollection.ServiceRows {
 				serviceId := service.Id.Int64
-				sgId, found := lo.Find(seedCollection.SupportGroupServiceRows, func(sgs mariadb.SupportGroupServiceRow) bool {
-					return sgs.ServiceId.Int64 == serviceId
-				})
+				sgId, found := lo.Find(
+					seedCollection.SupportGroupServiceRows,
+					func(sgs mariadb.SupportGroupServiceRow) bool {
+						return sgs.ServiceId.Int64 == serviceId
+					},
+				)
 
 				Expect(found).To(BeTrue(), "Support group for service should be found")
 
-				sg, found := lo.Find(seedCollection.SupportGroupRows, func(sg mariadb.SupportGroupRow) bool {
-					return sg.Id.Int64 == sgId.SupportGroupId.Int64
-				})
+				sg, found := lo.Find(
+					seedCollection.SupportGroupRows,
+					func(sg mariadb.SupportGroupRow) bool {
+						return sg.Id.Int64 == sgId.SupportGroupId.Int64
+					},
+				)
 
 				Expect(found).To(BeTrue(), "Support group should be found")
 
@@ -280,7 +334,11 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 	When("there is a deleted remediation for a service", Label("WithRemediations"), func() {
 		BeforeEach(func() {
 			expirationDate := time.Now().Add(10 * 24 * time.Hour)
-			createdRemediation := insertRemediation(&seedCollection.ServiceRows[0], nil, expirationDate)
+			createdRemediation := insertRemediation(
+				&seedCollection.ServiceRows[0],
+				nil,
+				expirationDate,
+			)
 			err := db.DeleteRemediation(createdRemediation.Id, util.SystemUserId)
 			Expect(err).To(BeNil())
 			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
@@ -308,18 +366,27 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			serviceId = fmt.Sprintf("%d", remediation.ServiceId)
 		})
 		It("returns the correct count for component version issues", func() {
-			severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
+			severityCounts, err := test.LoadComponentVersionIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_component_version.json",
+				),
+			)
 			severityCounts["1"] = entity.IssueSeverityCounts{}
 			Expect(err).To(BeNil())
 
 			testComponentVersions(severityCounts)
 		})
 		It("return the correct count for component version used in two services", func() {
-			severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
+			severityCounts, err := test.LoadComponentVersionIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_component_version.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			cv := seedCollection.ComponentVersionRows[0]
-			// create new component instance with component version that has been remediated in another service
+			// create new component instance with component version that has been remediated in
+			// another service
 			ci := test.NewFakeComponentInstance()
 			ci.ComponentVersionId = seedCollection.ComponentVersionRows[0].Id
 			ci.ServiceId = seedCollection.ServiceRows[3].Id
@@ -358,14 +425,22 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 		})
 		It("returns the correct count for services", func() {
 			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+			severityCounts, err := test.LoadServiceIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
+				),
+			)
 			Expect(err).To(BeNil())
 			severityCounts[serviceId] = serviceCounts
 
 			testServices(severityCounts)
 		})
 		It("returns the correct count for supportgroup", func() {
-			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+			severityCounts, err := test.LoadSupportGroupIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_support_group.json",
+				),
+			)
 			severityCounts["1"] = entity.IssueSeverityCounts{
 				Critical: 1,
 				Medium:   1,
@@ -378,7 +453,11 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			testSupportGroups(severityCounts)
 		})
 		It("return the total count for all services with support group filter", func() {
-			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
+			severityCounts, err := test.LoadSupportGroupIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_support_group.json",
+				),
+			)
 			Expect(err).To(BeNil())
 			severityCounts["1"] = entity.IssueSeverityCounts{
 				Critical: 1,
@@ -391,7 +470,11 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			testServicesTotalCountWithSupportGroup(severityCounts)
 		})
 		It("return the total count for all services without support group filter", func() {
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
+			severityCounts, err := test.LoadServiceIssueCounts(
+				test.GetTestDataPath(
+					"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
+				),
+			)
 			Expect(err).To(BeNil())
 
 			totalCount := entity.IssueSeverityCounts{}
@@ -410,102 +493,142 @@ var _ = Describe("Counting Issues by Severity", Label("IssueCounts"), func() {
 			testServicesTotalCount(totalCount)
 		})
 	})
-	When("there is an active remediation for a component in a service", Label("WithRemediations"), func() {
-		var serviceCounts entity.IssueSeverityCounts
-		var serviceId string
-		BeforeEach(func() {
-			expirationDate := time.Now().Add(10 * 24 * time.Hour)
-			r := insertRemediation(&seedCollection.ServiceRows[0], &seedCollection.ComponentRows[0], expirationDate)
-			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
-			// remediation for previously critical issue
-			serviceCounts = entity.IssueSeverityCounts{
-				Critical: 0,
-				High:     0,
-				Medium:   0,
-				Low:      1,
-				None:     0,
-				Total:    1,
-			}
-			serviceId = fmt.Sprintf("%d", r.ServiceId)
-		})
-		It("returns the correct count for component version issues", func() {
-			severityCounts, err := test.LoadComponentVersionIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_component_version.json"))
-			severityCounts["1"] = entity.IssueSeverityCounts{}
-			Expect(err).To(BeNil())
+	When(
+		"there is an active remediation for a component in a service",
+		Label("WithRemediations"),
+		func() {
+			var serviceCounts entity.IssueSeverityCounts
+			var serviceId string
+			BeforeEach(func() {
+				expirationDate := time.Now().Add(10 * 24 * time.Hour)
+				r := insertRemediation(
+					&seedCollection.ServiceRows[0],
+					&seedCollection.ComponentRows[0],
+					expirationDate,
+				)
+				Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
+				// remediation for previously critical issue
+				serviceCounts = entity.IssueSeverityCounts{
+					Critical: 0,
+					High:     0,
+					Medium:   0,
+					Low:      1,
+					None:     0,
+					Total:    1,
+				}
+				serviceId = fmt.Sprintf("%d", r.ServiceId)
+			})
+			It("returns the correct count for component version issues", func() {
+				severityCounts, err := test.LoadComponentVersionIssueCounts(
+					test.GetTestDataPath(
+						"../mariadb/testdata/issue_counts/issue_counts_per_component_version.json",
+					),
+				)
+				severityCounts["1"] = entity.IssueSeverityCounts{}
+				Expect(err).To(BeNil())
 
-			testComponentVersions(severityCounts)
-		})
-		It("returns the correct count for services", func() {
-			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
-			Expect(err).To(BeNil())
-			severityCounts[serviceId] = serviceCounts
+				testComponentVersions(severityCounts)
+			})
+			It("returns the correct count for services", func() {
+				Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
+				severityCounts, err := test.LoadServiceIssueCounts(
+					test.GetTestDataPath(
+						"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
+					),
+				)
+				Expect(err).To(BeNil())
+				severityCounts[serviceId] = serviceCounts
 
-			testServices(severityCounts)
-		})
-		It("returns the correct count for supportgroup", func() {
-			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
-			severityCounts["1"] = entity.IssueSeverityCounts{
-				Critical: 1,
-				Medium:   1,
-				Low:      2,
-				None:     1,
-				Total:    5,
-			}
-			Expect(err).To(BeNil())
+				testServices(severityCounts)
+			})
+			It("returns the correct count for supportgroup", func() {
+				severityCounts, err := test.LoadSupportGroupIssueCounts(
+					test.GetTestDataPath(
+						"../mariadb/testdata/issue_counts/issue_counts_per_support_group.json",
+					),
+				)
+				severityCounts["1"] = entity.IssueSeverityCounts{
+					Critical: 1,
+					Medium:   1,
+					Low:      2,
+					None:     1,
+					Total:    5,
+				}
+				Expect(err).To(BeNil())
 
-			testSupportGroups(severityCounts)
-		})
-		It("return the total count for all services with support group filter", func() {
-			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
-			Expect(err).To(BeNil())
-			severityCounts["1"] = entity.IssueSeverityCounts{
-				Critical: 1,
-				Medium:   1,
-				Low:      2,
-				None:     1,
-				Total:    5,
-			}
+				testSupportGroups(severityCounts)
+			})
+			It("return the total count for all services with support group filter", func() {
+				severityCounts, err := test.LoadSupportGroupIssueCounts(
+					test.GetTestDataPath(
+						"../mariadb/testdata/issue_counts/issue_counts_per_support_group.json",
+					),
+				)
+				Expect(err).To(BeNil())
+				severityCounts["1"] = entity.IssueSeverityCounts{
+					Critical: 1,
+					Medium:   1,
+					Low:      2,
+					None:     1,
+					Total:    5,
+				}
 
-			testServicesTotalCountWithSupportGroup(severityCounts)
-		})
-		It("return the total count for all services without support group filter", func() {
-			severityCounts, err := test.LoadServiceIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_service.json"))
-			Expect(err).To(BeNil())
+				testServicesTotalCountWithSupportGroup(severityCounts)
+			})
+			It("return the total count for all services without support group filter", func() {
+				severityCounts, err := test.LoadServiceIssueCounts(
+					test.GetTestDataPath(
+						"../mariadb/testdata/issue_counts/issue_counts_per_service.json",
+					),
+				)
+				Expect(err).To(BeNil())
 
-			totalCount := entity.IssueSeverityCounts{}
-			for _, count := range severityCounts {
-				totalCount.Critical += count.Critical
-				totalCount.High += count.High
-				totalCount.Medium += count.Medium
-				totalCount.Low += count.Low
-				totalCount.None += count.None
-				totalCount.Total += count.Total
-			}
-			// remediation for one critical issue
-			totalCount.Critical -= 1
-			totalCount.Total -= 1
+				totalCount := entity.IssueSeverityCounts{}
+				for _, count := range severityCounts {
+					totalCount.Critical += count.Critical
+					totalCount.High += count.High
+					totalCount.Medium += count.Medium
+					totalCount.Low += count.Low
+					totalCount.None += count.None
+					totalCount.Total += count.Total
+				}
+				// remediation for one critical issue
+				totalCount.Critical -= 1
+				totalCount.Total -= 1
 
-			testServicesTotalCount(totalCount)
-		})
-	})
-	When("there is an active remediation for a vulnerability only in one service", Label("WithRemediations"), func() {
-		BeforeEach(func() {
-			expirationDate := time.Now().Add(10 * 24 * time.Hour)
-			r := insertRemediation(&seedCollection.ServiceRows[0], &seedCollection.ComponentRows[0], expirationDate)
-			im := test.NewFakeIssueMatch()
-			im.ComponentInstanceId = sql.NullInt64{Int64: 3, Valid: true}
-			im.IssueId = sql.NullInt64{Int64: r.IssueId, Valid: true}
-			im.UserId = sql.NullInt64{Int64: util.SystemUserId, Valid: true}
-			_, err := seeder.InsertFakeIssueMatch(im)
-			Expect(err).To(BeNil())
-			Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
-		})
-		It("returns the total count for all services with support group filter", func() {
-			severityCounts, err := test.LoadSupportGroupIssueCounts(test.GetTestDataPath("../mariadb/testdata/issue_counts/issue_counts_per_support_group.json"))
-			Expect(err).To(BeNil())
+				testServicesTotalCount(totalCount)
+			})
+		},
+	)
+	When(
+		"there is an active remediation for a vulnerability only in one service",
+		Label("WithRemediations"),
+		func() {
+			BeforeEach(func() {
+				expirationDate := time.Now().Add(10 * 24 * time.Hour)
+				r := insertRemediation(
+					&seedCollection.ServiceRows[0],
+					&seedCollection.ComponentRows[0],
+					expirationDate,
+				)
+				im := test.NewFakeIssueMatch()
+				im.ComponentInstanceId = sql.NullInt64{Int64: 3, Valid: true}
+				im.IssueId = sql.NullInt64{Int64: r.IssueId, Valid: true}
+				im.UserId = sql.NullInt64{Int64: util.SystemUserId, Valid: true}
+				_, err := seeder.InsertFakeIssueMatch(im)
+				Expect(err).To(BeNil())
+				Expect(seeder.RefreshCountIssueRatings()).To(BeNil())
+			})
+			It("returns the total count for all services with support group filter", func() {
+				severityCounts, err := test.LoadSupportGroupIssueCounts(
+					test.GetTestDataPath(
+						"../mariadb/testdata/issue_counts/issue_counts_per_support_group.json",
+					),
+				)
+				Expect(err).To(BeNil())
 
-			testServicesTotalCountWithSupportGroup(severityCounts)
-		})
-	})
+				testServicesTotalCountWithSupportGroup(severityCounts)
+			})
+		},
+	)
 })

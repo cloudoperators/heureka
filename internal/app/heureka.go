@@ -60,7 +60,12 @@ type HeurekaApp struct {
 	profiler *profiler.Profiler
 }
 
-func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database, cfg util.Config) *HeurekaApp {
+func NewHeurekaApp(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	db database.Database,
+	cfg util.Config,
+) *HeurekaApp {
 	cache := NewAppCache(ctx, wg, cfg)
 	enableLogs := true
 
@@ -116,17 +121,21 @@ func NewHeurekaApp(ctx context.Context, wg *sync.WaitGroup, db database.Database
 
 	heureka.SubscribeHandlers()
 	heureka.SubscribeAuthzHandlers()
+
 	return heureka
 }
 
 func NewAppCache(ctx context.Context, wg *sync.WaitGroup, cfg util.Config) cache.Cache {
-	var cacheConfig interface{}
-	if cfg.CacheEnable == true {
+	var cacheConfig any
+
+	if cfg.CacheEnable {
 		cacheBaseConfig := cache.CacheConfig{
 			MonitorInterval:          time.Duration(cfg.CacheMonitorMSec) * time.Millisecond,
 			MaxDbConcurrentRefreshes: cfg.CacheMaxDbConcurrentRefreshes,
-			ThrottleInterval:         time.Duration(cfg.CacheThrottleIntervalMSec) * time.Millisecond,
-			ThrottlePerInterval:      cfg.CacheThrottlePerInterval,
+			ThrottleInterval: time.Duration(
+				cfg.CacheThrottleIntervalMSec,
+			) * time.Millisecond,
+			ThrottlePerInterval: cfg.CacheThrottlePerInterval,
 		}
 		if cfg.CacheValkeyUrl != "" {
 			cacheConfig = cache.ValkeyCacheConfig{
@@ -140,6 +149,7 @@ func NewAppCache(ctx context.Context, wg *sync.WaitGroup, cfg util.Config) cache
 			cacheConfig = cache.InMemoryCacheConfig{CacheConfig: cacheBaseConfig}
 		}
 	}
+
 	return cache.NewCache(ctx, wg, cacheConfig)
 }
 
@@ -149,10 +159,19 @@ func (h *HeurekaApp) SubscribeHandlers() {
 		eventName event.EventName
 		handler   event.EventHandlerFunc
 	}{
-		{component_instance.CreateComponentInstanceEventName, event.EventHandlerFunc(issue_match.OnComponentInstanceCreate)},
+		{
+			component_instance.CreateComponentInstanceEventName,
+			event.EventHandlerFunc(issue_match.OnComponentInstanceCreate),
+		},
 		{service.CreateServiceEventName, event.EventHandlerFunc(service.OnServiceCreate)},
-		{issue_repository.CreateIssueRepositoryEventName, event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate)},
-		{issue.AddComponentVersionToIssueEventName, event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue)},
+		{
+			issue_repository.CreateIssueRepositoryEventName,
+			event.EventHandlerFunc(issue_repository.OnIssueRepositoryCreate),
+		},
+		{
+			issue.AddComponentVersionToIssueEventName,
+			event.EventHandlerFunc(issue.OnComponentVersionAttachmentToIssue),
+		},
 	}
 
 	for _, hdl := range handlers {
@@ -168,29 +187,83 @@ func (h *HeurekaApp) SubscribeAuthzHandlers() {
 	}{
 		// Create events
 		{service.CreateServiceEventName, event.EventHandlerFunc(service.OnServiceCreateAuthz)},
-		{component_instance.CreateComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceCreateAuthz)},
-		{component_version.CreateComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionCreateAuthz)},
-		{support_group.CreateSupportGroupEventName, event.EventHandlerFunc(support_group.OnSupportGroupCreateAuthz)},
-		{component.CreateComponentEventName, event.EventHandlerFunc(component.OnComponentCreateAuthz)},
-		{issue_match.CreateIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchCreateAuthz)},
+		{
+			component_instance.CreateComponentInstanceEventName,
+			event.EventHandlerFunc(component_instance.OnComponentInstanceCreateAuthz),
+		},
+		{
+			component_version.CreateComponentVersionEventName,
+			event.EventHandlerFunc(component_version.OnComponentVersionCreateAuthz),
+		},
+		{
+			support_group.CreateSupportGroupEventName,
+			event.EventHandlerFunc(support_group.OnSupportGroupCreateAuthz),
+		},
+		{
+			component.CreateComponentEventName,
+			event.EventHandlerFunc(component.OnComponentCreateAuthz),
+		},
+		{
+			issue_match.CreateIssueMatchEventName,
+			event.EventHandlerFunc(issue_match.OnIssueMatchCreateAuthz),
+		},
 		// Delete events
 		{user.DeleteUserEventName, event.EventHandlerFunc(user.OnUserDeleteAuthz)},
 		{service.DeleteServiceEventName, event.EventHandlerFunc(service.OnServiceDeleteAuthz)},
-		{component_instance.DeleteComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceDeleteAuthz)},
-		{component_version.DeleteComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionDeleteAuthz)},
-		{support_group.DeleteSupportGroupEventName, event.EventHandlerFunc(support_group.OnSupportGroupDeleteAuthz)},
-		{component.DeleteComponentEventName, event.EventHandlerFunc(component.OnComponentDeleteAuthz)},
-		{issue_match.DeleteIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchDeleteAuthz)},
+		{
+			component_instance.DeleteComponentInstanceEventName,
+			event.EventHandlerFunc(component_instance.OnComponentInstanceDeleteAuthz),
+		},
+		{
+			component_version.DeleteComponentVersionEventName,
+			event.EventHandlerFunc(component_version.OnComponentVersionDeleteAuthz),
+		},
+		{
+			support_group.DeleteSupportGroupEventName,
+			event.EventHandlerFunc(support_group.OnSupportGroupDeleteAuthz),
+		},
+		{
+			component.DeleteComponentEventName,
+			event.EventHandlerFunc(component.OnComponentDeleteAuthz),
+		},
+		{
+			issue_match.DeleteIssueMatchEventName,
+			event.EventHandlerFunc(issue_match.OnIssueMatchDeleteAuthz),
+		},
 		// Update events
-		{component_version.UpdateComponentVersionEventName, event.EventHandlerFunc(component_version.OnComponentVersionUpdateAuthz)},
-		{issue_match.UpdateIssueMatchEventName, event.EventHandlerFunc(issue_match.OnIssueMatchUpdateAuthz)},
-		{component_instance.UpdateComponentInstanceEventName, event.EventHandlerFunc(component_instance.OnComponentInstanceUpdateAuthz)},
-		{support_group.AddServiceToSupportGroupEventName, event.EventHandlerFunc(support_group.OnAddServiceToSupportGroup)},
-		{support_group.RemoveServiceFromSupportGroupEventName, event.EventHandlerFunc(support_group.OnRemoveServiceFromSupportGroup)},
-		{support_group.AddUserToSupportGroupEventName, event.EventHandlerFunc(support_group.OnAddUserToSupportGroup)},
-		{support_group.RemoveUserFromSupportGroupEventName, event.EventHandlerFunc(support_group.OnRemoveUserFromSupportGroup)},
+		{
+			component_version.UpdateComponentVersionEventName,
+			event.EventHandlerFunc(component_version.OnComponentVersionUpdateAuthz),
+		},
+		{
+			issue_match.UpdateIssueMatchEventName,
+			event.EventHandlerFunc(issue_match.OnIssueMatchUpdateAuthz),
+		},
+		{
+			component_instance.UpdateComponentInstanceEventName,
+			event.EventHandlerFunc(component_instance.OnComponentInstanceUpdateAuthz),
+		},
+		{
+			support_group.AddServiceToSupportGroupEventName,
+			event.EventHandlerFunc(support_group.OnAddServiceToSupportGroup),
+		},
+		{
+			support_group.RemoveServiceFromSupportGroupEventName,
+			event.EventHandlerFunc(support_group.OnRemoveServiceFromSupportGroup),
+		},
+		{
+			support_group.AddUserToSupportGroupEventName,
+			event.EventHandlerFunc(support_group.OnAddUserToSupportGroup),
+		},
+		{
+			support_group.RemoveUserFromSupportGroupEventName,
+			event.EventHandlerFunc(support_group.OnRemoveUserFromSupportGroup),
+		},
 		{service.AddOwnerToServiceEventName, event.EventHandlerFunc(service.OnAddOwnerToService)},
-		{service.RemoveOwnerFromServiceEventName, event.EventHandlerFunc(service.OnRemoveOwnerFromService)},
+		{
+			service.RemoveOwnerFromServiceEventName,
+			event.EventHandlerFunc(service.OnRemoveOwnerFromService),
+		},
 	}
 
 	for _, handler := range authzHandlers {

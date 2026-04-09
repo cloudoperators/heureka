@@ -16,50 +16,53 @@ type Config struct {
 	// Regions            []string `envconfig:"REGIONS" required:"true" json:"regions"`
 	// CloudAdminUsername string   `envconfig:"OS_USERNAME" required:"true" json:"cloudAdminUser"`
 	// CloudAdminPassword string   `envconfig:"OS_PASSWORD" required:"true" json:"-"`
-	DBAddress             string  `envconfig:"DB_ADDRESS" required:"true" json:"dbAddress"`
-	DBUser                string  `envconfig:"DB_USER" required:"true" json:"dbUser"`
-	DBPassword            string  `envconfig:"DB_PASSWORD" required:"true" json:"-"`
-	DBRootPassword        string  `envconfig:"DB_ROOT_PASSWORD" required:"true" json:"-"`
-	DBPort                string  `envconfig:"DB_PORT" required:"true" json:"dbPort"`
-	DBName                string  `envconfig:"DB_NAME" required:"true" json:"dbDbName"`
-	DBMaxIdleConnections  int     `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"10" json:"dBMaxIdleConnections"`
-	DBMaxOpenConnections  int     `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"100" json:"dbMaxOpenConnections"`
-	DBTrace               bool    `envconfig:"DB_TRACE" default:"false" json:"-"`
-	DBMvCalcPeriodMinutes int     `envconfig:"DB_MV_CALC_PERIOD_MINUTES" default:"200" json:"-"`
-	GQLDepthLimit         int     `envconfig:"GQL_DEPTH_LIMIT" default:"100" json:"-"`
-	GQLBatchLimit         int     `envconfig:"GQL_BATCH_LIMIT" default:"30" json:"-"`
-	GQLHttpRateLimit      float64 `envconfig:"GQL_HTTP_RATE_LIMIT" default:"100.0" json:"-"`
-	GQLHttpRateBurst      int     `envconfig:"GQL_HTTP_RATE_BURST" default:"100" json:"-"`
-	//VasApiAddress              string   `envconfig:"VAS_API_ADDRESS" required:"true" json:"vasApiAddress"`
+	DBAddress             string  `envconfig:"DB_ADDRESS"                json:"dbAddress"            required:"true"`
+	DBUser                string  `envconfig:"DB_USER"                   json:"dbUser"               required:"true"`
+	DBPassword            string  `envconfig:"DB_PASSWORD"               json:"-"                    required:"true"`
+	DBRootPassword        string  `envconfig:"DB_ROOT_PASSWORD"          json:"-"                    required:"true"`
+	DBPort                string  `envconfig:"DB_PORT"                   json:"dbPort"               required:"true"`
+	DBName                string  `envconfig:"DB_NAME"                   json:"dbDbName"             required:"true"`
+	DBMaxIdleConnections  int     `envconfig:"DB_MAX_IDLE_CONNECTIONS"   json:"dBMaxIdleConnections"                 default:"10"`
+	DBMaxOpenConnections  int     `envconfig:"DB_MAX_OPEN_CONNECTIONS"   json:"dbMaxOpenConnections"                 default:"100"`
+	DBTrace               bool    `envconfig:"DB_TRACE"                  json:"-"                                    default:"false"`
+	DBMvCalcPeriodMinutes int     `envconfig:"DB_MV_CALC_PERIOD_MINUTES" json:"-"                                    default:"200"`
+	GQLDepthLimit         int     `envconfig:"GQL_DEPTH_LIMIT"           json:"-"                                    default:"100"`
+	GQLBatchLimit         int     `envconfig:"GQL_BATCH_LIMIT"           json:"-"                                    default:"30"`
+	GQLHttpRateLimit      float64 `envconfig:"GQL_HTTP_RATE_LIMIT"       json:"-"                                    default:"100.0"`
+	GQLHttpRateBurst      int     `envconfig:"GQL_HTTP_RATE_BURST"       json:"-"                                    default:"100"`
+	// VasApiAddress              string   `envconfig:"VAS_API_ADDRESS" required:"true"
+	// json:"vasApiAddress"`
 	//VasApiToken                string   `envconfig:"VAS_API_TOKEN" required:"true" json:"-"`
 	//NvdApiToken                string   `envconfig:"NVD_API_TOKEN" required:"true" json:"-"`
 	//OidcClientId               string   `envconfig:"OIDC_CLIENT_ID" required:"true" json:"-"`
 	//OidcUrl                    string   `envconfig:"OIDC_URL" required:"true" json:"-"`
-	//Environment                string   `envconfig:"ENVIRONMENT" required:"true" json:"environment"`
+	// Environment                string   `envconfig:"ENVIRONMENT" required:"true"
+	// json:"environment"`
 	//// https://pkg.go.dev/github.com/robfig/cron#hdr-Predefined_schedules
-	//DiscoverySchedule string `envconfig:"DISOVERY_SCHEDULE" default:"0 0 0 * * *" json:"discoverySchedule"`
-	SeedMode              bool   `envconfig:"SEED_MODE" required:"false" default:"false" json:"seedMode"`
-	AuthTokenSecret       string `envconfig:"AUTH_TOKEN_SECRET" required:"false" json:"-"`
-	AuthOidcClientId      string `envconfig:"AUTH_OIDC_CLIENT_ID" required:"false" json:"-"`
-	AuthOidcUrl           string `envconfig:"AUTH_OIDC_URL" required:"false" json:"-"`
-	AuthzOpenFgaApiUrl    string `envconfig:"AUTHZ_FGA_API_URL" required:"false" json:"-"`
-	AuthzOpenFgaApiToken  string `envconfig:"AUTHZ_FGA_API_TOKEN" required:"false" json:"-"`
-	AuthzOpenFgaStoreName string `envconfig:"AUTHZ_FGA_STORE_NAME" required:"false" json:"-"`
-	AuthzModelFilePath    string `envconfig:"AUTHZ_MODEL_FILE_PATH" required:"false" json:"-"`
-	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY" default:"100" json:"defaultIssuePriority"`
-	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd" json:"defaultRepositoryName"`
+	// DiscoverySchedule string `envconfig:"DISOVERY_SCHEDULE" default:"0 0 0 * * *"
+	// json:"discoverySchedule"`
+	SeedMode              bool   `envconfig:"SEED_MODE"               default:"false"         json:"seedMode"              required:"false"`
+	AuthTokenSecret       string `envconfig:"AUTH_TOKEN_SECRET"                               json:"-"                     required:"false"`
+	AuthOidcClientId      string `envconfig:"AUTH_OIDC_CLIENT_ID"                             json:"-"                     required:"false"`
+	AuthOidcUrl           string `envconfig:"AUTH_OIDC_URL"                                   json:"-"                     required:"false"`
+	AuthzOpenFgaApiUrl    string `envconfig:"AUTHZ_FGA_API_URL"                               json:"-"                     required:"false"`
+	AuthzOpenFgaApiToken  string `envconfig:"AUTHZ_FGA_API_TOKEN"                             json:"-"                     required:"false"`
+	AuthzOpenFgaStoreName string `envconfig:"AUTHZ_FGA_STORE_NAME"                            json:"-"                     required:"false"`
+	AuthzModelFilePath    string `envconfig:"AUTHZ_MODEL_FILE_PATH"                           json:"-"                     required:"false"`
+	DefaultIssuePriority  int64  `envconfig:"DEFAULT_ISSUE_PRIORITY"  default:"100"           json:"defaultIssuePriority"`
+	DefaultRepositoryName string `envconfig:"DEFAULT_REPOSITORY_NAME" default:"nvd"           json:"defaultRepositoryName"`
+	CurrentUser           string `envconfig:"CURRENT_USER"            default:"heureka-admin" json:"currentUser"           required:"false"`
 	// CurrentUser is a placeholder variable to be implemented for future user context functionality
-	CurrentUser                   string `envconfig:"CURRENT_USER" required:"false" default:"heureka-admin" json:"currentUser"`
-	CacheEnable                   bool   `envconfig:"CACHE_ENABLE" default:"false" json:"-"`
-	CacheValkeyUrl                string `envconfig:"CACHE_VALKEY_URL" default:"" json:"-"`
-	CacheValkeyPassword           string `envconfig:"CACHE_VALKEY_PASSWORD" default:"" json:"-"`
-	CacheValkeyUsername           string `envconfig:"CACHE_VALKEY_USERNAME" default:"" json:"-"`
-	CacheValkeyClientName         string `envconfig:"CACHE_VALKEY_CLIENT_NAME" default:"" json:"-"`
-	CacheMonitorMSec              int64  `envconfig:"CACHE_MONITOR_MSEC" default:"0" json:"-"`
-	CacheMaxDbConcurrentRefreshes int    `envconfig:"CACHE_MAX_DB_CONCURRENT_REFRESHES" default:"-1" json:"-"`
-	CacheThrottleIntervalMSec     int64  `envconfig:"CACHE_THROTTLE_INTERVAL_MSEC" default:"0" json:"-"`
-	CacheThrottlePerInterval      int    `envconfig:"CACHE_THROTTLE_PER_INTERVAL" default:"1" json:"-"`
-	CpuProfilerFilePath           string `envconfig:"CPU_PROFILER_FILE_PATH" default:"" json:"-"`
+	CacheEnable                   bool   `envconfig:"CACHE_ENABLE"                      default:"false" json:"-"`
+	CacheValkeyUrl                string `envconfig:"CACHE_VALKEY_URL"                  default:""      json:"-"`
+	CacheValkeyPassword           string `envconfig:"CACHE_VALKEY_PASSWORD"             default:""      json:"-"`
+	CacheValkeyUsername           string `envconfig:"CACHE_VALKEY_USERNAME"             default:""      json:"-"`
+	CacheValkeyClientName         string `envconfig:"CACHE_VALKEY_CLIENT_NAME"          default:""      json:"-"`
+	CacheMonitorMSec              int64  `envconfig:"CACHE_MONITOR_MSEC"                default:"0"     json:"-"`
+	CacheMaxDbConcurrentRefreshes int    `envconfig:"CACHE_MAX_DB_CONCURRENT_REFRESHES" default:"-1"    json:"-"`
+	CacheThrottleIntervalMSec     int64  `envconfig:"CACHE_THROTTLE_INTERVAL_MSEC"      default:"0"     json:"-"`
+	CacheThrottlePerInterval      int    `envconfig:"CACHE_THROTTLE_PER_INTERVAL"       default:"1"     json:"-"`
+	CpuProfilerFilePath           string `envconfig:"CPU_PROFILER_FILE_PATH"            default:""      json:"-"`
 }
 
 func (c *Config) ConfigToConsole() {
@@ -87,8 +90,8 @@ func (c *Config) ConfigToConsole() {
 	table.Configure(func(config *tablewriter.Config) {
 		config.Row.Formatting.Alignment = tw.AlignLeft
 	})
-	table.Bulk(data)
-	table.Render()
+	_ = table.Bulk(data)
+	_ = table.Render()
 }
 
 const HeurekaFiglet = `

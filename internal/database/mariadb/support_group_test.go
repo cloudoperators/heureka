@@ -75,9 +75,15 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						for _, r := range res {
 							for _, row := range seedCollection.SupportGroupRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.CCRN).Should(BeEquivalentTo(row.CCRN.String), "CCRN matches")
-									Expect(r.CreatedAt.Unix()).ShouldNot(BeEquivalentTo(row.CreatedAt.Time.Unix()), "CreatedAt got set")
-									Expect(r.UpdatedAt.Unix()).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time.Unix()), "UpdatedAt got set")
+									Expect(
+										r.CCRN,
+									).Should(BeEquivalentTo(row.CCRN.String), "CCRN matches")
+									Expect(
+										r.CreatedAt.Unix(),
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time.Unix()), "CreatedAt got set")
+									Expect(
+										r.UpdatedAt.Unix(),
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time.Unix()), "UpdatedAt got set")
 								}
 							}
 						}
@@ -207,10 +213,12 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 							},
 						}
 						testOrder(order, func(res []entity.SupportGroupResult) {
-							var prev string = ""
+							prev := ""
 							for _, r := range res {
-								Expect(c.CompareString(r.SupportGroup.CCRN, prev)).Should(BeNumerically(">=", 0))
-								prev = r.SupportGroup.CCRN
+								Expect(
+									c.CompareString(r.SupportGroup.CCRN, prev),
+								).Should(BeNumerically(">=", 0))
+								prev = r.CCRN
 							}
 						})
 					})
@@ -224,10 +232,12 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 							},
 						}
 						testOrder(order, func(res []entity.SupportGroupResult) {
-							var prev string = "\U0010FFFF"
+							prev := "\U0010FFFF"
 							for _, r := range res {
-								Expect(c.CompareString(r.SupportGroup.CCRN, prev)).Should(BeNumerically("<=", 0))
-								prev = r.SupportGroup.CCRN
+								Expect(
+									c.CompareString(r.SupportGroup.CCRN, prev),
+								).Should(BeNumerically("<=", 0))
+								prev = r.CCRN
 							}
 						})
 					})
@@ -452,7 +462,10 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				supportGroupServiceRow = seedCollection.SupportGroupServiceRows[0]
 			})
 			It("can remove service correctly", func() {
-				err := db.RemoveServiceFromSupportGroup(supportGroupServiceRow.SupportGroupId.Int64, supportGroupServiceRow.ServiceId.Int64)
+				err := db.RemoveServiceFromSupportGroup(
+					supportGroupServiceRow.SupportGroupId.Int64,
+					supportGroupServiceRow.ServiceId.Int64,
+				)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -534,7 +547,10 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 				supportGroupUserRow = seedCollection.SupportGroupUserRows[0]
 			})
 			It("can remove user correctly", func() {
-				err := db.RemoveUserFromSupportGroup(supportGroupUserRow.SupportGroupId.Int64, supportGroupUserRow.UserId.Int64)
+				err := db.RemoveUserFromSupportGroup(
+					supportGroupUserRow.SupportGroupId.Int64,
+					supportGroupUserRow.UserId.Int64,
+				)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -585,9 +601,12 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.SupportGroupRows)))
 					})
 
-					existingSupportGroupCcrns := lo.Map(seedCollection.SupportGroupRows, func(s mariadb.SupportGroupRow, index int) string {
-						return s.CCRN.String
-					})
+					existingSupportGroupCcrns := lo.Map(
+						seedCollection.SupportGroupRows,
+						func(s mariadb.SupportGroupRow, index int) string {
+							return s.CCRN.String
+						},
+					)
 
 					By("returning the correct ccrns", func() {
 						left, right := lo.Difference(res, existingSupportGroupCcrns)
@@ -637,19 +656,22 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 								CCRN: nonExistentSupportGroupCcrns,
 							}
 
-							It("returns an empty list when no supportGroup match the filter", func() {
-								res, err := db.GetSupportGroupCcrns(anotherFilter)
-								Expect(err).Should(BeNil())
-								Expect(res).Should(BeEmpty())
-
-								By("throwing no error", func() {
+							It(
+								"returns an empty list when no supportGroup match the filter",
+								func() {
+									res, err := db.GetSupportGroupCcrns(anotherFilter)
 									Expect(err).Should(BeNil())
-								})
-
-								By("returning an empty list", func() {
 									Expect(res).Should(BeEmpty())
-								})
-							})
+
+									By("throwing no error", func() {
+										Expect(err).Should(BeNil())
+									})
+
+									By("returning an empty list", func() {
+										Expect(res).Should(BeEmpty())
+									})
+								},
+							)
 						})
 					})
 				})

@@ -23,6 +23,7 @@ func NewAuth(cfg *util.Config, enableLog bool) *Auth {
 	auth := Auth{logger: l}
 	auth.appendInstance(NewTokenAuthMethod(l, cfg))
 	auth.appendInstance(NewOidcAuthMethod(l, cfg))
+
 	return &auth
 }
 
@@ -39,7 +40,9 @@ func (a *Auth) Middleware() gin.HandlerFunc {
 	return func(authCtx *gin.Context) {
 		if len(a.chain) > 0 {
 			authctx.SetAuthenticationRequired(authCtx)
+
 			var retMsg string
+
 			for _, auth := range a.chain {
 				if err := auth.Verify(authCtx); err == nil {
 					authCtx.Next()
@@ -48,21 +51,25 @@ func (a *Auth) Middleware() gin.HandlerFunc {
 					if retMsg != "" {
 						retMsg = fmt.Sprintf("%s, ", retMsg)
 					}
+
 					retMsg = fmt.Sprintf("%s%s", retMsg, err)
 				}
 			}
+
 			a.logger.Error("Unauthorized access: ", retMsg)
 			authCtx.JSON(http.StatusUnauthorized, gin.H{"error": retMsg})
 			authCtx.Abort()
+
 			return
 		}
+
 		authCtx.Next()
-		return
 	}
 }
 
 func (a *Auth) appendInstance(am authMethod) {
-	if am != nil && !(reflect.ValueOf(am).Kind() == reflect.Ptr && reflect.ValueOf(am).IsNil()) {
+	if am != nil &&
+		(reflect.ValueOf(am).Kind() != reflect.Pointer || !reflect.ValueOf(am).IsNil()) {
 		a.chain = append(a.chain, am)
 	}
 }
@@ -72,5 +79,6 @@ func newLogger(enableLog bool) *logrus.Logger {
 	if !enableLog {
 		l.SetOutput(ioutil.Discard)
 	}
+
 	return l
 }

@@ -54,7 +54,9 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 					})
 
 					By("returning the correct number of results", func() {
-						Expect(len(res)).Should(BeIdenticalTo(len(seedCollection.IssueRepositoryRows)))
+						Expect(
+							len(res),
+						).Should(BeIdenticalTo(len(seedCollection.IssueRepositoryRows)))
 					})
 
 					By("returning the correct order", func() {
@@ -71,10 +73,18 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 						for _, r := range res {
 							for _, row := range seedCollection.IssueRepositoryRows {
 								if r.Id == row.Id.Int64 {
-									Expect(r.Name).Should(BeEquivalentTo(row.Name.String), "Name should match")
-									Expect(r.Url).Should(BeEquivalentTo(row.Url.String), "URL should match")
-									Expect(r.BaseIssueRepository.CreatedAt).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
-									Expect(r.BaseIssueRepository.UpdatedAt).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
+									Expect(
+										r.Name,
+									).Should(BeEquivalentTo(row.Name.String), "Name should match")
+									Expect(
+										r.Url,
+									).Should(BeEquivalentTo(row.Url.String), "URL should match")
+									Expect(
+										r.BaseIssueRepository.CreatedAt,
+									).ShouldNot(BeEquivalentTo(row.CreatedAt.Time), "CreatedAt matches")
+									Expect(
+										r.BaseIssueRepository.UpdatedAt,
+									).ShouldNot(BeEquivalentTo(row.UpdatedAt.Time), "UpdatedAt matches")
 								}
 							}
 						}
@@ -112,7 +122,9 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 						}
 					}
 
-					filter := &entity.IssueRepositoryFilter{ServiceCCRN: []*string{&sRow.CCRN.String}}
+					filter := &entity.IssueRepositoryFilter{
+						ServiceCCRN: []*string{&sRow.CCRN.String},
+					}
 
 					entries, err := db.GetIssueRepositories(filter, nil)
 
@@ -164,7 +176,12 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 						},
 						[]entity.Order{},
 						func(entries []entity.IssueRepositoryResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithIssueRepository([]entity.Order{}, *entries[len(entries)-1].IssueRepository))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithIssueRepository(
+									[]entity.Order{},
+									*entries[len(entries)-1].IssueRepository,
+								),
+							)
 							return after
 						},
 						len(seedCollection.IssueRepositoryRows),

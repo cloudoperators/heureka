@@ -12,7 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent *model.NodeParent) (*model.IssueVariant, error) {
+func SingleIssueVariantBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	parent *model.NodeParent,
+) (*model.IssueVariant, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -20,7 +24,10 @@ func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent
 	}).Debug("Called SingleIssueVariantBaseResolver")
 
 	if parent == nil {
-		return nil, NewResolverError("SingleIssueVariantBaseResolver", "Bad Request - No parent provided")
+		return nil, NewResolverError(
+			"SingleIssueVariantBaseResolver",
+			"Bad Request - No parent provided",
+		)
 	}
 
 	f := &entity.IssueVariantFilter{
@@ -37,7 +44,10 @@ func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent
 
 	// unexpected number of results (should at most be 1)
 	if len(variants.Elements) > 1 {
-		return nil, NewResolverError("SingleIssueVariantBaseResolver", "Internal Error - found multiple variants")
+		return nil, NewResolverError(
+			"SingleIssueVariantBaseResolver",
+			"Internal Error - found multiple variants",
+		)
 	}
 
 	// not found
@@ -45,27 +55,44 @@ func SingleIssueVariantBaseResolver(app app.Heureka, ctx context.Context, parent
 		return nil, nil
 	}
 
-	var ivr entity.IssueVariantResult = variants.Elements[0]
+	ivr := variants.Elements[0]
+
 	variant := model.NewIssueVariant(ivr.IssueVariant)
 
 	return &variant, nil
 }
 
-func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueVariantFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueVariantConnection, error) {
+func IssueVariantBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueVariantFilter,
+	first *int,
+	after *string,
+	parent *model.NodeParent,
+) (*model.IssueVariantConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
 		"parent":          parent,
 	}).Debug("Called IssueVariantBaseResolver")
 
-	var issueId []*int64
-	var irId []*int64
+	var (
+		issueId []*int64
+		irId    []*int64
+	)
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("IssueVariantBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("IssueVariantBaseResolver", "Bad Request - Error while parsing propagated ID")
+			logrus.WithField("parent", parent).
+				Error("IssueVariantBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, NewResolverError(
+				"IssueVariantBaseResolver",
+				"Bad Request - Error while parsing propagated ID",
+			)
 		}
 
 		switch parent.ParentName {
@@ -96,6 +123,7 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	}
 
 	edges := []*model.IssueVariantEdge{}
+
 	for _, result := range variants.Elements {
 		iv := model.NewIssueVariant(result.IssueVariant)
 		edge := model.IssueVariantEdge{
@@ -119,7 +147,14 @@ func IssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *mode
 	return &connection, nil
 }
 
-func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, filter *model.IssueVariantFilter, first *int, after *string, parent *model.NodeParent) (*model.IssueVariantConnection, error) {
+func EffectiveIssueVariantBaseResolver(
+	app app.Heureka,
+	ctx context.Context,
+	filter *model.IssueVariantFilter,
+	first *int,
+	after *string,
+	parent *model.NodeParent,
+) (*model.IssueVariantConnection, error) {
 	requestedFields := GetPreloads(ctx)
 	logrus.WithFields(logrus.Fields{
 		"requestedFields": requestedFields,
@@ -127,12 +162,19 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 	}).Debug("Called EffectiveIssueVariantBaseResolver")
 
 	var imId []*int64
+
 	if parent != nil {
 		parentId := parent.Parent.GetID()
+
 		pid, err := ParseCursor(&parentId)
 		if err != nil {
-			logrus.WithField("parent", parent).Error("EffectiveIssueVariantBaseResolver: Error while parsing propagated parent ID'")
-			return nil, NewResolverError("EffectiveIssueVariantBaseResolver", "Bad Request - Error while parsing propagated ID")
+			logrus.WithField("parent", parent).
+				Error("EffectiveIssueVariantBaseResolver: Error while parsing propagated parent ID'")
+
+			return nil, NewResolverError(
+				"EffectiveIssueVariantBaseResolver",
+				"Bad Request - Error while parsing propagated ID",
+			)
 		}
 
 		switch parent.ParentName {
@@ -159,6 +201,7 @@ func EffectiveIssueVariantBaseResolver(app app.Heureka, ctx context.Context, fil
 	}
 
 	edges := []*model.IssueVariantEdge{}
+
 	for _, result := range variants.Elements {
 		iv := model.NewIssueVariant(result.IssueVariant)
 		edge := model.IssueVariantEdge{

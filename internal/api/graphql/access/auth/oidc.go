@@ -49,6 +49,7 @@ func NewOidcAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 		oidcProvider, err := oidc.NewProvider(context.TODO(), cfg.AuthOidcUrl)
 		if err != nil {
 			l.Error("Could not initialize OIDC provider: ", err, " (", cfg.AuthOidcUrl, ")")
+
 			return &NoAuthMethod{
 				logger:         l,
 				authMethodName: oidcAuthMethodName,
@@ -63,8 +64,15 @@ func NewOidcAuthMethod(l *logrus.Logger, cfg *util.Config) authMethod {
 		oidcVerifier := oidcProvider.Verifier(oidcConfig)
 
 		l.Info("Initializing OIDC auth")
-		return &OidcAuthMethod{logger: l, provider: oidcProvider, config: oidcConfig, verifier: oidcVerifier}
+
+		return &OidcAuthMethod{
+			logger:   l,
+			provider: oidcProvider,
+			config:   oidcConfig,
+			verifier: oidcVerifier,
+		}
 	}
+
 	return nil
 }
 
@@ -80,9 +88,10 @@ func (oam OidcAuthMethod) Verify(c *gin.Context) error {
 	}
 
 	var claims IDTokenClaims
+
 	err = token.Claims(&claims)
 	if err != nil {
-		return verifyError(oidcAuthMethodName, fmt.Errorf("Failed to parse token claims: %w", err))
+		return verifyError(oidcAuthMethodName, fmt.Errorf("failed to parse token claims: %w", err))
 	}
 
 	authctx.UserNameToContext(c, claims.Sub)
