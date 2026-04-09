@@ -118,11 +118,7 @@ func (r *serviceResolver) Remediations(
 	)
 }
 
-func (r *serviceResolver) IssueCounts(
-	ctx context.Context,
-	obj *model.Service,
-	filter *model.IssueFilter,
-) (*model.SeverityCounts, error) {
+func (r *serviceResolver) IssueCounts(ctx context.Context, obj *model.Service, filter *model.IssueFilter) (*model.SeverityCounts, error) {
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ServiceNodeName,

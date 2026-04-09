@@ -113,24 +113,15 @@ func (r *queryResolver) SupportGroups(
 	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
-func (r *queryResolver) Users(
-	ctx context.Context,
-	filter *model.UserFilter,
-	first *int,
-	after *string,
-) (*model.UserConnection, error) {
+func (r *queryResolver) Users(ctx context.Context, filter *model.UserFilter, first *int, after *string) (*model.UserConnection, error) {
 	return baseResolver.UserBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) ServiceFilterValues(
-	ctx context.Context,
-) (*model.ServiceFilterValue, error) {
+func (r *queryResolver) ServiceFilterValues(ctx context.Context) (*model.ServiceFilterValue, error) {
 	return &model.ServiceFilterValue{}, nil
 }
 
-func (r *queryResolver) IssueMatchFilterValues(
-	ctx context.Context,
-) (*model.IssueMatchFilterValue, error) {
+func (r *queryResolver) IssueMatchFilterValues(ctx context.Context) (*model.IssueMatchFilterValue, error) {
 	return &model.IssueMatchFilterValue{
 		Status: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueMatchStatus,
@@ -159,9 +150,7 @@ func (r *queryResolver) IssueMatchFilterValues(
 	}, nil
 }
 
-func (r *queryResolver) ComponentInstanceFilterValues(
-	ctx context.Context,
-) (*model.ComponentInstanceFilterValue, error) {
+func (r *queryResolver) ComponentInstanceFilterValues(ctx context.Context) (*model.ComponentInstanceFilterValue, error) {
 	return &model.ComponentInstanceFilterValue{
 		Type: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayComponentInstanceType,
@@ -174,9 +163,7 @@ func (r *queryResolver) ComponentInstanceFilterValues(
 	}, nil
 }
 
-func (r *queryResolver) ComponentFilterValues(
-	ctx context.Context,
-) (*model.ComponentFilterValue, error) {
+func (r *queryResolver) ComponentFilterValues(ctx context.Context) (*model.ComponentFilterValue, error) {
 	return &model.ComponentFilterValue{}, nil
 }
 
@@ -193,10 +180,7 @@ func (r *queryResolver) ScannerRuns(
 	return baseResolver.ScannerRuns(r.App, ctx, filter, first, after)
 }
 
-func (r *queryResolver) IssueCounts(
-	ctx context.Context,
-	filter *model.IssueFilter,
-) (*model.SeverityCounts, error) {
+func (r *queryResolver) IssueCounts(ctx context.Context, filter *model.IssueFilter) (*model.SeverityCounts, error) {
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, nil)
 }
 
@@ -209,9 +193,7 @@ func (r *queryResolver) Vulnerabilities(
 	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) VulnerabilityFilterValues(
-	ctx context.Context,
-) (*model.VulnerabilityFilterValue, error) {
+func (r *queryResolver) VulnerabilityFilterValues(ctx context.Context) (*model.VulnerabilityFilterValue, error) {
 	return &model.VulnerabilityFilterValue{
 		Severity: &model.FilterItem{
 			DisplayName: &baseResolver.FilterDisplayIssueSeverity,
@@ -224,12 +206,7 @@ func (r *queryResolver) VulnerabilityFilterValues(
 	}, nil
 }
 
-func (r *queryResolver) Images(
-	ctx context.Context,
-	filter *model.ImageFilter,
-	first *int,
-	after *string,
-) (*model.ImageConnection, error) {
+func (r *queryResolver) Images(ctx context.Context, filter *model.ImageFilter, first *int, after *string) (*model.ImageConnection, error) {
 	ctx = context.WithValue(ctx, "serviceFilter", filter.Service)
 	return baseResolver.ImageBaseResolver(r.App, ctx, filter, first, after)
 }
@@ -253,12 +230,7 @@ func (r *queryResolver) Remediations(
 	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
-func (r *queryResolver) Patches(
-	ctx context.Context,
-	filter *model.PatchFilter,
-	first *int,
-	after *string,
-) (*model.PatchConnection, error) {
+func (r *queryResolver) Patches(ctx context.Context, filter *model.PatchFilter, first *int, after *string) (*model.PatchConnection, error) {
 	return baseResolver.PatchBaseResolver(r.App, ctx, filter, first, after)
 }
 

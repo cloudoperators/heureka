@@ -48,10 +48,7 @@ func (r *imageResolver) Versions(
 		})
 }
 
-func (r *imageResolver) VulnerabilityCounts(
-	ctx context.Context,
-	obj *model.Image,
-) (*model.SeverityCounts, error) {
+func (r *imageResolver) VulnerabilityCounts(ctx context.Context, obj *model.Image) (*model.SeverityCounts, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	imageFilter := rootCtx.Args["filter"].(*model.ImageFilter)
 	filter := &model.ComponentFilter{

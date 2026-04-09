@@ -18,10 +18,7 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *componentInstanceResolver) ComponentVersion(
-	ctx context.Context,
-	obj *model.ComponentInstance,
-) (*model.ComponentVersion, error) {
+func (r *componentInstanceResolver) ComponentVersion(ctx context.Context, obj *model.ComponentInstance) (*model.ComponentVersion, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentVersionID})
 	if err != nil {
 		logrus.WithField("obj", obj).
@@ -58,10 +55,7 @@ func (r *componentInstanceResolver) IssueMatches(
 	)
 }
 
-func (r *componentInstanceResolver) Service(
-	ctx context.Context,
-	obj *model.ComponentInstance,
-) (*model.Service, error) {
+func (r *componentInstanceResolver) Service(ctx context.Context, obj *model.ComponentInstance) (*model.Service, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ServiceID})
 	if err != nil {
 		logrus.WithField("obj", obj).
@@ -77,10 +71,7 @@ func (r *componentInstanceResolver) Service(
 	})
 }
 
-func (r *componentInstanceResolver) Parent(
-	ctx context.Context,
-	obj *model.ComponentInstance,
-) (*model.ComponentInstance, error) {
+func (r *componentInstanceResolver) Parent(ctx context.Context, obj *model.ComponentInstance) (*model.ComponentInstance, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ParentID})
 	if err != nil {
 		logrus.WithField("obj", obj).

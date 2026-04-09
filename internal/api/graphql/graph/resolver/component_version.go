@@ -18,10 +18,7 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *componentVersionResolver) Component(
-	ctx context.Context,
-	obj *model.ComponentVersion,
-) (*model.Component, error) {
+func (r *componentVersionResolver) Component(ctx context.Context, obj *model.ComponentVersion) (*model.Component, error) {
 	childIds, err := util.ConvertStrToIntSlice([]*string{obj.ComponentID})
 	if err != nil {
 		logrus.WithField("obj", obj).

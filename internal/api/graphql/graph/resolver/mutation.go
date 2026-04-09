@@ -19,10 +19,7 @@ import (
 // SPDX-License-Identifier: Apache-2.0
 
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(
-	ctx context.Context,
-	input model.UserInput,
-) (*model.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.User, error) {
 	user := model.NewUserEntity(&input)
 
 	newUser, err := r.App.CreateUser(ctx, &user)
@@ -39,11 +36,7 @@ func (r *mutationResolver) CreateUser(
 }
 
 // UpdateUser is the resolver for the updateUser field.
-func (r *mutationResolver) UpdateUser(
-	ctx context.Context,
-	id string,
-	input model.UserInput,
-) (*model.User, error) {
+func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input model.UserInput) (*model.User, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -90,10 +83,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (string, e
 }
 
 // CreateSupportGroup is the resolver for the createSupportGroup field.
-func (r *mutationResolver) CreateSupportGroup(
-	ctx context.Context,
-	input model.SupportGroupInput,
-) (*model.SupportGroup, error) {
+func (r *mutationResolver) CreateSupportGroup(ctx context.Context, input model.SupportGroupInput) (*model.SupportGroup, error) {
 	supportGroup := model.NewSupportGroupEntity(&input)
 
 	newSupportGroup, err := r.App.CreateSupportGroup(ctx, &supportGroup)
@@ -110,11 +100,7 @@ func (r *mutationResolver) CreateSupportGroup(
 }
 
 // UpdateSupportGroup is the resolver for the updateSupportGroup field.
-func (r *mutationResolver) UpdateSupportGroup(
-	ctx context.Context,
-	id string,
-	input model.SupportGroupInput,
-) (*model.SupportGroup, error) {
+func (r *mutationResolver) UpdateSupportGroup(ctx context.Context, id string, input model.SupportGroupInput) (*model.SupportGroup, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -231,11 +217,7 @@ func (r *mutationResolver) RemoveServiceFromSupportGroup(
 }
 
 // AddUserToSupportGroup is the resolver for the addUserToSupportGroup field.
-func (r *mutationResolver) AddUserToSupportGroup(
-	ctx context.Context,
-	supportGroupID string,
-	userID string,
-) (*model.SupportGroup, error) {
+func (r *mutationResolver) AddUserToSupportGroup(ctx context.Context, supportGroupID string, userID string) (*model.SupportGroup, error) {
 	supportGroupIdInt, err := baseResolver.ParseCursor(&supportGroupID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -301,10 +283,7 @@ func (r *mutationResolver) RemoveUserFromSupportGroup(
 }
 
 // CreateComponent is the resolver for the createComponent field.
-func (r *mutationResolver) CreateComponent(
-	ctx context.Context,
-	input model.ComponentInput,
-) (*model.Component, error) {
+func (r *mutationResolver) CreateComponent(ctx context.Context, input model.ComponentInput) (*model.Component, error) {
 	component := model.NewComponentEntity(&input)
 
 	newComponent, err := r.App.CreateComponent(ctx, &component)
@@ -321,11 +300,7 @@ func (r *mutationResolver) CreateComponent(
 }
 
 // UpdateComponent is the resolver for the updateComponent field.
-func (r *mutationResolver) UpdateComponent(
-	ctx context.Context,
-	id string,
-	input model.ComponentInput,
-) (*model.Component, error) {
+func (r *mutationResolver) UpdateComponent(ctx context.Context, id string, input model.ComponentInput) (*model.Component, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -447,10 +422,7 @@ func (r *mutationResolver) DeleteComponentInstance(ctx context.Context, id strin
 }
 
 // CreateComponentVersion is the resolver for the createComponentVersion field.
-func (r *mutationResolver) CreateComponentVersion(
-	ctx context.Context,
-	input model.ComponentVersionInput,
-) (*model.ComponentVersion, error) {
+func (r *mutationResolver) CreateComponentVersion(ctx context.Context, input model.ComponentVersionInput) (*model.ComponentVersion, error) {
 	componentVersion := model.NewComponentVersionEntity(&input)
 
 	newComponentVersion, err := r.App.CreateComponentVersion(ctx, &componentVersion)
@@ -518,10 +490,7 @@ func (r *mutationResolver) DeleteComponentVersion(ctx context.Context, id string
 }
 
 // CreateService is the resolver for the createService field.
-func (r *mutationResolver) CreateService(
-	ctx context.Context,
-	input model.ServiceInput,
-) (*model.Service, error) {
+func (r *mutationResolver) CreateService(ctx context.Context, input model.ServiceInput) (*model.Service, error) {
 	service := model.NewServiceEntity(&input)
 
 	newService, err := r.App.CreateService(ctx, &service)
@@ -538,11 +507,7 @@ func (r *mutationResolver) CreateService(
 }
 
 // UpdateService is the resolver for the updateService field.
-func (r *mutationResolver) UpdateService(
-	ctx context.Context,
-	id string,
-	input model.ServiceInput,
-) (*model.Service, error) {
+func (r *mutationResolver) UpdateService(ctx context.Context, id string, input model.ServiceInput) (*model.Service, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -589,11 +554,7 @@ func (r *mutationResolver) DeleteService(ctx context.Context, id string) (string
 }
 
 // AddOwnerToService is the resolver for the addOwnerToService field.
-func (r *mutationResolver) AddOwnerToService(
-	ctx context.Context,
-	serviceID string,
-	userID string,
-) (*model.Service, error) {
+func (r *mutationResolver) AddOwnerToService(ctx context.Context, serviceID string, userID string) (*model.Service, error) {
 	serviceIdInt, err := baseResolver.ParseCursor(&serviceID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -624,11 +585,7 @@ func (r *mutationResolver) AddOwnerToService(
 }
 
 // RemoveOwnerFromService is the resolver for the removeOwnerFromService field.
-func (r *mutationResolver) RemoveOwnerFromService(
-	ctx context.Context,
-	serviceID string,
-	userID string,
-) (*model.Service, error) {
+func (r *mutationResolver) RemoveOwnerFromService(ctx context.Context, serviceID string, userID string) (*model.Service, error) {
 	serviceIdInt, err := baseResolver.ParseCursor(&serviceID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -739,10 +696,7 @@ func (r *mutationResolver) RemoveIssueRepositoryFromService(
 }
 
 // CreateIssueRepository is the resolver for the createIssueRepository field.
-func (r *mutationResolver) CreateIssueRepository(
-	ctx context.Context,
-	input model.IssueRepositoryInput,
-) (*model.IssueRepository, error) {
+func (r *mutationResolver) CreateIssueRepository(ctx context.Context, input model.IssueRepositoryInput) (*model.IssueRepository, error) {
 	issueRepository := model.NewIssueRepositoryEntity(&input)
 
 	newIssueRepository, err := r.App.CreateIssueRepository(ctx, &issueRepository)
@@ -810,10 +764,7 @@ func (r *mutationResolver) DeleteIssueRepository(ctx context.Context, id string)
 }
 
 // CreateIssue is the resolver for the createIssue field.
-func (r *mutationResolver) CreateIssue(
-	ctx context.Context,
-	input model.IssueInput,
-) (*model.Issue, error) {
+func (r *mutationResolver) CreateIssue(ctx context.Context, input model.IssueInput) (*model.Issue, error) {
 	issue := model.NewIssueEntity(&input)
 
 	newIssue, err := r.App.CreateIssue(ctx, &issue)
@@ -830,11 +781,7 @@ func (r *mutationResolver) CreateIssue(
 }
 
 // UpdateIssue is the resolver for the updateIssue field.
-func (r *mutationResolver) UpdateIssue(
-	ctx context.Context,
-	id string,
-	input model.IssueInput,
-) (*model.Issue, error) {
+func (r *mutationResolver) UpdateIssue(ctx context.Context, id string, input model.IssueInput) (*model.Issue, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -951,10 +898,7 @@ func (r *mutationResolver) RemoveComponentVersionFromIssue(
 }
 
 // CreateIssueVariant is the resolver for the createIssueVariant field.
-func (r *mutationResolver) CreateIssueVariant(
-	ctx context.Context,
-	input model.IssueVariantInput,
-) (*model.IssueVariant, error) {
+func (r *mutationResolver) CreateIssueVariant(ctx context.Context, input model.IssueVariantInput) (*model.IssueVariant, error) {
 	issueVariant := model.NewIssueVariantEntity(&input)
 
 	newIssueVariant, err := r.App.CreateIssueVariant(ctx, &issueVariant)
@@ -971,11 +915,7 @@ func (r *mutationResolver) CreateIssueVariant(
 }
 
 // UpdateIssueVariant is the resolver for the updateIssueVariant field.
-func (r *mutationResolver) UpdateIssueVariant(
-	ctx context.Context,
-	id string,
-	input model.IssueVariantInput,
-) (*model.IssueVariant, error) {
+func (r *mutationResolver) UpdateIssueVariant(ctx context.Context, id string, input model.IssueVariantInput) (*model.IssueVariant, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -1022,10 +962,7 @@ func (r *mutationResolver) DeleteIssueVariant(ctx context.Context, id string) (s
 }
 
 // CreateIssueMatch is the resolver for the createIssueMatch field.
-func (r *mutationResolver) CreateIssueMatch(
-	ctx context.Context,
-	input model.IssueMatchInput,
-) (*model.IssueMatch, error) {
+func (r *mutationResolver) CreateIssueMatch(ctx context.Context, input model.IssueMatchInput) (*model.IssueMatch, error) {
 	issueMatch := model.NewIssueMatchEntity(&input)
 
 	newIssueMatch, err := r.App.CreateIssueMatch(ctx, &issueMatch)
@@ -1042,11 +979,7 @@ func (r *mutationResolver) CreateIssueMatch(
 }
 
 // UpdateIssueMatch is the resolver for the updateIssueMatch field.
-func (r *mutationResolver) UpdateIssueMatch(
-	ctx context.Context,
-	id string,
-	input model.IssueMatchInput,
-) (*model.IssueMatch, error) {
+func (r *mutationResolver) UpdateIssueMatch(ctx context.Context, id string, input model.IssueMatchInput) (*model.IssueMatch, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -1092,10 +1025,7 @@ func (r *mutationResolver) DeleteIssueMatch(ctx context.Context, id string) (str
 	return id, nil
 }
 
-func (r *mutationResolver) CreateScannerRun(
-	ctx context.Context,
-	input model.ScannerRunInput,
-) (bool, error) {
+func (r *mutationResolver) CreateScannerRun(ctx context.Context, input model.ScannerRunInput) (bool, error) {
 	scannerRun := model.NewScannerRunEntity(&input)
 
 	_, err := r.App.CreateScannerRun(&scannerRun)
@@ -1121,11 +1051,7 @@ func (r *mutationResolver) CompleteScannerRun(ctx context.Context, uuid string) 
 	return true, nil
 }
 
-func (r *mutationResolver) FailScannerRun(
-	ctx context.Context,
-	uuid string,
-	message string,
-) (bool, error) {
+func (r *mutationResolver) FailScannerRun(ctx context.Context, uuid string, message string) (bool, error) {
 	_, err := r.App.FailScannerRun(uuid, message)
 	if err != nil {
 		return false, baseResolver.NewResolverError(
@@ -1137,10 +1063,7 @@ func (r *mutationResolver) FailScannerRun(
 	return true, nil
 }
 
-func (r *mutationResolver) CreateRemediation(
-	ctx context.Context,
-	input model.RemediationInput,
-) (*model.Remediation, error) {
+func (r *mutationResolver) CreateRemediation(ctx context.Context, input model.RemediationInput) (*model.Remediation, error) {
 	if input.RemediationDate == nil {
 		input.RemediationDate = new(time.Now().UTC().Format(time.RFC3339))
 	}
@@ -1232,11 +1155,7 @@ func (r *mutationResolver) CreateRemediation(
 	return &rmd, nil
 }
 
-func (r *mutationResolver) UpdateRemediation(
-	ctx context.Context,
-	id string,
-	input model.RemediationInput,
-) (*model.Remediation, error) {
+func (r *mutationResolver) UpdateRemediation(ctx context.Context, id string, input model.RemediationInput) (*model.Remediation, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -1333,10 +1252,7 @@ func (r *mutationResolver) DeleteRemediation(ctx context.Context, id string) (st
 	return id, nil
 }
 
-func (r *mutationResolver) CreateSIEMAlert(
-	ctx context.Context,
-	input model.SIEMAlertInput,
-) (*model.SIEMAlert, error) {
+func (r *mutationResolver) CreateSIEMAlert(ctx context.Context, input model.SIEMAlertInput) (*model.SIEMAlert, error) {
 	isComponentInstanceDataPresent := func(s *string) bool {
 		return s != nil && *s != ""
 	}
