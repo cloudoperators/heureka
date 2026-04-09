@@ -27,6 +27,8 @@ linters:
     lll:
       line-length: 140
   exclusions:
+      paths:
+        - internal/mocks/
       rules:
         - path: _test\.go
           linters:
