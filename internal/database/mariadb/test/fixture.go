@@ -245,6 +245,19 @@ func (s *SeedCollection) GetValidIssueMatchRows() []mariadb.IssueMatchRow {
 	return valid
 }
 
+func (s *SeedCollection) FindMatchingComponentAndComponentVersion() (mariadb.ComponentRow, mariadb.ComponentVersionRow, bool) {
+	for _, componentRow := range s.ComponentRows {
+		componentVersionRow, ok := lo.Find(s.ComponentVersionRows, func(cvRow mariadb.ComponentVersionRow) bool {
+			return cvRow.ComponentId.Int64 == componentRow.Id.Int64
+		})
+		if ok {
+			return componentRow, componentVersionRow, true
+		}
+	}
+
+	return mariadb.ComponentRow{}, mariadb.ComponentVersionRow{}, false
+}
+
 type DatabaseSeeder struct {
 	db *sqlx.DB
 }
