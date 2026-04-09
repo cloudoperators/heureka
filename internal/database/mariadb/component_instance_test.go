@@ -5,7 +5,6 @@ package mariadb_test
 
 import (
 	"math"
-	"math/rand"
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -125,7 +124,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single component instance id that does exist", func() {
-					ci := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
+					ci := test.PickOne(seedCollection.ComponentInstanceRows)
 					filter := &entity.ComponentInstanceFilter{
 						Id: []*int64{&ci.Id.Int64},
 					}
@@ -146,7 +145,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 				It("can filter by a single issue match id that does exist", func() {
 					// get a service that should return at least one issue
-					rnd := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					rnd := test.PickOne(seedCollection.IssueMatchRows)
 					ciId := rnd.ComponentInstanceId.Int64
 					filter := &entity.ComponentInstanceFilter{
 						Paginated:    entity.Paginated{},
@@ -168,7 +167,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 				})
 				It("can filter by a single service id that does exist", func() {
-					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
+					cir := test.PickOne(seedCollection.ComponentInstanceRows)
 					filter := &entity.ComponentInstanceFilter{
 						Paginated: entity.Paginated{},
 						ServiceId: []*int64{&cir.ServiceId.Int64},
@@ -191,7 +190,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 				})
 				It("can filter by a single component version id that does exist", func() {
-					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
+					cir := test.PickOne(seedCollection.ComponentInstanceRows)
 					filter := &entity.ComponentInstanceFilter{
 						Paginated:          entity.Paginated{},
 						ComponentVersionId: []*int64{&cir.ComponentVersionId.Int64},
@@ -216,7 +215,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					})
 				})
 				It("can filter by a single component version version that does exist", func() {
-					cir := seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))]
+					cir := test.PickOne(seedCollection.ComponentInstanceRows)
 					cvr, _ := lo.Find(
 						seedCollection.ComponentVersionRows,
 						func(cv mariadb.ComponentVersionRow) bool {

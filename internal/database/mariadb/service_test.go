@@ -4,7 +4,6 @@
 package mariadb_test
 
 import (
-	"math/rand"
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -100,7 +99,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single name", func() {
-					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					row := test.PickOne(seedCollection.ServiceRows)
 					filter := &entity.ServiceFilter{CCRN: []*string{&row.CCRN.String}}
 
 					entries, err := db.GetServices(filter, nil)
@@ -149,7 +148,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter by a single service domain", func() {
-					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					row := test.PickOne(seedCollection.ServiceRows)
 					filter := &entity.ServiceFilter{Domain: []*string{&row.Domain.String}}
 
 					entries, err := db.GetServices(filter, nil)
@@ -167,7 +166,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter by a single service region", func() {
-					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					row := test.PickOne(seedCollection.ServiceRows)
 					filter := &entity.ServiceFilter{Region: []*string{&row.Region.String}}
 
 					entries, err := db.GetServices(filter, nil)
@@ -185,7 +184,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter by a single service Id", func() {
-					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					row := test.PickOne(seedCollection.ServiceRows)
 					filter := &entity.ServiceFilter{Id: []*int64{&row.Id.Int64}}
 
 					entries, err := db.GetServices(filter, nil)
@@ -200,7 +199,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 				It("can filter by a single support group name", func() {
 					// select a support group
-					sgRow := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
+					sgRow := test.PickOne(seedCollection.SupportGroupRows)
 
 					// collect all service ids that belong to the support group
 					serviceIds := []int64{}
@@ -226,7 +225,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 				It("can filter by a single owner name", func() {
 					// select a user
-					userRow := seedCollection.UserRows[rand.Intn(len(seedCollection.UserRows))]
+					userRow := test.PickOne(seedCollection.UserRows)
 
 					// collect all service ids that belong to the owner
 					serviceIds := []int64{}
@@ -252,7 +251,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 				It("can filter by a single owner id", func() {
 					// select a owner
-					ownerRow := seedCollection.OwnerRows[rand.Intn(len(seedCollection.OwnerRows))]
+					ownerRow := test.PickOne(seedCollection.OwnerRows)
 
 					// collect all service ids that belong to the owner
 					serviceIds := []int64{}
@@ -278,7 +277,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 				It("can filter by a single issue repository id", func() {
 					// select a issue repository
-					irRow := seedCollection.IssueRepositoryRows[rand.Intn(len(seedCollection.IssueRepositoryRows))]
+					irRow := test.PickOne(seedCollection.IssueRepositoryRows)
 
 					// collect all service ids that belong to the issue repository
 					serviceIds := []int64{}
@@ -303,7 +302,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter by a single issue id", func() {
-					imRow := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					imRow := test.PickOne(seedCollection.IssueMatchRows)
 
 					// 1. Collect all issue matches with the same IssueId as the picked one
 					matchingIssueMatches := lo.Filter(
@@ -346,7 +345,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				})
 				It("can filter by a single support group id", func() {
 					// select a support group
-					sgRow := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
+					sgRow := test.PickOne(seedCollection.SupportGroupRows)
 
 					// collect all service ids that belong to the support group
 					serviceIds := []int64{}
@@ -371,7 +370,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					})
 				})
 				It("can filter service ServiceCcrn using wild card search", func() {
-					row := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					row := test.PickOne(seedCollection.ServiceRows)
 
 					const charactersToRemoveFromBeginning = 2
 					const charactersToRemoveFromEnd = 2
@@ -560,7 +559,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			Context("and using a filter", func() {
 				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
 					// select a support group
-					sgRow := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
+					sgRow := test.PickOne(seedCollection.SupportGroupRows)
 
 					// collect all service ids that belong to the support group
 					serviceIds := []int64{}

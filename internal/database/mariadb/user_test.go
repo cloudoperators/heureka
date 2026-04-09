@@ -4,8 +4,6 @@
 package mariadb_test
 
 import (
-	"math/rand"
-
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
@@ -85,7 +83,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single user id that does exist", func() {
-					uId := ids[rand.Intn(len(ids))]
+					uId := test.PickOne(ids)
 					filter := &entity.UserFilter{
 						Id: []*int64{&uId},
 					}
@@ -176,7 +174,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single user id that does exist", func() {
-					user := seedCollection.UserRows[rand.Intn(len(seedCollection.UserRows))]
+					user := test.PickOne(seedCollection.UserRows)
 					filter := &entity.UserFilter{
 						Id: []*int64{&user.Id.Int64},
 					}
@@ -196,7 +194,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 				})
 				It("can filter by a single support group id that does exist", func() {
-					sgu := seedCollection.SupportGroupUserRows[rand.Intn(len(seedCollection.SupportGroupUserRows))]
+					sgu := test.PickOne(seedCollection.SupportGroupUserRows)
 					filter := &entity.UserFilter{
 						SupportGroupId: []*int64{&sgu.SupportGroupId.Int64},
 					}
@@ -225,7 +223,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 				})
 				It("can filter by a single service id that does exist", func() {
-					owner := seedCollection.OwnerRows[rand.Intn(len(seedCollection.OwnerRows))]
+					owner := test.PickOne(seedCollection.OwnerRows)
 					filter := &entity.UserFilter{
 						ServiceId: []*int64{&owner.ServiceId.Int64},
 					}
@@ -254,7 +252,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 				})
 				It("can filter by a single user name", func() {
-					row := seedCollection.UserRows[rand.Intn(len(seedCollection.UserRows))]
+					row := test.PickOne(seedCollection.UserRows)
 
 					filter := &entity.UserFilter{Name: []*string{&row.Name.String}}
 
@@ -273,7 +271,7 @@ var _ = Describe("User", Label("database", "User"), func() {
 					})
 				})
 				It("can filter by a single sap id", func() {
-					row := seedCollection.UserRows[rand.Intn(len(seedCollection.UserRows))]
+					row := test.PickOne(seedCollection.UserRows)
 
 					filter := &entity.UserFilter{UniqueUserID: []*string{&row.UniqueUserID.String}}
 

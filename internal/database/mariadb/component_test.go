@@ -4,7 +4,6 @@
 package mariadb_test
 
 import (
-	"math/rand"
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -57,7 +56,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 			var randomComponent mariadb.ComponentRow
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
-				randomComponent = seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
+				randomComponent = test.PickOne(seedCollection.ComponentRows)
 			})
 
 			Context("and using no filter", func() {
@@ -182,7 +181,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 					)
 				})
 				It("can filter by a single service ccrn", func() {
-					serviceRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					serviceRow := test.PickOne(seedCollection.ServiceRows)
 
 					cvIds := lo.FilterMap(
 						seedCollection.ComponentInstanceRows,
@@ -292,7 +291,7 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 			BeforeEach(func() {
 				seedCollection = seeder.SeedDbWithNFakeData(100)
 				componentRows = seedCollection.ComponentRows
-				randomComponent = componentRows[rand.Intn(len(componentRows))]
+				randomComponent = test.PickOne(componentRows)
 				count = len(componentRows)
 			})
 			Context("and using no filter", func() {

@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -410,4 +411,8 @@ func LoadIssueCounts(filename string) (entity.IssueSeverityCounts, error) {
 	}
 
 	return issueCounts, nil
+}
+
+func PickOne[T any](l []T) T {
+	return l[rand.Intn(len(l))]
 }

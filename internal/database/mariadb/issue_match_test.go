@@ -5,7 +5,6 @@ package mariadb_test
 
 import (
 	"database/sql"
-	"math/rand"
 	"sort"
 	"time"
 
@@ -86,7 +85,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single issue match id that does exist", func() {
-					vmId := ids[rand.Intn(len(ids))]
+					vmId := test.PickOne(ids)
 					filter := &entity.IssueMatchFilter{
 						Id: []*int64{&vmId},
 					}
@@ -106,7 +105,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("can filter by a single issue id that does exist", func() {
-					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
 					filter := &entity.IssueMatchFilter{
 						Paginated: entity.Paginated{},
 						IssueId:   []*int64{&issueMatch.IssueId.Int64},
@@ -204,7 +203,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single issue match id that does exist", func() {
-					im := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					im := test.PickOne(seedCollection.IssueMatchRows)
 					filter := &entity.IssueMatchFilter{
 						Id: []*int64{&im.Id.Int64},
 					}
@@ -224,7 +223,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("can filter by a single issue id that does exist", func() {
-					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
 					filter := &entity.IssueMatchFilter{
 						IssueId: []*int64{&issueMatch.IssueId.Int64},
 					}
@@ -253,7 +252,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("can filter by a single component instance id that does exist", func() {
-					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
 					filter := &entity.IssueMatchFilter{
 						ComponentInstanceId: []*int64{&issueMatch.ComponentInstanceId.Int64},
 					}
@@ -282,7 +281,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("can filter by a service CCRN that exists", func() {
-					service := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					service := test.PickOne(seedCollection.ServiceRows)
 
 					filter := &entity.IssueMatchFilter{
 						ServiceCCRN: []*string{&service.CCRN.String},
@@ -318,7 +317,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("can filter by a single service id that does exist", func() {
-					service := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					service := test.PickOne(seedCollection.ServiceRows)
 
 					filter := &entity.IssueMatchFilter{
 						ServiceId: []*int64{&service.Id.Int64},
@@ -355,7 +354,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("can filter by a single support group name that does exist", func() {
-					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
 					componentInstance, _ := lo.Find(
 						seedCollection.ComponentInstanceRows,
 						func(c mariadb.ComponentInstanceRow) bool {
@@ -406,7 +405,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					}
 				})
 				It("can filter by a single service owner name that does exist", func() {
-					owner := seedCollection.OwnerRows[rand.Intn(len(seedCollection.OwnerRows))]
+					owner := test.PickOne(seedCollection.OwnerRows)
 
 					user, _ := lo.Find(seedCollection.UserRows, func(u mariadb.UserRow) bool {
 						return u.Id.Int64 == owner.UserId.Int64
@@ -435,7 +434,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("can filter by a single service owner unique user id that does exist", func() {
-					owner := seedCollection.OwnerRows[rand.Intn(len(seedCollection.OwnerRows))]
+					owner := test.PickOne(seedCollection.OwnerRows)
 
 					user, _ := lo.Find(seedCollection.UserRows, func(u mariadb.UserRow) bool {
 						return u.Id.Int64 == owner.UserId.Int64
@@ -545,7 +544,7 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 					})
 				})
 				It("does show the correct amount when filtering for an issue", func() {
-					issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
 					filter := &entity.IssueMatchFilter{
 						Paginated: entity.Paginated{},
 						IssueId:   []*int64{&issueMatch.IssueId.Int64},
@@ -583,9 +582,9 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 				seedCollection = seeder.SeedDbWithNFakeData(10)
 				newIssueMatchRow = test.NewFakeIssueMatch()
 				newIssueMatch = newIssueMatchRow.AsIssueMatch()
-				user = seedCollection.UserRows[rand.Intn(len(seedCollection.UserRows))].AsUser()
-				issue = seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))].AsIssue()
-				componentInstance = seedCollection.ComponentInstanceRows[rand.Intn(len(seedCollection.ComponentInstanceRows))].AsComponentInstance()
+				user = test.PickOne(seedCollection.UserRows).AsUser()
+				issue = test.PickOne(seedCollection.IssueRows).AsIssue()
+				componentInstance = test.PickOne(seedCollection.ComponentInstanceRows).AsComponentInstance()
 				newIssueMatch.UserId = user.Id
 				newIssueMatch.IssueId = issue.Id
 				newIssueMatch.ComponentInstanceId = componentInstance.Id

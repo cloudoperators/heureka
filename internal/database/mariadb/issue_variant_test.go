@@ -4,8 +4,6 @@
 package mariadb_test
 
 import (
-	"math/rand"
-
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -99,7 +97,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single issue variant id that does exist", func() {
-					issueVariant := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+					issueVariant := test.PickOne(seedCollection.IssueVariantRows)
 					filter := &entity.IssueVariantFilter{
 						Id: []*int64{&issueVariant.Id.Int64},
 					}
@@ -119,7 +117,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					})
 				})
 				It("can filter by a single issue id", func() {
-					rnd := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+					rnd := test.PickOne(seedCollection.IssueVariantRows)
 					issueId := rnd.IssueId.Int64
 
 					issueVariants := seedCollection.GetIssueVariantsByIssueId(issueId)
@@ -150,8 +148,8 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					})
 				})
 				It("can filter by multiple issue ids ", func() {
-					rnd1 := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
-					rnd2 := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
+					rnd1 := test.PickOne(seedCollection.IssueRows)
+					rnd2 := test.PickOne(seedCollection.IssueRows)
 
 					issueId1 := rnd1.Id.Int64
 					issueId2 := rnd2.Id.Int64
@@ -191,7 +189,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					})
 				})
 				It("can filter by a single issue repository id", func() {
-					ir := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+					ir := test.PickOne(seedCollection.IssueVariantRows)
 					filter := &entity.IssueVariantFilter{
 						Paginated:         entity.Paginated{},
 						IssueRepositoryId: []*int64{&ir.IssueRepositoryId.Int64},
@@ -216,7 +214,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					})
 				})
 				It("can filter by a single service id", func() {
-					service := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					service := test.PickOne(seedCollection.ServiceRows)
 					issueVariants := seedCollection.GetIssueVariantsByService(&service)
 
 					filter := &entity.IssueVariantFilter{
@@ -246,7 +244,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					})
 				})
 				It("can filter by a single issue match id", func() {
-					im := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+					im := test.PickOne(seedCollection.IssueMatchRows)
 					issueVariants := seedCollection.GetIssueVariantsByIssueMatch(&im)
 
 					filter := &entity.IssueVariantFilter{
@@ -276,7 +274,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 					})
 				})
 				It("can filter by a secondary name", func() {
-					iv := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+					iv := test.PickOne(seedCollection.IssueVariantRows)
 
 					filter := &entity.IssueVariantFilter{
 						SecondaryName: []*string{&iv.SecondaryName.String},
@@ -385,7 +383,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 
 			Context("and using a filter", func() {
 				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
-					rnd := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+					rnd := test.PickOne(seedCollection.IssueVariantRows)
 					issueId := rnd.IssueId.Int64
 
 					issueVariants := seedCollection.GetIssueVariantsByIssueId(issueId)
