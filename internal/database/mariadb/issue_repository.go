@@ -70,6 +70,27 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:  "IRS",
+			Type:  LeftJoin,
+			Table: "IssueRepositoryService IRS",
+			On:    "IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id",
+			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ []entity.Order) bool {
+				return len(f.ServiceId) > 0
+			}),
+		},
+		{
+			Name:      "S",
+			Type:      LeftJoin,
+			Table:     "Service S",
+			On:        "IRS.issuerepositoryservice_service_id = S.service_id",
+			DependsOn: []string{"IRS"},
+			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ []entity.Order) bool {
+				return len(f.ServiceCCRN) > 0
+			}),
+		},
+	},
 }
 
 func ensureIssueRepositoryFilter(

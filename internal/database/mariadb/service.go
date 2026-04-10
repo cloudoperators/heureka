@@ -107,6 +107,83 @@ var serviceObject = DbObject[*entity.Service]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:  "O",
+			Type:  LeftJoin,
+			Table: "Owner O",
+			On:    "S.service_id = O.owner_service_id",
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+				return len(f.OwnerId) > 0
+			}),
+		},
+		{
+			Name:      "U",
+			Type:      LeftJoin,
+			Table:     "User U",
+			On:        "O.owner_user_id = U.user_id",
+			DependsOn: []string{"O"},
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+				return len(f.OwnerName) > 0
+			}),
+		},
+		{
+			Name:  "SGS",
+			Type:  LeftJoin,
+			Table: "SupportGroupService SGS",
+			On:    "S.service_id = SGS.supportgroupservice_service_id",
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+				return len(f.SupportGroupId) > 0
+			}),
+		},
+		{
+			Name:      "SG",
+			Type:      LeftJoin,
+			Table:     "SupportGroup SG",
+			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
+			DependsOn: []string{"SGS"},
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+				return len(f.SupportGroupCCRN) > 0
+			}),
+		},
+		{
+			Name:  "CI",
+			Type:  LeftJoin,
+			Table: "ComponentInstance CI",
+			On:    "S.service_id = CI.componentinstance_service_id",
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+				return len(f.ComponentInstanceId) > 0
+			}),
+		},
+		{
+			Name:      "IM",
+			Type:      LeftJoin,
+			Table:     "IssueMatch IM",
+			On:        "CI.componentinstance_id = IM.issuematch_component_instance_id",
+			DependsOn: []string{"CI"},
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+				return len(f.IssueId) > 0
+			}),
+		},
+		{
+			Name:  "IRS",
+			Type:  LeftJoin,
+			Table: "IssueRepositoryService IRS",
+			On:    "S.service_id = IRS.issuerepositoryservice_service_id",
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+				return len(f.IssueRepositoryId) > 0
+			}),
+		},
+		{
+			Name:  "SIC",
+			Type:  LeftJoin,
+			Table: "mvServiceIssueCounts SIC",
+			On:    "S.service_id = SIC.service_id",
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, order []entity.Order) bool {
+				return OrderByCount(order)
+			}),
+		},
+	},
 }
 
 func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {
@@ -119,13 +196,6 @@ func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {
 
 func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []entity.Order) string {
 	joins := ""
-	orderByCount := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.CriticalCount || o.By == entity.HighCount ||
-			o.By == entity.MediumCount ||
-			o.By == entity.LowCount ||
-			o.By == entity.NoneCount
-	})
-
 	if len(filter.OwnerName) > 0 || len(filter.OwnerId) > 0 {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN Owner O on S.service_id = O.owner_service_id
@@ -167,8 +237,7 @@ func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []enti
 			LEFT JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
 		`)
 	}
-
-	if orderByCount {
+	if OrderByCount(order) {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN mvServiceIssueCounts SIC ON S.service_id = SIC.service_id
 		`)

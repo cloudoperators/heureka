@@ -22,6 +22,7 @@ type DbObject[ET entity.Entity] struct {
 	TableName        string
 	Properties       []*Property
 	FilterProperties []*FilterProperty
+	JoinDefs         []*JoinDef
 }
 
 func (do *DbObject[ET]) InsertQuery(entityItem ET) (string, []any, error) {
@@ -160,6 +161,10 @@ func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
 	return err
 }
 
+func (do *DbObject[ET]) GetJoins(filter any, order []entity.Order) string {
+	return NewJoinResolver(do.JoinDefs).Build(filter, order)
+}
+
 // Property
 const NoUpdate = false
 
@@ -244,6 +249,103 @@ func NewCustomFilterProperty(
 		Param:         param,
 		ParamAppender: doNotAppendParameters,
 	}
+}
+
+// Join
+type JoinType string
+
+const (
+	LeftJoin  JoinType = "LEFT JOIN"
+	RightJoin JoinType = "RIGHT JOIN"
+	InnerJoin JoinType = "JOIN"
+)
+
+func DependentJoin(any, []entity.Order) bool { return false }
+func AlwaysJoin(any, []entity.Order) bool    { return true }
+
+type JoinDef struct {
+	Name      string
+	Type      JoinType
+	Table     string
+	On        string
+	DependsOn []string
+	Condition func(any, []entity.Order) bool
+}
+
+type JoinResolver struct {
+	defs     map[string]*JoinDef
+	included map[string]bool
+	order    []string
+}
+
+func NewJoinResolver(defs []*JoinDef) *JoinResolver {
+	r := &JoinResolver{
+		defs:     map[string]*JoinDef{},
+		included: map[string]bool{},
+	}
+	for _, d := range defs {
+		r.defs[d.Name] = d
+	}
+	return r
+}
+
+func (jr *JoinResolver) require(name string) {
+	if jr.included[name] {
+		return
+	}
+
+	def, ok := jr.defs[name]
+	if !ok {
+		panic("Unknown join: " + name)
+	}
+
+	// resolve dependencies first
+	for _, dep := range def.DependsOn {
+		jr.require(dep)
+	}
+
+	jr.included[name] = true
+	jr.order = append(jr.order, name)
+}
+
+func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
+	for _, def := range jr.defs {
+		if def.Condition != nil && def.Condition(filter, order) {
+			jr.require(def.Name)
+		}
+	}
+
+	var result []string
+	for _, name := range jr.order {
+		j := jr.defs[name]
+
+		joinSQL := fmt.Sprintf("%s %s ON %s",
+			j.Type,
+			j.Table,
+			j.On,
+		)
+
+		result = append(result, joinSQL)
+	}
+
+	return strings.Join(result, "\n")
+}
+
+func (jr *JoinResolver) Apply(builder sq.SelectBuilder, filter any, order []entity.Order) sq.SelectBuilder {
+	for _, def := range jr.defs {
+		if def.Condition != nil && def.Condition(filter, order) { //TODO: consider def.Condition == nil -> AlwaysJoin
+			jr.require(def.Name)
+		}
+	}
+
+	for _, name := range jr.order {
+		j := jr.defs[name]
+		builder = builder.JoinClause(
+			fmt.Sprintf("%s %s ON %s", j.Type, j.Table, j.On),
+		)
+	}
+
+	return builder
 }
 
 // DB helpers
@@ -392,6 +494,17 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 	}
 }
 
+// WrapJoinCondition turns a type-specific join planner condition using filter and order
+func WrapJoinCondition[T any](joinCond func(T, []entity.Order) bool) func(any, []entity.Order) bool {
+	return func(filter any, order []entity.Order) bool {
+		typedFilter, ok := filter.(T)
+		if !ok {
+			panic(fmt.Sprintf("WrapJoinCondition: expected %T but got %T", *new(T), filter))
+		}
+		return joinCond(typedFilter, order)
+	}
+}
+
 func ToStateSlice(in []any) []entity.StateFilterType {
 	out := make([]entity.StateFilterType, len(in))
 	for i := range in {
@@ -432,4 +545,12 @@ func ValueOrDefault[T any](p *T, def T) T {
 	}
 
 	return *p
+}
+
+func DebugStringNotEqual(s1 string, s2 string) string { //TODO: remove
+	if s1 != s2 {
+		fmt.Println("S1: ", s1)
+		fmt.Println("S2: ", s2)
+	}
+	return s2
 }

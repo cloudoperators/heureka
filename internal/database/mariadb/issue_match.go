@@ -157,6 +157,106 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:  "I",
+			Type:  LeftJoin,
+			Table: "Issue I",
+			On:    "IM.issuematch_issue_id = I.issue_id",
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, order []entity.Order) bool {
+				orderByIssuePrimaryName := lo.ContainsBy(order, func(o entity.Order) bool {
+					return o.By == entity.IssuePrimaryName
+				})
+				return len(f.IssueType) > 0 || len(f.PrimaryName) > 0 || orderByIssuePrimaryName
+			}),
+		},
+		{
+			Name:      "IV",
+			Type:      LeftJoin,
+			Table:     "IssueVariant IV",
+			On:        "I.issue_id = IV.issuevariant_issue_id",
+			DependsOn: []string{"I"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.Search) > 0
+			}),
+		},
+		{
+			Name:  "CI",
+			Type:  LeftJoin,
+			Table: "ComponentInstance CI",
+			On:    "IM.issuematch_component_instance_id = CI.componentinstance_id",
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, order []entity.Order) bool {
+				orderByCiCcrn := lo.ContainsBy(order, func(o entity.Order) bool {
+					return o.By == entity.ComponentInstanceCcrn
+				})
+				return orderByCiCcrn || len(f.ServiceId) > 0
+			}),
+		},
+		{
+			Name:      "CV",
+			Type:      LeftJoin,
+			Table:     "ComponentVersion CV",
+			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
+			DependsOn: []string{"CI"},
+			Condition: DependentJoin,
+		},
+		{
+			Name:      "C",
+			Type:      LeftJoin,
+			Table:     "Componen C",
+			On:        "CV.componentversion_component_id = C.component_id",
+			DependsOn: []string{"CV"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.ComponentCCRN) > 0
+			}),
+		},
+		{
+			Name:      "S",
+			Type:      LeftJoin,
+			Table:     "Service S",
+			On:        "CI.componentinstance_service_id = S.service_id",
+			DependsOn: []string{"CI"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.ServiceCCRN) > 0
+			}),
+		},
+		{
+			Name:      "SGS",
+			Type:      LeftJoin,
+			Table:     "SupportGroupService SGS",
+			On:        "S.service_id = SS.supportgroupservice_service_id",
+			DependsOn: []string{"S"},
+			Condition: DependentJoin,
+		},
+		{
+			Name:      "SG",
+			Type:      LeftJoin,
+			Table:     "SupportGroup SG",
+			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
+			DependsOn: []string{"SGS"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.SupportGroupCCRN) > 0
+			}),
+		},
+		{
+			Name:      "O",
+			Type:      LeftJoin,
+			Table:     "Owner O",
+			On:        "CI.componentinstance_service_id = O.owner_service_id",
+			DependsOn: []string{"CI"},
+			Condition: DependentJoin,
+		},
+		{
+			Name:      "U",
+			Type:      LeftJoin,
+			Table:     "User U",
+			On:        "O.owner_user_id = U.user_id",
+			DependsOn: []string{"O"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.ServiceOwnerUsername) > 0 || len(f.ServiceOwnerUniqueUserId) > 0
+			}),
+		},
+	},
 }
 
 func ensureIssueMatchFilter(filter *entity.IssueMatchFilter) *entity.IssueMatchFilter {

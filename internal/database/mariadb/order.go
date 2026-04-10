@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
 )
 
 func ColumnName(f entity.OrderByField) string {
@@ -131,4 +132,10 @@ func CreateOrderString(order []entity.Order) string {
 	}
 
 	return orderStr
+}
+
+func OrderByCount(order []entity.Order) bool {
+	return lo.ContainsBy(order, func(o entity.Order) bool {
+		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
+	})
 }

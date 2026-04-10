@@ -69,6 +69,44 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:  "SGS",
+			Type:  InnerJoin,
+			Table: "SupportGroupService SGS",
+			On:    "SG.supportgroup_id = SGS.supportgroupservice_support_group_id",
+			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ []entity.Order) bool {
+				return len(f.ServiceId) > 0
+			}),
+		},
+		{
+			Name:      "CI",
+			Type:      InnerJoin,
+			Table:     "ComponentInstance CI",
+			On:        "SGS.supportgroupservice_service_id = CI.componentinstance_service_id",
+			DependsOn: []string{"SGS"},
+			Condition: DependentJoin,
+		},
+		{
+			Name:      "IM",
+			Type:      InnerJoin,
+			Table:     "IssueMatch IM",
+			On:        "CI.componentinstance_id = IM.issuematch_component_instance_id",
+			DependsOn: []string{"CI"},
+			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ []entity.Order) bool {
+				return len(f.IssueId) > 0
+			}),
+		},
+		{
+			Name:  "SGU",
+			Type:  InnerJoin,
+			Table: "SupportGroupUser SGU",
+			On:    "SG.supportgroup_id = SGU.supportgroupuser_support_group_id",
+			Condition: WrapJoinCondition(func(f *entity.SupportGroupFilter, _ []entity.Order) bool {
+				return len(f.UserId) > 0
+			}),
+		},
+	},
 }
 
 func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) string {

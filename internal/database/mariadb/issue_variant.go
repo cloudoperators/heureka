@@ -112,6 +112,44 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:      "IR",
+			Type:      InnerJoin,
+			Table:     "IssueRepository IR",
+			On:        "IV.issuevariant_repository_id = IR.issuerepository_id",
+			Condition: AlwaysJoin,
+		},
+		{
+			Name:      "IRS",
+			Type:      InnerJoin,
+			Table:     "IssueRepositoryService IRS",
+			On:        "IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id",
+			DependsOn: []string{"IR"},
+			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ []entity.Order) bool {
+				return len(f.ServiceId) > 0
+			}),
+		},
+		{
+			Name:  "I",
+			Type:  InnerJoin,
+			Table: "Issue I",
+			On:    "IV.issuevariant_issue_id = I.issue_id",
+			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ []entity.Order) bool {
+				return len(f.IssueId) > 0
+			}),
+		},
+		{
+			Name:      "IM",
+			Type:      InnerJoin,
+			Table:     "IssueMatch IM",
+			On:        "I.issue_id = IM.issuematch_issue_id",
+			DependsOn: []string{"I"},
+			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ []entity.Order) bool {
+				return len(f.IssueMatchId) > 0
+			}),
+		},
+	},
 }
 
 func ensureIssueVariantFilter(filter *entity.IssueVariantFilter) *entity.IssueVariantFilter {
