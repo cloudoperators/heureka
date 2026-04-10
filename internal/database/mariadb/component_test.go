@@ -33,6 +33,8 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 	})
 
 	When("Getting Components", Label("GetComponents"), func() {
+		// This is tricky because expectedComponents is not check against content, just length, so it should be expectedComponentsLen insted of expectedComponents
+		// TODO: decide to use Len or at least check ids of expected components
 		testGetComponents := func(filter *entity.ComponentFilter, order []entity.Order, expectedComponents []mariadb.ComponentRow, check func(entries []entity.ComponentResult)) {
 			res, err := db.GetComponents(filter, order)
 			Expect(err).To(BeNil(), "GetComponents should not error")
@@ -234,6 +236,16 @@ var _ = Describe("Component", Label("database", "Component"), func() {
 							}
 						},
 					)
+				})
+				It("can filter by a single component version id", func() {
+					componentRow, componentVersionRow, ok := seedCollection.FindMatchingComponentAndComponentVersion()
+					Expect(ok).To(BeTrue())
+					filter := &entity.ComponentFilter{ComponentVersionId: []*int64{&componentVersionRow.Id.Int64}}
+					testGetComponents(filter, []entity.Order{}, []mariadb.ComponentRow{componentRow}, func(entries []entity.ComponentResult) {
+						for _, entry := range entries {
+							Expect(entry.Id).To(BeEquivalentTo(componentVersionRow.ComponentId.Int64))
+						}
+					})
 				})
 			})
 			Context("and using pagination", func() {

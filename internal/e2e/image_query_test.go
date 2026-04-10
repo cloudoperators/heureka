@@ -4,6 +4,7 @@
 package e2e_test
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 
@@ -56,13 +57,16 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 						"after": "",
 					})
 
+				Expect(err).ToNot(HaveOccurred())
 				expectRespDataCounts(respData.Images, 5, 3)
 				expectRespImagesFilledAndInOrder(&respData.Images)
 				expectPageInfoTwoPagesBeingOnFirst(respData.Images.PageInfo)
-				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
 			},
 		)
+		It("returns images sorted by vulnerability severity counts then by repository name", func() {
+			imgTest.testImageSortingWithTieBreaker()
+		})
 		It(
 			"returns the expected content and the expected PageInfo when filtered using repository",
 			func() {
@@ -106,10 +110,10 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 						"after": "",
 					})
 
+				Expect(err).ToNot(HaveOccurred())
 				expectRespDataCounts(respData.Images, 1, 1)
 				expectRespImagesFilledAndInOrder(&respData.Images)
 				Expect(*respData.Images.Counts).To(Equal(counts))
-				Expect(err).ToNot(HaveOccurred())
 			},
 		)
 	})
@@ -220,6 +224,117 @@ func (it *imageTest) seed10Entries() {
 
 	err = it.seeder.RefreshComponentVulnerabilityCounts()
 	Expect(err).To(BeNil())
+}
+
+func (it *imageTest) seedTieBreakerData() {
+	service := test.NewFakeBaseService()
+	serviceId, err := it.seeder.InsertFakeBaseService(service)
+	Expect(err).To(BeNil())
+
+	service.Id = sql.NullInt64{Int64: serviceId, Valid: true}
+	it.services = append(it.services, service)
+
+	issue := test.NewFakeIssue()
+	issue.Type = sql.NullString{String: entity.IssueTypeVulnerability.String(), Valid: true}
+	issueId, err := it.seeder.InsertFakeIssue(issue)
+	Expect(err).To(BeNil())
+
+	iv := mariadb.IssueVariantRow{
+		SecondaryName:     sql.NullString{String: "CVE-2025-TIE-BREAKER", Valid: true},
+		Description:       sql.NullString{String: "A tie-breaker vulnerability", Valid: true},
+		IssueId:           sql.NullInt64{Int64: issueId, Valid: true},
+		IssueRepositoryId: sql.NullInt64{Int64: 1, Valid: true}, // From SeedIssueRepositories
+		Rating:            sql.NullString{String: entity.SeverityValuesCritical.String(), Valid: true},
+	}
+	_, err = it.seeder.InsertFakeIssueVariant(iv)
+	Expect(err).To(BeNil())
+
+	for _, repoName := range []string{"B_tie_repo", "A_tie_repo"} {
+		component := test.NewFakeComponent()
+		component.Repository = sql.NullString{String: repoName, Valid: true}
+		compId, err := it.seeder.InsertFakeComponent(component)
+		Expect(err).To(BeNil())
+
+		cv := test.NewFakeComponentVersion()
+		cv.ComponentId = sql.NullInt64{Int64: compId, Valid: true}
+		cvId, err := it.seeder.InsertFakeComponentVersion(cv)
+		Expect(err).To(BeNil())
+
+		cvi := test.NewFakeComponentVersionIssue()
+		cvi.ComponentVersionId = sql.NullInt64{Int64: cvId, Valid: true}
+		cvi.IssueId = sql.NullInt64{Int64: issueId, Valid: true}
+		_, err = it.seeder.InsertFakeComponentVersionIssue(cvi)
+		Expect(err).To(BeNil())
+
+		ci := test.NewFakeComponentInstance()
+		ci.ServiceId = sql.NullInt64{Int64: serviceId, Valid: true}
+		ci.ComponentVersionId = sql.NullInt64{Int64: cvId, Valid: true}
+		_, err = it.seeder.InsertFakeComponentInstance(ci)
+		Expect(err).To(BeNil())
+	}
+
+	err = it.seeder.RefreshComponentVulnerabilityCounts()
+	Expect(err).To(BeNil())
+}
+
+func (it *imageTest) testImageSortingWithTieBreaker() {
+	it.seedTieBreakerData()
+
+	respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+		Images model.ImageConnection `json:"Images"`
+	}](
+		it.port,
+		"../api/graphql/graph/queryCollection/image/query.graphql",
+		map[string]interface{}{
+			"filter": map[string]any{
+				"service": lo.Map(
+					it.services,
+					func(item mariadb.BaseServiceRow, index int) string { return item.CCRN.String },
+				),
+			},
+			"first": 20,
+			"after": "",
+		})
+
+	Expect(err).ToNot(HaveOccurred())
+	Expect(respData.Images.Edges).To(HaveLen(7), "Should return all 7 images")
+
+	var previousCounts model.SeverityCounts
+
+	var previousRepository string
+
+	hadEqualCountsPair := false
+
+	for i, edge := range respData.Images.Edges {
+		Expect(edge.Node.Repository).ToNot(BeNil(), "Image should have repository")
+		Expect(edge.Node.VulnerabilityCounts).ToNot(BeNil(), "Image should have vulnerability counts")
+
+		counts := *edge.Node.VulnerabilityCounts
+		repository := *edge.Node.Repository
+
+		if i > 0 {
+			comparison := e2e_common.CompareSeverityCounts(counts, previousCounts)
+			// Verify Primary Ordering: Severity Counts (Descending)
+			Expect(comparison).To(BeNumerically("<=", 0),
+				fmt.Sprintf("Image %d (%s) should have equal or lower severity than image %d (%s). Counts: %v vs %v",
+					i, repository, i-1, previousRepository, counts, previousCounts))
+
+			// Verify Secondary Ordering: Repository Name (Ascending)
+			if comparison == 0 {
+				hadEqualCountsPair = true
+
+				Expect(previousRepository <= repository).To(BeTrue(),
+					fmt.Sprintf("Image %d (%s) should sort after image %d (%s) when severity counts are equal. Counts: %v",
+						i, repository, i-1, previousRepository, counts))
+			}
+		}
+
+		previousCounts = counts
+		previousRepository = repository
+	}
+
+	Expect(hadEqualCountsPair).To(BeTrue(),
+		"Test setup should include at least one pair of images with equal vulnerability counts to verify secondary ordering")
 }
 
 func loadTestData() ([]mariadb.ComponentVersionRow, []mariadb.ComponentInstanceRow, []mariadb.IssueVariantRow, []mariadb.ComponentVersionIssueRow, []mariadb.IssueMatchRow, error) {
