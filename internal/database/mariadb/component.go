@@ -178,6 +178,7 @@ func (s *SqlDatabase) needAllComponentByServiceVulnerabilityCounts(
 			o.By == entity.LowCount ||
 			o.By == entity.NoneCount
 	})
+
 	return !orderByCount && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0))
 }
 

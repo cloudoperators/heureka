@@ -56,32 +56,13 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 						"after": "",
 					})
 
+				Expect(err).ToNot(HaveOccurred())
 				expectRespDataCounts(respData.Images, 5, 3)
 				expectRespImagesFilledAndInOrder(&respData.Images)
 				expectPageInfoTwoPagesBeingOnFirst(respData.Images.PageInfo)
-				Expect(err).ToNot(HaveOccurred())
 				Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
 			},
 		)
-		It(
-			"returns the expected content and the expected PageInfo when filtered using repository",
-			func() {
-				service := imgTest.services[0]
-				componentInstances := lo.Filter(
-					imgTest.componentInstances,
-					func(ci mariadb.ComponentInstanceRow, _ int) bool {
-						return ci.ServiceId.Int64 == service.Id.Int64
-					},
-					"first": 3,
-					"after": "",
-				})
-
-			expectRespDataCounts(respData.Images, 5, 3)
-			expectRespImagesFilledAndInOrder(&respData.Images)
-			expectPageInfoTwoPagesBeingOnFirst(respData.Images.PageInfo)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*respData.Images.Counts).To(Equal(imgTest.counts))
-		})
 		It("returns images sorted by vulnerability severity counts then by repository name", func() {
 			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
 				Images model.ImageConnection `json:"Images"`
@@ -90,7 +71,10 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 				"../api/graphql/graph/queryCollection/image/query.graphql",
 				map[string]interface{}{
 					"filter": map[string]any{
-						"service": lo.Map(imgTest.services, func(item mariadb.BaseServiceRow, index int) string { return item.CCRN.String }),
+						"service": lo.Map(
+							imgTest.services,
+							func(item mariadb.BaseServiceRow, index int) string { return item.CCRN.String },
+						),
 					},
 					"first": 10,
 					"after": "",
@@ -123,32 +107,20 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 				Expect(edge.Node.VulnerabilityCounts).ToNot(BeNil(), "Image should have vulnerability counts")
 			}
 		})
-		It("returns the expected content and the expected PageInfo when filtered using repository", func() {
-			service := imgTest.services[0]
-			componentInstances := lo.Filter(imgTest.componentInstances, func(ci mariadb.ComponentInstanceRow, _ int) bool {
-				return ci.ServiceId.Int64 == service.Id.Int64
-			})
-			componentVersion, found := lo.Find(imgTest.componentVersions, func(cv mariadb.ComponentVersionRow) bool {
-				return cv.Id.Int64 == componentInstances[0].ComponentVersionId.Int64
-			})
-			Expect(found).To(BeTrue(), "ComponentVersion for ComponentInstance should be found")
-			component, foundComp := lo.Find(imgTest.components, func(c mariadb.ComponentRow) bool {
-				return c.Id.Int64 == componentVersion.ComponentId.Int64
-			})
-			Expect(foundComp).To(BeTrue(), "Component for ComponentVersion should be found")
-			// test data is setup so that first two component versions (having each one critical vulnerability)
-			// belong to first service and first component
-			counts := model.SeverityCounts{Critical: 2, Total: 2}
-
-			respData, err := e2e_common.ExecuteGqlQueryFromFile[struct {
-				Images model.ImageConnection `json:"Images"`
-			}](
-				imgTest.port,
-				"../api/graphql/graph/queryCollection/image/query.graphql",
-				map[string]interface{}{
-					"filter": map[string]any{
-						"repository": []string{component.Repository.String},
-						"service":    []string{service.CCRN.String},
+		It(
+			"returns the expected content and the expected PageInfo when filtered using repository",
+			func() {
+				service := imgTest.services[0]
+				componentInstances := lo.Filter(
+					imgTest.componentInstances,
+					func(ci mariadb.ComponentInstanceRow, _ int) bool {
+						return ci.ServiceId.Int64 == service.Id.Int64
+					},
+				)
+				componentVersion, found := lo.Find(
+					imgTest.componentVersions,
+					func(cv mariadb.ComponentVersionRow) bool {
+						return cv.Id.Int64 == componentInstances[0].ComponentVersionId.Int64
 					},
 				)
 				Expect(found).To(BeTrue(), "ComponentVersion for ComponentInstance should be found")
@@ -178,10 +150,10 @@ var _ = Describe("Getting Images via API", Label("e2e", "Images"), func() {
 						"after": "",
 					})
 
+				Expect(err).ToNot(HaveOccurred())
 				expectRespDataCounts(respData.Images, 1, 1)
 				expectRespImagesFilledAndInOrder(&respData.Images)
 				Expect(*respData.Images.Counts).To(Equal(counts))
-				Expect(err).ToNot(HaveOccurred())
 			},
 		)
 	})
