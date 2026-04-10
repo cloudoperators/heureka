@@ -182,8 +182,8 @@ func getIssueJoinsExtended(filter *entity.IssueFilter, order []entity.Order, inc
 		`)
 	}
 
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices || includeAggJoins {
-
+	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 || filter.AllServices ||
+		includeAggJoins {
 		joins = fmt.Sprintf("%s\n%s", joins, `
 			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
 		`)
@@ -435,7 +435,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 
 	filter = ensureIssueFilter(filter)
 	joins := getIssueJoinsExtended(filter, order, true)
-	cursorFields, err := DecodeCursor(filter.Paginated.After)
+
+	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, err
 	}
@@ -635,9 +636,10 @@ func (s *SqlDatabase) GetAllIssueCursors(
 		if row.IssueVariantRow != nil {
 			ivRating = row.RatingNumerical.Int64
 		}
+
 		var etrd time.Time
 		if row.IssueAggregationsRow != nil {
-			etrd = GetTimeValue(row.IssueAggregationsRow.EarliestTargetRemediationDate)
+			etrd = GetTimeValue(row.EarliestTargetRemediationDate)
 		}
 
 		cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating, etrd))
@@ -685,9 +687,10 @@ func (s *SqlDatabase) GetIssues(
 			if e.IssueVariantRow != nil {
 				ivRating = e.RatingNumerical.Int64
 			}
+
 			var etrd time.Time
 			if e.IssueAggregationsRow != nil {
-				etrd = GetTimeValue(e.IssueAggregationsRow.EarliestTargetRemediationDate)
+				etrd = GetTimeValue(e.EarliestTargetRemediationDate)
 			}
 
 			cursor, _ := EncodeCursor(WithIssue(order, issue, ivRating, etrd))

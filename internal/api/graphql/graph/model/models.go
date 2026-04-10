@@ -469,10 +469,12 @@ func NewVulnerability(issue *entity.Issue, aggregations *entity.IssueAggregation
 		Name:        &issue.PrimaryName,
 		Description: &issue.Description,
 	}
+
 	if aggregations != nil && !aggregations.EarliestTargetRemediationDate.IsZero() {
 		date := aggregations.EarliestTargetRemediationDate.Format(time.RFC3339)
 		v.EarliestTargetRemediationDate = &date
 	}
+
 	return v
 }
 

@@ -517,7 +517,9 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						},
 						[]entity.Order{},
 						func(entries []entity.IssueResult) string {
-							after, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, *entries[len(entries)-1].Issue, 0, time.Time{}))
+							after, _ := mariadb.EncodeCursor(
+								mariadb.WithIssue([]entity.Order{}, *entries[len(entries)-1].Issue, 0, time.Time{}),
+							)
 							return after
 						},
 						len(seedCollection.IssueRows),
@@ -1283,7 +1285,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 			// 2. Issue 3 (Feb 17 07:15)
 			// 3. Issue 1 (Feb 17 01:10)
 
-			var idx1, idx2, idx3 int = -1, -1, -1
+			idx1, idx2, idx3 := -1, -1, -1
 			for i, r := range res {
 				if r.Issue.Id == issue1Row.Id.Int64 {
 					idx1 = i

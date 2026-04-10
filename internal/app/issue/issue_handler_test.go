@@ -238,12 +238,14 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 			db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
 			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
 			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
-			issueHandler = appIssue.NewIssueHandler(handlerContext)
+			issueHandler = issue.NewIssueHandler(handlerContext)
 			res, err := issueHandler.ListIssues(filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.PageInfo.HasNextPage).To(BeEquivalentTo(hasNextPage), "correct hasNextPage indicator")
 			Expect(len(res.Elements)).To(BeEquivalentTo(resElements))
-			Expect(len(res.PageInfo.Pages)).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
+			Expect(
+				len(res.PageInfo.Pages),
+			).To(BeEquivalentTo(int(math.Ceil(float64(dbElements)/float64(pageSize)))), "correct  number of pages")
 		},
 			Entry("When pageSize is 1 and the database was returning 2 elements", 1, 2, 1, true),
 			Entry("When pageSize is 10 and the database was returning 9 elements", 10, 9, 9, false),
