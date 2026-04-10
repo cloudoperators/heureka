@@ -4,8 +4,6 @@
 package mariadb_test
 
 import (
-	"math/rand"
-
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -96,7 +94,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single id", func() {
-					row := seedCollection.PatchRows[rand.Intn(len(seedCollection.PatchRows))]
+					row := test.PickOne(seedCollection.PatchRows)
 					filter := &entity.PatchFilter{Id: []*int64{&row.Id.Int64}}
 
 					entries, err := db.GetPatches(filter, nil)
@@ -112,7 +110,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					})
 				})
 				It("can filter by a service id", func() {
-					row := seedCollection.PatchRows[rand.Intn(len(seedCollection.PatchRows))]
+					row := test.PickOne(seedCollection.PatchRows)
 					filter := &entity.PatchFilter{ServiceId: []*int64{&row.ServiceId.Int64}}
 
 					entries, err := db.GetPatches(filter, nil)
@@ -130,7 +128,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					})
 				})
 				It("can filter by a service name", func() {
-					row := seedCollection.PatchRows[rand.Intn(len(seedCollection.PatchRows))]
+					row := test.PickOne(seedCollection.PatchRows)
 					filter := &entity.PatchFilter{ServiceName: []*string{&row.ServiceName.String}}
 
 					entries, err := db.GetPatches(filter, nil)
@@ -148,7 +146,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					})
 				})
 				It("can filter by a component version id", func() {
-					row := seedCollection.PatchRows[rand.Intn(len(seedCollection.PatchRows))]
+					row := test.PickOne(seedCollection.PatchRows)
 					filter := &entity.PatchFilter{
 						ComponentVersionId: []*int64{&row.ComponentVersionId.Int64},
 					}
@@ -170,7 +168,7 @@ var _ = Describe("Patch", Label("database", "Patch"), func() {
 					})
 				})
 				It("can filter by a component version name", func() {
-					row := seedCollection.PatchRows[rand.Intn(len(seedCollection.PatchRows))]
+					row := test.PickOne(seedCollection.PatchRows)
 					filter := &entity.PatchFilter{
 						ComponentVersionName: []*string{&row.ComponentVersionName.String},
 					}

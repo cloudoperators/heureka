@@ -265,7 +265,7 @@ type IssueRow struct {
 	UpdatedBy   sql.NullInt64  `db:"issue_updated_by"   json:"updated_by"`
 }
 
-func (ir *IssueRow) AsIssue() entity.Issue {
+func (ir IssueRow) AsIssue() entity.Issue {
 	return entity.Issue{
 		Id:            GetInt64Value(ir.Id),
 		PrimaryName:   GetStringValue(ir.PrimaryName),
@@ -297,7 +297,7 @@ type IssueAggregationsRow struct {
 	EarliestDiscoveryDate         sql.NullTime  `db:"agg_earliest_discovery_date"`
 }
 
-func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregations {
+func (ibr GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregations {
 	return entity.IssueWithAggregations{
 		IssueAggregations: entity.IssueAggregations{
 			IssueMatches:      lo.Max([]int64{0, GetInt64Value(ibr.IssueMatches)}),
@@ -327,7 +327,7 @@ func (ibr *GetIssuesByRow) AsIssueWithAggregations() entity.IssueWithAggregation
 	}
 }
 
-func (ibr *GetIssuesByRow) AsIssue() entity.Issue {
+func (ibr GetIssuesByRow) AsIssue() entity.Issue {
 	return entity.Issue{
 		Id:            GetInt64Value(ibr.Id),
 		PrimaryName:   GetStringValue(ibr.PrimaryName),
@@ -350,7 +350,7 @@ type IssueCountRow struct {
 	Value sql.NullString `db:"issue_value"`
 }
 
-func (icr *IssueCountRow) AsIssueCount() entity.IssueCount {
+func (icr IssueCountRow) AsIssueCount() entity.IssueCount {
 	return entity.IssueCount{
 		Count: GetInt64Value(icr.Count),
 		Value: GetStringValue(icr.Value),
@@ -472,7 +472,7 @@ func (irr *IssueRepositoryRow) FromIssueRepository(ir *entity.IssueRepository) {
 	irr.UpdatedBy = sql.NullInt64{Int64: ir.BaseIssueRepository.UpdatedBy, Valid: true}
 }
 
-func (birr *BaseIssueRepositoryRow) AsBaseIssueRepository() entity.BaseIssueRepository {
+func (birr BaseIssueRepositoryRow) AsBaseIssueRepository() entity.BaseIssueRepository {
 	return entity.BaseIssueRepository{
 		Id:            GetInt64Value(birr.Id),
 		Name:          GetStringValue(birr.Name),
@@ -489,7 +489,7 @@ func (birr *BaseIssueRepositoryRow) AsBaseIssueRepository() entity.BaseIssueRepo
 	}
 }
 
-func (birr *BaseIssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
+func (birr BaseIssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 	return entity.IssueRepository{
 		BaseIssueRepository: entity.BaseIssueRepository{
 			Id:            GetInt64Value(birr.Id),
@@ -508,7 +508,7 @@ func (birr *BaseIssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 	}
 }
 
-func (irr *IssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
+func (irr IssueRepositoryRow) AsIssueRepository() entity.IssueRepository {
 	return entity.IssueRepository{
 		BaseIssueRepository: entity.BaseIssueRepository{
 			Id:            GetInt64Value(irr.Id),
@@ -549,7 +549,7 @@ type IssueVariantRow struct {
 	UpdatedBy         sql.NullInt64  `db:"issuevariant_updated_by"     json:"updated_by"`
 }
 
-func (ivr *IssueVariantRow) AsIssueVariant() entity.IssueVariant {
+func (ivr IssueVariantRow) AsIssueVariant() entity.IssueVariant {
 	var severity entity.Severity
 	if ivr.Vector.String == "" {
 		severity = entity.NewSeverityFromRating(entity.SeverityValues(ivr.Rating.String))
@@ -633,7 +633,7 @@ type ServiceIssueVariantRow struct {
 	IssueVariantRow
 }
 
-func (sivr *ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIssueVariant {
+func (sivr ServiceIssueVariantRow) AsServiceIssueVariantEntry() entity.ServiceIssueVariant {
 	rep := sivr.AsIssueRepository()
 
 	var severity entity.Severity
@@ -680,7 +680,7 @@ type ComponentRow struct {
 	UpdatedBy    sql.NullInt64  `db:"component_updated_by"   json:"updated_by"`
 }
 
-func (cr *ComponentRow) AsComponent() entity.Component {
+func (cr ComponentRow) AsComponent() entity.Component {
 	return entity.Component{
 		Id:           GetInt64Value(cr.Id),
 		CCRN:         GetStringValue(cr.CCRN),
@@ -727,7 +727,7 @@ type ComponentVersionRow struct {
 	EndOfLife    sql.NullBool   `db:"componentversion_end_of_life"  json:"end_of_life"`
 }
 
-func (cvr *ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
+func (cvr ComponentVersionRow) AsComponentVersion() entity.ComponentVersion {
 	endOfLife := GetBoolValue(cvr.EndOfLife)
 
 	return entity.ComponentVersion{
@@ -778,7 +778,7 @@ type SupportGroupRow struct {
 	UpdatedBy sql.NullInt64  `db:"supportgroup_updated_by" json:"updated_by"`
 }
 
-func (sgr *SupportGroupRow) AsSupportGroup() entity.SupportGroup {
+func (sgr SupportGroupRow) AsSupportGroup() entity.SupportGroup {
 	return entity.SupportGroup{
 		Id:   GetInt64Value(sgr.Id),
 		CCRN: GetStringValue(sgr.CCRN),
@@ -819,7 +819,7 @@ type BaseServiceRow struct {
 	UpdatedBy sql.NullInt64  `db:"service_updated_by" json:"updated_by"`
 }
 
-func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
+func (bsr BaseServiceRow) AsBaseService() entity.BaseService {
 	return entity.BaseService{
 		Id:     GetInt64Value(bsr.Id),
 		CCRN:   GetStringValue(bsr.CCRN),
@@ -836,7 +836,7 @@ func (bsr *BaseServiceRow) AsBaseService() entity.BaseService {
 	}
 }
 
-func (bsr *BaseServiceRow) AsService() entity.Service {
+func (bsr BaseServiceRow) AsService() entity.Service {
 	bs := bsr.AsBaseService()
 
 	return entity.Service{
@@ -844,7 +844,7 @@ func (bsr *BaseServiceRow) AsService() entity.Service {
 	}
 }
 
-func (sr *ServiceRow) AsService() entity.Service {
+func (sr ServiceRow) AsService() entity.Service {
 	return entity.Service{
 		BaseService: entity.BaseService{
 			Id:     GetInt64Value(sr.Id),
@@ -890,7 +890,7 @@ type ServiceAggregationsRow struct {
 	IssueMatches       sql.NullInt64 `db:"service_agg_issue_matches"`
 }
 
-func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggregations {
+func (sbr GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggregations {
 	return entity.ServiceWithAggregations{
 		ServiceAggregations: entity.ServiceAggregations{
 			ComponentInstances: lo.Max([]int64{0, GetInt64Value(sbr.ComponentInstances)}),
@@ -920,7 +920,7 @@ func (sbr *GetServicesByRow) AsServiceWithAggregations() entity.ServiceWithAggre
 	}
 }
 
-func (sar *ServiceAggregationsRow) AsServiceAggregations() entity.ServiceAggregations {
+func (sar ServiceAggregationsRow) AsServiceAggregations() entity.ServiceAggregations {
 	return entity.ServiceAggregations{
 		ComponentInstances: lo.Max([]int64{0, GetInt64Value(sar.ComponentInstances)}),
 		IssueMatches:       lo.Max([]int64{0, GetInt64Value(sar.IssueMatches)}),
@@ -950,7 +950,7 @@ type ComponentInstanceRow struct {
 	UpdatedBy          sql.NullInt64  `db:"componentinstance_updated_by"           json:"udpated_by"`
 }
 
-func (cir *ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance {
+func (cir ComponentInstanceRow) AsComponentInstance() entity.ComponentInstance {
 	return entity.ComponentInstance{
 		Id:                 GetInt64Value(cir.Id),
 		CCRN:               GetStringValue(cir.CCRN),
@@ -1023,7 +1023,7 @@ type UserRow struct {
 	Email        sql.NullString `db:"user_email"          json:"email"`
 }
 
-func (ur *UserRow) AsUser() entity.User {
+func (ur UserRow) AsUser() entity.User {
 	return entity.User{
 		Id:           GetInt64Value(ur.Id),
 		Name:         GetStringValue(ur.Name),
@@ -1108,7 +1108,7 @@ type ScannerRunRow struct {
 	UpdatedBy   sql.NullInt64  `db:"scannerrun_updated_by"   json:"updated_by"`
 }
 
-func (srr *ScannerRunRow) AsScannerRun() entity.ScannerRun {
+func (srr ScannerRunRow) AsScannerRun() entity.ScannerRun {
 	return entity.ScannerRun{
 		RunID:     GetInt64Value(srr.RunID),
 		UUID:      GetStringValue(srr.UUID),
@@ -1162,7 +1162,7 @@ type RemediationRow struct {
 	UpdatedBy       sql.NullInt64  `db:"remediation_updated_by"       json:"updated_by"`
 }
 
-func (rr *RemediationRow) AsRemediation() entity.Remediation {
+func (rr RemediationRow) AsRemediation() entity.Remediation {
 	return entity.Remediation{
 		Id:              GetInt64Value(rr.Id),
 		Description:     GetStringValue(rr.Description),
@@ -1223,7 +1223,7 @@ type PatchRow struct {
 	UpdatedBy            sql.NullInt64  `db:"patch_updated_by"             json:"Updated_by"`
 }
 
-func (pr *PatchRow) AsPatch() entity.Patch {
+func (pr PatchRow) AsPatch() entity.Patch {
 	return entity.Patch{
 		Id:                   GetInt64Value(pr.Id),
 		ServiceId:            GetInt64Value(pr.ServiceId),

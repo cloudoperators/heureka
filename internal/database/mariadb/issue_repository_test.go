@@ -4,8 +4,6 @@
 package mariadb_test
 
 import (
-	"math/rand"
-
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -93,7 +91,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single name", func() {
-					row := seedCollection.IssueRepositoryRows[rand.Intn(len(seedCollection.IssueRepositoryRows))]
+					row := test.PickOne(seedCollection.IssueRepositoryRows)
 					filter := &entity.IssueRepositoryFilter{Name: []*string{&row.Name.String}}
 
 					entries, err := db.GetIssueRepositories(filter, nil)
@@ -112,7 +110,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				})
 				It("can filter by a single service name", func() {
 					// select a service
-					sRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					sRow := test.PickOne(seedCollection.ServiceRows)
 
 					// collect all issue repository ids that belong to the service
 					irIds := []int64{}
@@ -140,7 +138,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 				})
 				It("can filter by a single id", func() {
 					// select a service
-					sRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					sRow := test.PickOne(seedCollection.ServiceRows)
 
 					// collect all issue repository ids that belong to the service
 					irIds := []int64{}
@@ -254,7 +252,7 @@ var _ = Describe("IssueRepository", Label("database", "IssueRepository"), func()
 			Context("and using a filter", func() {
 				DescribeTable("can count with a filter", func(pageSize int, filterMatches int) {
 					// select a service
-					sRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					sRow := test.PickOne(seedCollection.ServiceRows)
 
 					// collect all issue repository ids that belong to the service
 					irIds := []int64{}

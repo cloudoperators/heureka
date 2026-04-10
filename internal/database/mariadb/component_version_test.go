@@ -95,7 +95,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single component version id that does exist", func() {
-					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					cv := test.PickOne(seedCollection.ComponentVersionRows)
 					filter := &entity.ComponentVersionFilter{
 						Id: []*int64{&cv.Id.Int64},
 					}
@@ -115,7 +115,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 				})
 				It("can filter by an issue id", func() {
-					issueRow := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
+					issueRow := test.PickOne(seedCollection.IssueRows)
 
 					// collect all component version ids that belong to the issues
 					componentVersionIds := []int64{}
@@ -144,7 +144,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				})
 				It("can filter by a component id", func() {
 					// select a component
-					componentRow := seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
+					componentRow := test.PickOne(seedCollection.ComponentRows)
 
 					// collect all activity ids that belong to the component
 					componentVersionIds := []int64{}
@@ -171,7 +171,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 				})
 				It("can filter by a version", func() {
-					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					cv := test.PickOne(seedCollection.ComponentVersionRows)
 
 					filter := &entity.ComponentVersionFilter{Version: []*string{&cv.Version.String}}
 
@@ -188,7 +188,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 				})
 				It("can filter by a version and component", func() {
-					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					cv := test.PickOne(seedCollection.ComponentVersionRows)
 
 					componentCCRN := ""
 					for _, cr := range seedCollection.ComponentRows {
@@ -217,7 +217,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				})
 
 				It("can filter by a service id", func() {
-					s := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					s := test.PickOne(seedCollection.ServiceRows)
 
 					cvs := []int64{}
 					for _, ci := range seedCollection.ComponentInstanceRows {
@@ -241,7 +241,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 					})
 				})
 				It("can filter by a service ccrn", func() {
-					s := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+					s := test.PickOne(seedCollection.ServiceRows)
 
 					cvs := []int64{}
 					for _, ci := range seedCollection.ComponentInstanceRows {
@@ -267,7 +267,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 
 				It("can filter by tag", func() {
 					// Get an existing component version from the fixtures
-					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					cv := test.PickOne(seedCollection.ComponentVersionRows)
 
 					// Get the tag value directly from the fixture
 					tagToFilterBy := cv.Tag.String
@@ -305,7 +305,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				})
 
 				It("can filter by a repository", func() {
-					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					cv := test.PickOne(seedCollection.ComponentVersionRows)
 					filter := &entity.ComponentVersionFilter{
 						Repository: []*string{&cv.Repository.String},
 					}
@@ -323,7 +323,7 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 				})
 
 				It("can filter by an organization", func() {
-					cv := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					cv := test.PickOne(seedCollection.ComponentVersionRows)
 					filter := &entity.ComponentVersionFilter{
 						Organization: []*string{&cv.Organization.String},
 					}

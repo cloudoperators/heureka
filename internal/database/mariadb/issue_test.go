@@ -6,7 +6,6 @@ package mariadb_test
 import (
 	"database/sql"
 	"fmt"
-	"math/rand"
 	"sort"
 	"time"
 
@@ -107,7 +106,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					// get a service that should return at least 1 issue
 					for searchingRow {
-						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+						row = test.PickOne(seedCollection.ServiceRows)
 						issueRows = seedCollection.GetIssueByService(&row)
 						searchingRow = len(issueRows) == 0
 					}
@@ -161,7 +160,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter by a single issue Id", func() {
-					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
+					row := test.PickOne(seedCollection.IssueRows)
 					filter := &entity.IssueFilter{Id: []*int64{&row.Id.Int64}}
 
 					entries, err := db.GetIssues(filter, nil)
@@ -179,22 +178,13 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter by a single service Id", func() {
-					serviceRow := seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
-					ciIds := lo.FilterMap(
-						seedCollection.ComponentInstanceRows,
-						func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
-							return c.Id.Int64, serviceRow.Id.Int64 == c.ServiceId.Int64
-						},
-					)
-					issueIds := lo.FilterMap(
-						seedCollection.IssueMatchRows,
-						func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
-							return im.IssueId.Int64, lo.Contains(
-								ciIds,
-								im.ComponentInstanceId.Int64,
-							)
-						},
-					)
+					serviceRow := test.PickOne(seedCollection.ServiceRows)
+					ciIds := lo.FilterMap(seedCollection.ComponentInstanceRows, func(c mariadb.ComponentInstanceRow, _ int) (int64, bool) {
+						return c.Id.Int64, serviceRow.Id.Int64 == c.ServiceId.Int64
+					})
+					issueIds := lo.FilterMap(seedCollection.IssueMatchRows, func(im mariadb.IssueMatchRow, _ int) (int64, bool) {
+						return im.IssueId.Int64, lo.Contains(ciIds, im.ComponentInstanceId.Int64)
+					})
 
 					filter := &entity.IssueFilter{ServiceId: []*int64{&serviceRow.Id.Int64}}
 
@@ -211,7 +201,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter by a single support group ccrn", func() {
-					sgRow := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
+					sgRow := test.PickOne(seedCollection.SupportGroupRows)
 					serviceIds := lo.FilterMap(
 						seedCollection.SupportGroupServiceRows,
 						func(sgs mariadb.SupportGroupServiceRow, _ int) (int64, bool) {
@@ -250,7 +240,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("can filter by a single component version id", func() {
 					// select a componentVersion
-					cvRow := seedCollection.ComponentVersionRows[rand.Intn(len(seedCollection.ComponentVersionRows))]
+					cvRow := test.PickOne(seedCollection.ComponentVersionRows)
 
 					// collect all issue ids that belong to the component version
 					issueIds := []int64{}
@@ -276,7 +266,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("can filter by a single component id", func() {
 					// select a component
-					cRow := seedCollection.ComponentRows[rand.Intn(len(seedCollection.ComponentRows))]
+					cRow := test.PickOne(seedCollection.ComponentRows)
 
 					// collect all componentVersion ids that belong to the component
 					cvIds := []int64{}
@@ -310,7 +300,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("can filter by a single issueVariant id", func() {
 					// select an issueVariant
-					issueVariantRow := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+					issueVariantRow := test.PickOne(seedCollection.IssueVariantRows)
 
 					filter := &entity.IssueFilter{
 						IssueVariantId: []*int64{&issueVariantRow.Id.Int64},
@@ -332,7 +322,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					})
 				})
 				It("can filter by a issueType", func() {
-					issueType := entity.AllIssueTypes[rand.Intn(len(entity.AllIssueTypes))]
+					issueType := test.PickOne(entity.AllIssueTypes)
 
 					filter := &entity.IssueFilter{Type: []*string{&issueType}}
 
@@ -388,7 +378,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 				})
 				It("can filter issue PrimaryName using wild card search", func() {
-					row := seedCollection.IssueRows[rand.Intn(len(seedCollection.IssueRows))]
+					row := test.PickOne(seedCollection.IssueRows)
 
 					const charactersToRemoveFromBeginning = 2
 					const charactersToRemoveFromEnd = 2
@@ -423,7 +413,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				})
 				It("can filter issue variant SecondaryName using wild card search", func() {
 					// select an issueVariant
-					issueVariantRow := seedCollection.IssueVariantRows[rand.Intn(len(seedCollection.IssueVariantRows))]
+					issueVariantRow := test.PickOne(seedCollection.IssueVariantRows)
 
 					const charactersToRemoveFromBeginning = 2
 					const charactersToRemoveFromEnd = 2
@@ -455,7 +445,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				When("filtered by IssueStatus", func() {
 					var remediation entity.Remediation
 					BeforeEach(func() {
-						issueMatch := seedCollection.IssueMatchRows[rand.Intn(len(seedCollection.IssueMatchRows))]
+						issueMatch := test.PickOne(seedCollection.IssueMatchRows)
 						remediation = entity_test.NewFakeRemediationEntity()
 						remediation.ExpirationDate = time.Now().Add(10 * 24 * time.Hour)
 						remediation.IssueId = issueMatch.IssueId.Int64
@@ -701,7 +691,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					// get a service that should return at least 1 issue
 					for searchingRow {
-						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+						row = test.PickOne(seedCollection.ServiceRows)
 						issueRows = seedCollection.GetIssueByService(&row)
 						searchingRow = len(issueRows) > 0
 					}
@@ -724,7 +714,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					// get a service that should return at least 1 issue
 					for searchingRow {
-						row = seedCollection.ServiceRows[rand.Intn(len(seedCollection.ServiceRows))]
+						row = test.PickOne(seedCollection.ServiceRows)
 						issueRows = seedCollection.GetIssueByService(&row)
 						searchingRow = len(issueRows) > 0
 					}

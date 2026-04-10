@@ -4,8 +4,6 @@
 package mariadb_test
 
 import (
-	"math/rand"
-
 	"github.com/samber/lo"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
@@ -92,7 +90,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single service id that does exist", func() {
-					sgs := seedCollection.SupportGroupServiceRows[rand.Intn(len(seedCollection.SupportGroupServiceRows))]
+					sgs := test.PickOne(seedCollection.SupportGroupServiceRows)
 					filter := &entity.SupportGroupFilter{
 						ServiceId: []*int64{&sgs.ServiceId.Int64},
 					}
@@ -121,7 +119,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					})
 				})
 				It("can filter by a single support group Id", func() {
-					row := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
+					row := test.PickOne(seedCollection.SupportGroupRows)
 					filter := &entity.SupportGroupFilter{Id: []*int64{&row.Id.Int64}}
 
 					entries, err := db.GetSupportGroups(filter, nil)
@@ -135,7 +133,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					})
 				})
 				It("can filter by a single user id that does exist", func() {
-					sgu := seedCollection.SupportGroupUserRows[rand.Intn(len(seedCollection.SupportGroupUserRows))]
+					sgu := test.PickOne(seedCollection.SupportGroupUserRows)
 					filter := &entity.SupportGroupFilter{
 						UserId: []*int64{&sgu.UserId.Int64},
 					}
@@ -164,7 +162,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					})
 				})
 				It("can filter by a single support group ccrn", func() {
-					row := seedCollection.SupportGroupRows[rand.Intn(len(seedCollection.SupportGroupRows))]
+					row := test.PickOne(seedCollection.SupportGroupRows)
 
 					filter := &entity.SupportGroupFilter{CCRN: []*string{&row.CCRN.String}}
 

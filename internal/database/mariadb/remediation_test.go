@@ -5,7 +5,6 @@ package mariadb_test
 
 import (
 	"database/sql"
-	"math/rand"
 	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
@@ -121,7 +120,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 			})
 			Context("and using a filter", func() {
 				It("can filter by a single id", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Id: []*int64{&row.Id.Int64}}
 
 					entries, err := db.GetRemediations(filter, nil)
@@ -153,7 +152,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 				})
 				It("can filter by a single service", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Service: []*string{&row.Service.String}}
 
 					entries, err := db.GetRemediations(filter, nil)
@@ -171,7 +170,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 				})
 				It("can filter by a single service id", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{ServiceId: []*int64{&row.ServiceId.Int64}}
 
 					entries, err := db.GetRemediations(filter, nil)
@@ -189,7 +188,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 				})
 				It("can filter by a single component", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Component: []*string{&row.Component.String}}
 
 					entries, err := db.GetRemediations(filter, nil)
@@ -207,7 +206,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 				})
 				It("can filter by a single component id", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{
 						ComponentId: []*int64{&row.ComponentId.Int64},
 					}
@@ -227,7 +226,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 				})
 				It("can filter by a single issue", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Issue: []*string{&row.Issue.String}}
 
 					entries, err := db.GetRemediations(filter, nil)
@@ -245,7 +244,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 				})
 				It("can filter by a single issue id", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{IssueId: []*int64{&row.IssueId.Int64}}
 
 					entries, err := db.GetRemediations(filter, nil)
@@ -263,7 +262,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 				})
 				It("can filter by a single type", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 					filter := &entity.RemediationFilter{Type: []*string{&row.Type.String}}
 
 					entries, err := db.GetRemediations(filter, nil)
@@ -369,7 +368,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 					})
 				})
 				It("can filter by wildcard search", func() {
-					row := seedCollection.RemediationRows[rand.Intn(len(seedCollection.RemediationRows))]
+					row := test.PickOne(seedCollection.RemediationRows)
 
 					const charactersToRemoveFromBeginning = 2
 					const charactersToRemoveFromEnd = 2
