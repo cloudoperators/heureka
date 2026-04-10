@@ -165,7 +165,7 @@ func (s *SqlDatabase) needSingleComponentByServiceVulnerabilityCounts(
 			o.By == entity.NoneCount
 	})
 
-	return orderByCount && (len(filter.Id) > 0 && (len(filter.ServiceCCRN) > 0))
+	return orderByCount && len(filter.ServiceCCRN) > 0
 }
 
 func (s *SqlDatabase) needAllComponentByServiceVulnerabilityCounts(
@@ -179,7 +179,7 @@ func (s *SqlDatabase) needAllComponentByServiceVulnerabilityCounts(
 			o.By == entity.NoneCount
 	})
 
-	return orderByCount && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0))
+	return !orderByCount && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0))
 }
 
 func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
