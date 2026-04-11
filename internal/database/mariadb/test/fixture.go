@@ -52,6 +52,16 @@ func (s *SeedCollection) GetComponentInstanceById(id int64) *mariadb.ComponentIn
 	return nil
 }
 
+func (s *SeedCollection) GetServiceById(id int64) *mariadb.BaseServiceRow {
+	for _, sr := range s.ServiceRows {
+		if sr.Id.Int64 == id {
+			return &sr
+		}
+	}
+
+	return nil
+}
+
 func (s *SeedCollection) GetIssueById(id int64) *mariadb.IssueRow {
 	for _, issue := range s.IssueRows {
 		if issue.Id.Int64 == id {
@@ -868,11 +878,9 @@ func (s *DatabaseSeeder) SeedComponentInstances(
 
 	for range num {
 		componentInstance := NewFakeComponentInstance()
-		randomCvIndex := rand.Intn(len(componentVersions))
-		componentVersion := componentVersions[randomCvIndex]
+		componentVersion := PickOne(componentVersions)
 		componentInstance.ComponentVersionId = componentVersion.Id
-		randomSIndex := rand.Intn(len(services))
-		service := services[randomSIndex]
+		service := PickOne(services)
 		componentInstance.ServiceId = service.Id
 
 		componentInstanceId, err := s.InsertFakeComponentInstance(componentInstance)

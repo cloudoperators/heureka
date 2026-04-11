@@ -189,6 +189,31 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						}
 					})
 				})
+				It("can filter by a single service CCRN that does exist", func() {
+					cir := test.PickOne(seedCollection.ComponentInstanceRows)
+					service := seedCollection.GetServiceById(cir.ServiceId.Int64)
+					Expect(service).To(Not(BeNil()))
+					filter := &entity.ComponentInstanceFilter{
+						Paginated:   entity.Paginated{},
+						ServiceCcrn: []*string{lo.ToPtr(service.CCRN.String)},
+					}
+
+					entries, err := db.GetComponentInstances(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(Not(BeZero()))
+					})
+
+					By("returning expected elements", func() {
+						for i := range entries {
+							Expect(entries[i].ServiceId).To(BeEquivalentTo(service.Id.Int64))
+						}
+					})
+				})
 				It("can filter by a single component version id that does exist", func() {
 					cir := test.PickOne(seedCollection.ComponentInstanceRows)
 					filter := &entity.ComponentInstanceFilter{
