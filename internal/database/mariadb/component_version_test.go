@@ -187,6 +187,23 @@ var _ = Describe("ComponentVersion", Label("database", "ComponentVersion"), func
 						}
 					})
 				})
+				It("can filter by an issue repository id", func() {
+					cv, iv, ok := seedCollection.FindMatchingComponentVersionAndIssueVariant()
+					Expect(ok).To(BeTrue())
+
+					filter := &entity.ComponentVersionFilter{IssueRepositoryId: []*int64{&iv.IssueRepositoryId.Int64}}
+
+					entries, err := db.GetComponentVersions(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected elements", func() {
+						cvIds := lo.Map(entries, func(e entity.ComponentVersionResult, _ int) int64 { return e.Id })
+						Expect(lo.Contains(cvIds, cv.Id.Int64)).To(BeTrue())
+					})
+				})
 				It("can filter by a version and component", func() {
 					cv := test.PickOne(seedCollection.ComponentVersionRows)
 
