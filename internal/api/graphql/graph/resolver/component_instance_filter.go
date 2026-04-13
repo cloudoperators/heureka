@@ -16,11 +16,7 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *componentInstanceFilterValueResolver) ServiceCcrn(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ServiceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -31,11 +27,7 @@ func (r *componentInstanceFilterValueResolver) ServiceCcrn(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) SupportGroupCcrn(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.SupportGroupFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -46,11 +38,7 @@ func (r *componentInstanceFilterValueResolver) SupportGroupCcrn(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Ccrn(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Ccrn(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.CcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -61,11 +49,7 @@ func (r *componentInstanceFilterValueResolver) Ccrn(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Region(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Region(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.RegionBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -76,11 +60,7 @@ func (r *componentInstanceFilterValueResolver) Region(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Cluster(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Cluster(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ClusterBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -91,11 +71,7 @@ func (r *componentInstanceFilterValueResolver) Cluster(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Namespace(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Namespace(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.NamespaceBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -106,11 +82,7 @@ func (r *componentInstanceFilterValueResolver) Namespace(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Domain(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Domain(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.DomainBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -121,11 +93,7 @@ func (r *componentInstanceFilterValueResolver) Domain(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Project(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Project(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ProjectBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -136,11 +104,7 @@ func (r *componentInstanceFilterValueResolver) Project(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Pod(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Pod(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.PodBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -151,11 +115,7 @@ func (r *componentInstanceFilterValueResolver) Pod(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Container(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Container(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ContainerBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -166,11 +126,7 @@ func (r *componentInstanceFilterValueResolver) Container(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Type(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterItem, error) {
+func (r *componentInstanceFilterValueResolver) Type(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.TypeBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -181,11 +137,7 @@ func (r *componentInstanceFilterValueResolver) Type(
 	return item, err
 }
 
-func (r *componentInstanceFilterValueResolver) Context(
-	ctx context.Context,
-	obj *model.ComponentInstanceFilterValue,
-	filter *model.ComponentInstanceFilter,
-) (*model.FilterJSONItem, error) {
+func (r *componentInstanceFilterValueResolver) Context(ctx context.Context, obj *model.ComponentInstanceFilterValue, filter *model.ComponentInstanceFilter) (*model.FilterJSONItem, error) {
 	item, err := baseResolver.ContextBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err

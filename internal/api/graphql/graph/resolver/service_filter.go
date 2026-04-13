@@ -16,11 +16,7 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *serviceFilterValueResolver) ServiceCcrn(
-	ctx context.Context,
-	obj *model.ServiceFilterValue,
-	filter *model.ServiceFilter,
-) (*model.FilterItem, error) {
+func (r *serviceFilterValueResolver) ServiceCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -31,11 +27,7 @@ func (r *serviceFilterValueResolver) ServiceCcrn(
 	return item, err
 }
 
-func (r *serviceFilterValueResolver) Domain(
-	ctx context.Context,
-	obj *model.ServiceFilterValue,
-	filter *model.ServiceFilter,
-) (*model.FilterItem, error) {
+func (r *serviceFilterValueResolver) Domain(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceDomainBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -46,11 +38,7 @@ func (r *serviceFilterValueResolver) Domain(
 	return item, err
 }
 
-func (r *serviceFilterValueResolver) Region(
-	ctx context.Context,
-	obj *model.ServiceFilterValue,
-	filter *model.ServiceFilter,
-) (*model.FilterItem, error) {
+func (r *serviceFilterValueResolver) Region(ctx context.Context, obj *model.ServiceFilterValue, filter *model.ServiceFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.ServiceRegionBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -61,11 +49,7 @@ func (r *serviceFilterValueResolver) Region(
 	return item, err
 }
 
-func (r *serviceFilterValueResolver) UniqueUserID(
-	ctx context.Context,
-	obj *model.ServiceFilterValue,
-	filter *model.UserFilter,
-) (*model.FilterItem, error) {
+func (r *serviceFilterValueResolver) UniqueUserID(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.UniqueUserIDBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -76,11 +60,7 @@ func (r *serviceFilterValueResolver) UniqueUserID(
 	return item, err
 }
 
-func (r *serviceFilterValueResolver) UserName(
-	ctx context.Context,
-	obj *model.ServiceFilterValue,
-	filter *model.UserFilter,
-) (*model.FilterItem, error) {
+func (r *serviceFilterValueResolver) UserName(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.UserNameBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -91,11 +71,7 @@ func (r *serviceFilterValueResolver) UserName(
 	return item, err
 }
 
-func (r *serviceFilterValueResolver) SupportGroupCcrn(
-	ctx context.Context,
-	obj *model.ServiceFilterValue,
-	filter *model.SupportGroupFilter,
-) (*model.FilterItem, error) {
+func (r *serviceFilterValueResolver) SupportGroupCcrn(ctx context.Context, obj *model.ServiceFilterValue, filter *model.SupportGroupFilter) (*model.FilterItem, error) {
 	item, err := baseResolver.SupportGroupCcrnBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err
@@ -106,11 +82,7 @@ func (r *serviceFilterValueResolver) SupportGroupCcrn(
 	return item, err
 }
 
-func (r *serviceFilterValueResolver) User(
-	ctx context.Context,
-	obj *model.ServiceFilterValue,
-	filter *model.UserFilter,
-) (*model.FilterValueItem, error) {
+func (r *serviceFilterValueResolver) User(ctx context.Context, obj *model.ServiceFilterValue, filter *model.UserFilter) (*model.FilterValueItem, error) {
 	item, err := baseResolver.UserNameWithIdBaseResolver(r.App, ctx, filter)
 	if err != nil {
 		return nil, err

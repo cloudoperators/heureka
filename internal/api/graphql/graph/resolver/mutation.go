@@ -147,11 +147,7 @@ func (r *mutationResolver) DeleteSupportGroup(ctx context.Context, id string) (s
 }
 
 // AddServiceToSupportGroup is the resolver for the addServiceToSupportGroup field.
-func (r *mutationResolver) AddServiceToSupportGroup(
-	ctx context.Context,
-	supportGroupID string,
-	serviceID string,
-) (*model.SupportGroup, error) {
+func (r *mutationResolver) AddServiceToSupportGroup(ctx context.Context, supportGroupID string, serviceID string) (*model.SupportGroup, error) {
 	supportGroupIdInt, err := baseResolver.ParseCursor(&supportGroupID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -182,11 +178,7 @@ func (r *mutationResolver) AddServiceToSupportGroup(
 }
 
 // RemoveServiceFromSupportGroup is the resolver for the removeServiceFromSupportGroup field.
-func (r *mutationResolver) RemoveServiceFromSupportGroup(
-	ctx context.Context,
-	supportGroupID string,
-	serviceID string,
-) (*model.SupportGroup, error) {
+func (r *mutationResolver) RemoveServiceFromSupportGroup(ctx context.Context, supportGroupID string, serviceID string) (*model.SupportGroup, error) {
 	supportGroupIdInt, err := baseResolver.ParseCursor(&supportGroupID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -248,11 +240,7 @@ func (r *mutationResolver) AddUserToSupportGroup(ctx context.Context, supportGro
 }
 
 // RemoveUserFromSupportGroup is the resolver for the removeUserFromSupportGroup field.
-func (r *mutationResolver) RemoveUserFromSupportGroup(
-	ctx context.Context,
-	supportGroupID string,
-	userID string,
-) (*model.SupportGroup, error) {
+func (r *mutationResolver) RemoveUserFromSupportGroup(ctx context.Context, supportGroupID string, userID string) (*model.SupportGroup, error) {
 	supportGroupIdInt, err := baseResolver.ParseCursor(&supportGroupID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -347,10 +335,7 @@ func (r *mutationResolver) DeleteComponent(ctx context.Context, id string) (stri
 }
 
 // CreateComponentInstance is the resolver for the createComponentInstance field.
-func (r *mutationResolver) CreateComponentInstance(
-	ctx context.Context,
-	input model.ComponentInstanceInput,
-) (*model.ComponentInstance, error) {
+func (r *mutationResolver) CreateComponentInstance(ctx context.Context, input model.ComponentInstanceInput) (*model.ComponentInstance, error) {
 	componentInstance := model.NewComponentInstanceEntity(&input)
 
 	newComponentInstance, err := r.App.CreateComponentInstance(ctx, &componentInstance, input.UUID)
@@ -367,11 +352,7 @@ func (r *mutationResolver) CreateComponentInstance(
 }
 
 // UpdateComponentInstance is the resolver for the updateComponentInstance field.
-func (r *mutationResolver) UpdateComponentInstance(
-	ctx context.Context,
-	id string,
-	input model.ComponentInstanceInput,
-) (*model.ComponentInstance, error) {
+func (r *mutationResolver) UpdateComponentInstance(ctx context.Context, id string, input model.ComponentInstanceInput) (*model.ComponentInstance, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -439,11 +420,7 @@ func (r *mutationResolver) CreateComponentVersion(ctx context.Context, input mod
 }
 
 // UpdateComponentVersion is the resolver for the updateComponentVersion field.
-func (r *mutationResolver) UpdateComponentVersion(
-	ctx context.Context,
-	id string,
-	input model.ComponentVersionInput,
-) (*model.ComponentVersion, error) {
+func (r *mutationResolver) UpdateComponentVersion(ctx context.Context, id string, input model.ComponentVersionInput) (*model.ComponentVersion, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -616,12 +593,7 @@ func (r *mutationResolver) RemoveOwnerFromService(ctx context.Context, serviceID
 }
 
 // AddIssueRepositoryToService is the resolver for the addIssueRepositoryToService field.
-func (r *mutationResolver) AddIssueRepositoryToService(
-	ctx context.Context,
-	serviceID string,
-	issueRepositoryID string,
-	priority int,
-) (*model.Service, error) {
+func (r *mutationResolver) AddIssueRepositoryToService(ctx context.Context, serviceID string, issueRepositoryID string, priority int) (*model.Service, error) {
 	serviceIdInt, err := baseResolver.ParseCursor(&serviceID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -657,11 +629,7 @@ func (r *mutationResolver) AddIssueRepositoryToService(
 }
 
 // RemoveIssueRepositoryFromService is the resolver for the removeIssueRepositoryFromService field.
-func (r *mutationResolver) RemoveIssueRepositoryFromService(
-	ctx context.Context,
-	serviceID string,
-	issueRepositoryID string,
-) (*model.Service, error) {
+func (r *mutationResolver) RemoveIssueRepositoryFromService(ctx context.Context, serviceID string, issueRepositoryID string) (*model.Service, error) {
 	serviceIdInt, err := baseResolver.ParseCursor(&serviceID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -713,11 +681,7 @@ func (r *mutationResolver) CreateIssueRepository(ctx context.Context, input mode
 }
 
 // UpdateIssueRepository is the resolver for the updateIssueRepository field.
-func (r *mutationResolver) UpdateIssueRepository(
-	ctx context.Context,
-	id string,
-	input model.IssueRepositoryInput,
-) (*model.IssueRepository, error) {
+func (r *mutationResolver) UpdateIssueRepository(ctx context.Context, id string, input model.IssueRepositoryInput) (*model.IssueRepository, error) {
 	idInt, err := baseResolver.ParseCursor(&id)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -828,11 +792,7 @@ func (r *mutationResolver) DeleteIssue(ctx context.Context, id string) (string, 
 }
 
 // AddComponentVersionToIssue is the resolver for the addComponentVersionToIssue field.
-func (r *mutationResolver) AddComponentVersionToIssue(
-	ctx context.Context,
-	issueID string,
-	componentVersionID string,
-) (*model.Issue, error) {
+func (r *mutationResolver) AddComponentVersionToIssue(ctx context.Context, issueID string, componentVersionID string) (*model.Issue, error) {
 	issueIdInt, err := baseResolver.ParseCursor(&issueID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(
@@ -863,11 +823,7 @@ func (r *mutationResolver) AddComponentVersionToIssue(
 }
 
 // RemoveComponentVersionFromIssue is the resolver for the removeComponentVersionFromIssue field.
-func (r *mutationResolver) RemoveComponentVersionFromIssue(
-	ctx context.Context,
-	issueID string,
-	componentVersionID string,
-) (*model.Issue, error) {
+func (r *mutationResolver) RemoveComponentVersionFromIssue(ctx context.Context, issueID string, componentVersionID string) (*model.Issue, error) {
 	issueIdInt, err := baseResolver.ParseCursor(&issueID)
 	if err != nil {
 		return nil, baseResolver.NewResolverError(

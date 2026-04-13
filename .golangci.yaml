@@ -12,7 +12,6 @@ linters:
     - wsl_v5
     - unused
     - staticcheck
-    - lll
   settings:
     staticcheck:
       checks: ["all", "-SA1019", "-ST1000", "-ST1003", "-ST1021", "-ST1020", "-ST1022", "-ST1001", "-SA1029"]
@@ -24,8 +23,6 @@ linters:
         - (io.Writer).Write
         - io.Copy
         - net.Conn.Close
-    lll:
-      line-length: 140
   exclusions:
       paths:
         - internal/mocks/
@@ -33,10 +30,6 @@ linters:
         - path: _test\.go
           linters:
             - errcheck
-            - lll
-        - path: internal/api/graphql/graph/resolver/*
-          linters:
-            - lll
 formatters:
   enable:
    - gofumpt

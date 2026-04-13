@@ -18,62 +18,27 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *queryResolver) Issues(
-	ctx context.Context,
-	filter *model.IssueFilter,
-	first *int,
-	after *string,
-	orderBy []*model.IssueOrderBy,
-) (*model.IssueConnection, error) {
+func (r *queryResolver) Issues(ctx context.Context, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy) (*model.IssueConnection, error) {
 	return baseResolver.IssueBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
-func (r *queryResolver) IssueMatches(
-	ctx context.Context,
-	filter *model.IssueMatchFilter,
-	first *int,
-	after *string,
-	orderBy []*model.IssueMatchOrderBy,
-) (*model.IssueMatchConnection, error) {
+func (r *queryResolver) IssueMatches(ctx context.Context, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
 	return baseResolver.IssueMatchBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
-func (r *queryResolver) Services(
-	ctx context.Context,
-	filter *model.ServiceFilter,
-	first *int,
-	after *string,
-	orderBy []*model.ServiceOrderBy,
-) (*model.ServiceConnection, error) {
+func (r *queryResolver) Services(ctx context.Context, filter *model.ServiceFilter, first *int, after *string, orderBy []*model.ServiceOrderBy) (*model.ServiceConnection, error) {
 	return baseResolver.ServiceBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
-func (r *queryResolver) Components(
-	ctx context.Context,
-	filter *model.ComponentFilter,
-	first *int,
-	after *string,
-) (*model.ComponentConnection, error) {
+func (r *queryResolver) Components(ctx context.Context, filter *model.ComponentFilter, first *int, after *string) (*model.ComponentConnection, error) {
 	return baseResolver.ComponentBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) ComponentVersions(
-	ctx context.Context,
-	filter *model.ComponentVersionFilter,
-	first *int,
-	after *string,
-	orderBy []*model.ComponentVersionOrderBy,
-) (*model.ComponentVersionConnection, error) {
+func (r *queryResolver) ComponentVersions(ctx context.Context, filter *model.ComponentVersionFilter, first *int, after *string, orderBy []*model.ComponentVersionOrderBy) (*model.ComponentVersionConnection, error) {
 	return baseResolver.ComponentVersionBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
-func (r *queryResolver) ComponentInstances(
-	ctx context.Context,
-	filter *model.ComponentInstanceFilter,
-	first *int,
-	after *string,
-	orderBy []*model.ComponentInstanceOrderBy,
-) (*model.ComponentInstanceConnection, error) {
+func (r *queryResolver) ComponentInstances(ctx context.Context, filter *model.ComponentInstanceFilter, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy) (*model.ComponentInstanceConnection, error) {
 	return baseResolver.ComponentInstanceBaseResolver(
 		r.App,
 		ctx,
@@ -85,31 +50,15 @@ func (r *queryResolver) ComponentInstances(
 	)
 }
 
-func (r *queryResolver) IssueVariants(
-	ctx context.Context,
-	filter *model.IssueVariantFilter,
-	first *int,
-	after *string,
-) (*model.IssueVariantConnection, error) {
+func (r *queryResolver) IssueVariants(ctx context.Context, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error) {
 	return baseResolver.IssueVariantBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) IssueRepositories(
-	ctx context.Context,
-	filter *model.IssueRepositoryFilter,
-	first *int,
-	after *string,
-) (*model.IssueRepositoryConnection, error) {
+func (r *queryResolver) IssueRepositories(ctx context.Context, filter *model.IssueRepositoryFilter, first *int, after *string) (*model.IssueRepositoryConnection, error) {
 	return baseResolver.IssueRepositoryBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) SupportGroups(
-	ctx context.Context,
-	filter *model.SupportGroupFilter,
-	first *int,
-	after *string,
-	orderBy []*model.SupportGroupOrderBy,
-) (*model.SupportGroupConnection, error) {
+func (r *queryResolver) SupportGroups(ctx context.Context, filter *model.SupportGroupFilter, first *int, after *string, orderBy []*model.SupportGroupOrderBy) (*model.SupportGroupConnection, error) {
 	return baseResolver.SupportGroupBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
@@ -171,12 +120,7 @@ func (r *queryResolver) ScannerRunTagFilterValues(ctx context.Context) ([]*strin
 	return baseResolver.ScannerRunTagFilterValues(r.App, ctx)
 }
 
-func (r *queryResolver) ScannerRuns(
-	ctx context.Context,
-	filter *model.ScannerRunFilter,
-	first *int,
-	after *string,
-) (*model.ScannerRunConnection, error) {
+func (r *queryResolver) ScannerRuns(ctx context.Context, filter *model.ScannerRunFilter, first *int, after *string) (*model.ScannerRunConnection, error) {
 	return baseResolver.ScannerRuns(r.App, ctx, filter, first, after)
 }
 
@@ -184,12 +128,7 @@ func (r *queryResolver) IssueCounts(ctx context.Context, filter *model.IssueFilt
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, nil)
 }
 
-func (r *queryResolver) Vulnerabilities(
-	ctx context.Context,
-	filter *model.VulnerabilityFilter,
-	first *int,
-	after *string,
-) (*model.VulnerabilityConnection, error) {
+func (r *queryResolver) Vulnerabilities(ctx context.Context, filter *model.VulnerabilityFilter, first *int, after *string) (*model.VulnerabilityConnection, error) {
 	return baseResolver.VulnerabilityBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
@@ -211,22 +150,11 @@ func (r *queryResolver) Images(ctx context.Context, filter *model.ImageFilter, f
 	return baseResolver.ImageBaseResolver(r.App, ctx, filter, first, after)
 }
 
-func (r *queryResolver) ImageVersions(
-	ctx context.Context,
-	filter *model.ImageVersionFilter,
-	first *int,
-	after *string,
-) (*model.ImageVersionConnection, error) {
+func (r *queryResolver) ImageVersions(ctx context.Context, filter *model.ImageVersionFilter, first *int, after *string) (*model.ImageVersionConnection, error) {
 	return baseResolver.ImageVersionBaseResolver(r.App, ctx, filter, first, after, nil)
 }
 
-func (r *queryResolver) Remediations(
-	ctx context.Context,
-	filter *model.RemediationFilter,
-	first *int,
-	after *string,
-	orderBy []*model.RemediationOrderBy,
-) (*model.RemediationConnection, error) {
+func (r *queryResolver) Remediations(ctx context.Context, filter *model.RemediationFilter, first *int, after *string, orderBy []*model.RemediationOrderBy) (*model.RemediationConnection, error) {
 	return baseResolver.RemediationBaseResolver(r.App, ctx, filter, first, after, orderBy, nil)
 }
 
