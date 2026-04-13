@@ -16,13 +16,7 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *issueResolver) IssueVariants(
-	ctx context.Context,
-	obj *model.Issue,
-	filter *model.IssueVariantFilter,
-	first *int,
-	after *string,
-) (*model.IssueVariantConnection, error) {
+func (r *issueResolver) IssueVariants(ctx context.Context, obj *model.Issue, filter *model.IssueVariantFilter, first *int, after *string) (*model.IssueVariantConnection, error) {
 	return baseResolver.IssueVariantBaseResolver(
 		r.App,
 		ctx,
@@ -36,14 +30,7 @@ func (r *issueResolver) IssueVariants(
 	)
 }
 
-func (r *issueResolver) IssueMatches(
-	ctx context.Context,
-	obj *model.Issue,
-	filter *model.IssueMatchFilter,
-	first *int,
-	after *string,
-	orderBy []*model.IssueMatchOrderBy,
-) (*model.IssueMatchConnection, error) {
+func (r *issueResolver) IssueMatches(ctx context.Context, obj *model.Issue, filter *model.IssueMatchFilter, first *int, after *string, orderBy []*model.IssueMatchOrderBy) (*model.IssueMatchConnection, error) {
 	return baseResolver.IssueMatchBaseResolver(
 		r.App,
 		ctx,
@@ -58,14 +45,7 @@ func (r *issueResolver) IssueMatches(
 	)
 }
 
-func (r *issueResolver) ComponentVersions(
-	ctx context.Context,
-	obj *model.Issue,
-	filter *model.ComponentVersionFilter,
-	first *int,
-	after *string,
-	orderBy []*model.ComponentVersionOrderBy,
-) (*model.ComponentVersionConnection, error) {
+func (r *issueResolver) ComponentVersions(ctx context.Context, obj *model.Issue, filter *model.ComponentVersionFilter, first *int, after *string, orderBy []*model.ComponentVersionOrderBy) (*model.ComponentVersionConnection, error) {
 	return baseResolver.ComponentVersionBaseResolver(
 		r.App,
 		ctx,

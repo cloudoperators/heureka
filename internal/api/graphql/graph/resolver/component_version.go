@@ -37,14 +37,7 @@ func (r *componentVersionResolver) Component(ctx context.Context, obj *model.Com
 		})
 }
 
-func (r *componentVersionResolver) Issues(
-	ctx context.Context,
-	obj *model.ComponentVersion,
-	filter *model.IssueFilter,
-	first *int,
-	after *string,
-	orderBy []*model.IssueOrderBy,
-) (*model.IssueConnection, error) {
+func (r *componentVersionResolver) Issues(ctx context.Context, obj *model.ComponentVersion, filter *model.IssueFilter, first *int, after *string, orderBy []*model.IssueOrderBy) (*model.IssueConnection, error) {
 	return baseResolver.IssueBaseResolver(
 		r.App,
 		ctx,
@@ -59,14 +52,7 @@ func (r *componentVersionResolver) Issues(
 	)
 }
 
-func (r *componentVersionResolver) ComponentInstances(
-	ctx context.Context,
-	obj *model.ComponentVersion,
-	filter *model.ComponentInstanceFilter,
-	first *int,
-	after *string,
-	orderBy []*model.ComponentInstanceOrderBy,
-) (*model.ComponentInstanceConnection, error) {
+func (r *componentVersionResolver) ComponentInstances(ctx context.Context, obj *model.ComponentVersion, filter *model.ComponentInstanceFilter, first *int, after *string, orderBy []*model.ComponentInstanceOrderBy) (*model.ComponentInstanceConnection, error) {
 	return baseResolver.ComponentInstanceBaseResolver(
 		r.App,
 		ctx,
@@ -81,11 +67,7 @@ func (r *componentVersionResolver) ComponentInstances(
 	)
 }
 
-func (r *componentVersionResolver) IssueCounts(
-	ctx context.Context,
-	obj *model.ComponentVersion,
-	filter *model.IssueFilter,
-) (*model.SeverityCounts, error) {
+func (r *componentVersionResolver) IssueCounts(ctx context.Context, obj *model.ComponentVersion, filter *model.IssueFilter) (*model.SeverityCounts, error) {
 	return baseResolver.IssueCountsBaseResolver(r.App, ctx, filter, &model.NodeParent{
 		Parent:     obj,
 		ParentName: model.ComponentVersionNodeName,
