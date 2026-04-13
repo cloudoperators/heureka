@@ -86,7 +86,7 @@ jobs:
       - name: Generate breaking changes report and send Slack notification
         if: steps.schema-check.outputs.has_any_changes == 'true'
         id: generate-report
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ steps.github-app-token.outputs.token }}
           script: |
@@ -185,7 +185,7 @@ jobs:
       - name: Check for approval label
         if: steps.schema-check.outputs.has_changes == 'true'
         id: check-label
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
