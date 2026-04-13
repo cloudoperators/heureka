@@ -99,12 +99,8 @@ test-db: gqlgen install-build-dependencies
 install-gofumpt:
 	go install mvdan.cc/gofumpt@latest
 
-install-golines:
-	go install github.com/golangci/golines@latest
-
-fmt: install-gofumpt install-golines
+fmt: install-gofumpt
 	gofumpt -l -w .
-	golines -m 140 -l -w .
 
 install-golangci-lint:
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0	

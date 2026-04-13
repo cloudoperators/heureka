@@ -17,12 +17,7 @@ import (
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-func (r *imageVersionResolver) Occurences(
-	ctx context.Context,
-	obj *model.ImageVersion,
-	first *int,
-	after *string,
-) (*model.ComponentInstanceConnection, error) {
+func (r *imageVersionResolver) Occurences(ctx context.Context, obj *model.ImageVersion, first *int, after *string) (*model.ComponentInstanceConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 
 	ivFilter := rootCtx.Args["filter"].(*model.ImageVersionFilter)
@@ -49,13 +44,7 @@ func (r *imageVersionResolver) Occurences(
 	)
 }
 
-func (r *imageVersionResolver) Vulnerabilities(
-	ctx context.Context,
-	obj *model.ImageVersion,
-	first *int,
-	after *string,
-	filter *model.VulnerabilityFilter,
-) (*model.VulnerabilityConnection, error) {
+func (r *imageVersionResolver) Vulnerabilities(ctx context.Context, obj *model.ImageVersion, first *int, after *string, filter *model.VulnerabilityFilter) (*model.VulnerabilityConnection, error) {
 	rootCtx := baseResolver.GetRoot(graphql.GetFieldContext(ctx))
 	ivFilter := rootCtx.Args["filter"].(*model.ImageVersionFilter)
 
