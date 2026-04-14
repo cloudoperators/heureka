@@ -261,7 +261,6 @@ const (
 )
 
 func DependentJoin(any, []entity.Order) bool { return false }
-func AlwaysJoin(any, []entity.Order) bool    { return true }
 
 type JoinDef struct {
 	Name      string

@@ -103,23 +103,6 @@ func ensureIssueRepositoryFilter(
 	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) getIssueRepositoryJoins(filter *entity.IssueRepositoryFilter) string {
-	joins := ""
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueRepositoryService IRS on IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id
-		`)
-	}
-
-	if len(filter.ServiceCCRN) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN Service S on S.service_id = IRS.issuerepositoryservice_service_id
-		`)
-	}
-
-	return joins
-}
-
 func (s *SqlDatabase) buildIssueRepositoryStatement(
 	baseQuery string,
 	filter *entity.IssueRepositoryFilter,
@@ -130,8 +113,6 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 	filter = ensureIssueRepositoryFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	joins := s.getIssueRepositoryJoins(filter)
-
 	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode IssueRepository cursor: %w", err)
@@ -141,7 +122,7 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 
 	order = GetDefaultOrder(order, entity.IssueRepositoryID, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-
+	joins := issueRepositoryObject.GetJoins(filter, order)
 	filterStr := issueRepositoryObject.GetFilterQuery(filter)
 
 	whereClause := ""

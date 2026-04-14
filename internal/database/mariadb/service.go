@@ -194,58 +194,6 @@ func ensureServiceFilter(filter *entity.ServiceFilter) *entity.ServiceFilter {
 	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) getServiceJoins(filter *entity.ServiceFilter, order []entity.Order) string {
-	joins := ""
-	if len(filter.OwnerName) > 0 || len(filter.OwnerId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN Owner O on S.service_id = O.owner_service_id
-		`)
-	}
-
-	if len(filter.OwnerName) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN User U on U.user_id = O.owner_user_id
-		`)
-	}
-
-	if len(filter.SupportGroupCCRN) > 0 || len(filter.SupportGroupId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
-		`)
-	}
-
-	if len(filter.SupportGroupCCRN) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
-		`)
-	}
-
-	if len(filter.ComponentInstanceId) > 0 || len(filter.IssueId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ComponentInstance CI on S.service_id = CI.componentinstance_service_id
-		`)
-
-		if len(filter.IssueId) > 0 {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN IssueMatch IM on IM.issuematch_component_instance_id = CI.componentinstance_id
-			`)
-		}
-	}
-
-	if len(filter.IssueRepositoryId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_service_id = S.service_id
-		`)
-	}
-	if OrderByCount(order) {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN mvServiceIssueCounts SIC ON S.service_id = SIC.service_id
-		`)
-	}
-
-	return joins
-}
-
 func (s *SqlDatabase) getServiceColumns(filter *entity.ServiceFilter, order []entity.Order) string {
 	columns := "S.*"
 	if len(filter.IssueRepositoryId) > 0 {
@@ -291,8 +239,7 @@ func (s *SqlDatabase) buildServiceStatement(
 
 	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-	joins := s.getServiceJoins(filter, order)
-
+	joins := serviceObject.GetJoins(filter, order)
 	filterStr := serviceObject.GetFilterQuery(filter)
 
 	whereClause := ""
@@ -484,7 +431,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	filter = ensureServiceFilter(filter)
 	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-	joins := s.getServiceJoins(filter, order)
+	joins := serviceObject.GetJoins(filter, order)
 	columns := s.getServiceColumns(filter, order)
 
 	cursorFields, err := DecodeCursor(filter.After)

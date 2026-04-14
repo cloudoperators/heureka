@@ -118,7 +118,7 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 			Type:      InnerJoin,
 			Table:     "IssueRepository IR",
 			On:        "IV.issuevariant_repository_id = IR.issuerepository_id",
-			Condition: AlwaysJoin,
+			Condition: DependentJoin,
 		},
 		{
 			Name:      "IRS",
@@ -160,30 +160,6 @@ func ensureIssueVariantFilter(filter *entity.IssueVariantFilter) *entity.IssueVa
 	return EnsurePagination(filter)
 }
 
-func (s *SqlDatabase) getIssueVariantJoins(filter *entity.IssueVariantFilter) string {
-	joins := "INNER JOIN IssueRepository IR on IV.issuevariant_repository_id = IR.issuerepository_id"
-
-	if len(filter.ServiceId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			INNER JOIN IssueRepositoryService IRS on IRS.issuerepositoryservice_issue_repository_id = IR.issuerepository_id
-		`)
-	}
-
-	if len(filter.IssueId) > 0 || len(filter.IssueMatchId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			INNER JOIN Issue I on IV.issuevariant_issue_id = I.issue_id
-		`)
-	}
-
-	if len(filter.IssueMatchId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			INNER JOIN IssueMatch IM on IM.issuematch_issue_id = I.issue_id
-		`)
-	}
-
-	return joins
-}
-
 func (s *SqlDatabase) buildIssueVariantStatement(
 	baseQuery string,
 	filter *entity.IssueVariantFilter,
@@ -194,8 +170,6 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 	filter = ensureIssueVariantFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	joins := s.getIssueVariantJoins(filter)
-
 	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode IssueVariant cursor: %w", err)
@@ -204,7 +178,7 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 	cursorQuery := CreateCursorQuery("", cursorFields)
 	order = GetDefaultOrder(order, entity.IssueVariantID, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-
+	joins := issueVariantObject.GetJoins(filter, order)
 	filterStr := issueVariantObject.GetFilterQuery(filter)
 
 	whereClause := ""
