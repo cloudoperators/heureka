@@ -4,6 +4,7 @@
 package e2e_test
 
 import (
+	"database/sql"
 	"fmt"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
@@ -443,6 +444,181 @@ var _ = Describe("Getting Services via API", Label("e2e", "Services"), func() {
 		})
 
 		It("can count issues", Label("issueCount"), func() {
+		})
+	})
+
+	When("explicit service severity ordering is tested", func() {
+		It("correctly orders services by severity counts", func() {
+			user := test.NewFakeUser()
+			userId, err := seeder.InsertFakeUser(user)
+			Expect(err).To(BeNil())
+
+			svcB, err := seeder.InsertFakeBaseService(mariadb.BaseServiceRow{
+				CCRN:      sql.NullString{String: "ServiceB", Valid: true},
+				CreatedBy: sql.NullInt64{Int64: 1, Valid: true},
+				UpdatedBy: sql.NullInt64{Int64: 1, Valid: true},
+			})
+			Expect(err).To(BeNil())
+
+			svcC, err := seeder.InsertFakeBaseService(mariadb.BaseServiceRow{
+				CCRN:      sql.NullString{String: "ServiceC", Valid: true},
+				CreatedBy: sql.NullInt64{Int64: 1, Valid: true},
+				UpdatedBy: sql.NullInt64{Int64: 1, Valid: true},
+			})
+			Expect(err).To(BeNil())
+
+			svcA, err := seeder.InsertFakeBaseService(mariadb.BaseServiceRow{
+				CCRN:      sql.NullString{String: "ServiceA", Valid: true},
+				CreatedBy: sql.NullInt64{Int64: 1, Valid: true},
+				UpdatedBy: sql.NullInt64{Int64: 1, Valid: true},
+			})
+			Expect(err).To(BeNil())
+
+			repos := seeder.SeedIssueRepositories()
+			Expect(len(repos)).To(BeNumerically(">", 0))
+
+			component := test.NewFakeComponent()
+			componentId, err := seeder.InsertFakeComponent(component)
+			Expect(err).To(BeNil())
+
+			componentVersionA := test.NewFakeComponentVersion()
+			componentVersionA.ComponentId = sql.NullInt64{Int64: componentId, Valid: true}
+			componentVersionAId, err := seeder.InsertFakeComponentVersion(componentVersionA)
+			Expect(err).To(BeNil())
+
+			componentVersionB := test.NewFakeComponentVersion()
+			componentVersionB.ComponentId = sql.NullInt64{Int64: componentId, Valid: true}
+			componentVersionBId, err := seeder.InsertFakeComponentVersion(componentVersionB)
+			Expect(err).To(BeNil())
+
+			serviceAIssueIds := make([]int64, 0, 10)
+			for i := 0; i < 10; i++ {
+				issue := test.NewFakeIssue()
+				issue.Type = sql.NullString{String: string(entity.IssueTypeVulnerability), Valid: true}
+				issue.PrimaryName = sql.NullString{String: fmt.Sprintf("CVE-2023-12345-%d", i), Valid: true}
+
+				issueId, err := seeder.InsertFakeIssue(issue)
+				Expect(err).To(BeNil())
+				serviceAIssueIds = append(serviceAIssueIds, issueId)
+
+				cvi := mariadb.ComponentVersionIssueRow{
+					ComponentVersionId: sql.NullInt64{Int64: componentVersionAId, Valid: true},
+					IssueId:            sql.NullInt64{Int64: issueId, Valid: true},
+				}
+				_, err = seeder.InsertFakeComponentVersionIssue(cvi)
+				Expect(err).To(BeNil())
+
+				iv := mariadb.IssueVariantRow{
+					IssueId:           sql.NullInt64{Int64: issueId, Valid: true},
+					IssueRepositoryId: sql.NullInt64{Int64: repos[0].Id.Int64, Valid: true},
+					Vector:            sql.NullString{String: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", Valid: true},
+					Rating:            sql.NullString{String: "Critical", Valid: true},
+					SecondaryName:     sql.NullString{String: fmt.Sprintf("CVE-2023-12345-%d-variant", i), Valid: true},
+					Description:       sql.NullString{String: fmt.Sprintf("Critical issue variant %d for ordering test", i), Valid: true},
+				}
+				_, err = seeder.InsertFakeIssueVariant(iv)
+				Expect(err).To(BeNil())
+			}
+
+			serviceBIssue := test.NewFakeIssue()
+			serviceBIssue.Type = sql.NullString{String: string(entity.IssueTypeVulnerability), Valid: true}
+			serviceBIssue.PrimaryName = sql.NullString{String: "CVE-2023-12345-B", Valid: true}
+
+			serviceBIssueId, err := seeder.InsertFakeIssue(serviceBIssue)
+			Expect(err).To(BeNil())
+
+			cviB := mariadb.ComponentVersionIssueRow{
+				ComponentVersionId: sql.NullInt64{Int64: componentVersionBId, Valid: true},
+				IssueId:            sql.NullInt64{Int64: serviceBIssueId, Valid: true},
+			}
+			_, err = seeder.InsertFakeComponentVersionIssue(cviB)
+			Expect(err).To(BeNil())
+
+			ivB := mariadb.IssueVariantRow{
+				IssueId:           sql.NullInt64{Int64: serviceBIssueId, Valid: true},
+				IssueRepositoryId: sql.NullInt64{Int64: repos[0].Id.Int64, Valid: true},
+				Vector:            sql.NullString{String: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", Valid: true},
+				Rating:            sql.NullString{String: "Critical", Valid: true},
+				SecondaryName:     sql.NullString{String: "CVE-2023-12345-B-variant", Valid: true},
+				Description:       sql.NullString{String: "Critical issue variant for ServiceB ordering test", Valid: true},
+			}
+			_, err = seeder.InsertFakeIssueVariant(ivB)
+			Expect(err).To(BeNil())
+
+			ciAId, err := seeder.InsertFakeComponentInstance(mariadb.ComponentInstanceRow{
+				CCRN:               sql.NullString{String: "ciA", Valid: true},
+				ServiceId:          sql.NullInt64{Int64: svcA, Valid: true},
+				ComponentVersionId: sql.NullInt64{Int64: componentVersionAId, Valid: true},
+				Count:              sql.NullInt16{Int16: 1, Valid: true},
+			})
+			Expect(err).To(BeNil())
+
+			ciBId, err := seeder.InsertFakeComponentInstance(mariadb.ComponentInstanceRow{
+				CCRN:               sql.NullString{String: "ciB", Valid: true},
+				ServiceId:          sql.NullInt64{Int64: svcB, Valid: true},
+				ComponentVersionId: sql.NullInt64{Int64: componentVersionBId, Valid: true},
+				Count:              sql.NullInt16{Int16: 1, Valid: true},
+			})
+			Expect(err).To(BeNil())
+
+			for i := 0; i < 10; i++ {
+				im := test.NewFakeIssueMatch()
+				im.ComponentInstanceId = sql.NullInt64{Int64: ciAId, Valid: true}
+				im.IssueId = sql.NullInt64{Int64: serviceAIssueIds[i], Valid: true}
+				im.UserId = sql.NullInt64{Int64: userId, Valid: true}
+				im.Vector = sql.NullString{String: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", Valid: true}
+				im.Rating = sql.NullString{String: "Critical", Valid: true}
+				_, err := seeder.InsertFakeIssueMatch(im)
+				Expect(err).To(BeNil())
+			}
+
+			im := test.NewFakeIssueMatch()
+			im.ComponentInstanceId = sql.NullInt64{Int64: ciBId, Valid: true}
+			im.IssueId = sql.NullInt64{Int64: serviceBIssueId, Valid: true}
+			im.UserId = sql.NullInt64{Int64: userId, Valid: true}
+			im.Vector = sql.NullString{String: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", Valid: true}
+			im.Rating = sql.NullString{String: "Critical", Valid: true}
+			_, err = seeder.InsertFakeIssueMatch(im)
+			Expect(err).To(BeNil())
+
+			err = seeder.RefreshServiceIssueCounters()
+			Expect(err).To(BeNil())
+			err = seeder.RefreshCountIssueRatings()
+			Expect(err).To(BeNil())
+
+			respData, err := e2e_common.ExecuteGqlQueryFromFileWithHeaders[struct {
+				Services model.ServiceConnection `json:"Services"`
+			}](
+				cfg.Port,
+				"../api/graphql/graph/queryCollection/service/service_severity_order_explicit_test.graphql",
+				map[string]any{
+					"filter": map[string]string{},
+					"first":  10,
+					"after":  "",
+					"orderBy": []map[string]string{
+						{"by": "severity", "direction": "desc"},
+					},
+				},
+				nil,
+			)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(respData.Services.TotalCount).To(Equal(3))
+			Expect(len(respData.Services.Edges)).To(Equal(3))
+
+			expectedOrderIDs := []string{fmt.Sprintf("%d", svcA), fmt.Sprintf("%d", svcB), fmt.Sprintf("%d", svcC)}
+			for i, id := range expectedOrderIDs {
+				Expect(respData.Services.Edges[i].Node.ID).To(BeEquivalentTo(id), "Service at position %d should be ID %s", i, id)
+			}
+
+			Expect(*respData.Services.Edges[0].Node.Ccrn).To(Equal("ServiceA"))
+			Expect(respData.Services.Edges[0].Node.IssueCounts.Critical).To(Equal(10))
+
+			Expect(*respData.Services.Edges[1].Node.Ccrn).To(Equal("ServiceB"))
+			Expect(respData.Services.Edges[1].Node.IssueCounts.Critical).To(Equal(1))
+
+			Expect(*respData.Services.Edges[2].Node.Ccrn).To(Equal("ServiceC"))
+			Expect(respData.Services.Edges[2].Node.IssueCounts.Critical).To(Equal(0))
 		})
 	})
 })

@@ -170,6 +170,8 @@ func (so *ServiceOrderBy) ToOrderEntity() entity.Order {
 	switch *so.By {
 	case ServiceOrderByFieldCcrn:
 		order.By = entity.ServiceCcrn
+	case ServiceOrderByFieldSeverity:
+		order.By = entity.CriticalCount
 	}
 
 	order.Direction = so.Direction.ToOrderDirectionEntity()

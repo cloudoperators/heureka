@@ -419,6 +419,11 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 	orderStr := CreateOrderString(order)
 	finalOrderStr := strings.ReplaceAll(orderStr, "service_id", "IMC.service_id")
 	finalOrderStr = strings.ReplaceAll(finalOrderStr, "service_ccrn", "IMC.service_ccrn")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "critical_count", "IMC.critical_count")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "high_count", "IMC.high_count")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "medium_count", "IMC.medium_count")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "low_count", "IMC.low_count")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "none_count", "IMC.none_count")
 	joins := s.getServiceJoins(filter, order)
 	columns := s.getServiceColumns(filter, order)
 
