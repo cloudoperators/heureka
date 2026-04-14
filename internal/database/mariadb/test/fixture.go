@@ -43,9 +43,19 @@ type SeedCollection struct {
 }
 
 func (s *SeedCollection) GetComponentInstanceById(id int64) *mariadb.ComponentInstanceRow {
-	for _, ci := range s.ComponentInstanceRows {
-		if ci.Id.Int64 == id {
-			return &ci
+	for i := range s.ComponentInstanceRows {
+		if s.ComponentInstanceRows[i].Id.Int64 == id {
+			return &s.ComponentInstanceRows[i]
+		}
+	}
+
+	return nil
+}
+
+func (s *SeedCollection) GetServiceById(id int64) *mariadb.BaseServiceRow {
+	for i := range s.ServiceRows {
+		if s.ServiceRows[i].Id.Int64 == id {
+			return &s.ServiceRows[i]
 		}
 	}
 
@@ -53,9 +63,9 @@ func (s *SeedCollection) GetComponentInstanceById(id int64) *mariadb.ComponentIn
 }
 
 func (s *SeedCollection) GetIssueById(id int64) *mariadb.IssueRow {
-	for _, issue := range s.IssueRows {
-		if issue.Id.Int64 == id {
-			return &issue
+	for i := range s.IssueRows {
+		if s.IssueRows[i].Id.Int64 == id {
+			return &s.IssueRows[i]
 		}
 	}
 
@@ -256,6 +266,27 @@ func (s *SeedCollection) FindMatchingComponentAndComponentVersion() (mariadb.Com
 	}
 
 	return mariadb.ComponentRow{}, mariadb.ComponentVersionRow{}, false
+}
+
+func (s *SeedCollection) FindMatchingComponentVersionAndIssueVariant() (
+	mariadb.ComponentVersionRow,
+	mariadb.IssueVariantRow,
+	bool,
+) {
+	for _, componentVersionRow := range s.ComponentVersionRows {
+		for _, componentVersionIssueRow := range s.ComponentVersionIssueRows {
+			if componentVersionIssueRow.ComponentVersionId.Int64 == componentVersionRow.Id.Int64 {
+				issueVariant, ok := lo.Find(s.IssueVariantRows, func(ivRow mariadb.IssueVariantRow) bool {
+					return ivRow.IssueId.Int64 == componentVersionIssueRow.IssueId.Int64
+				})
+				if ok {
+					return componentVersionRow, issueVariant, true
+				}
+			}
+		}
+	}
+
+	return mariadb.ComponentVersionRow{}, mariadb.IssueVariantRow{}, false
 }
 
 type DatabaseSeeder struct {
@@ -868,11 +899,9 @@ func (s *DatabaseSeeder) SeedComponentInstances(
 
 	for range num {
 		componentInstance := NewFakeComponentInstance()
-		randomCvIndex := rand.Intn(len(componentVersions))
-		componentVersion := componentVersions[randomCvIndex]
+		componentVersion := PickOne(componentVersions)
 		componentInstance.ComponentVersionId = componentVersion.Id
-		randomSIndex := rand.Intn(len(services))
-		service := services[randomSIndex]
+		service := PickOne(services)
 		componentInstance.ServiceId = service.Id
 
 		componentInstanceId, err := s.InsertFakeComponentInstance(componentInstance)
@@ -942,12 +971,8 @@ func (s *DatabaseSeeder) SeedComponentVersionIssues(
 	cviList := make([]mariadb.ComponentVersionIssueRow, num)
 	for i := range num {
 		cvi := NewFakeComponentVersionIssue()
-		randomIIndex := rand.Intn(len(issues))
-		issue := issues[randomIIndex]
-		cvi.IssueId = issue.Id
-		randomCIndex := rand.Intn(len(componentVersions))
-		componentVersion := componentVersions[randomCIndex]
-		cvi.ComponentVersionId = componentVersion.Id
+		cvi.IssueId = PickOne(issues).Id
+		cvi.ComponentVersionId = PickOne(componentVersions).Id
 
 		_, err := s.InsertFakeComponentVersionIssue(cvi)
 		if err != nil {
@@ -1545,11 +1570,11 @@ func NewFakeIssueVariant(
 		Rating:      sql.NullString{String: rating, Valid: true},
 		ExternalUrl: sql.NullString{String: externalUrl, Valid: true},
 		IssueRepositoryId: sql.NullInt64{
-			Int64: repos[rand.Intn(len(repos))].Id.Int64,
+			Int64: PickOne(repos).Id.Int64,
 			Valid: true,
 		},
 		IssueId: sql.NullInt64{
-			Int64: disc[rand.Intn(len(disc))].Id.Int64,
+			Int64: PickOne(disc).Id.Int64,
 			Valid: true,
 		},
 		CreatedBy: sql.NullInt64{Int64: util.SystemUserId, Valid: true},
