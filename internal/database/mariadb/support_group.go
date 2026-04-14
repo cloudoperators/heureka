@@ -109,29 +109,6 @@ var supportGroupObject = DbObject[*entity.SupportGroup]{
 	},
 }
 
-func (s *SqlDatabase) getSupportGroupJoins(filter *entity.SupportGroupFilter) string {
-	joins := ""
-	if len(filter.ServiceId) > 0 || len(filter.IssueId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, ` 
-				INNER JOIN SupportGroupService SGS on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
-		`)
-		if len(filter.IssueId) > 0 {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				INNER JOIN ComponentInstance CI on SGS.supportgroupservice_service_id = CI.componentinstance_service_id
-				INNER JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id
-			`)
-		}
-	}
-
-	if len(filter.UserId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, ` 
-				INNER JOIN SupportGroupUser SGU on SG.supportgroup_id = SGU.supportgroupuser_support_group_id
-		`)
-	}
-
-	return joins
-}
-
 func ensureSupportGroupFilter(filter *entity.SupportGroupFilter) *entity.SupportGroupFilter {
 	if filter == nil {
 		filter = &entity.SupportGroupFilter{}
@@ -160,8 +137,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 	cursorQuery := CreateCursorQuery("", cursorFields)
 	order = GetDefaultOrder(order, entity.SupportGroupId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-	joins := s.getSupportGroupJoins(filter)
-
+	joins := supportGroupObject.GetJoins(filter, order)
 	filterStr := supportGroupObject.GetFilterQuery(filter)
 
 	whereClause := ""

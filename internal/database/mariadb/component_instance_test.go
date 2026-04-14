@@ -191,8 +191,8 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				})
 				It("can filter by a single service CCRN that does exist", func() {
 					cir := test.PickOne(seedCollection.ComponentInstanceRows)
-					service := seedCollection.GetServiceById(cir.ServiceId.Int64)
-					Expect(service).To(Not(BeNil()))
+					service, ok := seedCollection.GetServiceById(cir.ServiceId.Int64)
+					Expect(ok).To(BeTrue())
 					Expect(service.Id.Valid).To((BeTrue()))
 					Expect(service.CCRN.Valid).To((BeTrue()))
 					filter := &entity.ComponentInstanceFilter{
