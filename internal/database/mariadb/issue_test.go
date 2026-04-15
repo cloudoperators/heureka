@@ -380,16 +380,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				It("can filter issue PrimaryName using wild card search", func() {
 					row := test.PickOne(seedCollection.IssueRows)
 
-					const charactersToRemoveFromBeginning = 2
-					const charactersToRemoveFromEnd = 2
-					const minimalCharactersToKeep = 5
-
-					start := charactersToRemoveFromBeginning
-					end := len(row.PrimaryName.String) - charactersToRemoveFromEnd
-
-					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
-
-					searchStr := row.PrimaryName.String[start:end]
+					searchStr := test.CutString(row.PrimaryName.String, 2, 2, 5)
 					filter := &entity.IssueFilter{Search: []*string{&searchStr}}
 
 					entries, err := db.GetIssues(filter, nil)
@@ -415,16 +406,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					// select an issueVariant
 					issueVariantRow := test.PickOne(seedCollection.IssueVariantRows)
 
-					const charactersToRemoveFromBeginning = 2
-					const charactersToRemoveFromEnd = 2
-					const minimalCharactersToKeep = 5
-
-					start := charactersToRemoveFromBeginning
-					end := len(issueVariantRow.SecondaryName.String) - charactersToRemoveFromEnd
-
-					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
-
-					searchStr := issueVariantRow.SecondaryName.String[start:end]
+					searchStr := test.CutString(issueVariantRow.SecondaryName.String, 2, 2, 5)
 					filter := &entity.IssueFilter{Search: []*string{&searchStr}}
 
 					entries, err := db.GetIssues(filter, nil)

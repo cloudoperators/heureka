@@ -134,6 +134,86 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					})
 				})
+				It("can filter by a Component CCRN", func() {
+					issueMatchRow := test.PickOne(seedCollection.IssueMatchRows)
+					ciRow, ok := seedCollection.GetComponentInstanceById(issueMatchRow.ComponentInstanceId.Int64)
+					Expect(ok).To(BeTrue())
+					cvRow, ok := seedCollection.GetComponentVersionById(ciRow.ComponentVersionId.Int64)
+					Expect(ok).To(BeTrue())
+					cRow, ok := seedCollection.GetComponentById(cvRow.ComponentId.Int64)
+					Expect(ok).To(BeTrue())
+
+					filter := &entity.IssueMatchFilter{
+						ComponentCCRN: []*string{&cRow.CCRN.String},
+					}
+
+					entries, err := db.GetAllIssueMatchIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("at least one element was picked", func() {
+						Expect(len(entries)).To(BeNumerically(">=", 1))
+					})
+
+					By("returning expected elements", func() {
+						Expect(entries).To(ContainElement(issueMatchRow.Id.Int64))
+					})
+				})
+				It("can filter by a single issue primary name", func() {
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
+					issueRow, ok := seedCollection.GetIssueById(issueMatch.IssueId.Int64)
+					Expect(ok).To(BeTrue())
+					filter := &entity.IssueMatchFilter{
+						PrimaryName: []*string{&issueRow.PrimaryName.String},
+					}
+
+					var imIds []int64
+					for _, e := range seedCollection.IssueMatchRows {
+						if e.IssueId.Int64 == issueMatch.IssueId.Int64 {
+							imIds = append(imIds, e.Id.Int64)
+						}
+					}
+
+					entries, err := db.GetAllIssueMatchIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
+					})
+
+					By("returning expected elements", func() {
+						for _, id := range entries {
+							Expect(lo.Contains(imIds, id)).To(BeTrue())
+						}
+					})
+				})
+				It("can filter issue PrimaryName using wild card search", func() {
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
+					issueRow, ok := seedCollection.GetIssueById(issueMatch.IssueId.Int64)
+					Expect(ok).To(BeTrue())
+
+					searchStr := test.CutString(issueRow.PrimaryName.String, 2, 2, 5)
+					filter := &entity.IssueMatchFilter{Search: []*string{&searchStr}}
+
+					entries, err := db.GetAllIssueMatchIds(filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("at least one element was picked", func() {
+						Expect(len(entries)).To(BeNumerically(">=", 1))
+					})
+
+					By("returning the expected elements", func() {
+						Expect(entries).To(ContainElement(issueMatch.Id.Int64))
+					})
+				})
 			})
 		})
 	})

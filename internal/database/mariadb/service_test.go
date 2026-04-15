@@ -389,16 +389,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				It("can filter service ServiceCcrn using wild card search", func() {
 					row := test.PickOne(seedCollection.ServiceRows)
 
-					const charactersToRemoveFromBeginning = 2
-					const charactersToRemoveFromEnd = 2
-					const minimalCharactersToKeep = 2
-
-					start := charactersToRemoveFromBeginning
-					end := len(row.CCRN.String) - charactersToRemoveFromEnd
-
-					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
-
-					searchStr := row.CCRN.String[start:end]
+					searchStr := test.CutString(row.CCRN.String, 2, 2, 2)
 					filter := &entity.ServiceFilter{Search: []*string{&searchStr}}
 
 					entries, err := db.GetServices(filter, nil)

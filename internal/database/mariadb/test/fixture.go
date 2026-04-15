@@ -48,9 +48,21 @@ func (s *SeedCollection) GetComponentInstanceById(id int64) (mariadb.ComponentIn
 	})
 }
 
+func (s *SeedCollection) GetComponentVersionById(id int64) (mariadb.ComponentVersionRow, bool) {
+	return lo.Find(s.ComponentVersionRows, func(cvr mariadb.ComponentVersionRow) bool {
+		return cvr.Id.Int64 == id
+	})
+}
+
 func (s *SeedCollection) GetServiceById(id int64) (mariadb.BaseServiceRow, bool) {
 	return lo.Find(s.ServiceRows, func(sr mariadb.BaseServiceRow) bool {
 		return sr.Id.Int64 == id
+	})
+}
+
+func (s *SeedCollection) GetComponentById(id int64) (mariadb.ComponentRow, bool) {
+	return lo.Find(s.ComponentRows, func(cr mariadb.ComponentRow) bool {
+		return cr.Id.Int64 == id
 	})
 }
 

@@ -370,16 +370,7 @@ var _ = Describe("Remediation", Label("database", "Remediation"), func() {
 				It("can filter by wildcard search", func() {
 					row := test.PickOne(seedCollection.RemediationRows)
 
-					const charactersToRemoveFromBeginning = 2
-					const charactersToRemoveFromEnd = 2
-					const minimalCharactersToKeep = 5
-
-					start := charactersToRemoveFromBeginning
-					end := len(row.Issue.String) - charactersToRemoveFromEnd
-
-					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
-
-					searchStr := row.Issue.String[start:end]
+					searchStr := test.CutString(row.Issue.String, 2, 2, 5)
 					filter := &entity.RemediationFilter{Search: []*string{&searchStr}}
 
 					entries, err := db.GetRemediations(filter, nil)
