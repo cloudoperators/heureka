@@ -158,23 +158,19 @@ var issueObject = DbObject[*entity.Issue]{
 			Table: "IssueMatch IM",
 			On:    "I.issue_id = IM.issuematch_issue_id",
 			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
-				return len(f.IssueMatchStatus) > 0 ||
-					len(f.IssueMatchId) > 0 ||
-					len(f.IssueMatchSeverity) > 0
+				return len(f.IssueMatchStatus) > 0 || len(f.IssueMatchId) > 0 || len(f.IssueMatchSeverity) > 0
 			}),
 		},
 		{
-			Name:      "CI IM_RJ",
+			Name:      "CI with IM_RJ",
 			Type:      LeftJoin,
 			Table:     "ComponentInstance CI",
 			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
 			DependsOn: []string{"IM_RJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
-				return len(f.ServiceId) > 0
-			}),
+			Condition: DependentJoin,
 		},
 		{
-			Name:      "CI IM_LJ",
+			Name:      "CI with IM_LJ",
 			Type:      LeftJoin,
 			Table:     "ComponentInstance CI",
 			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
@@ -184,41 +180,41 @@ var issueObject = DbObject[*entity.Issue]{
 			}),
 		},
 		{
-			Name:      "CV IM_RJ",
+			Name:      "CV with IM_RJ",
 			Type:      LeftJoin,
 			Table:     "ComponentVersion CV",
 			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
-			DependsOn: []string{"CI IM_RJ"},
+			DependsOn: []string{"CI with IM_RJ"},
 			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
 				return f.AllServices
 			}),
-		},
+		}, // Looks like this case is not used because of mv_vulnerabilities
 		{
-			Name:      "CV IM_LJ",
+			Name:      "CV with IM_LJ",
 			Type:      LeftJoin,
 			Table:     "ComponentVersion CV",
 			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
-			DependsOn: []string{"CI IM_LJ"},
+			DependsOn: []string{"CI with IM_LJ"},
 			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
 		},
 		{
-			Name:      "S IM_RJ",
+			Name:      "S with IM_RJ",
 			Type:      LeftJoin,
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
-			DependsOn: []string{"CI IM_RJ"},
+			DependsOn: []string{"CI with IM_RJ"},
 			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
 				return f.AllServices
 			}),
-		},
+		}, // Looks like this case is not used because of mv_vulnerabilities
 		{
-			Name:      "S IM_LJ",
+			Name:      "S with IM_LJ",
 			Type:      LeftJoin,
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
-			DependsOn: []string{"CI IM_LJ"},
+			DependsOn: []string{"CI with IM_LJ"},
 			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
@@ -228,7 +224,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Type:      LeftJoin,
 			Table:     "SupportGroupService SGS",
 			On:        "CI.componentinstance_service_id = SGS.supportgroupservice_service_id",
-			DependsOn: []string{"CI IM_LJ"},
+			DependsOn: []string{"CI with IM_LJ"},
 			Condition: DependentJoin,
 		},
 		{
@@ -242,25 +238,6 @@ var issueObject = DbObject[*entity.Issue]{
 			}),
 		},
 		{
-			Name:  "CVI",
-			Type:  LeftJoin,
-			Table: "ComponentVersionIssue CVI",
-			On:    "I.issue_id = CVI.componentversionissue_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
-				return len(f.ComponentVersionId) > 0 || len(f.ComponentId) > 0
-			}),
-		},
-		{
-			Name:      "CV",
-			Type:      LeftJoin,
-			Table:     "ComponentVersion CV",
-			On:        "CVI.componentversionissue_component_version_id = CV.componentversion_id",
-			DependsOn: []string{"CVI"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
-				return len(f.ComponentId) > 0 && !(len(f.ServiceId) > 0 || len(f.ServiceCCRN) > 0 || len(f.SupportGroupCCRN) > 0 || f.AllServices)
-			}),
-		},
-		{
 			Name:  "IV",
 			Type:  LeftJoin,
 			Table: "IssueVariant IV",
@@ -269,120 +246,77 @@ var issueObject = DbObject[*entity.Issue]{
 				orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
 					return o.By == entity.IssueVariantRating
 				})
-				return len(f.IssueRepositoryId) > 0 ||
-					len(f.IssueVariantId) > 0 ||
-					len(f.Search) > 0 ||
-					orderByRating
+				return len(f.IssueVariantId) > 0 || len(f.IssueRepositoryId) > 0 || len(f.Search) > 0 || orderByRating
 			}),
 		},
+		{
+			Name:  "CVI",
+			Type:  LeftJoin,
+			Table: "ComponentVersionIssue CVI",
+			On:    "I.issue_id = CVI.componentversionissue_issue_id",
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+				return len(f.ComponentVersionId) > 0
+			}),
+		},
+		{
+			Name:      "CV using CVI",
+			Type:      LeftJoin,
+			Table:     "ComponentVersion CV",
+			On:        "CVI.componentversionissue_component_version_id = CV.componentversion_id",
+			DependsOn: []string{"CVI"},
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+				return len(f.ComponentId) > 0 && (len(f.ServiceId) == 0 && len(f.ServiceCCRN) == 0 && len(f.SupportGroupCCRN) == 0 && !f.AllServices)
+			}),
+		},
+		{
+			Name:      "R has S and C",
+			Type:      LeftJoin,
+			Table:     "Remediation R",
+			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id AND CV.componentversion_component_id = R.remediation_component_id",
+			DependsOn: []string{"CI with IM_LJ", "CV using CVI"},
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
+				hasComponent := len(f.ComponentId) > 0
+				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && hasService && hasComponent
+			}),
+		}, // Missing test
+		{
+			Name:      "R has S",
+			Type:      LeftJoin,
+			Table:     "Remediation R",
+			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id",
+			DependsOn: []string{"CI with IM_LJ"},
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
+				hasComponent := len(f.ComponentId) > 0
+				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && hasService && !hasComponent
+			}),
+		}, // Missing test
+		{
+			Name:      "R has C",
+			Type:      LeftJoin,
+			Table:     "Remediation R",
+			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CV.componentversion_component_id = R.remediation_component_id",
+			DependsOn: []string{"CV using CVI"},
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
+				hasComponent := len(f.ComponentId) > 0
+				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && hasComponent
+			}),
+		}, // Missing test
 		{
 			Name:  "R",
 			Type:  LeftJoin,
 			Table: "Remediation R",
 			On:    "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL",
 			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
-				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !(len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0 || len(f.IssueVariantId) > 0)
-			}),
-		},
-		{
-			Name:      "R with CI",
-			Type:      LeftJoin,
-			Table:     "Remediation R",
-			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id",
-			DependsOn: []string{"CI IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
-				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && (len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0)
-			}),
-		},
-		{
-			Name:      "R with CV",
-			Type:      LeftJoin,
-			Table:     "Remediation R",
-			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CV.componentversion_component_id = R.remediation_component_id",
-			DependsOn: []string{"CV"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
-				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && len(f.ComponentId) > 0
-			}),
-		},
-		{
-			Name:      "R with CI and CV",
-			Type:      LeftJoin,
-			Table:     "Remediation R",
-			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id AND CV.componentversion_component_id = R.remediation_component_id",
-			DependsOn: []string{"CI IM_LJ", "CV"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
-				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && len(f.ComponentId) > 0
+				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
+				hasComponent := len(f.ComponentId) > 0
+				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && !hasComponent
 			}),
 		},
 	},
 }
-
-/*func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
-	joins := ""
-	orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.IssueVariantRating
-	})
-	if AS || HIM {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-				RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
-			`)
-	} else if LIMStat || LSI || LSC || LIMI || LSGC || LIMSev {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
-			`)
-	}
-
-	if LSI || LSC || LSGC || AS {
-
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
-		`)
-		if LSC || AS {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
-				LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
-			`)
-		}
-		if LSGC {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id
-				LEFT JOIN SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id
-			`)
-		}
-	}
-
-	if LCVI || LCI {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
-		`)
-
-		if LCI && !(LSI || LSC || LSGC || AS) {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN ComponentVersion CV ON CVI.componentversionissue_component_version_id = CV.componentversion_id
-			`)
-		}
-	}
-
-	if LIRI || LIVI || LS || orderByRating {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueVariant IV ON I.issue_id = IV.issuevariant_issue_id
-		`)
-	}
-
-	if filter.Status == entity.IssueStatusOpen || filter.Status == entity.IssueStatusRemediated {
-		remediationJoin := "LEFT JOIN Remediation R on R.remediation_issue_id = I.issue_id AND R.remediation_deleted_at IS NULL"
-		if LSC || LSI {
-			remediationJoin = fmt.Sprintf("%s AND R.remediation_service_id = CI.componentinstance_service_id", remediationJoin)
-		}
-		if LCI {
-			remediationJoin = fmt.Sprintf("%s AND R.remediation_component_id = CV.componentversion_component_id", remediationJoin)
-		}
-		joins = fmt.Sprintf("%s\n%s", joins, remediationJoin)
-	}
-
-	return joins
-}
-*/
 
 func ensureIssueFilter(filter *entity.IssueFilter) *entity.IssueFilter {
 	if filter == nil {
@@ -390,92 +324,6 @@ func ensureIssueFilter(filter *entity.IssueFilter) *entity.IssueFilter {
 	}
 
 	return EnsurePagination(filter)
-}
-
-func getIssueJoins(filter *entity.IssueFilter, order []entity.Order) string {
-	joins := ""
-
-	orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.IssueVariantRating
-	})
-
-	if filter.AllServices || filter.HasIssueMatches {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-				RIGHT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
-			`)
-	} else if len(filter.IssueMatchStatus) > 0 || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
-		len(
-			filter.IssueMatchId,
-		) > 0 || len(filter.SupportGroupCCRN) > 0 || len(filter.IssueMatchSeverity) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN IssueMatch IM ON I.issue_id = IM.issuematch_issue_id
-			`)
-	}
-
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
-		len(filter.SupportGroupCCRN) > 0 ||
-		filter.AllServices {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ComponentInstance CI ON CI.componentinstance_id = IM.issuematch_component_instance_id
-		`)
-
-		if len(filter.ServiceCCRN) > 0 || filter.AllServices {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN ComponentVersion CV ON CI.componentinstance_component_version_id = CV.componentversion_id
-				LEFT JOIN Service S ON S.service_id = CI.componentinstance_service_id
-			`)
-		}
-
-		if len(filter.SupportGroupCCRN) > 0 {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN SupportGroupService SGS ON SGS.supportgroupservice_service_id = CI.componentinstance_service_id
-				LEFT JOIN SupportGroup SG ON SGS.supportgroupservice_support_group_id = SG.supportgroup_id
-			`)
-		}
-	}
-
-	if len(filter.ComponentVersionId) > 0 || len(filter.ComponentId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ComponentVersionIssue CVI ON I.issue_id = CVI.componentversionissue_issue_id
-		`)
-
-		if len(filter.ComponentId) > 0 &&
-			(len(filter.ServiceId) <= 0 && len(filter.ServiceCCRN) <= 0 && len(filter.SupportGroupCCRN) <= 0 && !filter.AllServices) {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN ComponentVersion CV ON CVI.componentversionissue_component_version_id = CV.componentversion_id
-			`)
-		}
-	}
-
-	if len(filter.IssueRepositoryId) > 0 || len(filter.IssueVariantId) > 0 ||
-		len(filter.Search) > 0 ||
-		orderByRating {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueVariant IV ON I.issue_id = IV.issuevariant_issue_id
-		`)
-	}
-
-	if filter.Status == entity.IssueStatusOpen || filter.Status == entity.IssueStatusRemediated {
-		remediationJoin := "LEFT JOIN Remediation R on R.remediation_issue_id = I.issue_id AND R.remediation_deleted_at IS NULL"
-
-		if len(filter.ServiceCCRN) > 0 || len(filter.ServiceId) > 0 {
-			remediationJoin = fmt.Sprintf(
-				"%s AND R.remediation_service_id = CI.componentinstance_service_id",
-				remediationJoin,
-			)
-		}
-
-		if len(filter.ComponentId) > 0 {
-			remediationJoin = fmt.Sprintf(
-				"%s AND R.remediation_component_id = CV.componentversion_component_id",
-				remediationJoin,
-			)
-		}
-
-		joins = fmt.Sprintf("%s\n%s", joins, remediationJoin)
-	}
-
-	return joins
 }
 
 func getIssueColumns(order []entity.Order) string {
@@ -522,7 +370,7 @@ func getIssueQueryWithCursor(
 ) string {
 	issueColumns := getIssueColumns(order)
 	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
-	joins := getIssueJoins(filter, order)
+	joins := issueObject.GetJoins(filter, order)
 	whereClause := getIssueFilterWhereClause(filter)
 	issueCursor := getIssueCursorQuery(filter, cursorFields)
 	orderStr := CreateOrderString(defaultOrder)
@@ -533,7 +381,7 @@ func getIssueQueryWithCursor(
 func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueFilter) string {
 	issueColumns := getIssueColumns(order)
 	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
-	joins := getIssueJoins(filter, order)
+	joins := issueObject.GetJoins(filter, order)
 	whereClause := getIssueFilterWhereClause(filter)
 	orderStr := CreateOrderString(defaultOrder)
 
@@ -667,7 +515,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
     `
 
 	filter = ensureIssueFilter(filter)
-	joins := getIssueJoins(filter, order)
+	joins := issueObject.GetJoins(filter, order) // It seems that this join is redundant for baseAppQuery
+	// We should improve testing and remove redundant joins from query
 
 	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {

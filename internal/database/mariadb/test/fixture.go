@@ -314,6 +314,7 @@ func (s *SeedCollection) FindMatchingSupportGroupAndIssueMatch() (mariadb.Suppor
 			}
 		}
 	}
+
 	return mariadb.SupportGroupRow{}, mariadb.IssueMatchRow{}, false
 }
 

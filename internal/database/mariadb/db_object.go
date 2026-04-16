@@ -285,6 +285,7 @@ func NewJoinResolver(defs []*JoinDef) *JoinResolver {
 	for _, d := range defs {
 		r.defs[d.Name] = d
 	}
+
 	return r
 }
 
@@ -315,8 +316,23 @@ func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
 	}
 
 	var result []string
+
+	// This is little tricky part, but we need to deal with that this way
+	// until we have stateful join pattern which is created for issue.go
+	// with non-uniq tablename 'IM IssueMatch' which join operation
+	// depends on filter pattern with precedence for some members (there
+	// is if...else if which cannot be replaced by if... and if... what
+	// is a mess and misconception
+	uniqTableName := make(map[string]struct{})
+
 	for _, name := range jr.order {
 		j := jr.defs[name]
+
+		if _, ok := uniqTableName[j.Table]; ok {
+			continue
+		}
+
+		uniqTableName[j.Table] = struct{}{}
 
 		joinSQL := fmt.Sprintf("%s %s ON %s",
 			j.Type,
@@ -328,23 +344,6 @@ func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
 	}
 
 	return strings.Join(result, "\n")
-}
-
-func (jr *JoinResolver) Apply(builder sq.SelectBuilder, filter any, order []entity.Order) sq.SelectBuilder {
-	for _, def := range jr.defs {
-		if def.Condition != nil && def.Condition(filter, order) { //TODO: consider def.Condition == nil -> AlwaysJoin
-			jr.require(def.Name)
-		}
-	}
-
-	for _, name := range jr.order {
-		j := jr.defs[name]
-		builder = builder.JoinClause(
-			fmt.Sprintf("%s %s ON %s", j.Type, j.Table, j.On),
-		)
-	}
-
-	return builder
 }
 
 // DB helpers
@@ -500,6 +499,7 @@ func WrapJoinCondition[T any](joinCond func(T, []entity.Order) bool) func(any, [
 		if !ok {
 			panic(fmt.Sprintf("WrapJoinCondition: expected %T but got %T", *new(T), filter))
 		}
+
 		return joinCond(typedFilter, order)
 	}
 }
@@ -544,12 +544,4 @@ func ValueOrDefault[T any](p *T, def T) T {
 	}
 
 	return *p
-}
-
-func DebugStringNotEqual(s1 string, s2 string) string { //TODO: remove
-	if s1 != s2 {
-		fmt.Println("S1: ", s1)
-		fmt.Println("S2: ", s2)
-	}
-	return s2
 }

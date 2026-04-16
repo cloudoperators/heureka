@@ -181,11 +181,11 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					})
 				})
 				It("can filter by a single issue", func() {
-					supportGroupRow, IssueMatchRow, ok := seedCollection.FindMatchingSupportGroupAndIssueMatch()
+					supportGroupRow, issueMatchRow, ok := seedCollection.FindMatchingSupportGroupAndIssueMatch()
 					Expect(ok).To(BeTrue())
-					Expect(IssueMatchRow.IssueId.Valid).To(BeTrue())
+					Expect(issueMatchRow.IssueId.Valid).To(BeTrue())
 
-					filter := &entity.SupportGroupFilter{IssueId: []*int64{&IssueMatchRow.IssueId.Int64}}
+					filter := &entity.SupportGroupFilter{IssueId: []*int64{&issueMatchRow.IssueId.Int64}}
 
 					entries, err := db.GetSupportGroups(filter, nil)
 

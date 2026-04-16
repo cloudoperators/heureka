@@ -100,7 +100,7 @@ install-gofumpt:
 	go install mvdan.cc/gofumpt@latest
 
 fmt: install-gofumpt
-	gofumpt -l -w .
+	gofumpt -l -w internal/
 
 install-golangci-lint:
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0	
