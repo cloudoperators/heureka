@@ -234,7 +234,7 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 		}
 	}
 
-	if report.Metadata.OS.Eosl {
+	if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
 		_, err := client.UpdateComponentVersion(
 			context.Background(),
 			*p.Client,
