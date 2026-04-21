@@ -178,8 +178,11 @@ func (s *Server) Start() {
 
 func (s *Server) NonBlockingStart() {
 	s.nonBlockingSrv = &http.Server{
-		Addr:    fmt.Sprintf(":%s", s.config.Port),
-		Handler: s.router.Handler(),
+		Addr:         fmt.Sprintf(":%s", s.config.Port),
+		Handler:      s.router.Handler(),
+		ReadTimeout:  time.Minute * 20,
+		WriteTimeout: time.Minute * 20,
+		IdleTimeout:  time.Minute * 20,
 	}
 
 	util2.FirstListenThenServe(s.nonBlockingSrv, logrus.New())

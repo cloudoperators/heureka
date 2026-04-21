@@ -3,6 +3,7 @@
 package issue_test
 
 import (
+	"context"
 	"errors"
 	"math"
 	"strconv"
@@ -64,11 +65,11 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 			expectedResult := []entity.IssueResult{{
 				Issue: &issueEntity,
 			}}
-			db.On("GetIssues", mock.MatchedBy(func(filter *entity.IssueFilter) bool {
+			db.On("GetIssues", mock.Anything, mock.MatchedBy(func(filter *entity.IssueFilter) bool {
 				return len(filter.Id) == 1 && *filter.Id[0] == issueEntity.Id
 			}), []entity.Order{}).Return(expectedResult, nil)
 
-			result, err := issueHandler.GetIssue(issueEntity.Id)
+			result, err := issueHandler.GetIssue(context.Background(), issueEntity.Id)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(result).ToNot(BeNil(), "issue should be returned")
@@ -79,7 +80,7 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 
 	Context("with invalid input", func() {
 		It("should return InvalidArgument error for negative ID", func() {
-			result, err := issueHandler.GetIssue(-1)
+			result, err := issueHandler.GetIssue(context.Background(), -1)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -95,7 +96,7 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 		})
 
 		It("should return InvalidArgument error for zero ID", func() {
-			result, err := issueHandler.GetIssue(0)
+			result, err := issueHandler.GetIssue(context.Background(), 0)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -111,9 +112,9 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 	Context("when issue does not exist", func() {
 		It("should return NotFound error", func() {
 			// Setup mock to return empty result (no issues found)
-			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 
-			result, err := issueHandler.GetIssue(999)
+			result, err := issueHandler.GetIssue(context.Background(), 999)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -130,10 +131,10 @@ var _ = Describe("When getting a single Issue", Label("app", "GetIssue", "errors
 		It("should return Internal error wrapping the database error", func() {
 			// Setup mock to return database error
 			dbError := errors.New("database connection failed")
-			db.On("GetIssues", mock.Anything, []entity.Order{}).
+			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).
 				Return([]entity.IssueResult{}, dbError)
 
-			result, err := issueHandler.GetIssue(123)
+			result, err := issueHandler.GetIssue(context.Background(), 123)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -198,13 +199,13 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
-			db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
+			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+			db.On("CountIssueTypes", mock.Anything, filter).Return(issueTypeCounts, nil)
 		})
 
 		It("shows the total count in the results", func() {
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			res, err := issueHandler.ListIssues(filter, options)
+			res, err := issueHandler.ListIssues(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -244,11 +245,11 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 					c, _ := mariadb.EncodeCursor(mariadb.WithIssue([]entity.Order{}, issue, 0))
 					cursors = append(cursors, c)
 				}
-				db.On("GetIssues", filter, []entity.Order{}).Return(issues, nil)
-				db.On("GetAllIssueCursors", filter, []entity.Order{}).Return(cursors, nil)
-				db.On("CountIssueTypes", filter).Return(issueTypeCounts, nil)
+				db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return(issues, nil)
+				db.On("GetAllIssueCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
+				db.On("CountIssueTypes", mock.Anything, filter).Return(issueTypeCounts, nil)
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				res, err := issueHandler.ListIssues(filter, options)
+				res, err := issueHandler.ListIssues(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(
 					*res.PageInfo.HasNextPage,
@@ -276,38 +277,38 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 		})
 		Context("and the given filter does not have any matches in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).
+				db.On("GetIssuesWithAggregations", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.IssueResult{}, nil)
 			})
 
 			It("should return an empty result", func() {
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				res, err := issueHandler.ListIssues(filter, options)
+				res, err := issueHandler.ListIssues(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
 			})
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).
+				db.On("GetIssuesWithAggregations", mock.Anything, filter, []entity.Order{}).
 					Return(test.NNewFakeIssueResultsWithAggregations(10), nil)
 			})
 			It("should return the expected issues in the result", func() {
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				res, err := issueHandler.ListIssues(filter, options)
+				res, err := issueHandler.ListIssues(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(10), "return 10 results")
 			})
 		})
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssuesWithAggregations", filter, []entity.Order{}).
+				db.On("GetIssuesWithAggregations", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.IssueResult{}, errors.New("database error"))
 			})
 
 			It("should return the expected issues in the result", func() {
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				_, err := issueHandler.ListIssues(filter, options)
+				_, err := issueHandler.ListIssues(context.Background(), filter, options)
 
 				Expect(err).ToNot(BeNil(), "error should be returned")
 
@@ -328,23 +329,23 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 		Context("and the given filter does not have any matches in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+				db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			})
 			It("should return an empty result", func() {
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				res, err := issueHandler.ListIssues(filter, options)
+				res, err := issueHandler.ListIssues(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(0), "return no results")
 			})
 		})
 		Context("and the filter does have results in the database", func() {
 			BeforeEach(func() {
-				db.On("GetIssues", filter, []entity.Order{}).
+				db.On("GetIssues", mock.Anything, filter, []entity.Order{}).
 					Return(test.NNewFakeIssueResults(15), nil)
 			})
 			It("should return the expected issues in the result", func() {
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				res, err := issueHandler.ListIssues(filter, options)
+				res, err := issueHandler.ListIssues(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(len(res.Elements)).Should(BeEquivalentTo(15), "return 15 results")
 			})
@@ -352,13 +353,13 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetIssues", filter, []entity.Order{}).
+				db.On("GetIssues", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.IssueResult{}, errors.New("database error"))
 			})
 
 			It("should return the expected issues in the result", func() {
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				_, err := issueHandler.ListIssues(filter, options)
+				_, err := issueHandler.ListIssues(context.Background(), filter, options)
 
 				Expect(err).ToNot(BeNil(), "error should be returned")
 
@@ -380,12 +381,12 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 		It("should return Internal error", func() {
 			// Mock successful GetIssues but failing GetAllIssueCursors
-			db.On("GetIssues", filter, []entity.Order{}).Return(test.NNewFakeIssueResults(5), nil)
+			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return(test.NNewFakeIssueResults(5), nil)
 			cursorsError := errors.New("cursor database error")
-			db.On("GetAllIssueCursors", filter, []entity.Order{}).Return([]string{}, cursorsError)
+			db.On("GetAllIssueCursors", mock.Anything, filter, []entity.Order{}).Return([]string{}, cursorsError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			_, err := issueHandler.ListIssues(filter, options)
+			_, err := issueHandler.ListIssues(context.Background(), filter, options)
 
 			Expect(err).ToNot(BeNil(), "error should be returned")
 
@@ -405,12 +406,12 @@ var _ = Describe("When listing Issues", Label("app", "ListIssues"), func() {
 
 		It("should return Internal error", func() {
 			// Mock successful GetIssues but failing CountIssueTypes
-			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			countError := errors.New("count database error")
-			db.On("CountIssueTypes", filter).Return((*entity.IssueTypeCounts)(nil), countError)
+			db.On("CountIssueTypes", mock.Anything, filter).Return((*entity.IssueTypeCounts)(nil), countError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			_, err := issueHandler.ListIssues(filter, options)
+			_, err := issueHandler.ListIssues(context.Background(), filter, options)
 
 			Expect(err).ToNot(BeNil(), "error should be returned")
 
@@ -449,10 +450,10 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 	Context("with valid input", func() {
 		It("returns issue names successfully", func() {
 			expectedNames := []string{"CVE-2023-1234", "CVE-2023-5678", "POLICY-001"}
-			db.On("GetIssueNames", filter).Return(expectedNames, nil)
+			db.On("GetIssueNames", mock.Anything, filter).Return(expectedNames, nil)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.ListIssueNames(filter, options)
+			result, err := issueHandler.ListIssueNames(context.Background(), filter, options)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(result).ToNot(BeNil(), "result should be returned")
@@ -462,10 +463,10 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 
 		It("returns empty list when no issues found", func() {
 			expectedNames := []string{}
-			db.On("GetIssueNames", filter).Return(expectedNames, nil)
+			db.On("GetIssueNames", mock.Anything, filter).Return(expectedNames, nil)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.ListIssueNames(filter, options)
+			result, err := issueHandler.ListIssueNames(context.Background(), filter, options)
 
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(result).ToNot(BeNil(), "result should be returned")
@@ -477,10 +478,10 @@ var _ = Describe("When listing Issue Names", Label("app", "ListIssueNames"), fun
 		It("should return Internal error", func() {
 			// Mock database error
 			dbError := errors.New("database connection failed")
-			db.On("GetIssueNames", filter).Return([]string{}, dbError)
+			db.On("GetIssueNames", mock.Anything, filter).Return([]string{}, dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
-			result, err := issueHandler.ListIssueNames(filter, options)
+			result, err := issueHandler.ListIssueNames(context.Background(), filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -529,9 +530,9 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		It("creates issue successfully", func() {
 			filter.PrimaryName = []*string{&issueEntity.PrimaryName}
 			// Mock successful user ID retrieval
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			// Mock no existing issues with same primary name
-			db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			// Mock successful database creation
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).Return(&issueEntity, nil)
 
@@ -555,7 +556,7 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 		It("should return Internal error", func() {
 			// Mock GetCurrentUserId failure
 			dbError := errors.New("user database connection failed")
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			result, err := issueHandler.CreateIssue(common.NewAdminContext(), &issueEntity)
@@ -583,10 +584,10 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 	Context("when checking for existing issues fails", func() {
 		It("should return Internal error", func() {
 			// Mock successful user ID retrieval
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			// Mock ListIssues failure
 			listError := errors.New("database query failed")
-			db.On("GetIssues", mock.Anything, []entity.Order{}).
+			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).
 				Return([]entity.IssueResult{}, listError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
@@ -609,12 +610,12 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 	Context("when issue with same primary name already exists", func() {
 		It("should return AlreadyExists error", func() {
 			// Mock successful user ID retrieval
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			// Mock existing issue with same primary name
 			existingIssue := test.NewFakeIssueEntity()
 			existingIssue.Id = 999
 			existingIssue.PrimaryName = issueEntity.PrimaryName
-			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{{
+			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).Return([]entity.IssueResult{{
 				Issue: &existingIssue,
 			}}, nil)
 
@@ -641,9 +642,9 @@ var _ = Describe("When creating Issue", Label("app", "CreateIssue"), func() {
 	Context("when database creation fails", func() {
 		It("should return Internal error", func() {
 			// Mock successful user ID retrieval
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			// Mock no existing issues
-			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 			// Mock database creation failure
 			dbError := errors.New("constraint violation")
 			db.On("CreateIssue", mock.AnythingOfType("*entity.Issue")).
@@ -697,10 +698,10 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	Context("with valid input", func() {
 		It("updates issueEntity successfully", func() {
 			// Setup mocks for successful path
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			db.On("UpdateIssue", issueResult.Issue).Return(nil)
 			filter.Id = []*int64{&issueResult.Issue.Id}
-			db.On("GetIssues", filter, []entity.Order{}).
+			db.On("GetIssues", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.IssueResult{issueResult}, nil)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
@@ -721,7 +722,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 		It("should return Internal error", func() {
 			// Mock GetCurrentUserId failure
 			dbError := errors.New("user database connection failed")
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			result, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
@@ -744,7 +745,7 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	Context("when database update fails", func() {
 		It("should return Internal error", func() {
 			// Mock successful user ID retrieval
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			// Mock database update failure
 			dbError := errors.New("constraint violation")
 			db.On("UpdateIssue", issueResult.Issue).Return(dbError)
@@ -770,11 +771,11 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	Context("when retrieving updated issue fails", func() {
 		It("should return Internal error", func() {
 			// Mock successful user ID and update
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			db.On("UpdateIssue", issueResult.Issue).Return(nil)
 			// Mock ListIssues failure
 			listError := errors.New("database query failed")
-			db.On("GetIssues", mock.Anything, []entity.Order{}).
+			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).
 				Return([]entity.IssueResult{}, listError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
@@ -795,12 +796,12 @@ var _ = Describe("When updating Issue", Label("app", "UpdateIssue"), func() {
 	})
 
 	It("updates issueEntity", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateIssue", issueResult.Issue).Return(nil)
 		issueHandler = issue.NewIssueHandler(handlerContext)
 		issueResult.Issue.Description = "New Description"
 		filter.Id = []*int64{&issueResult.Issue.Id}
-		db.On("GetIssues", filter, []entity.Order{}).Return([]entity.IssueResult{issueResult}, nil)
+		db.On("GetIssues", mock.Anything, filter, []entity.Order{}).Return([]entity.IssueResult{issueResult}, nil)
 		updatedIssue, err := issueHandler.UpdateIssue(common.NewAdminContext(), issueResult.Issue)
 		Expect(err).To(BeNil(), "no error should be thrown")
 		By("setting fields", func() {
@@ -839,9 +840,9 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 	})
 	Context("with valid input", func() {
 		It("deletes issue successfully", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			db.On("DeleteIssue", id, int64(123)).Return(nil)
-			db.On("GetIssues", mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
+			db.On("GetIssues", mock.Anything, mock.Anything, []entity.Order{}).Return([]entity.IssueResult{}, nil)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			err := issueHandler.DeleteIssue(common.NewAdminContext(), id)
@@ -852,7 +853,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 			lo := entity.IssueListOptions{
 				ListOptions: *entity.NewListOptions(),
 			}
-			issues, err := issueHandler.ListIssues(filter, &lo)
+			issues, err := issueHandler.ListIssues(context.Background(), filter, &lo)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(issues.Elements).To(BeEmpty(), "issue should be deleted")
 		})
@@ -862,7 +863,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 		It("should return Internal error", func() {
 			// Mock GetCurrentUserId failure
 			dbError := errors.New("user database connection failed")
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, dbError)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, dbError)
 
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			err := issueHandler.DeleteIssue(common.NewAdminContext(), id)
@@ -882,7 +883,7 @@ var _ = Describe("When deleting Issue", Label("app", "DeleteIssue"), func() {
 	Context("when database delete fails", func() {
 		It("should return Internal error", func() {
 			// Mock successful user ID retrieval
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			// Mock database delete failure
 			dbError := errors.New("foreign key constraint violation")
 			db.On("DeleteIssue", id, int64(123)).Return(dbError)
@@ -929,10 +930,11 @@ var _ = Describe(
 		It("adds componentVersion to issueEntity", func() {
 			db.On("AddComponentVersionToIssue", issueResult.Issue.Id, componentVersion.Id).
 				Return(nil)
-			db.On("GetIssues", mock.Anything, mock.Anything).
+			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.IssueResult{issueResult}, nil)
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			issue, err := issueHandler.AddComponentVersionToIssue(
+				context.Background(),
 				issueResult.Issue.Id,
 				componentVersion.Id,
 			)
@@ -943,10 +945,11 @@ var _ = Describe(
 		It("removes componentVersion from issueEntity", func() {
 			db.On("RemoveComponentVersionFromIssue", issueResult.Issue.Id, componentVersion.Id).
 				Return(nil)
-			db.On("GetIssues", mock.Anything, mock.Anything).
+			db.On("GetIssues", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.IssueResult{issueResult}, nil)
 			issueHandler = issue.NewIssueHandler(handlerContext)
 			issue, err := issueHandler.RemoveComponentVersionFromIssue(
+				context.Background(),
 				issueResult.Issue.Id,
 				componentVersion.Id,
 			)
@@ -985,10 +988,10 @@ var _ = Describe(
 					Medium:   50,
 					Low:      15,
 				}
-				db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
+				db.On("CountIssueRatings", mock.Anything, filter).Return(expectedCounts, nil)
 
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				result, err := issueHandler.GetIssueSeverityCounts(filter)
+				result, err := issueHandler.GetIssueSeverityCounts(context.Background(), filter)
 
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(result).ToNot(BeNil(), "result should be returned")
@@ -1006,10 +1009,10 @@ var _ = Describe(
 					Medium:   0,
 					Low:      0,
 				}
-				db.On("CountIssueRatings", filter).Return(expectedCounts, nil)
+				db.On("CountIssueRatings", mock.Anything, filter).Return(expectedCounts, nil)
 
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				result, err := issueHandler.GetIssueSeverityCounts(filter)
+				result, err := issueHandler.GetIssueSeverityCounts(context.Background(), filter)
 
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(result).ToNot(BeNil(), "result should be returned")
@@ -1024,11 +1027,11 @@ var _ = Describe(
 			It("should return Internal error", func() {
 				// Mock database error
 				dbError := errors.New("database aggregation failed")
-				db.On("CountIssueRatings", filter).
+				db.On("CountIssueRatings", mock.Anything, filter).
 					Return((*entity.IssueSeverityCounts)(nil), dbError)
 
 				issueHandler = issue.NewIssueHandler(handlerContext)
-				result, err := issueHandler.GetIssueSeverityCounts(filter)
+				result, err := issueHandler.GetIssueSeverityCounts(context.Background(), filter)
 
 				Expect(result).To(BeNil(), "no result should be returned")
 				Expect(err).ToNot(BeNil(), "error should be returned")

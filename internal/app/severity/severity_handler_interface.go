@@ -3,8 +3,12 @@
 
 package severity
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type SeverityHandler interface {
-	GetSeverity(*entity.SeverityFilter) (*entity.Severity, error)
+	GetSeverity(context.Context, *entity.SeverityFilter) (*entity.Severity, error)
 }

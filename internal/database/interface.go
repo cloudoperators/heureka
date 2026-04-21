@@ -3,63 +3,71 @@
 
 package database
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type Database interface {
-	GetIssues(*entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
-	GetIssuesWithAggregations(*entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
-	CountIssues(*entity.IssueFilter) (int64, error)
-	CountIssueTypes(*entity.IssueFilter) (*entity.IssueTypeCounts, error)
-	CountIssueRatings(*entity.IssueFilter) (*entity.IssueSeverityCounts, error)
-	GetAllIssueCursors(*entity.IssueFilter, []entity.Order) ([]string, error)
+	GetIssues(context.Context, *entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
+	GetIssuesWithAggregations(context.Context, *entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
+	CountIssues(context.Context, *entity.IssueFilter) (int64, error)
+	CountIssueTypes(context.Context, *entity.IssueFilter) (*entity.IssueTypeCounts, error)
+	CountIssueRatings(context.Context, *entity.IssueFilter) (*entity.IssueSeverityCounts, error)
+	GetAllIssueCursors(context.Context, *entity.IssueFilter, []entity.Order) ([]string, error)
 	CreateIssue(*entity.Issue) (*entity.Issue, error)
 	UpdateIssue(*entity.Issue) error
 	DeleteIssue(int64, int64) error
 	AddComponentVersionToIssue(int64, int64) error
 	RemoveComponentVersionFromIssue(int64, int64) error
-	GetIssueNames(*entity.IssueFilter) ([]string, error)
+	GetIssueNames(context.Context, *entity.IssueFilter) ([]string, error)
 
 	GetServiceIssueVariants(
+		context.Context,
 		*entity.ServiceIssueVariantFilter,
 		[]entity.Order,
 	) ([]entity.ServiceIssueVariantResult, error)
 	GetIssueVariants(
+		context.Context,
 		*entity.IssueVariantFilter,
 		[]entity.Order,
 	) ([]entity.IssueVariantResult, error)
-	GetAllIssueVariantCursors(*entity.IssueVariantFilter, []entity.Order) ([]string, error)
-	CountIssueVariants(*entity.IssueVariantFilter) (int64, error)
+	GetAllIssueVariantCursors(context.Context, *entity.IssueVariantFilter, []entity.Order) ([]string, error)
+	CountIssueVariants(context.Context, *entity.IssueVariantFilter) (int64, error)
 	CreateIssueVariant(*entity.IssueVariant) (*entity.IssueVariant, error)
 	UpdateIssueVariant(*entity.IssueVariant) error
 	DeleteIssueVariant(int64, int64) error
 
 	GetIssueRepositories(
+		context.Context,
 		*entity.IssueRepositoryFilter,
 		[]entity.Order,
 	) ([]entity.IssueRepositoryResult, error)
-	GetAllIssueRepositoryCursors(*entity.IssueRepositoryFilter, []entity.Order) ([]string, error)
-	CountIssueRepositories(*entity.IssueRepositoryFilter) (int64, error)
+	GetAllIssueRepositoryCursors(context.Context, *entity.IssueRepositoryFilter, []entity.Order) ([]string, error)
+	CountIssueRepositories(context.Context, *entity.IssueRepositoryFilter) (int64, error)
 	CreateIssueRepository(*entity.IssueRepository) (*entity.IssueRepository, error)
 	UpdateIssueRepository(*entity.IssueRepository) error
 	DeleteIssueRepository(int64, int64) error
 	GetDefaultIssuePriority() int64
 	GetDefaultRepositoryName() string
 
-	GetIssueMatches(*entity.IssueMatchFilter, []entity.Order) ([]entity.IssueMatchResult, error)
-	GetAllIssueMatchIds(*entity.IssueMatchFilter) ([]int64, error)
-	GetAllIssueMatchCursors(*entity.IssueMatchFilter, []entity.Order) ([]string, error)
-	CountIssueMatches(filter *entity.IssueMatchFilter) (int64, error)
+	GetIssueMatches(context.Context, *entity.IssueMatchFilter, []entity.Order) ([]entity.IssueMatchResult, error)
+	GetAllIssueMatchIds(context.Context, *entity.IssueMatchFilter) ([]int64, error)
+	GetAllIssueMatchCursors(context.Context, *entity.IssueMatchFilter, []entity.Order) ([]string, error)
+	CountIssueMatches(ctx context.Context, filter *entity.IssueMatchFilter) (int64, error)
 	CreateIssueMatch(*entity.IssueMatch) (*entity.IssueMatch, error)
 	UpdateIssueMatch(*entity.IssueMatch) error
 	DeleteIssueMatch(int64, int64) error
 
-	GetServices(*entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
+	GetServices(context.Context, *entity.ServiceFilter, []entity.Order) ([]entity.ServiceResult, error)
 	GetServicesWithAggregations(
+		context.Context,
 		*entity.ServiceFilter,
 		[]entity.Order,
 	) ([]entity.ServiceResult, error)
-	GetAllServiceCursors(*entity.ServiceFilter, []entity.Order) ([]string, error)
-	CountServices(*entity.ServiceFilter) (int64, error)
+	GetAllServiceCursors(context.Context, *entity.ServiceFilter, []entity.Order) ([]string, error)
+	CountServices(context.Context, *entity.ServiceFilter) (int64, error)
 	CreateService(*entity.Service) (*entity.Service, error)
 	UpdateService(*entity.Service) error
 	DeleteService(int64, int64) error
@@ -67,26 +75,23 @@ type Database interface {
 	RemoveOwnerFromService(int64, int64) error
 	AddIssueRepositoryToService(int64, int64, int64) error
 	RemoveIssueRepositoryFromService(int64, int64) error
-	GetServiceCcrns(*entity.ServiceFilter) ([]string, error)
-	GetServiceDomains(*entity.ServiceFilter) ([]string, error)
-	GetServiceRegions(*entity.ServiceFilter) ([]string, error)
+	GetServiceCcrns(context.Context, *entity.ServiceFilter) ([]string, error)
+	GetServiceDomains(context.Context, *entity.ServiceFilter) ([]string, error)
+	GetServiceRegions(context.Context, *entity.ServiceFilter) ([]string, error)
 
-	GetUsers(*entity.UserFilter) ([]entity.UserResult, error)
-	GetAllUserIds(*entity.UserFilter) ([]int64, error)
-	GetAllUserCursors(*entity.UserFilter, []entity.Order) ([]string, error)
-	CountUsers(*entity.UserFilter) (int64, error)
+	GetUsers(context.Context, *entity.UserFilter) ([]entity.UserResult, error)
+	GetAllUserIds(context.Context, *entity.UserFilter) ([]int64, error)
+	GetAllUserCursors(context.Context, *entity.UserFilter, []entity.Order) ([]string, error)
+	CountUsers(context.Context, *entity.UserFilter) (int64, error)
 	CreateUser(*entity.User) (*entity.User, error)
 	UpdateUser(*entity.User) error
 	DeleteUser(int64, int64) error
-	GetUserNames(*entity.UserFilter) ([]string, error)
-	GetUniqueUserIDs(*entity.UserFilter) ([]string, error)
+	GetUserNames(context.Context, *entity.UserFilter) ([]string, error)
+	GetUniqueUserIDs(context.Context, *entity.UserFilter) ([]string, error)
 
-	GetSupportGroups(
-		*entity.SupportGroupFilter,
-		[]entity.Order,
-	) ([]entity.SupportGroupResult, error)
-	GetAllSupportGroupCursors(*entity.SupportGroupFilter, []entity.Order) ([]string, error)
-	CountSupportGroups(*entity.SupportGroupFilter) (int64, error)
+	GetSupportGroups(context.Context, *entity.SupportGroupFilter, []entity.Order) ([]entity.SupportGroupResult, error)
+	GetAllSupportGroupCursors(context.Context, *entity.SupportGroupFilter, []entity.Order) ([]string, error)
+	CountSupportGroups(context.Context, *entity.SupportGroupFilter) (int64, error)
 	CreateSupportGroup(*entity.SupportGroup) (*entity.SupportGroup, error)
 	UpdateSupportGroup(*entity.SupportGroup) error
 	DeleteSupportGroup(int64, int64) error
@@ -94,47 +99,45 @@ type Database interface {
 	RemoveServiceFromSupportGroup(int64, int64) error
 	AddUserToSupportGroup(int64, int64) error
 	RemoveUserFromSupportGroup(int64, int64) error
-	GetSupportGroupCcrns(*entity.SupportGroupFilter) ([]string, error)
+	GetSupportGroupCcrns(context.Context, *entity.SupportGroupFilter) ([]string, error)
 
-	GetComponentInstances(
-		*entity.ComponentInstanceFilter,
-		[]entity.Order,
-	) ([]entity.ComponentInstanceResult, error)
+	GetComponentInstances(context.Context, *entity.ComponentInstanceFilter, []entity.Order) ([]entity.ComponentInstanceResult, error)
 	GetAllComponentInstanceCursors(
+		context.Context,
 		*entity.ComponentInstanceFilter,
 		[]entity.Order,
 	) ([]string, error)
-	CountComponentInstances(*entity.ComponentInstanceFilter) (int64, error)
+	CountComponentInstances(context.Context, *entity.ComponentInstanceFilter) (int64, error)
 	CreateComponentInstance(*entity.ComponentInstance) (*entity.ComponentInstance, error)
 	UpdateComponentInstance(*entity.ComponentInstance) error
 	DeleteComponentInstance(int64, int64) error
-	GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error)
-	GetCcrn(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetRegion(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetCluster(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetNamespace(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetDomain(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetProject(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetPod(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetContainer(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetType(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetContext(filter *entity.ComponentInstanceFilter) ([]string, error)
-	GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetComponentCcrns(ctx context.Context, filter *entity.ComponentFilter) ([]string, error)
+	GetCcrn(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetRegion(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetCluster(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetNamespace(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetDomain(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetProject(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetPod(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetContainer(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetType(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetContext(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
+	GetComponentInstanceParent(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error)
 
-	GetComponents(*entity.ComponentFilter, []entity.Order) ([]entity.ComponentResult, error)
-	GetAllComponentCursors(*entity.ComponentFilter, []entity.Order) ([]string, error)
-	CountComponents(*entity.ComponentFilter) (int64, error)
-	CountComponentVulnerabilities(*entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
+	GetComponents(context.Context, *entity.ComponentFilter, []entity.Order) ([]entity.ComponentResult, error)
+	GetAllComponentCursors(context.Context, *entity.ComponentFilter, []entity.Order) ([]string, error)
+	CountComponents(context.Context, *entity.ComponentFilter) (int64, error)
+	CountComponentVulnerabilities(context.Context, *entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
 	CreateComponent(*entity.Component) (*entity.Component, error)
 	UpdateComponent(*entity.Component) error
 	DeleteComponent(int64, int64) error
 
-	GetComponentVersions(
+	GetComponentVersions(context.Context,
 		*entity.ComponentVersionFilter,
 		[]entity.Order,
 	) ([]entity.ComponentVersionResult, error)
-	GetAllComponentVersionCursors(*entity.ComponentVersionFilter, []entity.Order) ([]string, error)
-	CountComponentVersions(*entity.ComponentVersionFilter) (int64, error)
+	GetAllComponentVersionCursors(context.Context, *entity.ComponentVersionFilter, []entity.Order) ([]string, error)
+	CountComponentVersions(context.Context, *entity.ComponentVersionFilter) (int64, error)
 	CreateComponentVersion(*entity.ComponentVersion) (*entity.ComponentVersion, error)
 	UpdateComponentVersion(*entity.ComponentVersion) error
 	DeleteComponentVersion(int64, int64) error
@@ -147,22 +150,22 @@ type Database interface {
 	GetScannerRunTags() ([]string, error)
 	CountScannerRuns(*entity.ScannerRunFilter) (int, error)
 
-	GetRemediations(*entity.RemediationFilter, []entity.Order) ([]entity.RemediationResult, error)
-	GetAllRemediationCursors(*entity.RemediationFilter, []entity.Order) ([]string, error)
-	CountRemediations(*entity.RemediationFilter) (int64, error)
+	GetRemediations(context.Context, *entity.RemediationFilter, []entity.Order) ([]entity.RemediationResult, error)
+	GetAllRemediationCursors(context.Context, *entity.RemediationFilter, []entity.Order) ([]string, error)
+	CountRemediations(context.Context, *entity.RemediationFilter) (int64, error)
 	CreateRemediation(*entity.Remediation) (*entity.Remediation, error)
 	UpdateRemediation(*entity.Remediation) error
 	DeleteRemediation(int64, int64) error
 
-	GetPatches(*entity.PatchFilter, []entity.Order) ([]entity.PatchResult, error)
-	GetAllPatchCursors(*entity.PatchFilter, []entity.Order) ([]string, error)
-	CountPatches(*entity.PatchFilter) (int64, error)
+	GetPatches(context.Context, *entity.PatchFilter, []entity.Order) ([]entity.PatchResult, error)
+	GetAllPatchCursors(context.Context, *entity.PatchFilter, []entity.Order) ([]string, error)
+	CountPatches(context.Context, *entity.PatchFilter) (int64, error)
 
 	CloseConnection() error
 
 	CreateScannerRunComponentInstanceTracker(componentInstanceId int64, scannerRunUUID string) error
 
-	Autopatch() (bool, error)
+	Autopatch(context.Context) (bool, error)
 
 	WaitPostMigrations() error
 }

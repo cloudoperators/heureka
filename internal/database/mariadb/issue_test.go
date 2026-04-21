@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sort"
@@ -36,7 +37,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	When("Getting Issues", Label("GetIssues"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetIssues(nil, nil)
+				res, err := db.GetIssues(context.Background(), nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -53,7 +54,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetIssues(nil, nil)
+					res, err := db.GetIssues(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -112,7 +113,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&row.CCRN.String}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -128,7 +129,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					nonExistingName := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&nonExistingName}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -150,7 +151,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					expectedIssues = lo.Uniq(expectedIssues)
 					filter := &entity.IssueFilter{ServiceCCRN: serviceCcrns}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -163,7 +164,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					row := test.PickOne(seedCollection.IssueRows)
 					filter := &entity.IssueFilter{Id: []*int64{&row.Id.Int64}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -188,7 +189,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{ServiceId: []*int64{&serviceRow.Id.Int64}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -226,7 +227,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{SupportGroupCCRN: []*string{&sgRow.CCRN.String}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -252,7 +253,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{ComponentVersionId: []*int64{&cvRow.Id.Int64}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -286,7 +287,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{ComponentId: []*int64{&cRow.Id.Int64}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -306,7 +307,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						IssueVariantId: []*int64{&issueVariantRow.Id.Int64},
 					}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					issueIds := []int64{}
 					for _, entry := range entries {
@@ -326,7 +327,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{Type: []*string{&issueType}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -339,7 +340,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				It("can filter by hasIssueMatches", func() {
 					filter := &entity.IssueFilter{HasIssueMatches: true}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					Expect(err).To(BeNil())
 					for _, entry := range entries {
@@ -367,7 +368,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 							IssueMatchSeverity: []*string{new(severity.String())},
 						}
 
-						entries, err := db.GetIssues(filter, nil)
+						entries, err := db.GetIssues(context.Background(), filter, nil)
 
 						Expect(err).To(BeNil())
 						for _, entry := range entries {
@@ -392,7 +393,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchStr := row.PrimaryName.String[start:end]
 					filter := &entity.IssueFilter{Search: []*string{&searchStr}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					issueIds := []int64{}
 					for _, entry := range entries {
@@ -427,7 +428,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchStr := issueVariantRow.SecondaryName.String[start:end]
 					filter := &entity.IssueFilter{Search: []*string{&searchStr}}
 
-					entries, err := db.GetIssues(filter, nil)
+					entries, err := db.GetIssues(context.Background(), filter, nil)
 
 					issueIds := []int64{}
 					for _, entry := range entries {
@@ -469,7 +470,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					It("can filter issue by IssueStatusOpen", func() {
 						filter := &entity.IssueFilter{Status: entity.IssueStatusOpen}
 
-						entries, err := db.GetIssues(filter, nil)
+						entries, err := db.GetIssues(context.Background(), filter, nil)
 
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
@@ -482,7 +483,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					It("can filter issue by IssueStatusRemediated", func() {
 						filter := &entity.IssueFilter{Status: entity.IssueStatusRemediated}
 
-						entries, err := db.GetIssues(filter, nil)
+						entries, err := db.GetIssues(context.Background(), filter, nil)
 
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
@@ -537,7 +538,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				db.CreateIssue(&newIssue)
 			})
 			It("returns the issues with aggregations", func() {
-				entriesWithAggregations, err := db.GetIssuesWithAggregations(nil, nil)
+				entriesWithAggregations, err := db.GetIssuesWithAggregations(context.Background(), nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -571,7 +572,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				_ = seeder.SeedDbWithNFakeData(10)
 			})
 			It("returns the issues with aggregations", func() {
-				entriesWithAggregations, err := db.GetIssuesWithAggregations(nil, nil)
+				entriesWithAggregations, err := db.GetIssuesWithAggregations(context.Background(), nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -603,7 +604,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		Context("and using no filter", func() {
 			DescribeTable("it returns correct count", func(x int) {
 				_ = seeder.SeedDbWithNFakeData(x)
-				res, err := db.CountIssues(nil)
+				res, err := db.CountIssues(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -639,7 +640,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					}
 
-					issueTypeCounts, err := db.CountIssueTypes(nil)
+					issueTypeCounts, err := db.CountIssueTypes(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -674,7 +675,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 							After: &after,
 						},
 					}
-					res, err := db.CountIssues(filter)
+					res, err := db.CountIssues(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -697,7 +698,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&row.CCRN.String}}
 
-					count, err := db.CountIssues(filter)
+					count, err := db.CountIssues(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -720,7 +721,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 					filter := &entity.IssueFilter{ServiceId: []*int64{&row.Id.Int64}}
 
-					count, err := db.CountIssues(filter)
+					count, err := db.CountIssues(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -735,7 +736,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	})
 	When("IssueCounts by Severity", Label("IssueCounts"), func() {
 		testIssueSeverityCount := func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
-			issueSeverityCounts, err := db.CountIssueRatings(filter)
+			issueSeverityCounts, err := db.CountIssueRatings(context.Background(), filter)
 
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
@@ -897,7 +898,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Id: []*int64{&issue.Id},
 				}
 
-				i, err := db.GetIssues(issueFilter, nil)
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -944,7 +945,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Id: []*int64{&issue.Id},
 				}
 
-				i, err := db.GetIssues(issueFilter, nil)
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -976,7 +977,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Id: []*int64{&issue.Id},
 				}
 
-				i, err := db.GetIssues(issueFilter, nil)
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -1017,7 +1018,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Id: []*int64{&issue.Id},
 				}
 
-				i, err := db.GetIssues(issueFilter, nil)
+				i, err := db.GetIssues(context.Background(), issueFilter, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -1064,7 +1065,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					},
 				}
 
-				issues, err := db.GetIssues(issueFilter, nil)
+				issues, err := db.GetIssues(context.Background(), issueFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -1097,7 +1098,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		order []entity.Order,
 		verifyFunc func(res []entity.IssueResult),
 	) {
-		res, err := db.GetIssues(nil, order)
+		res, err := db.GetIssues(context.Background(), nil, order)
 
 		By("throwing no error", func() {
 			Expect(err).Should(BeNil())

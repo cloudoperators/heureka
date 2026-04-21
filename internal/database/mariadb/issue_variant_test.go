@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -29,7 +31,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 	When("Getting IssueVariants", Label("GetIssueVariants"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
-				res, err := db.GetIssueVariants(nil, []entity.Order{})
+				res, err := db.GetIssueVariants(context.Background(), nil, []entity.Order{})
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -46,7 +48,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetIssueVariants(nil, []entity.Order{})
+					res, err := db.GetIssueVariants(context.Background(), nil, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -102,7 +104,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Id: []*int64{&issueVariant.Id.Int64},
 					}
 
-					entries, err := db.GetIssueVariants(filter, []entity.Order{})
+					entries, err := db.GetIssueVariants(context.Background(), filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -126,7 +128,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						IssueId:   []*int64{&issueId},
 					}
 
-					entries, err := db.GetIssueVariants(filter, []entity.Order{})
+					entries, err := db.GetIssueVariants(context.Background(), filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -167,7 +169,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						IssueId:   []*int64{&issueId1, &issueId2},
 					}
 
-					entries, err := db.GetIssueVariants(filter, []entity.Order{})
+					entries, err := db.GetIssueVariants(context.Background(), filter, []entity.Order{})
 
 					By("throwing no Error", func() {
 						Expect(err).To(BeNil())
@@ -195,7 +197,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						IssueRepositoryId: []*int64{&ir.IssueRepositoryId.Int64},
 					}
 
-					issueVariants, err := db.GetIssueVariants(filter, []entity.Order{})
+					issueVariants, err := db.GetIssueVariants(context.Background(), filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -222,7 +224,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						ServiceId: []*int64{&service.Id.Int64},
 					}
 
-					entries, err := db.GetIssueVariants(filter, []entity.Order{})
+					entries, err := db.GetIssueVariants(context.Background(), filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -252,7 +254,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						IssueMatchId: []*int64{&im.Id.Int64},
 					}
 
-					entries, err := db.GetIssueVariants(filter, []entity.Order{})
+					entries, err := db.GetIssueVariants(context.Background(), filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -280,7 +282,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						SecondaryName: []*string{&iv.SecondaryName.String},
 					}
 
-					entries, err := db.GetIssueVariants(filter, []entity.Order{})
+					entries, err := db.GetIssueVariants(context.Background(), filter, []entity.Order{})
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -330,7 +332,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 	When("Counting IssueVariants", Label("CountIssueVariants"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {
-				c, err := db.CountIssueVariants(nil)
+				c, err := db.CountIssueVariants(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -351,7 +353,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
-					c, err := db.CountIssueVariants(nil)
+					c, err := db.CountIssueVariants(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -370,7 +372,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 							After: nil,
 						},
 					}
-					c, err := db.CountIssueVariants(filter)
+					c, err := db.CountIssueVariants(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -395,7 +397,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						},
 						IssueId: []*int64{&issueId},
 					}
-					entries, err := db.CountIssueVariants(filter)
+					entries, err := db.CountIssueVariants(context.Background(), filter)
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -436,7 +438,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Id: []*int64{&issueVariant.Id},
 					}
 
-					iv, err := db.GetIssueVariants(issueVariantFilter, []entity.Order{})
+					iv, err := db.GetIssueVariants(context.Background(), issueVariantFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -493,7 +495,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Id: []*int64{&issueVariant.Id},
 					}
 
-					iv, err := db.GetIssueVariants(issueVariantFilter, []entity.Order{})
+					iv, err := db.GetIssueVariants(context.Background(), issueVariantFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -537,7 +539,7 @@ var _ = Describe("IssueVariant - ", Label("database", "IssueVariant"), func() {
 						Id: []*int64{&issueVariant.Id},
 					}
 
-					iv, err := db.GetIssueVariants(issueVariantFilter, []entity.Order{})
+					iv, err := db.GetIssueVariants(context.Background(), issueVariantFilter, []entity.Order{})
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})

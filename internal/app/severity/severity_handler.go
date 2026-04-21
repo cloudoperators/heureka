@@ -4,6 +4,8 @@
 package severity
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/app/common"
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/app/issue_variant"
@@ -42,7 +44,7 @@ func (e *SeverityHandlerError) Error() string {
 	return e.message
 }
 
-func (s *severityHandler) GetSeverity(filter *entity.SeverityFilter) (*entity.Severity, error) {
+func (s *severityHandler) GetSeverity(ctx context.Context, filter *entity.SeverityFilter) (*entity.Severity, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  GetSeverityEventName,
 		"filter": filter,
@@ -56,6 +58,7 @@ func (s *severityHandler) GetSeverity(filter *entity.SeverityFilter) (*entity.Se
 	opts := entity.ListOptions{}
 
 	issueVariants, err := s.issueVariantHandler.ListEffectiveIssueVariants(
+		ctx,
 		&issueVariantFilter,
 		&opts,
 	)

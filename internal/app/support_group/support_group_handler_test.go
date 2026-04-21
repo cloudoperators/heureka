@@ -79,9 +79,9 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
-			db.On("CountSupportGroups", filter).Return(int64(1337), nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
+			db.On("CountSupportGroups", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
@@ -113,7 +113,7 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 					return s.Value
 				})
 
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 				var i int64 = 0
 				for len(cursors) < dbElements {
 					i++
@@ -123,8 +123,8 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 					)
 					cursors = append(cursors, c)
 				}
-				db.On("GetSupportGroups", filter, order).Return(supportGroups, nil)
-				db.On("GetAllSupportGroupCursors", filter, order).Return(cursors, nil)
+				db.On("GetSupportGroups", mock.Anything, filter, order).Return(supportGroups, nil)
+				db.On("GetAllSupportGroupCursors", mock.Anything, filter, order).Return(cursors, nil)
 				supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 				res, err := supportGroupHandler.ListSupportGroups(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -173,8 +173,8 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 			BeforeEach(func() {
 				sgIds := int64(-1)
 				filter.Id = []*int64{&sgIds}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetSupportGroups", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetSupportGroups", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.SupportGroupResult{}, nil)
 			})
 
@@ -194,8 +194,8 @@ var _ = Describe("When listing SupportGroups", Label("app", "ListSupportGroups")
 				systemUserId := int64(1)
 				supportGroup = test.NewFakeSupportGroupEntity()
 				filter.Id = []*int64{&supportGroup.Id}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetSupportGroups", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetSupportGroups", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.SupportGroupResult{{SupportGroup: &supportGroup}}, nil)
 
 				relations := []openfga.RelationInput{
@@ -265,9 +265,9 @@ var _ = Describe("When creating SupportGroup", Label("app", "CreateSupportGroup"
 
 	It("creates supportGroup", func() {
 		filter.CCRN = []*string{&supportGroup.CCRN}
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateSupportGroup", &supportGroup).Return(&supportGroup, nil)
-		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
+		db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		newSupportGroup, err := supportGroupHandler.CreateSupportGroup(
 			common.NewAdminContext(),
@@ -356,12 +356,12 @@ var _ = Describe("When updating SupportGroup", Label("app", "UpdateSupportGroup"
 	})
 
 	It("updates supportGroup", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateSupportGroup", supportGroup.SupportGroup).Return(nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 		supportGroup.CCRN = "Team Alone"
 		filter.Id = []*int64{&supportGroup.Id}
-		db.On("GetSupportGroups", filter, order).
+		db.On("GetSupportGroups", mock.Anything, filter, order).
 			Return([]entity.SupportGroupResult{supportGroup}, nil)
 		updatedSupportGroup, err := supportGroupHandler.UpdateSupportGroup(
 			common.NewAdminContext(),
@@ -408,10 +408,10 @@ var _ = Describe("When deleting SupportGroup", Label("app", "DeleteSupportGroup"
 	})
 
 	It("deletes supportGroup", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteSupportGroup", id, mock.Anything).Return(nil)
 		supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-		db.On("GetSupportGroups", filter, order).Return([]entity.SupportGroupResult{}, nil)
+		db.On("GetSupportGroups", mock.Anything, filter, order).Return([]entity.SupportGroupResult{}, nil)
 		err := supportGroupHandler.DeleteSupportGroup(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -565,9 +565,9 @@ var _ = Describe(
 		})
 
 		It("adds service to supportGroup", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("AddServiceToSupportGroup", supportGroup.Id, service.Id).Return(nil)
-			db.On("GetSupportGroups", filter, order).
+			db.On("GetSupportGroups", mock.Anything, filter, order).
 				Return([]entity.SupportGroupResult{supportGroup}, nil)
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			supportGroup, err := supportGroupHandler.AddServiceToSupportGroup(
@@ -580,9 +580,9 @@ var _ = Describe(
 		})
 
 		It("removes service from supportGroup", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("RemoveServiceFromSupportGroup", supportGroup.Id, service.Id).Return(nil)
-			db.On("GetSupportGroups", filter, order).
+			db.On("GetSupportGroups", mock.Anything, filter, order).
 				Return([]entity.SupportGroupResult{supportGroup}, nil)
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			supportGroup, err := supportGroupHandler.RemoveServiceFromSupportGroup(
@@ -707,9 +707,9 @@ var _ = Describe(
 		})
 
 		It("adds user to supportGroup", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("AddUserToSupportGroup", supportGroup.Id, user.Id).Return(nil)
-			db.On("GetSupportGroups", filter, order).
+			db.On("GetSupportGroups", mock.Anything, filter, order).
 				Return([]entity.SupportGroupResult{supportGroup}, nil)
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			supportGroup, err := supportGroupHandler.AddUserToSupportGroup(
@@ -722,9 +722,9 @@ var _ = Describe(
 		})
 
 		It("removes user from supportGroup", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 			db.On("RemoveUserFromSupportGroup", supportGroup.Id, user.Id).Return(nil)
-			db.On("GetSupportGroups", filter, order).
+			db.On("GetSupportGroups", mock.Anything, filter, order).
 				Return([]entity.SupportGroupResult{supportGroup}, nil)
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
 			supportGroup, err := supportGroupHandler.RemoveUserFromSupportGroup(
@@ -835,12 +835,12 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 
 	When("no filters are used", func() {
 		BeforeEach(func() {
-			db.On("GetSupportGroupCcrns", filter).Return([]string{}, nil)
+			db.On("GetSupportGroupCcrns", mock.Anything, filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-			res, err := supportGroupHandler.ListSupportGroupCcrns(filter, options)
+			res, err := supportGroupHandler.ListSupportGroupCcrns(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -851,11 +851,11 @@ var _ = Describe("When listing supportGroupCcrns", Label("app", "ListSupportGrou
 				CCRN: []*string{&ccrn},
 			}
 
-			db.On("GetSupportGroupCcrns", filter).Return([]string{ccrn}, nil)
+			db.On("GetSupportGroupCcrns", mock.Anything, filter).Return([]string{ccrn}, nil)
 		})
 		It("returns filtered userGroups according to the service type", func() {
 			supportGroupHandler = sg.NewSupportGroupHandler(handlerContext)
-			res, err := supportGroupHandler.ListSupportGroupCcrns(filter, options)
+			res, err := supportGroupHandler.ListSupportGroupCcrns(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(ccrn), "should only consist of supportGroup")
 		})

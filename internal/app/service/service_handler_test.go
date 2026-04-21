@@ -88,9 +88,9 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
-			db.On("CountServices", filter).Return(int64(1337), nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
+			db.On("CountServices", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
@@ -147,9 +147,9 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 					)
 					cursors = append(cursors, c)
 				}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetServices", filter, []entity.Order{}).Return(services, nil)
-				db.On("GetAllServiceCursors", filter, []entity.Order{}).Return(cursors, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return(services, nil)
+				db.On("GetAllServiceCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
 				serviceHandler = s.NewServiceHandler(handlerContext)
 				res, err := serviceHandler.ListServices(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
@@ -184,8 +184,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 		Context("and the given filter does not have any matches in the database", func() {
 			BeforeEach(func() {
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetServicesWithAggregations", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetServicesWithAggregations", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ServiceResult{}, nil)
 			})
 
@@ -202,8 +202,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				for _, s := range test.NNewFakeServiceEntitiesWithAggregations(10) {
 					services = append(services, entity.ServiceResult{Service: &s.Service})
 				}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetServicesWithAggregations", filter, []entity.Order{}).Return(services, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetServicesWithAggregations", mock.Anything, filter, []entity.Order{}).Return(services, nil)
 			})
 			It("should return the expected services in the result", func() {
 				serviceHandler = s.NewServiceHandler(handlerContext)
@@ -214,8 +214,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 		})
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetServicesWithAggregations", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetServicesWithAggregations", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ServiceResult{}, errors.New("some error"))
 			})
 
@@ -236,8 +236,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 
 		Context("and the given filter does not have any matches in the database", func() {
 			BeforeEach(func() {
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
 			It("should return an empty result", func() {
 				serviceHandler = s.NewServiceHandler(handlerContext)
@@ -252,8 +252,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 				for _, s := range test.NNewFakeServiceEntitiesWithAggregations(15) {
 					services = append(services, entity.ServiceResult{Service: &s.Service})
 				}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetServices", filter, []entity.Order{}).Return(services, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return(services, nil)
 			})
 			It("should return the expected services in the result", func() {
 				serviceHandler = s.NewServiceHandler(handlerContext)
@@ -265,8 +265,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 
 		Context("and the database operations throw an error", func() {
 			BeforeEach(func() {
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetServices", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ServiceResult{}, errors.New("some error"))
 			})
 
@@ -300,8 +300,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 			BeforeEach(func() {
 				sgIds := int64(-1)
 				filter.SupportGroupId = []*int64{&sgIds}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 			})
 
 			It("should return no services", func() {
@@ -323,8 +323,8 @@ var _ = Describe("When listing Services", Label("app", "ListServices"), func() {
 					systemUserId := int64(1)
 					filter.SupportGroupId = []*int64{&sgId}
 					service = test.NewFakeServiceEntity()
-					db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-					db.On("GetServices", filter, []entity.Order{}).
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+					db.On("GetServices", mock.Anything, filter, []entity.Order{}).
 						Return([]entity.ServiceResult{{Service: &service}}, nil)
 
 					relations := []openfga.RelationInput{
@@ -407,9 +407,9 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 
 	It("creates service", func() {
 		filter.CCRN = []*string{&service.CCRN}
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("CreateService", &service).Return(&service, nil)
-		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
+		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		newService, err := serviceHandler.CreateService(common.NewAdminContext(), &service)
@@ -442,7 +442,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				repo.Id = 456
 				repo.Name = defaultRepoName
 
-				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
+				db.On("GetIssueRepositories", mock.Anything, &entity.IssueRepositoryFilter{
 					Name: []*string{&defaultRepoName},
 				}, mock.Anything).Return([]entity.IssueRepositoryResult{
 					{
@@ -492,7 +492,7 @@ var _ = Describe("When creating Service", Label("app", "CreateService"), func() 
 				var event event.Event = createEvent
 
 				defaultRepoName := "nvd"
-				db.On("GetIssueRepositories", &entity.IssueRepositoryFilter{
+				db.On("GetIssueRepositories", mock.Anything, &entity.IssueRepositoryFilter{
 					Name: []*string{&defaultRepoName},
 				}, mock.Anything).Return([]entity.IssueRepositoryResult{}, nil)
 
@@ -576,12 +576,12 @@ var _ = Describe("When updating Service", Label("app", "UpdateService"), func() 
 	})
 
 	It("updates service", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("UpdateService", service.Service).Return(nil)
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		service.CCRN = "SecretService"
 		filter.Id = []*int64{&service.Id}
-		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
 		updatedService, err := serviceHandler.UpdateService(
 			common.NewAdminContext(),
 			service.Service,
@@ -621,10 +621,10 @@ var _ = Describe("When deleting Service", Label("app", "DeleteService"), func() 
 	})
 
 	It("deletes service", func() {
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
 		db.On("DeleteService", id, mock.Anything).Return(nil)
 		serviceHandler = s.NewServiceHandler(handlerContext)
-		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
+		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{}, nil)
 		err := serviceHandler.DeleteService(common.NewAdminContext(), id)
 		Expect(err).To(BeNil(), "no error should be thrown")
 
@@ -775,8 +775,8 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 
 	It("adds owner to service", func() {
 		db.On("AddOwnerToService", service.Id, owner.Id).Return(nil)
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		service, err := serviceHandler.AddOwnerToService(ctx, service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -812,8 +812,8 @@ var _ = Describe("When modifying owner and Service", Label("app", "OwnerService"
 
 	It("removes owner from service", func() {
 		db.On("RemoveOwnerFromService", service.Id, owner.Id).Return(nil)
-		db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-		db.On("GetServices", filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
+		db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+		db.On("GetServices", mock.Anything, filter, []entity.Order{}).Return([]entity.ServiceResult{service}, nil)
 		serviceHandler = s.NewServiceHandler(handlerContext)
 		service, err := serviceHandler.RemoveOwnerFromService(ctx, service.Id, owner.Id)
 		Expect(err).To(BeNil(), "no error should be thrown")
@@ -933,8 +933,8 @@ var _ = Describe(
 		It("adds issueRepository to service", func() {
 			db.On("AddIssueRepositoryToService", service.Id, issueRepository.Id, priority).
 				Return(nil)
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetServices", filter, []entity.Order{}).
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetServices", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.ServiceResult{service}, nil)
 			serviceHandler = s.NewServiceHandler(handlerContext)
 			service, err := serviceHandler.AddIssueRepositoryToService(
@@ -949,8 +949,8 @@ var _ = Describe(
 
 		It("removes issueRepository from service", func() {
 			db.On("RemoveIssueRepositoryFromService", service.Id, issueRepository.Id).Return(nil)
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-			db.On("GetServices", filter, []entity.Order{}).
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+			db.On("GetServices", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.ServiceResult{service}, nil)
 			serviceHandler = s.NewServiceHandler(handlerContext)
 			service, err := serviceHandler.RemoveIssueRepositoryFromService(
@@ -986,12 +986,12 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 
 	When("no filters are used", func() {
 		BeforeEach(func() {
-			db.On("GetServiceCcrns", filter).Return([]string{}, nil)
+			db.On("GetServiceCcrns", mock.Anything, filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			serviceHandler = s.NewServiceHandler(handlerContext)
-			res, err := serviceHandler.ListServiceCcrns(filter, options)
+			res, err := serviceHandler.ListServiceCcrns(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -1002,11 +1002,11 @@ var _ = Describe("When listing serviceCcrns", Label("app", "ListServicesCcrns"),
 				CCRN: []*string{&name},
 			}
 
-			db.On("GetServiceCcrns", filter).Return([]string{name}, nil)
+			db.On("GetServiceCcrns", mock.Anything, filter).Return([]string{name}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
 			serviceHandler = s.NewServiceHandler(handlerContext)
-			res, err := serviceHandler.ListServiceCcrns(filter, options)
+			res, err := serviceHandler.ListServiceCcrns(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(name), "should only consist of serviceCcrn")
 		})
@@ -1035,12 +1035,12 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 
 	When("no filters are used", func() {
 		BeforeEach(func() {
-			db.On("GetServiceDomains", filter).Return([]string{}, nil)
+			db.On("GetServiceDomains", mock.Anything, filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			serviceHandler = s.NewServiceHandler(handlerContext)
-			res, err := serviceHandler.ListServiceDomains(filter, options)
+			res, err := serviceHandler.ListServiceDomains(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -1051,11 +1051,11 @@ var _ = Describe("When listing serviceDomains", Label("app", "ListServicesDomain
 				Domain: []*string{&domain},
 			}
 
-			db.On("GetServiceDomains", filter).Return([]string{domain}, nil)
+			db.On("GetServiceDomains", mock.Anything, filter).Return([]string{domain}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
 			serviceHandler = s.NewServiceHandler(handlerContext)
-			res, err := serviceHandler.ListServiceDomains(filter, options)
+			res, err := serviceHandler.ListServiceDomains(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(domain), "should only consist of domain")
 		})
@@ -1084,12 +1084,12 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 
 	When("no filters are used", func() {
 		BeforeEach(func() {
-			db.On("GetServiceRegions", filter).Return([]string{}, nil)
+			db.On("GetServiceRegions", mock.Anything, filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			serviceHandler = s.NewServiceHandler(handlerContext)
-			res, err := serviceHandler.ListServiceRegions(filter, options)
+			res, err := serviceHandler.ListServiceRegions(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -1100,11 +1100,11 @@ var _ = Describe("When listing serviceRegions", Label("app", "ListServiceRegions
 				Region: []*string{&region},
 			}
 
-			db.On("GetServiceRegions", filter).Return([]string{region}, nil)
+			db.On("GetServiceRegions", mock.Anything, filter).Return([]string{region}, nil)
 		})
 		It("returns filtered services according to the service type", func() {
 			serviceHandler = s.NewServiceHandler(handlerContext)
-			res, err := serviceHandler.ListServiceRegions(filter, options)
+			res, err := serviceHandler.ListServiceRegions(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(region), "should only consist of region")
 		})

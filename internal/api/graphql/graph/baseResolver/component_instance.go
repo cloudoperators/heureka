@@ -337,7 +337,7 @@ func ContextBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListContexts(f, opt)
+	names, err := app.ListContexts(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}
@@ -357,7 +357,7 @@ func ContextBaseResolver(
 }
 
 func ComponentInstanceFilterBaseResolver(
-	appCall func(filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error),
+	appCall func(ctx context.Context, filter *entity.ComponentInstanceFilter, options *entity.ListOptions) ([]string, error),
 	ctx context.Context,
 	filter *model.ComponentInstanceFilter,
 	filterDisplay *string,
@@ -390,7 +390,7 @@ func ComponentInstanceFilterBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := appCall(f, opt)
+	names, err := appCall(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}

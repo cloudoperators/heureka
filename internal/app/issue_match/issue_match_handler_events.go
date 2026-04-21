@@ -4,6 +4,7 @@
 package issue_match
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -104,6 +105,7 @@ func BuildIssueVariantMap(
 
 	// Get Issue Variants
 	issueVariants, err := db.GetServiceIssueVariants(
+		context.TODO(),
 		&entity.ServiceIssueVariantFilter{ComponentInstanceId: []*int64{&componentInstanceID}},
 		[]entity.Order{},
 	)
@@ -165,7 +167,7 @@ func OnComponentVersionAssignmentToComponentInstance(
 	l.WithField("event-step", "BuildIssueVariants").
 		Debug("Building map of IssueVariants for issues related to assigned Component Version")
 
-	issueVariantMap, err := shared.BuildIssueVariantMap(db, &entity.ServiceIssueVariantFilter{
+	issueVariantMap, err := shared.BuildIssueVariantMap(context.TODO(), db, &entity.ServiceIssueVariantFilter{
 		ComponentInstanceId: []*int64{&componentInstanceID},
 	}, componentVersionID)
 
@@ -187,7 +189,7 @@ func OnComponentVersionAssignmentToComponentInstance(
 		l.WithField("event-step", "FetchIssueMatches").
 			Debug("Fetching issue matches related to assigned Component Instance")
 
-		issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
+		issue_matches, err := db.GetIssueMatches(context.TODO(), &entity.IssueMatchFilter{
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceID},
 		}, nil)

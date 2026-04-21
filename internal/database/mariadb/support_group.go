@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -103,6 +104,7 @@ func ensureSupportGroupFilter(filter *entity.SupportGroupFilter) *entity.Support
 }
 
 func (s *SqlDatabase) buildSupportGroupStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.SupportGroupFilter,
 	withCursor bool,
@@ -143,7 +145,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -162,6 +164,7 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 }
 
 func (s *SqlDatabase) GetAllSupportGroupCursors(
+	ctx context.Context,
 	filter *entity.SupportGroupFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -178,12 +181,13 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(
 
 	filter = ensureSupportGroupFilter(filter)
 
-	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, err
 	}
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -205,6 +209,7 @@ func (s *SqlDatabase) GetAllSupportGroupCursors(
 }
 
 func (s *SqlDatabase) GetSupportGroups(
+	ctx context.Context,
 	filter *entity.SupportGroupFilter,
 	order []entity.Order,
 ) ([]entity.SupportGroupResult, error) {
@@ -220,7 +225,7 @@ func (s *SqlDatabase) GetSupportGroups(
 		GROUP BY SG.supportgroup_id ORDER BY %s LIMIT ?
     `
 
-	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -232,6 +237,7 @@ func (s *SqlDatabase) GetSupportGroups(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -251,7 +257,7 @@ func (s *SqlDatabase) GetSupportGroups(
 	)
 }
 
-func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int64, error) {
+func (s *SqlDatabase) CountSupportGroups(ctx context.Context, filter *entity.SupportGroupFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountSupportGroups",
 	})
@@ -264,6 +270,7 @@ func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int
 	`
 
 	stmt, filterParameters, err := s.buildSupportGroupStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -280,7 +287,7 @@ func (s *SqlDatabase) CountSupportGroups(filter *entity.SupportGroupFilter) (int
 		}
 	}()
 
-	return performCountScan(stmt, filterParameters, l)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) CreateSupportGroup(
@@ -419,7 +426,7 @@ func (s *SqlDatabase) RemoveUserFromSupportGroup(supportGroupId int64, userId in
 	return err
 }
 
-func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([]string, error) {
+func (s *SqlDatabase) GetSupportGroupCcrns(ctx context.Context, filter *entity.SupportGroupFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetSupportGroupCcrns",
@@ -443,7 +450,7 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
 	filter = ensureSupportGroupFilter(filter)
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildSupportGroupStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildSupportGroupStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err
@@ -456,7 +463,7 @@ func (s *SqlDatabase) GetSupportGroupCcrns(filter *entity.SupportGroupFilter) ([
 	}()
 
 	// Execute the query
-	rows, err := stmt.Queryx(filterParameters...)
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		l.Error("Error executing query: ", err)
 		return nil, err

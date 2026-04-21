@@ -83,19 +83,19 @@ var _ = Describe(
 				componentInstance.ComponentVersionId = componentVersion.Id
 
 				// // Setup mock expectations for happy path
-				db.On("GetComponentInstances", &entity.ComponentInstanceFilter{
+				db.On("GetComponentInstances", mock.Anything, &entity.ComponentInstanceFilter{
 					ComponentVersionId: []*int64{&componentVersion.Id},
 				}, []entity.Order{}).Return([]entity.ComponentInstanceResult{componentInstance}, nil)
 			})
 
 			It("creates an issue match for the component instance", func() {
 				// Setup expectation for existing match check
-				db.On("GetIssueMatches", &entity.IssueMatchFilter{
+				db.On("GetIssueMatches", mock.Anything, &entity.IssueMatchFilter{
 					ComponentInstanceId: []*int64{&componentInstance.Id},
 					IssueId:             []*int64{&issueEntity.Id},
 				}, []entity.Order{}).Return([]entity.IssueMatchResult{}, nil)
 
-				db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
+				db.On("GetServiceIssueVariants", mock.Anything, &entity.ServiceIssueVariantFilter{
 					ComponentInstanceId: []*int64{&componentInstance.Id},
 					IssueId:             []*int64{&issueEntity.Id},
 				}, mock.Anything).Return([]entity.ServiceIssueVariantResult{{
@@ -109,7 +109,7 @@ var _ = Describe(
 					ComponentInstanceId: componentInstance.Id,
 					IssueId:             issueEntity.Id,
 				}
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{1}, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{1}, nil)
 				db.On("CreateIssueMatch", matchIssueMatch(expectedMatch)).Return(expectedMatch, nil)
 
 				// Emit event
@@ -121,7 +121,7 @@ var _ = Describe(
 
 			It("skips creation if match already exists", func() {
 				existingMatch := test.NewFakeIssueMatchResult()
-				db.On("GetServiceIssueVariants", &entity.ServiceIssueVariantFilter{
+				db.On("GetServiceIssueVariants", mock.Anything, &entity.ServiceIssueVariantFilter{
 					ComponentInstanceId: []*int64{&componentInstance.Id},
 					IssueId:             []*int64{&issueEntity.Id},
 				}, mock.Anything).Return([]entity.ServiceIssueVariantResult{{
@@ -129,7 +129,7 @@ var _ = Describe(
 				}}, nil)
 
 				// Setup expectation to return existing match
-				db.On("GetIssueMatches", &entity.IssueMatchFilter{
+				db.On("GetIssueMatches", mock.Anything, &entity.IssueMatchFilter{
 					ComponentInstanceId: []*int64{&componentInstance.Id},
 					IssueId:             []*int64{&issueEntity.Id},
 				}, []entity.Order{}).Return([]entity.IssueMatchResult{existingMatch}, nil)

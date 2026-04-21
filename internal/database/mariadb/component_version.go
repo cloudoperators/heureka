@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -246,6 +247,7 @@ func (s *SqlDatabase) getComponentVersionColumns(order []entity.Order) string {
 }
 
 func (s *SqlDatabase) buildComponentVersionStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.ComponentVersionFilter,
 	withCursor bool,
@@ -289,7 +291,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -308,6 +310,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 }
 
 func (s *SqlDatabase) GetAllComponentVersionCursors(
+	ctx context.Context,
 	filter *entity.ComponentVersionFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -323,6 +326,7 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(
     `
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -334,6 +338,7 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(
 	}
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -360,6 +365,7 @@ func (s *SqlDatabase) GetAllComponentVersionCursors(
 }
 
 func (s *SqlDatabase) GetComponentVersions(
+	ctx context.Context,
 	filter *entity.ComponentVersionFilter,
 	order []entity.Order,
 ) ([]entity.ComponentVersionResult, error) {
@@ -377,6 +383,7 @@ func (s *SqlDatabase) GetComponentVersions(
 	filter = ensureComponentVersionFilter(filter)
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(
+		ctx,
 		baseQuery,
 		filter,
 		true,
@@ -394,6 +401,7 @@ func (s *SqlDatabase) GetComponentVersions(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -419,7 +427,7 @@ func (s *SqlDatabase) GetComponentVersions(
 	)
 }
 
-func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilter) (int64, error) {
+func (s *SqlDatabase) CountComponentVersions(ctx context.Context, filter *entity.ComponentVersionFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountComponentVersions",
 	})
@@ -432,6 +440,7 @@ func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilt
 	`
 
 	stmt, filterParameters, err := s.buildComponentVersionStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -448,7 +457,7 @@ func (s *SqlDatabase) CountComponentVersions(filter *entity.ComponentVersionFilt
 		}
 	}()
 
-	return performCountScan(stmt, filterParameters, l)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) CreateComponentVersion(

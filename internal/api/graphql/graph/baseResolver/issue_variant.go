@@ -36,7 +36,7 @@ func SingleIssueVariantBaseResolver(
 
 	opt := &entity.ListOptions{}
 
-	variants, err := app.ListIssueVariants(f, opt)
+	variants, err := app.ListIssueVariants(ctx, f, opt)
 	// error while fetching
 	if err != nil {
 		return nil, NewResolverError("SingleIssueVariantBaseResolver", err.Error())
@@ -117,7 +117,7 @@ func IssueVariantBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	variants, err := app.ListIssueVariants(f, opt)
+	variants, err := app.ListIssueVariants(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("IssueVariantBaseResolver", err.Error())
 	}
@@ -195,7 +195,7 @@ func EffectiveIssueVariantBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	variants, err := app.ListEffectiveIssueVariants(f, opt)
+	variants, err := app.ListEffectiveIssueVariants(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("EffectiveIssueVariantBaseResolver", err.Error())
 	}

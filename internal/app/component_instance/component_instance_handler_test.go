@@ -87,10 +87,10 @@ var _ = Describe(
 		When("the list option does include the totalCount", func() {
 			BeforeEach(func() {
 				options.ShowTotalCount = true
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponentInstances", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentInstanceResult{}, nil)
-				db.On("CountComponentInstances", filter).Return(int64(1337), nil)
+				db.On("CountComponentInstances", mock.Anything, filter).Return(int64(1337), nil)
 			})
 
 			It("shows the total count in the results", func() {
@@ -148,10 +148,10 @@ var _ = Describe(
 						)
 						cursors = append(cursors, c)
 					}
-					db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-					db.On("GetComponentInstances", filter, []entity.Order{}).
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+					db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 						Return(componentInstances, nil)
-					db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).
+					db.On("GetAllComponentInstanceCursors", mock.Anything, filter, []entity.Order{}).
 						Return(cursors, nil)
 					componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 					componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
@@ -197,8 +197,8 @@ var _ = Describe(
 			It("should return Internal error", func() {
 				// Mock database error
 				dbError := errors.New("database connection failed")
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponentInstances", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentInstanceResult{}, dbError)
 
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
@@ -243,11 +243,11 @@ var _ = Describe(
 					})
 				}
 
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-				db.On("GetComponentInstances", filter, []entity.Order{}).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return(componentInstances, nil)
 				cursorsError := errors.New("cursor database error")
-				db.On("GetAllComponentInstanceCursors", filter, []entity.Order{}).
+				db.On("GetAllComponentInstanceCursors", mock.Anything, filter, []entity.Order{}).
 					Return([]string{}, cursorsError)
 
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
@@ -289,8 +289,8 @@ var _ = Describe(
 				BeforeEach(func() {
 					serviceIds := int64(-1)
 					filter.ServiceId = []*int64{&serviceIds}
-					db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-					db.On("GetComponentInstances", filter, []entity.Order{}).
+					db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+					db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 						Return([]entity.ComponentInstanceResult{}, nil)
 				})
 
@@ -318,8 +318,8 @@ var _ = Describe(
 						systemUserId := int64(1)
 						filter.ServiceId = []*int64{&serviceId}
 						componentInstance = test.NewFakeComponentInstanceEntity()
-						db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
-						db.On("GetComponentInstances", filter, []entity.Order{}).
+						db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{}, nil)
+						db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 							Return([]entity.ComponentInstanceResult{{ComponentInstance: &componentInstance}}, nil)
 
 						relations := []openfga.RelationInput{
@@ -415,7 +415,7 @@ var _ = Describe(
 
 		Context("with valid input", func() {
 			It("creates componentInstance", func() {
-				db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 				db.On("CreateComponentInstance", mock.AnythingOfType("*entity.ComponentInstance")).
 					Return(&componentInstance, nil)
 
@@ -546,7 +546,7 @@ var _ = Describe(
 		})
 		Context("with valid input", func() {
 			It("updates componentInstance", func() {
-				db.On("GetAllUserIds", mock.Anything).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).
 					Return([]int64{123}, nil)
 					// Changed: return actual user ID
 				db.On("UpdateComponentInstance", componentInstance.ComponentInstance).Return(nil)
@@ -567,7 +567,7 @@ var _ = Describe(
 					componentInstance.Namespace,
 				)
 				filter.Id = []*int64{&componentInstance.Id}
-				db.On("GetComponentInstances", filter, []entity.Order{}).
+				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentInstanceResult{componentInstance}, nil)
 				updatedComponentInstance, err := componentInstanceHandler.UpdateComponentInstance(
 					common.NewAdminContext(),
@@ -831,7 +831,7 @@ var _ = Describe(
 
 		Context("with valid input", func() {
 			It("deletes componentInstance", func() {
-				db.On("GetAllUserIds", mock.Anything).
+				db.On("GetAllUserIds", mock.Anything, mock.Anything).
 					Return([]int64{123}, nil)
 					// Changed: return actual user ID
 				db.On("DeleteComponentInstance", id, int64(123)).
@@ -839,7 +839,7 @@ var _ = Describe(
 					// Changed: specify exact user ID
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 				componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-				db.On("GetComponentInstances", filter, []entity.Order{}).
+				db.On("GetComponentInstances", mock.Anything, filter, []entity.Order{}).
 					Return([]entity.ComponentInstanceResult{}, nil)
 				err := componentInstanceHandler.DeleteComponentInstance(
 					common.NewAdminContext(),
@@ -1003,13 +1003,13 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 
 	When("no filters are used", func() {
 		BeforeEach(func() {
-			db.On("GetCcrn", filter).Return([]string{}, nil)
+			db.On("GetCcrn", mock.Anything, filter).Return([]string{}, nil)
 		})
 
 		It("it return the results", func() {
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-			res, err := componentInstanceHandler.ListCcrns(filter, options)
+			res, err := componentInstanceHandler.ListCcrns(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(BeEmpty(), "return correct result")
 		})
@@ -1021,12 +1021,12 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 				CCRN: []*string{&CCRN},
 			}
 
-			db.On("GetCcrn", filter).Return([]string{CCRN}, nil)
+			db.On("GetCcrn", mock.Anything, filter).Return([]string{CCRN}, nil)
 		})
 		It("returns filtered CCRN according to the CCRN type", func() {
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-			res, err := componentInstanceHandler.ListCcrns(filter, options)
+			res, err := componentInstanceHandler.ListCcrns(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(res).Should(ConsistOf(CCRN), "should only consist of CCRN")
 		})
@@ -1037,11 +1037,11 @@ var _ = Describe("When listing CCRN", Label("app", "ListCcrn"), func() {
 		It("should return Internal error", func() {
 			// Mock database error
 			dbError := errors.New("database connection failed")
-			db.On("GetCcrn", filter).Return([]string{}, dbError)
+			db.On("GetCcrn", mock.Anything, filter).Return([]string{}, dbError)
 
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
 			componentInstanceHandler = ci.NewComponentInstanceHandler(handlerContext)
-			result, err := componentInstanceHandler.ListCcrns(filter, options)
+			result, err := componentInstanceHandler.ListCcrns(context.Background(), filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")

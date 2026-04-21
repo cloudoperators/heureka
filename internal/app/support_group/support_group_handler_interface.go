@@ -23,5 +23,5 @@ type SupportGroupHandler interface {
 	RemoveServiceFromSupportGroup(context.Context, int64, int64) (*entity.SupportGroup, error)
 	AddUserToSupportGroup(context.Context, int64, int64) (*entity.SupportGroup, error)
 	RemoveUserFromSupportGroup(context.Context, int64, int64) (*entity.SupportGroup, error)
-	ListSupportGroupCcrns(*entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)
+	ListSupportGroupCcrns(context.Context, *entity.SupportGroupFilter, *entity.ListOptions) ([]string, error)
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 // This is a helper command intended for use within Heureka.
@@ -79,7 +79,7 @@ func main() {
 
 			if len(call.Args) < 4 {
 				mismatches = append(mismatches, result{
-					pos:  fset.Position(call.Lparen), // position of '(' for the call
+					pos:  fset.Position(call.Lparen),
 					want: "at least 4 arguments",
 					got:  fmt.Sprintf("%d arguments", len(call.Args)),
 				})
@@ -114,7 +114,7 @@ func main() {
 			default:
 				mismatches = append(mismatches, result{
 					pos:  fset.Position(cacheFunc.Pos()),
-					want: "unknown type",
+					want: "function identifier",
 					got:  fmt.Sprintf("%T", fn),
 				})
 
@@ -129,6 +129,27 @@ func main() {
 				})
 			}
 
+			if len(call.Args) < 5 {
+				mismatches = append(mismatches, result{
+					pos:  fset.Position(call.Lparen),
+					want: "context argument (ctx) after function",
+					got:  "missing",
+				})
+
+				return true
+			}
+
+			ctxArg := call.Args[4]
+
+			ident, ok := ctxArg.(*ast.Ident)
+			if !ok || ident.Name != "ctx" {
+				mismatches = append(mismatches, result{
+					pos:  fset.Position(ctxArg.Pos()),
+					want: "ctx (context.Context)",
+					got:  fmt.Sprintf("%T", ctxArg),
+				})
+			}
+
 			return true
 		})
 
@@ -140,7 +161,7 @@ func main() {
 	}
 
 	for _, m := range mismatches {
-		fmt.Fprintf(os.Stderr, "%s: mismatch – want %q, got %q\n",
+		fmt.Fprintf(os.Stderr, "%s: mismatch - want %q, got %q\n",
 			m.pos, m.want, m.got)
 	}
 

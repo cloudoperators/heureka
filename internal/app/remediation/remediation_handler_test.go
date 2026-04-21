@@ -4,12 +4,15 @@
 package remediation_test
 
 import (
+	"context"
 	"errors"
 	"math"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
+	"github.com/cloudoperators/heureka/internal/cache"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/cloudoperators/heureka/internal/app/event"
@@ -68,14 +71,14 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetRemediations", filter, []entity.Order{}).
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.RemediationResult{}, nil)
-			db.On("CountRemediations", filter).Return(int64(1337), nil)
+			db.On("CountRemediations", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			res, err := remediationHandler.ListRemediations(filter, options)
+			res, err := remediationHandler.ListRemediations(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -119,10 +122,10 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 					)
 					cursors = append(cursors, c)
 				}
-				db.On("GetRemediations", filter, []entity.Order{}).Return(remediations, nil)
-				db.On("GetAllRemediationCursors", filter, []entity.Order{}).Return(cursors, nil)
+				db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).Return(remediations, nil)
+				db.On("GetAllRemediationCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
 				remediationHandler = rh.NewRemediationHandler(handlerContext)
-				res, err := remediationHandler.ListRemediations(filter, options)
+				res, err := remediationHandler.ListRemediations(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(
 					*res.PageInfo.HasNextPage,
@@ -154,11 +157,11 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 		It("should return Internal error", func() {
 			// Mock database error
 			dbError := errors.New("database connection failed")
-			db.On("GetRemediations", filter, []entity.Order{}).
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.RemediationResult{}, dbError)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			result, err := remediationHandler.ListRemediations(filter, options)
+			result, err := remediationHandler.ListRemediations(context.Background(), filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -196,13 +199,13 @@ var _ = Describe("When listing Remediations", Label("app", "ListRemediations"), 
 				})
 			}
 
-			db.On("GetRemediations", filter, []entity.Order{}).Return(remediations, nil)
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).Return(remediations, nil)
 			cursorsError := errors.New("cursor database error")
-			db.On("GetAllRemediationCursors", filter, []entity.Order{}).
+			db.On("GetAllRemediationCursors", mock.Anything, filter, []entity.Order{}).
 				Return([]string{}, cursorsError)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			result, err := remediationHandler.ListRemediations(filter, options)
+			result, err := remediationHandler.ListRemediations(context.Background(), filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -236,13 +239,14 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 			DB:       db,
 			EventReg: er,
 			Authz:    authz,
+			Cache:    cache.NewInMemoryCache(context.Background(), &sync.WaitGroup{}, cache.InMemoryCacheConfig{}),
 		}
 	})
 
 	Context("with valid input", func() {
 		It("creates remediation", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
-			db.On("GetRemediations", mock.Anything, mock.Anything).
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{}, nil)
 			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
 				Return(&remediation, nil)
@@ -275,10 +279,10 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 
 	Context("when a duplicate remediation exists", func() {
 		It("returns AlreadyExists error if the existing one is not expired", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(time.Hour)
-			db.On("GetRemediations", mock.Anything, mock.Anything).
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
@@ -295,10 +299,10 @@ var _ = Describe("When creating Remediation", Label("app", "CreateRemediation"),
 		})
 
 		It("creates remediation if the existing one is expired", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			existing := remediation
 			existing.ExpirationDate = time.Now().Add(-time.Hour)
-			db.On("GetRemediations", mock.Anything, mock.Anything).
+			db.On("GetRemediations", mock.Anything, mock.Anything, mock.Anything).
 				Return([]entity.RemediationResult{{Remediation: &existing}}, nil)
 			db.On("CreateRemediation", mock.AnythingOfType("*entity.Remediation")).
 				Return(&remediation, nil)
@@ -343,7 +347,7 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 	})
 	Context("with valid input", func() {
 		It("updates remediation", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			db.On("UpdateRemediation", remediation.Remediation).Return(nil)
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
 			remediation.Description = "Updated description"
@@ -351,7 +355,7 @@ var _ = Describe("When updating Remediation", Label("app", "UpdateRemediation"),
 			remediation.Component = "Updated Component"
 			remediation.Issue = "Updated Issue"
 			filter.Id = []*int64{&remediation.Id}
-			db.On("GetRemediations", filter, []entity.Order{}).
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.RemediationResult{remediation}, nil)
 			updatedRemediation, err := remediationHandler.UpdateRemediation(
 				common.NewAdminContext(),
@@ -397,17 +401,17 @@ var _ = Describe("When deleting Remediation", Label("app", "DeleteRemediation"),
 
 	Context("with valid input", func() {
 		It("deletes remediation", func() {
-			db.On("GetAllUserIds", mock.Anything).Return([]int64{123}, nil)
+			db.On("GetAllUserIds", mock.Anything, mock.Anything).Return([]int64{123}, nil)
 			db.On("DeleteRemediation", id, int64(123)).Return(nil)
 			remediationHandler = rh.NewRemediationHandler(handlerContext)
-			db.On("GetRemediations", filter, []entity.Order{}).
+			db.On("GetRemediations", mock.Anything, filter, []entity.Order{}).
 				Return([]entity.RemediationResult{}, nil)
 			err := remediationHandler.DeleteRemediation(common.NewAdminContext(), id)
 			Expect(err).To(BeNil(), "no error should be thrown")
 
 			filter.Id = []*int64{&id}
 			lo := entity.NewListOptions()
-			remediations, err := remediationHandler.ListRemediations(filter, lo)
+			remediations, err := remediationHandler.ListRemediations(context.Background(), filter, lo)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(remediations.Elements).To(BeEmpty(), "remediation should be deleted")
 		})

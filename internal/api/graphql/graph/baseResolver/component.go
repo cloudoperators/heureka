@@ -140,7 +140,7 @@ func ComponentCcrnBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	names, err := app.ListComponentCcrns(f, opt)
+	names, err := app.ListComponentCcrns(ctx, f, opt)
 	if err != nil {
 		return nil, NewResolverError("ComponentCcrnBaseReolver", err.Error())
 	}
@@ -211,7 +211,7 @@ func ComponentIssueCountsBaseResolver(
 
 	var severityCounts model.SeverityCounts
 
-	counts, err := app.GetComponentVulnerabilityCounts(f)
+	counts, err := app.GetComponentVulnerabilityCounts(ctx, f)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/cloudoperators/heureka/internal/app/event"
 	"github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/openfga"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/cloudoperators/heureka/internal/entity"
 	"github.com/cloudoperators/heureka/internal/mocks"
@@ -61,7 +62,7 @@ var _ = Describe("ScannerRun", Label("app", "CreateScannerRun"), func() {
 	It("creates a scannerrun and completes it", func() {
 		db.On("CreateScannerRun", sre).Return(true, nil)
 		db.On("CompleteScannerRun", sre.UUID).Return(true, nil)
-		db.On("Autopatch").Return(true, nil)
+		db.On("Autopatch", mock.Anything).Return(true, nil)
 
 		scannerRunHandler = NewScannerRunHandler(handlerContext)
 		scannerRunHandler.CreateScannerRun(sre)

@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -204,12 +205,13 @@ func performExec[T any](s *SqlDatabase, query string, item T, l *logrus.Entry) (
 }
 
 func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
+	ctx context.Context,
 	stmt Stmt,
 	filterParameters []any,
 	l *logrus.Entry,
 	listBuilder func([]E, T) []E,
 ) ([]E, error) {
-	rows, err := stmt.Queryx(filterParameters...)
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		msg := "Error while performing Query from prepared Statement"
 		l.WithFields(
@@ -248,6 +250,17 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
 		listEntries = listBuilder(listEntries, row)
 	}
 
+	if err := rows.Err(); err != nil {
+		msg := "Error while iterating over result rows"
+		l.WithFields(
+			logrus.Fields{
+				"error":      err.Error(),
+				"parameters": filterParameters,
+			}).Error(msg)
+
+		return nil, fmt.Errorf("%s", msg)
+	}
+
 	l.WithFields(
 		logrus.Fields{
 			"count": len(listEntries),
@@ -256,8 +269,8 @@ func performListScan[T DatabaseRow, E entity.HeurekaEntity | DatabaseRow](
 	return listEntries, nil
 }
 
-func performIdScan(stmt Stmt, filterParameters []any, l *logrus.Entry) ([]int64, error) {
-	rows, err := stmt.Queryx(filterParameters...)
+func performIdScan(ctx context.Context, stmt Stmt, filterParameters []any, l *logrus.Entry) ([]int64, error) {
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		msg := "Error while performing query with prepared Statement"
 		l.WithFields(
@@ -305,8 +318,8 @@ func performIdScan(stmt Stmt, filterParameters []any, l *logrus.Entry) ([]int64,
 	return listEntries, nil
 }
 
-func performCountScan(stmt Stmt, filterParameters []any, l *logrus.Entry) (int64, error) {
-	rows, err := stmt.Queryx(filterParameters...)
+func performCountScan(ctx context.Context, stmt Stmt, filterParameters []any, l *logrus.Entry) (int64, error) {
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		msg := "Error while performing query with prepared Statement"
 		l.WithFields(

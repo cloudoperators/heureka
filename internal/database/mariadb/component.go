@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -204,6 +205,7 @@ func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
 }
 
 func (s *SqlDatabase) buildComponentStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.ComponentFilter,
 	withCursor bool,
@@ -244,7 +246,7 @@ func (s *SqlDatabase) buildComponentStatement(
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -263,6 +265,7 @@ func (s *SqlDatabase) buildComponentStatement(
 }
 
 func (s *SqlDatabase) GetAllComponentCursors(
+	ctx context.Context,
 	filter *entity.ComponentFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -281,7 +284,7 @@ func (s *SqlDatabase) GetAllComponentCursors(
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
 
-	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -293,6 +296,7 @@ func (s *SqlDatabase) GetAllComponentCursors(
 	}()
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -319,6 +323,7 @@ func (s *SqlDatabase) GetAllComponentCursors(
 }
 
 func (s *SqlDatabase) GetComponents(
+	ctx context.Context,
 	filter *entity.ComponentFilter,
 	order []entity.Order,
 ) ([]entity.ComponentResult, error) {
@@ -337,7 +342,7 @@ func (s *SqlDatabase) GetComponents(
 	columns := s.getComponentColumns(order)
 	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
-	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, err
 	}
@@ -349,6 +354,7 @@ func (s *SqlDatabase) GetComponents(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -372,7 +378,7 @@ func (s *SqlDatabase) GetComponents(
 	)
 }
 
-func (s *SqlDatabase) CountComponents(filter *entity.ComponentFilter) (int64, error) {
+func (s *SqlDatabase) CountComponents(ctx context.Context, filter *entity.ComponentFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountComponents",
 	})
@@ -385,6 +391,7 @@ func (s *SqlDatabase) CountComponents(filter *entity.ComponentFilter) (int64, er
 	`
 
 	stmt, filterParameters, err := s.buildComponentStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -401,10 +408,11 @@ func (s *SqlDatabase) CountComponents(filter *entity.ComponentFilter) (int64, er
 		}
 	}()
 
-	return performCountScan(stmt, filterParameters, l)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) CountComponentVulnerabilities(
+	ctx context.Context,
 	filter *entity.ComponentFilter,
 ) ([]entity.IssueSeverityCounts, error) {
 	l := logrus.WithFields(logrus.Fields{
@@ -462,7 +470,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 
 	query = fmt.Sprintf("%s %s", query, groupBy)
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -482,6 +490,7 @@ func (s *SqlDatabase) CountComponentVulnerabilities(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -503,7 +512,7 @@ func (s *SqlDatabase) DeleteComponent(id int64, userId int64) error {
 	return componentObject.Delete(s.db, id, userId)
 }
 
-func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]string, error) {
+func (s *SqlDatabase) GetComponentCcrns(ctx context.Context, filter *entity.ComponentFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetComponentCcrns",
@@ -526,7 +535,7 @@ func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]strin
 	}
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildComponentStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildComponentStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		l.Error("Error preparing statement: ", err)
 		return nil, err
@@ -539,7 +548,7 @@ func (s *SqlDatabase) GetComponentCcrns(filter *entity.ComponentFilter) ([]strin
 	}()
 
 	// Execute the query
-	rows, err := stmt.Queryx(filterParameters...)
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		l.Error("Error executing query: ", err)
 		return nil, err

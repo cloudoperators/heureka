@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
 	"github.com/cloudoperators/heureka/internal/database/mariadb/test"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -243,7 +245,7 @@ func (uut *uniquenessUserTemplate) expectDeletedUserCountForUniqueUserId(
 }
 
 func (uut *uniquenessUserTemplate) expectUserCount(uf *entity.UserFilter, cnt int64) {
-	userCount, err := uut.db.CountUsers(uf)
+	userCount, err := uut.db.CountUsers(context.Background(), uf)
 	Expect(err).To(BeNil())
 	Expect(userCount).To(BeEquivalentTo(cnt))
 }
@@ -305,7 +307,7 @@ func (uct *uniquenessComponentTemplate) expectComponentCount(
 	cf *entity.ComponentFilter,
 	cnt int64,
 ) {
-	componentCount, err := uct.db.CountComponents(cf)
+	componentCount, err := uct.db.CountComponents(context.Background(), cf)
 	Expect(err).To(BeNil())
 	Expect(componentCount).To(BeEquivalentTo(cnt))
 }
@@ -392,7 +394,7 @@ func (ucvt *uniquenessComponentVersionTemplate) expectComponentVersionCount(
 	cvf *entity.ComponentVersionFilter,
 	cnt int64,
 ) {
-	componentVersionCount, err := ucvt.db.CountComponentVersions(cvf)
+	componentVersionCount, err := ucvt.db.CountComponentVersions(context.Background(), cvf)
 	Expect(err).To(BeNil())
 	Expect(componentVersionCount).To(BeEquivalentTo(cnt))
 }
@@ -451,7 +453,7 @@ func (ust *uniquenessServiceTemplate) expectDeletedServiceCountForCCRN(ccrn stri
 }
 
 func (ust *uniquenessServiceTemplate) expectServiceCount(sf *entity.ServiceFilter, cnt int64) {
-	serviceCount, err := ust.db.CountServices(sf)
+	serviceCount, err := ust.db.CountServices(context.Background(), sf)
 	Expect(err).To(BeNil())
 	Expect(serviceCount).To(BeEquivalentTo(cnt))
 }
@@ -538,7 +540,7 @@ func (ucit *uniquenessComponentInstanceTemplate) expectComponentInstanceCount(
 	cif *entity.ComponentInstanceFilter,
 	cnt int64,
 ) {
-	componentInstanceCount, err := ucit.db.CountComponentInstances(cif)
+	componentInstanceCount, err := ucit.db.CountComponentInstances(context.Background(), cif)
 	Expect(err).To(BeNil())
 	Expect(componentInstanceCount).To(BeEquivalentTo(cnt))
 }
@@ -606,7 +608,7 @@ func (uirt *uniquenessIssueRepositoryTemplate) expectIssueRepositoryCount(
 	irf *entity.IssueRepositoryFilter,
 	cnt int64,
 ) {
-	issueRepositoryCount, err := uirt.db.CountIssueRepositories(irf)
+	issueRepositoryCount, err := uirt.db.CountIssueRepositories(context.Background(), irf)
 	Expect(err).To(BeNil())
 	Expect(issueRepositoryCount).To(BeEquivalentTo(cnt))
 }
@@ -668,7 +670,7 @@ func (uit *uniquenessIssueTemplate) expectDeletedIssueCountForPrimaryName(
 }
 
 func (uit *uniquenessIssueTemplate) expectIssueCount(isf *entity.IssueFilter, cnt int64) {
-	issueCount, err := uit.db.CountIssues(isf)
+	issueCount, err := uit.db.CountIssues(context.Background(), isf)
 	Expect(err).To(BeNil())
 	Expect(issueCount).To(BeEquivalentTo(cnt))
 }
@@ -742,7 +744,7 @@ func (uivt *uniquenessIssueVariantTemplate) expectIssueVariantCount(
 	ivf *entity.IssueVariantFilter,
 	cnt int64,
 ) {
-	issueVariantCount, err := uivt.db.CountIssueVariants(ivf)
+	issueVariantCount, err := uivt.db.CountIssueVariants(context.Background(), ivf)
 	Expect(err).To(BeNil())
 	Expect(issueVariantCount).To(BeEquivalentTo(cnt))
 }

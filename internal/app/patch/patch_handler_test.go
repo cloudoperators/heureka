@@ -4,6 +4,7 @@
 package patch_test
 
 import (
+	"context"
 	"errors"
 	"math"
 	"testing"
@@ -20,6 +21,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/mock"
 )
 
 var (
@@ -64,13 +66,13 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 	When("the list option does include the totalCount", func() {
 		BeforeEach(func() {
 			options.ShowTotalCount = true
-			db.On("GetPatches", filter, []entity.Order{}).Return([]entity.PatchResult{}, nil)
-			db.On("CountPatches", filter).Return(int64(1337), nil)
+			db.On("GetPatches", mock.Anything, filter, []entity.Order{}).Return([]entity.PatchResult{}, nil)
+			db.On("CountPatches", mock.Anything, filter).Return(int64(1337), nil)
 		})
 
 		It("shows the total count in the results", func() {
 			patchHandler = ph.NewPatchHandler(handlerContext)
-			res, err := patchHandler.ListPatches(filter, options)
+			res, err := patchHandler.ListPatches(context.Background(), filter, options)
 			Expect(err).To(BeNil(), "no error should be thrown")
 			Expect(*res.TotalCount).Should(BeEquivalentTo(int64(1337)), "return correct Totalcount")
 		})
@@ -107,10 +109,10 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 					c, _ := mariadb.EncodeCursor(mariadb.WithPatch([]entity.Order{}, patch))
 					cursors = append(cursors, c)
 				}
-				db.On("GetPatches", filter, []entity.Order{}).Return(patches, nil)
-				db.On("GetAllPatchCursors", filter, []entity.Order{}).Return(cursors, nil)
+				db.On("GetPatches", mock.Anything, filter, []entity.Order{}).Return(patches, nil)
+				db.On("GetAllPatchCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
 				patchHandler = ph.NewPatchHandler(handlerContext)
-				res, err := patchHandler.ListPatches(filter, options)
+				res, err := patchHandler.ListPatches(context.Background(), filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")
 				Expect(
 					*res.PageInfo.HasNextPage,
@@ -141,10 +143,10 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 		It("should return Internal error", func() {
 			// Mock database error
 			dbError := errors.New("database connection failed")
-			db.On("GetPatches", filter, []entity.Order{}).Return([]entity.PatchResult{}, dbError)
+			db.On("GetPatches", mock.Anything, filter, []entity.Order{}).Return([]entity.PatchResult{}, dbError)
 
 			patchHandler = ph.NewPatchHandler(handlerContext)
-			result, err := patchHandler.ListPatches(filter, options)
+			result, err := patchHandler.ListPatches(context.Background(), filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")
@@ -177,12 +179,12 @@ var _ = Describe("When listing Patches", Label("app", "ListPatches"), func() {
 				})
 			}
 
-			db.On("GetPatches", filter, []entity.Order{}).Return(patches, nil)
+			db.On("GetPatches", mock.Anything, filter, []entity.Order{}).Return(patches, nil)
 			cursorsError := errors.New("cursor database error")
-			db.On("GetAllPatchCursors", filter, []entity.Order{}).Return([]string{}, cursorsError)
+			db.On("GetAllPatchCursors", mock.Anything, filter, []entity.Order{}).Return([]string{}, cursorsError)
 
 			patchHandler = ph.NewPatchHandler(handlerContext)
-			result, err := patchHandler.ListPatches(filter, options)
+			result, err := patchHandler.ListPatches(context.Background(), filter, options)
 
 			Expect(result).To(BeNil(), "no result should be returned")
 			Expect(err).ToNot(BeNil(), "error should be returned")

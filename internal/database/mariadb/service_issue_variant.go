@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -45,6 +46,7 @@ func ensureServiceIssueVariantFilter(
 }
 
 func (s *SqlDatabase) buildServiceIssueVariantStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.ServiceIssueVariantFilter,
 	withCursor bool,
@@ -83,7 +85,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -106,6 +108,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 }
 
 func (s *SqlDatabase) GetServiceIssueVariants(
+	ctx context.Context,
 	filter *entity.ServiceIssueVariantFilter,
 	order []entity.Order,
 ) ([]entity.ServiceIssueVariantResult, error) {
@@ -132,6 +135,7 @@ func (s *SqlDatabase) GetServiceIssueVariants(
     `
 
 	stmt, filterParameters, err := s.buildServiceIssueVariantStatement(
+		ctx,
 		baseQuery,
 		filter,
 		true,
@@ -149,6 +153,7 @@ func (s *SqlDatabase) GetServiceIssueVariants(
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,

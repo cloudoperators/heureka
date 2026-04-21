@@ -120,12 +120,15 @@ func OnComponentVersionAttachmentToIssue(
 		"payload": e,
 	})
 
+	// TODO: add context
+	ctx := context.TODO()
+
 	if attachmentEvent, ok := e.(*AddComponentVersionToIssueEvent); ok {
 		// Get ComponentInstances
 		l.WithField("event-step", "GetComponentInstances").
 			Debug("Get Component Instances by ComponentVersionId")
 
-		componentInstances, err := db.GetComponentInstances(&entity.ComponentInstanceFilter{
+		componentInstances, err := db.GetComponentInstances(ctx, &entity.ComponentInstanceFilter{
 			ComponentVersionId: []*int64{&attachmentEvent.ComponentVersionID},
 		}, []entity.Order{})
 		if err != nil {
@@ -141,6 +144,7 @@ func OnComponentVersionAttachmentToIssue(
 		for _, compInst := range componentInstances {
 			// Get Service Issue Variants
 			issueVariantMap, err := shared.BuildIssueVariantMap(
+				ctx,
 				db,
 				&entity.ServiceIssueVariantFilter{
 					ComponentInstanceId: []*int64{&compInst.Id},
@@ -183,7 +187,7 @@ func createIssueMatches(
 		l.WithField("event-step", "GetIssueMatches").
 			Debug("Fetching issue matches related to assigned Component Instance")
 
-		issue_matches, err := db.GetIssueMatches(&entity.IssueMatchFilter{
+		issue_matches, err := db.GetIssueMatches(ctx, &entity.IssueMatchFilter{
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceId},
 		}, []entity.Order{})

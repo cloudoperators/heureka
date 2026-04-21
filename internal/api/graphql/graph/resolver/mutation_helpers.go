@@ -176,6 +176,7 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 	if input.URL != nil && *input.URL != "" {
 		if input.Name != nil && *input.Name != "" {
 			ivs, err := r.App.ListIssueVariants(
+				ctx,
 				&entity.IssueVariantFilter{SecondaryName: []*string{input.Name}},
 				&entity.ListOptions{},
 			)
@@ -212,7 +213,7 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 			f := &entity.IssueFilter{PrimaryName: []*string{input.Name}}
 			lo := entity.IssueListOptions{ListOptions: *entity.NewListOptions()}
 
-			issues, ierr := r.App.ListIssues(f, &lo)
+			issues, ierr := r.App.ListIssues(ctx, f, &lo)
 			if ierr != nil || len(issues.Elements) == 0 {
 				return nil, nil, baseResolver.NewResolverError(
 					"CreateSIEMAlertMutationResolver",
@@ -234,7 +235,7 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 			Name: []*string{&siemRepoName},
 		}
 
-		repositories, err := r.App.ListIssueRepositories(&repoFilter, &entity.ListOptions{})
+		repositories, err := r.App.ListIssueRepositories(ctx, &repoFilter, &entity.ListOptions{})
 
 		var issueRepositoryId int64
 		if err == nil && len(repositories.Elements) > 0 {
@@ -299,7 +300,7 @@ func (r *mutationResolver) getOrCreateIssueAndVariant(
 
 		issueVariant = newIv
 	} else {
-		iss, err := r.App.GetIssue(issueVariant.IssueId)
+		iss, err := r.App.GetIssue(ctx, issueVariant.IssueId)
 		if err != nil {
 			return nil, nil, baseResolver.NewResolverError(
 				"CreateSIEMAlertMutationResolver",

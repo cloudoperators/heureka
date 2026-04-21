@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -56,6 +57,7 @@ func ensurePatchFilter(filter *entity.PatchFilter) *entity.PatchFilter {
 }
 
 func (s *SqlDatabase) buildPatchStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.PatchFilter,
 	withCursor bool,
@@ -93,7 +95,7 @@ func (s *SqlDatabase) buildPatchStatement(
 		query = fmt.Sprintf(baseQuery, whereClause, orderStr)
 	}
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -112,6 +114,7 @@ func (s *SqlDatabase) buildPatchStatement(
 }
 
 func (s *SqlDatabase) GetPatches(
+	ctx context.Context,
 	filter *entity.PatchFilter,
 	order []entity.Order,
 ) ([]entity.PatchResult, error) {
@@ -128,7 +131,7 @@ func (s *SqlDatabase) GetPatches(
 		GROUP BY P.patch_id ORDER BY %s LIMIT ?
     `
 
-	stmt, filterParameters, err := s.buildPatchStatement(baseQuery, filter, true, order, l)
+	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, true, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch query: %w", err)
 	}
@@ -140,6 +143,7 @@ func (s *SqlDatabase) GetPatches(
 	}()
 
 	results, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -164,7 +168,7 @@ func (s *SqlDatabase) GetPatches(
 	return results, nil
 }
 
-func (s *SqlDatabase) CountPatches(filter *entity.PatchFilter) (int64, error) {
+func (s *SqlDatabase) CountPatches(ctx context.Context, filter *entity.PatchFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event":  "database.CountPatches",
 		"filter": filter,
@@ -177,6 +181,7 @@ func (s *SqlDatabase) CountPatches(filter *entity.PatchFilter) (int64, error) {
 	`
 
 	stmt, filterParameters, err := s.buildPatchStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -193,7 +198,7 @@ func (s *SqlDatabase) CountPatches(filter *entity.PatchFilter) (int64, error) {
 		}
 	}()
 
-	count, err := performCountScan(stmt, filterParameters, l)
+	count, err := performCountScan(ctx, stmt, filterParameters, l)
 	if err != nil {
 		return -1, fmt.Errorf("failed to count Patches: %w", err)
 	}
@@ -202,6 +207,7 @@ func (s *SqlDatabase) CountPatches(filter *entity.PatchFilter) (int64, error) {
 }
 
 func (s *SqlDatabase) GetAllPatchCursors(
+	ctx context.Context,
 	filter *entity.PatchFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -217,7 +223,7 @@ func (s *SqlDatabase) GetAllPatchCursors(
 
 	filter = ensurePatchFilter(filter)
 
-	stmt, filterParameters, err := s.buildPatchStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildPatchStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Patch cursor query: %w", err)
 	}
@@ -229,6 +235,7 @@ func (s *SqlDatabase) GetAllPatchCursors(
 	}()
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,

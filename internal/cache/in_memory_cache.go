@@ -61,6 +61,16 @@ func (imc *InMemoryCache) Get(key string) (string, bool, error) {
 	return valStr, true, nil
 }
 
+func (imc *InMemoryCache) GetAll() ([]string, error) {
+	keys := make([]string, 0, imc.gc.ItemCount())
+
+	for key := range imc.gc.Items() {
+		keys = append(keys, key)
+	}
+
+	return keys, nil
+}
+
 func (imc *InMemoryCache) Set(key string, value string, ttl time.Duration) error {
 	if ttl <= 0 {
 		ttl = gocache.NoExpiration
@@ -74,4 +84,8 @@ func (imc *InMemoryCache) Set(key string, value string, ttl time.Duration) error
 func (imc *InMemoryCache) Invalidate(key string) error {
 	imc.gc.Delete(key)
 	return nil
+}
+
+func (imc *InMemoryCache) GetKeyHashType() KeyHashType {
+	return imc.keyHash
 }

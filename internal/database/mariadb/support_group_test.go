@@ -4,6 +4,8 @@
 package mariadb_test
 
 import (
+	"context"
+
 	"github.com/samber/lo"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
@@ -32,7 +34,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	When("Getting SupportGroups", Label("GetSupportGroups"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the query", func() {
-				res, err := db.GetSupportGroups(nil, nil)
+				res, err := db.GetSupportGroups(context.Background(), nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -49,7 +51,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetSupportGroups(nil, nil)
+					res, err := db.GetSupportGroups(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -102,7 +104,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						}
 					}
 
-					entries, err := db.GetSupportGroups(filter, nil)
+					entries, err := db.GetSupportGroups(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -122,7 +124,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					row := test.PickOne(seedCollection.SupportGroupRows)
 					filter := &entity.SupportGroupFilter{Id: []*int64{&row.Id.Int64}}
 
-					entries, err := db.GetSupportGroups(filter, nil)
+					entries, err := db.GetSupportGroups(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -145,7 +147,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						}
 					}
 
-					entries, err := db.GetSupportGroups(filter, nil)
+					entries, err := db.GetSupportGroups(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -166,7 +168,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 
 					filter := &entity.SupportGroupFilter{CCRN: []*string{&row.CCRN.String}}
 
-					entries, err := db.GetSupportGroups(filter, nil)
+					entries, err := db.GetSupportGroups(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -187,7 +189,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					order []entity.Order,
 					verifyFunc func(res []entity.SupportGroupResult),
 				) {
-					res, err := db.GetSupportGroups(nil, order)
+					res, err := db.GetSupportGroups(context.Background(), nil, order)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -246,7 +248,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	When("Counting SupportGroups", Label("CountSupportGroups"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {
-				c, err := db.CountSupportGroups(nil)
+				c, err := db.CountSupportGroups(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -267,7 +269,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
-					c, err := db.CountSupportGroups(nil)
+					c, err := db.CountSupportGroups(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -287,7 +289,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 							After: &after,
 						},
 					}
-					c, err := db.CountSupportGroups(filter)
+					c, err := db.CountSupportGroups(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -322,7 +324,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					Id: []*int64{&supportGroup.Id},
 				}
 
-				sg, err := db.GetSupportGroups(sgFilter, nil)
+				sg, err := db.GetSupportGroups(context.Background(), sgFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -356,7 +358,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					Id: []*int64{&supportGroup.Id},
 				}
 
-				sg, err := db.GetSupportGroups(supportGroupFilter, nil)
+				sg, err := db.GetSupportGroups(context.Background(), supportGroupFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -389,7 +391,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					Id: []*int64{&supportGroup.Id},
 				}
 
-				sg, err := db.GetSupportGroups(sgFilter, nil)
+				sg, err := db.GetSupportGroups(context.Background(), sgFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -428,7 +430,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					ServiceId: []*int64{&service.Id},
 				}
 
-				sg, err := db.GetSupportGroups(supportGroupFilter, nil)
+				sg, err := db.GetSupportGroups(context.Background(), supportGroupFilter, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -473,7 +475,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					ServiceId: []*int64{&supportGroupServiceRow.ServiceId.Int64},
 				}
 
-				supportGroups, err := db.GetSupportGroups(supportGroupFilter, nil)
+				supportGroups, err := db.GetSupportGroups(context.Background(), supportGroupFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -513,7 +515,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					UserId: []*int64{&user.Id},
 				}
 
-				sg, err := db.GetSupportGroups(supportGroupFilter, nil)
+				sg, err := db.GetSupportGroups(context.Background(), supportGroupFilter, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -558,7 +560,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					UserId: []*int64{&supportGroupUserRow.UserId.Int64},
 				}
 
-				supportGroups, err := db.GetSupportGroups(supportGroupFilter, nil)
+				supportGroups, err := db.GetSupportGroups(context.Background(), supportGroupFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -572,7 +574,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 	When("Getting SupportGroupCcrns", Label("GetSupportGroupCcrns"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetSupportGroupCcrns(nil)
+				res, err := db.GetSupportGroupCcrns(context.Background(), nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -589,7 +591,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetSupportGroupCcrns(nil)
+					res, err := db.GetSupportGroupCcrns(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -627,7 +629,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 					}
 
 					It("can fetch the filtered items correctly", func() {
-						res, err := db.GetSupportGroupCcrns(filter)
+						res, err := db.GetSupportGroupCcrns(context.Background(), filter)
 
 						By("throwing no error", func() {
 							Expect(err).Should(BeNil())
@@ -657,7 +659,7 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 							It(
 								"returns an empty list when no supportGroup match the filter",
 								func() {
-									res, err := db.GetSupportGroupCcrns(anotherFilter)
+									res, err := db.GetSupportGroupCcrns(context.Background(), anotherFilter)
 									Expect(err).Should(BeNil())
 									Expect(res).Should(BeEmpty())
 

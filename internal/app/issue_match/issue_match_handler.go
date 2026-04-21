@@ -209,6 +209,7 @@ func (im *issueMatchHandler) ListIssueMatches(
 		CacheTtlGetIssueMatches,
 		"GetIssueMatches",
 		im.database.GetIssueMatches,
+		ctx,
 		filter,
 		options.Order,
 	)
@@ -228,6 +229,7 @@ func (im *issueMatchHandler) ListIssueMatches(
 				CacheTtlGetAllIssueMatchCursors,
 				"GetAllIssueMatchCursors",
 				im.database.GetAllIssueMatchCursors,
+				ctx,
 				filter,
 				options.Order,
 			)
@@ -249,6 +251,7 @@ func (im *issueMatchHandler) ListIssueMatches(
 			CacheTtlCountIssueMatches,
 			"CountIssueMatches",
 			im.database.CountIssueMatches,
+			ctx,
 			filter,
 		)
 		if err != nil {
@@ -303,7 +306,7 @@ func (im *issueMatchHandler) CreateIssueMatch(
 	}
 
 	//@todo discuss: may be moved to somewhere else?
-	effectiveSeverity, err := im.severityHandler.GetSeverity(severityFilter)
+	effectiveSeverity, err := im.severityHandler.GetSeverity(ctx, severityFilter)
 	if err != nil {
 		l.Error(err)
 		return nil, NewIssueMatchHandlerError("Internal error while retrieving effective severity.")

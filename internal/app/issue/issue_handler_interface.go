@@ -10,13 +10,13 @@ import (
 )
 
 type IssueHandler interface {
-	ListIssues(*entity.IssueFilter, *entity.IssueListOptions) (*entity.IssueList, error)
-	GetIssue(int64) (*entity.Issue, error)
+	ListIssues(context.Context, *entity.IssueFilter, *entity.IssueListOptions) (*entity.IssueList, error)
+	GetIssue(context.Context, int64) (*entity.Issue, error)
 	CreateIssue(context.Context, *entity.Issue) (*entity.Issue, error)
 	UpdateIssue(context.Context, *entity.Issue) (*entity.Issue, error)
 	DeleteIssue(context.Context, int64) error
-	AddComponentVersionToIssue(int64, int64) (*entity.Issue, error)
-	RemoveComponentVersionFromIssue(int64, int64) (*entity.Issue, error)
-	ListIssueNames(*entity.IssueFilter, *entity.ListOptions) ([]string, error)
-	GetIssueSeverityCounts(*entity.IssueFilter) (*entity.IssueSeverityCounts, error)
+	AddComponentVersionToIssue(context.Context, int64, int64) (*entity.Issue, error)
+	RemoveComponentVersionFromIssue(context.Context, int64, int64) (*entity.Issue, error)
+	ListIssueNames(context.Context, *entity.IssueFilter, *entity.ListOptions) ([]string, error)
+	GetIssueSeverityCounts(context.Context, *entity.IssueFilter) (*entity.IssueSeverityCounts, error)
 }

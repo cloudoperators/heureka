@@ -4,6 +4,7 @@
 package patch
 
 import (
+	"context"
 	"time"
 
 	"github.com/cloudoperators/heureka/internal/app/common"
@@ -39,6 +40,7 @@ func NewPatchHandler(handlerContext common.HandlerContext) PatchHandler {
 }
 
 func (ph *patchHandler) ListPatches(
+	ctx context.Context,
 	filter *entity.PatchFilter,
 	options *entity.ListOptions,
 ) (*entity.List[entity.PatchResult], error) {
@@ -56,6 +58,7 @@ func (ph *patchHandler) ListPatches(
 		CacheTtlGetPatches,
 		"GetPatches",
 		ph.database.GetPatches,
+		ctx,
 		filter,
 		options.Order,
 	)
@@ -75,6 +78,7 @@ func (ph *patchHandler) ListPatches(
 				CacheTtlGetAllPatchCursors,
 				"GetAllPatchCursors",
 				ph.database.GetAllPatchCursors,
+				ctx,
 				filter,
 				options.Order,
 			)
@@ -96,6 +100,7 @@ func (ph *patchHandler) ListPatches(
 			CacheTtlCountPatches,
 			"CountPatches",
 			ph.database.CountPatches,
+			ctx,
 			filter,
 		)
 		if err != nil {

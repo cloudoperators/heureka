@@ -4,6 +4,7 @@
 package e2e_test
 
 import (
+	"context"
 	"fmt"
 
 	e2e_common "github.com/cloudoperators/heureka/internal/e2e/common"
@@ -92,6 +93,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					Expect(*respData.SIEM.URL).To(Equal(alertURL))
 
 					issues, err := db.GetIssues(
+						context.Background(),
 						&entity.IssueFilter{PrimaryName: []*string{&alertName}},
 						nil,
 					)
@@ -100,6 +102,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					issueId := issues[0].Issue.Id
 
 					ivs, err := db.GetIssueVariants(
+						context.Background(),
 						&entity.IssueVariantFilter{IssueId: []*int64{&issueId}},
 						[]entity.Order{},
 					)
@@ -120,12 +123,12 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					Expect(issueVariantWithSeverity).To(BeTrue())
 
 					serviceFilter := &entity.ServiceFilter{CCRN: []*string{&service}}
-					services, err := db.GetServices(serviceFilter, nil)
+					services, err := db.GetServices(context.Background(), serviceFilter, nil)
 					Expect(err).To(BeNil())
 					Expect(len(services)).To(BeNumerically(">=", 1))
 
 					sgFilter := &entity.SupportGroupFilter{CCRN: []*string{&supportGroup}}
-					sgs, err := db.GetSupportGroups(sgFilter, nil)
+					sgs, err := db.GetSupportGroups(context.Background(), sgFilter, nil)
 					Expect(err).To(BeNil())
 					Expect(len(sgs)).To(BeNumerically(">=", 1))
 
@@ -140,6 +143,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					)
 
 					cis, err := db.GetComponentInstances(
+						context.Background(),
 						&entity.ComponentInstanceFilter{CCRN: []*string{&ccrn}},
 						nil,
 					)
@@ -148,6 +152,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 					ciId := cis[0].Id
 
 					ims, err := db.GetIssueMatches(
+						context.Background(),
 						&entity.IssueMatchFilter{IssueId: []*int64{&issueId}},
 						nil,
 					)
@@ -205,23 +210,26 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 
 				// Verify the IssueRepository in the database
 				repoFilter := &entity.IssueRepositoryFilter{Name: []*string{&source}}
-				repos, err := db.GetIssueRepositories(repoFilter, []entity.Order{})
+				repos, err := db.GetIssueRepositories(context.Background(), repoFilter, []entity.Order{})
 				Expect(err).To(BeNil())
 				Expect(len(repos)).To(Equal(1))
 				Expect(repos[0].Name).To(Equal(source))
 
 				// Verify IssueVariant is linked to this repository
 				issues, err := db.GetIssues(
+					context.Background(),
 					&entity.IssueFilter{PrimaryName: []*string{&alertName}},
 					nil,
 				)
 				Expect(err).To(BeNil())
 				issueId := issues[0].Issue.Id
 
-				ivs, err := db.GetIssueVariants(&entity.IssueVariantFilter{
-					IssueId:           []*int64{&issueId},
-					IssueRepositoryId: []*int64{&repos[0].Id},
-				}, []entity.Order{})
+				ivs, err := db.GetIssueVariants(
+					context.Background(),
+					&entity.IssueVariantFilter{
+						IssueId:           []*int64{&issueId},
+						IssueRepositoryId: []*int64{&repos[0].Id},
+					}, []entity.Order{})
 				Expect(err).To(BeNil())
 				Expect(len(ivs)).To(Equal(1))
 			})
@@ -269,6 +277,7 @@ var _ = Describe("Creating SIEMAlert via API", Label("e2e", "SIEMAlert"), func()
 
 				// Verify the alert was not created in the database
 				issues, err := db.GetIssues(
+					context.Background(),
 					&entity.IssueFilter{PrimaryName: []*string{&alertName}},
 					nil,
 				)

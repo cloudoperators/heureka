@@ -4,9 +4,11 @@
 package patch
 
 import (
+	"context"
+
 	"github.com/cloudoperators/heureka/internal/entity"
 )
 
 type PatchHandler interface {
-	ListPatches(*entity.PatchFilter, *entity.ListOptions) (*entity.List[entity.PatchResult], error)
+	ListPatches(context.Context, *entity.PatchFilter, *entity.ListOptions) (*entity.List[entity.PatchResult], error)
 }

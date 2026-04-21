@@ -18,7 +18,7 @@ type UserHandler interface {
 	CreateUser(context.Context, *entity.User) (*entity.User, error)
 	UpdateUser(context.Context, *entity.User) (*entity.User, error)
 	DeleteUser(context.Context, int64) error
-	ListUserNames(*entity.UserFilter, *entity.ListOptions) ([]string, error)
-	ListUniqueUserIDs(*entity.UserFilter, *entity.ListOptions) ([]string, error)
-	ListUserNamesAndIds(*entity.UserFilter, *entity.ListOptions) ([]string, []string, error)
+	ListUserNames(context.Context, *entity.UserFilter, *entity.ListOptions) ([]string, error)
+	ListUniqueUserIDs(context.Context, *entity.UserFilter, *entity.ListOptions) ([]string, error)
+	ListUserNamesAndIds(context.Context, *entity.UserFilter, *entity.ListOptions) ([]string, []string, error)
 }

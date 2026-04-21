@@ -55,7 +55,7 @@ func (g *GraphQLAPI) graphqlHandler() gin.HandlerFunc {
 	g.Server.AroundOperations(g.batchLimiter.Middleware())
 
 	return func(c *gin.Context) {
-		g.Server.ServeHTTP(c.Writer, c.Request)
+		g.Server.ServeHTTP(c.Writer, c.Request.WithContext(c.Request.Context()))
 	}
 }
 
@@ -63,6 +63,6 @@ func (g *GraphQLAPI) playgroundHandler() gin.HandlerFunc {
 	h := playground.Handler("GraphQL", "/query")
 
 	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
+		h.ServeHTTP(c.Writer, c.Request.WithContext(c.Request.Context()))
 	}
 }

@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -13,17 +14,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *SqlDatabase) Autopatch() (bool, error) {
-	runs, err := s.fetchCompletedRunsWithNewestFirst()
+func (s *SqlDatabase) Autopatch(ctx context.Context) (bool, error) {
+	runs, err := s.fetchCompletedRunsWithNewestFirst(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	return s.processAutopatchOnCompletedRuns(runs)
+	return s.processAutopatchOnCompletedRuns(ctx, runs)
 }
 
-func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst() (map[string][]int, error) {
-	rows, err := s.db.Query(`
+func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst(ctx context.Context) (map[string][]int, error) {
+	rows, err := s.db.QueryContext(ctx, `
         SELECT scannerrun_tag, scannerrun_run_id
         FROM ScannerRun
         WHERE scannerrun_is_completed = TRUE AND scannerrun_deleted_at IS NULL
@@ -62,7 +63,7 @@ func (s *SqlDatabase) fetchCompletedRunsWithNewestFirst() (map[string][]int, err
 	return runs, nil
 }
 
-func (s *SqlDatabase) processAutopatchOnCompletedRuns(runs map[string][]int) (bool, error) {
+func (s *SqlDatabase) processAutopatchOnCompletedRuns(ctx context.Context, runs map[string][]int) (bool, error) {
 	autopatched := false
 
 	for _, tagRuns := range runs {
@@ -71,7 +72,7 @@ func (s *SqlDatabase) processAutopatchOnCompletedRuns(runs map[string][]int) (bo
 			continue
 		}
 
-		patchedForTag, err := s.processAutopatchForSingleTag(tagRuns)
+		patchedForTag, err := s.processAutopatchForSingleTag(ctx, tagRuns)
 		if err != nil {
 			return false, err
 		}
@@ -84,7 +85,7 @@ func (s *SqlDatabase) processAutopatchOnCompletedRuns(runs map[string][]int) (bo
 	return autopatched, nil
 }
 
-func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) {
+func (s *SqlDatabase) processAutopatchForSingleTag(ctx context.Context, tagRuns []int) (bool, error) {
 	latest := tagRuns[0]
 	secondLatest := tagRuns[1]
 
@@ -109,12 +110,13 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 		return false, err
 	}
 
-	err = s.deleteIssueMatchesOfDisappearedInstances(disappearedInstances)
+	err = s.deleteIssueMatchesOfDisappearedInstances(ctx, disappearedInstances)
 	if err != nil {
 		return false, err
 	}
 
 	versionsOfDisappearedInstances, err := s.getVersionIdsOfDisappearedInstances(
+		ctx,
 		disappearedInstances,
 	)
 	if err != nil {
@@ -132,18 +134,19 @@ func (s *SqlDatabase) processAutopatchForSingleTag(tagRuns []int) (bool, error) 
 	}
 
 	componentsOfDisappearedInstances, err := s.getComponentIdsOfDisappearedInstances(
+		ctx,
 		versionsOfDisappearedInstances,
 	)
 	if err != nil {
 		return false, err
 	}
 
-	err = s.deleteVersionsOfDisappearedInstances(versionsOfDisappearedInstances)
+	err = s.deleteVersionsOfDisappearedInstances(ctx, versionsOfDisappearedInstances)
 	if err != nil {
 		return false, err
 	}
 
-	err = s.deleteComponentsOfDisappearedInstances(componentsOfDisappearedInstances)
+	err = s.deleteComponentsOfDisappearedInstances(ctx, componentsOfDisappearedInstances)
 	if err != nil {
 		return false, err
 	}
@@ -204,11 +207,11 @@ func (s *SqlDatabase) insertPatches(patches map[patchInfo]struct{}) error {
 	return nil
 }
 
-func (s *SqlDatabase) deleteIssueMatchesOfDisappearedInstances(disappearedInstances []int) error {
+func (s *SqlDatabase) deleteIssueMatchesOfDisappearedInstances(ctx context.Context, disappearedInstances []int) error {
 	for _, di := range disappearedInstances {
 		issueMatchFilter := entity.IssueMatchFilter{ComponentInstanceId: []*int64{new(int64(di))}}
 
-		issueMatchIds, err := s.GetAllIssueMatchIds(&issueMatchFilter)
+		issueMatchIds, err := s.GetAllIssueMatchIds(ctx, &issueMatchFilter)
 		if err != nil {
 			return err
 		}
@@ -224,6 +227,7 @@ func (s *SqlDatabase) deleteIssueMatchesOfDisappearedInstances(disappearedInstan
 }
 
 func (s *SqlDatabase) getVersionIdsOfDisappearedInstances(
+	ctx context.Context,
 	disappearedInstances []int,
 ) (map[int64]struct{}, error) {
 	idsDisappeared := lo.Map(disappearedInstances, func(v int, _ int) *int64 {
@@ -233,7 +237,7 @@ func (s *SqlDatabase) getVersionIdsOfDisappearedInstances(
 
 	cif := entity.ComponentInstanceFilter{Id: idsDisappeared}
 
-	res, err := s.GetComponentInstances(&cif, nil)
+	res, err := s.GetComponentInstances(ctx, &cif, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -247,6 +251,7 @@ func (s *SqlDatabase) getVersionIdsOfDisappearedInstances(
 }
 
 func (s *SqlDatabase) getComponentIdsOfDisappearedInstances(
+	ctx context.Context,
 	versions map[int64]struct{},
 ) (map[int64]struct{}, error) {
 	var versionsToFilter []*int64
@@ -256,7 +261,7 @@ func (s *SqlDatabase) getComponentIdsOfDisappearedInstances(
 
 	cvf := entity.ComponentVersionFilter{Id: versionsToFilter}
 
-	res, err := s.GetComponentVersions(&cvf, nil)
+	res, err := s.GetComponentVersions(ctx, &cvf, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -282,12 +287,13 @@ func (s *SqlDatabase) deleteVersionIssuesOfDisappearedInstances(
 }
 
 func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(
+	ctx context.Context,
 	versionIdsOfDisappearedInstances map[int64]struct{},
 ) error {
 	for vIdDi := range versionIdsOfDisappearedInstances {
 		cif := entity.ComponentInstanceFilter{ComponentVersionId: []*int64{&vIdDi}}
 
-		res, err := s.GetComponentInstances(&cif, nil)
+		res, err := s.GetComponentInstances(ctx, &cif, nil)
 		if err != nil {
 			return err
 		}
@@ -303,12 +309,13 @@ func (s *SqlDatabase) deleteVersionsOfDisappearedInstances(
 }
 
 func (s *SqlDatabase) deleteComponentsOfDisappearedInstances(
+	ctx context.Context,
 	componentIdsOfDisappearedInstances map[int64]struct{},
 ) error {
 	for cIdDi := range componentIdsOfDisappearedInstances {
 		cvf := entity.ComponentVersionFilter{ComponentId: []*int64{&cIdDi}}
 
-		res, err := s.GetComponentVersions(&cvf, nil)
+		res, err := s.GetComponentVersions(ctx, &cvf, nil)
 		if err != nil {
 			return err
 		}

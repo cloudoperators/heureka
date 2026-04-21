@@ -65,7 +65,7 @@ func PatchBaseResolver(
 
 	opt := GetListOptions(requestedFields)
 
-	patches, err := app.ListPatches(f, opt)
+	patches, err := app.ListPatches(ctx, f, opt)
 	if err != nil {
 		return nil, ToGraphQLError(err)
 	}

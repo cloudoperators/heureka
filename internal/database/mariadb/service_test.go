@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"sort"
 
 	"github.com/cloudoperators/heureka/internal/database/mariadb"
@@ -35,7 +36,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	When("Getting Services", Label("GetServices"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetServices(nil, nil)
+				res, err := db.GetServices(context.Background(), nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -52,7 +53,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetServices(nil, nil)
+					res, err := db.GetServices(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -102,7 +103,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					row := test.PickOne(seedCollection.ServiceRows)
 					filter := &entity.ServiceFilter{CCRN: []*string{&row.CCRN.String}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -120,7 +121,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					nonExistingName := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.ServiceFilter{CCRN: []*string{&nonExistingName}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -137,7 +138,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					}
 					filter := &entity.ServiceFilter{CCRN: serviceCcrns}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -151,7 +152,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					row := test.PickOne(seedCollection.ServiceRows)
 					filter := &entity.ServiceFilter{Domain: []*string{&row.Domain.String}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -169,7 +170,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					row := test.PickOne(seedCollection.ServiceRows)
 					filter := &entity.ServiceFilter{Region: []*string{&row.Region.String}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -187,7 +188,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					row := test.PickOne(seedCollection.ServiceRows)
 					filter := &entity.ServiceFilter{Id: []*int64{&row.Id.Int64}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -211,7 +212,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					filter := &entity.ServiceFilter{SupportGroupCCRN: []*string{&sgRow.CCRN.String}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -237,7 +238,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					filter := &entity.ServiceFilter{OwnerName: []*string{&userRow.Name.String}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -263,7 +264,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					filter := &entity.ServiceFilter{OwnerId: []*int64{&ownerRow.UserId.Int64}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -289,7 +290,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					filter := &entity.ServiceFilter{IssueRepositoryId: []*int64{&irRow.Id.Int64}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -331,7 +332,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					filter := &entity.ServiceFilter{IssueId: []*int64{&imRow.IssueId.Int64}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -357,7 +358,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 					filter := &entity.ServiceFilter{SupportGroupId: []*int64{&sgRow.Id.Int64}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -384,7 +385,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					searchStr := row.CCRN.String[start:end]
 					filter := &entity.ServiceFilter{Search: []*string{&searchStr}}
 
-					entries, err := db.GetServices(filter, nil)
+					entries, err := db.GetServices(context.Background(), filter, nil)
 
 					names := []string{}
 					for _, entry := range entries {
@@ -445,7 +446,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				db.CreateService(&newService)
 			})
 			It("returns the services with aggregations", func() {
-				entriesWithAggregations, err := db.GetServicesWithAggregations(nil, nil)
+				entriesWithAggregations, err := db.GetServicesWithAggregations(context.Background(), nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -473,7 +474,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 				_ = seeder.SeedDbWithNFakeData(10)
 			})
 			It("returns the services with aggs", func() {
-				entriesWithAggregations, err := db.GetServicesWithAggregations(nil, nil)
+				entriesWithAggregations, err := db.GetServicesWithAggregations(context.Background(), nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -504,7 +505,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	When("Counting Services", Label("CountServices"), func() {
 		Context("and the database is empty", func() {
 			It("can count correctly", func() {
-				c, err := db.CountServices(nil)
+				c, err := db.CountServices(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -525,7 +526,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
-					c, err := db.CountServices(nil)
+					c, err := db.CountServices(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -545,7 +546,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 							After: &after,
 						},
 					}
-					c, err := db.CountServices(filter)
+					c, err := db.CountServices(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -577,7 +578,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						},
 						SupportGroupCCRN: []*string{&sgRow.CCRN.String},
 					}
-					entries, err := db.CountServices(filter)
+					entries, err := db.CountServices(context.Background(), filter)
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
 					})
@@ -617,7 +618,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					Id: []*int64{&service.Id},
 				}
 
-				s, err := db.GetServices(serviceFilter, nil)
+				s, err := db.GetServices(context.Background(), serviceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -664,7 +665,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					Id: []*int64{&service.Id},
 				}
 
-				s, err := db.GetServices(serviceFilter, nil)
+				s, err := db.GetServices(context.Background(), serviceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -696,7 +697,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					Id: []*int64{&service.Id},
 				}
 
-				s, err := db.GetServices(serviceFilter, nil)
+				s, err := db.GetServices(context.Background(), serviceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -735,7 +736,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					OwnerId: []*int64{&owner.Id},
 				}
 
-				s, err := db.GetServices(serviceFilter, nil)
+				s, err := db.GetServices(context.Background(), serviceFilter, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -777,7 +778,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					OwnerId: []*int64{&ownerRow.UserId.Int64},
 				}
 
-				services, err := db.GetServices(serviceFilter, nil)
+				services, err := db.GetServices(context.Background(), serviceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -821,7 +822,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					IssueRepositoryId: []*int64{&issueRepository.Id},
 				}
 
-				s, err := db.GetServices(serviceFilter, nil)
+				s, err := db.GetServices(context.Background(), serviceFilter, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -866,7 +867,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					IssueRepositoryId: []*int64{&issueRepositoryServiceRow.IssueRepositoryId.Int64},
 				}
 
-				services, err := db.GetServices(serviceFilter, nil)
+				services, err := db.GetServices(context.Background(), serviceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -880,7 +881,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	When("Getting ServiceCcrns", Label("GetServiceCcrns"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetServiceCcrns(nil)
+				res, err := db.GetServiceCcrns(context.Background(), nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -897,7 +898,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetServiceCcrns(nil)
+					res, err := db.GetServiceCcrns(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -935,7 +936,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 					}
 
 					It("can fetch the filtered items correctly", func() {
-						res, err := db.GetServiceCcrns(filter)
+						res, err := db.GetServiceCcrns(context.Background(), filter)
 
 						By("throwing no error", func() {
 							Expect(err).Should(BeNil())
@@ -963,7 +964,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 							}
 
 							It("returns an empty list when no services match the filter", func() {
-								res, err := db.GetServiceCcrns(anotherFilter)
+								res, err := db.GetServiceCcrns(context.Background(), anotherFilter)
 								Expect(err).Should(BeNil())
 								Expect(res).Should(BeEmpty())
 
@@ -984,7 +985,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	When("Getting ServiceDomains", Label("GetServiceDomains"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetServiceDomains(nil)
+				res, err := db.GetServiceDomains(context.Background(), nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -1001,7 +1002,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetServiceDomains(nil)
+					res, err := db.GetServiceDomains(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -1030,7 +1031,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 	When("Getting ServiceRegions", Label("GetServiceRegions"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetServiceRegions(nil)
+				res, err := db.GetServiceRegions(context.Background(), nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -1047,7 +1048,7 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetServiceRegions(nil)
+					res, err := db.GetServiceRegions(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -1097,7 +1098,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 		order []entity.Order,
 		verifyFunc func(res []entity.ServiceResult),
 	) {
-		res, err := db.GetServices(nil, order)
+		res, err := db.GetServices(context.Background(), nil, order)
 
 		By("throwing no error", func() {
 			Expect(err).Should(BeNil())
@@ -1168,7 +1169,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 				{By: entity.LowCount, Direction: entity.OrderDirectionDesc},
 				{By: entity.NoneCount, Direction: entity.OrderDirectionDesc},
 			}
-			services, err := db.GetServices(nil, order)
+			services, err := db.GetServices(context.Background(), nil, order)
 			Expect(err).To(BeNil())
 			Expect(services[0].Id).To(BeEquivalentTo(1))
 			Expect(services[1].Id).To(BeEquivalentTo(3))
@@ -1184,7 +1185,7 @@ var _ = Describe("Ordering Services", Label("ServiceOrdering"), func() {
 				{By: entity.LowCount, Direction: entity.OrderDirectionAsc},
 				{By: entity.NoneCount, Direction: entity.OrderDirectionAsc},
 			}
-			services, err := db.GetServices(nil, order)
+			services, err := db.GetServices(context.Background(), nil, order)
 			Expect(err).To(BeNil())
 			Expect(services[0].Id).To(BeEquivalentTo(2))
 			Expect(services[1].Id).To(BeEquivalentTo(5))

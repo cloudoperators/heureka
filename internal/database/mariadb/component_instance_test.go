@@ -4,6 +4,7 @@
 package mariadb_test
 
 import (
+	"context"
 	"math"
 	"sort"
 
@@ -35,7 +36,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 	When("Getting ComponentInstances", Label("GetComponentInstance"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetComponentInstances(nil, nil)
+				res, err := db.GetComponentInstances(context.Background(), nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -51,7 +52,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetComponentInstances(nil, nil)
+					res, err := db.GetComponentInstances(context.Background(), nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -129,7 +130,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						Id: []*int64{&ci.Id.Int64},
 					}
 
-					entries, err := db.GetComponentInstances(filter, nil)
+					entries, err := db.GetComponentInstances(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -152,7 +153,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						IssueMatchId: []*int64{&rnd.Id.Int64},
 					}
 
-					entries, err := db.GetComponentInstances(filter, nil)
+					entries, err := db.GetComponentInstances(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -173,7 +174,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						ServiceId: []*int64{&cir.ServiceId.Int64},
 					}
 
-					entries, err := db.GetComponentInstances(filter, nil)
+					entries, err := db.GetComponentInstances(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -200,7 +201,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						ServiceCcrn: []*string{lo.ToPtr(service.CCRN.String)},
 					}
 
-					entries, err := db.GetComponentInstances(filter, nil)
+					entries, err := db.GetComponentInstances(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -223,7 +224,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						ComponentVersionId: []*int64{&cir.ComponentVersionId.Int64},
 					}
 
-					entries, err := db.GetComponentInstances(filter, nil)
+					entries, err := db.GetComponentInstances(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -255,7 +256,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						ComponentVersionVersion: []*string{&cvr.Version.String},
 					}
 
-					entries, err := db.GetComponentInstances(filter, nil)
+					entries, err := db.GetComponentInstances(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -279,7 +280,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					)
 					filter := &entity.ComponentInstanceFilter{IssueMatchId: ids}
 
-					entries, err := db.GetComponentInstances(filter, nil)
+					entries, err := db.GetComponentInstances(context.Background(), filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -325,7 +326,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 	When("Counting ComponentInstances", Label("CountComponentInstance"), func() {
 		Context("and the database is empty", func() {
 			It("returns a correct totalCount without an error", func() {
-				c, err := db.CountComponentInstances(nil)
+				c, err := db.CountComponentInstances(context.Background(), nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -346,7 +347,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 			})
 			Context("and using no filter", func() {
 				It("can count", func() {
-					c, err := db.CountComponentInstances(nil)
+					c, err := db.CountComponentInstances(context.Background(), nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -367,7 +368,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 						},
 						IssueMatchId: nil,
 					}
-					c, err := db.CountComponentInstances(filter)
+					c, err := db.CountComponentInstances(context.Background(), filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -393,7 +394,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 							},
 							IssueMatchId: ids,
 						}
-						entries, err := db.CountComponentInstances(filter)
+						entries, err := db.CountComponentInstances(context.Background(), filter)
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
 						})
@@ -535,7 +536,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Id: []*int64{&componentInstance.Id},
 				}
 
-				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
+				ci, err := db.GetComponentInstances(context.Background(), componentInstanceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -579,7 +580,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Id: []*int64{&componentInstance.Id},
 				}
 
-				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
+				ci, err := db.GetComponentInstances(context.Background(), componentInstanceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -630,7 +631,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 					Id: []*int64{&componentInstance.Id},
 				}
 
-				ci, err := db.GetComponentInstances(componentInstanceFilter, nil)
+				ci, err := db.GetComponentInstances(context.Background(), componentInstanceFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -655,7 +656,7 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 				order []entity.Order,
 				verifyFunc func(res []entity.ComponentInstanceResult),
 			) {
-				res, err := db.GetComponentInstances(nil, order)
+				res, err := db.GetComponentInstances(context.Background(), nil, order)
 
 				By("throwing no error", func() {
 					Expect(err).Should(BeNil())
@@ -1819,9 +1820,9 @@ var _ = Describe("ComponentInstance - ", Label("database", "ComponentInstance"),
 })
 
 func canPerformComponentInstanceQuery[T any](
-	getFunc func(filter *entity.ComponentInstanceFilter) ([]T, error),
+	getFunc func(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]T, error),
 ) {
-	res, err := getFunc(nil)
+	res, err := getFunc(context.Background(), nil)
 
 	By("throwing no error", func() {
 		Expect(err).To(BeNil())
@@ -1833,10 +1834,10 @@ func canPerformComponentInstanceQuery[T any](
 }
 
 func canFetchComponentInstanceQueryItems(
-	getFunc func(filter *entity.ComponentInstanceFilter) ([]string, error),
+	getFunc func(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error),
 	expectedItems []string,
 ) {
-	res, err := getFunc(nil)
+	res, err := getFunc(context.Background(), nil)
 
 	By("throwing no error", func() {
 		Expect(err).Should(BeNil())
@@ -1854,11 +1855,11 @@ func canFetchComponentInstanceQueryItems(
 }
 
 func issueComponentInstanceAttrFilterWithExpect(
-	getAttrFunc func(filter *entity.ComponentInstanceFilter) ([]string, error),
+	getAttrFunc func(ctx context.Context, filter *entity.ComponentInstanceFilter) ([]string, error),
 	cifilter *entity.ComponentInstanceFilter,
 	expectedAttrVal []string,
 ) {
-	res, err := getAttrFunc(cifilter)
+	res, err := getAttrFunc(context.Background(), cifilter)
 
 	By("throwing no error", func() {
 		Expect(err).Should(BeNil())

@@ -21,9 +21,9 @@ type ServiceHandler interface {
 	DeleteService(ctx context.Context, id int64) error
 	AddOwnerToService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error)
 	RemoveOwnerFromService(ctx context.Context, serviceId, ownerId int64) (*entity.Service, error)
-	ListServiceCcrns(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
-	ListServiceDomains(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
-	ListServiceRegions(filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
+	ListServiceCcrns(ctx context.Context, filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
+	ListServiceDomains(ctx context.Context, filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
+	ListServiceRegions(ctx context.Context, filter *entity.ServiceFilter, options *entity.ListOptions) ([]string, error)
 	AddIssueRepositoryToService(context.Context, int64, int64, int64) (*entity.Service, error)
 	RemoveIssueRepositoryFromService(context.Context, int64, int64) (*entity.Service, error)
 }

@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -108,6 +109,7 @@ func (s *SqlDatabase) getUserJoins(filter *entity.UserFilter) string {
 }
 
 func (s *SqlDatabase) buildUserStatement(
+	ctx context.Context,
 	baseQuery string,
 	filter *entity.UserFilter,
 	withCursor bool,
@@ -147,7 +149,7 @@ func (s *SqlDatabase) buildUserStatement(
 		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
 	}
 
-	stmt, err := s.db.Preparex(query)
+	stmt, err := s.db.PreparexContext(ctx, query)
 	if err != nil {
 		msg := ERROR_MSG_PREPARED_STMT
 		l.WithFields(
@@ -165,7 +167,7 @@ func (s *SqlDatabase) buildUserStatement(
 	return stmt, filterParameters, nil
 }
 
-func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) {
+func (s *SqlDatabase) GetAllUserIds(ctx context.Context, filter *entity.UserFilter) ([]int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetUserIds",
 	})
@@ -178,6 +180,7 @@ func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) 
     `
 
 	stmt, filterParameters, err := s.buildUserStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -194,10 +197,11 @@ func (s *SqlDatabase) GetAllUserIds(filter *entity.UserFilter) ([]int64, error) 
 		}
 	}()
 
-	return performIdScan(stmt, filterParameters, l)
+	return performIdScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) GetAllUserCursors(
+	ctx context.Context,
 	filter *entity.UserFilter,
 	order []entity.Order,
 ) ([]string, error) {
@@ -214,7 +218,7 @@ func (s *SqlDatabase) GetAllUserCursors(
 
 	filter = ensureUserFilter(filter)
 
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, order, l)
+	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, order, l)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build User cursor query: %w", err)
 	}
@@ -226,6 +230,7 @@ func (s *SqlDatabase) GetAllUserCursors(
 	}()
 
 	rows, err := performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -246,7 +251,7 @@ func (s *SqlDatabase) GetAllUserCursors(
 	}), nil
 }
 
-func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.UserResult, error) {
+func (s *SqlDatabase) GetUsers(ctx context.Context, filter *entity.UserFilter) ([]entity.UserResult, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.GetUsers",
 	})
@@ -261,6 +266,7 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.UserResult, 
 	filter = ensureUserFilter(filter)
 
 	stmt, filterParameters, err := s.buildUserStatement(
+		ctx,
 		baseQuery,
 		filter,
 		true,
@@ -278,6 +284,7 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.UserResult, 
 	}()
 
 	return performListScan(
+		ctx,
 		stmt,
 		filterParameters,
 		l,
@@ -297,7 +304,7 @@ func (s *SqlDatabase) GetUsers(filter *entity.UserFilter) ([]entity.UserResult, 
 	)
 }
 
-func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
+func (s *SqlDatabase) CountUsers(ctx context.Context, filter *entity.UserFilter) (int64, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"event": "database.CountUsers",
 	})
@@ -310,6 +317,7 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 	`
 
 	stmt, filterParameters, err := s.buildUserStatement(
+		ctx,
 		baseQuery,
 		filter,
 		false,
@@ -326,7 +334,7 @@ func (s *SqlDatabase) CountUsers(filter *entity.UserFilter) (int64, error) {
 		}
 	}()
 
-	return performCountScan(stmt, filterParameters, l)
+	return performCountScan(ctx, stmt, filterParameters, l)
 }
 
 func (s *SqlDatabase) CreateUser(user *entity.User) (*entity.User, error) {
@@ -341,7 +349,7 @@ func (s *SqlDatabase) DeleteUser(id int64, userId int64) error {
 	return userObject.Delete(s.db, id, userId)
 }
 
-func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) {
+func (s *SqlDatabase) GetUserNames(ctx context.Context, filter *entity.UserFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetUserNames",
@@ -358,7 +366,7 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 	filter = ensureUserFilter(filter)
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, []entity.Order{
+	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{
 		{
 			By: entity.UserName,
 		},
@@ -375,7 +383,7 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 	}()
 
 	// Execute the query
-	rows, err := stmt.Queryx(filterParameters...)
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		l.Error("Error executing query: ", err)
 		return nil, err
@@ -408,7 +416,7 @@ func (s *SqlDatabase) GetUserNames(filter *entity.UserFilter) ([]string, error) 
 	return userNames, nil
 }
 
-func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, error) {
+func (s *SqlDatabase) GetUniqueUserIDs(ctx context.Context, filter *entity.UserFilter) ([]string, error) {
 	l := logrus.WithFields(logrus.Fields{
 		"filter": filter,
 		"event":  "database.GetUniqueUserIDs",
@@ -425,7 +433,7 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
 	filter = ensureUserFilter(filter)
 
 	// Builds full statement with possible joins and filters
-	stmt, filterParameters, err := s.buildUserStatement(baseQuery, filter, false, []entity.Order{
+	stmt, filterParameters, err := s.buildUserStatement(ctx, baseQuery, filter, false, []entity.Order{
 		{
 			By: entity.UserUniqueUserID,
 		},
@@ -442,7 +450,7 @@ func (s *SqlDatabase) GetUniqueUserIDs(filter *entity.UserFilter) ([]string, err
 	}()
 
 	// Execute the query
-	rows, err := stmt.Queryx(filterParameters...)
+	rows, err := stmt.QueryxContext(ctx, filterParameters...)
 	if err != nil {
 		l.Error("Error executing query: ", err)
 		return nil, err
