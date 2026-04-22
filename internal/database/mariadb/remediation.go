@@ -30,6 +30,12 @@ var remediationObject = DbObject[*entity.Remediation]{
 			}),
 		),
 		NewProperty(
+			"remediation_url",
+			WrapAccess(func(r *entity.Remediation) (string, bool) {
+				return r.URL, r.URL != ""
+			}),
+		),
+		NewProperty(
 			"remediation_severity",
 			WrapAccess(func(r *entity.Remediation) (entity.SeverityValues, bool) {
 				return r.Severity, r.Severity != "" && r.Severity != entity.SeverityValuesUnknown
@@ -126,6 +132,10 @@ var remediationObject = DbObject[*entity.Remediation]{
 		NewFilterProperty(
 			"R.remediation_type = ?",
 			WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.Type }),
+		),
+		NewFilterProperty(
+			"R.remediation_url = ?",
+			WrapRetSlice(func(filter *entity.RemediationFilter) []*string { return filter.URL }),
 		),
 		NewFilterProperty(
 			"R.remediation_service = ?",

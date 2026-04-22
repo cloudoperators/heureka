@@ -11,6 +11,8 @@ mutation ($id: ID!, $input: RemediationInput!) {
         severity
         service
         serviceId
+        type
+        url
         image
         imageId
         vulnerability
