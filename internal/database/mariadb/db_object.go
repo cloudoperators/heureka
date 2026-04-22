@@ -42,19 +42,6 @@ func (do *DbObject[ET]) InsertQuery(entityItem ET) (string, []any, error) {
 	return qb.ToSql()
 }
 
-func (do *DbObject[ET]) GetUpdateMap(f any) map[string]any {
-	m := make(map[string]any)
-
-	for _, v := range do.Properties {
-		val, isUpdatePresent := v.GetUpdateData(f)
-		if isUpdatePresent {
-			m[v.GetName()] = val
-		}
-	}
-
-	return m
-}
-
 func (do *DbObject[ET]) GetFilterQuery(filter any) string {
 	var fl []string
 	for _, v := range do.FilterProperties {
@@ -75,10 +62,10 @@ func (do *DbObject[ET]) GetFilterParameters(
 	}
 
 	if withCursor {
-		paginatedX := filter.GetPaginated()
+		paginated := filter.GetPaginated()
 		filterParameters = append(
 			filterParameters,
-			GetCursorQueryParameters(paginatedX.First, cursorFields)...)
+			GetCursorQueryParameters(paginated.First, cursorFields)...)
 	}
 
 	return filterParameters
@@ -119,7 +106,7 @@ func (do *DbObject[ET]) Update(db Db, entityItem ET) error {
 		"event":   fmt.Sprintf("database.Update%s", do.TableName),
 	})
 
-	updateValues := do.GetUpdateMap(entityItem)
+	updateValues := do.getUpdateMap(entityItem)
 	qb := sq.
 		Update(do.TableName).
 		SetMap(updateValues).
@@ -133,6 +120,19 @@ func (do *DbObject[ET]) Update(db Db, entityItem ET) error {
 	_, err = PerformExecArgs(db, sqlQuery, args, l)
 
 	return err
+}
+
+func (do *DbObject[ET]) getUpdateMap(f any) map[string]any {
+	m := make(map[string]any)
+
+	for _, v := range do.Properties {
+		val, isUpdatePresent := v.GetUpdateData(f)
+		if isUpdatePresent {
+			m[v.GetName()] = val
+		}
+	}
+
+	return m
 }
 
 func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
