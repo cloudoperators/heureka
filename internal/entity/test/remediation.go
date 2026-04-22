@@ -19,6 +19,7 @@ func NewFakeRemediationEntity() entity.Remediation {
 		RemediationDate: gofakeit.Date(),
 		ExpirationDate:  gofakeit.Date(),
 		Type:            entity.NewRemediationType(t),
+		URL:             gofakeit.URL(),
 		Service:         gofakeit.AppName(),
 		ServiceId:       int64(gofakeit.Number(1, 10000000)),
 		Issue:           gofakeit.HackerPhrase(),

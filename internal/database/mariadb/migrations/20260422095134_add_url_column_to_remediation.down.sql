@@ -1,0 +1,1 @@
+ALTER TABLE Remediation DROP COLUMN IF EXISTS remediation_url;

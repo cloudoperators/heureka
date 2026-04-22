@@ -1,0 +1,2 @@
+ALTER TABLE Remediation
+ADD COLUMN IF NOT EXISTS remediation_url VARCHAR(2048);
