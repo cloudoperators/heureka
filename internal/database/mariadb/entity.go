@@ -1143,6 +1143,7 @@ func (srr *ScannerRunRow) FromScannerRun(sr *entity.ScannerRun) {
 type RemediationRow struct {
 	Id              sql.NullInt64  `db:"remediation_id"               json:"id"`
 	Type            sql.NullString `db:"remediation_type"             json:"type"`
+	URL             sql.NullString `db:"remediation_url"              json:"url"`
 	Description     sql.NullString `db:"remediation_description"      json:"description"`
 	RemediationDate sql.NullTime   `db:"remediation_remediation_date" json:"remediation_date"`
 	ExpirationDate  sql.NullTime   `db:"remediation_expiration_date"  json:"expiry_date"`
@@ -1167,6 +1168,7 @@ func (rr RemediationRow) AsRemediation() entity.Remediation {
 		Id:              GetInt64Value(rr.Id),
 		Description:     GetStringValue(rr.Description),
 		Type:            entity.NewRemediationType(GetStringValue(rr.Type)),
+		URL:             GetStringValue(rr.URL),
 		Severity:        entity.NewSeverityValues(GetStringValue(rr.Severity)),
 		Component:       GetStringValue(rr.Component),
 		ComponentId:     GetInt64Value(rr.ComponentId),
@@ -1192,6 +1194,7 @@ func (rr *RemediationRow) FromRemediation(r *entity.Remediation) {
 	rr.Id = sql.NullInt64{Int64: r.Id, Valid: true}
 	rr.Description = sql.NullString{String: r.Description, Valid: true}
 	rr.Type = sql.NullString{String: r.Type.String(), Valid: true}
+	rr.URL = sql.NullString{String: r.URL, Valid: r.URL != ""}
 	rr.Component = sql.NullString{String: r.Component, Valid: true}
 	rr.ComponentId = sql.NullInt64{Int64: r.ComponentId, Valid: IsValidId(r.ComponentId)}
 	rr.Service = sql.NullString{String: r.Service, Valid: true}

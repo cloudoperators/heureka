@@ -13,7 +13,6 @@ import (
 	"github.com/cloudoperators/heureka/scanners/keppel/client"
 	"github.com/cloudoperators/heureka/scanners/keppel/models"
 	"github.com/google/uuid"
-	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
 )
@@ -171,13 +170,19 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 		for _, vulnerability := range result.Vulnerabilities {
 			issue, err := p.GetIssue(vulnerability.VulnerabilityID)
 			if err != nil {
-				log.WithFields(log.Fields{
+				fields := log.Fields{
 					"vulnerabilityID":    vulnerability.VulnerabilityID,
-					"issueID":            lo.Ternary(issue != nil, issue.Id, ""),
-					"issuePrimaryName":   lo.Ternary(issue != nil, issue.PrimaryName, ""),
 					"componentVersionID": componentVersionId,
 					"report":             report.ArtifactName,
-				}).WithError(err).Error("Error while getting issue")
+					"issueID":            "",
+					"issuePrimaryName":   "",
+				}
+
+				if issue != nil {
+					fields["issueID"] = issue.Id
+					fields["issuePrimaryName"] = issue.PrimaryName
+				}
+				log.WithFields(fields).WithError(err).Error("Error while getting issue")
 				continue
 			}
 			if issue == nil {
@@ -234,7 +239,7 @@ func (p *Processor) ProcessReport(report models.TrivyReport, componentVersionId 
 		}
 	}
 
-	if report.Metadata.OS.Eosl {
+	if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
 		_, err := client.UpdateComponentVersion(
 			context.Background(),
 			*p.Client,

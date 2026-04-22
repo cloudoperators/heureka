@@ -4,6 +4,7 @@
 type Remediation implements Node {
     id: ID!
     type: RemediationTypeValues
+    url: String
     description: String
     severity: SeverityValues
     expirationDate: DateTime
@@ -38,6 +39,7 @@ type RemediationEdge implements Edge {
 
 input RemediationFilter {
     type: [RemediationTypeValues]
+    url: [String]
     severity: [SeverityValues]
     service: [String]
     image: [String]
@@ -59,6 +61,7 @@ enum RemediationOrderByField {
 
 input RemediationInput {
     type: RemediationTypeValues
+    url: String
     description: String
     severity: SeverityValues
     remediationDate: DateTime

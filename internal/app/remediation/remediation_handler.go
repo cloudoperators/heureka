@@ -6,6 +6,7 @@ package remediation
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -152,6 +153,26 @@ func (rh *remediationHandler) CreateRemediation(
 		})
 
 		return nil, err
+	}
+
+	if remediation.Type == entity.RemediationTypeRiskAccepted {
+		if remediation.URL == "" {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "URL is required for risk accepted remediation")
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, err
+		}
+
+		if parsedURL, err := url.Parse(remediation.URL); err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "invalid external URL for risk accepted remediation")
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, err
+		}
 	}
 
 	// Get current user for audit fields
@@ -301,6 +322,81 @@ func (rh *remediationHandler) UpdateRemediation(
 		return nil, wrappedErr
 	}
 
+	lo := entity.NewListOptions()
+
+	existingRemediations, err := rh.ListRemediations(
+		&entity.RemediationFilter{Id: []*int64{&remediation.Id}},
+		lo,
+	)
+	if err != nil {
+		wrappedErr := appErrors.E(
+			op,
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			appErrors.Internal,
+			err,
+		)
+		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+			"remediation": remediation,
+		})
+
+		return nil, wrappedErr
+	}
+
+	if len(existingRemediations.Elements) != 1 {
+		err := appErrors.E(
+			op,
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			appErrors.Internal,
+			fmt.Sprintf(
+				"unexpected number of remediations found after update: expected 1, got %d",
+				len(existingRemediations.Elements),
+			),
+		)
+		applog.LogError(rh.logger, err, logrus.Fields{
+			"id":          remediation.Id,
+			"found_count": len(existingRemediations.Elements),
+		})
+
+		return nil, err
+	}
+
+	existingRemediation := existingRemediations.Elements[0].Remediation
+
+	finalType := existingRemediation.Type
+	if remediation.Type != "" {
+		finalType = remediation.Type
+	}
+
+	finalURL := existingRemediation.URL
+	if remediation.URL != "" {
+		finalURL = remediation.URL
+	}
+
+	if finalType == entity.RemediationTypeRiskAccepted {
+		if finalURL == "" {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "URL is required for risk accepted remediation")
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, err
+		}
+
+		if parsedURL, err := url.Parse(finalURL); err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "invalid external URL for risk accepted remediation")
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, err
+		}
+	}
+
+	remediation.URL = finalURL
+	remediation.Type = finalType
+
 	// Update the component instance in database
 	err = rh.database.UpdateRemediation(remediation)
 	if err != nil {
@@ -316,9 +412,6 @@ func (rh *remediationHandler) UpdateRemediation(
 
 		return nil, wrappedErr
 	}
-
-	// Retrieve updated component instance to return fresh data
-	lo := entity.NewListOptions()
 
 	remediationResult, err := rh.ListRemediations(
 		&entity.RemediationFilter{Id: []*int64{&remediation.Id}},

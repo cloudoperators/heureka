@@ -69,6 +69,7 @@ func RemediationBaseResolver(
 			filter.Type,
 			func(item *model.RemediationTypeValues, _ int) *string { return pointer.String(item.String()) },
 		),
+		URL:       filter.URL,
 		ServiceId: serviceId,
 		State:     model.GetStateFilterType(filter.State),
 		Search:    filter.Search,
