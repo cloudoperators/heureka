@@ -180,6 +180,27 @@ var _ = Describe("SupportGroup", Label("database", "SupportGroup"), func() {
 						}
 					})
 				})
+				It("can filter by a single issue", func() {
+					supportGroupRow, issueMatchRow, ok := seedCollection.FindMatchingSupportGroupAndIssueMatch()
+					Expect(ok).To(BeTrue())
+					Expect(issueMatchRow.IssueId.Valid).To(BeTrue())
+
+					filter := &entity.SupportGroupFilter{IssueId: []*int64{&issueMatchRow.IssueId.Int64}}
+
+					entries, err := db.GetSupportGroups(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning some results", func() {
+						Expect(entries).NotTo(BeEmpty())
+					})
+					By("returning expected elements", func() {
+						sgIds := lo.Map(entries, func(e entity.SupportGroupResult, _ int) int64 { return e.Id })
+						Expect(lo.Contains(sgIds, supportGroupRow.Id.Int64)).To(BeTrue())
+					})
+				})
 			})
 			Context("and using ordering", func() {
 				c := collate.New(language.English)

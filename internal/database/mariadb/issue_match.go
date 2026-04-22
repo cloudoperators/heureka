@@ -157,6 +157,106 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:  "I",
+			Type:  LeftJoin,
+			Table: "Issue I",
+			On:    "IM.issuematch_issue_id = I.issue_id",
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, order []entity.Order) bool {
+				orderByIssuePrimaryName := lo.ContainsBy(order, func(o entity.Order) bool {
+					return o.By == entity.IssuePrimaryName
+				})
+				return len(f.IssueType) > 0 || len(f.PrimaryName) > 0 || orderByIssuePrimaryName
+			}),
+		},
+		{
+			Name:      "IV",
+			Type:      LeftJoin,
+			Table:     "IssueVariant IV",
+			On:        "I.issue_id = IV.issuevariant_issue_id",
+			DependsOn: []string{"I"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.Search) > 0
+			}),
+		},
+		{
+			Name:  "CI",
+			Type:  LeftJoin,
+			Table: "ComponentInstance CI",
+			On:    "IM.issuematch_component_instance_id = CI.componentinstance_id",
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, order []entity.Order) bool {
+				orderByCiCcrn := lo.ContainsBy(order, func(o entity.Order) bool {
+					return o.By == entity.ComponentInstanceCcrn
+				})
+				return orderByCiCcrn || len(f.ServiceId) > 0
+			}),
+		},
+		{
+			Name:      "CV",
+			Type:      LeftJoin,
+			Table:     "ComponentVersion CV",
+			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
+			DependsOn: []string{"CI"},
+			Condition: DependentJoin,
+		},
+		{
+			Name:      "C",
+			Type:      LeftJoin,
+			Table:     "Component C",
+			On:        "CV.componentversion_component_id = C.component_id",
+			DependsOn: []string{"CV"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.ComponentCCRN) > 0
+			}),
+		},
+		{
+			Name:      "S",
+			Type:      LeftJoin,
+			Table:     "Service S",
+			On:        "CI.componentinstance_service_id = S.service_id",
+			DependsOn: []string{"CI"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.ServiceCCRN) > 0
+			}),
+		},
+		{
+			Name:      "SGS",
+			Type:      LeftJoin,
+			Table:     "SupportGroupService SGS",
+			On:        "S.service_id = SGS.supportgroupservice_service_id",
+			DependsOn: []string{"S"},
+			Condition: DependentJoin,
+		},
+		{
+			Name:      "SG",
+			Type:      LeftJoin,
+			Table:     "SupportGroup SG",
+			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
+			DependsOn: []string{"SGS"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.SupportGroupCCRN) > 0
+			}),
+		},
+		{
+			Name:      "O",
+			Type:      LeftJoin,
+			Table:     "Owner O",
+			On:        "CI.componentinstance_service_id = O.owner_service_id",
+			DependsOn: []string{"CI"},
+			Condition: DependentJoin,
+		},
+		{
+			Name:      "U",
+			Type:      LeftJoin,
+			Table:     "User U",
+			On:        "O.owner_user_id = U.user_id",
+			DependsOn: []string{"O"},
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+				return len(f.ServiceOwnerUsername) > 0 || len(f.ServiceOwnerUniqueUserId) > 0
+			}),
+		},
+	},
 }
 
 func ensureIssueMatchFilter(filter *entity.IssueMatchFilter) *entity.IssueMatchFilter {
@@ -165,71 +265,6 @@ func ensureIssueMatchFilter(filter *entity.IssueMatchFilter) *entity.IssueMatchF
 	}
 
 	return EnsurePagination(filter)
-}
-
-func (s *SqlDatabase) getIssueMatchJoins(
-	filter *entity.IssueMatchFilter,
-	order []entity.Order,
-) string {
-	joins := ""
-	orderByIssuePrimaryName := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.IssuePrimaryName
-	})
-	orderByCiCcrn := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.ComponentInstanceCcrn
-	})
-
-	if len(filter.Search) > 0 || len(filter.IssueType) > 0 || len(filter.PrimaryName) > 0 ||
-		orderByIssuePrimaryName {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN Issue I on I.issue_id = IM.issuematch_issue_id
-		`)
-		if len(filter.Search) > 0 {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN IssueVariant IV on IV.issuevariant_issue_id = I.issue_id
-			`)
-		}
-	}
-
-	if orderByCiCcrn || len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 ||
-		len(filter.SupportGroupCCRN) > 0 ||
-		len(filter.ComponentCCRN) > 0 ||
-		len(filter.ServiceOwnerUsername) > 0 ||
-		len(filter.ServiceOwnerUniqueUserId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN ComponentInstance CI on CI.componentinstance_id = IM.issuematch_component_instance_id
-			
-		`)
-
-		if len(filter.ComponentCCRN) > 0 {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-                LEFT JOIN ComponentVersion CV on CV.componentversion_id = CI.componentinstance_component_version_id
-				LEFT JOIN Component C on C.component_id = CV.componentversion_component_id
-			`)
-		}
-
-		if len(filter.ServiceCCRN) > 0 || len(filter.SupportGroupCCRN) > 0 {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id
-			`)
-		}
-
-		if len(filter.SupportGroupCCRN) > 0 {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN SupportGroupService SGS on S.service_id = SGS.supportgroupservice_service_id
-				LEFT JOIN SupportGroup SG on SG.supportgroup_id = SGS.supportgroupservice_support_group_id
-			`)
-		}
-
-		if len(filter.ServiceOwnerUsername) > 0 || len(filter.ServiceOwnerUniqueUserId) > 0 {
-			joins = fmt.Sprintf("%s\n%s", joins, `
-				LEFT JOIN Owner O on O.owner_service_id = CI.componentinstance_service_id
-				LEFT JOIN User U on U.user_id = O.owner_user_id
-			`)
-		}
-	}
-
-	return joins
 }
 
 func (s *SqlDatabase) getIssueMatchColumns(order []entity.Order) string {
@@ -267,8 +302,7 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 	order = GetDefaultOrder(order, entity.IssueMatchId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
 	columns := s.getIssueMatchColumns(order)
-	joins := s.getIssueMatchJoins(filter, order)
-
+	joins := issueMatchObject.GetJoins(filter, order)
 	filterStr := issueMatchObject.GetFilterQuery(filter)
 
 	whereClause := ""

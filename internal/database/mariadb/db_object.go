@@ -22,6 +22,7 @@ type DbObject[ET entity.Entity] struct {
 	TableName        string
 	Properties       []*Property
 	FilterProperties []*FilterProperty
+	JoinDefs         []*JoinDef
 }
 
 func (do *DbObject[ET]) InsertQuery(entityItem ET) (string, []any, error) {
@@ -39,19 +40,6 @@ func (do *DbObject[ET]) InsertQuery(entityItem ET) (string, []any, error) {
 		Values(values...)
 
 	return qb.ToSql()
-}
-
-func (do *DbObject[ET]) GetUpdateMap(f any) map[string]any {
-	m := make(map[string]any)
-
-	for _, v := range do.Properties {
-		val, isUpdatePresent := v.GetUpdateData(f)
-		if isUpdatePresent {
-			m[v.GetName()] = val
-		}
-	}
-
-	return m
 }
 
 func (do *DbObject[ET]) GetFilterQuery(filter any) string {
@@ -74,10 +62,10 @@ func (do *DbObject[ET]) GetFilterParameters(
 	}
 
 	if withCursor {
-		paginatedX := filter.GetPaginated()
+		paginated := filter.GetPaginated()
 		filterParameters = append(
 			filterParameters,
-			GetCursorQueryParameters(paginatedX.First, cursorFields)...)
+			GetCursorQueryParameters(paginated.First, cursorFields)...)
 	}
 
 	return filterParameters
@@ -118,7 +106,7 @@ func (do *DbObject[ET]) Update(db Db, entityItem ET) error {
 		"event":   fmt.Sprintf("database.Update%s", do.TableName),
 	})
 
-	updateValues := do.GetUpdateMap(entityItem)
+	updateValues := do.getUpdateMap(entityItem)
 	qb := sq.
 		Update(do.TableName).
 		SetMap(updateValues).
@@ -132,6 +120,19 @@ func (do *DbObject[ET]) Update(db Db, entityItem ET) error {
 	_, err = PerformExecArgs(db, sqlQuery, args, l)
 
 	return err
+}
+
+func (do *DbObject[ET]) getUpdateMap(f any) map[string]any {
+	m := make(map[string]any)
+
+	for _, v := range do.Properties {
+		val, isUpdatePresent := v.GetUpdateData(f)
+		if isUpdatePresent {
+			m[v.GetName()] = val
+		}
+	}
+
+	return m
 }
 
 func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
@@ -158,6 +159,10 @@ func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
 	_, err = PerformExecArgs(db, sqlQuery, args, l)
 
 	return err
+}
+
+func (do *DbObject[ET]) GetJoins(filter any, order []entity.Order) string {
+	return NewJoinResolver(do.JoinDefs).Build(filter, order)
 }
 
 // Property
@@ -244,6 +249,101 @@ func NewCustomFilterProperty(
 		Param:         param,
 		ParamAppender: doNotAppendParameters,
 	}
+}
+
+// Join
+type JoinType string
+
+const (
+	LeftJoin  JoinType = "LEFT JOIN"
+	RightJoin JoinType = "RIGHT JOIN"
+	InnerJoin JoinType = "JOIN"
+)
+
+func DependentJoin(any, []entity.Order) bool { return false }
+
+type JoinDef struct {
+	Name      string
+	Type      JoinType
+	Table     string
+	On        string
+	DependsOn []string
+	Condition func(any, []entity.Order) bool
+}
+
+type JoinResolver struct {
+	defs     map[string]*JoinDef
+	included map[string]bool
+	order    []string
+}
+
+func NewJoinResolver(defs []*JoinDef) *JoinResolver {
+	r := &JoinResolver{
+		defs:     map[string]*JoinDef{},
+		included: map[string]bool{},
+	}
+	for _, d := range defs {
+		r.defs[d.Name] = d
+	}
+
+	return r
+}
+
+func (jr *JoinResolver) require(name string) {
+	if jr.included[name] {
+		return
+	}
+
+	def, ok := jr.defs[name]
+	if !ok {
+		panic("Unknown join: " + name)
+	}
+
+	// resolve dependencies first
+	for _, dep := range def.DependsOn {
+		jr.require(dep)
+	}
+
+	jr.included[name] = true
+	jr.order = append(jr.order, name)
+}
+
+func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
+	for _, def := range jr.defs {
+		if def.Condition != nil && def.Condition(filter, order) {
+			jr.require(def.Name)
+		}
+	}
+
+	var result []string
+
+	// This is little tricky part, but we need to deal with that this way
+	// until we have stateful join pattern which is created for issue.go
+	// with non-uniq tablename 'IM IssueMatch' which join operation
+	// depends on filter pattern with precedence for some members (there
+	// is if...else if which cannot be replaced by if... and if... what
+	// is a mess and misconception
+	uniqTableName := make(map[string]struct{})
+
+	for _, name := range jr.order {
+		j := jr.defs[name]
+
+		if _, ok := uniqTableName[j.Table]; ok {
+			continue
+		}
+
+		uniqTableName[j.Table] = struct{}{}
+
+		joinSQL := fmt.Sprintf("%s %s ON %s",
+			j.Type,
+			j.Table,
+			j.On,
+		)
+
+		result = append(result, joinSQL)
+	}
+
+	return strings.Join(result, "\n")
 }
 
 // DB helpers
@@ -389,6 +489,18 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 		copy(out, res)
 
 		return out
+	}
+}
+
+// WrapJoinCondition turns a type-specific join planner condition using filter and order
+func WrapJoinCondition[T any](joinCond func(T, []entity.Order) bool) func(any, []entity.Order) bool {
+	return func(filter any, order []entity.Order) bool {
+		typedFilter, ok := filter.(T)
+		if !ok {
+			panic(fmt.Sprintf("WrapJoinCondition: expected %T but got %T", *new(T), filter))
+		}
+
+		return joinCond(typedFilter, order)
 	}
 }
 

@@ -369,19 +369,27 @@ var _ = Describe("Service", Label("database", "Service"), func() {
 						}
 					})
 				})
+				It("can filter by a single component instance id", func() {
+					ciRow := test.PickOne(seedCollection.ComponentInstanceRows)
+					sRow, ok := seedCollection.GetServiceById(ciRow.ServiceId.Int64)
+					Expect(ok).To(BeTrue())
+					filter := &entity.ServiceFilter{ComponentInstanceId: []*int64{&ciRow.Id.Int64}}
+
+					entries, err := db.GetServices(filter, nil)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning the correct entries", func() {
+						Expect(entries).To(HaveLen(1))
+						Expect(entries[0].Id).To(BeEquivalentTo(sRow.Id.Int64))
+					})
+				})
 				It("can filter service ServiceCcrn using wild card search", func() {
 					row := test.PickOne(seedCollection.ServiceRows)
 
-					const charactersToRemoveFromBeginning = 2
-					const charactersToRemoveFromEnd = 2
-					const minimalCharactersToKeep = 2
-
-					start := charactersToRemoveFromBeginning
-					end := len(row.CCRN.String) - charactersToRemoveFromEnd
-
-					Expect(start+minimalCharactersToKeep < end).To(BeTrue())
-
-					searchStr := row.CCRN.String[start:end]
+					searchStr := test.CutString(row.CCRN.String, 2, 2, 2)
 					filter := &entity.ServiceFilter{Search: []*string{&searchStr}}
 
 					entries, err := db.GetServices(filter, nil)
