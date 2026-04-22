@@ -6,6 +6,7 @@ package mariadb
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cloudoperators/heureka/internal/database"
 	"github.com/cloudoperators/heureka/internal/entity"
@@ -239,7 +240,7 @@ func (s *SqlDatabase) buildServiceStatement(
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, "", orderStr)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
@@ -271,7 +272,7 @@ func (s *SqlDatabase) CountServices(filter *entity.ServiceFilter) (int64, error)
 		SELECT count(distinct S.service_id) FROM Service S
 		%s
 		%s
-        ORDER BY %s
+		%s ORDER BY %s
 	`
 
 	stmt, filterParameters, err := s.buildServiceStatement(
@@ -410,11 +411,19 @@ func (s *SqlDatabase) GetServicesWithAggregations(
         )
         SELECT IMC.*, CIC.*
         FROM ComponentInstanceCounts CIC
-        JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id;
+        JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id
+        ORDER BY %s;
     `
 	filter = ensureServiceFilter(filter)
 	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
+	finalOrderStr := strings.ReplaceAll(orderStr, "service_id", "IMC.service_id")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "service_ccrn", "IMC.service_ccrn")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "critical_count", "IMC.critical_count")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "high_count", "IMC.high_count")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "medium_count", "IMC.medium_count")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "low_count", "IMC.low_count")
+	finalOrderStr = strings.ReplaceAll(finalOrderStr, "none_count", "IMC.none_count")
 	joins := s.getServiceJoins(filter, order)
 	columns := s.getServiceColumns(filter, order)
 
@@ -438,7 +447,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 
 	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, orderStr)
 	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, orderStr)
-	query := fmt.Sprintf(baseQuery, imQuery, ciQuery)
+	query := fmt.Sprintf(baseQuery, imQuery, ciQuery, finalOrderStr)
 
 	stmt, err := s.db.Preparex(query)
 	if err != nil {
@@ -508,12 +517,12 @@ func (s *SqlDatabase) GetAllServiceCursors(
 	baseQuery := `
 		SELECT %s FROM Service S 
 		%s
-	    %s GROUP BY S.service_id ORDER BY %s
+	    %s %s GROUP BY S.service_id ORDER BY %s
     `
 
 	filter = ensureServiceFilter(filter)
 	columns := s.getServiceColumns(filter, order)
-	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s")
+	baseQuery = fmt.Sprintf(baseQuery, columns, "%s", "%s", "%s", "%s")
 
 	stmt, filterParameters, err := s.buildServiceStatement(baseQuery, filter, false, order, l)
 	if err != nil {
@@ -707,14 +716,13 @@ func (s *SqlDatabase) getServiceAttr(
 		"event":  "database.getServiceAttr",
 	})
 
-	baseQuery := `
-    SELECT service_%s FROM Service S
-    %s
-    %s
-    ORDER BY %s
-    `
-
-	baseQuery = fmt.Sprintf(baseQuery, attrName, "%s", "%s", "%s")
+	baseQuery := fmt.Sprintf("SELECT service_%s FROM Service S\n    %s\n    %s\n    %s ORDER BY %s",
+		attrName,
+		"%s",
+		"%s",
+		"%s",
+		"%s",
+	)
 
 	// Ensure the filter is initialized
 	filter = ensureServiceFilter(filter)

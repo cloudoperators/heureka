@@ -134,36 +134,12 @@ func ServiceBaseResolver(
 
 	for _, o := range orderBy {
 		if *o.By == model.ServiceOrderByFieldSeverity {
-			opt.Order = append(
-				opt.Order,
-				entity.Order{
-					By:        entity.CriticalCount,
-					Direction: o.Direction.ToOrderDirectionEntity(),
-				},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.HighCount, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{
-					By:        entity.MediumCount,
-					Direction: o.Direction.ToOrderDirectionEntity(),
-				},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.LowCount, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.NoneCount, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
-			opt.Order = append(
-				opt.Order,
-				entity.Order{By: entity.ServiceId, Direction: o.Direction.ToOrderDirectionEntity()},
-			)
+			opt.Order = append(opt.Order, entity.Order{By: entity.CriticalCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.HighCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.MediumCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.LowCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.NoneCount, Direction: o.Direction.ToOrderDirectionEntity()})
+			opt.Order = append(opt.Order, entity.Order{By: entity.ServiceCcrn, Direction: o.Direction.ToOrderDirectionEntity()})
 		} else {
 			opt.Order = append(opt.Order, o.ToOrderEntity())
 		}
