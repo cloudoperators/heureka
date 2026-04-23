@@ -179,8 +179,7 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 			s.cache,
 			CacheTtlGetServicesWithAggregations,
 			"GetServicesWithAggregations",
-			s.database.GetServicesWithAggregations,
-			ctx,
+			cache.WrapContext2(ctx, s.database.GetServicesWithAggregations),
 			filter,
 			options.Order,
 		)
@@ -197,8 +196,7 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 			s.cache,
 			CacheTtlGetServices,
 			"GetServices",
-			s.database.GetServices,
-			ctx,
+			cache.WrapContext2(ctx, s.database.GetServices),
 			filter,
 			options.Order,
 		)
@@ -218,8 +216,7 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 				s.cache,
 				CacheTtlGetAllSericeCursors,
 				"GetAllServiceCursors",
-				s.database.GetAllServiceCursors,
-				ctx,
+				cache.WrapContext2(ctx, s.database.GetAllServiceCursors),
 				filter,
 				options.Order,
 			)
@@ -240,8 +237,7 @@ func (s *serviceHandler) ListServices(ctx context.Context,
 			s.cache,
 			CacheTtlCountServices,
 			"CountServices",
-			s.database.CountServices,
-			ctx,
+			cache.WrapContext1(ctx, s.database.CountServices),
 			filter,
 		)
 		if err != nil {
@@ -474,8 +470,7 @@ func (s *serviceHandler) ListServiceCcrns(
 		s.cache,
 		CacheTtlGetServiceAttrs,
 		"GetServiceCcrns",
-		s.database.GetServiceCcrns,
-		ctx,
+		cache.WrapContext1(ctx, s.database.GetServiceCcrns),
 		filter,
 	)
 	if err != nil {
@@ -504,8 +499,7 @@ func (s *serviceHandler) ListServiceDomains(
 		s.cache,
 		CacheTtlGetServiceAttrs,
 		"GetServiceDomains",
-		s.database.GetServiceDomains,
-		ctx,
+		cache.WrapContext1(ctx, s.database.GetServiceDomains),
 		filter,
 	)
 	if err != nil {
@@ -534,8 +528,7 @@ func (s *serviceHandler) ListServiceRegions(
 		s.cache,
 		CacheTtlGetServiceAttrs,
 		"GetServiceRegions",
-		s.database.GetServiceRegions,
-		ctx,
+		cache.WrapContext1(ctx, s.database.GetServiceRegions),
 		filter,
 	)
 	if err != nil {

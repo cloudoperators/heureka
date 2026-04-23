@@ -104,8 +104,7 @@ func (u *userHandler) ListUsers(
 		u.cache,
 		CacheTtlGetUsers,
 		"GetUsers",
-		u.database.GetUsers,
-		ctx,
+		cache.WrapContext1(ctx, u.database.GetUsers),
 		filter,
 	)
 	if err != nil {
@@ -123,8 +122,7 @@ func (u *userHandler) ListUsers(
 				u.cache,
 				CacheTtlGetAllUserCursors,
 				"GetAllUserCursors",
-				u.database.GetAllUserCursors,
-				ctx,
+				cache.WrapContext2(ctx, u.database.GetAllUserCursors),
 				filter,
 				options.Order,
 			)

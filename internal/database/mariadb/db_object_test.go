@@ -1,10 +1,281 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package mariadb_test
 
 import (
-	"context"
+	"strings"
+
+	"github.com/cloudoperators/heureka/internal/database/mariadb"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+type dummyEntity struct {
+	Id int64
+	A  string
+}
+
+func (de *dummyEntity) GetId() int64 {
+	return de.Id
+}
+
+func (de *dummyEntity) SetId(id int64) {
+	de.Id = id
+}
+
+type dummyEntityFilter struct {
+	entity.Paginated
+	Id []*int64
+	A  []*string
+	B  []*int
+}
+
+var _ = Describe("DbObject", Label("database", "DbObject"), func() {
+	const (
+		dummyId                      = 7
+		dummyString                  = "ttt"
+		anyVal                       = false
+		noPagination                 = false
+		pagination                   = true
+		dummyCursorFieldVal          = 9
+		defaultFirstEntriesForCursor = 1000
+	)
+
+	dummyCursorField := mariadb.Field{Name: entity.OrderByField(4), Value: dummyCursorFieldVal, Order: entity.OrderDirectionDesc}
+
+	When("Insert query is called", func() {
+		Context("Two properties are there in the object", func() {
+			testObject := mariadb.DbObject[*dummyEntity]{
+				TableName: "DummyTable",
+				Properties: []*mariadb.Property{
+					mariadb.NewProperty("id", mariadb.WrapAccess(func(de *dummyEntity) (int64, bool) { return de.Id, anyVal })),
+					mariadb.NewProperty("a", mariadb.WrapAccess(func(de *dummyEntity) (string, bool) { return de.A, anyVal })),
+				},
+			}
+			It("can build insert query and query parameters", func() {
+				de := dummyEntity{Id: dummyId, A: dummyString}
+				query, params, err := testObject.InsertQuery(&de)
+				Expect(err).To(BeNil())
+				Expect(query).To(BeEquivalentTo("INSERT INTO DummyTable (id,a) VALUES (?,?)"))
+				Expect(params).To(HaveLen(2))
+				Expect(params[0]).To(BeEquivalentTo(dummyId))
+				Expect(params[1]).To(BeEquivalentTo(dummyString))
+			})
+		})
+	})
+	When("Filter query is called", func() {
+		Context("Two filters are there in the filter object", func() {
+			testObject := mariadb.DbObject[*dummyEntity]{
+				TableName: "DummyTable",
+				FilterProperties: []*mariadb.FilterProperty{
+					mariadb.NewFilterProperty("DT.dummytable_id = ?", mariadb.WrapRetSlice(func(filter *dummyEntityFilter) []*int64 { return filter.Id })),
+					mariadb.NewFilterProperty("DT.dummytable_a = ?", mariadb.WrapRetSlice(func(filter *dummyEntityFilter) []*string { return filter.A })),
+				},
+			}
+			It("builds filter for one filter item", func() {
+				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
+				By("returning correct filter query string", func() {
+					query := testObject.GetFilterQuery(&def)
+					noWSQuery := strings.ReplaceAll(query, " ", "")
+					Expect(noWSQuery).To(BeEquivalentTo("((DT.dummytable_a=?))"))
+				})
+				By("returning correct parameter", func() {
+					params := testObject.GetFilterParameters(&def, noPagination, nil)
+					Expect(params).To(HaveLen(1))
+					Expect(params[0]).To(HaveValue(Equal(dummyString)))
+				})
+				By("returning correct parameter with cursor parameters", func() {
+					params := testObject.GetFilterParameters(&def, pagination, []mariadb.Field{dummyCursorField})
+					Expect(params).To(HaveLen(3))
+					Expect(params[0]).To(HaveValue(Equal(dummyString)))
+					Expect(params[1]).To(HaveValue(Equal(dummyCursorFieldVal)))
+					Expect(params[2]).To(HaveValue(Equal(defaultFirstEntriesForCursor)))
+				})
+			})
+
+			It("builds filter for two filter items", func() {
+				id := int64(dummyId)
+				def := dummyEntityFilter{Id: []*int64{&id}, A: []*string{lo.ToPtr(dummyString)}}
+				By("returning correct filter query string", func() {
+					query := testObject.GetFilterQuery(&def)
+					noWSQuery := strings.ReplaceAll(query, " ", "")
+					Expect(noWSQuery).To(BeEquivalentTo("((DT.dummytable_id=?)AND(DT.dummytable_a=?))"))
+				})
+				By("returning correct parameters", func() {
+					params := testObject.GetFilterParameters(&def, noPagination, nil)
+					Expect(params).To(HaveLen(2))
+					Expect(params[0]).To(HaveValue(Equal(int64(dummyId))))
+					Expect(params[1]).To(HaveValue(Equal(dummyString)))
+				})
+			})
+
+			It("builds empty filter query string for no filter", func() {
+				def := dummyEntityFilter{}
+				query := testObject.GetFilterQuery(&def)
+				Expect(query).To(BeEmpty())
+			})
+		})
+	})
+	When("Joins query is build", func() {
+		Context("no joins are there in the object", func() {
+			testObject := mariadb.DbObject[*dummyEntity]{
+				TableName: "DummyTable",
+			}
+			It("gets empty string as there is no join defined", func() {
+				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
+				joins := testObject.GetJoins(&def, nil)
+				Expect(joins).To(BeEmpty())
+			})
+		})
+		Context("Two basic joins are there in the object", func() {
+			testObject := mariadb.DbObject[*dummyEntity]{
+				TableName: "DummyTable",
+				JoinDefs: []*mariadb.JoinDef{
+					{
+						Name:      "X",
+						Type:      mariadb.LeftJoin,
+						Table:     "Xabc X",
+						On:        "DT.dummytable_id = X.xabc_dummytable_id",
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.A) > 0 }),
+					},
+					{
+						Name:      "Y",
+						Type:      mariadb.RightJoin,
+						Table:     "Yabc Y",
+						On:        "DT.dummytable_id = Y.yabc_dummytable_id",
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+					},
+				},
+			}
+			It("gets empty string when there is empty filter used", func() {
+				def := dummyEntityFilter{}
+				joins := testObject.GetJoins(&def, nil)
+				Expect(joins).To(BeEmpty())
+			})
+			It("gets one join with X when A mapping condition is met (there is at least one element to filter)", func() {
+				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}}
+				joins := testObject.GetJoins(&def, nil)
+				Expect(joins).To(BeEquivalentTo("LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
+			})
+			It("gets one join with Y when B mapping condition is met (there is at least one element to filter)", func() {
+				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
+				joins := testObject.GetJoins(&def, nil)
+				Expect(joins).To(BeEquivalentTo("RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id"))
+			})
+			It("gets two joins with X and Y when A and B mapping conditions are met (there are at least one element for each filter)", func() {
+				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}, B: []*int{lo.ToPtr(10)}}
+				joins := testObject.GetJoins(&def, nil)
+				lines := strings.Split(strings.TrimSpace(joins), "\n")
+				Expect(lines).To(HaveLen(2))
+				Expect(lines[0]).To(BeEquivalentTo("LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
+				Expect(lines[1]).To(BeEquivalentTo("RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id"))
+			})
+		})
+		Context("Join with dependency is there in the object", func() {
+			testObject := mariadb.DbObject[*dummyEntity]{
+				TableName: "DummyTable",
+				JoinDefs: []*mariadb.JoinDef{
+					{
+						Name:      "X",
+						Type:      mariadb.LeftJoin,
+						Table:     "Xabc X",
+						On:        "DT.dummytable_id = X.xabc_dummytable_id",
+						Condition: mariadb.DependentJoin,
+					},
+					{
+						Name:      "Y",
+						Type:      mariadb.RightJoin,
+						Table:     "Yabc Y",
+						On:        "X.xabc_yabc_id = Y.yabc_id",
+						DependsOn: []string{"X"},
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+					},
+				},
+			}
+			It("gets two joins with X (and dependent Y) when B mapping condition is met (there is at least one element to filter)", func() {
+				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
+				joins := testObject.GetJoins(&def, nil)
+				lines := strings.Split(strings.TrimSpace(joins), "\n")
+				Expect(lines).To(HaveLen(2))
+				Expect(lines[0]).To(BeEquivalentTo("LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
+				Expect(lines[1]).To(BeEquivalentTo("RIGHT JOIN Yabc Y ON X.xabc_yabc_id = Y.yabc_id"))
+			})
+		})
+		Context("Two joins with the same dependency are there in the object", func() {
+			testObject := mariadb.DbObject[*dummyEntity]{
+				TableName: "DummyTable",
+				JoinDefs: []*mariadb.JoinDef{
+					{
+						Name:      "X",
+						Type:      mariadb.LeftJoin,
+						Table:     "Xabc X",
+						On:        "DT.dummytable_id = X.xabc_dummytable_id",
+						Condition: mariadb.DependentJoin,
+					},
+					{
+						Name:      "Y",
+						Type:      mariadb.RightJoin,
+						Table:     "Yabc Y",
+						On:        "X.xabc_yabc_id = Y.yabc_id",
+						DependsOn: []string{"X"},
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+					},
+					{
+						Name:      "Z",
+						Type:      mariadb.RightJoin,
+						Table:     "Zabc Z",
+						On:        "X.xabc_zabc_id = Z.zabc_id",
+						DependsOn: []string{"X"},
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.A) > 0 }),
+					},
+				},
+			}
+			It("gets two joins and one dependent join when A and B mapping conditions are met (there is at least one element for each filter)", func() {
+				def := dummyEntityFilter{A: []*string{lo.ToPtr(dummyString)}, B: []*int{lo.ToPtr(10)}}
+				joins := testObject.GetJoins(&def, nil)
+				lines := strings.Split(strings.TrimSpace(joins), "\n")
+				Expect(lines).To(HaveLen(3))
+				Expect(lines[0]).To(BeEquivalentTo("LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
+				Expect(lines[1:]).To(ConsistOf(
+					MatchRegexp("^RIGHT JOIN Yabc Y ON X.xabc_yabc_id = Y.yabc_id$"),
+					MatchRegexp("^RIGHT JOIN Zabc Z ON X.xabc_zabc_id = Z.zabc_id$"),
+				))
+			})
+		})
+		Context("Two joins on the same table are there in the object", func() {
+			testObject := mariadb.DbObject[*dummyEntity]{
+				TableName: "DummyTable",
+				JoinDefs: []*mariadb.JoinDef{
+					{
+						Name:      "X_left",
+						Type:      mariadb.LeftJoin,
+						Table:     "Xabc X",
+						On:        "DT.dummytable_id = X.xabc_dummytable_id",
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+					},
+					{
+						Name:      "X_right",
+						Type:      mariadb.RightJoin,
+						Table:     "Xabc X",
+						On:        "DT.dummytable_id = X.xabc_dummytable_id",
+						Condition: mariadb.WrapJoinCondition(func(f *dummyEntityFilter, _ []entity.Order) bool { return len(f.B) > 0 }),
+					},
+				},
+			}
+			It("gets one join even when both join defs have the same condition but only first one will be included to prevent join table name duplication", func() {
+				def := dummyEntityFilter{B: []*int{lo.ToPtr(10)}}
+				joins := testObject.GetJoins(&def, nil)
+				Expect(joins).To(BeEquivalentTo("LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
+			})
+		})
+	})
+})
+
+/*import (
 	"database/sql"
 	"fmt"
 	"sort"
@@ -16,8 +287,6 @@ import (
 	entity_test "github.com/cloudoperators/heureka/internal/entity/test"
 	"github.com/cloudoperators/heureka/internal/util"
 	pkg_util "github.com/cloudoperators/heureka/pkg/util"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/samber/lo"
 )
 
@@ -37,7 +306,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	When("Getting Issues", Label("GetIssues"), func() {
 		Context("and the database is empty", func() {
 			It("can perform the list query", func() {
-				res, err := db.GetIssues(context.Background(), nil, nil)
+				res, err := db.GetIssues(nil, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -54,7 +323,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 			Context("and using no filter", func() {
 				It("can fetch the items correctly", func() {
-					res, err := db.GetIssues(context.Background(), nil, nil)
+					res, err := db.GetIssues(nil, nil)
 
 					By("throwing no error", func() {
 						Expect(err).Should(BeNil())
@@ -113,7 +382,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&row.CCRN.String}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -129,7 +398,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					nonExistingName := pkg_util.GenerateRandomString(40, nil)
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&nonExistingName}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -151,7 +420,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					expectedIssues = lo.Uniq(expectedIssues)
 					filter := &entity.IssueFilter{ServiceCCRN: serviceCcrns}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -164,7 +433,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					row := test.PickOne(seedCollection.IssueRows)
 					filter := &entity.IssueFilter{Id: []*int64{&row.Id.Int64}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -189,7 +458,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{ServiceId: []*int64{&serviceRow.Id.Int64}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -227,7 +496,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{SupportGroupCCRN: []*string{&sgRow.CCRN.String}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -253,7 +522,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{ComponentVersionId: []*int64{&cvRow.Id.Int64}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -287,7 +556,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{ComponentId: []*int64{&cRow.Id.Int64}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -307,7 +576,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						IssueVariantId: []*int64{&issueVariantRow.Id.Int64},
 					}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					issueIds := []int64{}
 					for _, entry := range entries {
@@ -327,7 +596,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 
 					filter := &entity.IssueFilter{Type: []*string{&issueType}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -340,7 +609,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				It("can filter by hasIssueMatches", func() {
 					filter := &entity.IssueFilter{HasIssueMatches: true}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					Expect(err).To(BeNil())
 					for _, entry := range entries {
@@ -368,7 +637,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 							IssueMatchSeverity: []*string{new(severity.String())},
 						}
 
-						entries, err := db.GetIssues(context.Background(), filter, nil)
+						entries, err := db.GetIssues(filter, nil)
 
 						Expect(err).To(BeNil())
 						for _, entry := range entries {
@@ -384,7 +653,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchStr := test.CutString(row.PrimaryName.String, 2, 2, 5)
 					filter := &entity.IssueFilter{Search: []*string{&searchStr}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					issueIds := []int64{}
 					for _, entry := range entries {
@@ -410,7 +679,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					searchStr := test.CutString(issueVariantRow.SecondaryName.String, 2, 2, 5)
 					filter := &entity.IssueFilter{Search: []*string{&searchStr}}
 
-					entries, err := db.GetIssues(context.Background(), filter, nil)
+					entries, err := db.GetIssues(filter, nil)
 
 					issueIds := []int64{}
 					for _, entry := range entries {
@@ -452,7 +721,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					It("can filter issue by IssueStatusOpen", func() {
 						filter := &entity.IssueFilter{Status: entity.IssueStatusOpen}
 
-						entries, err := db.GetIssues(context.Background(), filter, nil)
+						entries, err := db.GetIssues(filter, nil)
 
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
@@ -465,7 +734,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					It("can filter issue by IssueStatusRemediated", func() {
 						filter := &entity.IssueFilter{Status: entity.IssueStatusRemediated}
 
-						entries, err := db.GetIssues(context.Background(), filter, nil)
+						entries, err := db.GetIssues(filter, nil)
 
 						By("throwing no error", func() {
 							Expect(err).To(BeNil())
@@ -520,7 +789,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				db.CreateIssue(&newIssue)
 			})
 			It("returns the issues with aggregations", func() {
-				entriesWithAggregations, err := db.GetIssuesWithAggregations(context.Background(), nil, nil)
+				entriesWithAggregations, err := db.GetIssuesWithAggregations(nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -554,7 +823,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 				_ = seeder.SeedDbWithNFakeData(10)
 			})
 			It("returns the issues with aggregations", func() {
-				entriesWithAggregations, err := db.GetIssuesWithAggregations(context.Background(), nil, nil)
+				entriesWithAggregations, err := db.GetIssuesWithAggregations(nil, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -586,7 +855,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 		Context("and using no filter", func() {
 			DescribeTable("it returns correct count", func(x int) {
 				_ = seeder.SeedDbWithNFakeData(x)
-				res, err := db.CountIssues(context.Background(), nil)
+				res, err := db.CountIssues(nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -622,7 +891,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 						}
 					}
 
-					issueTypeCounts, err := db.CountIssueTypes(context.Background(), nil)
+					issueTypeCounts, err := db.CountIssueTypes(nil)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -657,7 +926,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 							After: &after,
 						},
 					}
-					res, err := db.CountIssues(context.Background(), filter)
+					res, err := db.CountIssues(filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -680,7 +949,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 					filter := &entity.IssueFilter{ServiceCCRN: []*string{&row.CCRN.String}}
 
-					count, err := db.CountIssues(context.Background(), filter)
+					count, err := db.CountIssues(filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -703,7 +972,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					}
 					filter := &entity.IssueFilter{ServiceId: []*int64{&row.Id.Int64}}
 
-					count, err := db.CountIssues(context.Background(), filter)
+					count, err := db.CountIssues(filter)
 
 					By("throwing no error", func() {
 						Expect(err).To(BeNil())
@@ -718,7 +987,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 	})
 	When("IssueCounts by Severity", Label("IssueCounts"), func() {
 		testIssueSeverityCount := func(filter *entity.IssueFilter, counts entity.IssueSeverityCounts) {
-			issueSeverityCounts, err := db.CountIssueRatings(context.Background(), filter)
+			issueSeverityCounts, err := db.CountIssueRatings(filter)
 
 			By("throwing no error", func() {
 				Expect(err).To(BeNil())
@@ -880,7 +1149,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Id: []*int64{&issue.Id},
 				}
 
-				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				i, err := db.GetIssues(issueFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -927,7 +1196,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Id: []*int64{&issue.Id},
 				}
 
-				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				i, err := db.GetIssues(issueFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -959,7 +1228,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Id: []*int64{&issue.Id},
 				}
 
-				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				i, err := db.GetIssues(issueFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -1000,7 +1269,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					Id: []*int64{&issue.Id},
 				}
 
-				i, err := db.GetIssues(context.Background(), issueFilter, nil)
+				i, err := db.GetIssues(issueFilter, nil)
 
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
@@ -1047,7 +1316,7 @@ var _ = Describe("Issue", Label("database", "Issue"), func() {
 					},
 				}
 
-				issues, err := db.GetIssues(context.Background(), issueFilter, nil)
+				issues, err := db.GetIssues(issueFilter, nil)
 				By("throwing no error", func() {
 					Expect(err).To(BeNil())
 				})
@@ -1080,7 +1349,7 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		order []entity.Order,
 		verifyFunc func(res []entity.IssueResult),
 	) {
-		res, err := db.GetIssues(context.Background(), nil, order)
+		res, err := db.GetIssues(nil, order)
 
 		By("throwing no error", func() {
 			Expect(err).Should(BeNil())
@@ -1206,3 +1475,550 @@ var _ = Describe("Ordering Issues", Label("IssueOrder"), func() {
 		})
 	})
 })
+*/
+
+/*
+package mariadb
+
+import (
+	"database/sql"
+	"fmt"
+	"strings"
+
+	"github.com/cloudoperators/heureka/internal/database"
+	"github.com/cloudoperators/heureka/internal/entity"
+	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
+
+	sq "github.com/Masterminds/squirrel"
+)
+
+// DbObject
+type DbObject[ET entity.Entity] struct {
+	Prefix           string
+	TableName        string
+	Properties       []*Property
+	FilterProperties []*FilterProperty
+	JoinDefs         []*JoinDef
+}
+
+func (do *DbObject[ET]) InsertQuery(entityItem ET) (string, []any, error) {
+	columns := lo.Map(do.Properties, func(p *Property, _ int) string {
+		return p.GetName()
+	})
+
+	values := lo.Map(do.Properties, func(p *Property, _ int) any {
+		return p.GetValue(entityItem)
+	})
+
+	qb := sq.
+		Insert(do.TableName).
+		Columns(columns...).
+		Values(values...)
+
+	return qb.ToSql()
+}
+
+func (do *DbObject[ET]) GetUpdateMap(f any) map[string]any {
+	m := make(map[string]any)
+
+	for _, v := range do.Properties {
+		val, isUpdatePresent := v.GetUpdateData(f)
+		if isUpdatePresent {
+			m[v.GetName()] = val
+		}
+	}
+
+	return m
+}
+
+func (do *DbObject[ET]) GetFilterQuery(filter any) string {
+	var fl []string
+	for _, v := range do.FilterProperties {
+		fl = append(fl, v.GetQuery(filter))
+	}
+
+	return combineFilterQueries(fl, OP_AND)
+}
+
+func (do *DbObject[ET]) GetFilterParameters(
+	filter entity.HasPagination,
+	withCursor bool,
+	cursorFields []Field,
+) []any {
+	var filterParameters []any
+	for _, v := range do.FilterProperties {
+		filterParameters = v.AppendParameters(filterParameters, filter)
+	}
+
+	if withCursor {
+		paginatedX := filter.GetPaginated()
+		filterParameters = append(
+			filterParameters,
+			GetCursorQueryParameters(paginatedX.First, cursorFields)...)
+	}
+
+	return filterParameters
+}
+
+func (do *DbObject[ET]) Create(db Db, entityItem ET) (ET, error) {
+	var zero ET
+
+	l := logrus.WithFields(logrus.Fields{
+		do.Prefix: entityItem,
+		"event":   fmt.Sprintf("database.Create%s", do.TableName),
+	})
+
+	sqlQuery, args, err := do.InsertQuery(entityItem)
+	if err != nil {
+		return zero, err
+	}
+
+	id, err := PerformInsertArgs(db, sqlQuery, args, l)
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return zero, database.NewDuplicateEntryDatabaseError(
+				fmt.Sprintf("%s element already exists", do.TableName),
+			)
+		}
+
+		return zero, err
+	}
+
+	entityItem.SetId(id)
+
+	return entityItem, nil
+}
+
+func (do *DbObject[ET]) Update(db Db, entityItem ET) error {
+	l := logrus.WithFields(logrus.Fields{
+		do.Prefix: entityItem,
+		"event":   fmt.Sprintf("database.Update%s", do.TableName),
+	})
+
+	updateValues := do.GetUpdateMap(entityItem)
+	qb := sq.
+		Update(do.TableName).
+		SetMap(updateValues).
+		Where(sq.Eq{fmt.Sprintf("%s_id", do.Prefix): entityItem.GetId()})
+
+	sqlQuery, args, err := qb.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = PerformExecArgs(db, sqlQuery, args, l)
+
+	return err
+}
+
+func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
+	l := logrus.WithFields(logrus.Fields{
+		"id":    id,
+		"event": fmt.Sprintf("database.Delete%s", do.TableName),
+	})
+
+	deletedAtColumn := do.Prefix + "_deleted_at"
+	updatedByColumn := do.Prefix + "_updated_by"
+	idColumn := do.Prefix + "_id"
+
+	qb := sq.
+		Update(do.TableName).
+		Set(deletedAtColumn, sq.Expr("NOW()")).
+		Set(updatedByColumn, userId).
+		Where(sq.Eq{idColumn: id})
+
+	sqlQuery, args, err := qb.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = PerformExecArgs(db, sqlQuery, args, l)
+
+	return err
+}
+
+func (do *DbObject[ET]) GetJoins(filter any, order []entity.Order) string {
+	return NewJoinResolver(do.JoinDefs).Build(filter, order)
+}
+
+// Property
+const NoUpdate = false
+
+func NewProperty(name string, access func(any) (any, bool)) *Property {
+	return &Property{Name: name, Access: access}
+}
+
+type Property struct {
+	Name   string
+	Access func(any) (any, bool)
+}
+
+func (p Property) GetName() string {
+	return p.Name
+}
+
+func (p Property) GetValue(f any) any {
+	val, _ := p.Access(f)
+	return val
+}
+
+func (p Property) GetUpdateData(f any) (any, bool) {
+	return p.Access(f)
+}
+
+// FilterProperty
+type FilterProperty struct {
+	QueryBuilder  func([]any) string
+	Param         func(any) []any
+	ParamAppender func([]any, any) []any
+}
+
+func (fp FilterProperty) AppendParameters(params []any, filter any) []any {
+	return fp.ParamAppender(params, filter)
+}
+
+func (fp FilterProperty) GetQuery(filter any) string {
+	return fp.QueryBuilder(fp.Param(filter))
+}
+
+func doNotAppendParameters(params []any, _ any) []any {
+	return params
+}
+
+func NewFilterProperty(query string, param func(any) []any) *FilterProperty {
+	return NewNFilterProperty(query, param, 1)
+}
+
+func NewNFilterProperty(query string, param func(any) []any, nparam int) *FilterProperty {
+	return &FilterProperty{
+		QueryBuilder:  func(filter []any) string { return buildFilterQuery(filter, query, OP_OR) },
+		Param:         param,
+		ParamAppender: func(params []any, filter any) []any { return buildQueryParametersCount(params, param(filter), nparam) },
+	}
+}
+
+func NewStateFilterProperty(
+	prefix string,
+	param func(any) []entity.StateFilterType,
+) *FilterProperty {
+	return &FilterProperty{
+		QueryBuilder:  func(state []any) string { return buildStateFilterQuery(ToStateSlice(state), prefix) },
+		Param:         WrapRetSlice(param),
+		ParamAppender: doNotAppendParameters,
+	}
+}
+
+func NewJsonFilterProperty(query string, param func(any) []*entity.Json) *FilterProperty {
+	return &FilterProperty{
+		QueryBuilder:  func(json []any) string { return buildJsonFilterQuery(ToJsonSlice(json), query, OP_OR) },
+		Param:         WrapRetSlice(param),
+		ParamAppender: func(params []any, filter any) []any { return buildJsonQueryParameters(params, param(filter)) },
+	}
+}
+
+func NewCustomFilterProperty(
+	queryBuilder func([]any) string,
+	param func(any) []any,
+) *FilterProperty {
+	return &FilterProperty{
+		QueryBuilder:  queryBuilder,
+		Param:         param,
+		ParamAppender: doNotAppendParameters,
+	}
+}
+
+// Join
+type JoinType string
+
+const (
+	LeftJoin  JoinType = "LEFT JOIN"
+	RightJoin JoinType = "RIGHT JOIN"
+	InnerJoin JoinType = "JOIN"
+)
+
+func DependentJoin(any, []entity.Order) bool { return false }
+
+type JoinDef struct {
+	Name      string
+	Type      JoinType
+	Table     string
+	On        string
+	DependsOn []string
+	Condition func(any, []entity.Order) bool
+}
+
+type JoinResolver struct {
+	defs     map[string]*JoinDef
+	included map[string]bool
+	order    []string
+}
+
+func NewJoinResolver(defs []*JoinDef) *JoinResolver {
+	r := &JoinResolver{
+		defs:     map[string]*JoinDef{},
+		included: map[string]bool{},
+	}
+	for _, d := range defs {
+		r.defs[d.Name] = d
+	}
+
+	return r
+}
+
+func (jr *JoinResolver) require(name string) {
+	if jr.included[name] {
+		return
+	}
+
+	def, ok := jr.defs[name]
+	if !ok {
+		panic("Unknown join: " + name)
+	}
+
+	// resolve dependencies first
+	for _, dep := range def.DependsOn {
+		jr.require(dep)
+	}
+
+	jr.included[name] = true
+	jr.order = append(jr.order, name)
+}
+
+func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
+	for _, def := range jr.defs {
+		if def.Condition != nil && def.Condition(filter, order) {
+			jr.require(def.Name)
+		}
+	}
+
+	var result []string
+
+	// This is little tricky part, but we need to deal with that this way
+	// until we have stateful join pattern which is created for issue.go
+	// with non-uniq tablename 'IM IssueMatch' which join operation
+	// depends on filter pattern with precedence for some members (there
+	// is if...else if which cannot be replaced by if... and if... what
+	// is a mess and misconception
+	uniqTableName := make(map[string]struct{})
+
+	for _, name := range jr.order {
+		j := jr.defs[name]
+
+		if _, ok := uniqTableName[j.Table]; ok {
+			continue
+		}
+
+		uniqTableName[j.Table] = struct{}{}
+
+		joinSQL := fmt.Sprintf("%s %s ON %s",
+			j.Type,
+			j.Table,
+			j.On,
+		)
+
+		result = append(result, joinSQL)
+	}
+
+	return strings.Join(result, "\n")
+}
+
+// DB helpers
+func EnsurePagination[T entity.HasPagination](filter T) T {
+	first := 1000
+	after := ""
+
+	px := filter.GetPaginated()
+
+	if px.First == nil {
+		px.First = &first
+	}
+
+	if px.After == nil {
+		px.After = &after
+	}
+
+	return filter
+}
+
+func PerformExecArgs(db Db, query string, args []any, l *logrus.Entry) (sql.Result, error) {
+	res, err := db.Exec(query, args...)
+	if err != nil {
+		msg := err.Error()
+		l.WithFields(logrus.Fields{
+			"error": err,
+			"query": query,
+			"args":  args,
+		}).Error(msg)
+
+		return nil, fmt.Errorf("%s", msg)
+	}
+
+	return res, nil
+}
+
+func PerformInsertArgs(db Db, query string, args []any, l *logrus.Entry) (int64, error) {
+	res, err := PerformExecArgs(db, query, args, l)
+	if err != nil {
+		return -1, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		msg := "Error while getting last insert id"
+		l.WithFields(logrus.Fields{
+			"error": err,
+		}).Error(msg)
+
+		return -1, fmt.Errorf("%s", msg)
+	}
+
+	l.WithFields(logrus.Fields{
+		"id": id,
+	}).Debug("Successfully performed insert")
+
+	return id, nil
+}
+
+// Helpers
+
+// WrapAccess turns a type-specific data access into a generic data access
+func WrapAccess[T any, TRet any](access func(T) (TRet, bool)) func(any) (any, bool) {
+	return func(val any) (any, bool) {
+		typedVal, ok := val.(T)
+		if !ok {
+			panic(fmt.Sprintf("WrapAccess: expected %T but got %T", *new(T), val))
+		}
+
+		return access(typedVal)
+	}
+}
+
+// WrapBuilder turns a type-specific builder function into a generic builder function
+func WrapBuilder[T any](build func([]T) string) func([]any) string {
+	return func(values []any) string {
+		typed := make([]T, len(values))
+
+		for i, v := range values {
+			tv, ok := v.(T)
+			if !ok {
+				panic(fmt.Sprintf(
+					"WrapBuilderSlice: expected %T but got %T",
+					*new(T), v,
+				))
+			}
+
+			typed[i] = tv
+		}
+
+		return build(typed)
+	}
+}
+
+// WrapRetSlice turns a type-specific accessor into a generic one
+func WrapRetSlice[T any, E any](fn func(T) []E) func(any) []any {
+	return func(input any) []any {
+		val, ok := input.(T)
+		if !ok {
+			panic(fmt.Sprintf("WrapRetSlice: expected %T but got %T", *new(T), input))
+		}
+
+		res := fn(val)
+
+		out := make([]any, len(res))
+		for i := range res {
+			out[i] = res[i]
+		}
+
+		return out
+	}
+}
+
+// WrapRetState turns a type-specific accessor into a generic one for StateFilter slice
+func WrapRetState[T any](fn func(T) []entity.StateFilterType) func(any) []entity.StateFilterType {
+	return func(input any) []entity.StateFilterType {
+		val, ok := input.(T)
+		if !ok {
+			panic(fmt.Sprintf("WrapRetState: expected %T but got %T", *new(T), input))
+		}
+
+		res := fn(val)
+
+		out := make([]entity.StateFilterType, len(res))
+
+		copy(out, res)
+
+		return out
+	}
+}
+
+// WrapRetJson turns a type-specific accessor into a generic one for Json slice
+func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
+	return func(input any) []*entity.Json {
+		val, ok := input.(T)
+		if !ok {
+			panic(fmt.Sprintf("WrapRetJson: expected %T but got %T", *new(T), input))
+		}
+
+		res := fn(val)
+
+		out := make([]*entity.Json, len(res))
+		copy(out, res)
+
+		return out
+	}
+}
+
+// WrapJoinCondition turns a type-specific join planner condition using filter and order
+func WrapJoinCondition[T any](joinCond func(T, []entity.Order) bool) func(any, []entity.Order) bool {
+	return func(filter any, order []entity.Order) bool {
+		typedFilter, ok := filter.(T)
+		if !ok {
+			panic(fmt.Sprintf("WrapJoinCondition: expected %T but got %T", *new(T), filter))
+		}
+
+		return joinCond(typedFilter, order)
+	}
+}
+
+func ToStateSlice(in []any) []entity.StateFilterType {
+	out := make([]entity.StateFilterType, len(in))
+	for i := range in {
+		s, ok := in[i].(entity.StateFilterType)
+		if !ok {
+			panic(
+				fmt.Sprintf(
+					"ToStateSlice: expected %T but got %T",
+					new(entity.StateFilterType),
+					in[i],
+				),
+			)
+		}
+
+		out[i] = s
+	}
+
+	return out
+}
+
+func ToJsonSlice(in []any) []*entity.Json {
+	out := make([]*entity.Json, len(in))
+	for i := range in {
+		s, ok := in[i].(*entity.Json)
+		if !ok {
+			panic(fmt.Sprintf("ToJsonSlice: expected %T but got %T", new(*entity.Json), in[i]))
+		}
+
+		out[i] = s
+	}
+
+	return out
+}
+
+func ValueOrDefault[T any](p *T, def T) T {
+	if p == nil {
+		return def
+	}
+
+	return *p
+}*/

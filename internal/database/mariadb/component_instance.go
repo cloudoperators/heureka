@@ -236,6 +236,35 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:  "IM",
+			Type:  InnerJoin,
+			Table: "IssueMatch IM",
+			On:    "CI.componentinstance_id = IM.issuematch_component_instance_id",
+			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ []entity.Order) bool {
+				return len(f.IssueMatchId) > 0
+			}),
+		},
+		{
+			Name:  "S",
+			Type:  InnerJoin,
+			Table: "Service S",
+			On:    "CI.componentinstance_service_id = S.service_id",
+			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ []entity.Order) bool {
+				return len(f.ServiceCcrn) > 0
+			}),
+		},
+		{
+			Name:  "CV",
+			Type:  InnerJoin,
+			Table: "ComponentVersion CV",
+			On:    "CI.componentinstance_component_version_id = CV.componentversion_id",
+			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ []entity.Order) bool {
+				return len(f.ComponentVersionVersion) > 0
+			}),
+		},
+	},
 }
 
 func ensureComponentInstanceFilter(
@@ -246,35 +275,6 @@ func ensureComponentInstanceFilter(
 	}
 
 	return EnsurePagination(filter)
-}
-
-func (s *SqlDatabase) getComponentInstanceJoins(filter *entity.ComponentInstanceFilter) string {
-	joins := ""
-	if len(filter.IssueMatchId) > 0 {
-		joins = fmt.Sprintf(
-			"%s\n%s",
-			joins,
-			"INNER JOIN IssueMatch IM on CI.componentinstance_id = IM.issuematch_component_instance_id",
-		)
-	}
-
-	if len(filter.ServiceCcrn) > 0 {
-		joins = fmt.Sprintf(
-			"%s\n%s",
-			joins,
-			"INNER JOIN Service S on CI.componentinstance_service_id = S.service_id",
-		)
-	}
-
-	if len(filter.ComponentVersionVersion) > 0 {
-		joins = fmt.Sprintf(
-			"%s\n%s",
-			joins,
-			"INNER JOIN ComponentVersion CV on CI.componentinstance_component_version_id = CV.componentversion_id",
-		)
-	}
-
-	return joins
 }
 
 func (s *SqlDatabase) buildComponentInstanceStatement(
@@ -297,8 +297,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 
 	order = GetDefaultOrder(order, entity.ComponentInstanceId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-	joins := s.getComponentInstanceJoins(filter)
-
+	joins := componentInstanceObject.GetJoins(filter, order)
 	filterStr := componentInstanceObject.GetFilterQuery(filter)
 
 	whereClause := ""

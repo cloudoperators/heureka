@@ -6,6 +6,7 @@ package remediation
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -60,8 +61,7 @@ func (rh *remediationHandler) ListRemediations(
 		rh.cache,
 		CacheTtlGetRemediations,
 		"GetRemediations",
-		rh.database.GetRemediations,
-		ctx,
+		cache.WrapContext2(ctx, rh.database.GetRemediations),
 		filter,
 		options.Order,
 	)
@@ -80,8 +80,7 @@ func (rh *remediationHandler) ListRemediations(
 				rh.cache,
 				CacheTtlGetAllRemediationCursors,
 				"GetAllRemediationCursors",
-				rh.database.GetAllRemediationCursors,
-				ctx,
+				cache.WrapContext2(ctx, rh.database.GetAllRemediationCursors),
 				filter,
 				options.Order,
 			)
@@ -102,8 +101,7 @@ func (rh *remediationHandler) ListRemediations(
 			rh.cache,
 			CacheTtlCountRemediations,
 			"CountRemediations",
-			rh.database.CountRemediations,
-			ctx,
+			cache.WrapContext1(ctx, rh.database.CountRemediations),
 			filter,
 		)
 		if err != nil {
@@ -157,6 +155,26 @@ func (rh *remediationHandler) CreateRemediation(
 		})
 
 		return nil, err
+	}
+
+	if remediation.Type == entity.RemediationTypeRiskAccepted {
+		if remediation.URL == "" {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "URL is required for risk accepted remediation")
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, err
+		}
+
+		if parsedURL, err := url.Parse(remediation.URL); err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "invalid external URL for risk accepted remediation")
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, err
+		}
 	}
 
 	// Get current user for audit fields
@@ -251,41 +269,17 @@ func (rh *remediationHandler) CreateRemediation(
 	}
 
 	if rh.cache != nil {
-		keys, err := rh.cache.GetAll()
-		if err != nil {
+		if err := cache.InvalidateByMatch(rh.cache, func(decodedKey string) bool {
+			return (strings.Contains(decodedKey, fmt.Sprintf("\"issue_id\":[%d]", newRemediation.IssueId)) ||
+				strings.Contains(decodedKey, fmt.Sprintf("\"id\":[%d]", newRemediation.IssueId))) &&
+				(strings.Contains(decodedKey, "GetIssuesWithAggregations") || strings.Contains(decodedKey, "GetIssues") ||
+					strings.Contains(decodedKey, "GetAllIssueCursors") || strings.Contains(decodedKey, "GetIssueVariants") ||
+					strings.Contains(decodedKey, "GetIssueMatches"))
+		}); err != nil {
 			wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
 			applog.LogError(rh.logger, wrappedErr, logrus.Fields{
 				"remediation": remediation,
 			})
-
-			return nil, wrappedErr
-		}
-
-		for _, key := range keys {
-			decodedKey, err := cache.DecodeKey(key, rh.cache.GetKeyHashType())
-			if err != nil {
-				wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-				applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-					"remediation": remediation,
-				})
-
-				continue
-			}
-
-			if (strings.Contains(decodedKey, fmt.Sprintf("\"issue_id\":[%d]\"", newRemediation.IssueId)) ||
-				strings.Contains(decodedKey, fmt.Sprintf("\"id\":[%d]\"", newRemediation.IssueId))) &&
-				(strings.Contains(decodedKey, "GetIssuesWithAggregations") || strings.Contains(decodedKey, "GetIssues") ||
-					strings.Contains(decodedKey, "GetAllIssueCursors")) {
-				err := rh.cache.Invalidate(key)
-				if err != nil {
-					wrappedErr := appErrors.InternalError(string(op), "Remediation", "", err)
-					applog.LogError(rh.logger, wrappedErr, logrus.Fields{
-						"remediation": remediation,
-					})
-
-					continue
-				}
-			}
 		}
 	}
 
@@ -345,6 +339,82 @@ func (rh *remediationHandler) UpdateRemediation(
 		return nil, wrappedErr
 	}
 
+	lo := entity.NewListOptions()
+
+	existingRemediations, err := rh.ListRemediations(
+		ctx,
+		&entity.RemediationFilter{Id: []*int64{&remediation.Id}},
+		lo,
+	)
+	if err != nil {
+		wrappedErr := appErrors.E(
+			op,
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			appErrors.Internal,
+			err,
+		)
+		applog.LogError(rh.logger, wrappedErr, logrus.Fields{
+			"remediation": remediation,
+		})
+
+		return nil, wrappedErr
+	}
+
+	if len(existingRemediations.Elements) != 1 {
+		err := appErrors.E(
+			op,
+			"Remediation",
+			strconv.FormatInt(remediation.Id, 10),
+			appErrors.Internal,
+			fmt.Sprintf(
+				"unexpected number of remediations found after update: expected 1, got %d",
+				len(existingRemediations.Elements),
+			),
+		)
+		applog.LogError(rh.logger, err, logrus.Fields{
+			"id":          remediation.Id,
+			"found_count": len(existingRemediations.Elements),
+		})
+
+		return nil, err
+	}
+
+	existingRemediation := existingRemediations.Elements[0].Remediation
+
+	finalType := existingRemediation.Type
+	if remediation.Type != "" {
+		finalType = remediation.Type
+	}
+
+	finalURL := existingRemediation.URL
+	if remediation.URL != "" {
+		finalURL = remediation.URL
+	}
+
+	if finalType == entity.RemediationTypeRiskAccepted {
+		if finalURL == "" {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "URL is required for risk accepted remediation")
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, err
+		}
+
+		if parsedURL, err := url.Parse(finalURL); err != nil || parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			err := appErrors.E(op, "Remediation", appErrors.InvalidArgument, "invalid external URL for risk accepted remediation")
+			applog.LogError(rh.logger, err, logrus.Fields{
+				"remediation": remediation,
+			})
+
+			return nil, err
+		}
+	}
+
+	remediation.URL = finalURL
+	remediation.Type = finalType
+
 	// Update the component instance in database
 	err = rh.database.UpdateRemediation(remediation)
 	if err != nil {
@@ -360,9 +430,6 @@ func (rh *remediationHandler) UpdateRemediation(
 
 		return nil, wrappedErr
 	}
-
-	// Retrieve updated component instance to return fresh data
-	lo := entity.NewListOptions()
 
 	remediationResult, err := rh.ListRemediations(
 		ctx,

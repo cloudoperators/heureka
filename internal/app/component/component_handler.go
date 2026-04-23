@@ -116,8 +116,7 @@ func (cs *componentHandler) ListComponents(
 				cs.cache,
 				CacheTtlGetAllComponentCursors,
 				"GetAllComponentCursors",
-				cs.database.GetAllComponentCursors,
-				ctx,
+				cache.WrapContext2(ctx, cs.database.GetAllComponentCursors),
 				filter,
 				options.Order,
 			)
@@ -138,8 +137,7 @@ func (cs *componentHandler) ListComponents(
 			cs.cache,
 			CacheTtlCountComponents,
 			"CountComponents",
-			cs.database.CountComponents,
-			ctx,
+			cache.WrapContext1(ctx, cs.database.CountComponents),
 			filter,
 		)
 		if err != nil {
@@ -296,8 +294,7 @@ func (cs *componentHandler) ListComponentCcrns(
 		cs.cache,
 		CacheTtlGetComponentCcrns,
 		"GetComponentCcrns",
-		cs.database.GetComponentCcrns,
-		ctx,
+		cache.WrapContext1(ctx, cs.database.GetComponentCcrns),
 		filter,
 	)
 	if err != nil {

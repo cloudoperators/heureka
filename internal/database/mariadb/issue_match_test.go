@@ -135,6 +135,86 @@ var _ = Describe("IssueMatch", Label("database", "IssueMatch"), func() {
 						}
 					})
 				})
+				It("can filter by a Component CCRN", func() {
+					issueMatchRow := test.PickOne(seedCollection.IssueMatchRows)
+					ciRow, ok := seedCollection.GetComponentInstanceById(issueMatchRow.ComponentInstanceId.Int64)
+					Expect(ok).To(BeTrue())
+					cvRow, ok := seedCollection.GetComponentVersionById(ciRow.ComponentVersionId.Int64)
+					Expect(ok).To(BeTrue())
+					cRow, ok := seedCollection.GetComponentById(cvRow.ComponentId.Int64)
+					Expect(ok).To(BeTrue())
+
+					filter := &entity.IssueMatchFilter{
+						ComponentCCRN: []*string{&cRow.CCRN.String},
+					}
+
+					entries, err := db.GetAllIssueMatchIds(context.Background(), filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("at least one element was picked", func() {
+						Expect(len(entries)).To(BeNumerically(">=", 1))
+					})
+
+					By("returning expected elements", func() {
+						Expect(entries).To(ContainElement(issueMatchRow.Id.Int64))
+					})
+				})
+				It("can filter by a single issue primary name", func() {
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
+					issueRow, ok := seedCollection.GetIssueById(issueMatch.IssueId.Int64)
+					Expect(ok).To(BeTrue())
+					filter := &entity.IssueMatchFilter{
+						PrimaryName: []*string{&issueRow.PrimaryName.String},
+					}
+
+					var imIds []int64
+					for _, e := range seedCollection.IssueMatchRows {
+						if e.IssueId.Int64 == issueMatch.IssueId.Int64 {
+							imIds = append(imIds, e.Id.Int64)
+						}
+					}
+
+					entries, err := db.GetAllIssueMatchIds(context.Background(), filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("returning expected number of results", func() {
+						Expect(len(entries)).To(BeEquivalentTo(len(imIds)))
+					})
+
+					By("returning expected elements", func() {
+						for _, id := range entries {
+							Expect(lo.Contains(imIds, id)).To(BeTrue())
+						}
+					})
+				})
+				It("can filter issue PrimaryName using wild card search", func() {
+					issueMatch := test.PickOne(seedCollection.IssueMatchRows)
+					issueRow, ok := seedCollection.GetIssueById(issueMatch.IssueId.Int64)
+					Expect(ok).To(BeTrue())
+
+					searchStr := test.CutString(issueRow.PrimaryName.String, 2, 2, 5)
+					filter := &entity.IssueMatchFilter{Search: []*string{&searchStr}}
+
+					entries, err := db.GetAllIssueMatchIds(context.Background(), filter)
+
+					By("throwing no error", func() {
+						Expect(err).To(BeNil())
+					})
+
+					By("at least one element was picked", func() {
+						Expect(len(entries)).To(BeNumerically(">=", 1))
+					})
+
+					By("returning the expected elements", func() {
+						Expect(entries).To(ContainElement(issueMatch.Id.Int64))
+					})
+				})
 			})
 		})
 	})
@@ -774,12 +854,10 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by primaryName", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				issueI := seedCollection.GetIssueById(
-					seedCollection.IssueMatchRows[i].IssueId.Int64,
-				)
-				issueJ := seedCollection.GetIssueById(
-					seedCollection.IssueMatchRows[j].IssueId.Int64,
-				)
+				issueI, ok := seedCollection.GetIssueById(seedCollection.IssueMatchRows[i].IssueId.Int64)
+				Expect(ok).To(BeTrue())
+				issueJ, ok := seedCollection.GetIssueById(seedCollection.IssueMatchRows[j].IssueId.Int64)
+				Expect(ok).To(BeTrue())
 				return issueI.PrimaryName.String < issueJ.PrimaryName.String
 			})
 
@@ -790,8 +868,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prev := ""
 				for _, r := range res {
-					issue := seedCollection.GetIssueById(r.IssueId)
-					Expect(issue).ShouldNot(BeNil())
+					issue, ok := seedCollection.GetIssueById(r.IssueId)
+					Expect(ok).To(BeTrue())
 					Expect(issue.PrimaryName.String >= prev).Should(BeTrue())
 					prev = issue.PrimaryName.String
 				}
@@ -839,12 +917,14 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by component instance ccrn", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				ciI := seedCollection.GetComponentInstanceById(
+				ciI, ok := seedCollection.GetComponentInstanceById(
 					seedCollection.IssueMatchRows[i].ComponentInstanceId.Int64,
 				)
-				ciJ := seedCollection.GetComponentInstanceById(
+				Expect(ok).To(BeTrue())
+				ciJ, ok := seedCollection.GetComponentInstanceById(
 					seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64,
 				)
+				Expect(ok).To(BeTrue())
 				return ciI.CCRN.String < ciJ.CCRN.String
 			})
 
@@ -855,8 +935,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prev := ""
 				for _, r := range res {
-					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
-					Expect(ci).ShouldNot(BeNil())
+					ci, ok := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
+					Expect(ok).To(BeTrue())
 					Expect(ci.CCRN.String >= prev).Should(BeTrue())
 					prev = ci.CCRN.String
 				}
@@ -887,12 +967,10 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by primaryName", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				issueI := seedCollection.GetIssueById(
-					seedCollection.IssueMatchRows[i].IssueId.Int64,
-				)
-				issueJ := seedCollection.GetIssueById(
-					seedCollection.IssueMatchRows[j].IssueId.Int64,
-				)
+				issueI, ok := seedCollection.GetIssueById(seedCollection.IssueMatchRows[i].IssueId.Int64)
+				Expect(ok).To(BeTrue())
+				issueJ, ok := seedCollection.GetIssueById(seedCollection.IssueMatchRows[j].IssueId.Int64)
+				Expect(ok).To(BeTrue())
 				return issueI.PrimaryName.String > issueJ.PrimaryName.String
 			})
 
@@ -903,8 +981,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prev := "\U0010FFFF"
 				for _, r := range res {
-					issue := seedCollection.GetIssueById(r.IssueId)
-					Expect(issue).ShouldNot(BeNil())
+					issue, ok := seedCollection.GetIssueById(r.IssueId)
+					Expect(ok).To(BeTrue())
 					Expect(issue.PrimaryName.String <= prev).Should(BeTrue())
 					prev = issue.PrimaryName.String
 				}
@@ -952,12 +1030,14 @@ var _ = Describe("Ordering IssueMatches", func() {
 
 		It("can order by component instance ccrn", func() {
 			sort.Slice(seedCollection.IssueMatchRows, func(i, j int) bool {
-				ciI := seedCollection.GetComponentInstanceById(
+				ciI, ok := seedCollection.GetComponentInstanceById(
 					seedCollection.IssueMatchRows[i].ComponentInstanceId.Int64,
 				)
-				ciJ := seedCollection.GetComponentInstanceById(
+				Expect(ok).To(BeTrue())
+				ciJ, ok := seedCollection.GetComponentInstanceById(
 					seedCollection.IssueMatchRows[j].ComponentInstanceId.Int64,
 				)
+				Expect(ok).To(BeTrue())
 				return ciI.CCRN.String > ciJ.CCRN.String
 			})
 
@@ -968,8 +1048,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 			testOrder(order, func(res []entity.IssueMatchResult) {
 				prev := "\U0010FFFF"
 				for _, r := range res {
-					ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
-					Expect(ci).ShouldNot(BeNil())
+					ci, ok := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
+					Expect(ok).To(BeTrue())
 					Expect(ci.CCRN.String <= prev).Should(BeTrue())
 					prev = ci.CCRN.String
 				}
@@ -1003,7 +1083,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 				prevTrd := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				prevPn := ""
 				for _, r := range res {
-					issue := seedCollection.GetIssueById(r.IssueId)
+					issue, ok := seedCollection.GetIssueById(r.IssueId)
+					Expect(ok).To(BeTrue())
 					if issue.PrimaryName.String == prevPn {
 						Expect(r.TargetRemediationDate.After(prevTrd)).Should(BeTrue())
 						prevTrd = r.TargetRemediationDate
@@ -1026,7 +1107,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 				prevTrd := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 				prevPn := ""
 				for _, r := range res {
-					issue := seedCollection.GetIssueById(r.IssueId)
+					issue, ok := seedCollection.GetIssueById(r.IssueId)
+					Expect(ok).To(BeTrue())
 					if issue.PrimaryName.String == prevPn {
 						Expect(r.TargetRemediationDate.Before(prevTrd)).Should(BeTrue())
 						prevTrd = r.TargetRemediationDate
@@ -1056,7 +1138,8 @@ var _ = Describe("Ordering IssueMatches", func() {
 					prevCiCcrn := ""
 					prevTrd := time.Time{}
 					for _, r := range res {
-						ci := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
+						ci, ok := seedCollection.GetComponentInstanceById(r.ComponentInstanceId)
+						Expect(ok).To(BeTrue())
 						if test.SeverityToNumerical(r.Severity.Value) == prevSeverity {
 							if ci.CCRN.String == prevCiCcrn {
 								Expect(r.TargetRemediationDate.After(prevTrd)).To(BeTrue())

@@ -182,7 +182,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					map[string]any{
 						"input": map[string]string{
 							"description":     remediation.Description,
-							"type":            remediation.Type.String(),
+							"type":            entity.RemediationTypeMitigation.String(),
 							"severity":        remediation.Severity.String(),
 							"service":         remediation.Service,
 							"image":           remediation.Component,
@@ -220,7 +220,7 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 					map[string]any{
 						"input": map[string]string{
 							"description":    remediation.Description,
-							"type":           remediation.Type.String(),
+							"type":           entity.RemediationTypeMitigation.String(),
 							"severity":       remediation.Severity.String(),
 							"service":        remediation.Service,
 							"image":          remediation.Component,
@@ -243,6 +243,74 @@ var _ = Describe("Creating Remediation via API", Label("e2e", "Remediations"), f
 				Expect(
 					*respData.Remediation.ExpirationDate,
 				).To(Equal(remediation.ExpirationDate.Format(time.RFC3339)))
+			})
+
+			It("throws error if type is risk_accepted and URL is not provided", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"description":    remediation.Description,
+							"type":           entity.RemediationTypeRiskAccepted.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+							"remediatedBy":   remediation.RemediatedBy,
+						},
+					})
+
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("throws error if type is risk_accepted and URL is not correct", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"description":    remediation.Description,
+							"type":           entity.RemediationTypeRiskAccepted.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+							"remediatedBy":   remediation.RemediatedBy,
+							"url":            "invalid-url",
+						},
+					})
+
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("creates remediation with risk_accepted type and URL is correct", func() {
+				_, err := e2e_common.ExecuteGqlQueryFromFile[struct {
+					Remediation model.Remediation `json:"createRemediation"`
+				}](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/create.graphql",
+					map[string]any{
+						"input": map[string]string{
+							"description":    remediation.Description,
+							"type":           entity.RemediationTypeRiskAccepted.String(),
+							"severity":       remediation.Severity.String(),
+							"service":        remediation.Service,
+							"image":          remediation.Component,
+							"vulnerability":  remediation.Issue,
+							"expirationDate": remediation.ExpirationDate.Format(time.RFC3339),
+							"remediatedBy":   remediation.RemediatedBy,
+							"url":            "https://example.com/risk-acceptance",
+						},
+					})
+
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})
@@ -370,6 +438,42 @@ var _ = Describe("Updating remediation via API", Label("e2e", "Remediations"), f
 				Expect(
 					*respData.Remediation.VulnerabilityID,
 				).To(Equal(fmt.Sprintf("%d", issue.Id.Int64)))
+			})
+
+			It("throws error while updating type to risk_accepted and URL is not correct", func() {
+				remediation := seedCollection.RemediationRows[0].AsRemediation()
+
+				_, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", remediation.Id),
+						"input": map[string]string{
+							"type": entity.RemediationTypeRiskAccepted.String(),
+							"url":  "invalid-url",
+						},
+					})
+
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("updates type to risk_accepted and URL is set", func() {
+				remediation := seedCollection.RemediationRows[0].AsRemediation()
+
+				respData, err := e2e_common.ExecuteGqlQueryFromFile[remediationUpdateRespDataType](
+					cfg.Port,
+					"../api/graphql/graph/queryCollection/remediation/update.graphql",
+					map[string]any{
+						"id": fmt.Sprintf("%d", remediation.Id),
+						"input": map[string]string{
+							"type": entity.RemediationTypeRiskAccepted.String(),
+							"url":  "https://example.com/risk-acceptance",
+						},
+					})
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(respData.Remediation.Type.String()).To(Equal(entity.RemediationTypeRiskAccepted.String()))
+				Expect(lo.FromPtr(respData.Remediation.URL)).To(Equal("https://example.com/risk-acceptance"))
 			})
 		})
 	})

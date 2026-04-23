@@ -208,8 +208,7 @@ func (im *issueMatchHandler) ListIssueMatches(
 		im.cache,
 		CacheTtlGetIssueMatches,
 		"GetIssueMatches",
-		im.database.GetIssueMatches,
-		ctx,
+		cache.WrapContext2(ctx, im.database.GetIssueMatches),
 		filter,
 		options.Order,
 	)
@@ -228,8 +227,7 @@ func (im *issueMatchHandler) ListIssueMatches(
 				im.cache,
 				CacheTtlGetAllIssueMatchCursors,
 				"GetAllIssueMatchCursors",
-				im.database.GetAllIssueMatchCursors,
-				ctx,
+				cache.WrapContext2(ctx, im.database.GetAllIssueMatchCursors),
 				filter,
 				options.Order,
 			)
@@ -250,8 +248,7 @@ func (im *issueMatchHandler) ListIssueMatches(
 			im.cache,
 			CacheTtlCountIssueMatches,
 			"CountIssueMatches",
-			im.database.CountIssueMatches,
-			ctx,
+			cache.WrapContext1(ctx, im.database.CountIssueMatches),
 			filter,
 		)
 		if err != nil {

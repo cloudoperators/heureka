@@ -61,7 +61,7 @@ func (imc *InMemoryCache) Get(key string) (string, bool, error) {
 	return valStr, true, nil
 }
 
-func (imc *InMemoryCache) GetAll() ([]string, error) {
+func (imc *InMemoryCache) GetAllKeys() ([]string, error) {
 	keys := make([]string, 0, imc.gc.ItemCount())
 
 	for key := range imc.gc.Items() {

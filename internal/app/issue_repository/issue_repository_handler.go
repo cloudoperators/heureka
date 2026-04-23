@@ -57,8 +57,7 @@ func (ir *issueRepositoryHandler) getIssueRepositoryResults(
 		ir.cache,
 		CacheTtlGetIssueRepository,
 		"GetIssueRepositories",
-		ir.database.GetIssueRepositories,
-		ctx,
+		cache.WrapContext2(ctx, ir.database.GetIssueRepositories),
 		filter,
 		[]entity.Order{},
 	)
@@ -97,8 +96,7 @@ func (ir *issueRepositoryHandler) ListIssueRepositories(
 				ir.cache,
 				CacheTtlGetAllIssueRepositoryCursors,
 				"GetAllIssueRepositoryCursors",
-				ir.database.GetAllIssueRepositoryCursors,
-				ctx,
+				cache.WrapContext2(ctx, ir.database.GetAllIssueRepositoryCursors),
 				filter,
 				options.Order,
 			)

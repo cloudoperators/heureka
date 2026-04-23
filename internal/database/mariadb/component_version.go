@@ -144,6 +144,55 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:  "CVI",
+			Type:  LeftJoin,
+			Table: "ComponentVersionIssue CVI",
+			On:    "CV.componentversion_id = CVI.componentversionissue_component_version_id",
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ []entity.Order) bool {
+				return len(f.IssueId) > 0
+			}),
+		},
+		{
+			Name:      "IV",
+			Type:      LeftJoin,
+			Table:     "IssueVariant IV",
+			On:        "CVI.componentversionissue_issue_id = IV.issuevariant_issue_id",
+			DependsOn: []string{"CVI"},
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, order []entity.Order) bool {
+				return OrderByCount(order) || len(f.IssueRepositoryId) > 0
+			}),
+		},
+		{
+			Name:  "C",
+			Type:  LeftJoin,
+			Table: "Component C",
+			On:    "CV.componentversion_component_id = C.component_id",
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ []entity.Order) bool {
+				return len(f.ComponentCCRN) > 0
+			}),
+		},
+		{
+			Name:  "CI",
+			Type:  LeftJoin,
+			Table: "ComponentInstance CI",
+			On:    "CV.componentversion_id = CI.componentinstance_component_version_id",
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ []entity.Order) bool {
+				return len(f.ServiceId) > 0
+			}),
+		},
+		{
+			Name:      "S",
+			Type:      LeftJoin,
+			Table:     "Service S",
+			On:        "CI.componentinstance_service_id = S.service_id",
+			DependsOn: []string{"CI"},
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ []entity.Order) bool {
+				return len(f.ServiceCCRN) > 0
+			}),
+		},
+	},
 }
 
 func ensureComponentVersionFilter(
@@ -154,60 +203,6 @@ func ensureComponentVersionFilter(
 	}
 
 	return EnsurePagination(filter)
-}
-
-func (s *SqlDatabase) getComponentVersionJoins(
-	filter *entity.ComponentVersionFilter,
-	order []entity.Order,
-) string {
-	joins := ""
-
-	orderByCount := lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.CriticalCount || o.By == entity.HighCount ||
-			o.By == entity.MediumCount ||
-			o.By == entity.LowCount ||
-			o.By == entity.NoneCount
-	})
-	if len(filter.IssueId) > 0 || orderByCount || len(filter.IssueRepositoryId) > 0 {
-		joins = fmt.Sprintf(
-			"%s\n%s",
-			joins,
-			"LEFT JOIN ComponentVersionIssue CVI on CV.componentversion_id = CVI.componentversionissue_component_version_id",
-		)
-		if orderByCount || len(filter.IssueRepositoryId) > 0 {
-			joins = fmt.Sprintf(
-				"%s\n%s",
-				joins,
-				"LEFT JOIN IssueVariant IV on IV.issuevariant_issue_id = CVI.componentversionissue_issue_id",
-			)
-		}
-	}
-
-	if len(filter.ComponentCCRN) > 0 {
-		joins = fmt.Sprintf(
-			"%s\n%s",
-			joins,
-			"LEFT JOIN Component C on CV.componentversion_component_id = C.component_id",
-		)
-	}
-
-	if len(filter.ServiceId) > 0 || len(filter.ServiceCCRN) > 0 {
-		joins = fmt.Sprintf(
-			"%s\n%s",
-			joins,
-			"LEFT JOIN ComponentInstance CI on CV.componentversion_id = CI.componentinstance_component_version_id",
-		)
-
-		if len(filter.ServiceCCRN) > 0 {
-			joins = fmt.Sprintf(
-				"%s\n%s",
-				joins,
-				"LEFT JOIN Service S on S.service_id = CI.componentinstance_service_id",
-			)
-		}
-	}
-
-	return joins
 }
 
 func (s *SqlDatabase) getComponentVersionColumns(order []entity.Order) string {
@@ -266,8 +261,7 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 
 	order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-	joins := s.getComponentVersionJoins(filter, order)
-
+	joins := componentVersionObject.GetJoins(filter, order)
 	filterStr := componentVersionObject.GetFilterQuery(filter)
 
 	whereClause := ""

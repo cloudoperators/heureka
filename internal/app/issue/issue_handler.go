@@ -140,8 +140,7 @@ func (is *issueHandler) ListIssues(
 			is.cache,
 			CacheTtlGetIssuesWithAggregations,
 			"GetIssuesWithAggregations",
-			is.database.GetIssuesWithAggregations,
-			ctx,
+			cache.WrapContext2(ctx, is.database.GetIssuesWithAggregations),
 			filter,
 			options.Order,
 		)
@@ -159,8 +158,7 @@ func (is *issueHandler) ListIssues(
 			is.cache,
 			CacheTtlGetIssues,
 			"GetIssues",
-			is.database.GetIssues,
-			ctx,
+			cache.WrapContext2(ctx, is.database.GetIssues),
 			filter,
 			options.Order,
 		)
@@ -183,8 +181,7 @@ func (is *issueHandler) ListIssues(
 				is.cache,
 				CacheTtlGetAllIssueCursors,
 				"GetAllIssueCursors",
-				is.database.GetAllIssueCursors,
-				ctx,
+				cache.WrapContext2(ctx, is.database.GetAllIssueCursors),
 				filter,
 				options.Order,
 			)
@@ -207,8 +204,7 @@ func (is *issueHandler) ListIssues(
 			is.cache,
 			CacheTtlCountIssueTypes,
 			"CountIssueTypes",
-			is.database.CountIssueTypes,
-			ctx,
+			cache.WrapContext1(ctx, is.database.CountIssueTypes),
 			filter,
 		)
 		if err != nil {
@@ -524,8 +520,7 @@ func (is *issueHandler) ListIssueNames(
 		is.cache,
 		CacheTtlGetIssueNames,
 		"GetIssueNames",
-		is.database.GetIssueNames,
-		ctx,
+		cache.WrapContext1(ctx, is.database.GetIssueNames),
 		filter,
 	)
 	if err != nil {
@@ -556,8 +551,7 @@ func (is *issueHandler) GetIssueSeverityCounts(
 		is.cache,
 		CacheTtlCountIssueRatings,
 		"CountIssueRatings",
-		is.database.CountIssueRatings,
-		ctx,
+		cache.WrapContext1(ctx, is.database.CountIssueRatings),
 		filter,
 	)
 	if err != nil {

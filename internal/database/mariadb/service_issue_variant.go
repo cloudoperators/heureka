@@ -107,6 +107,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 	return stmt, filterParameters, nil
 }
 
+// TODO: adjust this function to fit dbObject
 func (s *SqlDatabase) GetServiceIssueVariants(
 	ctx context.Context,
 	filter *entity.ServiceIssueVariantFilter,

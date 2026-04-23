@@ -417,3 +417,8 @@ func LoadIssueCounts(filename string) (entity.IssueSeverityCounts, error) {
 func PickOne[T any](l []T) T {
 	return l[rand.Intn(len(l))]
 }
+
+func CutString(s string, cutBeg int, cutEnd int, minimumLeft int) string {
+	Expect(len(s)).To(BeNumerically(">=", cutBeg+cutEnd+minimumLeft))
+	return s[cutBeg : len(s)-cutEnd]
+}

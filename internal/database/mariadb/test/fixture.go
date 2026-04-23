@@ -42,34 +42,46 @@ type SeedCollection struct {
 	PatchRows                  []mariadb.PatchRow
 }
 
-func (s *SeedCollection) GetComponentInstanceById(id int64) *mariadb.ComponentInstanceRow {
-	for i := range s.ComponentInstanceRows {
-		if s.ComponentInstanceRows[i].Id.Int64 == id {
-			return &s.ComponentInstanceRows[i]
-		}
-	}
-
-	return nil
+func (s *SeedCollection) GetComponentInstanceById(id int64) (mariadb.ComponentInstanceRow, bool) {
+	return lo.Find(s.ComponentInstanceRows, func(cir mariadb.ComponentInstanceRow) bool {
+		return cir.Id.Int64 == id
+	})
 }
 
-func (s *SeedCollection) GetServiceById(id int64) *mariadb.BaseServiceRow {
-	for i := range s.ServiceRows {
-		if s.ServiceRows[i].Id.Int64 == id {
-			return &s.ServiceRows[i]
-		}
-	}
-
-	return nil
+func (s *SeedCollection) GetComponentVersionById(id int64) (mariadb.ComponentVersionRow, bool) {
+	return lo.Find(s.ComponentVersionRows, func(cvr mariadb.ComponentVersionRow) bool {
+		return cvr.Id.Int64 == id
+	})
 }
 
-func (s *SeedCollection) GetIssueById(id int64) *mariadb.IssueRow {
-	for i := range s.IssueRows {
-		if s.IssueRows[i].Id.Int64 == id {
-			return &s.IssueRows[i]
-		}
-	}
+func (s *SeedCollection) GetServiceById(id int64) (mariadb.BaseServiceRow, bool) {
+	return lo.Find(s.ServiceRows, func(sr mariadb.BaseServiceRow) bool {
+		return sr.Id.Int64 == id
+	})
+}
 
-	return nil
+func (s *SeedCollection) GetComponentById(id int64) (mariadb.ComponentRow, bool) {
+	return lo.Find(s.ComponentRows, func(cr mariadb.ComponentRow) bool {
+		return cr.Id.Int64 == id
+	})
+}
+
+func (s *SeedCollection) GetIssueById(id int64) (mariadb.IssueRow, bool) {
+	return lo.Find(s.IssueRows, func(ir mariadb.IssueRow) bool {
+		return ir.Id.Int64 == id
+	})
+}
+
+func (s *SeedCollection) GetSupportGroupServiceByServiceId(id int64) (mariadb.SupportGroupServiceRow, bool) {
+	return lo.Find(s.SupportGroupServiceRows, func(sgsr mariadb.SupportGroupServiceRow) bool {
+		return sgsr.ServiceId.Int64 == id
+	})
+}
+
+func (s *SeedCollection) GetSupportGroupById(id int64) (mariadb.SupportGroupRow, bool) {
+	return lo.Find(s.SupportGroupRows, func(sgr mariadb.SupportGroupRow) bool {
+		return sgr.Id.Int64 == id
+	})
 }
 
 func (s *SeedCollection) GetIssueVariantsByIssueId(id int64) []mariadb.IssueVariantRow {
@@ -287,6 +299,23 @@ func (s *SeedCollection) FindMatchingComponentVersionAndIssueVariant() (
 	}
 
 	return mariadb.ComponentVersionRow{}, mariadb.IssueVariantRow{}, false
+}
+
+func (s *SeedCollection) FindMatchingSupportGroupAndIssueMatch() (mariadb.SupportGroupRow, mariadb.IssueMatchRow, bool) {
+	for _, imRow := range s.IssueMatchRows {
+		ciRow, ok := s.GetComponentInstanceById(imRow.ComponentInstanceId.Int64)
+		if ok {
+			sgsRow, ok := s.GetSupportGroupServiceByServiceId(ciRow.ServiceId.Int64)
+			if ok {
+				sgRow, ok := s.GetSupportGroupById(sgsRow.SupportGroupId.Int64)
+				if ok {
+					return sgRow, imRow, true
+				}
+			}
+		}
+	}
+
+	return mariadb.SupportGroupRow{}, mariadb.IssueMatchRow{}, false
 }
 
 type DatabaseSeeder struct {
@@ -668,17 +697,9 @@ func (s *DatabaseSeeder) SeedIssueMatches(
 
 	for range num {
 		im := NewFakeIssueMatch()
-
-		randomUserIndex := rand.Intn(len(users))
-		im.UserId = users[randomUserIndex].Id
-
-		randomIIndex := rand.Intn(len(issues))
-		i := issues[randomIIndex]
-		im.IssueId = i.Id
-
-		randomCiIndex := rand.Intn(len(componentInstances))
-		ci := componentInstances[randomCiIndex]
-		im.ComponentInstanceId = ci.Id
+		im.UserId = PickOne(users).Id
+		im.IssueId = PickOne(issues).Id
+		im.ComponentInstanceId = PickOne(componentInstances).Id
 
 		imId, err := s.InsertFakeIssueMatch(im)
 		if err != nil {
@@ -781,12 +802,8 @@ func (s *DatabaseSeeder) SeedSupportGroupServices(
 
 	for range num {
 		sgs := NewFakeSupportGroupService()
-		randomSIndex := rand.Intn(len(services))
-		service := services[randomSIndex]
-		sgs.ServiceId = service.Id
-		randomSGIndex := rand.Intn(len(supportGroups))
-		sg := supportGroups[randomSGIndex]
-		sgs.SupportGroupId = sg.Id
+		sgs.ServiceId = PickOne(services).Id
+		sgs.SupportGroupId = PickOne(supportGroups).Id
 
 		_, err := s.InsertFakeSupportGroupService(sgs)
 		if err != nil {
@@ -899,10 +916,8 @@ func (s *DatabaseSeeder) SeedComponentInstances(
 
 	for range num {
 		componentInstance := NewFakeComponentInstance()
-		componentVersion := PickOne(componentVersions)
-		componentInstance.ComponentVersionId = componentVersion.Id
-		service := PickOne(services)
-		componentInstance.ServiceId = service.Id
+		componentInstance.ComponentVersionId = PickOne(componentVersions).Id
+		componentInstance.ServiceId = PickOne(services).Id
 
 		componentInstanceId, err := s.InsertFakeComponentInstance(componentInstance)
 		if err != nil {
@@ -945,12 +960,8 @@ func (s *DatabaseSeeder) SeedOwners(
 
 	for range num {
 		owner := NewFakeOwner()
-		randomSIndex := rand.Intn(len(services))
-		service := services[randomSIndex]
-		owner.ServiceId = service.Id
-		randomUIndex := rand.Intn(len(users))
-		user := users[randomUIndex]
-		owner.UserId = user.Id
+		owner.ServiceId = PickOne(services).Id
+		owner.UserId = PickOne(users).Id
 
 		_, err := s.InsertFakeOwner(owner)
 		if err != nil {
@@ -1042,6 +1053,7 @@ func (s *DatabaseSeeder) SeedRemediations(
 				String: entity.AllRemediationTypes[i%len(entity.AllRemediationTypes)],
 				Valid:  true,
 			},
+			URL:            sql.NullString{String: gofakeit.URL(), Valid: true},
 			ServiceId:      service.Id,
 			Service:        service.CCRN,
 			ComponentId:    component.Id,
@@ -1421,6 +1433,7 @@ func (s *DatabaseSeeder) InsertFakeRemediation(r mariadb.RemediationRow) (int64,
 		INSERT INTO Remediation (
 			remediation_description,
 			remediation_type,
+			remediation_url,
 			remediation_severity,
 			remediation_remediation_date,
 			remediation_expiration_date,
@@ -1437,6 +1450,7 @@ func (s *DatabaseSeeder) InsertFakeRemediation(r mariadb.RemediationRow) (int64,
 		) VALUES (
 			:remediation_description,
 			:remediation_type,
+			:remediation_url,
 			:remediation_severity,
 			:remediation_remediation_date,
 			:remediation_expiration_date,

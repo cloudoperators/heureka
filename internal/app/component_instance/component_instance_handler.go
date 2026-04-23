@@ -103,8 +103,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 		ci.cache,
 		CacheTtlGetComponentInstances,
 		"GetComponentInstances",
-		ci.database.GetComponentInstances,
-		ctx,
+		cache.WrapContext2(ctx, ci.database.GetComponentInstances),
 		filter,
 		options.Order,
 	)
@@ -123,8 +122,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 				ci.cache,
 				CacheTtlGetAllComponentInstanceCursors,
 				"GetAllComponentInstanceCursors",
-				ci.database.GetAllComponentInstanceCursors,
-				ctx,
+				cache.WrapContext2(ctx, ci.database.GetAllComponentInstanceCursors),
 				filter,
 				options.Order,
 			)
@@ -150,8 +148,7 @@ func (ci *componentInstanceHandler) ListComponentInstances(
 			ci.cache,
 			CacheTtlCountComponentInstances,
 			"CountComponentInstances",
-			ci.database.CountComponentInstances,
-			ctx,
+			cache.WrapContext1(ctx, ci.database.CountComponentInstances),
 			filter,
 		)
 		if err != nil {

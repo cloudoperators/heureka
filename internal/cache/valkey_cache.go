@@ -5,6 +5,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -74,7 +75,7 @@ func (vc *ValkeyCache) Get(key string) (string, bool, error) {
 	return val, true, nil
 }
 
-func (vc *ValkeyCache) GetAll() ([]string, error) {
+func (vc *ValkeyCache) GetAllKeys() ([]string, error) {
 	res := vc.client.Do(vc.ctx, vc.client.B().Keys().Pattern("*").Build())
 
 	if err := res.Error(); err != nil {
@@ -91,6 +92,18 @@ func (vc *ValkeyCache) Set(key string, value string, ttl time.Duration) error {
 
 func (vc *ValkeyCache) Invalidate(key string) error {
 	return vc.client.Do(vc.ctx, vc.client.B().Del().Key(key).Build()).Error()
+}
+
+func (vc *ValkeyCache) InvalidateByMatch(keys []string, keyMatcher func(string) bool) error {
+	for _, key := range keys {
+		if keyMatcher(key) {
+			if err := vc.Invalidate(key); err != nil {
+				return fmt.Errorf("failed to invalidate key in cache: [key: %s, error: %w]", key, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (vc *ValkeyCache) invalidateAll() error {

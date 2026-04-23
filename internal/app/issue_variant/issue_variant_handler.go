@@ -65,8 +65,7 @@ func (iv *issueVariantHandler) getIssueVariantResults(
 		iv.cache,
 		CacheTtlGetIssueVariants,
 		"GetIssueVariants",
-		iv.database.GetIssueVariants,
-		ctx,
+		cache.WrapContext2(ctx, iv.database.GetIssueVariants),
 		filter,
 		[]entity.Order{},
 	)
@@ -106,8 +105,7 @@ func (iv *issueVariantHandler) ListIssueVariants(
 				iv.cache,
 				CacheTtlGetAllIssueVariantCursors,
 				"GetAllIssueVariantCursors",
-				iv.database.GetAllIssueVariantCursors,
-				ctx,
+				cache.WrapContext2(ctx, iv.database.GetAllIssueVariantCursors),
 				filter,
 				options.Order,
 			)
@@ -125,8 +123,7 @@ func (iv *issueVariantHandler) ListIssueVariants(
 			iv.cache,
 			CacheTtlCountIssueVariants,
 			"CountIssueVariants",
-			iv.database.CountIssueVariants,
-			ctx,
+			cache.WrapContext1(ctx, iv.database.CountIssueVariants),
 			filter,
 		)
 		if err != nil {

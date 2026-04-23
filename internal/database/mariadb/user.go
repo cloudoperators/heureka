@@ -81,6 +81,22 @@ var userObject = DbObject[*entity.User]{
 			),
 		),
 	},
+	JoinDefs: []*JoinDef{
+		{
+			Name:      "SGU",
+			Type:      LeftJoin,
+			Table:     "SupportGroupUser SGU",
+			On:        "U.user_id = SGU.supportgroupuser_user_id",
+			Condition: WrapJoinCondition(func(f *entity.UserFilter, _ []entity.Order) bool { return len(f.SupportGroupId) > 0 }),
+		},
+		{
+			Name:      "O",
+			Type:      LeftJoin,
+			Table:     "Owner O",
+			On:        "U.user_id = O.owner_user_id",
+			Condition: WrapJoinCondition(func(f *entity.UserFilter, _ []entity.Order) bool { return len(f.ServiceId) > 0 }),
+		},
+	},
 }
 
 func ensureUserFilter(filter *entity.UserFilter) *entity.UserFilter {
@@ -89,23 +105,6 @@ func ensureUserFilter(filter *entity.UserFilter) *entity.UserFilter {
 	}
 
 	return EnsurePagination(filter)
-}
-
-func (s *SqlDatabase) getUserJoins(filter *entity.UserFilter) string {
-	joins := ""
-	if len(filter.SupportGroupId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN SupportGroupUser SGU on U.user_id = SGU.supportgroupuser_user_id
-		`)
-	}
-
-	if len(filter.ServiceId) > 0 {
-		joins = fmt.Sprintf("%s\n%s", joins, `
-			LEFT JOIN Owner O on O.owner_user_id = U.user_id
-		`)
-	}
-
-	return joins
 }
 
 func (s *SqlDatabase) buildUserStatement(
@@ -119,8 +118,6 @@ func (s *SqlDatabase) buildUserStatement(
 	filter = ensureUserFilter(filter)
 	l.WithFields(logrus.Fields{"filter": filter})
 
-	joins := s.getUserJoins(filter)
-
 	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decode User cursor: %w", err)
@@ -130,7 +127,7 @@ func (s *SqlDatabase) buildUserStatement(
 
 	order = GetDefaultOrder(order, entity.UserID, entity.OrderDirectionAsc)
 	orderStr := CreateOrderString(order)
-
+	joins := userObject.GetJoins(filter, order)
 	filterStr := userObject.GetFilterQuery(filter)
 
 	whereClause := ""

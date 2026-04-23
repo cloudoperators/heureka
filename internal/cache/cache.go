@@ -16,7 +16,7 @@ import (
 type Cache interface {
 	CacheKey(fnname string, fn any, args ...any) (string, error)
 	Get(key string) (string, bool, error)
-	GetAll() ([]string, error)
+	GetAllKeys() ([]string, error)
 	Set(key string, value string, ttl time.Duration) error
 	Invalidate(key string) error
 	IncHit()
@@ -43,30 +43,16 @@ func NewCache(ctx context.Context, wg *sync.WaitGroup, config any) Cache {
 	return nil
 }
 
-// filterArgs removes context.Context from cache key arguments
-func filterArgs(args ...any) []any {
-	filtered := make([]any, 0, len(args))
-	for _, a := range args {
-		if _, ok := a.(context.Context); ok {
-			continue
-		}
-
-		filtered = append(filtered, a)
-	}
-
-	return filtered
-}
-
 func getCallParameters(fn any, args ...any) (reflect.Value, []reflect.Value, error) {
 	v := reflect.ValueOf(fn)
 	if v.Kind() != reflect.Func {
-		return reflect.Value{}, nil, errors.New(
+		return reflect.Value{}, []reflect.Value{}, errors.New(
 			"expected function parameter is not a function",
 		)
 	}
 
 	if len(args) != v.Type().NumIn() {
-		return reflect.Value{}, nil, errors.New(
+		return reflect.Value{}, []reflect.Value{}, errors.New(
 			"incorrect number of arguments for the function",
 		)
 	}
@@ -74,23 +60,8 @@ func getCallParameters(fn any, args ...any) (reflect.Value, []reflect.Value, err
 	in := make([]reflect.Value, len(args))
 	for i, arg := range args {
 		argVal := reflect.ValueOf(arg)
-
-		// Special handling for context.Context
-		if v.Type().In(i).String() == "context.Context" {
-			if _, ok := arg.(context.Context); !ok {
-				return reflect.Value{}, nil, fmt.Errorf(
-					"argument %d must be context.Context",
-					i,
-				)
-			}
-
-			in[i] = argVal
-
-			continue
-		}
-
 		if !argVal.Type().AssignableTo(v.Type().In(i)) {
-			return reflect.Value{}, nil, fmt.Errorf(
+			return reflect.Value{}, []reflect.Value{}, fmt.Errorf(
 				"argument %d has incorrect type",
 				i,
 			)
@@ -104,7 +75,6 @@ func getCallParameters(fn any, args ...any) (reflect.Value, []reflect.Value, err
 
 func getReturnValues[T any](out []reflect.Value) (T, error) {
 	var zero T
-
 	if len(out) != 2 {
 		return zero, fmt.Errorf("function call returned incorrect number of values")
 	}
@@ -145,10 +115,9 @@ func callEnabled[T any](c Cache, ttl time.Duration, fnname string, fn any, args 
 		return zero, fmt.Errorf("cache (param): Get call parameters failed: %w", err)
 	}
 
-	// IMPORTANT: context is excluded from cache key
-	key, err := c.CacheKey(fnname, fn, filterArgs(args...)...)
+	key, err := c.CacheKey(fnname, fn, args...)
 	if err != nil {
-		return zero, fmt.Errorf("cache (key): could not create cache key")
+		return zero, fmt.Errorf("cache (key): Could not create cache key")
 	}
 
 	if s, ok, err := c.Get(key); err == nil && ok {
@@ -197,21 +166,18 @@ func callFn[T any](
 	fnExecuted := false
 	untypedResult, err, shared := c.GetSingleflightWrapper().Do(key, func() (any, error) {
 		fnExecuted = true
-
 		out := v.Call(in)
 
 		result, err := getReturnValues[T](out)
 		if err != nil {
-			return zero, fmt.Errorf("cache (fcall): return value error: %w", err)
-		}
-
-		enc, encErr := encode(result)
-		if encErr != nil {
-			return zero, fmt.Errorf("cache (encode): %w", encErr)
-		}
-
-		if err := c.Set(key, enc, ttl); err != nil {
-			return zero, fmt.Errorf("cache (set): %w", err)
+			return zero, fmt.Errorf("cache (fcall): Return value error: %w", err)
+		} else if enc, encErr := encode(result); encErr == nil {
+			err = c.Set(key, enc, ttl)
+			if err != nil {
+				return zero, fmt.Errorf("cache (set): %w", err)
+			}
+		} else {
+			return zero, fmt.Errorf("cache (encode): %w", err)
 		}
 
 		return result, nil
@@ -266,4 +232,26 @@ func DecodeKey(key string, keyHash KeyHashType) (string, error) {
 	}
 
 	return "", fmt.Errorf("cache: Key hash '%s' could not be decoded", keyHash.String())
+}
+
+func InvalidateByMatch(cache Cache, keyMatcher func(decodedKey string) bool) error {
+	keys, err := cache.GetAllKeys()
+	if err != nil {
+		return fmt.Errorf("cache: failed to get cache keys: %w", err)
+	}
+
+	for _, key := range keys {
+		decodedKey, err := DecodeKey(key, cache.GetKeyHashType())
+		if err != nil {
+			return fmt.Errorf("cache: failed to decode cached key: %w", err)
+		}
+
+		if keyMatcher(decodedKey) {
+			if err := cache.Invalidate(key); err != nil {
+				return fmt.Errorf("cache: failed to invalidate key: [key: %s, error: %w]", decodedKey, err)
+			}
+		}
+	}
+
+	return nil
 }

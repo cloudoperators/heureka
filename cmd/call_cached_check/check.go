@@ -29,6 +29,27 @@ type result struct {
 	want, got string
 }
 
+// extractFuncName unwraps expressions like wrappers and returns the underlying function name.
+func extractFuncName(expr ast.Expr) (string, bool) {
+	switch fn := expr.(type) {
+	case *ast.Ident:
+		return fn.Name, true
+
+	case *ast.SelectorExpr:
+		return fn.Sel.Name, true
+
+	case *ast.CallExpr:
+		// Assume the actual function is the last argument
+		if len(fn.Args) == 0 {
+			return "", false
+		}
+
+		return extractFuncName(fn.Args[len(fn.Args)-1])
+	}
+
+	return "", false
+}
+
 func main() {
 	dir := flag.String("dir", ".", "directory to scan (walked recursively)")
 
@@ -87,6 +108,7 @@ func main() {
 				return true
 			}
 
+			// 3rd argument: function name string
 			cacheFuncNameArg := call.Args[2]
 
 			strLit, ok := cacheFuncNameArg.(*ast.BasicLit)
@@ -104,18 +126,12 @@ func main() {
 
 			cacheFunc := call.Args[3]
 
-			var funcName string
-
-			switch fn := cacheFunc.(type) {
-			case *ast.Ident:
-				funcName = fn.Name
-			case *ast.SelectorExpr:
-				funcName = fn.Sel.Name
-			default:
+			funcName, ok := extractFuncName(cacheFunc)
+			if !ok {
 				mismatches = append(mismatches, result{
 					pos:  fset.Position(cacheFunc.Pos()),
-					want: "function identifier",
-					got:  fmt.Sprintf("%T", fn),
+					want: "callable function",
+					got:  fmt.Sprintf("%T", cacheFunc),
 				})
 
 				return true
@@ -126,27 +142,6 @@ func main() {
 					pos:  fset.Position(strLit.Pos()),
 					want: funcName,
 					got:  funcNameStr,
-				})
-			}
-
-			if len(call.Args) < 5 {
-				mismatches = append(mismatches, result{
-					pos:  fset.Position(call.Lparen),
-					want: "context argument (ctx) after function",
-					got:  "missing",
-				})
-
-				return true
-			}
-
-			ctxArg := call.Args[4]
-
-			ident, ok := ctxArg.(*ast.Ident)
-			if !ok || ident.Name != "ctx" {
-				mismatches = append(mismatches, result{
-					pos:  fset.Position(ctxArg.Pos()),
-					want: "ctx (context.Context)",
-					got:  fmt.Sprintf("%T", ctxArg),
 				})
 			}
 

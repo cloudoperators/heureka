@@ -45,6 +45,7 @@ type Remediation struct {
 	Metadata
 	Id              int64           `json:"id"`
 	Type            RemediationType `json:"type"`
+	URL             string          `json:"url"`
 	Description     string          `json:"description"`
 	RemediationDate time.Time       `json:"remediation_date"`
 	ExpirationDate  time.Time       `json:"expiration_date"`
@@ -78,6 +79,7 @@ type RemediationFilter struct {
 	Issue       []*string         `json:"issue"`
 	IssueId     []*int64          `json:"issue_id"`
 	Type        []*string         `json:"type"`
+	URL         []*string         `json:"url"`
 	State       []StateFilterType `json:"state"`
 	Search      []*string         `json:"search"`
 }

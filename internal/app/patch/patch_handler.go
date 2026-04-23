@@ -57,8 +57,7 @@ func (ph *patchHandler) ListPatches(
 		ph.cache,
 		CacheTtlGetPatches,
 		"GetPatches",
-		ph.database.GetPatches,
-		ctx,
+		cache.WrapContext2(ctx, ph.database.GetPatches),
 		filter,
 		options.Order,
 	)
@@ -77,8 +76,7 @@ func (ph *patchHandler) ListPatches(
 				ph.cache,
 				CacheTtlGetAllPatchCursors,
 				"GetAllPatchCursors",
-				ph.database.GetAllPatchCursors,
-				ctx,
+				cache.WrapContext2(ctx, ph.database.GetAllPatchCursors),
 				filter,
 				options.Order,
 			)
@@ -99,8 +97,7 @@ func (ph *patchHandler) ListPatches(
 			ph.cache,
 			CacheTtlCountPatches,
 			"CountPatches",
-			ph.database.CountPatches,
-			ctx,
+			cache.WrapContext1(ctx, ph.database.CountPatches),
 			filter,
 		)
 		if err != nil {
