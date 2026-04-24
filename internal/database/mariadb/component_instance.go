@@ -314,8 +314,7 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			},
-		).Error(msg)
+			}).Error(msg)
 
 		return nil, nil, fmt.Errorf("failed to prepare ComponentInstance statement: %w", err)
 	}

@@ -226,8 +226,7 @@ func (s *SqlDatabase) buildRemediationStatement(
 				"error": err,
 				"query": query,
 				"stmt":  stmt,
-			},
-		).Error(msg)
+			}).Error(msg)
 
 		return nil, nil, fmt.Errorf("failed to prepare Remediation statement: %w", err)
 	}
