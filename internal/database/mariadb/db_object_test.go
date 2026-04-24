@@ -171,10 +171,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				joins := testObject.GetJoins(&def, nil)
 				lines := strings.Split(strings.TrimSpace(joins), "\n")
 				Expect(lines).To(HaveLen(2))
-				Expect(lines).To(ConsistOf(
-					MatchRegexp("^LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id$"),
-					MatchRegexp("^RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id$"),
-				))
+				Expect(lines[0]).To(BeEquivalentTo("LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
+				Expect(lines[1]).To(BeEquivalentTo("RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id"))
 			})
 		})
 		Context("Join with dependency is there in the object", func() {
@@ -242,10 +240,8 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				lines := strings.Split(strings.TrimSpace(joins), "\n")
 				Expect(lines).To(HaveLen(3))
 				Expect(lines[0]).To(BeEquivalentTo("LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
-				Expect(lines[1:]).To(ConsistOf(
-					MatchRegexp("^RIGHT JOIN Yabc Y ON X.xabc_yabc_id = Y.yabc_id$"),
-					MatchRegexp("^RIGHT JOIN Zabc Z ON X.xabc_zabc_id = Z.zabc_id$"),
-				))
+				Expect(lines[1]).To(BeEquivalentTo("RIGHT JOIN Yabc Y ON X.xabc_yabc_id = Y.yabc_id"))
+				Expect(lines[2]).To(BeEquivalentTo("RIGHT JOIN Zabc Z ON X.xabc_zabc_id = Z.zabc_id"))
 			})
 		})
 		Context("Two joins on the same table are there in the object", func() {
