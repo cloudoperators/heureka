@@ -61,8 +61,7 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	order = GetDefaultOrder(order, entity.ServiceIssueVariantID, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
+	ord := NewOrder(order, entity.Order{entity.ServiceIssueVariantID, entity.OrderDirectionAsc})
 
 	filterStr := serviceIssueVariantObject.GetFilterQuery(filter)
 
@@ -77,9 +76,9 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, ord)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters

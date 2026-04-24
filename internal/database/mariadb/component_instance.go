@@ -241,7 +241,7 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 			Type:  InnerJoin,
 			Table: "IssueMatch IM",
 			On:    "CI.componentinstance_id = IM.issuematch_component_instance_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ *Order) bool {
 				return len(f.IssueMatchId) > 0
 			}),
 		},
@@ -250,7 +250,7 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 			Type:  InnerJoin,
 			Table: "Service S",
 			On:    "CI.componentinstance_service_id = S.service_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ *Order) bool {
 				return len(f.ServiceCcrn) > 0
 			}),
 		},
@@ -259,7 +259,7 @@ var componentInstanceObject = DbObject[*entity.ComponentInstance]{
 			Type:  InnerJoin,
 			Table: "ComponentVersion CV",
 			On:    "CI.componentinstance_component_version_id = CV.componentversion_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentInstanceFilter, _ *Order) bool {
 				return len(f.ComponentVersionVersion) > 0
 			}),
 		},
@@ -293,9 +293,8 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	order = GetDefaultOrder(order, entity.ComponentInstanceId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := componentInstanceObject.GetJoins(filter, order)
+	ord := NewOrder(order, entity.Order{entity.ComponentInstanceId, entity.OrderDirectionAsc})
+	joins := componentInstanceObject.GetJoins(filter, ord)
 	filterStr := componentInstanceObject.GetFilterQuery(filter)
 
 	whereClause := ""
@@ -310,9 +309,9 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 	// construct final query
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters

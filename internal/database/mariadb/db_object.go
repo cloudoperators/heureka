@@ -161,7 +161,7 @@ func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
 	return err
 }
 
-func (do *DbObject[ET]) GetJoins(filter any, order []entity.Order) string {
+func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
 	return NewJoinResolver(do.JoinDefs).Build(filter, order)
 }
 
@@ -260,7 +260,7 @@ const (
 	InnerJoin JoinType = "JOIN"
 )
 
-func DependentJoin(any, []entity.Order) bool { return false }
+func DependentJoin(any, *Order) bool { return false }
 
 type JoinDef struct {
 	Name      string
@@ -268,7 +268,7 @@ type JoinDef struct {
 	Table     string
 	On        string
 	DependsOn []string
-	Condition func(any, []entity.Order) bool
+	Condition func(any, *Order) bool
 }
 
 type JoinResolver struct {
@@ -307,7 +307,7 @@ func (jr *JoinResolver) require(name string) {
 	jr.order = append(jr.order, name)
 }
 
-func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
+func (jr *JoinResolver) Build(filter any, order *Order) string {
 	for _, def := range jr.defs {
 		if def.Condition != nil && def.Condition(filter, order) {
 			jr.require(def.Name)
@@ -497,8 +497,8 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 }
 
 // WrapJoinCondition turns a type-specific join planner condition using filter and order
-func WrapJoinCondition[T any](joinCond func(T, []entity.Order) bool) func(any, []entity.Order) bool {
-	return func(filter any, order []entity.Order) bool {
+func WrapJoinCondition[T any](joinCond func(T, *Order) bool) func(any, *Order) bool {
+	return func(filter any, order *Order) bool {
 		typedFilter, ok := filter.(T)
 		if !ok {
 			panic(fmt.Sprintf("WrapJoinCondition: expected %T but got %T", *new(T), filter))

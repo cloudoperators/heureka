@@ -148,7 +148,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Type:  RightJoin,
 			Table: "IssueMatch IM",
 			On:    "I.issue_id = IM.issuematch_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return f.HasIssueMatches
 			}),
 		},
@@ -157,7 +157,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Type:  LeftJoin,
 			Table: "IssueMatch IM",
 			On:    "I.issue_id = IM.issuematch_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.IssueMatchStatus) > 0 || len(f.IssueMatchId) > 0 || len(f.IssueMatchSeverity) > 0
 			}),
 		},
@@ -175,7 +175,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentInstance CI",
 			On:        "IM.issuematch_component_instance_id = CI.componentinstance_id",
 			DependsOn: []string{"IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.ServiceId) > 0
 			}),
 		},
@@ -185,7 +185,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentVersion CV",
 			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CI with IM_RJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return f.AllServices
 			}),
 		}, // Looks like this case is not used because of mv_vulnerabilities
@@ -195,7 +195,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentVersion CV",
 			On:        "CI.componentinstance_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
 		},
@@ -205,7 +205,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI with IM_RJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return f.AllServices
 			}),
 		}, // Looks like this case is not used because of mv_vulnerabilities
@@ -215,7 +215,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
 		},
@@ -233,7 +233,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "SupportGroup SG",
 			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
 			DependsOn: []string{"SGS"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.SupportGroupCCRN) > 0
 			}),
 		},
@@ -242,11 +242,8 @@ var issueObject = DbObject[*entity.Issue]{
 			Type:  LeftJoin,
 			Table: "IssueVariant IV",
 			On:    "I.issue_id = IV.issuevariant_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, order []entity.Order) bool {
-				orderByRating := lo.ContainsBy(order, func(o entity.Order) bool {
-					return o.By == entity.IssueVariantRating
-				})
-				return len(f.IssueVariantId) > 0 || len(f.IssueRepositoryId) > 0 || len(f.Search) > 0 || orderByRating
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, order *Order) bool {
+				return len(f.IssueVariantId) > 0 || len(f.IssueRepositoryId) > 0 || len(f.Search) > 0 || order.ByRating()
 			}),
 		},
 		{
@@ -254,7 +251,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Type:  LeftJoin,
 			Table: "ComponentVersionIssue CVI",
 			On:    "I.issue_id = CVI.componentversionissue_issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.ComponentVersionId) > 0
 			}),
 		},
@@ -264,7 +261,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "ComponentVersion CV",
 			On:        "CVI.componentversionissue_component_version_id = CV.componentversion_id",
 			DependsOn: []string{"CVI"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				return len(f.ComponentId) > 0 && (len(f.ServiceId) == 0 && len(f.ServiceCCRN) == 0 && len(f.SupportGroupCCRN) == 0 && !f.AllServices)
 			}),
 		},
@@ -274,7 +271,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Remediation R",
 			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id AND CV.componentversion_component_id = R.remediation_component_id",
 			DependsOn: []string{"CI with IM_LJ", "CV using CVI"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && hasService && hasComponent
@@ -286,7 +283,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Remediation R",
 			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CI.componentinstance_service_id = R.remediation_service_id",
 			DependsOn: []string{"CI with IM_LJ"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && hasService && !hasComponent
@@ -298,7 +295,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Table:     "Remediation R",
 			On:        "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL AND CV.componentversion_component_id = R.remediation_component_id",
 			DependsOn: []string{"CV using CVI"},
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && hasComponent
@@ -309,7 +306,7 @@ var issueObject = DbObject[*entity.Issue]{
 			Type:  LeftJoin,
 			Table: "Remediation R",
 			On:    "I.issue_id = R.remediation_issue_id AND R.remediation_deleted_at IS NULL",
-			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueFilter, _ *Order) bool {
 				hasService := len(f.ServiceCCRN) > 0 || len(f.ServiceId) > 0
 				hasComponent := len(f.ComponentId) > 0
 				return (f.Status == entity.IssueStatusOpen || f.Status == entity.IssueStatusRemediated) && !hasService && !hasComponent
@@ -369,23 +366,21 @@ func getIssueQueryWithCursor(
 	cursorFields []Field,
 ) string {
 	issueColumns := getIssueColumns(order)
-	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
-	joins := issueObject.GetJoins(filter, order)
+	ord := NewOrder(order, entity.Order{entity.IssueId, entity.OrderDirectionAsc})
+	joins := issueObject.GetJoins(filter, ord)
 	whereClause := getIssueFilterWhereClause(filter)
 	issueCursor := getIssueCursorQuery(filter, cursorFields)
-	orderStr := CreateOrderString(defaultOrder)
 
-	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, issueCursor, orderStr)
+	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, issueCursor, ord)
 }
 
 func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueFilter) string {
 	issueColumns := getIssueColumns(order)
-	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
-	joins := issueObject.GetJoins(filter, order)
+	ord := NewOrder(order, entity.Order{entity.IssueId, entity.OrderDirectionAsc})
+	joins := issueObject.GetJoins(filter, ord)
 	whereClause := getIssueFilterWhereClause(filter)
-	orderStr := CreateOrderString(defaultOrder)
 
-	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, orderStr)
+	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, ord)
 }
 
 func (s *SqlDatabase) buildIssueStatementWithCursor(
@@ -515,7 +510,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
     `
 
 	filter = ensureIssueFilter(filter)
-	joins := issueObject.GetJoins(filter, order) // It seems that this join is redundant for baseAppQuery
+	joins := issueObject.GetJoins(filter, NewOrder(order, entity.Order{})) // It seems that this join is redundant for baseAppQuery
 	// We should improve testing and remove redundant joins from query
 
 	cursorFields, err := DecodeCursor(filter.After)
@@ -524,8 +519,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 	}
 
 	columns := getIssueColumns(order)
-	defaultOrder := GetDefaultOrder(order, entity.IssueId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(defaultOrder)
+	ord := NewOrder(order, entity.Order{entity.IssueId, entity.OrderDirectionAsc})
 
 	whereClause := getIssueFilterWhereClause(filter)
 
@@ -536,8 +530,8 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 	}
 
-	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, orderStr)
-	aggQuery := fmt.Sprintf(baseAggQuery, columns, joins, whereClause, cursorQuery, orderStr)
+	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord)
+	aggQuery := fmt.Sprintf(baseAggQuery, columns, joins, whereClause, cursorQuery, ord)
 	query := fmt.Sprintf(baseQuery, ciQuery, aggQuery)
 
 	stmt, err := s.db.Preparex(query)
@@ -582,7 +576,7 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 				ivRating = e.RatingNumerical.Int64
 			}
 
-			cursor, _ := EncodeCursor(WithIssue(defaultOrder, issue.Issue, ivRating))
+			cursor, _ := EncodeCursor(WithIssue(ord.Sequence(), issue.Issue, ivRating))
 
 			sr := entity.IssueResult{
 				WithCursor: entity.WithCursor{

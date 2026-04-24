@@ -86,14 +86,14 @@ var userObject = DbObject[*entity.User]{
 			Type:      LeftJoin,
 			Table:     "SupportGroupUser SGU",
 			On:        "U.user_id = SGU.supportgroupuser_user_id",
-			Condition: WrapJoinCondition(func(f *entity.UserFilter, _ []entity.Order) bool { return len(f.SupportGroupId) > 0 }),
+			Condition: WrapJoinCondition(func(f *entity.UserFilter, _ *Order) bool { return len(f.SupportGroupId) > 0 }),
 		},
 		{
 			Name:      "O",
 			Type:      LeftJoin,
 			Table:     "Owner O",
 			On:        "U.user_id = O.owner_user_id",
-			Condition: WrapJoinCondition(func(f *entity.UserFilter, _ []entity.Order) bool { return len(f.ServiceId) > 0 }),
+			Condition: WrapJoinCondition(func(f *entity.UserFilter, _ *Order) bool { return len(f.ServiceId) > 0 }),
 		},
 	},
 }
@@ -123,9 +123,8 @@ func (s *SqlDatabase) buildUserStatement(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	order = GetDefaultOrder(order, entity.UserID, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := userObject.GetJoins(filter, order)
+	ord := NewOrder(order, entity.Order{entity.UserID, entity.OrderDirectionAsc})
+	joins := userObject.GetJoins(filter, ord)
 	filterStr := userObject.GetFilterQuery(filter)
 
 	whereClause := ""
@@ -139,9 +138,9 @@ func (s *SqlDatabase) buildUserStatement(
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
 	stmt, err := s.db.Preparex(query)

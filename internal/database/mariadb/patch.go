@@ -72,8 +72,7 @@ func (s *SqlDatabase) buildPatchStatement(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	order = GetDefaultOrder(order, entity.PatchId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
+	ord := NewOrder(order, entity.Order{entity.PatchId, entity.OrderDirectionAsc})
 
 	filterStr := patchObject.GetFilterQuery(filter)
 
@@ -88,9 +87,9 @@ func (s *SqlDatabase) buildPatchStatement(
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, ord)
 	}
 
 	stmt, err := s.db.Preparex(query)

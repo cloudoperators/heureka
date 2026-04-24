@@ -96,7 +96,7 @@ var componentObject = DbObject[*entity.Component]{
 			Type:  LeftJoin,
 			Table: "ComponentVersion CV",
 			On:    "C.component_id = CV.componentversion_component_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, _ *Order) bool {
 				return len(f.ComponentVersionId) > 0
 			}),
 		},
@@ -114,7 +114,7 @@ var componentObject = DbObject[*entity.Component]{
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI"},
-			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, _ *Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
 		},
@@ -124,7 +124,7 @@ var componentObject = DbObject[*entity.Component]{
 			Table:     "mvSingleComponentByServiceVulnerabilityCounts CVR",
 			On:        "C.component_id = CVR.component_id AND CVR.service_id = S.service_id",
 			DependsOn: []string{"S"},
-			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, order []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, order *Order) bool {
 				return needSingleComponentByServiceVulnerabilityCounts(f, order)
 			}),
 		},
@@ -134,7 +134,7 @@ var componentObject = DbObject[*entity.Component]{
 			Table:     "mvAllComponentsByServiceVulnerabilityCounts CVR",
 			On:        "S.service_id = CVR.service_id",
 			DependsOn: []string{"S"},
-			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, order []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentFilter, order *Order) bool {
 				return needAllComponentByServiceVulnerabilityCounts(f, order)
 			}),
 		},
@@ -149,12 +149,12 @@ func ensureComponentFilter(filter *entity.ComponentFilter) *entity.ComponentFilt
 	return EnsurePagination(filter)
 }
 
-func needSingleComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order []entity.Order) bool {
-	return OrderByCount(order) && (len(filter.Id) > 0 && (len(filter.ServiceCCRN) > 0))
+func needSingleComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order *Order) bool {
+	return order.ByCount() && (len(filter.Id) > 0 && (len(filter.ServiceCCRN) > 0))
 }
 
-func needAllComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order []entity.Order) bool {
-	return OrderByCount(order) && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0))
+func needAllComponentByServiceVulnerabilityCounts(filter *entity.ComponentFilter, order *Order) bool {
+	return order.ByCount() && (len(filter.Id) == 0 && (len(filter.ServiceCCRN) > 0))
 }
 
 func (s *SqlDatabase) getComponentColumns(order []entity.Order) string {
@@ -195,10 +195,9 @@ func (s *SqlDatabase) buildComponentStatement(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	order = GetDefaultOrder(order, entity.ComponentId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
+	ord := NewOrder(order, entity.Order{entity.ComponentId, entity.OrderDirectionAsc})
 	filterStr := componentObject.GetFilterQuery(filter)
-	joins := componentObject.GetJoins(filter, order)
+	joins := componentObject.GetJoins(filter, ord)
 
 	whereClause := ""
 
@@ -212,9 +211,9 @@ func (s *SqlDatabase) buildComponentStatement(
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters

@@ -149,7 +149,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 			Type:  LeftJoin,
 			Table: "ComponentVersionIssue CVI",
 			On:    "CV.componentversion_id = CVI.componentversionissue_component_version_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ *Order) bool {
 				return len(f.IssueId) > 0
 			}),
 		},
@@ -159,8 +159,8 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 			Table:     "IssueVariant IV",
 			On:        "CVI.componentversionissue_issue_id = IV.issuevariant_issue_id",
 			DependsOn: []string{"CVI"},
-			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, order []entity.Order) bool {
-				return OrderByCount(order) || len(f.IssueRepositoryId) > 0
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, order *Order) bool {
+				return order.ByCount() || len(f.IssueRepositoryId) > 0
 			}),
 		},
 		{
@@ -168,7 +168,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 			Type:  LeftJoin,
 			Table: "Component C",
 			On:    "CV.componentversion_component_id = C.component_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ *Order) bool {
 				return len(f.ComponentCCRN) > 0
 			}),
 		},
@@ -177,7 +177,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 			Type:  LeftJoin,
 			Table: "ComponentInstance CI",
 			On:    "CV.componentversion_id = CI.componentinstance_component_version_id",
-			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ *Order) bool {
 				return len(f.ServiceId) > 0
 			}),
 		},
@@ -187,7 +187,7 @@ var componentVersionObject = DbObject[*entity.ComponentVersion]{
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI"},
-			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ComponentVersionFilter, _ *Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
 		},
@@ -257,9 +257,8 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	order = GetDefaultOrder(order, entity.ComponentVersionId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := componentVersionObject.GetJoins(filter, order)
+	ord := NewOrder(order, entity.Order{entity.ComponentVersionId, entity.OrderDirectionAsc})
+	joins := componentVersionObject.GetJoins(filter, ord)
 	filterStr := componentVersionObject.GetFilterQuery(filter)
 
 	whereClause := ""
@@ -277,9 +276,9 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 
 	columns := s.getComponentVersionColumns(order)
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, ord)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters

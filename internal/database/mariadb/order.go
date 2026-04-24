@@ -110,10 +110,22 @@ func OrderDirectionStr(dir entity.OrderDirection) string {
 	}
 }
 
-func CreateOrderString(order []entity.Order) string {
+type Order struct {
+	sequence []entity.Order
+}
+
+func NewOrder(seq []entity.Order, defaultOrder entity.Order) *Order {
+	o := Order{}
+	if len(seq) == 0 {
+		o.sequence = seq
+	}
+	return &o
+}
+
+func (o Order) String() string {
 	orderStr := ""
 
-	for i, o := range order {
+	for i, o := range o.sequence {
 		if i > 0 {
 			orderStr = fmt.Sprintf(
 				"%s, %s %s",
@@ -134,8 +146,30 @@ func CreateOrderString(order []entity.Order) string {
 	return orderStr
 }
 
-func OrderByCount(order []entity.Order) bool {
-	return lo.ContainsBy(order, func(o entity.Order) bool {
-		return o.By == entity.CriticalCount || o.By == entity.HighCount || o.By == entity.MediumCount || o.By == entity.LowCount || o.By == entity.NoneCount
+func (o Order) Sequence() []entity.Order {
+	return o.sequence
+}
+
+func (o Order) By(fields ...entity.OrderByField) bool {
+	return lo.ContainsBy(o.sequence, func(o entity.Order) bool {
+		return lo.ContainsBy(fields, func(f entity.OrderByField) bool {
+			return o.By == f
+		})
 	})
+}
+
+func (o Order) ByCount() bool {
+	return o.By(entity.CriticalCount, entity.HighCount, entity.MediumCount, entity.LowCount, entity.NoneCount)
+}
+
+func (o Order) ByRating() bool {
+	return o.By(entity.IssueVariantRating)
+}
+
+func (o Order) ByIssuePrimaryName() bool {
+	return o.By(entity.IssuePrimaryName)
+}
+
+func (o Order) ByCiCcrn() bool {
+	return o.By(entity.ComponentInstanceCcrn)
 }

@@ -207,8 +207,7 @@ func (s *SqlDatabase) buildRemediationStatement(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	order = GetDefaultOrder(order, entity.RemediationId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
+	ord := NewOrder(order, entity.Order{entity.RemediationId, entity.OrderDirectionAsc})
 
 	filterStr := remediationObject.GetFilterQuery(filter)
 
@@ -223,9 +222,9 @@ func (s *SqlDatabase) buildRemediationStatement(
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, ord)
 	}
 
 	stmt, err := s.db.Preparex(query)

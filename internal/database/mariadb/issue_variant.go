@@ -126,7 +126,7 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 			Table:     "IssueRepositoryService IRS",
 			On:        "IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id",
 			DependsOn: []string{"IR"},
-			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ *Order) bool {
 				return len(f.ServiceId) > 0
 			}),
 		},
@@ -135,7 +135,7 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 			Type:  InnerJoin,
 			Table: "Issue I",
 			On:    "IV.issuevariant_issue_id = I.issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ *Order) bool {
 				return len(f.IssueId) > 0
 			}),
 		},
@@ -145,7 +145,7 @@ var issueVariantObject = DbObject[*entity.IssueVariant]{
 			Table:     "IssueMatch IM",
 			On:        "I.issue_id = IM.issuematch_issue_id",
 			DependsOn: []string{"I"},
-			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueVariantFilter, _ *Order) bool {
 				return len(f.IssueMatchId) > 0
 			}),
 		},
@@ -176,9 +176,8 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 	}
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
-	order = GetDefaultOrder(order, entity.IssueVariantID, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := issueVariantObject.GetJoins(filter, order)
+	ord := NewOrder(order, entity.Order{entity.IssueVariantID, entity.OrderDirectionAsc})
+	joins := issueVariantObject.GetJoins(filter, ord)
 	filterStr := issueVariantObject.GetFilterQuery(filter)
 
 	whereClause := ""
@@ -192,9 +191,9 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
 	stmt, err := s.db.Preparex(query)

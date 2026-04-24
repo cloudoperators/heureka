@@ -76,7 +76,7 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 			Type:  LeftJoin,
 			Table: "IssueRepositoryService IRS",
 			On:    "IR.issuerepository_id = IRS.issuerepositoryservice_issue_repository_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ *Order) bool {
 				return len(f.ServiceId) > 0
 			}),
 		},
@@ -86,7 +86,7 @@ var issueRepositoryObject = DbObject[*entity.IssueRepository]{
 			Table:     "Service S",
 			On:        "IRS.issuerepositoryservice_service_id = S.service_id",
 			DependsOn: []string{"IRS"},
-			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueRepositoryFilter, _ *Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
 		},
@@ -120,9 +120,8 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
-	order = GetDefaultOrder(order, entity.IssueRepositoryID, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := issueRepositoryObject.GetJoins(filter, order)
+	ord := NewOrder(order, entity.Order{entity.IssueRepositoryID, entity.OrderDirectionAsc})
+	joins := issueRepositoryObject.GetJoins(filter, ord)
 	filterStr := issueRepositoryObject.GetFilterQuery(filter)
 
 	whereClause := ""
@@ -136,9 +135,9 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
 	stmt, err := s.db.Preparex(query)
