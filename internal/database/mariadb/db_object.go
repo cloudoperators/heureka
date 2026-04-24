@@ -272,18 +272,15 @@ type JoinDef struct {
 }
 
 type JoinResolver struct {
-	defs     map[string]*JoinDef
+	defs     []*JoinDef
 	included map[string]bool
 	order    []string
 }
 
 func NewJoinResolver(defs []*JoinDef) *JoinResolver {
 	r := &JoinResolver{
-		defs:     map[string]*JoinDef{},
+		defs:     defs,
 		included: map[string]bool{},
-	}
-	for _, d := range defs {
-		r.defs[d.Name] = d
 	}
 
 	return r
@@ -294,9 +291,11 @@ func (jr *JoinResolver) require(name string) {
 		return
 	}
 
-	def, ok := jr.defs[name]
+	def, ok := lo.Find(jr.defs, func(jd *JoinDef) bool {
+		return jd.Name == name
+	})
 	if !ok {
-		panic("Unknown join: " + name)
+		panic("JoinResolver::require(...) Unknown join: " + name)
 	}
 
 	// resolve dependencies first
@@ -326,7 +325,12 @@ func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
 	uniqTableName := make(map[string]struct{})
 
 	for _, name := range jr.order {
-		j := jr.defs[name]
+		j, ok := lo.Find(jr.defs, func(jd *JoinDef) bool {
+			return jd.Name == name
+		})
+		if !ok {
+			panic("JoinResolver::Build(...) Unknown join: " + name)
+		}
 
 		if _, ok := uniqTableName[j.Table]; ok {
 			continue

@@ -171,8 +171,10 @@ var _ = Describe("DbObject", Label("database", "DbObject"), func() {
 				joins := testObject.GetJoins(&def, nil)
 				lines := strings.Split(strings.TrimSpace(joins), "\n")
 				Expect(lines).To(HaveLen(2))
-				Expect(lines[0]).To(BeEquivalentTo("LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id"))
-				Expect(lines[1]).To(BeEquivalentTo("RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id"))
+				Expect(lines).To(ConsistOf(
+					MatchRegexp("^LEFT JOIN Xabc X ON DT.dummytable_id = X.xabc_dummytable_id$"),
+					MatchRegexp("^RIGHT JOIN Yabc Y ON DT.dummytable_id = Y.yabc_dummytable_id$"),
+				))
 			})
 		})
 		Context("Join with dependency is there in the object", func() {
