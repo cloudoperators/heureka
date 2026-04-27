@@ -3,7 +3,7 @@ module github.com/cloudoperators/heureka
 go 1.26.0
 
 require (
-	github.com/99designs/gqlgen v0.17.89
+	github.com/99designs/gqlgen v0.17.90
 	github.com/Khan/genqlient v0.8.1
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/brianvoe/gofakeit/v7 v7.14.1
@@ -52,8 +52,8 @@ require (
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/openfga/api/proto v0.0.0-20260319214821-f153694bfc20 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
-	github.com/urfave/cli/v3 v3.7.0 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.32 // indirect
+	github.com/urfave/cli/v3 v3.8.0 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.33 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
@@ -99,7 +99,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/matryer/is v1.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
