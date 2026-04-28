@@ -146,7 +146,7 @@ var _ = Describe("When listing Components", Label("app", "ListComponents"), func
 				}
 				db.On("GetAllUserIds", mock.Anything).Return([]int64{}, nil)
 				db.On("GetComponents", filter, []entity.Order{}).Return(components, nil)
-				db.On("GetAllComponentCursors", filter, []entity.Order{}).Return(cursors, nil)
+				db.On("GetAllComponentCursors", mock.Anything, filter, []entity.Order{}).Return(cursors, nil)
 				componentHandler = c.NewComponentHandler(handlerContext)
 				res, err := componentHandler.ListComponents(ctx, filter, options)
 				Expect(err).To(BeNil(), "no error should be thrown")

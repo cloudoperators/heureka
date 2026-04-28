@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -72,6 +73,10 @@ func (ts *TraceStmt) Queryx(args ...any) (*sqlx.Rows, error) {
 	return ts.stmt.Queryx(args...)
 }
 
+func (ts *TraceStmt) QueryxContext(ctx context.Context, args ...any) (*sqlx.Rows, error) {
+	return ts.stmt.QueryxContext(ctx, args...)
+}
+
 // TraceNamedStmt
 type TraceNamedStmt struct {
 	trace     *Trace
@@ -134,6 +139,18 @@ func (tdb *TraceDb) Preparex(query string) (Stmt, error) {
 	return &TraceStmt{stmt: stmt, trace: trace}, nil
 }
 
+func (tdb *TraceDb) PreparexContext(ctx context.Context, query string) (Stmt, error) {
+	trace := NewTrace("PreparexContext", query)
+
+	stmt, err := tdb.db.PreparexContext(ctx, query)
+	if err != nil {
+		trace.errorTrace()
+		return stmt, err
+	}
+
+	return &TraceStmt{stmt: stmt, trace: trace}, nil
+}
+
 func (tdb *TraceDb) Select(dest any, query string, args ...any) error {
 	defer NewTrace("Select", query).exitTrace()
 	return tdb.db.Select(dest, query, args...)
@@ -154,4 +171,9 @@ func (tdb *TraceDb) Query(query string, args ...any) (SqlRows, error) {
 func (tdb *TraceDb) QueryRow(query string, args ...any) *sql.Row {
 	defer NewTrace("QueryRow", query).exitTrace()
 	return tdb.db.QueryRow(query, args...)
+}
+
+func (tdb *TraceDb) QueryContext(ctx context.Context, query string, args ...any) (SqlRows, error) {
+	defer NewTrace("QueryContext", query).exitTrace()
+	return tdb.db.QueryContext(ctx, query, args...)
 }

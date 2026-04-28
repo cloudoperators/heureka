@@ -4,6 +4,7 @@
 package mariadb
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/cloudoperators/heureka/internal/util"
@@ -13,6 +14,7 @@ import (
 type Stmt interface {
 	Close() error
 	Queryx(args ...any) (*sqlx.Rows, error)
+	QueryxContext(ctx context.Context, args ...any) (*sqlx.Rows, error)
 }
 
 type NamedStmt interface {
@@ -33,9 +35,11 @@ type Db interface {
 	Get(dest any, query string, args ...any) error
 	GetDbInstance() *sql.DB
 	Preparex(query string) (Stmt, error)
+	PreparexContext(ctx context.Context, query string) (Stmt, error)
 	PrepareNamed(query string) (NamedStmt, error)
 	Select(dest any, query string, args ...any) error
 	Query(query string, args ...any) (SqlRows, error)
+	QueryContext(ctx context.Context, query string, args ...any) (SqlRows, error)
 	QueryRow(query string, args ...any) *sql.Row
 }
 

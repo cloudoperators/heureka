@@ -3,7 +3,11 @@
 
 package database
 
-import "github.com/cloudoperators/heureka/internal/entity"
+import (
+	"context"
+
+	"github.com/cloudoperators/heureka/internal/entity"
+)
 
 type Database interface {
 	GetIssues(*entity.IssueFilter, []entity.Order) ([]entity.IssueResult, error)
@@ -122,7 +126,7 @@ type Database interface {
 	GetComponentInstanceParent(filter *entity.ComponentInstanceFilter) ([]string, error)
 
 	GetComponents(*entity.ComponentFilter, []entity.Order) ([]entity.ComponentResult, error)
-	GetAllComponentCursors(*entity.ComponentFilter, []entity.Order) ([]string, error)
+	GetAllComponentCursors(context.Context, *entity.ComponentFilter, []entity.Order) ([]string, error)
 	CountComponents(*entity.ComponentFilter) (int64, error)
 	CountComponentVulnerabilities(*entity.ComponentFilter) ([]entity.IssueSeverityCounts, error)
 	CreateComponent(*entity.Component) (*entity.Component, error)
