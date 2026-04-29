@@ -65,8 +65,7 @@ func (do *DbObject[ET]) GetFilterParameters(
 		paginated := filter.GetPaginated()
 		filterParameters = append(
 			filterParameters,
-			GetCursorQueryParameters(paginated.First, cursorFields)...,
-		)
+			GetCursorQueryParameters(paginated.First, cursorFields)...)
 	}
 
 	return filterParameters
@@ -166,31 +165,29 @@ func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
 	return NewJoinResolver(do.JoinDefs).Build(filter, order)
 }
 
-func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) (string, bool) {
+func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) string {
 	filterStr := do.GetFilterQuery(filter)
-
-	hasFilter := filterStr != ""
-	if hasFilter || withCursor {
-		return fmt.Sprintf("WHERE %s", filterStr), hasFilter
+	if filterStr != "" || withCursor {
+		return fmt.Sprintf("WHERE %s", filterStr)
 	}
 
-	return "", false
+	return ""
 }
 
-func (do *DbObject[ET]) GetCursorQuery(hasFilter *bool, cursorFields []Field, withCursor *bool, aggregated bool) string {
+func (do *DbObject[ET]) GetCursorQuery(filter any, cursorFields []Field, withCursor *bool, aggregated bool) string {
 	cursorQuery := CreateCursorQuery("", cursorFields)
 
 	if aggregated {
-		if (withCursor == nil || *withCursor) && (hasFilter == nil || *hasFilter) && cursorQuery != "" {
+		if (withCursor == nil || *withCursor) && (filter == nil || do.GetFilterQuery(filter) != "") && cursorQuery != "" {
 			cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
 		}
 	} else {
-		if hasFilter != nil {
-			if *hasFilter && *withCursor && cursorQuery != "" {
+		if filter != nil {
+			if do.GetFilterQuery(filter) != "" && *withCursor && cursorQuery != "" {
 				cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
 			}
 		} else {
-			panic("hasFilter for not aggregated query has to be passed (has to be not nil).")
+			panic("filter for not aggregated query has to be passed (has to be not nil).")
 		}
 	}
 
@@ -370,8 +367,7 @@ func (jr *JoinResolver) Build(filter any, order *Order) string {
 
 		uniqTableName[j.Table] = struct{}{}
 
-		joinSQL := fmt.Sprintf(
-			"%s %s ON %s",
+		joinSQL := fmt.Sprintf("%s %s ON %s",
 			j.Type,
 			j.Table,
 			j.On,
