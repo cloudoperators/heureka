@@ -339,26 +339,6 @@ func getIssueColumns(order []entity.Order) string {
 	return columns
 }
 
-func getIssueFilterWhereClause(filter *entity.IssueFilter) string {
-	filterStr := issueObject.GetFilterQuery(filter)
-	if filterStr != "" {
-		return fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	return ""
-}
-
-func getIssueCursorQuery(filter *entity.IssueFilter, cursorFields []Field) string {
-	filterStr := issueObject.GetFilterQuery(filter)
-
-	cursorQuery := CreateCursorQuery("", cursorFields)
-	if filterStr != "" && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
-	}
-
-	return cursorQuery
-}
-
 func getIssueQueryWithCursor(
 	baseQuery string,
 	order []entity.Order,
@@ -366,19 +346,19 @@ func getIssueQueryWithCursor(
 	cursorFields []Field,
 ) string {
 	issueColumns := getIssueColumns(order)
-	ord := NewOrder(order, entity.Order{entity.IssueId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
 	joins := issueObject.GetJoins(filter, ord)
-	whereClause := getIssueFilterWhereClause(filter)
-	issueCursor := getIssueCursorQuery(filter, cursorFields)
+	whereClause := issueObject.GetFilterWhereClause(filter, false)
+	issueCursor := issueObject.GetCursorQuery(filter, cursorFields, nil, true)
 
 	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, issueCursor, ord)
 }
 
 func getIssueQuery(baseQuery string, order []entity.Order, filter *entity.IssueFilter) string {
 	issueColumns := getIssueColumns(order)
-	ord := NewOrder(order, entity.Order{entity.IssueId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
 	joins := issueObject.GetJoins(filter, ord)
-	whereClause := getIssueFilterWhereClause(filter)
+	whereClause := issueObject.GetFilterWhereClause(filter, false)
 
 	return fmt.Sprintf(baseQuery, issueColumns, joins, whereClause, ord)
 }
@@ -519,9 +499,9 @@ func (s *SqlDatabase) GetIssuesWithAggregations(
 	}
 
 	columns := getIssueColumns(order)
-	ord := NewOrder(order, entity.Order{entity.IssueId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.IssueId, Direction: entity.OrderDirectionAsc})
 
-	whereClause := getIssueFilterWhereClause(filter)
+	whereClause := issueObject.GetFilterWhereClause(filter, false)
 
 	cursorQuery := CreateCursorQuery("", cursorFields)
 

@@ -193,21 +193,10 @@ func (s *SqlDatabase) buildComponentStatement(
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	ord := NewOrder(order, entity.Order{entity.ComponentId, entity.OrderDirectionAsc})
-	filterStr := componentObject.GetFilterQuery(filter)
+	ord := NewOrder(order, entity.Order{By: entity.ComponentId, Direction: entity.OrderDirectionAsc})
 	joins := componentObject.GetJoins(filter, ord)
-
-	whereClause := ""
-
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	whereClause := componentObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := componentObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

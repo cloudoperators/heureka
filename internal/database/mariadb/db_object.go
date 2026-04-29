@@ -165,6 +165,35 @@ func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
 	return NewJoinResolver(do.JoinDefs).Build(filter, order)
 }
 
+func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) string {
+	filterStr := do.GetFilterQuery(filter)
+	if filterStr != "" || withCursor {
+		return fmt.Sprintf("WHERE %s", filterStr)
+	}
+
+	return ""
+}
+
+func (do *DbObject[ET]) GetCursorQuery(filter any, cursorFields []Field, withCursor *bool, aggregated bool) string {
+	cursorQuery := CreateCursorQuery("", cursorFields)
+
+	if aggregated {
+		if (withCursor == nil || *withCursor) && (filter == nil || do.GetFilterQuery(filter) != "") && cursorQuery != "" {
+			cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
+		}
+	} else {
+		if filter != nil {
+			if do.GetFilterQuery(filter) != "" && *withCursor && cursorQuery != "" {
+				cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+			}
+		} else {
+			panic("filter for not aggregated query has to be passed (has to be not nil).")
+		}
+	}
+
+	return cursorQuery
+}
+
 // Property
 const NoUpdate = false
 

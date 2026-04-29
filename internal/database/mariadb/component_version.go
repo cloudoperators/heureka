@@ -255,23 +255,11 @@ func (s *SqlDatabase) buildComponentVersionStatement(
 		return nil, nil, err
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	ord := NewOrder(order, entity.Order{entity.ComponentVersionId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.ComponentVersionId, Direction: entity.OrderDirectionAsc})
 	joins := componentVersionObject.GetJoins(filter, ord)
-	filterStr := componentVersionObject.GetFilterQuery(filter)
+	whereClause := componentVersionObject.GetFilterWhereClause(filter, false)
+	cursorQuery := componentVersionObject.GetCursorQuery(nil, cursorFields, &withCursor, true)
 
-	whereClause := ""
-	if filterStr != "" {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if withCursor && cursorQuery != "" {
-		// cursor uses aggregated values that need to be used with having
-		cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
-	}
-
-	// construct final query
 	var query string
 
 	columns := s.getComponentVersionColumns(order)

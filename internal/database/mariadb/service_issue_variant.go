@@ -59,20 +59,9 @@ func (s *SqlDatabase) buildServiceIssueVariantStatement(
 		return nil, nil, fmt.Errorf("failed to decode ServiceIssueVariant cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	ord := NewOrder(order, entity.Order{entity.ServiceIssueVariantID, entity.OrderDirectionAsc})
-
-	filterStr := serviceIssueVariantObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	ord := NewOrder(order, entity.Order{By: entity.ServiceIssueVariantID, Direction: entity.OrderDirectionAsc})
+	whereClause := serviceIssueVariantObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := serviceIssueVariantObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

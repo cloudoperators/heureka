@@ -117,8 +117,11 @@ type Order struct {
 func NewOrder(seq []entity.Order, defaultOrder entity.Order) *Order {
 	o := Order{}
 	if len(seq) == 0 {
+		o.sequence = []entity.Order{defaultOrder}
+	} else {
 		o.sequence = seq
 	}
+
 	return &o
 }
 

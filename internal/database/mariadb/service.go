@@ -235,20 +235,10 @@ func (s *SqlDatabase) buildServiceStatement(
 		return nil, nil, err
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	ord := NewOrder(order, entity.Order{entity.ServiceId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
 	joins := serviceObject.GetJoins(filter, ord)
-	filterStr := serviceObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
-	}
+	whereClause := serviceObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := serviceObject.GetCursorQuery(filter, cursorFields, &withCursor, true)
 
 	// construct final query
 	if withCursor {
@@ -428,7 +418,7 @@ func (s *SqlDatabase) GetServicesWithAggregations(
         JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id;
     `
 	filter = ensureServiceFilter(filter)
-	ord := NewOrder(order, entity.Order{entity.ServiceId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
 	joins := serviceObject.GetJoins(filter, ord)
 	columns := s.getServiceColumns(filter, ord.Sequence())
 

@@ -134,21 +134,11 @@ func (s *SqlDatabase) buildSupportGroupStatement(
 		return nil, nil, err
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-	ord := NewOrder(order, entity.Order{entity.SupportGroupId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.SupportGroupId, Direction: entity.OrderDirectionAsc})
 	joins := supportGroupObject.GetJoins(filter, ord)
-	filterStr := supportGroupObject.GetFilterQuery(filter)
+	whereClause := supportGroupObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := supportGroupObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
 
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
-
-	// construct final query
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {

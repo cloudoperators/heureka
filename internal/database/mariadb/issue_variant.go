@@ -175,19 +175,10 @@ func (s *SqlDatabase) buildIssueVariantStatement(
 		return nil, nil, fmt.Errorf("failed to decode IssueVariant cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-	ord := NewOrder(order, entity.Order{entity.IssueVariantID, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.IssueVariantID, Direction: entity.OrderDirectionAsc})
 	joins := issueVariantObject.GetJoins(filter, ord)
-	filterStr := issueVariantObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	whereClause := issueVariantObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := issueVariantObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

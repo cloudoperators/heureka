@@ -118,20 +118,10 @@ func (s *SqlDatabase) buildIssueRepositoryStatement(
 		return nil, nil, fmt.Errorf("failed to decode IssueRepository cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	ord := NewOrder(order, entity.Order{entity.IssueRepositoryID, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.IssueRepositoryID, Direction: entity.OrderDirectionAsc})
 	joins := issueRepositoryObject.GetJoins(filter, ord)
-	filterStr := issueRepositoryObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	whereClause := issueRepositoryObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := issueRepositoryObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

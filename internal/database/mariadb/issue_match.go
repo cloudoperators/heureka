@@ -291,21 +291,11 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 		return nil, nil, err
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	ord := NewOrder(order, entity.Order{entity.IssueMatchId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc})
 	columns := s.getIssueMatchColumns(ord.Sequence())
 	joins := issueMatchObject.GetJoins(filter, ord)
-	filterStr := issueMatchObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	whereClause := issueMatchObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := issueMatchObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {

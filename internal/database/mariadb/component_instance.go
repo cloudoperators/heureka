@@ -291,22 +291,11 @@ func (s *SqlDatabase) buildComponentInstanceStatement(
 		return nil, nil, fmt.Errorf("failed to decode cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	ord := NewOrder(order, entity.Order{entity.ComponentInstanceId, entity.OrderDirectionAsc})
+	ord := NewOrder(order, entity.Order{By: entity.ComponentInstanceId, Direction: entity.OrderDirectionAsc})
 	joins := componentInstanceObject.GetJoins(filter, ord)
-	filterStr := componentInstanceObject.GetFilterQuery(filter)
+	whereClause := componentInstanceObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := componentInstanceObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
 
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
-
-	// construct final query
 	var query string
 	if withCursor {
 		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)

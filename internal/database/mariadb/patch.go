@@ -70,20 +70,9 @@ func (s *SqlDatabase) buildPatchStatement(
 		return nil, nil, fmt.Errorf("failed to decode Patch cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	ord := NewOrder(order, entity.Order{entity.PatchId, entity.OrderDirectionAsc})
-
-	filterStr := patchObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	ord := NewOrder(order, entity.Order{By: entity.PatchId, Direction: entity.OrderDirectionAsc})
+	whereClause := patchObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := patchObject.GetCursorQuery(filter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {
