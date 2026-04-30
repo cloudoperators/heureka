@@ -167,6 +167,7 @@ func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
 
 func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) (string, bool) {
 	filterStr := do.GetFilterQuery(filter)
+
 	hasFilter := filterStr != ""
 	if hasFilter || withCursor {
 		return fmt.Sprintf("WHERE %s", filterStr), hasFilter
