@@ -105,7 +105,7 @@ func BuildIssueVariantMap(
 
 	// Get Issue Variants
 	issueVariants, err := db.GetServiceIssueVariants(
-		context.TODO(),
+		context.Background(),
 		&entity.ServiceIssueVariantFilter{ComponentInstanceId: []*int64{&componentInstanceID}},
 		[]entity.Order{},
 	)
@@ -167,7 +167,7 @@ func OnComponentVersionAssignmentToComponentInstance(
 	l.WithField("event-step", "BuildIssueVariants").
 		Debug("Building map of IssueVariants for issues related to assigned Component Version")
 
-	issueVariantMap, err := shared.BuildIssueVariantMap(context.TODO(), db, &entity.ServiceIssueVariantFilter{
+	issueVariantMap, err := shared.BuildIssueVariantMap(context.Background(), db, &entity.ServiceIssueVariantFilter{
 		ComponentInstanceId: []*int64{&componentInstanceID},
 	}, componentVersionID)
 
@@ -189,7 +189,7 @@ func OnComponentVersionAssignmentToComponentInstance(
 		l.WithField("event-step", "FetchIssueMatches").
 			Debug("Fetching issue matches related to assigned Component Instance")
 
-		issue_matches, err := db.GetIssueMatches(context.TODO(), &entity.IssueMatchFilter{
+		issue_matches, err := db.GetIssueMatches(context.Background(), &entity.IssueMatchFilter{
 			IssueId:             []*int64{&issueId},
 			ComponentInstanceId: []*int64{&componentInstanceID},
 		}, nil)

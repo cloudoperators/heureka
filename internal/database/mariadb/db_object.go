@@ -161,8 +161,39 @@ func (do *DbObject[ET]) Delete(db Db, id int64, userId int64) error {
 	return err
 }
 
-func (do *DbObject[ET]) GetJoins(filter any, order []entity.Order) string {
+func (do *DbObject[ET]) GetJoins(filter any, order *Order) string {
 	return NewJoinResolver(do.JoinDefs).Build(filter, order)
+}
+
+func (do *DbObject[ET]) GetFilterWhereClause(filter any, withCursor bool) (string, bool) {
+	filterStr := do.GetFilterQuery(filter)
+
+	hasFilter := filterStr != ""
+	if hasFilter || withCursor {
+		return fmt.Sprintf("WHERE %s", filterStr), hasFilter
+	}
+
+	return "", false
+}
+
+func (do *DbObject[ET]) GetCursorQuery(hasFilter *bool, cursorFields []Field, withCursor *bool, aggregated bool) string {
+	cursorQuery := CreateCursorQuery("", cursorFields)
+
+	if aggregated {
+		if (withCursor == nil || *withCursor) && (hasFilter == nil || *hasFilter) && cursorQuery != "" {
+			cursorQuery = fmt.Sprintf("HAVING (%s)", cursorQuery)
+		}
+	} else {
+		if hasFilter != nil {
+			if *hasFilter && *withCursor && cursorQuery != "" {
+				cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
+			}
+		} else {
+			panic("hasFilter for not aggregated query has to be passed (has to be not nil).")
+		}
+	}
+
+	return cursorQuery
 }
 
 // Property
@@ -260,7 +291,7 @@ const (
 	InnerJoin JoinType = "JOIN"
 )
 
-func DependentJoin(any, []entity.Order) bool { return false }
+func DependentJoin(any, *Order) bool { return false }
 
 type JoinDef struct {
 	Name      string
@@ -268,22 +299,19 @@ type JoinDef struct {
 	Table     string
 	On        string
 	DependsOn []string
-	Condition func(any, []entity.Order) bool
+	Condition func(any, *Order) bool
 }
 
 type JoinResolver struct {
-	defs     map[string]*JoinDef
+	defs     []*JoinDef
 	included map[string]bool
 	order    []string
 }
 
 func NewJoinResolver(defs []*JoinDef) *JoinResolver {
 	r := &JoinResolver{
-		defs:     map[string]*JoinDef{},
+		defs:     defs,
 		included: map[string]bool{},
-	}
-	for _, d := range defs {
-		r.defs[d.Name] = d
 	}
 
 	return r
@@ -294,9 +322,11 @@ func (jr *JoinResolver) require(name string) {
 		return
 	}
 
-	def, ok := jr.defs[name]
+	def, ok := lo.Find(jr.defs, func(jd *JoinDef) bool {
+		return jd.Name == name
+	})
 	if !ok {
-		panic("Unknown join: " + name)
+		panic("JoinResolver::require(...) Unknown join: " + name)
 	}
 
 	// resolve dependencies first
@@ -308,7 +338,7 @@ func (jr *JoinResolver) require(name string) {
 	jr.order = append(jr.order, name)
 }
 
-func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
+func (jr *JoinResolver) Build(filter any, order *Order) string {
 	for _, def := range jr.defs {
 		if def.Condition != nil && def.Condition(filter, order) {
 			jr.require(def.Name)
@@ -326,7 +356,12 @@ func (jr *JoinResolver) Build(filter any, order []entity.Order) string {
 	uniqTableName := make(map[string]struct{})
 
 	for _, name := range jr.order {
-		j := jr.defs[name]
+		j, ok := lo.Find(jr.defs, func(jd *JoinDef) bool {
+			return jd.Name == name
+		})
+		if !ok {
+			panic("JoinResolver::Build(...) Unknown join: " + name)
+		}
 
 		if _, ok := uniqTableName[j.Table]; ok {
 			continue
@@ -493,8 +528,8 @@ func WrapRetJson[T any](fn func(T) []*entity.Json) func(any) []*entity.Json {
 }
 
 // WrapJoinCondition turns a type-specific join planner condition using filter and order
-func WrapJoinCondition[T any](joinCond func(T, []entity.Order) bool) func(any, []entity.Order) bool {
-	return func(filter any, order []entity.Order) bool {
+func WrapJoinCondition[T any](joinCond func(T, *Order) bool) func(any, *Order) bool {
+	return func(filter any, order *Order) bool {
 		typedFilter, ok := filter.(T)
 		if !ok {
 			panic(fmt.Sprintf("WrapJoinCondition: expected %T but got %T", *new(T), filter))

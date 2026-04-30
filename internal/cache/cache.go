@@ -19,6 +19,7 @@ type Cache interface {
 	GetAllKeys() ([]string, error)
 	Set(key string, value string, ttl time.Duration) error
 	Invalidate(key string) error
+	InvalidateByMatch(keyMatcher func(decodedKey string) bool) error
 	IncHit()
 	IncMiss()
 	IncShared()
@@ -232,26 +233,4 @@ func DecodeKey(key string, keyHash KeyHashType) (string, error) {
 	}
 
 	return "", fmt.Errorf("cache: Key hash '%s' could not be decoded", keyHash.String())
-}
-
-func InvalidateByMatch(cache Cache, keyMatcher func(decodedKey string) bool) error {
-	keys, err := cache.GetAllKeys()
-	if err != nil {
-		return fmt.Errorf("cache: failed to get cache keys: %w", err)
-	}
-
-	for _, key := range keys {
-		decodedKey, err := DecodeKey(key, cache.GetKeyHashType())
-		if err != nil {
-			return fmt.Errorf("cache: failed to decode cached key: %w", err)
-		}
-
-		if keyMatcher(decodedKey) {
-			if err := cache.Invalidate(key); err != nil {
-				return fmt.Errorf("cache: failed to invalidate key: [key: %s, error: %w]", decodedKey, err)
-			}
-		}
-	}
-
-	return nil
 }

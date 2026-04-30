@@ -269,7 +269,7 @@ func (rh *remediationHandler) CreateRemediation(
 	}
 
 	if rh.cache != nil {
-		if err := cache.InvalidateByMatch(rh.cache, func(decodedKey string) bool {
+		if err := rh.cache.InvalidateByMatch(func(decodedKey string) bool {
 			return (strings.Contains(decodedKey, fmt.Sprintf("\"issue_id\":[%d]", newRemediation.IssueId)) ||
 				strings.Contains(decodedKey, fmt.Sprintf("\"id\":[%d]", newRemediation.IssueId))) &&
 				(strings.Contains(decodedKey, "GetIssuesWithAggregations") || strings.Contains(decodedKey, "GetIssues") ||

@@ -74,7 +74,7 @@ func OnIssueRepositoryCreate(db database.Database, e event.Event, authz openfga.
 		l.WithField("event-step", "GetIssueRepository").Debug("Fetching Issue Repository by name")
 
 		// Fetch services
-		services, err := db.GetServices(context.TODO(), &entity.ServiceFilter{}, []entity.Order{})
+		services, err := db.GetServices(context.Background(), &entity.ServiceFilter{}, []entity.Order{})
 		if err != nil {
 			l.WithField("event-step", "GetServices").
 				WithError(err).

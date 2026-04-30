@@ -159,7 +159,7 @@ func OnServiceCreate(db database.Database, e event.Event, authz openfga.Authoriz
 		serviceId := createEvent.Service.Id
 
 		// Fetch IssueRepositories
-		issueRepositories, err := db.GetIssueRepositories(context.TODO(), &entity.IssueRepositoryFilter{
+		issueRepositories, err := db.GetIssueRepositories(context.Background(), &entity.IssueRepositoryFilter{
 			Name: []*string{&defaultRepoName},
 		}, []entity.Order{})
 		if err != nil {

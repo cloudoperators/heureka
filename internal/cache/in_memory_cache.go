@@ -89,3 +89,25 @@ func (imc *InMemoryCache) Invalidate(key string) error {
 func (imc *InMemoryCache) GetKeyHashType() KeyHashType {
 	return imc.keyHash
 }
+
+func (imc *InMemoryCache) InvalidateByMatch(keyMatcher func(decodedKey string) bool) error {
+	keys, err := imc.GetAllKeys()
+	if err != nil {
+		return fmt.Errorf("cache: failed to get cache keys: %w", err)
+	}
+
+	for _, key := range keys {
+		decodedKey, err := DecodeKey(key, imc.GetKeyHashType())
+		if err != nil {
+			return fmt.Errorf("cache: failed to decode cached key: %w", err)
+		}
+
+		if keyMatcher(decodedKey) {
+			if err := imc.Invalidate(key); err != nil {
+				return fmt.Errorf("cache: failed to invalidate key: [key: %s, error: %w]", decodedKey, err)
+			}
+		}
+	}
+
+	return nil
+}

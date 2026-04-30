@@ -164,11 +164,8 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			Type:  LeftJoin,
 			Table: "Issue I",
 			On:    "IM.issuematch_issue_id = I.issue_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, order []entity.Order) bool {
-				orderByIssuePrimaryName := lo.ContainsBy(order, func(o entity.Order) bool {
-					return o.By == entity.IssuePrimaryName
-				})
-				return len(f.IssueType) > 0 || len(f.PrimaryName) > 0 || orderByIssuePrimaryName
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, order *Order) bool {
+				return len(f.IssueType) > 0 || len(f.PrimaryName) > 0 || order.ByIssuePrimaryName()
 			}),
 		},
 		{
@@ -177,7 +174,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			Table:     "IssueVariant IV",
 			On:        "I.issue_id = IV.issuevariant_issue_id",
 			DependsOn: []string{"I"},
-			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ *Order) bool {
 				return len(f.Search) > 0
 			}),
 		},
@@ -186,11 +183,8 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			Type:  LeftJoin,
 			Table: "ComponentInstance CI",
 			On:    "IM.issuematch_component_instance_id = CI.componentinstance_id",
-			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, order []entity.Order) bool {
-				orderByCiCcrn := lo.ContainsBy(order, func(o entity.Order) bool {
-					return o.By == entity.ComponentInstanceCcrn
-				})
-				return orderByCiCcrn || len(f.ServiceId) > 0
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, order *Order) bool {
+				return order.ByCiCcrn() || len(f.ServiceId) > 0
 			}),
 		},
 		{
@@ -207,7 +201,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			Table:     "Component C",
 			On:        "CV.componentversion_component_id = C.component_id",
 			DependsOn: []string{"CV"},
-			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ *Order) bool {
 				return len(f.ComponentCCRN) > 0
 			}),
 		},
@@ -217,7 +211,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			Table:     "Service S",
 			On:        "CI.componentinstance_service_id = S.service_id",
 			DependsOn: []string{"CI"},
-			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ *Order) bool {
 				return len(f.ServiceCCRN) > 0
 			}),
 		},
@@ -235,7 +229,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			Table:     "SupportGroup SG",
 			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
 			DependsOn: []string{"SGS"},
-			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ *Order) bool {
 				return len(f.SupportGroupCCRN) > 0
 			}),
 		},
@@ -253,7 +247,7 @@ var issueMatchObject = DbObject[*entity.IssueMatch]{
 			Table:     "User U",
 			On:        "O.owner_user_id = U.user_id",
 			DependsOn: []string{"O"},
-			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.IssueMatchFilter, _ *Order) bool {
 				return len(f.ServiceOwnerUsername) > 0 || len(f.ServiceOwnerUniqueUserId) > 0
 			}),
 		},
@@ -299,28 +293,17 @@ func (s *SqlDatabase) buildIssueMatchStatement(
 		return nil, nil, err
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	order = GetDefaultOrder(order, entity.IssueMatchId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	columns := s.getIssueMatchColumns(order)
-	joins := issueMatchObject.GetJoins(filter, order)
-	filterStr := issueMatchObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	ord := NewOrder(order, entity.Order{By: entity.IssueMatchId, Direction: entity.OrderDirectionAsc})
+	columns := s.getIssueMatchColumns(ord.Sequence())
+	joins := issueMatchObject.GetJoins(filter, ord)
+	whereClause, hasFilter := issueMatchObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := issueMatchObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, columns, joins, whereClause, ord)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters

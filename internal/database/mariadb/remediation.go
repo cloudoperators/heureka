@@ -207,27 +207,15 @@ func (s *SqlDatabase) buildRemediationStatement(
 		return nil, nil, fmt.Errorf("failed to decode Remediation cursor: %w", err)
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	order = GetDefaultOrder(order, entity.RemediationId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-
-	filterStr := remediationObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" AND (%s)", cursorQuery)
-	}
+	ord := NewOrder(order, entity.Order{By: entity.RemediationId, Direction: entity.OrderDirectionAsc})
+	whereClause, hasFilter := remediationObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := remediationObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, false)
 
 	var query string
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, whereClause, ord)
 	}
 
 	stmt, err := s.db.PreparexContext(ctx, query)

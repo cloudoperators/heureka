@@ -114,7 +114,7 @@ var serviceObject = DbObject[*entity.Service]{
 			Type:  LeftJoin,
 			Table: "Owner O",
 			On:    "S.service_id = O.owner_service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
 				return len(f.OwnerId) > 0
 			}),
 		},
@@ -124,7 +124,7 @@ var serviceObject = DbObject[*entity.Service]{
 			Table:     "User U",
 			On:        "O.owner_user_id = U.user_id",
 			DependsOn: []string{"O"},
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
 				return len(f.OwnerName) > 0
 			}),
 		},
@@ -133,7 +133,7 @@ var serviceObject = DbObject[*entity.Service]{
 			Type:  LeftJoin,
 			Table: "SupportGroupService SGS",
 			On:    "S.service_id = SGS.supportgroupservice_service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
 				return len(f.SupportGroupId) > 0
 			}),
 		},
@@ -143,7 +143,7 @@ var serviceObject = DbObject[*entity.Service]{
 			Table:     "SupportGroup SG",
 			On:        "SGS.supportgroupservice_support_group_id = SG.supportgroup_id",
 			DependsOn: []string{"SGS"},
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
 				return len(f.SupportGroupCCRN) > 0
 			}),
 		},
@@ -152,7 +152,7 @@ var serviceObject = DbObject[*entity.Service]{
 			Type:  LeftJoin,
 			Table: "ComponentInstance CI",
 			On:    "S.service_id = CI.componentinstance_service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
 				return len(f.ComponentInstanceId) > 0
 			}),
 		},
@@ -162,7 +162,7 @@ var serviceObject = DbObject[*entity.Service]{
 			Table:     "IssueMatch IM",
 			On:        "CI.componentinstance_id = IM.issuematch_component_instance_id",
 			DependsOn: []string{"CI"},
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
 				return len(f.IssueId) > 0
 			}),
 		},
@@ -171,7 +171,7 @@ var serviceObject = DbObject[*entity.Service]{
 			Type:  LeftJoin,
 			Table: "IssueRepositoryService IRS",
 			On:    "S.service_id = IRS.issuerepositoryservice_service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ []entity.Order) bool {
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, _ *Order) bool {
 				return len(f.IssueRepositoryId) > 0
 			}),
 		},
@@ -180,8 +180,8 @@ var serviceObject = DbObject[*entity.Service]{
 			Type:  LeftJoin,
 			Table: "mvServiceIssueCounts SIC",
 			On:    "S.service_id = SIC.service_id",
-			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, order []entity.Order) bool {
-				return OrderByCount(order)
+			Condition: WrapJoinCondition(func(f *entity.ServiceFilter, order *Order) bool {
+				return order.ByCount()
 			}),
 		},
 	},
@@ -237,27 +237,16 @@ func (s *SqlDatabase) buildServiceStatement(
 		return nil, nil, err
 	}
 
-	cursorQuery := CreateCursorQuery("", cursorFields)
-
-	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := serviceObject.GetJoins(filter, order)
-	filterStr := serviceObject.GetFilterQuery(filter)
-
-	whereClause := ""
-	if filterStr != "" || withCursor {
-		whereClause = fmt.Sprintf("WHERE %s", filterStr)
-	}
-
-	if filterStr != "" && withCursor && cursorQuery != "" {
-		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
-	}
+	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
+	joins := serviceObject.GetJoins(filter, ord)
+	whereClause, hasFilter := serviceObject.GetFilterWhereClause(filter, withCursor)
+	cursorQuery := serviceObject.GetCursorQuery(&hasFilter, cursorFields, &withCursor, true)
 
 	// construct final query
 	if withCursor {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, cursorQuery, ord)
 	} else {
-		query = fmt.Sprintf(baseQuery, joins, whereClause, orderStr)
+		query = fmt.Sprintf(baseQuery, joins, whereClause, ord)
 	}
 
 	// construct prepared statement and if where clause does exist add parameters
@@ -435,10 +424,9 @@ func (s *SqlDatabase) GetServicesWithAggregations(
         JOIN IssueMatchCounts IMC ON CIC.service_id = IMC.service_id;
     `
 	filter = ensureServiceFilter(filter)
-	order = GetDefaultOrder(order, entity.ServiceId, entity.OrderDirectionAsc)
-	orderStr := CreateOrderString(order)
-	joins := serviceObject.GetJoins(filter, order)
-	columns := s.getServiceColumns(filter, order)
+	ord := NewOrder(order, entity.Order{By: entity.ServiceId, Direction: entity.OrderDirectionAsc})
+	joins := serviceObject.GetJoins(filter, ord)
+	columns := s.getServiceColumns(filter, ord.Sequence())
 
 	cursorFields, err := DecodeCursor(filter.After)
 	if err != nil {
@@ -458,8 +446,8 @@ func (s *SqlDatabase) GetServicesWithAggregations(
 		cursorQuery = fmt.Sprintf(" HAVING (%s)", cursorQuery)
 	}
 
-	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, orderStr)
-	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, orderStr)
+	imQuery := fmt.Sprintf(baseImQuery, columns, joins, whereClause, cursorQuery, ord)
+	ciQuery := fmt.Sprintf(baseCiQuery, columns, joins, whereClause, cursorQuery, ord)
 	query := fmt.Sprintf(baseQuery, imQuery, ciQuery)
 
 	stmt, err := s.db.PreparexContext(ctx, query)

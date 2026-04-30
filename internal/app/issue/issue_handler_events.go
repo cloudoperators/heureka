@@ -120,8 +120,7 @@ func OnComponentVersionAttachmentToIssue(
 		"payload": e,
 	})
 
-	// TODO: add context
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	if attachmentEvent, ok := e.(*AddComponentVersionToIssueEvent); ok {
 		// Get ComponentInstances
